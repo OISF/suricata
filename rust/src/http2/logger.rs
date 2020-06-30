@@ -21,53 +21,62 @@ use crate::json::*;
 use std;
 
 fn log_http2(tx: &HTTP2Transaction) -> Json {
+    //TODO7 use jsonbuilder
     let js = Json::object();
-    if let Some(ref ftype) = tx.ftype {
-        js.set_string("frame_type", &ftype.to_string());
-    }
-    match &tx.type_data {
-        Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
-            js.set_string("error_code", &goaway.errorcode.to_string());
-        }
-        Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-            let jsettings = Json::array();
-            for i in 0..set.len() {
-                let jss = Json::object();
-                jss.set_string("settings_id", &set[i].id.to_string());
-                jss.set_integer("settings_value", set[i].value as u64);
-                jsettings.array_append(jss)
+
+    let jsreq = Json::object();
+    for i in 0..tx.frames_ts.len() {
+        match &tx.frames_ts[i].data {
+            HTTP2FrameTypeData::GOAWAY(goaway) => {
+                //TODO7 ensure uniqueness
+                js.set_string("error_code", &goaway.errorcode.to_string());
             }
-            js.set("settings", jsettings);
-        }
-        Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
-            js.set_string("error_code", &rst.errorcode.to_string());
-        }
-        Some(HTTP2FrameTypeData::PRIORITY(priority)) => {
-            js.set_integer("priority", priority.weight as u64);
-        }
-        Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
-            js.set_integer("window", wu.sizeinc as u64);
-        }
-        Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-            if let Some(ref priority) = hd.priority {
+            HTTP2FrameTypeData::SETTINGS(set) => {
+                let jsettings = Json::array();
+                for i in 0..set.len() {
+                    let jss = Json::object();
+                    jss.set_string("settings_id", &set[i].id.to_string());
+                    jss.set_integer("settings_value", set[i].value as u64);
+                    jsettings.array_append(jss)
+                }
+                js.set("settings", jsettings);
+            }
+            HTTP2FrameTypeData::RSTSTREAM(rst) => {
+                js.set_string("error_code", &rst.errorcode.to_string());
+            }
+            HTTP2FrameTypeData::PRIORITY(priority) => {
                 js.set_integer("priority", priority.weight as u64);
             }
-            let headers = Json::array();
-            //TODOask filter based on configuration ?
-            for i in 0..hd.blocks.len() {
-                let jss = Json::object();
-                if hd.blocks[i].error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
-                    jss.set_string_from_bytes("name", &hd.blocks[i].name);
-                    jss.set_string_from_bytes("value", &hd.blocks[i].value);
-                } else {
-                    jss.set_string("error", &hd.blocks[i].error.to_string());
-                }
-                headers.array_append(jss)
+            HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
+                js.set_integer("window", wu.sizeinc as u64);
             }
-            js.set("headers", headers);
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                if let Some(ref priority) = hd.priority {
+                    js.set_integer("priority", priority.weight as u64);
+                }
+                let headers = Json::array();
+                //TODOask filter based on configuration ?
+                for i in 0..hd.blocks.len() {
+                    let jss = Json::object();
+                    if hd.blocks[i].error
+                        == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess
+                    {
+                        jss.set_string_from_bytes("name", &hd.blocks[i].name);
+                        jss.set_string_from_bytes("value", &hd.blocks[i].value);
+                    } else {
+                        jss.set_string("error", &hd.blocks[i].error.to_string());
+                    }
+                    headers.array_append(jss)
+                }
+                js.set("headers", headers);
+            }
+            _ => {}
         }
-        _ => {}
     }
+    js.set("request", jsreq);
+
+    //TODO7 response
+
     return js;
 }
 

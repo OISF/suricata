@@ -22,34 +22,26 @@ use std::ffi::CStr;
 use std::mem::transmute;
 use std::str::FromStr;
 
-//TODO6tx has_frametype
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_frametype(
-    tx: *mut std::os::raw::c_void, direction: u8,
+pub extern "C" fn rs_http2_tx_has_frametype(
+    tx: *mut std::os::raw::c_void, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    //TODO6tx check use of direction
-    match direction {
-        STREAM_TOSERVER => match &tx.ftype {
-            None => {
-                return -1;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            if tx.frames_ts[i].header.ftype as u8 == value {
+                return 1;
             }
-            Some(x) => {
-                return *x as i32;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.ftype {
-            None => {
-                return -1;
-            }
-            Some(x) => {
-                return *x as i32;
-            }
-        },
-        _ => {}
+        }
     }
-
-    return -1;
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            if tx.frames_tc[i].header.ftype as u8 == value {
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -66,37 +58,45 @@ pub unsafe extern "C" fn rs_http2_parse_frametype(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_errorcode(
-    tx: *mut std::os::raw::c_void, direction: u8,
+pub extern "C" fn rs_http2_tx_has_errorcode(
+    tx: *mut std::os::raw::c_void, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
-                return goaway.errorcode as i32;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match tx.frames_ts[i].data {
+                HTTP2FrameTypeData::GOAWAY(goaway) => {
+                    if goaway.errorcode as u32 == code {
+                        return 1;
+                    }
+                }
+                HTTP2FrameTypeData::RSTSTREAM(rst) => {
+                    if rst.errorcode as u32 == code {
+                        return 1;
+                    }
+                }
+                _ => {}
             }
-            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
-                return rst.errorcode as i32;
-            }
-            _ => {
-                return -1;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
-                return goaway.errorcode as i32;
-            }
-            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
-                return rst.errorcode as i32;
-            }
-            _ => {
-                return -1;
-            }
-        },
-        _ => {}
+        }
     }
-
-    return -1;
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match tx.frames_tc[i].data {
+                HTTP2FrameTypeData::GOAWAY(goaway) => {
+                    if goaway.errorcode as u32 == code {
+                        return 1;
+                    }
+                }
+                HTTP2FrameTypeData::RSTSTREAM(rst) => {
+                    if rst.errorcode as u32 == code {
+                        return 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -113,68 +113,94 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_priority(
-    tx: *mut std::os::raw::c_void, direction: u8,
+pub extern "C" fn rs_http2_tx_get_next_priority(
+    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
-                return prio.weight as i32;
-            }
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if let Some(prio) = hd.priority {
-                    return prio.weight as i32;
+    let mut pos = 0 as u32;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match &tx.frames_ts[i].data {
+                HTTP2FrameTypeData::PRIORITY(prio) => {
+                    if pos == nb {
+                        return prio.weight as i32;
+                    } else {
+                        pos = pos + 1;
+                    }
                 }
-            }
-            _ => {
-                return -1;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
-                return prio.weight as i32;
-            }
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if let Some(prio) = hd.priority {
-                    return prio.weight as i32;
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if let Some(prio) = hd.priority {
+                        if pos == nb {
+                            return prio.weight as i32;
+                        } else {
+                            pos = pos + 1;
+                        }
+                    }
                 }
+                _ => {}
             }
-            _ => {
-                return -1;
-            }
-        },
-        _ => {}
+        }
     }
-
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match &tx.frames_tc[i].data {
+                HTTP2FrameTypeData::PRIORITY(prio) => {
+                    if pos == nb {
+                        return prio.weight as i32;
+                    } else {
+                        pos = pos + 1;
+                    }
+                }
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if let Some(prio) = hd.priority {
+                        if pos == nb {
+                            return prio.weight as i32;
+                        } else {
+                            pos = pos + 1;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
     return -1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_window(
-    tx: *mut std::os::raw::c_void, direction: u8,
+pub extern "C" fn rs_http2_tx_get_next_window(
+    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
-                return wu.sizeinc as i32;
+    let mut pos = 0 as u32;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match tx.frames_ts[i].data {
+                HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
+                    if pos == nb {
+                        return wu.sizeinc as i32;
+                    } else {
+                        pos = pos + 1;
+                    }
+                }
+                _ => {}
             }
-            _ => {
-                return -1;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
-                return wu.sizeinc as i32;
-            }
-            _ => {
-                return -1;
-            }
-        },
-        _ => {}
+        }
     }
-
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match tx.frames_tc[i].data {
+                HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
+                    if pos == nb {
+                        return wu.sizeinc as i32;
+                    } else {
+                        pos = pos + 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
     return -1;
 }
 
@@ -254,22 +280,30 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return http2_detect_settings_match(set, ctx)
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match &tx.frames_ts[i].data {
+                HTTP2FrameTypeData::SETTINGS(set) => {
+                    if http2_detect_settings_match(&set, ctx) != 0 {
+                        return 1;
+                    }
+                }
+                _ => {}
             }
-            _ => {}
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return http2_detect_settings_match(set, ctx)
-            }
-            _ => {}
-        },
-        _ => {}
+        }
     }
-
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match &tx.frames_tc[i].data {
+                HTTP2FrameTypeData::SETTINGS(set) => {
+                    if http2_detect_settings_match(&set, ctx) != 0 {
+                        return 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
     return 0;
 }
 
@@ -342,55 +376,72 @@ pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectU64Data);
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => return http2_detect_sizeupdate_match(hd, ctx),
-            _ => {}
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => return http2_detect_sizeupdate_match(hd, ctx),
-            _ => {}
-        },
-        _ => {}
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match &tx.frames_ts[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                        return 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match &tx.frames_tc[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                        return 1;
+                    }
+                }
+                _ => {}
+            }
+        }
     }
     return 0;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
-    tx: &mut HTTP2Transaction, direction: u8, i: u32, buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if (i as usize) < hd.blocks.len() {
-                    let value = &hd.blocks[i as usize].name;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
+    let mut pos = 0 as u32;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match &tx.frames_ts[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if nb < pos + hd.blocks.len() as u32 {
+                        let value = &hd.blocks[(nb - pos) as usize].name;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + hd.blocks.len() as u32;
+                    }
                 }
+                _ => {}
             }
-            _ => {
-                return 0;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if (i as usize) < hd.blocks.len() {
-                    let value = &hd.blocks[i as usize].name;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                }
-            }
-            _ => {
-                return 0;
-            }
-        },
-        _ => {}
+        }
     }
-
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match &tx.frames_tc[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if nb < pos + hd.blocks.len() as u32 {
+                        let value = &hd.blocks[(nb - pos) as usize].name;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + hd.blocks.len() as u32;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
     return 0;
 }
 
@@ -417,56 +468,44 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header(
-    tx: &mut HTTP2Transaction, direction: u8, i: u32, buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if (i as usize) < hd.blocks.len() {
-                    let vec = http2_escape_header(hd, i);
-                    let value = &vec;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
-                }
-            }
-            _ => {
-                return 0;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
-                if (i as usize) < hd.blocks.len() {
-                    let mut vec = Vec::new();
-                    for j in 0..hd.blocks[i as usize].name.len() {
-                        vec.push(hd.blocks[i as usize].name[j]);
-                        /* this escaping is needed
-                         * to avoid amibguity with separator between name and value
-                         */
-                        if hd.blocks[i as usize].name[j] == ':' as u8 {
-                            vec.push(':' as u8);
-                        }
+    let mut pos = 0 as u32;
+    if direction & STREAM_TOSERVER != 0 {
+        for i in 0..tx.frames_ts.len() {
+            match &tx.frames_ts[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if nb < pos + hd.blocks.len() as u32 {
+                        let vec = http2_escape_header(&hd, nb - pos);
+                        let value = &vec;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + hd.blocks.len() as u32;
                     }
-                    vec.push(':' as u8);
-                    vec.push(' ' as u8);
-                    for j in 0..hd.blocks[i as usize].value.len() {
-                        vec.push(hd.blocks[i as usize].value[j]);
-                        if hd.blocks[i as usize].value[j] == ':' as u8 {
-                            vec.push(':' as u8);
-                        }
-                    }
-                    let value = &vec;
-                    *buffer = value.as_ptr(); //unsafe
-                    *buffer_len = value.len() as u32;
-                    return 1;
                 }
+                _ => {}
             }
-            _ => {
-                return 0;
+        }
+    }
+    if direction & STREAM_TOCLIENT != 0 {
+        for i in 0..tx.frames_tc.len() {
+            match &tx.frames_tc[i].data {
+                HTTP2FrameTypeData::HEADERS(hd) => {
+                    if nb < pos + hd.blocks.len() as u32 {
+                        let vec = http2_escape_header(&hd, nb - pos);
+                        let value = &vec;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    } else {
+                        pos = pos + hd.blocks.len() as u32;
+                    }
+                }
+                _ => {}
             }
-        },
-        _ => {}
+        }
     }
 
     return 0;

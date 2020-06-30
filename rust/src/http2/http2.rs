@@ -59,8 +59,21 @@ const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+pub enum HTTP2FrameUnhandledReason {
+    UnknownType = 0,
+    TooLong = 1,
+    ParsingError = 2,
+    Incomplete = 3,
+}
+
+#[derive(Debug)]
+pub struct HTTP2FrameUnhandled {
+    pub reason: HTTP2FrameUnhandledReason,
+}
+
 pub enum HTTP2FrameTypeData {
-    //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
     RSTSTREAM(parser::HTTP2FrameRstStream),
@@ -69,14 +82,34 @@ pub enum HTTP2FrameTypeData {
     HEADERS(parser::HTTP2FrameHeaders),
     PUSHPROMISE(parser::HTTP2FramePushPromise),
     CONTINUATION(parser::HTTP2FrameContinuation),
+    PING,
+    DATA,
+    //not a defined frame
+    UNHANDLED(HTTP2FrameUnhandled),
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
+pub enum HTTP2TransactionState {
+    Http2StreamStateIdle = 0,
+    Http2StreamStateOpen = 1,
+    Http2StreamStateClosed = 2,
+    Http2StreamStateGlobal = 3,
+}
+
+pub struct HTTP2Frame {
+    pub header: parser::HTTP2FrameHeader,
+    pub data: HTTP2FrameTypeData,
 }
 
 pub struct HTTP2Transaction {
     tx_id: u64,
-    pub ftype: Option<parser::HTTP2FrameType>,
+    stream_id: u32,
+    state_tc: HTTP2TransactionState,
+    state_ts: HTTP2TransactionState,
 
-    /// Command specific data
-    pub type_data: Option<HTTP2FrameTypeData>,
+    pub frames_tc: Vec<HTTP2Frame>,
+    pub frames_ts: Vec<HTTP2Frame>,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -89,8 +122,11 @@ impl HTTP2Transaction {
     pub fn new() -> HTTP2Transaction {
         HTTP2Transaction {
             tx_id: 0,
-            ftype: None,
-            type_data: None,
+            stream_id: 0,
+            state_tc: HTTP2TransactionState::Http2StreamStateIdle,
+            state_ts: HTTP2TransactionState::Http2StreamStateIdle,
+            frames_tc: Vec::new(),
+            frames_ts: Vec::new(),
             logged: LoggerFlags::new(),
             de_state: None,
             detect_flags: TxDetectFlags::default(),
@@ -146,7 +182,8 @@ pub struct HTTP2State {
     tx_id: u64,
     request_frame_size: u32,
     response_frame_size: u32,
-    dynamic_headers: Vec<parser::HTTP2FrameHeaderBlock>,
+    dynamic_headers_ts: Vec<parser::HTTP2FrameHeaderBlock>,
+    dynamic_headers_tc: Vec<parser::HTTP2FrameHeaderBlock>,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: HTTP2Files,
@@ -158,7 +195,8 @@ impl HTTP2State {
             tx_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
-            dynamic_headers: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
+            dynamic_headers_ts: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
+            dynamic_headers_tc: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             files: HTTP2Files::new(),
@@ -213,6 +251,209 @@ impl HTTP2State {
         return tx;
     }
 
+    fn parse_frame_data(
+        &mut self, ftype: u8, input: &[u8], _complete: bool, hflags: u8,
+    ) -> HTTP2FrameTypeData {
+        //TODO5 use complete ? and HTTP2FrameUnhandledReason::TooLong
+        match num::FromPrimitive::from_u8(ftype) {
+            Some(parser::HTTP2FrameType::GOAWAY) => {
+                if input.len() < HTTP2_FRAME_GOAWAY_LEN {
+                    self.set_event(HTTP2Event::InvalidFrameLength);
+                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        reason: HTTP2FrameUnhandledReason::Incomplete,
+                    });
+                } else {
+                    match parser::http2_parse_frame_goaway(input) {
+                        Ok((_, goaway)) => {
+                            //TODOask set an event on remaining data
+                            return HTTP2FrameTypeData::GOAWAY(goaway);
+                        }
+                        Err(_) => {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        }
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::SETTINGS) => {
+                match parser::http2_parse_frame_settings(input) {
+                    Ok((_, set)) => {
+                        return HTTP2FrameTypeData::SETTINGS(set);
+                    }
+                    Err(_) => {
+                        self.set_event(HTTP2Event::InvalidFrameData);
+                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            reason: HTTP2FrameUnhandledReason::ParsingError,
+                        });
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::RSTSTREAM) => {
+                if input.len() != HTTP2_FRAME_RSTSTREAM_LEN {
+                    self.set_event(HTTP2Event::InvalidFrameLength);
+                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        reason: HTTP2FrameUnhandledReason::Incomplete,
+                    });
+                } else {
+                    match parser::http2_parse_frame_rststream(input) {
+                        Ok((_, rst)) => {
+                            return HTTP2FrameTypeData::RSTSTREAM(rst);
+                        }
+                        Err(_) => {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        }
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::PRIORITY) => {
+                if input.len() != HTTP2_FRAME_PRIORITY_LEN {
+                    self.set_event(HTTP2Event::InvalidFrameLength);
+                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        reason: HTTP2FrameUnhandledReason::Incomplete,
+                    });
+                } else {
+                    match parser::http2_parse_frame_priority(input) {
+                        Ok((_, priority)) => {
+                            return HTTP2FrameTypeData::PRIORITY(priority);
+                        }
+                        Err(_) => {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        }
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::WINDOWUPDATE) => {
+                if input.len() != HTTP2_FRAME_WINDOWUPDATE_LEN {
+                    self.set_event(HTTP2Event::InvalidFrameLength);
+                    return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                        reason: HTTP2FrameUnhandledReason::Incomplete,
+                    });
+                } else {
+                    match parser::http2_parse_frame_windowupdate(input) {
+                        Ok((_, wu)) => {
+                            return HTTP2FrameTypeData::WINDOWUPDATE(wu);
+                        }
+                        Err(_) => {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        }
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::PUSHPROMISE) => {
+                match parser::http2_parse_frame_push_promise(
+                    input,
+                    hflags,
+                    &mut self.dynamic_headers_ts,
+                ) {
+                    Ok((_, hs)) => {
+                        for i in 0..hs.blocks.len() {
+                            if hs.blocks[i].error
+                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
+                            {
+                                self.set_event(HTTP2Event::InvalidHeader);
+                            }
+                        }
+                        //TODO6tx right transaction wih promised headers
+                        return HTTP2FrameTypeData::PUSHPROMISE(hs);
+                    }
+                    Err(_) => {
+                        self.set_event(HTTP2Event::InvalidFrameData);
+                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            reason: HTTP2FrameUnhandledReason::ParsingError,
+                        });
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::DATA) => {
+                //TODOask use streaming buffer directly
+                /*TODO6tx match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                    Some(sfcm) => {
+                        let xid: u32 = tx.tx_id as u32;
+                        tx.ft.new_chunk(
+                            sfcm,
+                            &mut self.files.files_ts,
+                            self.files.flags_ts,
+                            b"",
+                            input,
+                            tx.ft.tracked, //offset = append
+                            input.len() as u32,
+                            0,
+                            hflags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
+                            &xid,
+                        );
+                    }
+                    None => panic!("BUG"),
+                }*/
+                return HTTP2FrameTypeData::DATA;
+            }
+            Some(parser::HTTP2FrameType::CONTINUATION) => {
+                match parser::http2_parse_frame_continuation(input, &mut self.dynamic_headers_ts) {
+                    Ok((_, hs)) => {
+                        for i in 0..hs.blocks.len() {
+                            if hs.blocks[i].error
+                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
+                            {
+                                self.set_event(HTTP2Event::InvalidHeader);
+                            }
+                        }
+                        //TODO6tx right transaction wih continued headers
+                        return HTTP2FrameTypeData::CONTINUATION(hs);
+                    }
+                    Err(_) => {
+                        self.set_event(HTTP2Event::InvalidFrameData);
+                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            reason: HTTP2FrameUnhandledReason::ParsingError,
+                        });
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::HEADERS) => {
+                match parser::http2_parse_frame_headers(input, hflags, &mut self.dynamic_headers_ts)
+                {
+                    Ok((hrem, hs)) => {
+                        for i in 0..hs.blocks.len() {
+                            if hs.blocks[i].error
+                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
+                            {
+                                self.set_event(HTTP2Event::InvalidHeader);
+                            }
+                        }
+                        if hrem.len() > 0 {
+                            SCLogNotice!("Remaining data for HTTP2 headers");
+                            self.set_event(HTTP2Event::ExtraHeaderData);
+                        }
+                        return HTTP2FrameTypeData::HEADERS(hs);
+                    }
+                    Err(_) => {
+                        self.set_event(HTTP2Event::InvalidFrameData);
+                        return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                            reason: HTTP2FrameUnhandledReason::ParsingError,
+                        });
+                    }
+                }
+            }
+            Some(parser::HTTP2FrameType::PING) => {
+                return HTTP2FrameTypeData::PING;
+            }
+            _ => {
+                return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                    reason: HTTP2FrameUnhandledReason::UnknownType,
+                });
+            }
+        }
+    }
+
     fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
@@ -234,244 +475,37 @@ impl HTTP2State {
                 Ok((rem, head)) => {
                     //TODO6tx handle transactions the right way
                     let mut tx = self.new_tx();
-                    tx.ftype = Some(head.ftype);
                     let hl = head.length as usize;
-                    match head.ftype {
-                        parser::HTTP2FrameType::GOAWAY => {
-                            if hl < HTTP2_FRAME_GOAWAY_LEN {
-                                self.set_event(HTTP2Event::InvalidFrameLength);
-                            } else {
-                                match parser::http2_parse_frame_goaway(rem) {
-                                    Ok((_, goaway)) => {
-                                        tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
-                                    }
-                                    // do not trust nom incomplete value
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        return AppLayerResult::incomplete(
-                                            (il - input.len()) as u32,
-                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_GOAWAY_LEN)
-                                                as u32,
-                                        );
-                                    }
-                                    Err(_) => {
-                                        self.set_event(HTTP2Event::InvalidFrameData);
-                                    }
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::SETTINGS => {
-                            //we need to check for completeness first
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOSERVER,
-                                );
-                            }
-                            match parser::http2_parse_frame_settings(&rem[..hl]) {
-                                Ok((_, set)) => {
-                                    tx.type_data = Some(HTTP2FrameTypeData::SETTINGS(set));
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::RSTSTREAM => {
-                            if hl != HTTP2_FRAME_RSTSTREAM_LEN {
-                                self.set_event(HTTP2Event::InvalidFrameLength);
-                            } else {
-                                match parser::http2_parse_frame_rststream(rem) {
-                                    Ok((_, rst)) => {
-                                        tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
-                                    }
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        return AppLayerResult::incomplete(
-                                            (il - input.len()) as u32,
-                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_RSTSTREAM_LEN)
-                                                as u32,
-                                        );
-                                    }
-                                    Err(_) => {
-                                        self.set_event(HTTP2Event::InvalidFrameData);
-                                    }
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::PRIORITY => {
-                            if hl != HTTP2_FRAME_PRIORITY_LEN {
-                                self.set_event(HTTP2Event::InvalidFrameLength);
-                            } else {
-                                match parser::http2_parse_frame_priority(rem) {
-                                    Ok((_, priority)) => {
-                                        tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
-                                    }
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        return AppLayerResult::incomplete(
-                                            (il - input.len()) as u32,
-                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_PRIORITY_LEN)
-                                                as u32,
-                                        );
-                                    }
-                                    Err(_) => {
-                                        self.set_event(HTTP2Event::InvalidFrameData);
-                                    }
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::WINDOWUPDATE => {
-                            if hl != HTTP2_FRAME_WINDOWUPDATE_LEN {
-                                self.set_event(HTTP2Event::InvalidFrameLength);
-                            } else {
-                                match parser::http2_parse_frame_windowupdate(rem) {
-                                    Ok((_, wu)) => {
-                                        tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
-                                    }
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        return AppLayerResult::incomplete(
-                                            (il - input.len()) as u32,
-                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_WINDOWUPDATE_LEN)
-                                                as u32,
-                                        );
-                                    }
-                                    Err(_) => {
-                                        self.set_event(HTTP2Event::InvalidFrameData);
-                                    }
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::PUSHPROMISE => {
-                            //we need to check for completeness first
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOSERVER,
-                                );
-                            }
-                            match parser::http2_parse_frame_push_promise(
-                                &rem[..hl],
-                                head.flags,
-                                &mut self.dynamic_headers,
-                            ) {
-                                Ok((_, hs)) => {
-                                    for i in 0..hs.blocks.len() {
-                                        if hs.blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
-                                            self.set_event(HTTP2Event::InvalidHeader);
-                                        }
-                                    }
-                                    //TODO6tx right transaction wih promised headers
-                                    tx.type_data = Some(HTTP2FrameTypeData::PUSHPROMISE(hs));
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::DATA => {
-                            //we check for completeness first for code simplicity
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOSERVER,
-                                );
-                            }
-                            //TODOask use streaming buffer directly
-                            match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                                Some(sfcm) => {
-                                    let xid: u32 = tx.tx_id as u32;
-                                    tx.ft.new_chunk(
-                                        sfcm,
-                                        &mut self.files.files_ts,
-                                        self.files.flags_ts,
-                                        b"",
-                                        &rem[..hl],
-                                        tx.ft.tracked, //offset = append
-                                        hl as u32,
-                                        0,
-                                        head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
-                                        &xid,
-                                    );
-                                }
-                                None => panic!("BUG"),
-                            }
-                        }
-                        parser::HTTP2FrameType::CONTINUATION => {
-                            //we need to check for completeness first
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOSERVER,
-                                );
-                            }
-                            match parser::http2_parse_frame_continuation(
-                                &rem[..hl],
-                                &mut self.dynamic_headers,
-                            ) {
-                                Ok((_, hs)) => {
-                                    for i in 0..hs.blocks.len() {
-                                        if hs.blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
-                                            self.set_event(HTTP2Event::InvalidHeader);
-                                        }
-                                    }
-                                    //TODO6tx right transaction wih continued headers
-                                    tx.type_data = Some(HTTP2FrameTypeData::CONTINUATION(hs));
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
-                                }
-                            }
-                        }
-                        parser::HTTP2FrameType::HEADERS => {
-                            //we need to check for completeness first
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOSERVER,
-                                );
-                            }
-                            match parser::http2_parse_frame_headers(
-                                &rem[..hl],
-                                head.flags,
-                                &mut self.dynamic_headers,
-                            ) {
-                                Ok((hrem, hs)) => {
-                                    for i in 0..hs.blocks.len() {
-                                        if hs.blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
-                                            self.set_event(HTTP2Event::InvalidHeader);
-                                        }
-                                    }
-                                    if hrem.len() > 0 {
-                                        SCLogNotice!("Remaining data for HTTP2 headers");
-                                        self.set_event(HTTP2Event::ExtraHeaderData);
-                                    }
-                                    tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
-                                }
-                            }
-                        }
-                        //ignore ping case with opaque u64
-                        _ => {}
-                    }
-                    self.transactions.push(tx);
 
+                    //we check for completeness first
                     if rem.len() < hl {
-                        let rl = rem.len() as u32;
-                        self.request_frame_size = head.length - rl;
-                        return AppLayerResult::ok();
-                    } else {
-                        input = &rem[hl..];
+                        //but limit ourselves so as not to exhaust memory
+                        if hl < HTTP2_MAX_HANDLED_FRAME_SIZE {
+                            return AppLayerResult::incomplete(
+                                (il - input.len()) as u32,
+                                (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                            );
+                        } else {
+                            self.set_event(HTTP2Event::LongFrameData);
+                            self.request_frame_size = head.length - (rem.len() as u32);
+                        }
                     }
+
+                    //get a safe length for the buffer
+                    let (hlsafe, complete) = if rem.len() < hl {
+                        (rem.len(), false)
+                    } else {
+                        (hl, true)
+                    };
+
+                    let txdata =
+                        self.parse_frame_data(head.ftype, &rem[..hlsafe], complete, head.flags);
+                    tx.frames_ts.push(HTTP2Frame {
+                        header: head,
+                        data: txdata,
+                    });
+                    self.transactions.push(tx);
+                    input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     //we may have consumed data from previous records
@@ -493,23 +527,6 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
-    fn incomplete(&mut self, hl: usize, rl: usize, consumed: usize, dir: u8) -> AppLayerResult {
-        if hl < HTTP2_MAX_HANDLED_FRAME_SIZE {
-            return AppLayerResult::incomplete(
-                consumed as u32,
-                (HTTP2_FRAME_HEADER_LEN + hl) as u32,
-            );
-        } else {
-            if dir == STREAM_TOCLIENT {
-                self.response_frame_size = (hl - rl) as u32;
-            } else {
-                self.request_frame_size = (hl - rl) as u32;
-            }
-            self.set_event(HTTP2Event::LongFrameData);
-            return AppLayerResult::ok();
-        }
-    }
-
     fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
@@ -528,46 +545,10 @@ impl HTTP2State {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
-                    let mut tx = self.new_tx();
-                    tx.ftype = Some(head.ftype);
+                    let tx = self.new_tx();
 
                     //TODO6tx parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
-
-                    match head.ftype {
-                        parser::HTTP2FrameType::DATA => {
-                            //we check for completeness first for code simplicity
-                            if rem.len() < hl {
-                                return self.incomplete(
-                                    hl,
-                                    rem.len(),
-                                    il - input.len(),
-                                    STREAM_TOCLIENT,
-                                );
-                            }
-                            //TODOask use streaming buffer directly
-                            match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                                Some(sfcm) => {
-                                    //TODO6tx test with right transaction
-                                    let xid: u32 = tx.tx_id as u32;
-                                    tx.ft.new_chunk(
-                                        sfcm,
-                                        &mut self.files.files_ts,
-                                        self.files.flags_ts,
-                                        b"",
-                                        &rem[..hl],
-                                        tx.ft.tracked, //offset = append
-                                        hl as u32,
-                                        0,
-                                        head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
-                                        &xid,
-                                    );
-                                }
-                                None => panic!("BUG"),
-                            }
-                        }
-                        _ => {}
-                    }
 
                     self.transactions.push(tx);
                     if rem.len() < hl {
@@ -639,7 +620,7 @@ pub extern "C" fn rs_http2_probing_parser_tc(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
-                    || header.ftype != parser::HTTP2FrameType::SETTINGS
+                    || header.ftype != parser::HTTP2FrameType::SETTINGS as u8
                 {
                     return unsafe { ALPROTO_FAILED };
                 }
@@ -757,7 +738,7 @@ pub extern "C" fn rs_http2_tx_get_alstate_progress(
     let tx = cast_pointer!(tx, HTTP2Transaction);
 
     // Transaction is done if we have a response.
-    if tx.ftype.is_some() {
+    if tx.frames_tc.len() + tx.frames_ts.len() > 0 {
         return 1;
     }
     return 0;

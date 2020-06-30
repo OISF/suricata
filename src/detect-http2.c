@@ -266,12 +266,7 @@ static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
 {
     uint8_t *detect = (uint8_t *)ctx;
 
-    int value = rs_http2_tx_get_frametype(txv, flags);
-    if (value < 0) {
-        //no value, no match
-        return 0;
-    }
-    return *detect == value;
+    return rs_http2_tx_has_frametype(txv, flags, *detect);
 }
 
 static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
@@ -356,13 +351,8 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
 {
     uint32_t *detect = (uint32_t *)ctx;
 
-    int value = rs_http2_tx_get_errorcode(txv, flags);
-    if (value < 0) {
-        //no value, no match
-        return 0;
-    }
+    return rs_http2_tx_has_errorcode(txv, flags, *detect);
     //TODOask handle negation rules
-    return *detect == (uint32_t) value;
 }
 
 static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
@@ -445,14 +435,17 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    int value = rs_http2_tx_get_priority(txv, flags);
-    if (value < 0) {
-        //no value, no match
-        return 0;
-    }
-
+    uint32_t nb = 0;
+    int value = rs_http2_tx_get_next_priority(txv, flags, nb);
     const DetectU8Data *du8 = (const DetectU8Data *)ctx;
-    return DetectU8Match(value, du8);
+    while (value >= 0) {
+        if (DetectU8Match(value, du8)) {
+            return 1;
+        }
+        nb++;
+        value = rs_http2_tx_get_next_priority(txv, flags, nb);
+    }
+    return 0;
 }
 
 /**
@@ -509,14 +502,17 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    int value = rs_http2_tx_get_window(txv, flags);
-    if (value < 0) {
-        //no value, no match
-        return 0;
-    }
-
+    uint32_t nb = 0;
+    int value = rs_http2_tx_get_next_window(txv, flags, nb);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    return DetectU32Match(value, du32);
+    while (value >= 0) {
+        if (DetectU32Match(value, du32)) {
+            return 1;
+        }
+        nb++;
+        value = rs_http2_tx_get_next_window(txv, flags, nb);
+    }
+    return 0;
 }
 
 /**

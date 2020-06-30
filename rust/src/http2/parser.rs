@@ -72,7 +72,7 @@ impl std::str::FromStr for HTTP2FrameType {
 pub struct HTTP2FrameHeader {
     //TODOask detection on (GOAWAY) additional data = length
     pub length: u32,
-    pub ftype: HTTP2FrameType,
+    pub ftype: u8,
     pub flags: u8,
     pub reserved: u8,
     stream_id: u32,
@@ -81,8 +81,7 @@ pub struct HTTP2FrameHeader {
 named!(pub http2_parse_frame_header<HTTP2FrameHeader>,
     do_parse!(
         length: bits!( take_bits!(24u32) ) >>
-        ftype: map_opt!( be_u8,
-                         num::FromPrimitive::from_u8 ) >>
+        ftype: be_u8 >>
         flags: be_u8 >>
         stream_id: bits!( tuple!( take_bits!(1u8),
                                   take_bits!(31u32) ) ) >>
@@ -109,6 +108,7 @@ pub enum HTTP2ErrorCode {
     ENHANCEYOURCALM = 11,
     INADEQUATESECURITY = 12,
     HTTP11REQUIRED = 13,
+    //TODO7 Undefined(u32),
 }
 
 impl fmt::Display for HTTP2ErrorCode {
