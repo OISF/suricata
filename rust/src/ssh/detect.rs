@@ -90,3 +90,81 @@ pub extern "C" fn rs_ssh_tx_get_software(
 
     return 0;
 }
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_hassh(
+    tx: *mut std::os::raw::c_void,
+    buffer: *mut *const u8,
+    buffer_len: *mut u32,
+    direction: u8,
+) -> u8 {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    match direction {
+        STREAM_TOSERVER => {
+            let m = &tx.cli_hdr.hassh;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
+        STREAM_TOCLIENT => {
+            let m = &tx.srv_hdr.hassh;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
+        _ => {}
+    }
+    unsafe {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+    }
+
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_hassh_string(
+    tx: *mut std::os::raw::c_void,
+    buffer: *mut *const u8,
+    buffer_len: *mut u32,
+    direction: u8,
+) -> u8 {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    match direction {
+        STREAM_TOSERVER => {
+            let m = &tx.cli_hdr.hassh_string;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
+        STREAM_TOCLIENT => {
+            let m = &tx.srv_hdr.hassh_string;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
+        _ => {}
+    }
+    unsafe {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+    }
+
+    return 0;
+}
