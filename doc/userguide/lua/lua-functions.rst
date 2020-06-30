@@ -672,6 +672,72 @@ Example:
       end
   end
 
+
+HasshGet
+~~~~~~~~
+
+Get MD5 of hassh algorithms used by the client through HasshGet.
+
+Example:
+
+::
+
+  function log (args)
+      hassh = HasshGet()
+      if hassh == nil then
+          return 0
+      end
+  end
+
+HasshGetString
+~~~~~~~~~~~~~~
+
+Get hassh algorithms used by the client through HasshGetString.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshGetString()
+      if hassh == nil then
+          return 0
+      end
+  end
+  
+HasshServerGet
+~~~~~~~~~~~~~~
+
+Get MD5 of hassh algorithms used by the server through HasshServerGet.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshServerGet()
+      if hassh == nil then
+          return 0
+      end
+  end
+  
+HasshServerGetString
+~~~~~~~~~~~~~~~~~~~~
+
+Get hassh algorithms used by the server through HasshServerGetString.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshServerGetString()
+      if hassh == nil then
+          return 0
+      end
+  end
+
+
 Files
 -----
 
