@@ -33,6 +33,7 @@ use std::mem::transmute;
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
+const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
 
 //TODOask why option ?
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
@@ -123,6 +124,7 @@ pub enum HTTP2Event {
     InvalidHeader,
     InvalidFrameLength,
     ExtraHeaderData,
+    LongFrameData,
 }
 
 impl HTTP2Event {
@@ -134,6 +136,7 @@ impl HTTP2Event {
             3 => Some(HTTP2Event::InvalidHeader),
             4 => Some(HTTP2Event::InvalidFrameLength),
             5 => Some(HTTP2Event::ExtraHeaderData),
+            6 => Some(HTTP2Event::LongFrameData),
             _ => None,
         }
     }
@@ -259,9 +262,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::SETTINGS => {
                             //we need to check for completeness first
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOSERVER,
                                 );
                             }
                             match parser::http2_parse_frame_settings(&rem[..hl]) {
@@ -339,9 +344,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::PUSHPROMISE => {
                             //we need to check for completeness first
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOSERVER,
                                 );
                             }
                             match parser::http2_parse_frame_push_promise(
@@ -366,9 +373,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::DATA => {
                             //we check for completeness first for code simplicity
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOSERVER,
                                 );
                             }
                             //TODOask use streaming buffer directly
@@ -394,9 +403,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::CONTINUATION => {
                             //we need to check for completeness first
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOSERVER,
                                 );
                             }
                             match parser::http2_parse_frame_continuation(
@@ -420,9 +431,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::HEADERS => {
                             //we need to check for completeness first
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOSERVER,
                                 );
                             }
                             match parser::http2_parse_frame_headers(
@@ -480,6 +493,23 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
+    fn incomplete(&mut self, hl: usize, rl: usize, consumed: usize, dir: u8) -> AppLayerResult {
+        if hl < HTTP2_MAX_HANDLED_FRAME_SIZE {
+            return AppLayerResult::incomplete(
+                consumed as u32,
+                (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+            );
+        } else {
+            if dir == STREAM_TOCLIENT {
+                self.response_frame_size = (hl - rl) as u32;
+            } else {
+                self.request_frame_size = (hl - rl) as u32;
+            }
+            self.set_event(HTTP2Event::LongFrameData);
+            return AppLayerResult::ok();
+        }
+    }
+
     fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
@@ -508,9 +538,11 @@ impl HTTP2State {
                         parser::HTTP2FrameType::DATA => {
                             //we check for completeness first for code simplicity
                             if rem.len() < hl {
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                return self.incomplete(
+                                    hl,
+                                    rem.len(),
+                                    il - input.len(),
+                                    STREAM_TOCLIENT,
                                 );
                             }
                             //TODOask use streaming buffer directly
@@ -534,7 +566,6 @@ impl HTTP2State {
                                 None => panic!("BUG"),
                             }
                         }
-                        //ignore ping case with opaque u64
                         _ => {}
                     }
 
@@ -714,6 +745,7 @@ pub extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
+    //TODO6tx progress completion
     return 1;
 }
 
@@ -721,6 +753,7 @@ pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> s
 pub extern "C" fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
+    //TODO6tx progress completion
     let tx = cast_pointer!(tx, HTTP2Transaction);
 
     // Transaction is done if we have a response.
@@ -772,6 +805,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "invalid_header" => HTTP2Event::InvalidHeader as i32,
                 "invalid_frame_length" => HTTP2Event::InvalidFrameLength as i32,
                 "extra_header_data" => HTTP2Event::ExtraHeaderData as i32,
+                "long_frame_data" => HTTP2Event::LongFrameData as i32,
                 _ => -1, // unknown event
             }
         }
@@ -797,6 +831,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::InvalidHeader => "invalid_header\0",
             HTTP2Event::InvalidFrameLength => "invalid_frame_length\0",
             HTTP2Event::ExtraHeaderData => "extra_header_data\0",
+            HTTP2Event::LongFrameData => "long_frame_data\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -859,7 +894,6 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         parse_tc: rs_http2_parse_tc,
         get_tx_count: rs_http2_state_get_tx_count,
         get_tx: rs_http2_state_get_tx,
-        //TODO6tx progress completion
         tx_get_comp_st: rs_http2_state_progress_completion_status,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
         get_tx_logged: Some(rs_http2_tx_get_logged),

@@ -22,6 +22,7 @@ use std::ffi::CStr;
 use std::mem::transmute;
 use std::str::FromStr;
 
+//TODO6tx has_frametype
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_frametype(
     tx: *mut std::os::raw::c_void, direction: u8,
@@ -55,7 +56,7 @@ pub extern "C" fn rs_http2_tx_get_frametype(
 pub unsafe extern "C" fn rs_http2_parse_frametype(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
-    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok(x) = parser::HTTP2FrameType::from_str(s) {
             return x as i32;
@@ -102,7 +103,7 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
 pub unsafe extern "C" fn rs_http2_parse_errorcode(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
-    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok(x) = parser::HTTP2ErrorCode::from_str(s) {
             return x as i32;
@@ -181,7 +182,7 @@ pub extern "C" fn rs_http2_tx_get_window(
 pub unsafe extern "C" fn rs_http2_parse_settingsid(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
-    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok(x) = parser::HTTP2SettingsId::from_str(s) {
             return x as i32;
@@ -194,11 +195,11 @@ pub unsafe extern "C" fn rs_http2_parse_settingsid(
 pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
-    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = parser::http2_parse_settingsctx(s) {
             let boxed = Box::new(ctx);
-            return unsafe { transmute(boxed) };
+            return transmute(boxed); //unsafe
         }
     }
     return std::ptr::null_mut();
@@ -207,7 +208,7 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = unsafe { transmute(ctx) };
+    let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = transmute(ctx);
 }
 
 fn http2_detect_settings_match(
@@ -276,11 +277,11 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 pub unsafe extern "C" fn rs_detect_u64_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
-    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = parser::detect_parse_u64(s) {
             let boxed = Box::new(ctx);
-            return unsafe { transmute(boxed) };
+            return transmute(boxed); //unsafe
         }
     }
     return std::ptr::null_mut();
@@ -289,7 +290,7 @@ pub unsafe extern "C" fn rs_detect_u64_parse(
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _ctx: Box<parser::DetectU64Data> = unsafe { transmute(ctx) };
+    let _ctx: Box<parser::DetectU64Data> = transmute(ctx);
 }
 
 fn http2_detect_sizeupdate_match(
@@ -357,19 +358,16 @@ pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
-    tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
+    tx: &mut HTTP2Transaction, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
         STREAM_TOSERVER => match &tx.type_data {
             Some(HTTP2FrameTypeData::HEADERS(hd)) => {
                 if (i as usize) < hd.blocks.len() {
                     let value = &hd.blocks[i as usize].name;
-                    unsafe {
-                        *buffer = value.as_ptr();
-                        *buffer_len = value.len() as u32;
-                    }
+                    *buffer = value.as_ptr(); //unsafe
+                    *buffer_len = value.len() as u32;
                     return 1;
                 }
             }
@@ -381,10 +379,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
             Some(HTTP2FrameTypeData::HEADERS(hd)) => {
                 if (i as usize) < hd.blocks.len() {
                     let value = &hd.blocks[i as usize].name;
-                    unsafe {
-                        *buffer = value.as_ptr();
-                        *buffer_len = value.len() as u32;
-                    }
+                    *buffer = value.as_ptr(); //unsafe
+                    *buffer_len = value.len() as u32;
                     return 1;
                 }
             }
@@ -421,20 +417,17 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header(
-    tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
+    tx: &mut HTTP2Transaction, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
         STREAM_TOSERVER => match &tx.type_data {
             Some(HTTP2FrameTypeData::HEADERS(hd)) => {
                 if (i as usize) < hd.blocks.len() {
                     let vec = http2_escape_header(hd, i);
                     let value = &vec;
-                    unsafe {
-                        *buffer = value.as_ptr();
-                        *buffer_len = value.len() as u32;
-                    }
+                    *buffer = value.as_ptr(); //unsafe
+                    *buffer_len = value.len() as u32;
                     return 1;
                 }
             }
@@ -464,10 +457,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         }
                     }
                     let value = &vec;
-                    unsafe {
-                        *buffer = value.as_ptr();
-                        *buffer_len = value.len() as u32;
-                    }
+                    *buffer = value.as_ptr(); //unsafe
+                    *buffer_len = value.len() as u32;
                     return 1;
                 }
             }
