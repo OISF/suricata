@@ -252,7 +252,7 @@ impl HTTP2State {
     }
 
     fn parse_frame_data(
-        &mut self, ftype: u8, input: &[u8], _complete: bool, hflags: u8,
+        &mut self, ftype: u8, input: &[u8], _complete: bool, hflags: u8, dir: u8,
     ) -> HTTP2FrameTypeData {
         //TODO5 use complete ? and HTTP2FrameUnhandledReason::TooLong
         match num::FromPrimitive::from_u8(ftype) {
@@ -351,11 +351,12 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::PUSHPROMISE) => {
-                match parser::http2_parse_frame_push_promise(
-                    input,
-                    hflags,
-                    &mut self.dynamic_headers_ts,
-                ) {
+                let dyn_headers = if dir == STREAM_TOCLIENT {
+                    &mut self.dynamic_headers_tc
+                } else {
+                    &mut self.dynamic_headers_ts
+                };
+                match parser::http2_parse_frame_push_promise(input, hflags, dyn_headers) {
                     Ok((_, hs)) => {
                         for i in 0..hs.blocks.len() {
                             if hs.blocks[i].error
@@ -398,7 +399,12 @@ impl HTTP2State {
                 return HTTP2FrameTypeData::DATA;
             }
             Some(parser::HTTP2FrameType::CONTINUATION) => {
-                match parser::http2_parse_frame_continuation(input, &mut self.dynamic_headers_ts) {
+                let dyn_headers = if dir == STREAM_TOCLIENT {
+                    &mut self.dynamic_headers_tc
+                } else {
+                    &mut self.dynamic_headers_ts
+                };
+                match parser::http2_parse_frame_continuation(input, dyn_headers) {
                     Ok((_, hs)) => {
                         for i in 0..hs.blocks.len() {
                             if hs.blocks[i].error
@@ -419,8 +425,12 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::HEADERS) => {
-                match parser::http2_parse_frame_headers(input, hflags, &mut self.dynamic_headers_ts)
-                {
+                let dyn_headers = if dir == STREAM_TOCLIENT {
+                    &mut self.dynamic_headers_tc
+                } else {
+                    &mut self.dynamic_headers_ts
+                };
+                match parser::http2_parse_frame_headers(input, hflags, dyn_headers) {
                     Ok((hrem, hs)) => {
                         for i in 0..hs.blocks.len() {
                             if hs.blocks[i].error
@@ -473,8 +483,6 @@ impl HTTP2State {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
-                    //TODO6tx handle transactions the right way
-                    let mut tx = self.new_tx();
                     let hl = head.length as usize;
 
                     //we check for completeness first
@@ -498,8 +506,16 @@ impl HTTP2State {
                         (hl, true)
                     };
 
-                    let txdata =
-                        self.parse_frame_data(head.ftype, &rem[..hlsafe], complete, head.flags);
+                    let txdata = self.parse_frame_data(
+                        head.ftype,
+                        &rem[..hlsafe],
+                        complete,
+                        head.flags,
+                        STREAM_TOSERVER,
+                    );
+
+                    //TODO6tx handle transactions the right way
+                    let mut tx = self.new_tx();
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
@@ -545,19 +561,45 @@ impl HTTP2State {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
-                    let tx = self.new_tx();
-
-                    //TODO6tx parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
 
-                    self.transactions.push(tx);
+                    //we check for completeness first
                     if rem.len() < hl {
-                        let rl = rem.len() as u32;
-                        self.response_frame_size = head.length - rl;
-                        return AppLayerResult::ok();
-                    } else {
-                        input = &rem[hl..];
+                        //but limit ourselves so as not to exhaust memory
+                        if hl < HTTP2_MAX_HANDLED_FRAME_SIZE {
+                            return AppLayerResult::incomplete(
+                                (il - input.len()) as u32,
+                                (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                            );
+                        } else {
+                            self.set_event(HTTP2Event::LongFrameData);
+                            self.request_frame_size = head.length - (rem.len() as u32);
+                        }
                     }
+
+                    //get a safe length for the buffer
+                    let (hlsafe, complete) = if rem.len() < hl {
+                        (rem.len(), false)
+                    } else {
+                        (hl, true)
+                    };
+
+                    let txdata = self.parse_frame_data(
+                        head.ftype,
+                        &rem[..hlsafe],
+                        complete,
+                        head.flags,
+                        STREAM_TOCLIENT,
+                    );
+
+                    //TODO6tx handle transactions the right way
+                    let mut tx = self.new_tx();
+                    tx.frames_ts.push(HTTP2Frame {
+                        header: head,
+                        data: txdata,
+                    });
+                    self.transactions.push(tx);
+                    input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     //we may have consumed data from previous records
@@ -725,9 +767,7 @@ pub extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    // This parser uses 1 to signal transaction completion status.
-    //TODO6tx progress completion
-    return 1;
+    return HTTP2TransactionState::Http2StreamStateClosed as i32;
 }
 
 #[no_mangle]
