@@ -28,5 +28,7 @@
 void RegisterSSHParsers(void);
 void SSHParserRegisterTests(void);
 
+int SSHTxLogCondition(ThreadVars *, const Packet *, void *state, void *tx, uint64_t tx_id);
+
 #endif /* __APP_LAYER_SSH_H__ */
 
