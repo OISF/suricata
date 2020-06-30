@@ -73,6 +73,7 @@ documentation_style = "doxy"
 # default: []
 include = [
     "AppLayerGetTxIterTuple",
+    "RdpState",
     "SIPState",
     "CMark",
 ]

@@ -60,26 +60,25 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
 {
     LogRdpLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "rdp", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "rdp", NULL);
     if (unlikely(js == NULL)) {
-        return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
     }
-
-    json_t *rdp_js = rs_rdp_to_json(tx);
-    if (unlikely(rdp_js == NULL)) {
+    if (!rs_rdp_to_json(tx, js)) {
         goto error;
     }
-    json_object_set_new(js, "rdp", rdp_js);
+    if (!jb_close(js)) {
+        goto error;
+    }
 
-    JsonAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->rdplog_ctx->file_ctx, &thread->buffer);
-    json_decref(js);
-
+    OutputJsonBuilderBuffer(js, thread->rdplog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 
