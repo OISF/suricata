@@ -198,18 +198,17 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    //TODO6tx_min_progress instead of 1
     DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOCLIENT, 2,
                                PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, 1);
+                               ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header_name",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0,
+                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateOpen,
                                          DetectEngineInspectHttp2HeaderName, NULL);
     DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOSERVER, 2,
                                PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, 1);
+                               ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header_name",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
+                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
                                          DetectEngineInspectHttp2HeaderName, NULL);
 
     DetectBufferTypeSetDescriptionByName("http2_header_name",
@@ -224,15 +223,15 @@ void DetectHttp2Register(void)
 
     DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOCLIENT, 2,
                                PrefilterMpmHttp2HeaderRegister, NULL,
-                               ALPROTO_HTTP2, 1);
+                               ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0,
+                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateOpen,
                                          DetectEngineInspectHttp2Header, NULL);
     DetectAppLayerMpmRegister2("http2_header", SIG_FLAG_TOSERVER, 2,
                                PrefilterMpmHttp2HeaderRegister, NULL,
-                               ALPROTO_HTTP2, 1);
+                               ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
+                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
                                          DetectEngineInspectHttp2Header, NULL);
 
     DetectBufferTypeSetDescriptionByName("http2_header",

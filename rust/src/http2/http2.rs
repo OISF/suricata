@@ -34,6 +34,7 @@ static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
+const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 
 //TODOask why option ?
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
@@ -91,10 +92,14 @@ pub enum HTTP2FrameTypeData {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub enum HTTP2TransactionState {
-    Http2StreamStateIdle = 0,
-    Http2StreamStateOpen = 1,
-    Http2StreamStateClosed = 2,
-    Http2StreamStateGlobal = 3,
+    HTTP2StateIdle = 0,
+    HTTP2StateOpen = 1,
+    HTTP2StateReserved = 2,
+    HTTP2StateHalfClosedClient = 3,
+    HTTP2StateHalfClosedServer = 4,
+    HTTP2StateClosed = 5,
+    //not a RFC-defined state, used for stream 0 frames appyling to the global connection
+    HTTP2StateGlobal = 6,
 }
 
 pub struct HTTP2Frame {
@@ -105,8 +110,7 @@ pub struct HTTP2Frame {
 pub struct HTTP2Transaction {
     tx_id: u64,
     stream_id: u32,
-    state_tc: HTTP2TransactionState,
-    state_ts: HTTP2TransactionState,
+    state: HTTP2TransactionState,
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
@@ -123,8 +127,7 @@ impl HTTP2Transaction {
         HTTP2Transaction {
             tx_id: 0,
             stream_id: 0,
-            state_tc: HTTP2TransactionState::Http2StreamStateIdle,
-            state_ts: HTTP2TransactionState::Http2StreamStateIdle,
+            state: HTTP2TransactionState::HTTP2StateIdle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
             logged: LoggerFlags::new(),
@@ -252,9 +255,8 @@ impl HTTP2State {
     }
 
     fn parse_frame_data(
-        &mut self, ftype: u8, input: &[u8], _complete: bool, hflags: u8, dir: u8,
+        &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: u8,
     ) -> HTTP2FrameTypeData {
-        //TODO5 use complete ? and HTTP2FrameUnhandledReason::TooLong
         match num::FromPrimitive::from_u8(ftype) {
             Some(parser::HTTP2FrameType::GOAWAY) => {
                 if input.len() < HTTP2_FRAME_GOAWAY_LEN {
@@ -265,7 +267,6 @@ impl HTTP2State {
                 } else {
                     match parser::http2_parse_frame_goaway(input) {
                         Ok((_, goaway)) => {
-                            //TODOask set an event on remaining data
                             return HTTP2FrameTypeData::GOAWAY(goaway);
                         }
                         Err(_) => {
@@ -280,7 +281,20 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::SETTINGS) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
+                        //TODOask set an event on remaining data
                         return HTTP2FrameTypeData::SETTINGS(set);
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        if complete {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        } else {
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::TooLong,
+                            });
+                        }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
@@ -365,8 +379,19 @@ impl HTTP2State {
                                 self.set_event(HTTP2Event::InvalidHeader);
                             }
                         }
-                        //TODO6tx right transaction wih promised headers
                         return HTTP2FrameTypeData::PUSHPROMISE(hs);
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        if complete {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        } else {
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::TooLong,
+                            });
+                        }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
@@ -413,8 +438,19 @@ impl HTTP2State {
                                 self.set_event(HTTP2Event::InvalidHeader);
                             }
                         }
-                        //TODO6tx right transaction wih continued headers
                         return HTTP2FrameTypeData::CONTINUATION(hs);
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        if complete {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        } else {
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::TooLong,
+                            });
+                        }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
@@ -444,6 +480,18 @@ impl HTTP2State {
                             self.set_event(HTTP2Event::ExtraHeaderData);
                         }
                         return HTTP2FrameTypeData::HEADERS(hs);
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        if complete {
+                            self.set_event(HTTP2Event::InvalidFrameData);
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            });
+                        } else {
+                            return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::TooLong,
+                            });
+                        }
                     }
                     Err(_) => {
                         self.set_event(HTTP2Event::InvalidFrameData);
@@ -493,6 +541,11 @@ impl HTTP2State {
                                 (il - input.len()) as u32,
                                 (HTTP2_FRAME_HEADER_LEN + hl) as u32,
                             );
+                        } else if rem.len() < HTTP2_MIN_HANDLED_FRAME_SIZE {
+                            return AppLayerResult::incomplete(
+                                (il - input.len()) as u32,
+                                (HTTP2_FRAME_HEADER_LEN + HTTP2_MIN_HANDLED_FRAME_SIZE) as u32,
+                            );
                         } else {
                             self.set_event(HTTP2Event::LongFrameData);
                             self.request_frame_size = head.length - (rem.len() as u32);
@@ -515,6 +568,7 @@ impl HTTP2State {
                     );
 
                     //TODO6tx handle transactions the right way
+                    //TODO6tx right transaction with promised and continuation headers
                     let mut tx = self.new_tx();
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
@@ -570,6 +624,11 @@ impl HTTP2State {
                             return AppLayerResult::incomplete(
                                 (il - input.len()) as u32,
                                 (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                            );
+                        } else if rem.len() < HTTP2_MIN_HANDLED_FRAME_SIZE {
+                            return AppLayerResult::incomplete(
+                                (il - input.len()) as u32,
+                                (HTTP2_FRAME_HEADER_LEN + HTTP2_MIN_HANDLED_FRAME_SIZE) as u32,
                             );
                         } else {
                             self.set_event(HTTP2Event::LongFrameData);
@@ -767,21 +826,20 @@ pub extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return HTTP2TransactionState::Http2StreamStateClosed as i32;
+    return HTTP2TransactionState::HTTP2StateClosed as i32;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return tx.state;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    //TODO6tx progress completion
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-
-    // Transaction is done if we have a response.
-    if tx.frames_tc.len() + tx.frames_ts.len() > 0 {
-        return 1;
-    }
-    return 0;
+    return rs_http2_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
