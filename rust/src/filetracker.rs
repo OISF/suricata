@@ -184,6 +184,11 @@ impl FileTransferTracker {
 
         if self.chunk_left + self.fill_bytes as u32 == 0 {
             //SCLogDebug!("UPDATE: nothing to do");
+            if self.chunk_is_last == true {
+                SCLogDebug!("last empty chunk, closing");
+                self.close(files, flags);
+                self.chunk_is_last = false;
+            }
             return 0
         } else if self.chunk_left == 0 {
             SCLogDebug!("FILL BYTES {} from prev run", self.fill_bytes);
