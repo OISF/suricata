@@ -765,16 +765,6 @@ static inline void DetectRulePacketRules(
             goto next;
         }
 
-        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
-            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-                if (!(s->dsize_mode == DETECTDSIZE_NE)) {
-                    SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                            p->payload_len, s->dsize_low, s->dsize_high);
-                    goto next;
-                }
-            }
-        }
-        
         if (SigDsizePrefilter(p, s, sflags))
             goto next;
 
