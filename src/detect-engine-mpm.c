@@ -643,6 +643,12 @@ uint16_t PatternMatchDefaultMatcher(void)
             }
         }
 
+#ifndef BUILD_HYPERSCAN
+    if (strcmp(mpm_algo, "hs") == 0) {
+        FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support is "
+                   "not compiled into Suricata");
+    }
+#endif
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid mpm algo supplied "
                 "in the yaml conf file: \"%s\"", mpm_algo);
         exit(EXIT_FAILURE);

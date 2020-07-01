@@ -83,6 +83,12 @@ uint16_t SinglePatternMatchDefaultMatcher(void)
             }
         }
 
+#ifndef BUILD_HYPERSCAN
+        if (strcmp(spm_algo, "hs") == 0) {
+            FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support is "
+                       "not compiled into Suricata");
+        }
+#endif
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                    "Invalid spm algo supplied "
                    "in the yaml conf file: \"%s\"",
