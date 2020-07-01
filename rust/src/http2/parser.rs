@@ -321,7 +321,7 @@ impl fmt::Display for HTTP2HeaderDecodeStatus {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HTTP2FrameHeaderBlock {
     pub name: Vec<u8>,
     pub value: Vec<u8>,
@@ -444,7 +444,13 @@ fn http2_parse_headers_block_literal_noindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    let r = http2_parse_headers_block_literal_common(i2, indexed.1, dyn_headers);
+    //undocumented in RFC ?! found with wireshark
+    let (i3, indexreal) = if indexed.1 == 0xF {
+        map!(i2, be_u8, |i| i + 0xF)
+    } else {
+        Ok((i2, indexed.1))
+    }?;
+    let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
 
@@ -493,7 +499,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
         }
         let mut sizeupdate = 0 as u64;
         for i in 0..maxsize2.len() {
-            sizeupdate += (maxsize2[i] as u64) << (7 * i);
+            sizeupdate += ((maxsize2[i] & 0x7F) as u64) << (7 * i);
         }
         sizeupdate += (maxsize3 as u64) << (7 * maxsize2.len());
         return Ok((

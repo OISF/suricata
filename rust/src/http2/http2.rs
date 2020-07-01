@@ -28,6 +28,7 @@ use crate::log::*;
 use nom;
 use std;
 use std::ffi::{CStr, CString};
+use std::fmt;
 use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -66,6 +67,12 @@ pub enum HTTP2FrameUnhandledReason {
     TooLong = 1,
     ParsingError = 2,
     Incomplete = 3,
+}
+
+impl fmt::Display for HTTP2FrameUnhandledReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug)]
@@ -701,7 +708,7 @@ impl HTTP2State {
                         (hl, true)
                     };
 
-                    if head.length == 0 {
+                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::SETTINGS as u8 {
                         input = &rem[hlsafe..];
                         continue;
                     }
@@ -793,7 +800,7 @@ impl HTTP2State {
                         (hl, true)
                     };
 
-                    if head.length == 0 {
+                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::SETTINGS as u8 {
                         input = &rem[hlsafe..];
                         continue;
                     }

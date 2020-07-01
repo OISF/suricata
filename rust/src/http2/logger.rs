@@ -18,7 +18,6 @@
 use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::log::*;
 use std;
 
 fn log_http2_headers(
@@ -26,18 +25,24 @@ fn log_http2_headers(
 ) -> Result<(), JsonError> {
     for j in 0..blocks.len() {
         js.start_object()?;
-        if blocks[j].error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
-            js.set_string_from_bytes("name", &blocks[j].name)?;
-            js.set_string_from_bytes("value", &blocks[j].value)?;
-        } else {
-            js.set_string("error", &blocks[j].error.to_string())?;
+        match blocks[j].error {
+            parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
+                js.set_string_from_bytes("name", &blocks[j].name)?;
+                js.set_string_from_bytes("value", &blocks[j].value)?;
+            }
+            parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate => {
+                js.set_uint("table_size_update", blocks[j].sizeupdate)?;
+            }
+            _ => {
+                js.set_string("error", &blocks[j].error.to_string())?;
+            }
         }
         js.close()?;
     }
     return Ok(());
 }
 
-fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
     let mut has_settings = false;
     for i in 0..frames.len() {
         if let HTTP2FrameTypeData::SETTINGS(set) = &frames[i].data {
@@ -90,13 +95,22 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<()
 
     let mut has_error_code = false;
     let mut has_priority = false;
-    let mut has_window = false;
     let mut has_multiple = false;
     for i in 0..frames.len() {
         match &frames[i].data {
             HTTP2FrameTypeData::GOAWAY(goaway) => {
                 if !has_error_code {
-                    js.set_string("error_code", &goaway.errorcode.to_string())?;
+                    let errcode: Option<parser::HTTP2ErrorCode> =
+                        num::FromPrimitive::from_u32(goaway.errorcode);
+                    match errcode {
+                        Some(errstr) => {
+                            js.set_string("error_code", &errstr.to_string())?;
+                        }
+                        None => {
+                            //use uint32
+                            js.set_string("error_code", &goaway.errorcode.to_string())?;
+                        }
+                    }
                     has_error_code = true;
                 } else if !has_multiple {
                     js.set_string("has_multiple", "error_code")?;
@@ -105,7 +119,17 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<()
             }
             HTTP2FrameTypeData::RSTSTREAM(rst) => {
                 if !has_error_code {
-                    js.set_string("error_code", &rst.errorcode.to_string())?;
+                    let errcode: Option<parser::HTTP2ErrorCode> =
+                        num::FromPrimitive::from_u32(rst.errorcode);
+                    match errcode {
+                        Some(errstr) => {
+                            js.set_string("error_code", &errstr.to_string())?;
+                        }
+                        None => {
+                            //use uint32
+                            js.set_string("error_code", &rst.errorcode.to_string())?;
+                        }
+                    }
                     has_error_code = true;
                 } else if !has_multiple {
                     js.set_string("has_multiple", "error_code")?;
@@ -118,15 +142,6 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<()
                     has_priority = true;
                 } else if !has_multiple {
                     js.set_string("has_multiple", "priority")?;
-                    has_multiple = true;
-                }
-            }
-            HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
-                if !has_window {
-                    js.set_uint("window", wu.sizeinc as u64)?;
-                    has_window = true;
-                } else if !has_multiple {
-                    js.set_string("has_multiple", "window")?;
                     has_multiple = true;
                 }
             }
@@ -144,23 +159,26 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<()
             _ => {}
         }
     }
-    return Ok(());
+    return Ok(has_settings || has_headers || has_error_code || has_priority);
 }
 
-fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
     js.set_uint("stream_id", tx.stream_id as u64)?;
     js.open_object("request")?;
-    log_http2_frames(&tx.frames_ts, js)?;
+    let has_request = log_http2_frames(&tx.frames_ts, js)?;
     js.close()?;
     js.open_object("response")?;
-    log_http2_frames(&tx.frames_tc, js)?;
+    let has_response = log_http2_frames(&tx.frames_tc, js)?;
     js.close()?;
 
-    return Ok(());
+    return Ok(has_request || has_response);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_http2_log_json(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return log_http2(tx, js).is_ok();
+    if let Ok(x) = log_http2(tx, js) {
+        return x;
+    }
+    return false;
 }
