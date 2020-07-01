@@ -103,13 +103,12 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
-    //TODO8 check min progress
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, 0);
+            ALPROTO_HTTP2, HTTP2StateDataClient);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, 0);
+            ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
@@ -126,10 +125,10 @@ void DetectFiledataRegister(void)
             ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
+            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateDataClient,
             DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0,
+            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
             DetectEngineInspectFiledata, NULL);
 
     DetectBufferTypeSetDescriptionByName("file_data",

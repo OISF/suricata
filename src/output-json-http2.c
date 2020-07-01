@@ -53,7 +53,6 @@
 
 #define MODULE_NAME "LogHttp2Log"
 
-//TODOask Cannot this be generic ? and most of the file as well
 typedef struct OutputHttp2Ctx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
@@ -65,6 +64,18 @@ typedef struct JsonHttp2LogThread_ {
     MemBuffer *buffer;
 } JsonHttp2LogThread;
 
+
+bool EveHTTP2AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
+{
+    void *state = FlowGetAppState(f);
+    if (state) {
+        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP2, state, tx_id);
+        if (tx) {
+            return rs_http2_log_json(tx, jb);
+        }
+    }
+    return false;
+}
 
 static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
                          Flow *f, void *state, void *txptr, uint64_t tx_id)
