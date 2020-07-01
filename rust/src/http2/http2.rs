@@ -111,6 +111,7 @@ pub struct HTTP2Transaction {
     tx_id: u64,
     stream_id: u32,
     state: HTTP2TransactionState,
+    child_stream_id: u32,
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
@@ -127,6 +128,7 @@ impl HTTP2Transaction {
         HTTP2Transaction {
             tx_id: 0,
             stream_id: 0,
+            child_stream_id: 0,
             state: HTTP2TransactionState::HTTP2StateIdle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
@@ -144,6 +146,69 @@ impl HTTP2Transaction {
         }
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
+        }
+    }
+
+    fn handle_frame(
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
+    ) {
+        //handle child_stream_id changes
+        match data {
+            HTTP2FrameTypeData::PUSHPROMISE(hs) => {
+                if dir == STREAM_TOCLIENT {
+                    //TODOnext set an event if self.child_stream_id != 0
+                    if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
+                        self.child_stream_id = hs.stream_id;
+                    }
+                    self.state = HTTP2TransactionState::HTTP2StateReserved;
+                }
+            }
+            HTTP2FrameTypeData::CONTINUATION(_) => {
+                if dir == STREAM_TOCLIENT
+                    && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
+                {
+                    self.child_stream_id = 0;
+                }
+            }
+            HTTP2FrameTypeData::HEADERS(_) => {
+                if dir == STREAM_TOCLIENT {
+                    self.child_stream_id = 0;
+                }
+            }
+            HTTP2FrameTypeData::RSTSTREAM(_) => {
+                self.child_stream_id = 0;
+            }
+            _ => {}
+        }
+        //handle closing state changes
+        match data {
+            HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
+                if header.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0 {
+                    match self.state {
+                        HTTP2TransactionState::HTTP2StateHalfClosedClient => {
+                            if dir == STREAM_TOCLIENT {
+                                self.state = HTTP2TransactionState::HTTP2StateClosed;
+                            }
+                        }
+                        HTTP2TransactionState::HTTP2StateHalfClosedServer => {
+                            if dir == STREAM_TOSERVER {
+                                self.state = HTTP2TransactionState::HTTP2StateClosed;
+                            }
+                        }
+                        // do not revert back to a hald closed state
+                        HTTP2TransactionState::HTTP2StateClosed => {}
+                        HTTP2TransactionState::HTTP2StateGlobal => {}
+                        _ => {
+                            if dir == STREAM_TOCLIENT {
+                                self.state = HTTP2TransactionState::HTTP2StateHalfClosedServer;
+                            } else {
+                                self.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -183,8 +248,6 @@ impl HTTP2Event {
 
 pub struct HTTP2State {
     tx_id: u64,
-    parent_stream_id: u32,
-    child_stream_id: u32,
     request_frame_size: u32,
     response_frame_size: u32,
     dynamic_headers_ts: Vec<parser::HTTP2FrameHeaderBlock>,
@@ -198,8 +261,6 @@ impl HTTP2State {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            parent_stream_id: 0,
-            child_stream_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
             dynamic_headers_ts: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
@@ -261,6 +322,19 @@ impl HTTP2State {
         return 0;
     }
 
+    fn find_child_stream_id(&mut self, sid: u32) -> u32 {
+        for i in 0..self.transactions.len() {
+            //reverse order should be faster
+            if sid == self.transactions[self.transactions.len() - 1 - i].stream_id {
+                if self.transactions[self.transactions.len() - 1 - i].child_stream_id > 0 {
+                    return self.transactions[self.transactions.len() - 1 - i].child_stream_id;
+                }
+                return sid;
+            }
+        }
+        return sid;
+    }
+
     fn find_or_create_tx(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
     ) -> &mut HTTP2Transaction {
@@ -279,9 +353,9 @@ impl HTTP2State {
             //yes, the right stream_id for Suricata is not the header one
             HTTP2FrameTypeData::PUSHPROMISE(hs) => hs.stream_id,
             HTTP2FrameTypeData::CONTINUATION(_) => {
-                if dir == STREAM_TOCLIENT && self.parent_stream_id == header.stream_id {
+                if dir == STREAM_TOCLIENT {
                     //continuation of a push promise
-                    self.child_stream_id
+                    self.find_child_stream_id(header.stream_id)
                 } else {
                     header.stream_id
                 }
@@ -451,25 +525,6 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::DATA) => {
-                //TODOask use streaming buffer directly
-                /*TODO6tx match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                    Some(sfcm) => {
-                        let xid: u32 = tx.tx_id as u32;
-                        tx.ft.new_chunk(
-                            sfcm,
-                            &mut self.files.files_ts,
-                            self.files.flags_ts,
-                            b"",
-                            input,
-                            tx.ft.tracked, //offset = append
-                            input.len() as u32,
-                            0,
-                            hflags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
-                            &xid,
-                        );
-                    }
-                    None => panic!("BUG"),
-                }*/
                 return HTTP2FrameTypeData::DATA;
             }
             Some(parser::HTTP2FrameType::CONTINUATION) => {
@@ -561,6 +616,36 @@ impl HTTP2State {
         }
     }
 
+    fn stream_data(&mut self, dir: u8, input: &[u8], over: bool, txid: usize) {
+        //TODOask use streaming buffer directly
+        match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+            Some(sfcm) => {
+                if txid - 1 < self.transactions.len() {
+                    let tx = &mut self.transactions[txid - 1];
+                    let xid: u32 = tx.tx_id as u32;
+                    let (files, flags) = if dir == STREAM_TOSERVER {
+                        (&mut self.files.files_ts, self.files.flags_ts)
+                    } else {
+                        (&mut self.files.files_tc, self.files.flags_tc)
+                    };
+                    tx.ft.new_chunk(
+                        sfcm,
+                        files,
+                        flags,
+                        b"",
+                        input,
+                        tx.ft.tracked, //offset = append
+                        input.len() as u32,
+                        0,
+                        over,
+                        &xid,
+                    );
+                }
+            }
+            None => panic!("BUG"),
+        }
+    }
+
     fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
@@ -617,11 +702,17 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
+                    tx.handle_frame(&head, &txdata, STREAM_TOSERVER);
+                    let over = head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0;
+                    let txid = tx.tx_id;
+                    let ftype = head.ftype;
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
                     });
-                    //TODO6tx handle transactions state change including continuation headers
+                    if num::FromPrimitive::from_u8(ftype) == Some(parser::HTTP2FrameType::DATA) {
+                        self.stream_data(STREAM_TOSERVER, &rem[..hlsafe], over, txid as usize);
+                    }
                     input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
