@@ -631,30 +631,32 @@ impl HTTP2State {
         }
     }
 
-    fn stream_data(&mut self, dir: u8, input: &[u8], over: bool, txid: usize) {
+    fn stream_data(&mut self, dir: u8, input: &[u8], over: bool, txid: u64) {
         //TODOask use streaming buffer directly
         match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
             Some(sfcm) => {
-                if txid - 1 < self.transactions.len() {
-                    let tx = &mut self.transactions[txid - 1];
-                    let xid: u32 = tx.tx_id as u32;
-                    let (files, flags) = if dir == STREAM_TOSERVER {
-                        (&mut self.files.files_ts, self.files.flags_ts)
-                    } else {
-                        (&mut self.files.files_tc, self.files.flags_tc)
-                    };
-                    tx.ft.new_chunk(
-                        sfcm,
-                        files,
-                        flags,
-                        b"",
-                        input,
-                        tx.ft.tracked, //offset = append
-                        input.len() as u32,
-                        0,
-                        over,
-                        &xid,
-                    );
+                for tx in &mut self.transactions {
+                    if tx.tx_id == txid {
+                        let xid: u32 = tx.tx_id as u32;
+                        let (files, flags) = if dir == STREAM_TOSERVER {
+                            (&mut self.files.files_ts, self.files.flags_ts)
+                        } else {
+                            (&mut self.files.files_tc, self.files.flags_tc)
+                        };
+                        tx.ft.new_chunk(
+                            sfcm,
+                            files,
+                            flags,
+                            b"",
+                            input,
+                            tx.ft.tracked, //offset = append
+                            input.len() as u32,
+                            0,
+                            over,
+                            &xid,
+                        );
+                        break;
+                    }
                 }
             }
             None => panic!("BUG"),
@@ -729,8 +731,8 @@ impl HTTP2State {
                         header: head,
                         data: txdata,
                     });
-                    if num::FromPrimitive::from_u8(ftype) == Some(parser::HTTP2FrameType::DATA) {
-                        self.stream_data(STREAM_TOSERVER, &rem[..hlsafe], over, txid as usize);
+                    if ftype == parser::HTTP2FrameType::DATA as u8 {
+                        self.stream_data(STREAM_TOSERVER, &rem[..hlsafe], over, txid);
                     }
                     input = &rem[hlsafe..];
                 }
@@ -821,8 +823,8 @@ impl HTTP2State {
                         header: head,
                         data: txdata,
                     });
-                    if num::FromPrimitive::from_u8(ftype) == Some(parser::HTTP2FrameType::DATA) {
-                        self.stream_data(STREAM_TOCLIENT, &rem[..hlsafe], over, txid as usize);
+                    if ftype == parser::HTTP2FrameType::DATA as u8 {
+                        self.stream_data(STREAM_TOCLIENT, &rem[..hlsafe], over, txid);
                     }
                     input = &rem[hlsafe..];
                 }
@@ -954,18 +956,21 @@ pub extern "C" fn rs_http2_parse_ts(
         }
     }
 
-    //TODOask use FILE_USE_DETECT ?
     state.files.flags_ts = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    //TODOask use FILE_USE_DETECT ?
+    //state.files.flags_ts = state.files.flags_ts | 0x2000;
     return state.parse_ts(buf);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_http2_parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
+    state.files.flags_tc = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    state.files.flags_tc = state.files.flags_tc | 0x2000;
     return state.parse_tc(buf);
 }
 

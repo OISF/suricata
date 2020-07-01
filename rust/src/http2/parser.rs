@@ -861,7 +861,6 @@ named!(pub http2_parse_frame_settings<Vec<HTTP2FrameSettings>>,
 mod tests {
 
     use super::*;
-    use nom::*;
 
     #[test]
     fn test_http2_parse_header() {
