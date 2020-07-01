@@ -103,6 +103,7 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
+    //TODO8 check min progress
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_HTTP2, 0);
