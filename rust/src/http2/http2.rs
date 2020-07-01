@@ -36,7 +36,6 @@ const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
 const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 
-//TODOask why option ?
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
@@ -90,7 +89,7 @@ pub enum HTTP2FrameTypeData {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum HTTP2TransactionState {
     HTTP2StateIdle = 0,
     HTTP2StateOpen = 1,
@@ -109,7 +108,7 @@ pub struct HTTP2Frame {
 
 pub struct HTTP2Transaction {
     tx_id: u64,
-    stream_id: u32,
+    pub stream_id: u32,
     state: HTTP2TransactionState,
     child_stream_id: u32,
 
@@ -156,7 +155,7 @@ impl HTTP2Transaction {
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
                 if dir == STREAM_TOCLIENT {
-                    //TODOnext set an event if self.child_stream_id != 0
+                    //we could set an event if self.child_stream_id != 0
                     if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
                         self.child_stream_id = hs.stream_id;
                     }
@@ -229,6 +228,7 @@ pub enum HTTP2Event {
     InvalidFrameLength,
     ExtraHeaderData,
     LongFrameData,
+    StreamIdReuse,
 }
 
 impl HTTP2Event {
@@ -241,6 +241,7 @@ impl HTTP2Event {
             4 => Some(HTTP2Event::InvalidFrameLength),
             5 => Some(HTTP2Event::ExtraHeaderData),
             6 => Some(HTTP2Event::LongFrameData),
+            7 => Some(HTTP2Event::StreamIdReuse),
             _ => None,
         }
     }
@@ -273,6 +274,7 @@ impl HTTP2State {
 
     pub fn free(&mut self) {
         self.transactions.clear();
+        self.files.free();
     }
 
     fn set_event(&mut self, event: HTTP2Event) {
@@ -316,6 +318,12 @@ impl HTTP2State {
         for i in 0..self.transactions.len() {
             //reverse order should be faster
             if sid == self.transactions[self.transactions.len() - 1 - i].stream_id {
+                if self.transactions[self.transactions.len() - 1 - i].state
+                    == HTTP2TransactionState::HTTP2StateClosed
+                {
+                    self.set_event(HTTP2Event::StreamIdReuse);
+                    return 0;
+                }
                 return self.transactions.len() - i;
             }
         }
@@ -404,7 +412,7 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::SETTINGS) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
-                        //TODOask set an event on remaining data
+                        //we could set an event on remaining data
                         return HTTP2FrameTypeData::SETTINGS(set);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -693,6 +701,10 @@ impl HTTP2State {
                         (hl, true)
                     };
 
+                    if head.length == 0 {
+                        input = &rem[hlsafe..];
+                        continue;
+                    }
                     let txdata = self.parse_frame_data(
                         head.ftype,
                         &rem[..hlsafe],
@@ -781,6 +793,10 @@ impl HTTP2State {
                         (hl, true)
                     };
 
+                    if head.length == 0 {
+                        input = &rem[hlsafe..];
+                        continue;
+                    }
                     let txdata = self.parse_frame_data(
                         head.ftype,
                         &rem[..hlsafe],
@@ -790,10 +806,17 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOCLIENT);
-                    tx.frames_ts.push(HTTP2Frame {
+                    tx.handle_frame(&head, &txdata, STREAM_TOCLIENT);
+                    let over = head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0;
+                    let txid = tx.tx_id;
+                    let ftype = head.ftype;
+                    tx.frames_tc.push(HTTP2Frame {
                         header: head,
                         data: txdata,
                     });
+                    if num::FromPrimitive::from_u8(ftype) == Some(parser::HTTP2FrameType::DATA) {
+                        self.stream_data(STREAM_TOCLIENT, &rem[..hlsafe], over, txid as usize);
+                    }
                     input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -1021,6 +1044,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "invalid_frame_length" => HTTP2Event::InvalidFrameLength as i32,
                 "extra_header_data" => HTTP2Event::ExtraHeaderData as i32,
                 "long_frame_data" => HTTP2Event::LongFrameData as i32,
+                "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1047,6 +1071,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::InvalidFrameLength => "invalid_frame_length\0",
             HTTP2Event::ExtraHeaderData => "extra_header_data\0",
             HTTP2Event::LongFrameData => "long_frame_data\0",
+            HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

@@ -491,7 +491,7 @@ fn http2_decode_huffman_end(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8
     return Err(Err::Error((input, ErrorKind::Eof)));
 }
 
-//TODOask profile and optimize perf
+//we could profile and optimize performance here
 named!(pub http2_decode_huffman<(&[u8], usize), u8>,
     alt!(http2_decode_huffman_len5 | http2_decode_huffman_len6 | http2_decode_huffman_len7 |
     http2_decode_huffman_len8 | http2_decode_huffman_len10 | http2_decode_huffman_len11 |

@@ -66,12 +66,12 @@ pub extern "C" fn rs_http2_tx_has_errorcode(
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
-                    if goaway.errorcode as u32 == code {
+                    if goaway.errorcode == code {
                         return 1;
                     }
                 }
                 HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode as u32 == code {
+                    if rst.errorcode == code {
                         return 1;
                     }
                 }

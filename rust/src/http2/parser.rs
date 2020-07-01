@@ -70,7 +70,7 @@ impl std::str::FromStr for HTTP2FrameType {
 
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
-    //TODOask detection on (GOAWAY) additional data = length
+    //we could add detection on (GOAWAY) additional data
     pub length: u32,
     pub ftype: u8,
     pub flags: u8,
@@ -108,7 +108,6 @@ pub enum HTTP2ErrorCode {
     ENHANCEYOURCALM = 11,
     INADEQUATESECURITY = 12,
     HTTP11REQUIRED = 13,
-    //TODO7 Undefined(u32),
 }
 
 impl fmt::Display for HTTP2ErrorCode {
@@ -144,26 +143,24 @@ impl std::str::FromStr for HTTP2ErrorCode {
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameGoAway {
-    pub errorcode: HTTP2ErrorCode,
+    pub errorcode: u32, //HTTP2ErrorCode
 }
 
 named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
     do_parse!(
-        errorcode: map_opt!( be_u32,
-            num::FromPrimitive::from_u32 ) >>
+        errorcode: be_u32 >>
         (HTTP2FrameGoAway{errorcode})
     )
 );
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameRstStream {
-    pub errorcode: HTTP2ErrorCode,
+    pub errorcode: u32, ////HTTP2ErrorCode
 }
 
 named!(pub http2_parse_frame_rststream<HTTP2FrameRstStream>,
     do_parse!(
-        errorcode: map_opt!( be_u32,
-            num::FromPrimitive::from_u32 ) >>
+        errorcode: be_u32 >>
         (HTTP2FrameRstStream{errorcode})
     )
 );
@@ -499,7 +496,6 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
             sizeupdate += (maxsize2[i] as u64) << (7 * i);
         }
         sizeupdate += (maxsize3 as u64) << (7 * maxsize2.len());
-        //TODOnext detect on Dynamic Table Size Update RFC6.3
         return Ok((
             i4,
             HTTP2FrameHeaderBlock {
@@ -1124,7 +1120,7 @@ mod tests {
             Ok((remainder, frame)) => {
                 // Check the first message.
                 assert_eq!(frame.length, 6);
-                assert_eq!(frame.ftype, HTTP2FrameType::SETTINGS);
+                assert_eq!(frame.ftype, HTTP2FrameType::SETTINGS as u8);
                 assert_eq!(frame.flags, 0);
                 assert_eq!(frame.reserved, 0);
                 assert_eq!(frame.stream_id, 0);
@@ -1137,22 +1133,6 @@ mod tests {
             }
             Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
-            }
-        }
-        let buf2: &[u8] = &[
-            0x00, 0x00, 0x06, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-            0x64,
-        ];
-        let result2 = http2_parse_frame_header(buf2);
-        match result2 {
-            Ok((_, _)) => {
-                panic!("Result should not have been Ok.");
-            }
-            Err(Err::Error((_, kind))) => {
-                assert_eq!(kind, error::ErrorKind::MapOpt);
-            }
-            Err(err) => {
-                panic!("Result should not have been an unknown error: {:?}.", err);
             }
         }
     }

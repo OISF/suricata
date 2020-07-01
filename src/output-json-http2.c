@@ -76,26 +76,23 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "http2", NULL);
+    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "http2", NULL, tx_id);
     if (unlikely(js == NULL))
         return 0;
 
-    JsonAddCommonOptions(&http2_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&http2_ctx->cfg, p, f, js);
 
     /* reset */
     MemBufferReset(aft->buffer);
 
-    json_t *tjs = rs_http2_log_json(txptr);
-    if (unlikely(tjs == NULL)) {
-        free(js);
-        return 0;
+    jb_open_object(js, "http2");
+    if (!rs_http2_log_json(txptr, js)) {
+        goto end;
     }
-    json_object_set_new(js, "http2", tjs);
-
-    OutputJSONBuffer(js, http2_ctx->file_ctx, &aft->buffer);
-    json_object_clear(js);
-    json_decref(js);
-
+    jb_close(js);
+    OutputJsonBuilderBuffer(js, http2_ctx->file_ctx, &aft->buffer);
+end:
+    jb_free(js);
     return 0;
 }
 
