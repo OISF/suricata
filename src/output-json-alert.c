@@ -514,7 +514,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             AlertJsonDnp3(p->flow, tx_id, jb);
             break;
         case ALPROTO_HTTP2:
-            AlertJsonHttp2(p->flow, pa->tx_id, jb);
+            AlertJsonHttp2(p->flow, tx_id, jb);
             break;
         case ALPROTO_DNS:
             AlertJsonDns(p->flow, tx_id, jb);

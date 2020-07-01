@@ -950,7 +950,7 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
         bool namevaluesep = false;
         for (size_t i = 0; i < cd->content_len; ++i) {
             if (escaped) {
-                if (cd->content[i] == ':') {
+                if (cd->content[i] == ' ') {
                     if (namevaluesep) {
                         *sigerror = "Invalid http2.header string : "
                         "': ' is a special sequence for separation between name and value "
@@ -959,7 +959,7 @@ static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **s
                         return false;
                     }
                     namevaluesep = true;
-                } else if (cd->content[i] == ' ') {
+                } else if (cd->content[i] != ':') {
                     *sigerror = "Invalid http2.header string : "
                                 "':' is an escaping character for itself, "
                                 "or space for the separation between name and value";

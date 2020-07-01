@@ -20,7 +20,7 @@ use crate::filecontainer::*;
 
 /// Wrapper around Suricata's internal file container logic.
 #[derive(Debug)]
-//TODOask one generic structure for all parsers
+//TODOnext one generic structure for all parsers
 pub struct HTTP2Files {
     pub files_ts: FileContainer,
     pub files_tc: FileContainer,

@@ -746,6 +746,8 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+    http2:
+      enabled: yes
     smtp:
       enabled: yes
       raw-extraction: no

@@ -62,6 +62,7 @@
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
 #include "output-json-smb.h"
+#include "output-json-http2.h"
 
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
@@ -166,6 +167,15 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             jb_get_mark(js, &mark);
             jb_open_object(js, "smb");
             if (EveSMBAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
+            }
+            break;
+        case ALPROTO_HTTP2:
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "http2");
+            if (EveHTTP2AddMetadata(p->flow, ff->txid, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);

@@ -25,5 +25,6 @@
 #define __OUTPUT_JSON_HTTP2_H__
 
 void JsonHttp2LogRegister(void);
+bool EveHTTP2AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
 
 #endif /* __OUTPUT_JSON_HTTP2_H__ */

@@ -547,7 +547,8 @@ pub struct HTTP2FrameHeaders {
     pub blocks: Vec<HTTP2FrameHeaderBlock>,
 }
 
-pub const HTTP2_FLAG_HEADER_END_STREAM: u8 = 0x1;
+//end stream
+pub const HTTP2_FLAG_HEADER_EOS: u8 = 0x1;
 pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
