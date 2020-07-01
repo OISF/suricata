@@ -75,7 +75,7 @@ pub struct HTTP2FrameHeader {
     pub ftype: u8,
     pub flags: u8,
     pub reserved: u8,
-    stream_id: u32,
+    pub stream_id: u32,
 }
 
 named!(pub http2_parse_frame_header<HTTP2FrameHeader>,
@@ -546,6 +546,7 @@ pub struct HTTP2FrameHeaders {
 }
 
 pub const HTTP2_FLAG_HEADER_END_STREAM: u8 = 0x1;
+pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 

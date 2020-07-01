@@ -183,6 +183,8 @@ impl HTTP2Event {
 
 pub struct HTTP2State {
     tx_id: u64,
+    parent_stream_id: u32,
+    child_stream_id: u32,
     request_frame_size: u32,
     response_frame_size: u32,
     dynamic_headers_ts: Vec<parser::HTTP2FrameHeaderBlock>,
@@ -196,6 +198,8 @@ impl HTTP2State {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
+            parent_stream_id: 0,
+            child_stream_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
             dynamic_headers_ts: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
@@ -247,11 +251,56 @@ impl HTTP2State {
         return None;
     }
 
-    fn new_tx(&mut self) -> HTTP2Transaction {
-        let mut tx = HTTP2Transaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
+    fn find_tx_index(&mut self, sid: u32) -> usize {
+        for i in 0..self.transactions.len() {
+            //reverse order should be faster
+            if sid == self.transactions[self.transactions.len() - 1 - i].stream_id {
+                return self.transactions.len() - i;
+            }
+        }
+        return 0;
+    }
+
+    fn find_or_create_tx(
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
+    ) -> &mut HTTP2Transaction {
+        if header.stream_id == 0 {
+            //special transaction with only one frame
+            //as it affects the global connection, there is no end to it
+            let mut tx = HTTP2Transaction::new();
+            self.tx_id += 1;
+            tx.tx_id = self.tx_id;
+            tx.state = HTTP2TransactionState::HTTP2StateGlobal;
+            self.transactions.push(tx);
+            let pos = self.transactions.len() - 1;
+            return &mut self.transactions[pos];
+        }
+        let sid = match data {
+            //yes, the right stream_id for Suricata is not the header one
+            HTTP2FrameTypeData::PUSHPROMISE(hs) => hs.stream_id,
+            HTTP2FrameTypeData::CONTINUATION(_) => {
+                if dir == STREAM_TOCLIENT && self.parent_stream_id == header.stream_id {
+                    //continuation of a push promise
+                    self.child_stream_id
+                } else {
+                    header.stream_id
+                }
+            }
+            _ => header.stream_id,
+        };
+        let index = self.find_tx_index(sid);
+        if index > 0 {
+            return &mut self.transactions[index - 1];
+        } else {
+            let mut tx = HTTP2Transaction::new();
+            self.tx_id += 1;
+            tx.tx_id = self.tx_id;
+            tx.stream_id = sid;
+            tx.state = HTTP2TransactionState::HTTP2StateOpen;
+            self.transactions.push(tx);
+            let pos = self.transactions.len() - 1;
+            return &mut self.transactions[pos];
+        }
     }
 
     fn parse_frame_data(
@@ -567,14 +616,12 @@ impl HTTP2State {
                         STREAM_TOSERVER,
                     );
 
-                    //TODO6tx handle transactions the right way
-                    //TODO6tx right transaction with promised and continuation headers
-                    let mut tx = self.new_tx();
+                    let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
                     });
-                    self.transactions.push(tx);
+                    //TODO6tx handle transactions state change including continuation headers
                     input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -651,13 +698,11 @@ impl HTTP2State {
                         STREAM_TOCLIENT,
                     );
 
-                    //TODO6tx handle transactions the right way
-                    let mut tx = self.new_tx();
+                    let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOCLIENT);
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
                     });
-                    self.transactions.push(tx);
                     input = &rem[hlsafe..];
                 }
                 Err(nom::Err::Incomplete(_)) => {
