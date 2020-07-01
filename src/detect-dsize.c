@@ -83,13 +83,13 @@ DsizeMatch(const uint16_t psize, const uint8_t mode,
 {
     if (mode == DETECTDSIZE_EQ && dsize == psize)
         return 1;
-    else if (mode == DETECTDSIZE_NE && dsize != psize)
-        return 1;
     else if (mode == DETECTDSIZE_LT && psize < dsize)
         return 1;
     else if (mode == DETECTDSIZE_GT && psize > dsize)
         return 1;
     else if (mode == DETECTDSIZE_RA && psize > dsize && psize < dsize2)
+        return 1;
+    else if (mode == DETECTDSIZE_NE && dsize != psize)
         return 1;
 
     return 0;

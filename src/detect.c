@@ -774,6 +774,9 @@ static inline void DetectRulePacketRules(
                 }
             }
         }
+        
+        if (SigDsizePrefilter(p, s, sflags))
+            goto next;
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
