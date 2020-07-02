@@ -242,6 +242,8 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
         if (FlowChangeProto(p->flow)) {
             StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
+            AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TS);
+            AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TC);
         }
 
         /* Packets here can safely access p->flow as it's locked */
