@@ -2024,7 +2024,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
             SCLogDebug("ssn %p: synrecv => Asynchronous stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
-                    "ssn->server.next_seq %" PRIu32 "\n"
+                    "ssn->server.next_seq %" PRIu32
                     , ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
                     + p->payload_len, ssn->server.next_seq);
 
