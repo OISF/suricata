@@ -60,6 +60,7 @@
 #include "app-layer-protos.h"
 #include "app-layer.h"
 #include "app-layer-events.h"
+#include "app-layer-parser.h"
 
 #include "detect-engine-state.h"
 
@@ -342,6 +343,10 @@ void StreamTcpDisableAppLayer(Flow *f)
     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
     StreamTcpDisableAppLayerReassembly(ssn);
+    if (f->alparser) {
+        AppLayerParserStateSetFlag(f->alparser,
+                (APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC));
+    }
 }
 
 /** \param f locked flow */
