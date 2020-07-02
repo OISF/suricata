@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,27 +67,26 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
 {
     LogTFTPLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "tftp", NULL);
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "tftp", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    json_t *tftpjs = rs_tftp_log_json_request(tx);
-    if (unlikely(tftpjs == NULL)) {
+    jb_open_object(jb, "tftp");
+    if (unlikely(!rs_tftp_log_json_request(tx, jb))) {
         goto error;
     }
+    jb_close(jb);
 
-    json_object_set_new(js, "tftp", tftpjs);
-
-    JsonAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, jb);
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->tftplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->tftplog_ctx->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 

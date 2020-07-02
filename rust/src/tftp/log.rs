@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,19 +17,27 @@
 
 // written by Clément Galland <clement.galland@epita.fr>
 
-use crate::json::*;
-use crate::tftp::tftp::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::tftp::tftp::TFTPTransaction;
+
+fn tftp_log_request(tx: &mut TFTPTransaction,
+                    jb: &mut JsonBuilder)
+                    -> Result<(), JsonError>
+{
+    match tx.opcode {
+        1 => jb.set_string("packet", "read")?,
+        2 => jb.set_string("packet", "write")?,
+        _ => jb.set_string("packet", "error")?
+    };
+    jb.set_string("file", tx.filename.as_str())?;
+    jb.set_string("mode", tx.mode.as_str())?;
+    Ok(())
+}
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction) -> *mut JsonT
+pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction,
+                                           jb: &mut JsonBuilder)
+                                           -> bool
 {
-    let js = Json::object();
-    match tx.opcode {
-        1 => js.set_string("packet", "read"),
-        2 => js.set_string("packet", "write"),
-        _ => js.set_string("packet", "error")
-    };
-    js.set_string("file", tx.filename.as_str());
-    js.set_string("mode", tx.mode.as_str());
-    js.unwrap()
+    tftp_log_request(tx, jb).is_ok()
 }
