@@ -1343,7 +1343,8 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
     if (pstate == NULL)
         goto end;
 
-    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC);
+    SCLogDebug("setting APP_LAYER_PARSER_EOF_TC and APP_LAYER_PARSER_EOF_TS");
+    AppLayerParserStateSetFlag(pstate, (APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC));
 
  end:
     SCReturn;
