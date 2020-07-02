@@ -1175,7 +1175,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 #ifdef DEBUG_VALIDATION
     BUG_ON(f->protomap != FlowGetProtoMapping(f->proto));
 #endif
-    AppLayerParserState *pstate = NULL;
+    AppLayerParserState *pstate = f->alparser;
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][alproto];
     void *alstate = NULL;
     uint64_t p_tx_cnt = 0;
@@ -1198,7 +1198,6 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     }
 
     /* Get the parser state (if any) */
-    pstate = f->alparser;
     if (pstate == NULL) {
         f->alparser = pstate = AppLayerParserStateAlloc();
         if (pstate == NULL)
