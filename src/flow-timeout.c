@@ -248,6 +248,16 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     memset(&p->ts, 0, sizeof(struct timeval));
     TimeGet(&p->ts);
 
+    if (direction == 0) {
+        if (f->alparser && !STREAM_HAS_SEEN_DATA(&ssn->client)) {
+            AppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS);
+        }
+    } else {
+        if (f->alparser && !STREAM_HAS_SEEN_DATA(&ssn->server)) {
+            AppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC);
+        }
+    }
+
     return p;
 
 error:
