@@ -53,3 +53,37 @@ endif
 	@echo "For more information please see:"
 	@echo "  https://suricata.readthedocs.io/en/latest/rule-management/index.html"
 	@echo ""
+
+#--- clang-formatting ---
+# Check if branch changes formatting is correct
+.PHONY: check-style-branch
+check-style-branch:
+	./scripts/clang-format.sh check-branch --make
+
+# Check if branch changes formatting is correct and print diff
+.PHONY: diff-style-branch
+diff-style-branch:
+	./scripts/clang-format.sh check-branch --make --diff
+
+# Check if branch changes formatting is correct and print diffstat, i.e. files
+.PHONY: diffstat-style-branch
+diffstat-style-branch:
+	./scripts/clang-format.sh check-branch --make --diffstat --show-commits
+
+# Format changes in git staging
+.PHONY: style
+style:
+	./scripts/clang-format.sh cached
+
+# Reformat all changes in branch. Allows you to add the formatting as a separate
+# commit "at the end".
+.PHONY: style-branch
+style-branch:
+	./scripts/clang-format.sh branch
+
+# Reformat all commits in branch off master and rewrite history using the
+# existing commit metadata.
+.PHONY: style-rewrite-branch
+style-rewrite-branch:
+	./scripts/clang-format.sh rewrite-branch
+
