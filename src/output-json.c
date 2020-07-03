@@ -60,12 +60,15 @@
 #include "util-device.h"
 #include "util-validate.h"
 #include "util-crypt.h"
+#include "util-plugin.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "flow-storage.h"
 
 #include "source-pcap-file.h"
+
+#include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
@@ -1081,9 +1084,19 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                                       "redis JSON output option is not compiled");
 #endif
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Invalid JSON output option: %s", output_s);
-                exit(EXIT_FAILURE);
+#ifdef HAVE_PLUGINS
+                SCPluginFileType *plugin = SCPluginFindFileType(output_s);
+                if (plugin == NULL) {
+                    FatalError(SC_ERR_INVALID_ARGUMENT,
+                            "Invalid JSON output option: %s", output_s);
+                } else {
+                    json_ctx->json_out = LOGFILE_TYPE_PLUGIN;
+                    json_ctx->plugin = plugin;
+                }
+#else
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "Invalid JSON output option: %s", output_s);
+#endif
             }
         }
 
@@ -1177,6 +1190,19 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 #endif
+        else if (json_ctx->json_out == LOGFILE_TYPE_PLUGIN) {
+            ConfNode *plugin_conf = ConfNodeLookupChild(conf,
+                json_ctx->plugin->name);
+            void *plugin_data = NULL;
+            if (json_ctx->plugin->Open(plugin_conf, &plugin_data) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+            } else {
+                json_ctx->file_ctx->plugin = json_ctx->plugin;
+                json_ctx->file_ctx->plugin_data = plugin_data;
+            }
+        }
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
