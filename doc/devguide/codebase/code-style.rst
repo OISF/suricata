@@ -6,12 +6,111 @@ Suricata uses a fairly strict coding style. This document describes it.
 Formatting
 ~~~~~~~~~~
 
+clang-format
+^^^^^^^^^^^^
+
+``clang-format`` is configured if you want to use it. The ``.clang-format`` file is set up for clang 9.
+
+Use ``git clang-format`` to only format your changes in your branch.
+Make targets are provided for easier usage.
+This is the recommended approach.
+
+.. code-block:: bash
+
+    # Check if branch changes' formatting is correct
+    $ make check-style-branch
+
+    # Format changes in git staging
+    $ make style
+
+    # Reformat all changes in branch. Allows you to add the formatting as an
+    # additional commit "at the end".
+    $ make style-branch
+
+    # Reformat all commits in your branch off master and rewrite history using
+    # the existing commit metadata.
+    # Always create a new version of your branch first and run this off the new
+    # version to have the existing branch around just in case.
+    $ make style-rewrite-branch
+
+This works surprisingly well, but it might not always work as well as the
+context might be missing compare to a full-file clang-format.
+
+
+Formatting a whole file:
+
+Do not reformat whole files by default, i.e. do not use clang-format proper.
+If you were ever to do so, formatting changes of existing code with clang-format
+shall be a different commit and must not be mixed with actual code changes.
+
+.. code-block:: bash
+
+    $ clang-format -i {file}
+
+Disabling clang-format
+**********************
+
+There might be times, where the clang-format's formatting might not please.
+This might mostly happen with macros, arrays (single or multi-dimensional ones),
+struct initialization, or where one manually formatted code.
+
+You can always disable clang-format.
+
+.. code-block:: c
+
+    /* clang-format off */
+    #define APP_LAYER_INCOMPLETE(c, n) (AppLayerResult){1, (c), (n)}
+    /* clang-format on */
+
+Installing clang-format and git-clang-format
+********************************************
+clang-format 9 is required.
+
+On ubuntu 18.04:
+
+- see http://apt.llvm.org for other releases
+- It is sufficient to only install clang-format, e.g.
+
+    .. code-block:: bash
+
+        $ wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        $ sudo add-apt-repository "deb http://apt.llvm.org/bionic/   llvm-toolchain-bionic-9  main"
+        $ sudo apt-get update
+        $ sudo apt-get install -y clang-format-9
+
+On fedora:
+
+- Install the ``clang``  and ``git-clang-format`` packages with
+
+    .. code-block:: bash
+
+        $ sudo dnf install clang git-clang-format
+
+
 Line length
 ^^^^^^^^^^^
 
-There is a soft limit of ~80 characters.
+There is a soft limit of ~80 characters. There is a hard limit of 100.
 
-When wrapping lines that are too long, they should be indented at least 8 spaces from previous line. You should attempt to wrap the minimal portion of the line to meet the 80 character limit.
+When wrapping lines that are too long, they should be indented at least 8
+spaces from previous line. You should attempt to wrap the minimal portion of
+the line to meet the 80 character limit.
+
+TODO - REMOVEME: 80 vs 100 width? @victorjulien mentioned maybe longer?
+Even linux is on 100 these days. However, keeping it to 80 would induce the
+fewest changes if existing code gets reformatted.
+
+TODO - REMOVEME: We should remove the "soft limit" as clang-format only has a
+hard limit.
+
+TODO - REMOVEME: Reflow comments, i.e. also adjust comments to length? Yup, for
+@jasonish.
+
+clang-format:
+ - ColumnLimit: 80
+ - ContinuationIndentWidth: 8
+ - ReflowComments: true
+
 
 Indent
 ^^^^^^
@@ -21,7 +120,7 @@ We use 4 space indentation.
 .. code-block:: c
 
     int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq)
+            uint8_t *pkt, uint16_t len, PacketQueue *pq)
     {
         SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
@@ -29,6 +128,19 @@ We use 4 space indentation.
             ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);
             return TM_ECODE_FAILED;
         }
+
+Note, use 8 space indentation when wrapping function parameters.
+
+NOTE - REMOVEME: tab default width of 8, not 4, as that's most editors default
+
+NOTE - REMOVEME: Old sample code function parameter indentation was 4. Indentation for next line of function parameters follows
+ContinuationIndentWidth as we have AlignAfterOpenBracket: DontAlign
+
+clang-format:
+ - IndentWidth: 4
+ - UseTab: Never [#llvm]_
+ - TabWidth: 8 [#llvm]_
+ - AlignAfterOpenBracket: DontAlign
 
 Braces
 ^^^^^^
@@ -42,14 +154,25 @@ Functions should have the opening brace on a newline:
         DoSomething();
     }
 
+Note: this is a fairly new requirement, so you'll encounter a lot of non-compliant code.
 
-Control statements should have the opening brace on the same line:
+Control and loop statements should have the opening brace on the same line:
 
 .. code-block:: c
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
+    }
+
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        ctx->goto_table[ctx->state_count][ascii_code] = SC_AC_FAIL;
+    }
+
+    while (funcs != NULL) {
+        temp = funcs;
+        funcs = funcs->next;
+        SCFree(temp);
     }
 
 Opening and closing braces go on the same line as as the _else_ (also known as a "cuddled else").
@@ -62,6 +185,41 @@ Opening and closing braces go on the same line as as the _else_ (also known as a
         DoThat();
     }
 
+Structs, unions and enums should have the opening brace on the same line:
+
+.. code-block:: c
+
+    union {
+        TCPVars tcpvars;
+        ICMPV4Vars icmpv4vars;
+        ICMPV6Vars icmpv6vars;
+    } l4vars;
+
+    struct {
+        uint8_t type;
+        uint8_t code;
+    } icmp_s;
+
+    enum {
+        DETECT_TAG_TYPE_SESSION,
+        DETECT_TAG_TYPE_HOST,
+        DETECT_TAG_TYPE_MAX
+    };
+
+clang-format:
+ - BreakBeforeBraces: Custom [#breakbeforebraces]_
+ - BraceWrapping:
+
+   - AfterClass:      true
+   - AfterControlStatement: false
+   - AfterEnum:       false
+   - AfterFunction:   true
+   - AfterStruct:     false
+   - AfterUnion:      false
+   - AfterExternBlock: true
+   - BeforeElse:      false
+   - IndentBraces:    false
+
 Flow
 ~~~~
 
@@ -73,6 +231,24 @@ Don't use conditions and statements on the same line. E.g.
 
     if (a)
         b = a; // <- right
+
+    for (int i = 0; i < 32; ++i) f(i); // <- wrong
+
+    for (int i = 0; i < 32; ++i)
+        f(i); // <- right
+
+Don't put short or empty functions and structs on one line.
+
+.. code-block:: c
+
+    void empty_function(void)
+    {
+    }
+
+    int short_function(void)
+    {
+        return 1;
+    }
 
 Don't use unnecessary branching. E.g.:
 
@@ -93,6 +269,91 @@ Can be written as:
         goto error;
     }
     a = b;
+
+clang-format:
+ - AllowShortBlocksOnASingleLine: false [#llvm]_
+ - AllowShortBlocksOnASingleLine: Never [#llvm]_ (breaking change in clang 10!) [#clang10]_
+ - AllowShortEnumsOnASingleLine: false [#clang11]_
+ - AllowShortFunctionsOnASingleLine: None
+ - AllowShortIfStatementsOnASingleLine: Never [#llvm]_
+ - AllowShortLoopsOnASingleLine: false [#llvm]_
+ - BreakBeforeBraces: Custom [#breakbeforebraces]_
+ - BraceWrapping:
+
+   - SplitEmptyFunction: true
+   - SplitEmptyRecord: true
+
+Alignment
+~~~~~~~~~
+
+Pointers
+^^^^^^^^
+Pointers shall be right aligned.
+
+.. code-block:: c
+
+    void *ptr;
+    void f(int *a, const char *b);
+    void (*foo)(int *);
+
+clang-format:
+ - PointerAlignment: Right
+ - DerivePointerAlignment: false
+
+Declarations and Comments
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Trailing comments should be aligned for consecutive lines.
+
+.. code-block:: c
+
+    struct bla {
+        int a;       /* comment */
+        unsigned bb; /* comment */
+        int *ccc;    /* comment */
+    };
+
+    void alignment()
+    {
+        // multiple consecutive vars
+        int a = 13;           /* comment */
+        int32_t abc = 1312;   /* comment */
+        int abcdefghikl = 13; /* comment */
+
+        // AlwaysBreakBeforeMultilineStrings
+        aaaa = "bbbb"
+               "ccc";
+    ...
+    }
+
+.. code-block:: c
+
+    //vvv--- REMOVEME
+    // FORMAT OPTION: AlignTrailingComments (bool)
+    // If true, aligns trailing comments.
+    true:                                   false:
+    int a;     // My comment a      vs.     int a; // My comment a
+    int b = 2; // comment  b                int b = 2; // comment about b
+
+    // FORMAT OPTION: AlignConsecutiveDeclarations (bool)
+    // If true, aligns consecutive declarations.
+    // This will align the declaration names of consecutive lines. This will result in formattings like
+    int         aaaa = 12;
+    float       b = 23;
+    std::string ccc = 23;
+    float *     b = 23; // clang-format feature/bug with right-aligned ptr
+
+    // FORMAT OPTION: AlignConsecutiveAssignments (bool)
+    // If true, aligns consecutive assignments.
+    // This will align the assignment operators of consecutive lines. This will result in formattings like
+    int aaaa = 12;
+    int b    = 23;
+    int ccc  = 23;
+    //^^^--- REMOVEME
+
+clang-format:
+ - AlignConsecutiveAssignments: false
+ - AlignConsecutiveDeclarations: false
+ - AlignTrailingComments: true
 
 Functions
 ~~~~~~~~~
@@ -121,20 +382,6 @@ inline
 
 The inlining of functions should be used only in critical paths.
 
-curly braces / brackets
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Functions should have the opening bracket on a newline:
-
-.. code-block:: c
-
-    int SomeFunction(void)
-    {
-        DoSomething();
-    }
-
-Note: this is a fairly new requirement, so you'll encounter a lot of non-compliant code.
-
 Variables
 ~~~~~~~~~
 
@@ -159,7 +406,59 @@ TODO
 Macros
 ~~~~~~
 
-TODO
+Macro names are ALL_CAPS_WITH_UNDERSCORES.
+Enclose parameters in parens on each usage inside the macro.
+
+Align macro values on consecutive lines.
+
+.. code-block:: c
+
+    #define ACTION_ALERT       0x01
+    #define ACTION_DROP        0x02
+    #define ACTION_REJECT      0x04
+    #define ACTION_REJECT_DST  0x08
+    #define ACTION_REJECT_BOTH 0x10
+    #define ACTION_PASS        0x20
+
+Align escape for multi-line macros left-most.
+
+.. code-block:: c
+
+    #define MULTILINE_DEF(a, b)         \
+        if ((a) > 2) {                  \
+            auto temp = (b) / 2;        \
+            (b) += 10;                  \
+            someFunctionCall((a), (b)); \
+        }
+
+.. code-block:: c
+
+    //vvv--- REMOVEME
+    // FORMAT OPTION: AlignEscapedNewlines
+    // Options for aligning backslashes in escaped newlines.
+
+    // DontAlign: Don’t align escaped newlines.
+    #define A \
+      int aaaa; \
+      int b; \
+      int dddddddddd;
+
+    // Left: Align escaped newlines as far left as possible.
+    #define A   \
+      int aaaa; \
+      int b;    \
+      int dddddddddd;
+
+    // Right: Align escaped newlines in the right-most column.
+    #define A                                                                      \
+      int aaaa;                                                                    \
+      int b;                                                                       \
+      int dddddddddd;
+    //^^^--- REMOVEME
+
+clang-format:
+ - AlignConsecutiveMacros: true
+ - AlignEscapedNewlines: Left
 
 Comments
 ~~~~~~~~
@@ -205,7 +504,24 @@ Some cases have a multi-layer prefix, e.g. ``util-mpm-ac.c``
 Enums
 ~~~~~
 
-TODO
+Use a common prefix for all enum values. Value names are ALL_CAPS_WITH_UNDERSCORES.
+
+Put each enum values on a separate line.
+Tip: Add a trailing comma to the last element to force "one-value-per-line"
+formatting in clang-format.
+
+.. code-block:: c
+
+    enum { VALUE_ONE, VALUE_TWO };  // <- wrong
+
+    // right
+    enum {
+        VALUE_ONE,
+        VALUE_TWO, // <- force one-value-per-line
+    };
+
+clang-format:
+ - AllowShortEnumsOnASingleLine: false [#clang11]_
 
 Structures and typedefs
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -241,6 +557,34 @@ Fall through cases will be commented with ``/* fall through */``. E.g.:
             default:
                 default_packet_size = DEFAULT_PACKET_SIZE;
 
+
+Do not put short case labels on one line.
+Put opening brace on same line as case statement.
+
+.. code-block:: c
+
+    switch (a) {
+        case 13: {
+            int a = bla();
+            break;
+        }
+        case 15:
+            blu();
+            break;
+        default:
+            gugus();
+    }
+
+
+clang-format:
+ - IndentCaseLabels: true
+ - IndentCaseBlocks: false [#clang11]_
+ - AllowShortCaseLabelsOnASingleLine: false [#llvm]_
+ - BreakBeforeBraces: Custom [#breakbeforebraces]_
+ - BraceWrapping:
+
+   - AfterCaseLabel:  false (default)
+
 const
 ~~~~~
 
@@ -274,6 +618,38 @@ Goto statements should be used with care. Generally, we use it primarily for err
             DetectFileextFree(fileext);
         return NULL;
     }
+
+Nested goto labels are indented.
+
+.. code-block:: c
+
+    int goto_style_nested()
+    {
+        if (foo()) {
+        label1:
+            bar();
+        }
+
+    label2:
+        return 1;
+    }
+
+TODO - REMOVEME: This is only configurable to left-most as of clang 10.
+
+clang-format:
+ - IndentGotoLabels: true (default) [#clang10]_
+
+Includes
+~~~~~~~~
+
+TODO
+
+A .c file shall include it's own header first.
+
+TODO - REMOVEME: clang-format could sort includes and group them if configured to do so. This might break compilation until fixed.
+
+clang-format:
+ - SortIncludes: false
 
 Unittests
 ~~~~~~~~~
@@ -332,3 +708,10 @@ Banned functions
 
 Also, check the existing code. If yours is wildly different, it's wrong.
 Example: https://github.com/oisf/suricata/blob/master/src/decode-ethernet.c
+
+.. rubric:: Footnotes
+
+.. [#llvm] Default LLVM clang-format Style
+.. [#clang10] Requires clang 10
+.. [#clang11] Requires clang 11
+.. [#breakbeforebraces] BreakBeforeBraces: Mozilla is closest, but does not split empty functions/structs
