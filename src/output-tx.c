@@ -260,15 +260,20 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             if ((tx_logged_old & (1<<logger->logger_id)) == 0) {
                 SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
+                const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
                 const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser,
                         APP_LAYER_PARSER_EOF_TS) != 0;
                 const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser,
                         APP_LAYER_PARSER_EOF_TC) != 0;
-                SCLogDebug("pcap_cnt %"PRIu64", tx_id %"PRIu64" logger %d. EOFs TS %s TC %s",
+                SCLogDebug("pcap_cnt %"PRIu64", tx_id %"PRIu64" logger %d. "
+                        "EOFs TS %s TC %s LAST PSEUDO %s",
                         p->pcap_cnt, tx_id, logger->logger_id,
-                        ts_eof ? "true" : "false", tc_eof ? "true" : "false");
+                        ts_eof ? "true" : "false", tc_eof ? "true" : "false",
+                        last_pseudo ? "true" : "false");
 
-                if (!(ts_eof && tc_eof)) {
+                if ((ts_eof && tc_eof) || last_pseudo) {
+                    SCLogDebug("EOF, so log now");
+                } else {
                     if (logger->LogCondition) {
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
