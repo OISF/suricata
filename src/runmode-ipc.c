@@ -111,6 +111,62 @@ int RunModeIpcSingle(void)
     return 0;
 }
 
+static void IpcDerefConfig(void *conf)
+{
+    IpcConfig *ipc = (IpcConfig *)conf;
+    if (SC_ATOMIC_SUB(ipc->ref, 1) == 1) {
+        SCFree(ipc->servers);
+        SCFree(ipc);
+    }
+}
+
+static int IpcGetThreadsCount(void *conf)
+{
+    IpcConfig *ipc = (IpcConfig *)conf;
+    return ipc->nb_servers;
+}
+
+static void *ParseIpcConfig(const char *servers)
+{
+    SCLogDebug("Ipc using servers %s", servers);
+
+    IpcConfig *conf = SCMalloc(sizeof(IpcConfig));
+
+    char delim[] = ",";
+
+    // looping the list of servers twice because we're at startup and it's easier than using a list
+    char * token = strtok(servers, delim);
+    conf->nb_servers = 0;
+    while (token != NULL) {
+        conf->nb_servers += 1;
+        token = strtok(servers, delim);
+    }
+
+    SCLogDebug("Connecting %d servers", conf->nb_servers);
+
+    conf->servers = SCMalloc(sizeof(char*) * conf->nb_servers);
+    if(unlikely(conf->servers == NULL)) {
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
+    }
+
+    int server = 0;
+    token = strtok(servers, delim);
+    while (token != NULL) {
+        conf->servers[server] = token;
+        server += 1;
+        token = strtok(servers, delim);
+    }
+
+    conf->allocation_batch = 100;
+    if(ConfGetInt("ipc.allocation-batch", &conf->allocation_batch) == 0) {
+        SCLogInfo("No ipc.allocation-batch parameters, defaulting to 100");
+    }
+
+    conf->DerefFunc = IpcDerefConfig;
+
+    return conf;
+}
+
 /**
  * \brief RunModeIpcAutoFp set up the following thread packet handlers:
  *        - Receive thread (from ipc server)
@@ -140,107 +196,19 @@ int RunModeIpcAutoFp(void)
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving ipc.server from Conf");
         exit(EXIT_FAILURE);
     }
-    SCLogDebug("server %s", server);
 
-    RunModeInitialize();
-//    TimeModeSetOffline();
-
-    /* Available cpus */
-    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-
-    /* start with cpu 1 so that if we're creating an odd number of detect
-     * threads we're not creating the most on CPU0. */
-    if (ncpus > 0)
-        cpu = 1;
-
-    /* always create at least one thread */
-    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
-    if (thread_max == 0)
-        thread_max = ncpus * threading_detect_ratio;
-    if (thread_max < 1)
-        thread_max = 1;
-    if (thread_max > 1024)
-        thread_max = 1024;
-
-    queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
-    if (queues == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
+    int ret = RunModeSetLiveCaptureAutoFp(ParseIpcConfig,
+                                      IpcGetThreadsCount,
+                                      "ReceivePfring",
+                                      "DecodePfring",
+                                      thread_name_autofp,
+                                      server);
+    if (ret != 0) {
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
-    snprintf(tname, sizeof(tname), "%s#01", thread_name_autofp);
-
-    /* create the threads */
-    ThreadVars *tv_receiveipc =
-            TmThreadCreatePacketHandler(tname,
-                                        "packetpool", "packetpool",
-                                        queues, "flow",
-                                        "pktacqloop");
-    SCFree(queues);
-
-    if (tv_receiveipc == NULL) {
-        SCLogError(SC_ERR_FATAL, "threading setup failed");
-        exit(EXIT_FAILURE);
-    }
-    TmModule *tm_module = TmModuleGetByName("ReceiveIpc");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for ReceiveIpc");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv_receiveipc, tm_module, server);
-
-    tm_module = TmModuleGetByName("DecodeIpc");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName DecodeIpc failed");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv_receiveipc, tm_module, NULL);
-
-    TmThreadSetCPU(tv_receiveipc, RECEIVE_CPU_SET);
-
-    if (TmThreadSpawn(tv_receiveipc) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-        exit(EXIT_FAILURE);
-    }
-
-    for (thread = 0; thread < (uint16_t)thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
-
-        SCLogDebug("tname %s, qname %s", tname, qname);
-        SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
-
-        ThreadVars *tv_detect_ncpu =
-                TmThreadCreatePacketHandler(tname,
-                                            qname, "flow",
-                                            "packetpool", "packetpool",
-                                            "varslot");
-        if (tv_detect_ncpu == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
-        }
-
-        tm_module = TmModuleGetByName("FlowWorker");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-
-        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
-
-        TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
-
-        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
-        }
-
-        if ((cpu + 1) == ncpus)
-            cpu = 0;
-        else
-            cpu++;
-    }
+    SCLogInfo("RunModeIpcAutoFp initialised");
 
     return 0;
 }

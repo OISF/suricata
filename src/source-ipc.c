@@ -187,7 +187,7 @@ TmEcode ReceiveIpcThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
 
-    const char *tmpserver = NULL;
+    IpcConfig *ipc = (IpcConfig *) initdata;
     IpcClient *ipc_client = NULL;
 
     if (initdata == NULL) {
@@ -202,28 +202,20 @@ TmEcode ReceiveIpcThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
     memset(ptv, 0, sizeof(IpcThreadVars));
 
-    if (ConfGet("ipc.server", &tmpserver) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "failed to get ipc server");
+    int server_id = SC_ATOMIC_ADD(ipc->server_id, 1);
 
+    ptv->server_name = SCStrdup(ipc->servers[server_id]);
+    SCLogInfo("Creating client to %s", ptv->server_name);
+
+    if(!rs_create_ipc_client(ptv->server_name, &ipc_client)) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to connect to client at %s", ptv->server_name);
+        SCFree(ptv->server_name);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
-    } else {
-        ptv->server_name = SCStrdup(tmpserver);
-        SCLogInfo("Creating client to %s", ptv->server_name);
+    };
 
-        if(!rs_create_ipc_client(tmpserver, &ipc_client)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to connect to client at %s", tmpserver);
-            SCFree(ptv->server_name);
-            SCFree(ptv);
-            SCReturnInt(TM_ECODE_FAILED);
-        };
-
-        ptv->ipc = ipc_client;
-    }
-
-    ptv->allocation_batch = 100;
-    if(ConfGetInt("ipc.allocation-batch", &ptv->allocation_batch) == 0) {
-        SCLogInfo("No ipc.allocation-batch parameters, defaulting to 100");
-    }
+    ptv->ipc = ipc_client;
+    ptv->allocation_batch = ipc->allocation_batch;
     
     *data = (void *)ptv;
 
