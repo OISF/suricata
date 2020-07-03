@@ -498,6 +498,7 @@ util-optimize.h \
 util-pages.c util-pages.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
+util-plugin.c util-plugin.h \
 util-pool.c util-pool.h \
 util-pool-thread.c util-pool-thread.h \
 util-prefilter.c util-prefilter.h \
@@ -542,6 +543,9 @@ win32-syscall.c win32-syscall.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
+
+include_HEADERS = \
+suricata-plugin.h
 
 EXTRA_DIST = tests
 
