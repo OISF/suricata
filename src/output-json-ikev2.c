@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,29 +64,28 @@ static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
 {
     IKEV2Transaction *ikev2tx = tx;
     LogIKEv2LogThread *thread = thread_data;
-    json_t *js, *ikev2js;
 
-    js = CreateJSONHeader((Packet *)p, LOG_DIR_PACKET, "ikev2", NULL);
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ikev2", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, jb);
 
-    ikev2js = rs_ikev2_log_json_response(state, ikev2tx);
-    if (unlikely(ikev2js == NULL)) {
+    jb_open_object(jb, "ikev2");
+    if (unlikely(!rs_ikev2_log_json_response(state, ikev2tx, jb))) {
         goto error;
     }
-    json_object_set_new(js, "ikev2", ikev2js);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->ikev2log_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->ikev2log_ctx->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
