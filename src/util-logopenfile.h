@@ -31,6 +31,7 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
+#include "suricata-plugin.h"
 
 typedef struct {
     uint16_t fileno;
@@ -40,7 +41,8 @@ enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
                    LOGFILE_TYPE_UNIX_STREAM,
-                   LOGFILE_TYPE_REDIS };
+                   LOGFILE_TYPE_REDIS,
+                   LOGFILE_TYPE_PLUGIN };
 
 typedef struct SyslogSetup_ {
     int alert_syslog_level;
@@ -60,6 +62,7 @@ typedef struct LogFileCtx_ {
         FILE *fp;
         PcieFile *pcie_fp;
         LogThreadedFileCtx *threads;
+        void *plugin_data;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
@@ -74,6 +77,8 @@ typedef struct LogFileCtx_ {
 
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
+
+    SCPluginFileType *plugin;
 
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
