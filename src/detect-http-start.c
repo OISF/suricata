@@ -94,7 +94,7 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     }
 
     bstr *line = NULL;
-    htp_table_t *headers;
+    htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <=
                 HTP_REQUEST_HEADERS)

@@ -380,7 +380,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
 
 static void JsonHttpLogJSONHeaders(json_t *js, uint32_t direction, htp_tx_t *tx)
 {
-    htp_table_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
+    htp_headers_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
         tx->request_headers : tx->response_headers;
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
