@@ -174,6 +174,8 @@
 
 #include "util-lua.h"
 
+#include "util-plugin.h"
+
 #include "rust.h"
 
 /*
@@ -2541,6 +2543,8 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
+
+    SCPluginsLoad();
 
     AppLayerHtpNeedFileInspection();
 
