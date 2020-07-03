@@ -222,6 +222,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PKT_TOCLIENT_IPONLY_SET    0x10
 #define FLOW_PKT_TOSERVER_FIRST         0x20
 #define FLOW_PKT_TOCLIENT_FIRST         0x40
+/** last pseudo packet in the flow. Can be used to trigger final clean,
+ *  logging, etc. */
+#define FLOW_PKT_LAST_PSEUDO            0x80
 
 #define FLOW_END_FLAG_STATE_NEW         0x01
 #define FLOW_END_FLAG_STATE_ESTABLISHED 0x02

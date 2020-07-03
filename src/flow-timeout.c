@@ -380,6 +380,9 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
                 goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR);
+            p2->flowflags |= FLOW_PKT_LAST_PSEUDO;
+        } else {
+            p1->flowflags |= FLOW_PKT_LAST_PSEUDO;
         }
     } else {
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
@@ -388,6 +391,7 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
                 goto done;
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR);
+            p1->flowflags |= FLOW_PKT_LAST_PSEUDO;
         } else {
             /* impossible */
             BUG_ON(1);
