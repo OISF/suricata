@@ -29,6 +29,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-tag.h"
+#include "detect-tag-pcap.h"
 #include "detect-engine-tag.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -48,6 +49,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "threads.h"
+
 
 SC_ATOMIC_EXTERN(unsigned int, num_tags);
 
@@ -299,16 +301,15 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
     return 0;
 }
 
-/** \internal
- *  \brief this function will free memory associated with
- *        DetectTagDataEntry
- *
+/**
+ *  \brief this function will free memory associated with DetectTagDataEntry
  *  \param td pointer to DetectTagDataEntry
  */
-static void DetectTagDataEntryFree(void *ptr)
+void DetectTagDataEntryFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
+        CleanUpTaggedPcap(dte->pcap_file);
         SCFree(dte);
     }
 }

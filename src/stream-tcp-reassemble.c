@@ -316,6 +316,9 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     TcpSegment *seg = NULL, *safe = NULL;
     RB_FOREACH_SAFE(seg, TCPSEG, &stream->seg_tree, safe)
     {
+        if (seg) {
+            SCFree(seg->pkt_hdr);
+        }
         RB_REMOVE(TCPSEG, &stream->seg_tree, seg);
         StreamTcpSegmentReturntoPool(seg);
     }

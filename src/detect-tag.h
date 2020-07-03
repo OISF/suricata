@@ -25,8 +25,9 @@
 #ifndef __DETECT_TAG_H__
 #define __DETECT_TAG_H__
 
-#include "suricata-common.h"
+#include "detect-tag-pcap.h"
 #include "suricata.h"
+#include "suricata-common.h"
 #include "util-time.h"
 
 /* Limit the number of times a session can be tagged by the
@@ -85,6 +86,7 @@ typedef struct DetectTagDataEntry_ {
     };
     uint32_t first_ts;                  /**< First time seen (for metric = seconds) */
     uint32_t last_ts;                   /**< Last time seen (to prune old sessions) */
+    TaggedPcapEntry *pcap_file;
 #if __WORDSIZE == 64
     uint32_t pad1;
 #endif
@@ -99,6 +101,7 @@ typedef struct DetectTagDataEntry_ {
 /* prototypes */
 struct DetectEngineCtx_ ;
 void DetectTagRegister(void);
+void DetectTagDataEntryFree(void *ptr);
 void DetectTagDataFree(struct DetectEngineCtx_ *, void *ptr);
 void DetectTagDataListFree(void *ptr);
 

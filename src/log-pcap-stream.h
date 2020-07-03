@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,27 +15,9 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- *
- */
+#ifndef __LOG_PCAP_STREAM_H__
+#define __LOG_PCAP_STREAM_H__
 
-#ifndef __UTIL_PATH_H__
-#define __UTIL_PATH_H__
+void StreamPcapLogRegister(void);
 
-#ifndef HAVE_NON_POSIX_MKDIR
-    #define SCMkDir(a, b) mkdir(a, b)
-#else
-    #define SCMkDir(a, b) mkdir(a)
-#endif
-
-int PathIsAbsolute(const char *);
-int PathIsRelative(const char *);
-int SCDefaultMkDir(const char *path);
-int SCCreateDirectoryTree(const char *path, const bool final);
-bool SCPathExists(const char *path);
-void SCUndotFilepath(const char* dotted_filepath);
-
-#endif /* __UTIL_PATH_H__ */
+#endif /*__LOG_PCAP_STREAM_H__*/
