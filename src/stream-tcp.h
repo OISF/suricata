@@ -140,6 +140,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
 
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq);
 
+const char *StreamTcpStateAsString(const enum TcpState);
+const char *StreamTcpSsnStateAsString(const TcpSession *ssn);
 
 /** ------- Inline functions: ------ */
 

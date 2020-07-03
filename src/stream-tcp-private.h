@@ -134,7 +134,7 @@ typedef struct TcpStream_ {
 #define STREAM_LOG_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->log_progress_rel)
 
 /* from /usr/include/netinet/tcp.h */
-enum
+enum TcpState
 {
     TCP_NONE,
     TCP_LISTEN,

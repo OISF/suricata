@@ -6271,6 +6271,57 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
     return;
 }
 
+const char *StreamTcpStateAsString(const enum TcpState state)
+{
+    const char *tcp_state = NULL;
+    switch (state) {
+        case TCP_NONE:
+            tcp_state = "none";
+            break;
+        case TCP_LISTEN:
+            tcp_state = "listen";
+            break;
+        case TCP_SYN_SENT:
+            tcp_state = "syn_sent";
+            break;
+        case TCP_SYN_RECV:
+            tcp_state = "syn_recv";
+            break;
+        case TCP_ESTABLISHED:
+            tcp_state = "established";
+            break;
+        case TCP_FIN_WAIT1:
+            tcp_state = "fin_wait1";
+            break;
+        case TCP_FIN_WAIT2:
+            tcp_state = "fin_wait2";
+            break;
+        case TCP_TIME_WAIT:
+            tcp_state = "time_wait";
+            break;
+        case TCP_LAST_ACK:
+            tcp_state = "last_ack";
+            break;
+        case TCP_CLOSE_WAIT:
+            tcp_state = "close_wait";
+            break;
+        case TCP_CLOSING:
+            tcp_state = "closing";
+            break;
+        case TCP_CLOSED:
+            tcp_state = "closed";
+            break;
+    }
+    return tcp_state;
+}
+
+const char *StreamTcpSsnStateAsString(const TcpSession *ssn)
+{
+    if (ssn == NULL)
+        return NULL;
+    return StreamTcpStateAsString(ssn->state);
+}
+
 #ifdef UNITTESTS
 
 #define SET_ISN(stream, setseq)             \
