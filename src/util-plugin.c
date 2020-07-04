@@ -26,6 +26,8 @@
 static TAILQ_HEAD(, SCPluginFileType_) output_types =
     TAILQ_HEAD_INITIALIZER(output_types);
 
+static TAILQ_HEAD(, SourcePlugin_) source_plugins = TAILQ_HEAD_INITIALIZER(source_plugins);
+
 static void InitPlugin(char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
@@ -137,6 +139,23 @@ SCPluginFileType *SCPluginFindFileType(const char *name)
         }
     }
     return NULL;
+}
+
+int SCPluginRegisterSource(SourcePlugin *plugin)
+{
+    TAILQ_INSERT_TAIL(&source_plugins, plugin, entries);
+    return 0;
+}
+
+SourcePlugin *SCPluginFindSourceByName(const char *name)
+{
+    SourcePlugin *plugin = NULL;
+    TAILQ_FOREACH(plugin, &source_plugins, entries) {
+        if (strcmp(name, plugin->name) == 0) {
+            return plugin;
+        }
+    }
+    return plugin;
 }
 
 #else

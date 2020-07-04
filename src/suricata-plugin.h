@@ -55,4 +55,13 @@ typedef struct SCPluginFileType_ {
 
 bool SCPluginRegisterFileType(SCPluginFileType *);
 
+typedef struct SourcePlugin_ {
+    char *name;
+    void (*Init)(int plugin_slot, int receive_slot, int decode_slot);
+    const char *(*GetDefaultMode)(void);
+    TAILQ_ENTRY(SourcePlugin_) entries;
+} SourcePlugin;
+
+int SCPluginRegisterSource(SourcePlugin *);
+
 #endif /* __SURICATA_PLUGIN_H */

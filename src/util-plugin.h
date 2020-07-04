@@ -22,5 +22,6 @@
 
 void SCPluginsLoad(void);
 SCPluginFileType *SCPluginFindFileType(const char *name);
+SourcePlugin *SCPluginFindSourceByName(const char *name);
 
 #endif /* __UTIL_PLUGIN_H__ */
