@@ -40,6 +40,7 @@ enum RunModes {
     RUNMODE_NAPATECH,
     RUNMODE_UNIX_SOCKET,
     RUNMODE_WINDIVERT,
+    RUNMODE_PLUGIN,
     RUNMODE_USER_MAX, /* Last standard running mode */
     RUNMODE_LIST_KEYWORDS,
     RUNMODE_LIST_APP_LAYERS,
@@ -77,7 +78,7 @@ char *RunmodeGetActive(void);
 const char *RunModeGetMainMode(void);
 
 void RunModeListRunmodes(void);
-void RunModeDispatch(int, const char *);
+void RunModeDispatch(int, const char *, const char *capture_plugin_name, const char *capture_plugin_args);
 void RunModeRegisterRunModes(void);
 void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *,
                                int (*RunModeFunc)(void));
