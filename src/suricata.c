@@ -1202,6 +1202,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"no-random", 0, &g_disable_randomness, 1},
         {"strict-rule-keywords", optional_argument, 0, 0},
 
+        {"source-plugin", required_argument, 0, 0},
+        {"source-plugin-args", required_argument, 0, 0},
+
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1292,6 +1295,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
+            }
+            else if(strcmp((long_opts[option_index]).name , "source-plugin") == 0){
+                suri->run_mode = RUNMODE_PLUGIN;
+                suri->source_plugin_name = optarg;
+            }
+            else if(strcmp((long_opts[option_index]).name , "source-plugin-args") == 0){
+                suri->source_plugin_args = optarg;
             }
             else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
             {
@@ -2543,7 +2553,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
 
-    SCPluginsLoad();
+    SCPluginsLoad(suri->source_plugin_name, suri->source_plugin_args);
 
     AppLayerHtpNeedFileInspection();
 
@@ -2785,7 +2795,8 @@ int SuricataMain(int argc, char **argv)
     }
 
     SCSetStartTime(&suricata);
-    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode);
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
+            suricata.source_plugin_name, suricata.source_plugin_args);
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode();
     }

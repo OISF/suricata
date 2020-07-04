@@ -20,7 +20,8 @@
 
 #include "suricata-plugin.h"
 
-void SCPluginsLoad(void);
+void SCPluginsLoad(const char *source_plugin_name, const char *source_plugin_args);
 SCPluginFileType *SCPluginFindFileType(const char *name);
+SourcePlugin *SCPluginFindSourceByName(const char *name);
 
 #endif /* __UTIL_PLUGIN_H__ */

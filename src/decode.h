@@ -479,6 +479,9 @@ typedef struct Packet_
         WinDivertPacketVars windivert_v;
 #endif /* WINDIVERT */
 
+        /* A chunk of memory that a plugin can use for its packet vars. */
+        uint8_t plugin_v[64];
+
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
     };

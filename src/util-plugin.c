@@ -26,6 +26,8 @@
 static TAILQ_HEAD(, SCPluginFileType_) output_types =
     TAILQ_HEAD_INITIALIZER(output_types);
 
+static TAILQ_HEAD(, SourcePlugin_) source_plugins = TAILQ_HEAD_INITIALIZER(source_plugins);
+
 static void InitPlugin(char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
@@ -48,7 +50,7 @@ static void InitPlugin(char *path)
     }
 }
 
-void SCPluginsLoad(void)
+void SCPluginsLoad(const char *source_plugin_name, const char *source_plugin_args)
 {
     ConfNode *conf = ConfGetNode("plugins");
     if (conf == NULL) {
@@ -81,6 +83,16 @@ void SCPluginsLoad(void)
         } else {
             InitPlugin(plugin->val);
         }
+    }
+
+    if (run_mode == RUNMODE_PLUGIN) {
+        SourcePlugin *source = SCPluginFindSourceByName(source_plugin_name);
+        if (source == NULL) {
+            FatalError(SC_ERR_PLUGIN, "No source plugin found with name %s",
+                    source_plugin_name);
+        }
+        source->Init(source_plugin_args, RUNMODE_PLUGIN, TMM_RECEIVEPLUGIN,
+                TMM_DECODEPLUGIN);
     }
 }
 
@@ -137,6 +149,24 @@ SCPluginFileType *SCPluginFindFileType(const char *name)
         }
     }
     return NULL;
+}
+
+int SCPluginRegisterSource(SourcePlugin *plugin)
+{
+    TAILQ_INSERT_TAIL(&source_plugins, plugin, entries);
+    SCLogNotice("Plugin source registered: %s", plugin->name);
+    return 0;
+}
+
+SourcePlugin *SCPluginFindSourceByName(const char *name)
+{
+    SourcePlugin *plugin = NULL;
+    TAILQ_FOREACH(plugin, &source_plugins, entries) {
+        if (strcmp(name, plugin->name) == 0) {
+            return plugin;
+        }
+    }
+    return plugin;
 }
 
 #else
