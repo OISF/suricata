@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,6 +47,7 @@
 #include "output-json.h"
 #include "output-json-flow.h"
 
+#include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
 
@@ -309,46 +310,9 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
         EveTcpFlags(ssn ? ssn->tcp_packet_flags : 0, jb);
 
         if (ssn) {
-            const char *tcp_state = NULL;
-            switch (ssn->state) {
-                case TCP_NONE:
-                    tcp_state = "none";
-                    break;
-                case TCP_LISTEN:
-                    tcp_state = "listen";
-                    break;
-                case TCP_SYN_SENT:
-                    tcp_state = "syn_sent";
-                    break;
-                case TCP_SYN_RECV:
-                    tcp_state = "syn_recv";
-                    break;
-                case TCP_ESTABLISHED:
-                    tcp_state = "established";
-                    break;
-                case TCP_FIN_WAIT1:
-                    tcp_state = "fin_wait1";
-                    break;
-                case TCP_FIN_WAIT2:
-                    tcp_state = "fin_wait2";
-                    break;
-                case TCP_TIME_WAIT:
-                    tcp_state = "time_wait";
-                    break;
-                case TCP_LAST_ACK:
-                    tcp_state = "last_ack";
-                    break;
-                case TCP_CLOSE_WAIT:
-                    tcp_state = "close_wait";
-                    break;
-                case TCP_CLOSING:
-                    tcp_state = "closing";
-                    break;
-                case TCP_CLOSED:
-                    tcp_state = "closed";
-                    break;
-            }
-            jb_set_string(jb, "state", tcp_state);
+            const char *tcp_state = StreamTcpStateAsString(ssn->state);
+            if (tcp_state != NULL)
+                jb_set_string(jb, "state", tcp_state);
             if (ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP)
                 JB_SET_TRUE(jb, "gap_ts");
             if (ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
