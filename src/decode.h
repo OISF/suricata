@@ -28,6 +28,7 @@
 #define COUNTERS
 
 #include "suricata-common.h"
+#include "suricata-plugin.h"
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
@@ -478,6 +479,9 @@ typedef struct Packet_
 #ifdef WINDIVERT
         WinDivertPacketVars windivert_v;
 #endif /* WINDIVERT */
+
+        /* A chunk of memory that a plugin can use for its packet vars. */
+        uint8_t plugin_v[PLUGIN_VAR_SIZE];
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;

@@ -38,6 +38,7 @@
 #include "runmodes.h"
 #include "util-unittest.h"
 #include "util-misc.h"
+#include "util-plugin.h"
 
 #include "output.h"
 
@@ -53,6 +54,8 @@
 #include "flow-manager.h"
 #include "flow-bypass.h"
 #include "counters.h"
+
+#include "suricata-plugin.h"
 
 int debuglog_enabled = 0;
 int threading_set_cpu_affinity = FALSE;
@@ -122,6 +125,8 @@ static const char *RunModeTranslateModeToName(int runmode)
 #else
             return "PFRING(DISABLED)";
 #endif
+        case RUNMODE_PLUGIN:
+            return "PLUGIN";
         case RUNMODE_NFQ:
             return "NFQ";
         case RUNMODE_NFLOG:
@@ -275,7 +280,8 @@ void RunModeListRunmodes(void)
 
 /**
  */
-void RunModeDispatch(int runmode, const char *custom_mode)
+void RunModeDispatch(int runmode, const char *custom_mode,
+    const char *capture_plugin_name, const char *capture_plugin_args)
 {
     char *local_custom_mode = NULL;
 
@@ -301,6 +307,15 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 custom_mode = RunModeIdsPfringGetDefaultMode();
                 break;
 #endif
+            case RUNMODE_PLUGIN: {
+                SCCapturePlugin *plugin = SCPluginFindCaptureByName(capture_plugin_name);
+                if (plugin == NULL) {
+                    FatalError(SC_ERR_PLUGIN, "No capture plugin found with name %s",
+                            capture_plugin_name);
+                }
+                custom_mode = (const char *)plugin->GetDefaultMode();
+                break;
+            }
             case RUNMODE_NFQ:
                 custom_mode = RunModeIpsNFQGetDefaultMode();
                 break;

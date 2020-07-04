@@ -26,6 +26,12 @@
 #include "conf.h"
 
 /**
+ * The size of the data chunk inside each packet structure a plugin
+ * has for private data (Packet->plugin_v).
+ */
+#define PLUGIN_VAR_SIZE 64
+
+/**
  * Structure to define a Suricata plugin.
  */
 typedef struct SCPlugin_ {
@@ -49,5 +55,14 @@ typedef struct SCPluginFileType_ {
 } SCPluginFileType;
 
 bool SCPluginRegisterFileType(SCPluginFileType *);
+
+typedef struct SCCapturePlugin_ {
+    char *name;
+    void (*Init)(const char *args, int plugin_slot, int receive_slot, int decode_slot);
+    const char *(*GetDefaultMode)(void);
+    TAILQ_ENTRY(SCCapturePlugin_) entries;
+} SCCapturePlugin;
+
+int SCPluginRegisterCapture(SCCapturePlugin *);
 
 #endif /* __SURICATA_PLUGIN_H */

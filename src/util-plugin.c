@@ -26,6 +26,8 @@
 static TAILQ_HEAD(, SCPluginFileType_) output_types =
     TAILQ_HEAD_INITIALIZER(output_types);
 
+static TAILQ_HEAD(, SCCapturePlugin_) capture_plugins = TAILQ_HEAD_INITIALIZER(capture_plugins);
+
 static void InitPlugin(char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
@@ -48,7 +50,7 @@ static void InitPlugin(char *path)
     }
 }
 
-void SCPluginsLoad(void)
+void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
 {
     ConfNode *conf = ConfGetNode("plugins");
     if (conf == NULL) {
@@ -81,6 +83,16 @@ void SCPluginsLoad(void)
         } else {
             InitPlugin(plugin->val);
         }
+    }
+
+    if (run_mode == RUNMODE_PLUGIN) {
+        SCCapturePlugin *capture = SCPluginFindCaptureByName(capture_plugin_name);
+        if (capture == NULL) {
+            FatalError(SC_ERR_PLUGIN, "No capture plugin found with name %s",
+                    capture_plugin_name);
+        }
+        capture->Init(capture_plugin_args, RUNMODE_PLUGIN, TMM_RECEIVEPLUGIN,
+                TMM_DECODEPLUGIN);
     }
 }
 
@@ -137,6 +149,24 @@ SCPluginFileType *SCPluginFindFileType(const char *name)
         }
     }
     return NULL;
+}
+
+int SCPluginRegisterCapture(SCCapturePlugin *plugin)
+{
+    TAILQ_INSERT_TAIL(&capture_plugins, plugin, entries);
+    SCLogNotice("Capture plugin registered: %s", plugin->name);
+    return 0;
+}
+
+SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
+{
+    SCCapturePlugin *plugin = NULL;
+    TAILQ_FOREACH(plugin, &capture_plugins, entries) {
+        if (strcmp(name, plugin->name) == 0) {
+            return plugin;
+        }
+    }
+    return plugin;
 }
 
 #else
