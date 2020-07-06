@@ -40,77 +40,6 @@ void RunModeIpcRegister(void)
     return;
 }
 
-/**
- * \brief Single thread version of the Pcap file processing.
- */
-int RunModeIpcSingle(void)
-{
-    const char *server = NULL;
-    char tname[TM_THREAD_NAME_MAX];
-
-    if (ConfGet("ipc.server", &server) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving ipc.server from Conf");
-        exit(EXIT_FAILURE);
-    }
-
-    RunModeInitialize();
-    TimeModeSetOffline();
-
-    snprintf(tname, sizeof(tname), "%s#01", thread_name_single);
-
-    /* create the threads */
-    ThreadVars *tv = TmThreadCreatePacketHandler(tname,
-                                                 "packetpool", "packetpool",
-                                                 "packetpool", "packetpool",
-                                                 "pktacqloop");
-    if (tv == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "threading setup failed");
-        exit(EXIT_FAILURE);
-    }
-
-    TmModule *tm_module = TmModuleGetByName("ReceiveIpc");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for ReceiveIpc");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, server);
-
-    tm_module = TmModuleGetByName("DecodeIpc");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName DecodePcap failed");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-    tm_module = TmModuleGetByName("FlowWorker");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-    TmThreadSetCPU(tv, WORKER_CPU_SET);
-
-#ifndef AFLFUZZ_PCAP_RUNMODE
-    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-        exit(EXIT_FAILURE);
-    }
-#else
-    /* in afl mode we don't spawn a new thread, but run the pipeline
-     * in the main thread */
-    tv->tm_func(tv);
-    int afl_runmode_exit_immediately = 0;
-    (void)ConfGetBool("afl.exit_after_pcap", &afl_runmode_exit_immediately);
-    if (afl_runmode_exit_immediately) {
-        SCLogNotice("exit because of afl-runmode-exit-after-pcap commandline option");
-        exit(EXIT_SUCCESS);
-    }
-#endif
-
-    return 0;
-}
-
 static void IpcDerefConfig(void *conf)
 {
     IpcConfig *ipc = (IpcConfig *)conf;
@@ -128,7 +57,7 @@ static int IpcGetThreadsCount(void *conf)
 
 static void *ParseIpcConfig(const char *servers)
 {
-    SCLogDebug("Ipc using servers %s", servers);
+    SCLogInfo("Ipc using servers %s", servers);
 
     IpcConfig *conf = SCMalloc(sizeof(IpcConfig));
 
@@ -139,10 +68,10 @@ static void *ParseIpcConfig(const char *servers)
     conf->nb_servers = 0;
     while (token != NULL) {
         conf->nb_servers += 1;
-        token = strtok(servers, delim);
+        token = strtok(NULL, delim);
     }
 
-    SCLogDebug("Connecting %d servers", conf->nb_servers);
+    SCLogInfo("Connecting %d servers", conf->nb_servers);
 
     conf->servers = SCMalloc(sizeof(char*) * conf->nb_servers);
     if(unlikely(conf->servers == NULL)) {
@@ -154,7 +83,7 @@ static void *ParseIpcConfig(const char *servers)
     while (token != NULL) {
         conf->servers[server] = token;
         server += 1;
-        token = strtok(servers, delim);
+        token = strtok(NULL, delim);
     }
 
     conf->allocation_batch = 100;
@@ -185,8 +114,39 @@ static void *ParseIpcConfig(const char *servers)
 int RunModeIpcAutoFp(void)
 {
     SCEnter();
-    char tname[TM_THREAD_NAME_MAX];
-    char qname[TM_QUEUE_NAME_MAX];
+
+    const char *server = NULL;
+    if (ConfGet("ipc.server", &server) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving ipc.server from Conf");
+        exit(EXIT_FAILURE);
+    }
+
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
+    int ret = RunModeSetLiveCaptureSingle(ParseIpcConfig,
+                                      IpcGetThreadsCount,
+                                      "ReceiveIpc",
+                                      "DecodeIpc",
+                                      thread_name_single,
+                                      server);
+    if (ret != 0) {
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
+        exit(EXIT_FAILURE);
+    }
+
+    SCLogInfo("RunModeIpcAutoFp initialised");
+
+    return 0;
+}
+
+/**
+ * \brief Single thread version of the Pcap file processing.
+ */
+int RunModeIpcSingle(void)
+{
+    SCEnter();
     uint16_t cpu = 0;
     char *queues = NULL;
     uint16_t thread;
@@ -197,18 +157,22 @@ int RunModeIpcAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
     int ret = RunModeSetLiveCaptureAutoFp(ParseIpcConfig,
-                                      IpcGetThreadsCount,
-                                      "ReceivePfring",
-                                      "DecodePfring",
-                                      thread_name_autofp,
-                                      server);
+                                          IpcGetThreadsCount,
+                                          "ReceiveIpc",
+                                          "DecodeIpc",
+                                          thread_name_autofp,
+                                          server);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIpcAutoFp initialised");
+    SCLogInfo("RunModeIpcSingle initialised");
 
     return 0;
 }
