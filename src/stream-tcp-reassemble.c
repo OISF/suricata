@@ -1137,9 +1137,10 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
 
+        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         /* get window of data that is acked */
         mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
-        if (mydata_len == 0)
+        if (mydata_len == 0 && (flags & STREAM_EOF) == 0)
             SCReturnInt(0);
 
         if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
@@ -1162,8 +1163,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
         /* update the app-layer */
         (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                (uint8_t *)mydata, mydata_len,
-                StreamGetAppLayerFlags(ssn, *stream, p));
+                (uint8_t *)mydata, mydata_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
         if (new_app_progress == app_progress)
@@ -1206,7 +1206,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 #endif
     /* if no segments are in the list or all are already processed,
      * and state is beyond established, we send an empty msg */
-    if (STREAM_HAS_SEEN_DATA(stream) && STREAM_RIGHT_EDGE(stream) <= STREAM_APP_PROGRESS(stream))
+    if (!STREAM_HAS_SEEN_DATA(stream) || STREAM_RIGHT_EDGE(stream) <= STREAM_APP_PROGRESS(stream))
     {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
