@@ -66,3 +66,6 @@ gen/c-headers:
 else
 gen/c-headers:
 endif
+
+doc:
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
