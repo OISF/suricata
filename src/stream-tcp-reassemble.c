@@ -1034,14 +1034,20 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
     return false;
 }
 
-static inline uint32_t AdjustToAcked(const Packet *p, const TcpStream *stream,
+static inline uint32_t AdjustToAcked(const Packet *p,
+        const TcpSession *ssn, const TcpStream *stream,
         const uint64_t app_progress, const uint32_t data_len)
 {
     uint32_t adjusted = data_len;
 
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == FALSE) {
-        if (p->flags & PKT_PSEUDO_STREAM_END) {
+        SCLogDebug("ssn->state %s", StreamTcpStateAsString(ssn->state));
+        if ((ssn->state < TCP_CLOSED ||
+                    (ssn->state == TCP_CLOSED &&
+                     (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
+                (p->flags & PKT_PSEUDO_STREAM_END))
+        {
             // fall through, we use all available data
         } else {
             uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
@@ -1132,7 +1138,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
 
         /* get window of data that is acked */
-        mydata_len = AdjustToAcked(p, *stream, app_progress, mydata_len);
+        mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         if (mydata_len == 0)
             SCReturnInt(0);
 
