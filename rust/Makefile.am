@@ -78,3 +78,6 @@ gen/rust-bindings.h:
 else
 gen/rust-bindings.h:
 endif
+
+doc:
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
