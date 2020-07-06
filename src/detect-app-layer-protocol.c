@@ -75,6 +75,12 @@ static int DetectAppLayerProtocolPacketMatch(
 
         r = (data->negated) ? (f->alproto_tc != data->alproto) :
             (f->alproto_tc == data->alproto);
+    } else if (f->alproto == ALPROTO_UNKNOWN)
+    {
+        /* If rule specifies app-layer-protocol:failed match on unknown as well. */
+        SCLogDebug("packet %"PRIu64" unknown alproto, trying to match alproto_failed", p->pcap_cnt);
+        r = (data->alproto == ALPROTO_FAILED) ? !data->negated : 
+            data->negated;
     }
     else {
         SCLogDebug("packet %"PRIu64": default case: direction %02x, approtos %u/%u/%u",

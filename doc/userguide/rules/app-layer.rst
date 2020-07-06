@@ -18,7 +18,9 @@ Examples::
 
 A special value 'failed' can be used for matching on flows in which
 protocol detection failed. This can happen if Suricata doesn't know
-the protocol or when certain 'bail out' conditions happen.
+the protocol or when certain 'bail out' conditions happen. '!failed'
+will match on any flow in which detection of a known protocol was
+successful.
 
 .. _proto-detect-bail-out:
 
