@@ -606,3 +606,22 @@ pub extern "C" fn rs_ssh_enable_hassh() {
 pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
     hassh_is_enabled()
 }
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    
+    if rs_ssh_hassh_is_enabled() {
+        if  tx.cli_hdr.flags == SSHConnectionState::SshStateFinished &&
+            tx.srv_hdr.flags == SSHConnectionState::SshStateFinished {
+            return true; 
+        }
+    }
+    else {
+        if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
+            tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+            return true;
+        }
+    }
+    return false;
+}

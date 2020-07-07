@@ -28,6 +28,12 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         if tx.cli_hdr.swver.len() > 0 {
             js.set_string_from_bytes("software_version", &tx.cli_hdr.swver)?;
         }
+        if tx.cli_hdr.hassh.len() > 0 {
+            js.set_string_from_bytes("hassh", &tx.cli_hdr.hassh)?;
+        }
+        if tx.cli_hdr.hassh_string.len() > 0 {
+            js.set_string_from_bytes("hassh.string", &tx.cli_hdr.hassh_string)?;
+        }
         js.close()?;
     }
     if tx.srv_hdr.protover.len() > 0 {
@@ -35,6 +41,12 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         js.set_string_from_bytes("proto_version", &tx.srv_hdr.protover)?;
         if tx.srv_hdr.swver.len() > 0 {
             js.set_string_from_bytes("software_version", &tx.srv_hdr.swver)?;
+        }
+        if tx.srv_hdr.hassh.len() > 0 {
+            js.set_string_from_bytes("hassh", &tx.srv_hdr.hassh)?;
+        }
+        if tx.srv_hdr.hassh_string.len() > 0 {
+            js.set_string_from_bytes("hassh.string", &tx.srv_hdr.hassh_string)?;
         }
         js.close()?;
     }
