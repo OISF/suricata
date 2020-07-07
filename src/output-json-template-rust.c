@@ -71,25 +71,25 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     SCLogNotice("JsonTemplateLogger");
     LogTemplateLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "template-rust", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "template-rust", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    json_t *template_js = rs_template_logger_log(tx);
-    if (unlikely(template_js == NULL)) {
+    jb_open_object(js, "template");
+    if (!rs_template_logger_log(tx, js)) {
         goto error;
     }
-    json_object_set_new(js, "template", template_js);
+    jb_close(js);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
 
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 
