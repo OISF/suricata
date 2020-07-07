@@ -1,0 +1,43 @@
+﻿# Suricata settings as per 
+# https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Coding_Style
+#
+# Some discussions to be had. See companion sample_formatted_code.do_not_merge.c
+# for what this looks like.
+---
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: Left
+# clang 10: AllowShortBlocksOnASingleLine: Never
+# clang 11: AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+# BreakBeforeBraces: Mozilla is closest, but does not split empty functions/structs
+BraceWrapping:
+  AfterClass:      true
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterStruct:     false
+  AfterUnion:      false
+  AfterExternBlock: true
+  BeforeElse:      false
+  IndentBraces:    false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+BreakBeforeBraces: Custom
+Cpp11BracedListStyle: true
+ConstructorInitializerIndentWidth: 8
+ContinuationIndentWidth: 8
+ForEachMacros: ['json_array_foreach', 'json_object_foreach']
+IndentCaseLabels: true
+IndentWidth: 4
+ReflowComments: true
+SortIncludes: false
+
+# implicit by LLVM style
+#BreakBeforeTernaryOperators: true
+#ColumnLimit: 80
+#UseTab: Never
+#TabWidth: 8
+
+...
