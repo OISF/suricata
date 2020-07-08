@@ -91,9 +91,6 @@ static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
     DetectModbus *modbus = (DetectModbus *) ptr;
 
     if(modbus) {
-        if (modbus->subfunction)
-            SCFree(modbus->subfunction);
-
         if (modbus->unit_id)
             SCFree(modbus->unit_id);
 
@@ -355,18 +352,14 @@ static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const ch
                 goto error;
             }
 
-            /* We have a correct address option */
-            modbus->subfunction =(uint16_t *) SCCalloc(1, sizeof(uint16_t));
-            if (modbus->subfunction == NULL)
-                goto error;
-
-            if (StringParseUint16(&(*modbus->subfunction), 10, 0, (const char *)arg) < 0) {
+            if (StringParseUint16(&modbus->subfunction, 10, 0, (const char *)arg) < 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
                            "modbus subfunction: %s", (const char*)arg);
                 goto error;
             }
+            modbus->has_subfunction = true;
 
-            SCLogDebug("and subfunction %d", *(modbus->subfunction));
+            SCLogDebug("and subfunction %d", modbus->subfunction);
         }
     } else {
         uint8_t neg = 0;
@@ -627,7 +620,7 @@ static int DetectModbusTest02(void)
     modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
 
     FAIL_IF_NOT(modbus->function == 8);
-    FAIL_IF_NOT(*modbus->subfunction == 4);
+    FAIL_IF_NOT(modbus->subfunction == 4);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -908,7 +901,7 @@ static int DetectModbusTest11(void)
     FAIL_IF_NOT((*modbus->unit_id).min == 10);
     FAIL_IF_NOT((*modbus->unit_id).mode == mode);
     FAIL_IF_NOT(modbus->function == 8);
-    FAIL_IF_NOT((*modbus->subfunction) == 4);
+    FAIL_IF_NOT(modbus->subfunction == 4);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
