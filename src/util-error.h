@@ -361,6 +361,8 @@ typedef enum {
     SC_ERR_ERF_BAD_RLEN,
     SC_WARN_ERSPAN_CONFIG,
     SC_WARN_HASSH_DISABLED,
+    SC_ERR_TS, /** Error indicating a failure to create time struct.**/
+    SC_ERR_RENAME, /** Error indicating a failure to rename file. **/
 
     SC_ERR_MAX
 } SCError;

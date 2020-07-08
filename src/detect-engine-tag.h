@@ -56,6 +56,8 @@ int TagTimeoutCheck(Host *, struct timeval *);
 
 int TagHostHasTag(Host *host);
 
+DetectTagDataEntry *TagGetFlowTag(Flow* flow);
+
 void DetectEngineTagRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_TAG_H__ */

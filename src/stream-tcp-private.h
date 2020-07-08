@@ -64,6 +64,10 @@ typedef struct TcpSegment {
     uint32_t seq;
     RB_ENTRY(TcpSegment) __attribute__((__packed__)) rb;
     StreamingBufferSegment sbseg;
+    struct timeval ts;
+    uint8_t *pkt_hdr;
+    uint32_t pktlen;
+    uint64_t pcap_cnt;
 } __attribute__((__packed__)) TcpSegment;
 
 /** \brief compare function for the Segment tree

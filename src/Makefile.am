@@ -271,6 +271,7 @@ detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
+detect-tag-pcap.c detect-tag-pcap.h \
 detect-target.c detect-target.h \
 detect-tcp-ack.c detect-tcp-ack.h \
 detect-tcp-flags.c detect-tcp-flags.h \
@@ -329,6 +330,7 @@ ippair-timeout.c ippair-timeout.h \
 log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-pcap-stream.c log-pcap-stream.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \

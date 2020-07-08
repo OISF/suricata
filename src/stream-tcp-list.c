@@ -32,6 +32,7 @@
 #include "util-validate.h"
 
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg);
+static void StreamTcpSegmentAddPacketData(TcpSegment *seg, Packet *p);
 
 static int check_overlap_different_data = 0;
 
@@ -564,6 +565,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* insert segment into list. Note: doesn't handle the data */
     int r = DoInsertSegment (stream, seg, &dup_seg, p);
+    StreamTcpSegmentAddPacketData(seg, p);
     SCLogDebug("DoInsertSegment returned %d", r);
     if (r < 0) {
         StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
@@ -786,6 +788,9 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 {
+    if (seg) {
+        SCFree(seg->pkt_hdr);
+    }
     RB_REMOVE(TCPSEG, &stream->seg_tree, seg);
 }
 
@@ -890,6 +895,37 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     SCReturn;
 }
 
+/**
+ * \brief Adds the following information to the TcpSegment from the current
+ *  packet being processed: time values, packet length, pcap_cnt, and the
+ *  header data of the packet. This information is added to the TcpSegment so
+ *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
+ *  session at the beginning of the pcap capture.
+ * \param seg TcpSegment where information is being stored.
+ * \param p Packet being processed.
+ */
+static void StreamTcpSegmentAddPacketData(TcpSegment *seg, Packet *p)
+{
+    if (p->ethh != NULL) {
+        seg->ts.tv_sec = p->ts.tv_sec;
+        seg->ts.tv_usec = p->ts.tv_usec;
+        seg->pktlen = GET_PKT_LEN(p);
+        seg->pcap_cnt = p->pcap_cnt;
+        seg->pkt_hdr = (uint8_t *) SCMalloc(GET_PKT_LEN(p) - p->payload_len);
+        if (seg->pkt_hdr != NULL) {
+            memcpy(seg->pkt_hdr, p->ethh, (size_t) GET_PKT_LEN(p) - p->payload_len);
+        } else {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for packet"
+                                         "data in TCP segment.");
+        }
+    } else {
+        seg->ts.tv_sec = 0;
+        seg->ts.tv_usec = 0;
+        seg->pktlen = 0;
+        seg->pcap_cnt = 0;
+        seg->pkt_hdr = NULL;
+    }
+}
 
 /*
  *  unittests

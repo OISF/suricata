@@ -137,3 +137,51 @@ bool SCPathExists(const char *path)
     }
     return false;
 }
+
+/**
+ *  \brief Renames the specified fully-qualified dotted file path to its
+ *   non-dotted equivalent. This function was originally written for
+ *   detect-tag-pcap.c, but was moved to util-path.c as its utility is not
+ *   restricted to the packet dumping feature.
+ *  \param dotted_filepath fully-qualified path to the hidden temporary file
+ *   to unmask.
+ */
+void SCUndotFilepath(const char *dotted_filepath)
+{
+    char undotted_path[PATH_MAX];
+
+    /*
+     * Copy the dotted file path so that it can be modified into the
+     * destination undotted path.
+     */
+    size_t len = strlcpy(undotted_path, dotted_filepath, sizeof(undotted_path));
+    if (len >= sizeof(undotted_path)) {
+        SCLogError(SC_ERR_INVALID_NUM_BYTES, "Provided buffer size is too "
+                                             "small to undot file path: "
+                                             "%s\nError: %s",
+                   dotted_filepath, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    /*
+     * Shift characters left by one until a '/' is found. The filename is
+     * temporarily hidden, i.e. prefixed with a '.', while packets are being
+     * dumped. This shifting is done to find that '.' and remove it so the
+     * file is no longer hidden.
+     */
+    char last_replaced_char = undotted_path[len];
+    size_t x = len;
+    while (undotted_path[--x] != '/' && x > 0) {
+        char tmp = undotted_path[x];
+        undotted_path[x] = last_replaced_char;
+        last_replaced_char = tmp;
+    }
+
+    if (rename(dotted_filepath, undotted_path) != 0) {
+        SCLogError(SC_ERR_RENAME, "Failed to rename dotted file: %s to %s: "
+                                  "\n Error: %s", dotted_filepath,
+                   undotted_path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
