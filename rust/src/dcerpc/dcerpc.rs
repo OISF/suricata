@@ -867,9 +867,9 @@ impl DCERPCState {
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
         if (buffer.len() as u16) < fraglen {
-            SCLogDebug!("Possibly fragmented data, waiting for more..");
-            self.extend_buffer(buffer, direction);
-            return AppLayerResult::ok();
+            panic!("Possibly fragmented data, waiting for more..");
+            //self.extend_buffer(buffer, direction);
+            //return AppLayerResult::ok();
         } else {
             self.query_completed = true;
         }
