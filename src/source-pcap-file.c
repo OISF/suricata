@@ -292,11 +292,24 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
+        pv->cur_dir_depth = 0;
+
+        int should_recurse = 0;
+        pv->should_recurse = false;
+        if (ConfGetBool("pcap-file.recursive", &should_recurse) == 1) {
+            pv->should_recurse = should_recurse == 1;
+        }
 
         int should_loop = 0;
         pv->should_loop = false;
         if (ConfGetBool("pcap-file.continuous", &should_loop) == 1) {
             pv->should_loop = should_loop == 1;
+        }
+
+        if (pv->should_recurse == 1 && pv->should_loop == 1) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous and --pcap-file-recursive "
+                                                "cannot be used together.");
+            SCReturnInt(TM_ECODE_FAILED);
         }
 
         pv->delay = 30;
