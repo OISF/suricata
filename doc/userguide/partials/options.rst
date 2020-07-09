@@ -54,6 +54,12 @@
    continuously feed files to a directory and have them cleaned up when done. If
    this option is not set, pcap files will not be deleted after processing.
 
+.. option:: --pcap-file-recursive
+   Used with the -r option when the path provided is a directory.  This option
+   enables recursive traversal into subdirectories to a maximum depth of 255.
+   This option cannot be combined with --pcap-file-continuous.  Symlinks are
+   ignored.
+
 .. option::  -i <interface>
 
    After the -i option you can enter the interface card you would like
