@@ -241,8 +241,8 @@ void HostInitConfig(char quiet)
     }
     host_hash = SCMallocAligned(host_config.hash_size * sizeof(HostHashRow), CLS);
     if (unlikely(host_hash == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in HostInitConfig. Exiting...");
     }
     memset(host_hash, 0, host_config.hash_size * sizeof(HostHashRow));
 

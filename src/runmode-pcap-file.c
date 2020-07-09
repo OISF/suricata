@@ -62,8 +62,7 @@ int RunModeFilePcapSingle(void)
     char tname[TM_THREAD_NAME_MAX];
 
     if (ConfGet("pcap-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed retrieving pcap-file from Conf");
     }
 
     RunModeInitialize();
@@ -79,36 +78,31 @@ int RunModeFilePcapSingle(void)
                                                  "packetpool", "packetpool",
                                                  "pktacqloop");
     if (tv == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "threading setup failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "threading setup failed");
     }
 
     TmModule *tm_module = TmModuleGetByName("ReceivePcapFile");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for ReceivePcap");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName failed for ReceivePcap");
     }
     TmSlotSetFuncAppend(tv, tm_module, file);
 
     tm_module = TmModuleGetByName("DecodePcapFile");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName DecodePcap failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName DecodePcap failed");
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
     tm_module = TmModuleGetByName("FlowWorker");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName for FlowWorker failed");
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
     TmThreadSetCPU(tv, WORKER_CPU_SET);
 
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed");
     }
     return 0;
 }
@@ -141,8 +135,7 @@ int RunModeFilePcapAutoFp(void)
 
     const char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed retrieving pcap-file from Conf");
     }
     SCLogDebug("file %s", file);
 
@@ -169,8 +162,8 @@ int RunModeFilePcapAutoFp(void)
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "RunmodeAutoFpCreatePickupQueuesString failed");
     }
 
     snprintf(tname, sizeof(tname), "%s#01", thread_name_autofp);
@@ -184,28 +177,24 @@ int RunModeFilePcapAutoFp(void)
     SCFree(queues);
 
     if (tv_receivepcap == NULL) {
-        SCLogError(SC_ERR_FATAL, "threading setup failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "threading setup failed");
     }
     TmModule *tm_module = TmModuleGetByName("ReceivePcapFile");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for ReceivePcap");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName failed for ReceivePcap");
     }
     TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
 
     tm_module = TmModuleGetByName("DecodePcapFile");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName DecodePcap failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName DecodePcap failed");
     }
     TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
 
     TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
     if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed");
     }
 
     for (thread = 0; thread < (uint16_t)thread_max; thread++) {
@@ -221,14 +210,13 @@ int RunModeFilePcapAutoFp(void)
                                         "packetpool", "packetpool",
                                         "varslot");
         if (tv_detect_ncpu == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "TmThreadsCreate failed");
         }
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
@@ -237,8 +225,7 @@ int RunModeFilePcapAutoFp(void)
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "TmThreadSpawn failed");
         }
 
         if ((cpu + 1) == ncpus)

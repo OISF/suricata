@@ -2747,9 +2747,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 exit(EXIT_FAILURE);
             }
             if (limit == 0) {
-                SCLogError(SC_ERR_SIZE_PARSE, "Error meta-field-limit "
+                FatalError(SC_ERR_FATAL, "Error meta-field-limit "
                            "from conf file cannot be 0.  Killing engine");
-                exit(EXIT_FAILURE);
             }
             /* set default soft-limit with our new hard limit */
             htp_config_set_field_limits(cfg_prec->cfg,
@@ -2890,8 +2889,7 @@ void HTPConfigure(void)
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP default config");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed to create HTP default config");
     }
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
     HTPConfigSetDefaultsPhase1(&cfglist);
@@ -2939,8 +2937,7 @@ void HTPConfigure(void)
         cfglist.next->next = nextrec;
         cfglist.next->cfg = htp_config_create();
         if (NULL == cfglist.next->cfg) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Failed to create HTP server config");
         }
 
         HTPConfigSetDefaultsPhase1(htprec);

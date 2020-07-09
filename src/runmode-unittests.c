@@ -298,8 +298,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 
     exit(EXIT_SUCCESS);
 #else
-    SCLogError(SC_ERR_NOT_SUPPORTED, "Unittests are not build-in");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Unittests are not build-in");
 #endif /* UNITTESTS */
 }
 

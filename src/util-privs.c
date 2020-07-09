@@ -85,9 +85,8 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
             CAPNG_CLEAR_BOUNDING) < 0)
     {
-        SCLogError(SC_ERR_CHANGING_CAPS_FAILED, "capng_change_id for main thread"
-                " failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "capng_change_id for main thread"
+                   " failed");
     }
 
     SCLogInfo("dropped the caps for main thread");
@@ -160,16 +159,14 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
         }
         pw = getpwuid(userid);
        if (pw == NULL) {
-            SCLogError(SC_ERR_UID_FAILED, "unable to get the user ID, "
-                    "check if user exist!!");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "unable to get the user ID, "
+                       "check if user exist!!");
         }
     } else {
         pw = getpwnam(user_name);
         if (pw == NULL) {
-            SCLogError(SC_ERR_UID_FAILED, "unable to get the user ID, "
-                    "check if user exist!!");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "unable to get the user ID, "
+                       "check if user exist!!");
         }
         userid = pw->pw_uid;
     }
@@ -185,9 +182,8 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
         } else {
             gp = getgrnam(group_name);
             if (gp == NULL) {
-                SCLogError(SC_ERR_GID_FAILED, "unable to get the group"
-                        " ID, check if group exist!!");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "unable to get the group"
+                           " ID, check if group exist!!");
             }
             groupid = gp->gr_gid;
         }
@@ -227,9 +223,8 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
     } else {
         gp = getgrnam(group_name);
         if (gp == NULL) {
-            SCLogError(SC_ERR_GID_FAILED, "unable to get the group ID,"
-                    " check if group exist!!");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "unable to get the group ID,"
+                       " check if group exist!!");
         }
         grpid = gp->gr_gid;
     }

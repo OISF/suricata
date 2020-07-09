@@ -1531,9 +1531,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 SCLogRedisInit();
                 json_ctx->json_out = LOGFILE_TYPE_REDIS;
 #else
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "redis JSON output option is not compiled");
-                exit(EXIT_FAILURE);
+                           FatalError(SC_ERR_FATAL,
+                                      "redis JSON output option is not compiled");
 #endif
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -1549,9 +1548,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->file_ctx->prefix = SCStrdup(prefix);
             if (json_ctx->file_ctx->prefix == NULL)
             {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for eve-log.prefix setting.");
-                exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Failed to allocate memory for eve-log.prefix setting.");
             }
             json_ctx->file_ctx->prefix_len = strlen(prefix);
         }

@@ -1663,9 +1663,9 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 void TmThreadInitMC(ThreadVars *tv)
 {
     if ( (tv->ctrl_mutex = SCMalloc(sizeof(*tv->ctrl_mutex))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
-        exit(EXIT_FAILURE);
     }
 
     if (SCCtrlMutexInit(tv->ctrl_mutex, NULL) != 0) {
@@ -1674,15 +1674,14 @@ void TmThreadInitMC(ThreadVars *tv)
     }
 
     if ( (tv->ctrl_cond = SCMalloc(sizeof(*tv->ctrl_cond))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
-        exit(EXIT_FAILURE);
     }
 
     if (SCCtrlCondInit(tv->ctrl_cond, NULL) != 0) {
-        SCLogError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
+        FatalError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
                    "variable");
-        exit(EXIT_FAILURE);
     }
 
     return;

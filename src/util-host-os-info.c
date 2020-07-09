@@ -78,8 +78,7 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
     int *user_data = NULL;
 
     if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
     }
 
     /* the host os flavour that has to be sent as user data */
@@ -157,8 +156,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     }
 
     if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
 
     /* check if we have more addresses in the host_os_ip_range */

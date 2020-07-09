@@ -226,8 +226,7 @@ void NFQInitConfig(char quiet)
         }  else if (!strcmp("route", nfq_mode)) {
             nfq_config.mode = NFQ_ROUTE_MODE;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Unknown nfq.mode");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Unknown nfq.mode");
         }
     }
 
@@ -591,24 +590,20 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(q->h, AF_INET) < 0) {
-            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_unbind_pf() for AF_INET failed");
         }
         if (nfq_unbind_pf(q->h, AF_INET6) < 0) {
-            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_unbind_pf() for AF_INET6 failed");
         }
         nfq_g.unbind = 1;
 
         SCLogDebug("binding nfnetlink_queue as nf_queue handler for AF_INET and AF_INET6");
 
         if (nfq_bind_pf(q->h, AF_INET) < 0) {
-            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_bind_pf() for AF_INET failed");
         }
         if (nfq_bind_pf(q->h, AF_INET6) < 0) {
-            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_bind_pf() for AF_INET6 failed");
         }
     }
 

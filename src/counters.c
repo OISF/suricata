@@ -286,8 +286,7 @@ static void StatsInitCtxPostOutput(void)
 
     /* init the lock used by StatsThreadStore */
     if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "error initializing sts mutex");
     }
 
     if (stats_enabled && !OutputStatsLoggersRegistered()) {
@@ -863,8 +862,8 @@ void StatsInit(void)
 {
     BUG_ON(stats_ctx != NULL);
     if ( (stats_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in StatsInitCtx. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in StatsInitCtx. Exiting...");
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
 
@@ -903,30 +902,25 @@ void StatsSpawnThreads(void)
     tv_wakeup = TmThreadCreateMgmtThread(thread_name_counter_wakeup,
                                          StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE, "TmThreadCreateMgmtThread "
+        FatalError(SC_ERR_FATAL, "TmThreadCreateMgmtThread "
                    "failed");
-        exit(EXIT_FAILURE);
     }
 
     if (TmThreadSpawn(tv_wakeup) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
+        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed for "
                    "StatsWakeupThread");
-        exit(EXIT_FAILURE);
     }
 
     /* spawn the stats mgmt thread */
     tv_mgmt = TmThreadCreateMgmtThread(thread_name_counter_stats,
                                        StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE,
-                   "TmThreadCreateMgmtThread failed");
-        exit(EXIT_FAILURE);
+                   FatalError(SC_ERR_FATAL, "TmThreadCreateMgmtThread failed");
     }
 
     if (TmThreadSpawn(tv_mgmt) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
+        FatalError(SC_ERR_FATAL, "TmThreadSpawn failed for "
                    "StatsWakeupThread");
-        exit(EXIT_FAILURE);
     }
 
     SCReturn;
