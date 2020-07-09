@@ -857,10 +857,9 @@ error:
         SCLogDebug("ConfGetBool could not load the value.");
     }
     if (failure_fatal) {
-        SCLogError(SC_ERR_LUA_ERROR,
-                   "Error during setup of lua output. Details should be "
-                   "described in previous error messages. Shutting down...");
-        exit(EXIT_FAILURE);
+                   FatalError(SC_ERR_FATAL,
+                              "Error during setup of lua output. Details should be "
+                              "described in previous error messages. Shutting down...");
     }
 
     return result;

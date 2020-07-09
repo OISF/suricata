@@ -107,8 +107,7 @@ static void SCHSSetAllocators(void)
 {
     hs_error_t err = hs_set_allocator(SCHSMalloc, SCHSFree);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "Failed to set Hyperscan allocator.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed to set Hyperscan allocator.");
     }
 }
 
@@ -784,14 +783,12 @@ void SCHSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
     SCMutexUnlock(&g_scratch_proto_mutex);
 
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "Unable to clone scratch prototype");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to clone scratch prototype");
     }
 
     err = hs_scratch_size(ctx->scratch, &ctx->scratch_size);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "Unable to query scratch size");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to query scratch size");
     }
 
     mpm_thread_ctx->memory_cnt++;

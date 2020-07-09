@@ -322,8 +322,8 @@ void PacketPoolInit(void)
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
         if (unlikely(p == NULL)) {
-            SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "Fatal error encountered while allocating a packet. Exiting...");
         }
         PacketPoolStorePacket(p);
     }

@@ -97,8 +97,8 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     }
 
     if ( (temp = SCMalloc(sizeof(SCSigOrderFunc))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
     }
     memset(temp, 0, sizeof(SCSigOrderFunc));
 

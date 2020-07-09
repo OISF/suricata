@@ -334,8 +334,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
 #endif
             default:
-                SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "Unknown runtime mode. Aborting");
         }
     } else { /* if (custom_mode == NULL) */
         /* Add compability with old 'worker' name */
@@ -344,8 +343,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                          "to 'workers', please modify your setup.");
             local_custom_mode = SCStrdup("workers");
             if (unlikely(local_custom_mode == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup custom mode");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "Unable to dup custom mode");
             }
             custom_mode = local_custom_mode;
         }
@@ -366,8 +364,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     }
     active_runmode = SCStrdup(custom_mode);
     if (unlikely(active_runmode == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup active mode");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to dup active mode");
     }
 
     if (strcasecmp(active_runmode, "autofp") == 0) {

@@ -290,9 +290,7 @@ static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
     SCProfileSghDetectCtx *ctx = SCCalloc(1, sizeof(SCProfileSghDetectCtx));
     if (ctx != NULL) {
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
-            SCLogError(SC_ERR_MUTEX,
-                    "Failed to initialize mutex.");
-            exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL, "Failed to initialize mutex.");
         }
     }
 

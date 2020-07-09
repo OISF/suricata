@@ -470,9 +470,8 @@ int RunModeIdsPfringAutoFp(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
-                "Unable to get parser and interface params");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureAutoFp(tparser,
@@ -481,8 +480,7 @@ int RunModeIdsPfringAutoFp(void)
                               "DecodePfring", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
@@ -507,9 +505,8 @@ int RunModeIdsPfringSingle(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
-                "Unable to get parser and interface params");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureSingle(tparser,
@@ -518,8 +515,7 @@ int RunModeIdsPfringSingle(void)
                               "DecodePfring", thread_name_single,
                               live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringSingle initialised");
@@ -544,9 +540,8 @@ int RunModeIdsPfringWorkers(void)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
-                "Unable to get parser and interface params");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Unable to get parser and interface params");
     }
 
     ret = RunModeSetLiveCaptureWorkers(tparser,
@@ -555,8 +550,7 @@ int RunModeIdsPfringWorkers(void)
                               "DecodePfring", thread_name_workers,
                               live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Runmode start failed");
     }
 
     SCLogInfo("RunModeIdsPfringWorkers initialised");

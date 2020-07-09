@@ -862,8 +862,8 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
     if ( (fgf_file_temp = SCMalloc(sizeof(SCLogFGFilterFile))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
     memset(fgf_file_temp, 0, sizeof(SCLogFGFilterFile));
 
@@ -873,8 +873,8 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
     }
 
     if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
     memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
 
@@ -884,8 +884,8 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
     }
 
     if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
     memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 
@@ -926,8 +926,8 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
     if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
     }
     memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
 
@@ -937,8 +937,8 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
     }
 
     if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
     }
     memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 
@@ -975,8 +975,8 @@ void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
     if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAddToFGFLineList. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAddToFGFLineList. Exiting...");
     }
     memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 

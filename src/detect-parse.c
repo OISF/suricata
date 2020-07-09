@@ -1610,8 +1610,7 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 
     SigMatchData *smd = (SigMatchData *)SCCalloc(len, sizeof(SigMatchData));
     if (smd == NULL) {
-        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
     }
     SigMatchData *out = smd;
 

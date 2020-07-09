@@ -569,10 +569,9 @@ void StreamTcpInitConfig(char quiet)
                         temp_rdrange);
                 exit(EXIT_FAILURE);
             } else if (rdrange >= 100) {
-                SCLogError(SC_ERR_INVALID_VALUE,
-                           "stream.reassembly.randomize-chunk-range "
-                           "must be lower than 100");
-                exit(EXIT_FAILURE);
+                           FatalError(SC_ERR_FATAL,
+                                      "stream.reassembly.randomize-chunk-range "
+                                      "must be lower than 100");
             }
         }
     }

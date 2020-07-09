@@ -315,11 +315,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".enabled");
     if (r < 0) {
-        SCLogError(SC_ERR_FATAL, "snprintf failure.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
     }
 
     node = ConfGetNode(param);
@@ -328,11 +326,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto_name, ".", ipproto, ".enabled");
         if (r < 0) {
-            SCLogError(SC_ERR_FATAL, "snprintf failure.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
         }
 
         node = ConfGetNode(param);

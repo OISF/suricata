@@ -423,8 +423,7 @@ int RunModeIdsNetmapAutoFp(void)
                               "DecodeNetmap", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsNetmapAutoFp initialised");
@@ -456,8 +455,7 @@ int RunModeIdsNetmapSingle(void)
                                     "DecodeNetmap", thread_name_single,
                                     live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsNetmapSingle initialised");
@@ -492,8 +490,7 @@ int RunModeIdsNetmapWorkers(void)
                                     "DecodeNetmap", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
 
     SCLogDebug("RunModeIdsNetmapWorkers initialised");

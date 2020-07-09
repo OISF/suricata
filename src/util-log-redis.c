@@ -59,8 +59,7 @@ static SCLogRedisContext *SCLogRedisContextAlloc(void)
 {
     SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis context");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to allocate redis context");
     }
     ctx->sync = NULL;
 #if HAVE_LIBEVENT
@@ -85,8 +84,7 @@ static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
 {
     SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (unlikely(ctx == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis context");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to allocate redis context");
     }
 
     ctx->sync = NULL;
@@ -526,14 +524,12 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
     } else if(!strcmp(redis_mode,"channel") || !strcmp(redis_mode,"publish")) {
         log_ctx->redis_setup.command = redis_publish_cmd;
     } else {
-        SCLogError(SC_ERR_REDIS_CONFIG,"Invalid redis mode");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Invalid redis mode");
     }
 
     /* store server params for reconnection */
     if (!log_ctx->redis_setup.server) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating redis server string");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating redis server string");
     }
     if (StringParseUint16(&log_ctx->redis_setup.port, 10, 0, (const char *)redis_port) < 0) {
         FatalError(SC_ERR_INVALID_VALUE, "Invalid value for redis port: %s", redis_port);

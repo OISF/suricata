@@ -577,9 +577,8 @@ static SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
         memset(ctx, 0x00, sizeof(SCProfileDetectCtx));
 
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
-            SCLogError(SC_ERR_MUTEX,
-                    "Failed to initialize hash table mutex.");
-            exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Failed to initialize hash table mutex.");
         }
     }
 

@@ -147,8 +147,7 @@ static inline int SCACBSInitNewState(MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
     ctx->goto_table = ptmp;
 
@@ -163,8 +162,7 @@ static inline int SCACBSInitNewState(MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
     ctx->output_table = ptmp;
 
@@ -206,8 +204,7 @@ static void SCACBSSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     if (ptmp == NULL) {
         SCFree(output_state->pids);
         output_state->pids = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
     output_state->pids = ptmp;
 
@@ -399,8 +396,7 @@ static inline void SCACBSClubOutputStates(int32_t dst_state, int32_t src_state,
             if (ptmp == NULL) {
                 SCFree(output_dst_state->pids);
                 output_dst_state->pids = NULL;
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "Error allocating memory");
             }
             else {
                 output_dst_state->pids = ptmp;
@@ -434,8 +430,7 @@ static inline void SCACBSCreateFailureTable(MpmCtx *mpm_ctx)
      * every state(SCACBSCtx->state_count) */
     ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
     memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
@@ -487,8 +482,7 @@ static inline void SCACBSCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u16 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_BS_STATE_TYPE_U16) * 256);
         if (ctx->state_table_u16 == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_u16, 0,
                ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U16) * 256);
@@ -528,8 +522,7 @@ static inline void SCACBSCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->state_table_u32 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_BS_STATE_TYPE_U32) * 256);
         if (ctx->state_table_u32 == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_u32, 0,
                ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U32) * 256);
@@ -697,8 +690,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U16) * 1);
         ctx->state_table_mod = SCMalloc(size);
         if (ctx->state_table_mod == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_mod, 0, size);
 
@@ -709,8 +701,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * directly to access its state data */
         ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_mod_pointers, 0,
                ctx->state_count * sizeof(uint8_t *));
@@ -771,8 +762,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U32) * 1);
         ctx->state_table_mod = SCMalloc(size);
         if (ctx->state_table_mod == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_mod, 0, size);
 
@@ -783,8 +773,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * directly to access its state data */
         ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(ctx->state_table_mod_pointers, 0,
                ctx->state_count * sizeof(uint8_t *));
@@ -925,8 +914,7 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
     /* handle no case patterns */
     ctx->pid_pat_list = SCMalloc((mpm_ctx->max_pat_id + 1)* sizeof(SCACBSPatternList));
     if (ctx->pid_pat_list == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
     memset(ctx->pid_pat_list, 0, (mpm_ctx->max_pat_id + 1) * sizeof(SCACBSPatternList));
 
@@ -934,8 +922,7 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
             ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
             if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "Error allocating memory");
             }
             memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);

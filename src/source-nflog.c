@@ -242,12 +242,10 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     SCLogDebug("binding netfilter_log as nflog handler for AF_INET and AF_INET6");
 
     if (nflog_bind_pf(ntv->h, AF_INET) < 0) {
-        SCLogError(SC_ERR_NFLOG_BIND, "nflog_bind_pf() for AF_INET failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "nflog_bind_pf() for AF_INET failed");
     }
     if (nflog_bind_pf(ntv->h, AF_INET6) < 0) {
-        SCLogError(SC_ERR_NFLOG_BIND, "nflog_bind_pf() for AF_INET6 failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "nflog_bind_pf() for AF_INET6 failed");
     }
 
     ntv->gh = nflog_bind_group(ntv->h, ntv->group);
@@ -348,13 +346,11 @@ TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
 
     SCLogDebug("closing nflog group %d", ntv->group);
     if (nflog_unbind_pf(ntv->h, AF_INET) < 0) {
-        SCLogError(SC_ERR_NFLOG_UNBIND, "nflog_unbind_pf() for AF_INET failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "nflog_unbind_pf() for AF_INET failed");
     }
 
     if (nflog_unbind_pf(ntv->h, AF_INET6) < 0) {
-        SCLogError(SC_ERR_NFLOG_UNBIND, "nflog_unbind_pf() for AF_INET6 failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "nflog_unbind_pf() for AF_INET6 failed");
     }
 
     if (ntv->gh) {

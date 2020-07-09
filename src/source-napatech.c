@@ -652,8 +652,8 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
 
     NapatechThreadVars *ntv = SCCalloc(1, sizeof (NapatechThreadVars));
     if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH  thread vars.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Failed to allocate memory for NAPATECH  thread vars.");
     }
 
     memset(ntv, 0, sizeof (NapatechThreadVars));
@@ -874,9 +874,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 exit(EXIT_FAILURE);
 
             } else if (status == 0x20000008) {
-                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
-                        "Check napatech.ports in the suricata config file.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Check napatech.ports in the suricata config file.");
             }
             RecommendNUMAConfig(SC_LOG_PERF);
             SCLogNotice("Napatech packet input engine started.");
@@ -890,9 +889,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     if (ntv->hba > 0) {
         char *s_hbad_pkt = SCCalloc(1, 32);
         if (unlikely(s_hbad_pkt == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Failed to allocate memory for NAPATECH stream counter.");
-            exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Failed to allocate memory for NAPATECH stream counter.");
         }
         snprintf(s_hbad_pkt, 32, "nt%d.hba_drop", ntv->stream_id);
         hba_pkt = StatsRegisterCounter(s_hbad_pkt, tv);

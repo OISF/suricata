@@ -258,8 +258,8 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     }
     ctx->array = SCMallocAligned(ctx->config.hash_size * sizeof(THashHashRow), CLS);
     if (unlikely(ctx->array == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in THashInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in THashInitConfig. Exiting...");
     }
     memset(ctx->array, 0, ctx->config.hash_size * sizeof(THashHashRow));
 

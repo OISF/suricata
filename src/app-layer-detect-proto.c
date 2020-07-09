@@ -1661,11 +1661,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".detection-ports");
     if (r < 0) {
-        SCLogError(SC_ERR_FATAL, "snprintf failure.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
     }
     node = ConfGetNode(param);
     if (node == NULL) {
@@ -1673,11 +1671,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto_name, ".", ipproto_name, ".detection-ports");
         if (r < 0) {
-            SCLogError(SC_ERR_FATAL, "snprintf failure.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
         }
         node = ConfGetNode(param);
         if (node == NULL)
@@ -1775,8 +1771,7 @@ int AppLayerProtoDetectSetup(void)
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
-        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
     }
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
@@ -1905,11 +1900,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto, ".enabled");
     if (r < 0) {
-        SCLogError(SC_ERR_FATAL, "snprintf failure.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
     }
 
     node = ConfGetNode(param);
@@ -1918,11 +1911,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto, ".", ipproto, ".enabled");
         if (r < 0) {
-            SCLogError(SC_ERR_FATAL, "snprintf failure.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
         }
 
         node = ConfGetNode(param);

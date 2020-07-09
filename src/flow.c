@@ -570,8 +570,7 @@ void FlowInitConfig(char quiet)
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.memcap: NULL");
-	    exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Invalid value for flow.memcap: NULL");
         }
 
         if (ParseSizeStringU64(conf_val, &flow_memcap_copy) < 0) {
@@ -586,8 +585,7 @@ void FlowInitConfig(char quiet)
     if ((ConfGet("flow.hash-size", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.hash-size: NULL");
-	    exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Invalid value for flow.hash-size: NULL");
         }
 
         if (StringParseUint32(&configval, 10, strlen(conf_val),
@@ -598,8 +596,7 @@ void FlowInitConfig(char quiet)
     if ((ConfGet("flow.prealloc", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
-            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.prealloc: NULL");
-	    exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Invalid value for flow.prealloc: NULL");
         }
 
         if (StringParseUint32(&configval, 10, strlen(conf_val),
@@ -624,8 +621,8 @@ void FlowInitConfig(char quiet)
     }
     flow_hash = SCMallocAligned(flow_config.hash_size * sizeof(FlowBucket), CLS);
     if (unlikely(flow_hash == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in FlowInitConfig. Exiting...");
     }
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
 

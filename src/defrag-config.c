@@ -47,8 +47,7 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
     uint64_t *user_data = NULL;
 
     if ( (user_data = SCMalloc(sizeof(uint64_t))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
     }
 
     *user_data = timeout;
@@ -137,9 +136,8 @@ void DefragPolicyLoadFromConfig(void)
 
     defrag_tree = SCRadixCreateRadixTree(DefragPolicyFreeUserData, NULL);
     if (defrag_tree == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Can't alloc memory for the defrag config tree.");
-        exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "Can't alloc memory for the defrag config tree.");
     }
 
     ConfNode *server_config = ConfGetNode("defrag.host-config");

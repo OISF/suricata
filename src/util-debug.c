@@ -686,8 +686,8 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
 
     if ( (buffer = SCMalloc(sc_log_config->op_ifaces_cnt *
                           sizeof(SCLogOPBuffer))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAllocLogOPBuffer. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogAllocLogOPBuffer. Exiting...");
     }
 
     op_iface_ctx = sc_log_config->op_ifaces;
@@ -714,8 +714,8 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx(void)
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
     if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
     }
     memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
 
@@ -741,8 +741,8 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if (iface_ctx == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitFileOPIface. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogInitFileOPIface. Exiting...");
     }
 
     if (file == NULL) {
@@ -806,8 +806,8 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if (iface_ctx == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitConsoleOPIface. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogInitConsoleOPIface. Exiting...");
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_CONSOLE;
@@ -872,8 +872,8 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
     if ( iface_ctx == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitSyslogOPIface. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogInitSyslogOPIface. Exiting...");
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_SYSLOG;
@@ -1304,15 +1304,14 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 
 #if defined (OS_WIN32)
     if (SCMutexInit(&sc_log_stream_lock, NULL) != 0) {
-        SCLogError(SC_ERR_MUTEX, "Failed to initialize log mutex.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed to initialize log mutex.");
     }
 #endif /* OS_WIN32 */
 
     /* sc_log_config is a global variable */
     if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitLogModule. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCLogInitLogModule. Exiting...");
     }
     memset(sc_log_config, 0, sizeof(SCLogConfig));
 
@@ -1429,9 +1428,8 @@ void SCLogLoadConfig(int daemon, int verbose)
         else if (strcmp(output->name, "file") == 0) {
             const char *filename = ConfNodeLookupChildValue(output, "filename");
             if (filename == NULL) {
-                SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
-                    "Logging to file requires a filename");
-                exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Logging to file requires a filename");
             }
             char *path = NULL;
             if (!(PathIsAbsolute(filename))) {
