@@ -228,8 +228,8 @@ impl SSHState {
                                         // saving type of incomplete kex message
                                         hdr.record_left_msg = parser::MessageCode::SshMsgKexinit;
                                         return AppLayerResult::incomplete(
-                                            SSH_RECORD_HEADER_LEN as u32,
-                                            hdr.record_left as u32
+                                            (il - rem.len()) as u32,
+                                            (head.pkt_len - 2) as u32
                                         );
                                     }
                                     else {
