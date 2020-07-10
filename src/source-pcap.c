@@ -50,7 +50,7 @@
 /**
  * \brief Structure to hold thread specific variables.
  */
-typedef struct PcapThreadVars_
+typedef struct    PcapThreadVars_
 {
     /* thread specific handle */
     pcap_t *pcap_handle;
@@ -67,9 +67,7 @@ typedef struct PcapThreadVars_
     int datalink;
 
     /* counters */
-    uint32_t pkts;
-    uint64_t bytes;
-    uint32_t errs;
+    uint32_t pkts; uint64_t bytes; uint32_t errs;
 
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
@@ -179,9 +177,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     Packet *p = PacketGetFromQueueOrAlloc();
     struct timeval current_time;
 
-    if (unlikely(p == NULL)) {
-        SCReturn;
-    }
+    if (unlikely(p == NULL)) { SCReturn; }
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     p->ts.tv_sec = h->ts.tv_sec;
