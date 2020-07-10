@@ -500,6 +500,31 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
     }
 }
 
+static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id)
+{
+    FileContainer *ffc = AppLayerParserGetFiles(p->flow,
+            p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
+    if (ffc != NULL) {
+        File *file = ffc->head;
+        bool isopen = false;
+        while (file) {
+            if (tx_id == file->txid) {
+                if (!isopen) {
+                    isopen = true;
+                    jb_open_array(jb, "fileinfo");
+                }
+                jb_start_object(jb);
+                EveFileInfo(jb, file, file->flags & FILE_STORED);
+                jb_close(jb);
+            }
+            file = file->next;
+        }
+        if (isopen) {
+            jb_close(jb);
+        }
+    }
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -567,30 +592,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
                 AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
             }
-        }
-
-        /* including fileinfo data is configured by the metadata setting */
-        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA && p->flow != NULL) {
-            FileContainer *ffc = AppLayerParserGetFiles(p->flow,
-                    p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
-            if (ffc != NULL) {
-                File *file = ffc->head;
-                bool isopen = false;
-                while (file) {
-                    if (pa->tx_id == file->txid) {
-                        if (!isopen) {
-                            isopen = true;
-                            jb_open_array(jb, "fileinfo");
-                        }
-                        jb_start_object(jb);
-                        EveFileInfo(jb, file, file->flags & FILE_STORED);
-                        jb_close(jb);
-                    }
-                    file = file->next;
-                }
-                if (isopen) {
-                    jb_close(jb);
-                }
+            /* including fileinfo data is configured by the metadata setting */
+            if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+                AlertAddFiles(p, jb, pa->tx_id);
             }
         }
 
