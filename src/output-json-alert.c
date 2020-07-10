@@ -409,6 +409,97 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js
     }
 }
 
+static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
+        const uint64_t tx_id, const uint16_t option_flags)
+{
+    const AppProto proto = FlowGetAppProtocol(p->flow);
+    JsonBuilderMark mark = { 0, 0, 0 };
+    switch (proto) {
+        case ALPROTO_HTTP:
+            // TODO: Could result in an empty http object being logged.
+            jb_open_object(jb, "http");
+            if (EveHttpAddMetadata(p->flow, tx_id, jb)) {
+                if (option_flags & LOG_JSON_HTTP_BODY) {
+                    EveHttpLogJSONBodyPrintable(jb, p->flow, tx_id);
+                }
+                if (option_flags & LOG_JSON_HTTP_BODY_BASE64) {
+                    EveHttpLogJSONBodyBase64(jb, p->flow, tx_id);
+                }
+            }
+            jb_close(jb);
+            break;
+        case ALPROTO_TLS:
+            AlertJsonTls(p->flow, jb);
+            break;
+        case ALPROTO_SSH:
+            AlertJsonSsh(p->flow, jb);
+            break;
+        case ALPROTO_SMTP:
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "smtp");
+            if (EveSMTPAddMetadata(p->flow, tx_id, jb)) {
+                jb_close(jb);
+            } else {
+                jb_restore_mark(jb, &mark);
+            }
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "email");
+            if (EveEmailAddMetadata(p->flow, tx_id, jb)) {
+                jb_close(jb);
+            } else {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
+        case ALPROTO_NFS:
+            /* rpc */
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "rpc");
+            if (EveNFSAddMetadataRPC(p->flow, tx_id, jb)) {
+                jb_close(jb);
+            } else {
+                jb_restore_mark(jb, &mark);
+            }
+            /* nfs */
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "nfs");
+            if (EveNFSAddMetadata(p->flow, tx_id, jb)) {
+                jb_close(jb);
+            } else {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
+        case ALPROTO_SMB:
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "smb");
+            if (EveSMBAddMetadata(p->flow, tx_id, jb)) {
+                jb_close(jb);
+            } else {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
+        case ALPROTO_SIP:
+            JsonSIPAddMetadata(jb, p->flow, tx_id);
+            break;
+        case ALPROTO_RFB:
+            jb_get_mark(jb, &mark);
+            if (!JsonRFBAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
+        case ALPROTO_FTPDATA:
+            EveFTPDataAddMetadata(p->flow, jb);
+            break;
+        case ALPROTO_DNP3:
+            AlertJsonDnp3(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_DNS:
+            AlertJsonDns(p->flow, tx_id, jb);
+            break;
+        default:
+            break;
+    }
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -472,93 +563,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             AlertJsonTunnel(p, jb);
         }
 
-        if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
-            const AppProto proto = FlowGetAppProtocol(p->flow);
-            JsonBuilderMark mark = { 0, 0, 0 };
-            switch (proto) {
-                case ALPROTO_HTTP:
-                    // TODO: Could result in an empty http object being logged.
-                    jb_open_object(jb, "http");
-                    if (EveHttpAddMetadata(p->flow, pa->tx_id, jb)) {
-                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
-                            EveHttpLogJSONBodyPrintable(jb, p->flow, pa->tx_id);
-                        }
-                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
-                            EveHttpLogJSONBodyBase64(jb, p->flow, pa->tx_id);
-                        }
-                    }
-                    jb_close(jb);
-                    break;
-                case ALPROTO_TLS:
-                    AlertJsonTls(p->flow, jb);
-                    break;
-                case ALPROTO_SSH:
-                    AlertJsonSsh(p->flow, jb);
-                    break;
-                case ALPROTO_SMTP:
-                    jb_get_mark(jb, &mark);
-                    jb_open_object(jb, "smtp");
-                    if (EveSMTPAddMetadata(p->flow, pa->tx_id, jb)) {
-                        jb_close(jb);
-                    } else {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    jb_get_mark(jb, &mark);
-                    jb_open_object(jb, "email");
-                    if (EveEmailAddMetadata(p->flow, pa->tx_id, jb)) {
-                        jb_close(jb);
-                    } else {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    break;
-                case ALPROTO_NFS:
-                    /* rpc */
-                    jb_get_mark(jb, &mark);
-                    jb_open_object(jb, "rpc");
-                    if (EveNFSAddMetadataRPC(p->flow, pa->tx_id, jb)) {
-                        jb_close(jb);
-                    } else {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    /* nfs */
-                    jb_get_mark(jb, &mark);
-                    jb_open_object(jb, "nfs");
-                    if (EveNFSAddMetadata(p->flow, pa->tx_id, jb)) {
-                        jb_close(jb);
-                    } else {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    break;
-                case ALPROTO_SMB:
-                    jb_get_mark(jb, &mark);
-                    jb_open_object(jb, "smb");
-                    if (EveSMBAddMetadata(p->flow, pa->tx_id, jb)) {
-                        jb_close(jb);
-                    } else {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    break;
-                case ALPROTO_SIP:
-                    JsonSIPAddMetadata(jb, p->flow, pa->tx_id);
-                    break;
-                case ALPROTO_RFB: {
-                    jb_get_mark(jb, &mark);
-                    if (!JsonRFBAddMetadata(p->flow, pa->tx_id, jb)) {
-                        jb_restore_mark(jb, &mark);
-                    }
-                    break;
-                }
-                case ALPROTO_FTPDATA:
-                    EveFTPDataAddMetadata(p->flow, jb);
-                    break;
-                case ALPROTO_DNP3:
-                    AlertJsonDnp3(p->flow, pa->tx_id, jb);
-                    break;
-                case ALPROTO_DNS:
-                    AlertJsonDns(p->flow, pa->tx_id, jb);
-                    break;
-                default:
-                    break;
+        if (p->flow != NULL) {
+            if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
+                AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
             }
         }
 
