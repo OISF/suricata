@@ -17,7 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::snmp::snmp::{SNMPState,SNMPTransaction};
 use crate::snmp::snmp_parser::{NetworkAddress,PduType};
 use std::borrow::Cow;
@@ -37,48 +37,51 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(state: &mut SNMPState, tx: &mut SNMPTransaction) -> *mut JsonT
+fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> Result<(), JsonError>
 {
-    let js = Json::object();
-    js.set_integer("version", state.version as u64);
+    jsb.set_uint("version", state.version as u64)?;
     if tx.encrypted {
-        js.set_string("pdu_type", "encrypted");
+        jsb.set_string("pdu_type", "encrypted")?;
     } else {
         match tx.info {
             Some(ref info) => {
-                js.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type));
+                jsb.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type))?;
                 if info.err.0 != 0 {
-                    js.set_string("error", &format!("{:?}", info.err));
+                    jsb.set_string("error", &format!("{:?}", info.err))?;
                 }
                 match info.trap_type {
                     Some((trap_type, ref oid, address)) => {
-                        js.set_string("trap_type", &format!("{:?}", trap_type));
-                        js.set_string("trap_oid", &oid.to_string());
+                        jsb.set_string("trap_type", &format!("{:?}", trap_type))?;
+                        jsb.set_string("trap_oid", &oid.to_string())?;
                         match address {
-                            NetworkAddress::IPv4(ip) => js.set_string("trap_address", &ip.to_string())
+                            NetworkAddress::IPv4(ip) => {jsb.set_string("trap_address", &ip.to_string())?;},
                         }
                     },
                     _ => ()
                 }
                 if info.vars.len() > 0 {
-                    let jsa = Json::array();
+                    jsb.open_array("vars")?;
                     for var in info.vars.iter() {
-                        jsa.array_append_string(&var.to_string());
+                        jsb.append_string(&var.to_string())?;
                     }
-                    js.set("vars", jsa);
+                    jsb.close()?;
                 }
             },
             _ => ()
         }
-        match tx.community {
-            Some(ref c) => js.set_string("community", c),
-            _           => ()
+        if let Some(community) = &tx.community {
+            jsb.set_string("community", community)?;
         }
-        match tx.usm {
-            Some(ref s) => js.set_string("usm", s),
-            _           => ()
+        if let Some(usm) = &tx.usm {
+            jsb.set_string("usm", usm)?;
         }
     }
-    js.unwrap()
+
+    return Ok(());
+}
+
+#[no_mangle]
+pub extern "C" fn rs_snmp_log_json_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> bool
+{
+    snmp_log_response(jsb, state, tx).is_ok()
 }

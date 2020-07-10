@@ -64,29 +64,28 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
 {
     SNMPTransaction *snmptx = tx;
     LogSNMPLogThread *thread = thread_data;
-    json_t *js, *snmpjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "snmp", NULL);
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "snmp", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, jb);
 
-    snmpjs = rs_snmp_log_json_response(state, snmptx);
-    if (unlikely(snmpjs == NULL)) {
+    jb_open_object(jb, "snmp");
+    if (!rs_snmp_log_json_response(jb, state, snmptx)) {
         goto error;
     }
-    json_object_set_new(js, "snmp", snmpjs);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->snmplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->snmplog_ctx->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
