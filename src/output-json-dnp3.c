@@ -94,32 +94,22 @@ static void JsonDNP3LogApplicationControl(JsonBuilder *js, uint8_t ac)
  *
  * TODO: Autogenerate this function based on object definitions.
  */
-static json_t *JsonDNP3LogObjectItems(DNP3Object *object)
+static void JsonDNP3LogObjectItems(JsonBuilder *js, DNP3Object *object)
 {
     DNP3Point *item;
-    json_t *jsitems;
-
-    if (unlikely((jsitems = json_array()) == NULL)) {
-        return NULL;
-    }
 
     TAILQ_FOREACH(item, object->points, next) {
-        json_t *js = json_object();
-        if (unlikely(js == NULL)) {
-            break;
-        }
+        jb_start_object(js);
 
-        json_object_set_new(js, "prefix", json_integer(item->prefix));
-        json_object_set_new(js, "index", json_integer(item->index));
+        jb_set_uint(js, "prefix", item->prefix);
+        jb_set_uint(js, "index", item->index);
         if (DNP3PrefixIsSize(object->prefix_code)) {
-            json_object_set_new(js, "size", json_integer(item->size));
+            jb_set_uint(js, "size", item->size);
         }
 
         OutputJsonDNP3SetItem(js, object, item);
-        json_array_append_new(jsitems, js);
+        jb_close(js);
     }
-
-    return jsitems;
 }
 
 /**
@@ -144,11 +134,9 @@ static void JsonDNP3LogObjects(JsonBuilder *js, DNP3ObjectList *objects)
         jb_set_uint(js, "count", object->count);
 
         if (object->points != NULL && !TAILQ_EMPTY(object->points)) {
-            json_t *points = JsonDNP3LogObjectItems(object);
-            if (points != NULL) {
-                jb_set_jsont(js, "points", points);
-                json_decref(points);
-            }
+            jb_open_array(js, "points");
+            JsonDNP3LogObjectItems(js, object);
+            jb_close(js);
         }
 
         jb_close(js);
