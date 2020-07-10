@@ -60,6 +60,9 @@ pub struct DCEOpnumData {
 }
 
 fn extract_op_version(opver: &str) -> Result<(u8, u16), ()> {
+    if opver.len() < 1 {
+        return Err(());
+    }
     let (op, version) = opver.split_at(1);
     let opval: u8 = match op {
         ">" => DETECT_DCE_IFACE_OP_GT,
@@ -363,6 +366,13 @@ mod test {
 
         let op_version = "@1";
         assert_eq!(true, extract_op_version(op_version).is_err());
+
+        let op_version = "";
+        assert_eq!(
+            Err(()),
+            extract_op_version(op_version)
+        );
+
     }
 
     #[test]
