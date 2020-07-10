@@ -67,7 +67,7 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
         js_resplist = jb_new_array();
 
         if (unlikely(js_resplist == NULL)) {
-            goto fail;
+            return;
         }
     }
     jb_set_string(jb, "command", tx->command_descriptor->command_name);
@@ -142,13 +142,6 @@ static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
         JB_SET_STRING(jb, "reply_received", "yes");
     } else {
         JB_SET_STRING(jb, "reply_received", "no");
-    }
-
-    return;
-
-fail:
-    if (js_resplist) {
-        jb_free(js_resplist);
     }
 }
 
