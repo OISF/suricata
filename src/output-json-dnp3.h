@@ -20,8 +20,8 @@
 
 #include "app-layer-dnp3.h"
 
-json_t *JsonDNP3LogRequest(DNP3Transaction *);
-json_t *JsonDNP3LogResponse(DNP3Transaction *);
+void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *);
+void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *);
 
 void JsonDNP3LogRegister(void);
 

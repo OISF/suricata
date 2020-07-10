@@ -167,27 +167,30 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
         DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
             dnp3_state, tx_id);
         if (tx) {
-            json_t *dnp3js = json_object();
-            if (likely(dnp3js != NULL)) {
-                if (tx->has_request && tx->request_done) {
-                    json_t *request = JsonDNP3LogRequest(tx);
-                    if (request != NULL) {
-                        json_object_set_new(dnp3js, "request", request);
-                    }
-                }
-                if (tx->has_response && tx->response_done) {
-                    json_t *response = JsonDNP3LogResponse(tx);
-                    if (response != NULL) {
-                        json_object_set_new(dnp3js, "response", response);
-                    }
-                }
-                jb_set_jsont(js, "dnp3", dnp3js);
-                json_decref(dnp3js);
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            bool logged = false;
+            jb_open_object(js, "dnp3");
+            if (tx->has_request && tx->request_done) {
+                jb_open_object(js, "request");
+                JsonDNP3LogRequest(js, tx);
+                jb_close(js);
+                logged = true;
+            }
+            if (tx->has_response && tx->response_done) {
+                jb_open_object(js, "response");
+                JsonDNP3LogResponse(js, tx);
+                jb_close(js);
+                logged = true;
+            }
+            if (logged) {
+                /* Close dnp3 object. */
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
         }
     }
-
-    return;
 }
 
 static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
