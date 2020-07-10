@@ -340,7 +340,7 @@ function CheckBranch {
     # changed or not. Check actual output. Not ideal, but works.
     if [ "${changes}" != "no modified files to format" -a \
          "${changes}" != "clang-format did not modify any files" ]; then
-        if [ $show_diff -eq 1 ]; then
+        if [ $show_diff -eq 1 -o $show_diffstat -eq 1 ]; then
             cat $tmpfile
             echo ""
         fi
