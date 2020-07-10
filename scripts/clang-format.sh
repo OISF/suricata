@@ -285,6 +285,8 @@ function CheckBranch {
     local quiet=0
     local from_make=0
     local show_diff=0
+    local show_diffstat=0
+    local git_clang_format_diff="$GIT_CLANG_FORMAT --diff"
     while [[ $# -gt 0 ]]
     do
     case "$1" in
@@ -303,6 +305,12 @@ function CheckBranch {
             shift
             ;;
 
+        -s|--diffstat)
+            show_diffstat=1
+            git_clang_format_diff="$GIT_CLANG_FORMAT_DIFFSTAT --diffstat"
+            shift
+            ;;
+
         *)    # unknown option
             echo "$USAGE";
             echo "";
@@ -311,13 +319,19 @@ function CheckBranch {
     esac
     done
 
+    if [ $show_diffstat -eq 1 -a $show_diff -eq 1 ]; then
+        echo "$USAGE";
+        echo "";
+        Die "$command: Cannot combine --diffstat with --diff"
+    fi
+
     # Find first commit on branch. Use $first_commit^ if you need the
     # commit on master we branched off.
     local first_commit=$(FirstCommitOfBranch)
 
     # git-clang-format is a python script that does not like SIGPIPE shut down
     # by "| head" prematurely. Use work-around with writing to tmpfile first.
-    local format_changes="$GIT_CLANG_FORMAT --extensions c,h --diff $first_commit^"
+    local format_changes="$git_clang_format_diff --extensions c,h $first_commit^"
     local tmpfile=$(mktemp /tmp/clang-format.check.XXXXXX)
     $format_changes > $tmpfile
     local changes=$(cat $tmpfile | head -1)
@@ -452,21 +466,28 @@ if [ $# -eq 0 ]; then
     Die "Missing arguments. Call with one argument"
 fi
 
+SetTopLevelDir
+
 GIT=$(RequireProgram git)
 # ubuntu uses clang-format-9 name. fedora not.
 GIT_CLANG_FORMAT=$(RequireProgram git-clang-format-9 git-clang-format)
+GIT_CLANG_FORMAT_BINARY=
 if [[ $GIT_CLANG_FORMAT =~ .*git-clang-format-9$ ]]; then
     # default binary is clang-format, specify the correct version.
     # Alternative: git config --global clangformat.binary "clang-format-9"
-    GIT_CLANG_FORMAT="$GIT_CLANG_FORMAT --binary clang-format-9"
+    GIT_CLANG_FORMAT_BINARY="--binary clang-format-9"
 elif [[ $GIT_CLANG_FORMAT =~ .*git-clang-format$ ]]; then
     Debug "Using regular clang-format"
 else
     Debug "Internal: unhandled clang-format version"
 fi
-Debug "Using $GIT_CLANG_FORMAT"
 
-SetTopLevelDir
+# overwite git-clang-version for --diffstat as upstream does not have that yet
+GIT_CLANG_FORMAT_DIFFSTAT=$(RequireProgram scripts/git-clang-format-custom)
+GIT_CLANG_FORMAT="$GIT_CLANG_FORMAT $GIT_CLANG_FORMAT_BINARY"
+GIT_CLANG_FORMAT_DIFFSTAT="$GIT_CLANG_FORMAT_DIFFSTAT $GIT_CLANG_FORMAT_BINARY"
+Debug "Using $GIT_CLANG_FORMAT"
+Debug "Using $GIT_CLANG_FORMAT_DIFFSTAT"
 
 command_rc=0
 command=$1

@@ -65,6 +65,11 @@ check-style-branch:
 diff-style-branch:
 	./scripts/clang-format.sh check-branch --make --diff
 
+# Check if branch changes formatting is correct and print diffstat, i.e. files
+.PHONY: diffstat-style-branch
+diffstat-style-branch:
+	./scripts/clang-format.sh check-branch --make --diffstat
+
 # Format changes in git staging
 .PHONY: style
 style:
