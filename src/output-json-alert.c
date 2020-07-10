@@ -563,7 +563,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         /* including fileinfo data is configured by the metadata setting */
-        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA && p->flow != NULL) {
             FileContainer *ffc = AppLayerParserGetFiles(p->flow,
                     p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
             if (ffc != NULL) {
