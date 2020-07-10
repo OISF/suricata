@@ -1024,6 +1024,36 @@ void FlowInitFlowProto(void)
         }
     }
 
+    /* validate and if needed update emergency timeout values */
+    for (int i = 0; i < FLOW_PROTO_MAX; i++) {
+        const FlowProtoTimeout *n = &flow_timeouts_normal[i];
+        FlowProtoTimeout *e = &flow_timeouts_emerg[i];
+
+        if (e->est_timeout > n->est_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'established\' "
+                    "must be below regular value %u", e->est_timeout, n->est_timeout);
+            e->est_timeout = n->est_timeout / 10;
+        }
+
+        if (e->new_timeout > n->new_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'new\' must be "
+                    "below regular value %u", e->new_timeout, n->new_timeout);
+            e->new_timeout = n->new_timeout / 10;
+        }
+
+        if (e->closed_timeout > n->closed_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'closed\' must "
+                    "be below regular value %u", e->closed_timeout, n->closed_timeout);
+            e->closed_timeout = n->closed_timeout / 10;
+        }
+
+        if (e->bypassed_timeout > n->bypassed_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value %u for \'bypassed\' "
+                    "must be below regular value %u", e->bypassed_timeout, n->bypassed_timeout);
+            e->bypassed_timeout = n->bypassed_timeout / 10;
+        }
+    }
+
     return;
 }
 
