@@ -64,29 +64,28 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
 {
     KRB5Transaction *krb5tx = tx;
     LogKRB5LogThread *thread = thread_data;
-    json_t *js, *krb5js;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "krb5", NULL);
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "krb5", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, jb);
 
-    krb5js = rs_krb5_log_json_response(state, krb5tx);
-    if (unlikely(krb5js == NULL)) {
+    jb_open_object(jb, "krb5");
+    if (!rs_krb5_log_json_response(jb, state, krb5tx)) {
         goto error;
     }
-    json_object_set_new(js, "krb5", krb5js);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->krb5log_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->krb5log_ctx->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
