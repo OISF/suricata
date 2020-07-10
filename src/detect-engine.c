@@ -767,6 +767,10 @@ static void DetectBufferTypeFreeFunc(void *data)
 {
     DetectBufferType *map = (DetectBufferType *)data;
 
+    if (map == NULL) {
+        return;
+    }
+
     /* Release transformation option memory, if any */
     for (int i = 0; i < map->transforms.cnt; i++) {
         if (map->transforms.transforms[i].options == NULL)
@@ -779,9 +783,8 @@ static void DetectBufferTypeFreeFunc(void *data)
         }
         sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
     }
-    if (map != NULL) {
-        SCFree(map);
-    }
+
+    SCFree(map);
 }
 
 static int DetectBufferTypeInit(void)
