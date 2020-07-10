@@ -223,6 +223,9 @@ static int DetectRfbSecresultSetup (DetectEngineCtx *de_ctx, Signature *s, const
     DetectRfbSecresultData *de = NULL;
     SigMatch *sm = NULL;
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_RFB) < 0)
+        return -1;
+
     de = DetectRfbSecresultParse(rawstr);
     if (de == NULL)
         goto error;
