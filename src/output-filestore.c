@@ -177,6 +177,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
                 if (out != NULL) {
                     size_t js_len = jb_len(js_fileinfo);
                     fwrite(jb_ptr(js_fileinfo), js_len, 1, out);
+                    fclose(out);
                 }
                 jb_free(js_fileinfo);
             }
