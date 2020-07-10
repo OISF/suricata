@@ -155,6 +155,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 #include "output-json-dnp3-objects.h"
+#include "output-json.h"
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
     DNP3Point *point)
@@ -179,7 +180,7 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
             json_object_set_new(js, "data->{{field.name}}",
                 json_string((char *){{field.name}}_b64));
 {% elif field.type == "vstr4" %}
-            json_object_set_new(js, "data->{{field.name}}", json_string(data->{{field.name}}));
+            json_object_set_new(js, "data->{{field.name}}", SCJsonString(data->{{field.name}}));
 {% elif field.type == "chararray" %}
             if (data->{{field.len_field}} > 0) {
                 /* First create a null terminated string as not all versions
@@ -187,7 +188,7 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 char tmpbuf[data->{{field.len_field}} + 1];
                 memcpy(tmpbuf, data->{{field.name}}, data->{{field.len_field}});
                 tmpbuf[data->{{field.len_field}}] = '\\0';
-                json_object_set_new(js, "{{field.name}}", json_string(tmpbuf));
+                json_object_set_new(js, "{{field.name}}", SCJsonString(tmpbuf));
             } else {
                 json_object_set_new(js, "{{field.name}}", json_string(""));
             }
