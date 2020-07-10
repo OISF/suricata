@@ -73,7 +73,7 @@ jobs:
       - run: ./configure --enable-unittests
       - name: Check formatting
         run: |
-          if ! make diff-style-branch >> check_formatting_log.txt 2>&1; then
+          if ! make diffstat-style-branch >> check_formatting_log.txt 2>&1; then
               echo "::warning ::Formatting is not following code style guide!"
               tail -n 50 check_formatting_log.txt
           else
