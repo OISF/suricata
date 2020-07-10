@@ -1029,7 +1029,7 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
         json_object_set_new(js, "proto", json_string(known_proto[IP_GET_IPPROTO(p)]));
     } else {
         char proto[4];
-        snprintf(proto, sizeof(proto), "%"PRIu8"", IP_GET_IPPROTO(p));
+        snprintf(proto, sizeof(proto), "%"PRIu32"", IP_GET_IPPROTO(p));
         json_object_set_new(js, "proto", json_string(proto));
     }
 }
