@@ -181,22 +181,20 @@ static int DetectStreamSizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  */
 static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, const char *streamstr)
 {
-
     DetectStreamSizeData *sd = NULL;
     char *arg = NULL;
     char *value = NULL;
     char *mode = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, streamstr);
         goto error;
     }
 
     const char *str_ptr;
-
     res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -220,7 +218,7 @@ static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, con
 
     sd = SCMalloc(sizeof(DetectStreamSizeData));
     if (unlikely(sd == NULL))
-    goto error;
+        goto error;
     sd->ssize = 0;
     sd->flags = 0;
 
@@ -276,7 +274,6 @@ error:
         SCFree(value);
     if (sd != NULL)
         DetectStreamSizeFree(de_ctx, sd);
-
     return NULL;
 }
 
@@ -292,29 +289,21 @@ error:
  */
 static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *streamstr)
 {
-
-    DetectStreamSizeData *sd = NULL;
-    SigMatch *sm = NULL;
-
-    sd = DetectStreamSizeParse(de_ctx, streamstr);
+    DetectStreamSizeData *sd = DetectStreamSizeParse(de_ctx, streamstr);
     if (sd == NULL)
-        goto error;
+        return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectStreamSizeFree(de_ctx, sd);
+        return -1;
+    }
 
     sm->type = DETECT_STREAM_SIZE;
     sm->ctx = (SigMatchCtx *)sd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
     return 0;
-
-error:
-    if (sd != NULL) DetectStreamSizeFree(de_ctx, sd);
-    if (sm != NULL) SCFree(sm);
-    return -1;
 }
 
 /**
