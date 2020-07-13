@@ -277,6 +277,9 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
     https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
+    If there are multiple values for the same header name, they are
+    concatenated with a comma and space (", ") between each of them.
+    See RFC 2616 4.2 Message Headers.
     To avoid that, use the ``http.header.raw`` keyword.
 
 Example of a header in a HTTP request:
