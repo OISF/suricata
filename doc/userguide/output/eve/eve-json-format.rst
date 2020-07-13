@@ -1295,3 +1295,106 @@ Example of RFB logging, with full VNC style authentication parameters:
         "blue_shift": 0
       }
     }
+
+Event type: HTTP2
+-----------------
+
+Fields
+~~~~~~
+
+There are the two fields "request" and "response" which can each contain the same set of fields :
+* "settings": a list of settings with "name" and "value"
+* "headers": a list of headers with either "name" and "value", or "table_size_update", or "error" if any
+* "error_code": the error code from GOAWAY or RST_STREAM, which can be "NO_ERROR"
+* "priority": the stream priority.
+
+
+Examples
+~~~~~~~~
+
+Example of HTTP2 logging, of a settings frame:
+
+::
+
+  "http2": {
+    "request": {
+      "settings": [
+        {
+          "settings_id": "SETTINGSMAXCONCURRENTSTREAMS",
+          "settings_value": 100
+        },
+        {
+          "settings_id": "SETTINGSINITIALWINDOWSIZE",
+          "settings_value": 65535
+        }
+      ]
+    },
+    "response": {}
+  }
+
+Example of HTTP2 logging, of a request and response:
+
+::
+
+  "http2": {
+    "request": {
+      "headers": [
+        {
+          "name": ":authority",
+          "value": "localhost:3000"
+        },
+        {
+          "name": ":method",
+          "value": "GET"
+        },
+        {
+          "name": ":path",
+          "value": "/doc/manual/html/index.html"
+        },
+        {
+          "name": ":scheme",
+          "value": "http"
+        },
+        {
+          "name": "accept",
+          "value": "*/*"
+        },
+        {
+          "name": "accept-encoding",
+          "value": "gzip, deflate"
+        },
+        {
+          "name": "user-agent",
+          "value": "nghttp2/0.5.2-DEV"
+        }
+      ]
+    },
+    "response": {
+      "headers": [
+        {
+          "name": ":status",
+          "value": "200"
+        },
+        {
+          "name": "server",
+          "value": "nghttpd nghttp2/0.5.2-DEV"
+        },
+        {
+          "name": "content-length",
+          "value": "22617"
+        },
+        {
+          "name": "cache-control",
+          "value": "max-age=3600"
+        },
+        {
+          "name": "date",
+          "value": "Sat, 02 Aug 2014 10:50:25 GMT"
+        },
+        {
+          "name": "last-modified",
+          "value": "Sat, 02 Aug 2014 07:58:59 GMT"
+        }
+      ]
+    }
+  }
