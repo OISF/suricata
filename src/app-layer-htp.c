@@ -713,11 +713,6 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
         if (log == NULL)
             continue;
 
-        HtpTxUserData *htud = NULL;
-        htp_tx_t *tx = log->tx; // will be NULL in <=0.5.9
-        if (tx != NULL)
-            htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-
         SCLogDebug("message %s", log->msg);
 
         int id = HTPHandleErrorGetId(log->msg);
@@ -728,7 +723,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
         }
 
         if (id > 0) {
-            HTPSetEvent(s, htud, dir, id);
+            HTPSetEvent(s, NULL, dir, id);
         }
     }
     s->htp_messages_offset = (uint16_t)msg;
