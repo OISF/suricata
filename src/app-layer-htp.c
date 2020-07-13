@@ -575,11 +575,11 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
     if (s == NULL || s->conn == NULL ||
-        s->conn->messages == NULL) {
+	htp_conn_get_messages(s->conn) == NULL) {
         return;
     }
 
-    size_t size = htp_list_size(s->conn->messages);
+    size_t size = htp_list_size(htp_conn_get_messages(s->conn));
     size_t msg;
     if(size >= HTP_MAX_MESSAGES) {
         if (s->htp_messages_offset < HTP_MAX_MESSAGES) {
@@ -594,13 +594,13 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     }
 
     for (msg = s->htp_messages_offset; msg < size; msg++) {
-        char *log = htp_log_get(s->conn->messages, msg);
+        char *log = htp_log_get(htp_conn_get_messages(s->conn), msg);
         if (log == NULL)
             continue;
 
         SCLogDebug("message %s", log);
 
-        int id = htp_log_get_code(s->conn->messages, msg);
+        int id = htp_log_get_code(htp_conn_get_messages(s->conn), msg);
         if (id > 0) {
             HTPSetEvent(s, NULL, dir, id);
         }
@@ -1821,7 +1821,7 @@ end:
         SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
                 tx_ud->request_body.content_len_so_far,
                 hstate->cfg->request.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_request_data_stamp);
+                (uint64_t)htp_conn_in_data_counter(hstate->conn), hstate->last_request_data_stamp);
 
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
@@ -1829,10 +1829,10 @@ end:
          * get here. */
         if (tx_ud->request_body.body_inspected == 0 &&
             tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
-            if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
-                (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
+            if ((uint64_t)htp_conn_in_data_counter(hstate->conn) > hstate->last_request_data_stamp &&
+                (uint64_t)htp_conn_in_data_counter(hstate->conn) - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+                uint32_t x = (uint32_t)((uint64_t)htp_conn_in_data_counter(hstate->conn) - hstate->last_request_data_stamp);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, x);
@@ -1915,17 +1915,17 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
                 tx_ud->response_body.content_len_so_far,
                 hstate->cfg->response.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
+                (uint64_t)htp_conn_in_data_counter(hstate->conn), hstate->last_response_data_stamp);
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
          * data to be used to the amount of raw bytes we've seen to
          * get here. */
         if (tx_ud->response_body.body_inspected == 0 &&
             tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
-            if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
-                (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
+            if ((uint64_t)htp_conn_out_data_counter(hstate->conn) > hstate->last_response_data_stamp &&
+                (uint64_t)htp_conn_out_data_counter(hstate->conn) - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp);
+                uint32_t x = (uint32_t)((uint64_t)htp_conn_out_data_counter(hstate->conn) - hstate->last_response_data_stamp);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, x);
@@ -2065,11 +2065,11 @@ static int HTPCallbackRequest(htp_tx_t *tx)
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
-                    (uint32_t)hstate->conn->in_data_counter);
+                    (uint32_t)htp_conn_in_data_counter(hstate->conn));
         }
     }
 
-    hstate->last_request_data_stamp = (uint64_t)hstate->conn->in_data_counter;
+    hstate->last_request_data_stamp = (uint64_t)htp_conn_in_data_counter(hstate->conn);
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
@@ -2125,7 +2125,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
         }
     }
 
-    hstate->last_response_data_stamp = (uint64_t)hstate->conn->out_data_counter;
+    hstate->last_response_data_stamp = (uint64_t)htp_conn_out_data_counter(hstate->conn);
     SCReturnInt(HTP_OK);
 }
 
@@ -2868,7 +2868,7 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
     HtpState *http_state = (HtpState *)alstate;
 
     if (http_state != NULL && http_state->conn != NULL) {
-        const uint64_t size = (uint64_t)htp_list_size(http_state->conn->transactions);
+        const uint64_t size = (uint64_t)htp_list_size(htp_conn_get_txs(http_state->conn));
         SCLogDebug("size %"PRIu64, size);
         return size;
     } else {
@@ -2881,7 +2881,7 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
     HtpState *http_state = (HtpState *)alstate;
 
     if (http_state != NULL && http_state->conn != NULL)
-        return htp_list_get(http_state->conn->transactions, tx_id);
+        return htp_list_get(htp_conn_get_txs(http_state->conn), tx_id);
     else
         return NULL;
 }
