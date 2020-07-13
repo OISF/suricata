@@ -70,6 +70,7 @@
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
 #include "app-layer-rdp.h"
+#include "app-layer-http2.h"
 
 #include "conf.h"
 #include "util-spm.h"
@@ -1580,6 +1581,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterMQTTParsers();
     RegisterTemplateParsers();
     RegisterRdpParsers();
+    RegisterHTTP2Parsers();
 
     /** IMAP */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");

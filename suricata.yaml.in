@@ -281,6 +281,7 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
+        - http2
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -756,6 +757,8 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+    http2:
+      enabled: yes
     smtp:
       enabled: yes
       raw-extraction: no
