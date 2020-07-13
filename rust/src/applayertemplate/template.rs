@@ -225,6 +225,16 @@ impl TemplateState {
 
         return None;
     }
+
+    fn on_request_gap(&mut self, _size: u32) {
+        /* A gap in request data has been seen. For the purposes of this template
+         * we simply clear out the request buffer. */
+         self.request_buffer.truncate(0);
+    }
+
+    fn on_response_gap(&mut self, _size: u32) {
+        self.response_buffer.truncate(0);
+    }
 }
 
 /// Probe to see if this input looks like a request or response.
@@ -312,11 +322,20 @@ pub extern "C" fn rs_template_parse_request(
 
     if eof {
         // If needed, handled EOF, or pass it into the parser.
+        return AppLayerResult::ok();
     }
 
     let state = cast_pointer!(state, TemplateState);
-    let buf = build_slice!(input, input_len as usize);
-    state.parse_request(buf).into()
+
+    if input == std::ptr::null_mut() && input_len > 0 {
+        // Here we have a gap signaled by the input being null, but a greater
+        // than 0 input_len which provides the size of the gap.
+        state.on_request_gap(input_len);
+        AppLayerResult::ok()
+    } else {
+        let buf = build_slice!(input, input_len as usize);
+        state.parse_request(buf).into()
+    }
 }
 
 #[no_mangle]
@@ -337,8 +356,16 @@ pub extern "C" fn rs_template_parse_response(
         }
     };
     let state = cast_pointer!(state, TemplateState);
-    let buf = build_slice!(input, input_len as usize);
-    state.parse_response(buf).into()
+
+    if input == std::ptr::null_mut() && input_len > 0 {
+        // Here we have a gap signaled by the input being null, but a greater
+        // than 0 input_len which provides the size of the gap.
+        state.on_response_gap(input_len);
+        AppLayerResult::ok()
+    } else {
+        let buf = build_slice!(input, input_len as usize);
+        state.parse_response(buf).into()
+    }
 }
 
 #[no_mangle]
@@ -518,7 +545,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_tx_iterator: Some(rs_template_state_get_tx_iterator),
         get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
