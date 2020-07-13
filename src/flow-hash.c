@@ -715,6 +715,66 @@ static inline void FromHashLockCMP(Flow *f)
     FLOWLOCK_WRLOCK(f);
 }
 
+static Flow *FlowDoPeriodicLog(ThreadVars *tv,
+                               FlowLookupStruct *fls,
+                               FlowBucket *fb,
+                               Flow *old_f,
+                               Flow *prev_f,
+                               const uint32_t hash,
+                               const Packet *p)
+{
+    /** Don't replace a Flow that is used by a packet or stream msg
+     *  we are currently processing in one of the threads */
+    /* AWN REVISIT: FlowManagerHashRowTimeout() also doesn't timeout a flow if:
+     * !FlowBypassedTimeout(f, ts, counters)
+     */
+    if (old_f->use_cnt > 0) {
+        return old_f;
+    }
+
+    /* Get a new flow. It will be either a locked flow or NULL */
+    Flow* new_f = FlowGetNew(tv, fls, /* cast away const: */ (Packet *)p);
+    if (new_f == NULL) {
+        return old_f;
+    }
+
+    /* get some settings that we move over to the new flow */
+    FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
+
+    /* new Flow is locked */
+
+    /* put new flow at the start of the hash bucket */
+    new_f->next = fb->head;
+    fb->head = new_f;
+
+    /* initialize new flow */
+    FlowInit(new_f, p);
+    new_f->flow_hash = hash;
+    new_f->fb = fb;
+    new_f->thread_id[0] = thread_id[0];
+    new_f->thread_id[1] = thread_id[1];
+
+    /* remove old Flow from the hash */
+    RemoveFromHash(old_f, prev_f);
+
+    SC_ATOMIC_SET(fb->next_ts, 0);
+
+    /* AWN: REVISIT:
+     * Sur6 does this:
+     * FlowQueuePrivateAppendFlow(&td->aside_queue, f);
+     * Which sends the flow through the "aside_queue" for deferred processing.
+     * The deferred processing potentially goes through a "FlowForceReassemblyForFlow(f)" step, which we're
+     * skipping here; is that okay?
+     * 
+     * Otherwise, the flow ultimately transitions from the aside_queue, into the flow_recycle_q, 
+     * after being unlocked, which we do here as well...
+     */
+    FLOWLOCK_UNLOCK(old_f);
+    FlowEnqueue(&flow_recycle_q, old_f);
+
+    return new_f;
+}
+
 /** \brief Get Flow for packet
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
@@ -802,6 +862,11 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
                 }
                 f = new_f;
             }
+
+            if (unlikely(FlowShouldPeriodicLog(f) == 1)) {
+                f = FlowDoPeriodicLog(tv, fls, fb, f, prev_f, hash, p);
+            }
+            
             FlowReference(dest, f);
             FBLOCK_UNLOCK(fb);
             return f; /* return w/o releasing flow lock */

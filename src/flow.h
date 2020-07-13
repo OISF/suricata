@@ -522,6 +522,7 @@ typedef struct FlowProtoTimeout_ {
     uint32_t est_timeout;
     uint32_t closed_timeout;
     uint32_t bypassed_timeout;
+    uint32_t active; /** Max duration to track active flow state */
 } FlowProtoTimeout;
 
 typedef struct FlowProtoFreeFunc_ {
