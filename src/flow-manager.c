@@ -172,6 +172,36 @@ again:
     SC_ATOMIC_SET(flowmgr_cnt, 0);
 }
 
+/**
+ *  \brief check if a periodic log should be generated for a flow
+ *
+ *  \param f flow
+ *
+ *  \retval 0 don't generate a log
+ *  \retval 1 do generate a log
+ */
+int FlowShouldPeriodicLog(const Flow *f)
+{
+    /* TODO (low-priority) check if flow eve-log type is enabled before checking
+     * flow state, logging interval, etc. */
+
+    int state = f->flow_state;
+    if (state == FLOW_STATE_NEW || state == FLOW_STATE_ESTABLISHED)
+    {
+        FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
+        uint32_t maxDuration = flow_timeouts[f->protomap].active;
+        if (maxDuration > 0)
+        {
+            const uint32_t duration = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+            if (duration > maxDuration)
+            {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 /** \internal
  *  \brief check if a flow is timed out
  *

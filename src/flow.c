@@ -744,36 +744,40 @@ void FlowInitFlowProto(void)
 {
     FlowTimeoutsInit();
 
-#define SET_DEFAULTS(p, n, e, c, b, ne, ee, ce, be)     \
+#define SET_DEFAULTS(p, n, e, c, b, a, ne, ee, ce, be, ae)     \
     flow_timeouts_normal[(p)].new_timeout = (n);     \
     flow_timeouts_normal[(p)].est_timeout = (e);     \
     flow_timeouts_normal[(p)].closed_timeout = (c);  \
     flow_timeouts_normal[(p)].bypassed_timeout = (b); \
+    flow_timeouts_normal[(p)].active = (a); \
     flow_timeouts_emerg[(p)].new_timeout = (ne);     \
     flow_timeouts_emerg[(p)].est_timeout = (ee);     \
     flow_timeouts_emerg[(p)].closed_timeout = (ce); \
     flow_timeouts_emerg[(p)].bypassed_timeout = (be); \
+    flow_timeouts_emerg[(p)].active = (ae); \
 
     SET_DEFAULTS(FLOW_PROTO_DEFAULT,
                 FLOW_DEFAULT_NEW_TIMEOUT, FLOW_DEFAULT_EST_TIMEOUT,
-                    0, FLOW_DEFAULT_BYPASSED_TIMEOUT,
+                    0, FLOW_DEFAULT_BYPASSED_TIMEOUT, FLOW_DEFAULT_ACTIVE_TIMEOUT,
                 FLOW_DEFAULT_EMERG_NEW_TIMEOUT, FLOW_DEFAULT_EMERG_EST_TIMEOUT,
-                    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
+   		    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT,FLOW_DEFAULT_ACTIVE_TIMEOUT );
     SET_DEFAULTS(FLOW_PROTO_TCP,
                 FLOW_IPPROTO_TCP_NEW_TIMEOUT, FLOW_IPPROTO_TCP_EST_TIMEOUT,
                     FLOW_IPPROTO_TCP_CLOSED_TIMEOUT, FLOW_IPPROTO_TCP_BYPASSED_TIMEOUT,
+		    FLOW_DEFAULT_ACTIVE_TIMEOUT,
                 FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT,
-                    FLOW_IPPROTO_TCP_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
+  		    FLOW_IPPROTO_TCP_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT,
+		    FLOW_DEFAULT_ACTIVE_TIMEOUT);
     SET_DEFAULTS(FLOW_PROTO_UDP,
                 FLOW_IPPROTO_UDP_NEW_TIMEOUT, FLOW_IPPROTO_UDP_EST_TIMEOUT,
-                    0, FLOW_IPPROTO_UDP_BYPASSED_TIMEOUT,
+                    0, FLOW_IPPROTO_UDP_BYPASSED_TIMEOUT, FLOW_DEFAULT_ACTIVE_TIMEOUT,
                 FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT,
-                    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
+		    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT, FLOW_DEFAULT_ACTIVE_TIMEOUT);
     SET_DEFAULTS(FLOW_PROTO_ICMP,
                 FLOW_IPPROTO_ICMP_NEW_TIMEOUT, FLOW_IPPROTO_ICMP_EST_TIMEOUT,
-                    0, FLOW_IPPROTO_ICMP_BYPASSED_TIMEOUT,
+                    0, FLOW_IPPROTO_ICMP_BYPASSED_TIMEOUT, FLOW_DEFAULT_ACTIVE_TIMEOUT,
                 FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT,
-                    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
+		    0, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT, FLOW_DEFAULT_ACTIVE_TIMEOUT);
 
     flow_freefuncs[FLOW_PROTO_DEFAULT].Freefunc = NULL;
     flow_freefuncs[FLOW_PROTO_TCP].Freefunc = NULL;
@@ -785,10 +789,12 @@ void FlowInitFlowProto(void)
     const char *established = NULL;
     const char *closed = NULL;
     const char *bypassed = NULL;
+    const char *active = NULL;
     const char *emergency_new = NULL;
     const char *emergency_established = NULL;
     const char *emergency_closed = NULL;
     const char *emergency_bypassed = NULL;
+    const char *emergency_max_log_period = NULL;
 
     SCConfNode *flow_timeouts = SCConfGetNode("flow-timeouts");
     if (flow_timeouts != NULL) {
@@ -802,10 +808,13 @@ void FlowInitFlowProto(void)
             established = SCConfNodeLookupChildValue(proto, "established");
             closed = SCConfNodeLookupChildValue(proto, "closed");
             bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            active = SCConfNodeLookupChildValue(proto, "active");
             emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
             emergency_closed = SCConfNodeLookupChildValue(proto, "emergency-closed");
             emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
+            emergency_max_log_period = SCConfNodeLookupChildValue(proto,
+                "emergency-active");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -830,6 +839,13 @@ void FlowInitFlowProto(void)
                                             bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
+            }
+            if (active != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(active),
+                                            active) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_DEFAULT].active = configval;
             }
             if (emergency_new != NULL &&
                 StringParseUint32(&configval, 10, strlen(emergency_new),
@@ -858,6 +874,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
             }
+            if (emergency_max_log_period != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_max_log_period),
+                                            emergency_max_log_period) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_DEFAULT].active = configval;
+            }
         }
 
         /* TCP. */
@@ -867,10 +890,13 @@ void FlowInitFlowProto(void)
             established = SCConfNodeLookupChildValue(proto, "established");
             closed = SCConfNodeLookupChildValue(proto, "closed");
             bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            active = SCConfNodeLookupChildValue(proto, "active");
             emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
             emergency_closed = SCConfNodeLookupChildValue(proto, "emergency-closed");
             emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
+            emergency_max_log_period = SCConfNodeLookupChildValue(proto,
+                "emergency-active");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -895,6 +921,13 @@ void FlowInitFlowProto(void)
                                             bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].bypassed_timeout = configval;
+            }
+            if (active != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(active),
+                                            active) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_TCP].active = configval;
             }
             if (emergency_new != NULL &&
                 StringParseUint32(&configval, 10, strlen(emergency_new),
@@ -923,6 +956,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].bypassed_timeout = configval;
             }
+            if (emergency_max_log_period != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_max_log_period),
+                                            emergency_max_log_period) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_TCP].active = configval;
+            }
         }
 
         /* UDP. */
@@ -931,9 +971,12 @@ void FlowInitFlowProto(void)
             new = SCConfNodeLookupChildValue(proto, "new");
             established = SCConfNodeLookupChildValue(proto, "established");
             bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            active = SCConfNodeLookupChildValue(proto, "active");
             emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
             emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
+            emergency_max_log_period = SCConfNodeLookupChildValue(proto,
+                "emergency-active");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -952,6 +995,13 @@ void FlowInitFlowProto(void)
                                             bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_UDP].bypassed_timeout = configval;
+            }
+            if (active != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(active),
+                                            active) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_UDP].active = configval;
             }
             if (emergency_new != NULL &&
                 StringParseUint32(&configval, 10, strlen(emergency_new),
@@ -973,6 +1023,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
             }
+            if (emergency_max_log_period != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_max_log_period),
+                                            emergency_max_log_period) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_UDP].active = configval;
+            }
         }
 
         /* ICMP. */
@@ -981,9 +1038,12 @@ void FlowInitFlowProto(void)
             new = SCConfNodeLookupChildValue(proto, "new");
             established = SCConfNodeLookupChildValue(proto, "established");
             bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            active = SCConfNodeLookupChildValue(proto, "active");
             emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
             emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
+            emergency_max_log_period = SCConfNodeLookupChildValue(proto,
+                "emergency-active");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -1002,6 +1062,13 @@ void FlowInitFlowProto(void)
                                             bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_ICMP].bypassed_timeout = configval;
+            }
+            if (active != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(active),
+                                            active) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_ICMP].active = configval;
             }
             if (emergency_new != NULL &&
                 StringParseUint32(&configval, 10, strlen(emergency_new),
@@ -1022,6 +1089,13 @@ void FlowInitFlowProto(void)
                                             emergency_bypassed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_ICMP].bypassed_timeout = configval;
+            }
+            if (emergency_max_log_period != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_max_log_period),
+                                            emergency_max_log_period) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_ICMP].active = configval;
             }
         }
     }

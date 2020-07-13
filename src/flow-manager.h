@@ -37,4 +37,6 @@ void FlowDisableFlowRecyclerThread(void);
 void TmModuleFlowManagerRegister (void);
 void TmModuleFlowRecyclerRegister (void);
 
+/** periodic flow logging */
+int FlowShouldPeriodicLog(const Flow *f);
 #endif /* SURICATA_FLOW_MANAGER_H */
