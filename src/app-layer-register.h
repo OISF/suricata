@@ -72,6 +72,8 @@ typedef struct AppLayerParser {
 
     void (*SetTxDetectFlags)(void *, uint8_t, uint64_t);
     uint64_t (*GetTxDetectFlags)(void *, uint8_t);
+
+    uint32_t flags;
 } AppLayerParser;
 
 /**

@@ -399,6 +399,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_tx_iterator   : None,
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
+        flags              : 0,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

@@ -103,6 +103,8 @@ pub struct RustParser {
 
     // Function to get TX detect flags.
     pub get_tx_detect_flags: Option<GetTxDetectFlagsFn>,
+
+    pub flags: u32,
 }
 
 
