@@ -98,6 +98,7 @@ you can pick from. These are:
 * snmp
 * tftp
 * sip
+* http2
 
 The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
 
