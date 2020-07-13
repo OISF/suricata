@@ -1,0 +1,15 @@
+# HTTP2 app layer event rules
+#
+# SID's fall in the 2281000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+
+alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid frame header"; flow:established; app-layer-event:http2.invalid_frame_header; classtype:protocol-command-decode; sid:2228100; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid client magic"; flow:established; app-layer-event:http2.invalid_client_magic; classtype:protocol-command-decode; sid:2228101; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid frame data"; flow:established; app-layer-event:http2.invalid_frame_data; classtype:protocol-command-decode; sid:2228102; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid header"; flow:established; app-layer-event:http2.invalid_header; classtype:protocol-command-decode; sid:2228103; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid frame length"; flow:established; app-layer-event:http2.invalid_frame_length; classtype:protocol-command-decode; sid:2228104; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 header frame with extra data"; flow:established; app-layer-event:http2.extra_header_data; classtype:protocol-command-decode; sid:2228105; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 too long frame data"; flow:established; app-layer-event:http2.long_frame_data; classtype:protocol-command-decode; sid:2228106; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 stream identifier reuse"; flow:established; app-layer-event:http2.stream_id_reuse; classtype:protocol-command-decode; sid:2228107; rev:1;)
