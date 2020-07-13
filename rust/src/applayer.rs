@@ -228,6 +228,8 @@ pub struct RustParser {
     // the requests and responses are not sharing tx. It is then up to
     // the implementation to make sure the config is applied correctly.
     pub apply_tx_config: Option<ApplyTxConfigFn>,
+
+    pub flags: u32,
 }
 
 /// Create a slice, given a buffer and a length

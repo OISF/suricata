@@ -1038,6 +1038,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
+        flags: 0,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -1083,6 +1084,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
+        flags: 0,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

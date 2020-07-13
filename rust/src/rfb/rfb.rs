@@ -700,6 +700,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx_iterator: Some(rs_rfb_state_get_tx_iterator),
         get_tx_data: rs_rfb_get_tx_data,
         apply_tx_config: None,
+        flags: 0,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

@@ -68,6 +68,8 @@ typedef struct AppLayerParser {
 
     AppLayerTxData *(*GetTxData)(void *tx);
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
+
+    uint32_t flags;
 } AppLayerParser;
 
 /**
