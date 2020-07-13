@@ -157,7 +157,9 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SCEnter();
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0) {
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
+        s->alproto != ALPROTO_SMB) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
     void *did = rs_dcerpc_iface_parse(arg);
