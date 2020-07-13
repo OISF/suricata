@@ -130,6 +130,9 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+        return -1;
+
     void *dod = rs_dcerpc_opnum_parse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "

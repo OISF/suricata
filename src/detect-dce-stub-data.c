@@ -167,6 +167,9 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+        return -1;
+
     if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
         return -1;
     return 0;
