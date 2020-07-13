@@ -62,7 +62,6 @@ pub enum SSHConnectionState {
 
 const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
-const SSH_RECORD_PADDING_LEN: usize = 4;
 const SSH_MAX_REASSEMBLED_RECORD_LEN: usize = 65535;
 
 pub struct SshHeader {
@@ -162,20 +161,24 @@ impl SSHState {
                 hdr.record_left -= ilen;
                 return AppLayerResult::ok();
             } else {
+                let start = hdr.record_left as usize;
                 match hdr.record_left_msg {
                     // parse reassembled tcp segments
                     parser::MessageCode::SshMsgKexinit if hassh_is_enabled() => {
-                        if let Ok((rem, key_exchange)) = parser::ssh_parse_key_exchange(&input) {
-                            key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
-                            input = &rem[SSH_RECORD_PADDING_LEN..];
+                        if let Ok((_rem, key_exchange)) =
+                            parser::ssh_parse_key_exchange(&input[..start])
+                        {
+                            key_exchange.generate_hassh(
+                                &mut hdr.hassh_string,
+                                &mut hdr.hassh,
+                                &resp,
+                            );
                         }
                         hdr.record_left_msg = parser::MessageCode::SshMsgUndefined(0);
                     }
-                    _ => {
-                        let start = hdr.record_left as usize;
-                        input = &input[start..];
-                    }
+                    _ => {}
                 }
+                input = &input[start..];
                 hdr.record_left = 0;
             }
         }
