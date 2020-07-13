@@ -26,6 +26,7 @@ Suricata Rules
    base64-keywords
    sip-keywords
    rfb-keywords
+   http2-keywords
    app-layer
    xbits
    thresholding
