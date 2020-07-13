@@ -101,98 +101,98 @@ static uint64_t htp_state_memcnt = 0;
 
 SCEnumCharMap http_decoder_event_table[ ] = {
     { "UNKNOWN_ERROR",
-        HTTP_DECODER_EVENT_UNKNOWN_ERROR},
+        HTP_LOG_CODE_UNKNOWN},
     { "GZIP_DECOMPRESSION_FAILED",
-        HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
+        HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED},
     { "REQUEST_FIELD_MISSING_COLON",
-        HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
+        HTP_LOG_CODE_REQUEST_FIELD_MISSING_COLON},
     { "RESPONSE_FIELD_MISSING_COLON",
-        HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON},
+        HTP_LOG_CODE_RESPONSE_FIELD_MISSING_COLON},
     { "INVALID_REQUEST_CHUNK_LEN",
-        HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN},
+        HTP_LOG_CODE_INVALID_REQUEST_CHUNK_LEN},
     { "INVALID_RESPONSE_CHUNK_LEN",
-        HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN},
+        HTP_LOG_CODE_INVALID_RESPONSE_CHUNK_LEN},
     { "INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST",
-        HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST},
+        HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST},
     { "INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE",
-        HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE},
+        HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE},
     { "INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST",
-        HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST},
+        HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST},
     { "INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE",
-        HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
+        HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
     { "DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST",
-        HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST},
+        HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST},
     { "DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE",
-        HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE},
-    { "100_CONTINUE_ALREADY_SEEN",
-        HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN},
+        HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE},
+    { "CONTINUE_ALREADY_SEEN",
+        HTP_LOG_CODE_CONTINUE_ALREADY_SEEN},
     { "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
-        HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
+        HTP_LOG_CODE_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
     { "INVALID_SERVER_PORT_IN_REQUEST",
-        HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
+        HTP_LOG_CODE_INVALID_SERVER_PORT_IN_REQUEST},
     { "INVALID_AUTHORITY_PORT",
-        HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT},
+        HTP_LOG_CODE_INVALID_AUTHORITY_PORT},
     { "REQUEST_HEADER_INVALID",
-        HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
+        HTP_LOG_CODE_REQUEST_HEADER_INVALID},
     { "RESPONSE_HEADER_INVALID",
-        HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID},
+        HTP_LOG_CODE_RESPONSE_HEADER_INVALID},
     { "MISSING_HOST_HEADER",
-        HTTP_DECODER_EVENT_MISSING_HOST_HEADER},
+        HTP_LOG_CODE_MISSING_HOST_HEADER},
     { "HOST_HEADER_AMBIGUOUS",
-        HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS},
+        HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS},
     { "INVALID_REQUEST_FIELD_FOLDING",
-        HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
+        HTP_LOG_CODE_INVALID_REQUEST_FIELD_FOLDING},
     { "INVALID_RESPONSE_FIELD_FOLDING",
-        HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
+        HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING},
     { "REQUEST_FIELD_TOO_LONG",
-        HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
+        HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
-        HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+        HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG},
     { "REQUEST_LINE_INVALID",
-        HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+        HTP_LOG_CODE_REQUEST_LINE_INVALID},
     { "REQUEST_BODY_UNEXPECTED",
-        HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
+        HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED},
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
-        HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
+        HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "REQUEST_URI_HOST_INVALID",
-        HTTP_DECODER_EVENT_URI_HOST_INVALID},
+        HTP_LOG_CODE_URI_HOST_INVALID},
     { "REQUEST_HEADER_HOST_INVALID",
-        HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
+        HTP_LOG_CODE_HEADER_HOST_INVALID},
     { "REQUEST_AUTH_UNRECOGNIZED",
-        HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED},
+        HTP_LOG_CODE_AUTH_UNRECOGNIZED},
     { "REQUEST_HEADER_REPETITION",
-        HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
+        HTP_LOG_CODE_REQUEST_HEADER_REPETITION},
     { "RESPONSE_HEADER_REPETITION",
-        HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
+        HTP_LOG_CODE_RESPONSE_HEADER_REPETITION},
     { "DOUBLE_ENCODED_URI",
-        HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI},
+        HTP_LOG_CODE_DOUBLE_ENCODED_URI},
     { "URI_DELIM_NON_COMPLIANT",
-        HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
+        HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
-        HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
+        HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT},
     { "REQUEST_LINE_LEADING_WHITESPACE",
-        HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
+        HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE},
     { "TOO_MANY_ENCODING_LAYERS",
-        HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
+        HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS},
     { "ABNORMAL_CE_HEADER",
-        HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+        HTP_LOG_CODE_ABNORMAL_CE_HEADER},
     { "RESPONSE_MULTIPART_BYTERANGES",
-        HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
+        HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES},
     { "RESPONSE_ABNORMAL_TRANSFER_ENCODING",
-        HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
+        HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
     { "RESPONSE_CHUNKED_OLD_PROTO",
-        HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO},
+        HTP_LOG_CODE_RESPONSE_CHUNKED_OLD_PROTO},
     { "RESPONSE_INVALID_PROTOCOL",
-        HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
+        HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL},
     { "RESPONSE_INVALID_STATUS",
-        HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
+        HTP_LOG_CODE_RESPONSE_INVALID_STATUS},
     { "REQUEST_LINE_INCOMPLETE",
-        HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
+        HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE},
 
     { "LZMA_MEMLIMIT_REACHED",
-        HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
+            HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED},
     { "COMPRESSION_BOMB",
-        HTTP_DECODER_EVENT_COMPRESSION_BOMB},
+            HTP_LOG_CODE_COMPRESSION_BOMB},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -201,11 +201,9 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA},
     { "MULTIPART_INVALID_HEADER",
         HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER},
-
     { "TOO_MANY_WARNINGS",
         HTTP_DECODER_EVENT_TOO_MANY_WARNINGS},
-
-    { NULL,                      -1 },
+    { NULL, -1 },
 };
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
@@ -566,119 +564,6 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
     return (chunk_len == 0 ? data_len : chunk_len);
 }
 
-/* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
-struct {
-    const char *msg;
-    int  de;
-} htp_errors[] = {
-    { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
-    { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
-    { "Response field invalid: missing colon", HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON},
-    { "Request chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN},
-    { "Response chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN},
-/*  { "Invalid T-E value in request", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag HTP_REQUEST_INVALID_T_E
-    { "Invalid T-E value in response", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
-/*  { "Invalid C-L field in request", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag HTP_REQUEST_INVALID_C_L */
-    { "Invalid C-L field in response", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
-    { "Already seen 100-Continue", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN},
-    { "Unable to match response to request", HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
-    { "Invalid server port information in request", HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
-/*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer returns this error */
-    { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
-    { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
-    { "C-T multipart/byteranges in responses not supported", HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
-    { "Compression bomb:", HTTP_DECODER_EVENT_COMPRESSION_BOMB},
-};
-
-struct {
-    const char *msg;
-    int  de;
-} htp_warnings[] = {
-    { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
-    { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
-    { "Response field invalid", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID},
-    { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
-    { "Response header name is not a token", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID},
-/*  { "Host information in request headers required by HTTP/1.1", HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_HOST_MISSING
-    { "Host information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag HTP_HOST_AMBIGUOUS */
-    { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
-    { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
-    /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number differs from the actual TCP port=%d", port, connp->conn->server_port);
-     * luckily, "Request server port=" is unique */
-/*    { "Request server port number differs from the actual TCP port", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
-    { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
-    { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
-    { "Request line: non-compliant delimiter between Method and URI", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
-    { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
-    { "Too many response content encoding layers", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
-    { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
-    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
-    { "Transfer-encoding has abnormal chunked value", HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
-    { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0", HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO},
-    { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
-    { "Invalid response line: invalid response status", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
-    { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
-    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
-    { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
-    { "Ambiguous request C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST},
-    { "Ambiguous response C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE},
-};
-
-#define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
-#define HTP_WARNING_MAX (sizeof(htp_warnings) / sizeof(htp_warnings[0]))
-
-/**
- *  \internal
- *
- *  \brief Get the warning id for the warning msg.
- *
- *  \param msg warning message
- *
- *  \retval id the id or 0 in case of not found
- */
-static int HTPHandleWarningGetId(const char *msg)
-{
-    SCLogDebug("received warning \"%s\"", msg);
-    size_t idx;
-    for (idx = 0; idx < HTP_WARNING_MAX; idx++) {
-        if (strncmp(htp_warnings[idx].msg, msg,
-                    strlen(htp_warnings[idx].msg)) == 0)
-        {
-            return htp_warnings[idx].de;
-        }
-    }
-
-    return 0;
-}
-
-/**
- *  \internal
- *
- *  \brief Get the error id for the error msg.
- *
- *  \param msg error message
- *
- *  \retval id the id or 0 in case of not found
- */
-static int HTPHandleErrorGetId(const char *msg)
-{
-    SCLogDebug("received error \"%s\"", msg);
-
-    size_t idx;
-    for (idx = 0; idx < HTP_ERROR_MAX; idx++) {
-        if (strncmp(htp_errors[idx].msg, msg,
-                    strlen(htp_errors[idx].msg)) == 0)
-        {
-            return htp_errors[idx].de;
-        }
-    }
-
-    return 0;
-}
-
 /**
  *  \internal
  *
@@ -709,22 +594,17 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     }
 
     for (msg = s->htp_messages_offset; msg < size; msg++) {
-        htp_log_t *log = htp_list_get(s->conn->messages, msg);
+        char *log = htp_log_get(s->conn->messages, msg);
         if (log == NULL)
             continue;
 
-        SCLogDebug("message %s", log->msg);
+        SCLogDebug("message %s", log);
 
-        int id = HTPHandleErrorGetId(log->msg);
-        if (id == 0) {
-            id = HTPHandleWarningGetId(log->msg);
-            if (id == 0)
-                id = HTTP_DECODER_EVENT_UNKNOWN_ERROR;
-        }
-
+        int id = htp_log_get_code(s->conn->messages, msg);
         if (id > 0) {
             HTPSetEvent(s, NULL, dir, id);
         }
+        htp_log_free(log);
     }
     s->htp_messages_offset = (uint16_t)msg;
     SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
@@ -745,29 +625,29 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
 
         if (tx->flags & HTP_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
+                        HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
         if (tx->flags & HTP_REQUEST_INVALID_C_L)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
+                        HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
         if (tx->flags & HTP_HOST_MISSING)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_MISSING_HOST_HEADER);
+                        HTP_LOG_CODE_MISSING_HOST_HEADER);
         if (tx->flags & HTP_HOST_AMBIGUOUS)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
+                        HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS);
         if (tx->flags & HTP_HOSTU_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_URI_HOST_INVALID);
+                        HTP_LOG_CODE_URI_HOST_INVALID);
         if (tx->flags & HTP_HOSTH_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
+                        HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
     if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
+                    HTP_LOG_CODE_AUTH_UNRECOGNIZED);
     }
     if (tx->is_protocol_0_9 && tx->request_method_number == HTP_M_UNKNOWN &&
         (tx->request_protocol_number == HTP_PROTOCOL_INVALID ||
@@ -776,7 +656,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_REQUEST_LINE_INVALID);
+                    HTP_LOG_CODE_REQUEST_LINE_INVALID);
     }
 }
 
@@ -2301,7 +2181,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
         if (s == NULL)
             return HTP_OK;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
+                    HTP_LOG_CODE_DOUBLE_ENCODED_URI);
     }
 
     return HTP_OK;
@@ -6304,7 +6184,7 @@ libhtp:\n\
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
     FAIL_IF_NULL(decoder_events);
 
-    FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG);
+    FAIL_IF(decoder_events->events[0] != HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -6512,13 +6392,13 @@ static int HTPParserTest16(void)
     }
     FLOWLOCK_UNLOCK(f);
 
-    if (decoder_events->events[0] != HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT) {
-        printf("HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT not set: ");
+    if (decoder_events->events[0] != HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT) {
+        printf("HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT not set: ");
         goto end;
     }
 
-    if (decoder_events->events[1] != HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT) {
-        printf("HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT not set: ");
+    if (decoder_events->events[1] != HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT) {
+        printf("HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT not set: ");
         goto end;
     }
 #endif
