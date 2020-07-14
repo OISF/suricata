@@ -660,19 +660,16 @@ Pattern matcher settings
 
 The multi-pattern-matcher (MPM) is a part of the detection engine
 within Suricata that searches for multiple patterns at
-once. Generally, signatures have one ore more patterns. Of each
+once. Often, signatures have one ore more patterns. Of each
 signature, one pattern is used by the multi-pattern-matcher. That way
 Suricata can exclude many signatures from being examined, because a
 signature can only match when all its patterns match.
 
 These are the proceedings:
 
-1)A packet comes in.
-
-2)The packed will be analyzed by the Multi-pattern-matcher in search
-  of patterns that match.
-
-3)All patterns that match, will be further processed by Suricata (signatures).
+1) A packet comes in.
+2) The packed will be analyzed by the Multi-pattern-matcher in search of patterns that match.
+3) All patterns that match, will be further processed by Suricata (signatures).
 
 *Example 8	Multi-pattern-matcher*
 
@@ -685,49 +682,11 @@ To set the multi-pattern-matcher algorithm:
 
 ::
 
-  mpm-algo: b2gc
+    mpm-algo: ac
 
-After 'mpm-algo', you can enter one of the following algorithms: b2g,
-b2gc, b2gm, b3g, wumanber, ac and ac-gfbs (These last two are new in
-1.0.3). For more information about these last two, please read again
-the the end of the part 'Detection engine'. These algorithms have no
-options, so the fact that below there is no option being mentioned is
-no omission.
+After 'mpm-algo', you can enter one of the following algorithms: ac, hs and ac-ks.
 
-Subsequently, you can set the options for the mpm-algorithm's.
-
-The hash_size option determines the size of the hash-table that is
-internal used by the pattern matcher. A low hash-size (small table)
-causes lower memory usage, but decreases the performance. The opposite
-counts for a high hash-size: higher memory usage, but (generally)
-higher performance. The memory settings for hash size of the
-algorithms can vary from lowest (2048) - low (4096) - medium (8192) -
-high (16384) - higher (32768) – max (65536). (Higher is 'highest' in
-YAML 1.0 -1.0.2)
-
-The bf_size option determines the size of the bloom filter, that is
-used with the final step of the pattern matcher, namely the validation
-of the pattern. For this option the same counts as for the hash-size
-option: setting it to low will cause lower memory usage, but lowers
-the performance. The opposite counts for a high setting of the
-bf_size: higher memory usage, but (generally) higher performance. The
-bloom-filter sizes can vary from low (512) - medium (1024) - high
-(2048).
-
-::
-
-  pattern-matcher:
-    - b2gc:
-        search_algo: B2gSearchBNDMq
-        hash_size: low                    #Determines the size of the hash-table.
-        bf_size: medium                   #Determines the size of the bloom- filter.
-    - b3g:
-        search_algo: B3gSearchBNDMq
-        hash_size: low                    #See hash-size -b2gc.
-        bf_size: medium                   #See bf-size -b2gc.
-    - wumanber:
-        hash_size: low                    #See hash-size -b2gc.
-        bf_size: medium                   #See bf-size -b2gc.
+On `x86_64` hs (Hyperscan) should be used for best performance.
 
 Threading
 ---------
