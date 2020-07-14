@@ -67,6 +67,8 @@ impl Drop for TemplateTransaction {
 pub struct TemplateState {
     tx_id: u64,
     transactions: Vec<TemplateTransaction>,
+    request_gap: bool,
+    response_gap: bool,
 }
 
 impl TemplateState {
@@ -74,6 +76,8 @@ impl TemplateState {
         Self {
             tx_id: 0,
             transactions: Vec::new(),
+            request_gap: false,
+            response_gap: false,
         }
     }
 
@@ -124,6 +128,19 @@ impl TemplateState {
         // We're not interested in empty requests.
         if input.len() == 0 {
             return AppLayerResult::ok();
+        }
+
+        // If there was gap, check we can sync up again.
+        if self.request_gap {
+            if probe(input).is_err() {
+                // The parser now needs to decide what to do as we are not in sync.
+                // For this template, we'll just try again next time.
+                return AppLayerResult::ok();
+            }
+
+            // It looks like we're in sync with a message header, clear gap
+            // state and keep parsing.
+            self.request_gap = false;
         }
 
         let mut start = input;
@@ -214,23 +231,27 @@ impl TemplateState {
     }
 
     fn on_request_gap(&mut self, _size: u32) {
+        self.request_gap = true;
     }
 
     fn on_response_gap(&mut self, _size: u32) {
+        self.response_gap = true;
     }
 }
 
-/// Probe to see if this input looks like a request or response.
+/// Probe for a valid header.
 ///
-/// For the purposes of this template things will be kept simple. The
-/// protocol is text based with the leading text being the length of
-/// the message in bytes. So simply make sure the first character is
-/// between "1" and "9".
-fn probe(input: &[u8]) -> bool {
-    if input.len() > 1 && input[0] >= 49 && input[0] <= 57 {
-        return true;
-    }
-    return false;
+/// As this template protocol uses messages prefixed with the size
+/// as a string followed by a ':', we look at up to the first 10
+/// characters for that pattern.
+fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
+    let size = std::cmp::min(10, input.len());
+    let (rem, prefix) = nom::bytes::complete::take(size)(input)?;
+    nom::sequence::terminated(
+        nom::bytes::complete::take_while1(nom::character::is_digit),
+        nom::bytes::complete::tag(":"),
+    )(prefix)?;
+    Ok((rem, ()))
 }
 
 // C exports.
@@ -256,7 +277,7 @@ pub extern "C" fn rs_template_probing_parser(
     // Need at least 2 bytes.
     if input_len > 1 && input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
-        if probe(slice) {
+        if probe(slice).is_ok() {
             return unsafe { ALPROTO_TEMPLATE };
         }
     }
@@ -556,6 +577,14 @@ pub unsafe extern "C" fn rs_template_register_parser() {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_probe() {
+        assert!(probe(b"1").is_err());
+        assert!(probe(b"1:").is_ok());
+        assert!(probe(b"123456789:").is_ok());
+        assert!(probe(b"0123456789:").is_err());
+    }
 
     #[test]
     fn test_incomplete() {
