@@ -18,7 +18,7 @@ To download the Emerging Threats Open ruleset, it is enough to simply run:
 
   sudo suricata-update
 
-This will download the ruleset into /var/lib/suricata/rules/
+This will download the ruleset into `/var/lib/suricata/rules/`
 
 Suricata's configuration will have to be updated to have a rules config like
 this:
@@ -39,7 +39,7 @@ To update the rules, simply run
 
 ::
 
-  sudo suricata-update
+    sudo suricata-update
 
 It is recommended to update your rules frequently.
 
@@ -85,20 +85,20 @@ Controlling which rules are used
 By default suricata-update will merge all rules into a single file
 "/var/lib/suricata/rules/suricata.rules".
 
-To enable rules that are disabled by default, use '/etc/suricata/enable.conf'
+To enable rules that are disabled by default, use `/etc/suricata/enable.conf`
 
 ::
 
-    2019401                   # enable this sid
+    2019401                   # enable signature with this sid
     group:emerging-icmp.rules # enable this rulefile
     re:trojan                 # enable all rules with this string
 
 
-Similarly, to disable rules use /etc/suricata/disable.conf:
+Similarly, to disable rules use `/etc/suricata/disable.conf`:
 
 ::
 
-    2019401                   # enable this sid
+    2019401                   # disable signature with this sid
     group:emerging-info.rules # disable this rulefile
     re:heartbleed             # disable all rules with this string
 
