@@ -75,8 +75,9 @@ jobs:
       - name: Checkout HEAD on branch, not merge commit!
         uses: actions/checkout@v1
         with:
-          ref: ${{ github.head_ref }}
-#          ref: ${{ github.event.pull_request.head.sha }}
+#          ref: ${{ github.head_ref }} # OISF repo does not know our branch
+          # use last commit of branch, not merge!
+          ref: ${{ github.event.pull_request.head.sha }}
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
