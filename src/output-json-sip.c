@@ -85,9 +85,6 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     if (!rs_sip_log_json(siptx, js)) {
         goto error;
     }
-    if (!jb_close(js)) {
-        goto error;
-    }
 
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
