@@ -1,0 +1,103 @@
+name: formatting-check
+
+on:
+  push:
+    # Only run on pushes to pull request branches
+    branches-ignore:
+      - 'master'
+      - 'master-*'
+  pull_request:
+
+jobs:
+
+  # Checking for correct formatting of branch for C code changes
+  check-formatting:
+    name: Formatting Check (clang 9)
+    runs-on: ubuntu-18.04
+    container: ubuntu:18.04
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                python \
+                rustc \
+                software-properties-common \
+                wget \
+                zlib1g \
+                zlib1g-dev
+      - name: Install packages for clang-format 9
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+          # no need to install full clang using https://apt.llvm.org/llvm.sh
+          # using clang 9
+          add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-9 main"
+          apt-get update
+          apt-get install -y clang-format-9
+      - name: Install cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
+      # If master has newer commits, github adds a merge commit from master into
+      # our branch.
+      # This screws up git clang-format as it'll format the merge as well and
+      # reports any formatting issues in those commits on master as well.
+      # We don't care about them here. So let's use the real branch HEAD commit.
+      - name: Checkout HEAD on branch, not merge commit!
+        uses: actions/checkout@v1
+        with:
+          ref: ${{ github.head_ref }}
+#          ref: ${{ github.event.pull_request.head.sha }}
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - name: Check formatting
+        run: |
+          # Do not use make as it hides the script's exit code
+          # make diffstat-style-branch >> check_formatting_log.txt 2>&1
+          ./scripts/clang-format.sh check-branch --make --diffstat --show-commits  >> check_formatting_log.txt 2>&1
+          rc=$?
+          if [ $rc -eq 0 ]; then
+              cat check_formatting_log.txt
+              echo "Formatting is following code style guide"
+          elif [ $rc -eq 1 ]; then
+              # limit output as it might be a lot in the worst case
+              tail -n 100 check_formatting_log.txt
+              echo "::warning ::Formatting is not following code style guide!"
+          else
+              cat check_formatting_log.txt
+              # use last output line as error
+              last_line=$(tail -n 1 check_formatting_log.txt)
+              echo "::error ::$last_line"
+              exit 1
+          fi
+        shell: bash {0}
