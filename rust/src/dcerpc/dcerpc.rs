@@ -383,6 +383,15 @@ impl DCERPCState {
         None
     }
 
+    pub fn get_hdr_rpc_vers_minor(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
+        if let Some(ref hdr) = self.header {
+            return Some(hdr.rpc_vers_minor);
+        }
+        // Shouldn't happen
+        None
+    }
+
     pub fn get_hdr_call_id(&self) -> Option<u32> {
         debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
@@ -862,6 +871,15 @@ impl DCERPCState {
             self.bytes_consumed += parsed as u16;
         }
 
+        // Fragmentation and Reassembly: https://pubs.opengroup.org/onlinepubs/9629399/chap12.htm
+        // If the PDU has a minor version number of 0 (zero), the run-time assumes
+        // no fragmentation. If the minor version number is 1 and the PFC_LAST_FRAG
+        // flag is not set, the PDU is fragmented.
+        let minor_vers = self.get_hdr_rpc_vers_minor().unwrap();
+        let pfc_flags = self.get_hdr_pfcflags().unwrap();
+        if (minor_vers == 1) && (pfc_flags & PFC_LAST_FRAG == 0) {
+            panic!("DCERPC: Its a fragmented PDU");
+        }
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
         if (buffer.len() as u16) < fraglen {
