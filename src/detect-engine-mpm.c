@@ -638,14 +638,14 @@ uint16_t PatternMatchDefaultMatcher(void)
                     goto done;
                 }
             }
-        }
 
 #ifndef BUILD_HYPERSCAN
-        if ((strcmp(mpm_algo, "hs") == 0)) {
-            FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support for mpm-algo is "
-                    "not compiled into Suricata.");
-        }
+            if ((strcmp(mpm_algo, "hs") == 0)) {
+                FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support for mpm-algo is "
+                        "not compiled into Suricata.");
+            }
 #endif
+        }
         FatalError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid mpm algo supplied "
                 "in the yaml conf file: \"%s\"", mpm_algo);
     }
