@@ -74,10 +74,10 @@ jobs:
       # We don't care about them here. So let's use the real branch HEAD commit.
       - name: Checkout HEAD on branch, not merge commit!
         uses: actions/checkout@v1
-        with:
-#          ref: ${{ github.head_ref }} # OISF repo does not know our branch
-          # use last commit of branch, not merge!
-          ref: ${{ github.event.pull_request.head.sha }}
+#        with:
+##          ref: ${{ github.head_ref }} # OISF repo does not know our branch
+#          # use last commit of branch, not merge!
+#          ref: ${{ github.event.pull_request.head.sha }}
       - name: Peel off potential merge request
         run: |
           git log --oneline -2
