@@ -868,6 +868,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(feature = "debug-validate"))]
     fn test_array_in_object() -> Result<(), JsonError> {
         let mut js = JsonBuilder::new_object();
 
