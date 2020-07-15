@@ -78,6 +78,9 @@ jobs:
 #          ref: ${{ github.head_ref }} # OISF repo does not know our branch
           # use last commit of branch, not merge!
           ref: ${{ github.event.pull_request.head.sha }}
+      - name: Peel off potential merge request
+        run: |
+          git log --oneline -2
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
