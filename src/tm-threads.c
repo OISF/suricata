@@ -1824,6 +1824,11 @@ TmEcode TmThreadWaitOnThreadInit(void)
 {
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
+    uint16_t RX_num = 0;
+    uint16_t W_num = 0;
+    uint16_t FM_num = 0;
+    uint16_t FR_num = 0;
+    int active_runmode = RunmodeGetCurrent();
 
     struct timeval start_ts;
     struct timeval cur_ts;
@@ -1873,18 +1878,37 @@ again:
                 return TM_ECODE_FAILED;
             }
 
-            if (i == TVT_MGMT)
-                mgt_num++;
-            else if (i == TVT_PPT)
-                ppt_num++;
+            if (active_runmode == RUNMODE_AFP_DEV) {
+                if (strncmp("RX", tv->name, 2) == 0)
+                    RX_num++;
+                else if (strncmp("W#", tv->name, 2) == 0)
+                    W_num++;
+                else if (strncmp("FM", tv->name, 2) == 0)
+                    FM_num++;
+                else if (strncmp("FR", tv->name, 2) == 0)
+                    FR_num++;
+            } else {
+                if (i == TVT_MGMT)
+                    mgt_num++;
+                else if (i == TVT_PPT)
+                    ppt_num++;
+            }
 
             tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
 
-    SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
+    if (active_runmode == RUNMODE_AFP_DEV) {
+        if (RX_num > 0) {
+            SCLogNotice("Threads created -> RX: %u W: %u FM: %u FR: %u", RX_num, W_num, FM_num, FR_num);
+        } else {
+            SCLogNotice("Threads created -> W: %u FM: %u FR: %u", W_num, FM_num, FR_num);
+        }
+    } else {
+        SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
               "threads initialized, engine started.", ppt_num, mgt_num);
+    }
 
     return TM_ECODE_OK;
 }
@@ -2175,6 +2199,22 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
     SCMutexUnlock(&thread_store_lock);
     *ts = local;
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
+}
+
+uint16_t TmThreadsGetWorkerThreadMax()
+{
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
+    /* always create at least one thread */
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
+    if (thread_max < 1)
+        thread_max = 1;
+    if (thread_max > 1024) {
+        SCLogWarning(SC_ERR_RUNMODE, "limited number of 'worker' threads to 1024. Wanted %d", thread_max);
+        thread_max = 1024;
+    }
+    return thread_max;
 }
 
 /**
