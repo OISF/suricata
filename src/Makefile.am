@@ -53,6 +53,7 @@ app-layer-rfb.c app-layer-rfb.h \
 app-layer-mqtt.c app-layer-mqtt.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
+app-layer-quic.c app-layer-quic.h \
 app-layer-rdp.c app-layer-rdp.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -386,6 +387,7 @@ output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
 output-json-ikev2.c output-json-ikev2.h \
 output-json-krb5.c output-json-krb5.h \
+output-json-quic.c output-json-quic.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-rfb.c output-json-rfb.h \
