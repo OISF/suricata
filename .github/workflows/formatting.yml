@@ -67,20 +67,47 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
-      # If master has newer commits, github adds a merge commit from master into
-      # our branch.
-      # This screws up git clang-format as it'll format the merge as well and
-      # reports any formatting issues in those commits on master as well.
-      # We don't care about them here. So let's use the real branch HEAD commit.
+      # Github will add a "merge commit" from our branch to master and check
+      # this out instead of the original last commit on the branch.
+      # This screws up git clang-format as it'll also format the "merge commit"
+      # and report any formatting issues in the "merge commit".
+      #
+      # The "merge commit" only gets created in case there are any new commits
+      # on master since we branched off.
+      #
+      # However, we don't care about the new commits on master. So let's use
+      # the real branch's HEAD commit.
       - name: Checkout HEAD on branch, not merge commit!
         uses: actions/checkout@v1
+        # Use last commit of branch, not potential merge commit!
+        #
+        # This works perfectly well on private repos, but not for
+        # pull requests from forks to the OISF repo as the latter one
+        # does not know the branch (from the private repo). Argh.
 #        with:
-##          ref: ${{ github.head_ref }} # OISF repo does not know our branch
-#          # use last commit of branch, not merge!
-#          ref: ${{ github.event.pull_request.head.sha }}
+#          ref: ${{ github.head_ref }} # check out branch
+
+      # Manually ignore the merge commit as none of the things tried seem
+      # to work for pull requests from forks into the OISF repo.
       - name: Peel off potential merge request
         run: |
-          git log --oneline -2
+          # Commit history example in case github added merge, i.e. if
+          # you did git log --pretty=oneline -2:
+          #   sha_1 Merge sha_2 into latest_sha_on_master
+          #   sha_2 This is the real latest commit on branch
+          git log --pretty=oneline -2
+          last_commit_subject=$(git log --pretty=%s -1)
+          second_last_commit_sha=$(git log --pretty=%H -2 |tail -1)
+          echo "last_commit_subject: $last_commit_subject"
+          echo "second_last_commit_sha: $second_last_commit_sha"
+          if [ $last_commit_subject =~ ^Merge\ ${second_last_commit_sha}\ into\ [0-9a-zA-Z]*$ ]; then
+              # Last commit was a merge to master - ignore
+              echo "Ignoring github merge commit..."
+              git checkout HEAD^
+          else
+              echo "No github merge commit found"
+          endif
+        shell: bash {0}
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
