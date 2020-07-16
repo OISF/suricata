@@ -53,6 +53,7 @@ app-layer-rfb.c app-layer-rfb.h \
 app-layer-mqtt.c app-layer-mqtt.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
+app-layer-quic.c app-layer-quic.h \
 app-layer-rdp.c app-layer-rdp.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -328,6 +329,9 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+detect-quic-version.c detect-quic-version.h \
+detect-quic-cyu-hash.c detect-quic-cyu-hash.h \
+detect-quic-cyu-string.c detect-quic-cyu-string.h \
 device-storage.c device-storage.h \
 feature.c feature.h \
 flow-bit.c flow-bit.h \
@@ -387,6 +391,7 @@ output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
 output-json-ikev2.c output-json-ikev2.h \
 output-json-krb5.c output-json-krb5.h \
+output-json-quic.c output-json-quic.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-rfb.c output-json-rfb.h \

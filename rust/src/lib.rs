@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -82,5 +82,6 @@ pub mod x509;
 pub mod asn1;
 pub mod ssh;
 pub mod http2;
+pub mod quic;
 pub mod plugin;
 pub mod util;
