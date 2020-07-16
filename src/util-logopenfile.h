@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,7 +25,6 @@
 #define __UTIL_LOGOPENFILE_H__
 
 #include "conf.h"            /* ConfNode   */
-#include "tm-modules.h"      /* LogFileCtx */
 #include "util-buffer.h"
 
 #ifdef HAVE_LIBHIREDIS
@@ -47,12 +46,20 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
+struct LogFileCtx_;
+typedef struct LogThreadedFileCtx_ {
+    int count;
+    SCMutex mutex;
+    struct LogFileCtx_ **lf_slots;
+    char *append;
+} LogThreadedFileCtx;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+        LogThreadedFileCtx *threads;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
@@ -71,6 +78,11 @@ typedef struct LogFileCtx_ {
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
     SCMutex fp_mutex;
+
+    /** When threaded, track of the parent and thread id */
+    bool threaded;
+    struct LogFileCtx_ *parent;
+    int id;
 
     /** the type of file */
     enum LogFileType type;
@@ -102,7 +114,7 @@ typedef struct LogFileCtx_ {
     size_t prefix_len;
 
     /** Generic size_limit and size_current
-     * They must be common to the threads accesing the same file */
+     * They must be common to the threads accessing the same file */
     uint64_t size_limit;    /**< file size limit */
     uint64_t size_current;  /**< file current size */
 
@@ -113,7 +125,7 @@ typedef struct LogFileCtx_ {
     uint8_t send_flags;
 
     /* Flag if file is a regular file or not.  Only regular files
-     * allow for rotataion. */
+     * allow for rotation. */
     uint8_t is_regular;
 
     /* JSON flags */
@@ -145,6 +157,8 @@ LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
+LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx, int thread_id);
+FILE *SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 

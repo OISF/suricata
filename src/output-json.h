@@ -114,6 +114,7 @@ typedef struct OutputJsonCtx_ {
 
 typedef struct OutputJsonThreadCtx_ {
     OutputJsonCtx *ctx;
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } OutputJsonThreadCtx;
 

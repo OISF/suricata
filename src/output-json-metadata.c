@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2016 Open Information Security Foundation
+/* Copyright (C) 2013-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -65,8 +65,6 @@
 
 #define MODULE_NAME "JsonMetadataLog"
 
-#define JSON_STREAM_BUFFER_SIZE 4096
-
 typedef struct MetadataJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     OutputJsonCommonSettings cfg;
@@ -111,30 +109,37 @@ static int JsonMetadataLogCondition(ThreadVars *tv, const Packet *p)
 
 static TmEcode JsonMetadataLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonMetadataLogThread *aft = SCMalloc(sizeof(JsonMetadataLogThread));
+    JsonMetadataLogThread *aft = SCCalloc(1, sizeof(JsonMetadataLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonMetadataLogThread));
-    if(initdata == NULL)
-    {
+
+    if(initdata == NULL) {
         SCLogDebug("Error getting context for EveLogMetadata.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /** Use the Output Context (file pointer and mutex) */
     MetadataJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = json_output_ctx->file_ctx;
+    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
     aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->json_buffer != NULL) {
+        MemBufferFree(aft->json_buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonMetadataLogThreadDeinit(ThreadVars *t, void *data)

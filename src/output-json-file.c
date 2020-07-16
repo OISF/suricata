@@ -76,7 +76,9 @@ typedef struct OutputFileCtx_ {
 } OutputFileCtx;
 
 typedef struct JsonFileLogThread_ {
+
     OutputFileCtx *filelog_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } JsonFileLogThread;
 
@@ -203,7 +205,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
     }
 
     MemBufferReset(aft->buffer);
-    OutputJsonBuilderBuffer(js, aft->filelog_ctx->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
     jb_free(js);
 }
 
@@ -224,29 +226,37 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
 static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonFileLogThread *aft = SCMalloc(sizeof(JsonFileLogThread));
+    JsonFileLogThread *aft = SCCalloc(1, sizeof(JsonFileLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonFileLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogFile.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        goto error_exit;
     }
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->filelog_ctx = ((OutputCtx *)initdata)->data;
-
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+    aft->file_ctx = LogFileEnsureExists(aft->filelog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)

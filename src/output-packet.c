@@ -143,6 +143,7 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, v
 
     OutputPacketLogger *logger = list;
     while (logger) {
+        SCLogNotice("Thread %d - %s", tv->id, logger->name);
         if (logger->ThreadInit) {
             void *retptr = NULL;
             if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {

@@ -60,10 +60,11 @@ typedef struct LogJsonFileCtx_ {
 typedef struct JsonFlowLogThread_ {
     LogJsonFileCtx *flowlog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
-static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_type)
+static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -118,9 +119,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_typ
         jb_set_string(jb, "in_iface", f->livedev->dev);
     }
 
-    if (event_type) {
-        jb_set_string(jb, "event_type", event_type);
-    }
+    JB_SET_STRING(jb, "event_type", "flow");
 
     /* vlan */
     if (f->vlan_idx > 0) {
@@ -333,14 +332,14 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    JsonBuilder *jb = CreateEveHeaderFromFlow(f, "flow");
+    JsonBuilder *jb = CreateEveHeaderFromFlow(f);
     if (unlikely(jb == NULL)) {
-        return TM_ECODE_OK;
+        SCReturnInt(TM_ECODE_OK);
     }
 
     EveFlowLogJSON(jhl, jb, f);
 
-    OutputJsonBuilderBuffer(jb, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
+    OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
@@ -427,29 +426,38 @@ static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_c
 
 static TmEcode JsonFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonFlowLogThread *aft = SCMalloc(sizeof(JsonFlowLogThread));
+    JsonFlowLogThread *aft = SCCalloc(1, sizeof(JsonFlowLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonFlowLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogFlow.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Outptut Context (file pointer and mutex) */
     aft->flowlog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->file_ctx = LogFileEnsureExists(aft->flowlog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -66,6 +66,7 @@ typedef struct LogHttpFileCtx_ {
 
 typedef struct JsonHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
+    LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
 
@@ -538,7 +539,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         }
     }
 
-    OutputJsonBuilderBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
+    OutputJsonBuilderBuffer(js, jhl->file_ctx, &jhl->buffer);
     jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);
@@ -741,29 +742,38 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
 
 static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonHttpLogThread *aft = SCMalloc(sizeof(JsonHttpLogThread));
+    JsonHttpLogThread *aft = SCCalloc(1, sizeof(JsonHttpLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonHttpLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogHTTP.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->httplog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->file_ctx = LogFileEnsureExists(aft->httplog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)

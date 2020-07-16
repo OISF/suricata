@@ -57,8 +57,8 @@ typedef struct LogTFTPFileCtx_ {
 } LogTFTPFileCtx;
 
 typedef struct LogTFTPLogThread_ {
+    LogFileCtx *file_ctx;
     LogTFTPFileCtx *tftplog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogTFTPLogThread;
 
@@ -80,7 +80,7 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
 
     EveAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, jb);
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->tftplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
     jb_free(jb);
     return TM_ECODE_OK;
@@ -136,20 +136,29 @@ static TmEcode JsonTFTPLogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogTFTP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->tftplog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->tftplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonTFTPLogThreadDeinit(ThreadVars *t, void *data)
