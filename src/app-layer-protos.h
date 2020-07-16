@@ -48,6 +48,7 @@ enum AppProtoEnum {
     ALPROTO_TFTP,
     ALPROTO_IKE,
     ALPROTO_KRB5,
+    ALPROTO_QUIC,
     ALPROTO_DHCP,
     ALPROTO_SNMP,
     ALPROTO_SIP,

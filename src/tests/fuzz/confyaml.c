@@ -104,4 +104,6 @@ app-layer:\n\
       enabled: yes\n\
     http2:\n\
       enabled: yes\n\
+    quic:\n\
+      enabled: yes\n\
 ";
