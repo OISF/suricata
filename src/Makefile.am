@@ -34,6 +34,7 @@ noinst_HEADERS = \
 	app-layer-ike.h \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
+	app-layer-quic.h \
 	app-layer-mqtt.h \
 	app-layer-nbss.h \
 	app-layer-nfs-tcp.h \
@@ -238,6 +239,9 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	detect-modbus.h \
+	detect-quic-version.h \
+	detect-quic-cyu-hash.h \
+	detect-quic-cyu-string.h \
 	detect-mqtt-connack-sessionpresent.h \
 	detect-mqtt-connect-clientid.h \
 	detect-mqtt-connect-flags.h \
@@ -395,6 +399,7 @@ noinst_HEADERS = \
 	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-modbus.h \
+	output-json-quic.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
@@ -615,6 +620,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ike.c \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
+	app-layer-quic.c \
 	app-layer-mqtt.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
@@ -813,6 +819,9 @@ libsuricata_c_a_SOURCES = \
 	detect-mark.c \
 	detect-metadata.c \
 	detect-modbus.c \
+	detect-quic-version.c \
+	detect-quic-cyu-hash.c \
+	detect-quic-cyu-string.c \
 	detect-mqtt-connack-sessionpresent.c \
 	detect-mqtt-connect-clientid.c \
 	detect-mqtt-connect-flags.c \
@@ -970,6 +979,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-modbus.c \
+	output-json-quic.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
