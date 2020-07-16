@@ -104,7 +104,7 @@ jobs:
           if [ $? -eq 0 ]; then
               # Last commit was a merge to master - ignore
               echo "Ignoring github merge commit..."
-              git checkout HEAD^
+              git checkout $second_last_commit_sha
           else
               echo "No github merge commit found"
           fi
