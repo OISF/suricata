@@ -77,6 +77,8 @@ include = [
     "SIPState",
     "ModbusState",
     "CMark",
+    "QuicState",
+    "QuicTransaction"
 ]
 
 # A list of items to not include in the generated bindings

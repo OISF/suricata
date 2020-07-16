@@ -272,6 +272,7 @@ outputs:
         - snmp
         - rfb
         - sip
+        - quic
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
@@ -960,6 +961,9 @@ app-layer:
         sp: 44818
 
     ntp:
+      enabled: yes
+
+    quic:
       enabled: yes
 
     dhcp:

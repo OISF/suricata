@@ -52,3 +52,4 @@ lazy_static = "~1.4.0"
 
 [dev-dependencies]
 test-case = "~1.1.0"
+hex = "~0.4.3"
