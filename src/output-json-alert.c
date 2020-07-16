@@ -75,6 +75,7 @@
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
 #include "output-json-frame.h"
+#include "output-json-quic.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -538,6 +539,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
         case ALPROTO_MQTT:
             jb_get_mark(jb, &mark);
             if (!JsonMQTTAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
+        case ALPROTO_QUIC:
+            jb_get_mark(jb, &mark);
+            if (!JsonQuicAddMetadata(p->flow, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
             break;
