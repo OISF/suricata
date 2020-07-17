@@ -2177,6 +2177,22 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
 }
 
+uint16_t TmThreadsGetWorkerThreadMax()
+{
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
+    /* always create at least one thread */
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
+    if (thread_max < 1)
+        thread_max = 1;
+    if (thread_max > 1024) {
+        SCLogWarning(SC_ERR_RUNMODE, "limited number of 'worker' threads to 1024. Wanted %d", thread_max);
+        thread_max = 1024;
+    }
+    return thread_max;
+}
+
 /**
  *  \retval r 1 if packet was accepted, 0 otherwise
  *  \note if packet was not accepted, it's still the responsibility
