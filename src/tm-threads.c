@@ -1822,8 +1822,12 @@ void TmThreadCheckThreadState(void)
  */
 TmEcode TmThreadWaitOnThreadInit(void)
 {
-    uint16_t mgt_num = 0;
-    uint16_t ppt_num = 0;
+    uint16_t RX_num = 0;
+    uint16_t W_num = 0;
+    uint16_t FM_num = 0;
+    uint16_t FR_num = 0;
+    uint16_t TX_num = 0;
+    int active_runmode = RunmodeGetCurrent();
 
     struct timeval start_ts;
     struct timeval cur_ts;
@@ -1873,18 +1877,28 @@ again:
                 return TM_ECODE_FAILED;
             }
 
-            if (i == TVT_MGMT)
-                mgt_num++;
-            else if (i == TVT_PPT)
-                ppt_num++;
+            if (active_runmode < RUNMODE_USER_MAX) {
+                if (strncmp(thread_name_autofp, tv->name, strlen(thread_name_autofp)) == 0)
+                    RX_num++;
+                else if (strncmp(thread_name_workers, tv->name, strlen(thread_name_workers)) == 0)
+                    W_num++;
+                else if (strncmp(thread_name_verdict, tv->name, strlen(thread_name_verdict)) == 0)
+                    TX_num++;
+                else if (strncmp(thread_name_flow_mgr, tv->name, strlen(thread_name_flow_mgr)) == 0)
+                    FM_num++;
+                else if (strncmp(thread_name_flow_rec, tv->name, strlen(thread_name_flow_rec)) == 0)
+                    FR_num++;
+            }
 
             tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
 
-    SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
-              "threads initialized, engine started.", ppt_num, mgt_num);
+        if (active_runmode < RUNMODE_USER_MAX) {
+            SCLogNotice("Threads created -> RX: %u W: %u TX: %u FM: %u FR: %u",
+                            RX_num, W_num, TX_num, FM_num, FR_num);
+        }
 
     return TM_ECODE_OK;
 }
