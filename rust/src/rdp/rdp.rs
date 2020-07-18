@@ -19,17 +19,13 @@
 
 //! RDP application layer
 
-use crate::core::{
-    self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP,
-};
-use nom;
 use crate::applayer::*;
+use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
+use nom;
 use std;
 use std::mem::transmute;
-use tls_parser::{
-    parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType,
-};
+use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 
@@ -85,8 +81,7 @@ impl Drop for RdpTransaction {
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
@@ -100,25 +95,20 @@ pub extern "C" fn rs_rdp_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
+pub extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_tx_get_progress_complete(
-    _direction: u8,
-) -> std::os::raw::c_int {
+pub extern "C" fn rs_rdp_tx_get_progress_complete(_direction: u8) -> std::os::raw::c_int {
     // a parser can implement a multi-step tx completion by using an arbitrary `n`
     return 1;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_tx_get_progress(
-    _tx: *mut std::os::raw::c_void,
-    _direction: u8,
+    _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // tx complete when `rs_rdp_tx_get_progress(...) == rs_rdp_tx_get_progress_complete(...)`
     // here, all transactions are immediately complete on insert
@@ -226,11 +216,8 @@ impl RdpState {
                         match t123.child {
                             // X.224 connection request
                             T123TpktChild::X224ConnectionRequest(x224) => {
-                                let tx = self.new_tx(
-                                    RdpTransactionItem::X224ConnectionRequest(
-                                        x224,
-                                    ),
-                                );
+                                let tx =
+                                    self.new_tx(RdpTransactionItem::X224ConnectionRequest(x224));
                                 self.transactions.push(tx);
                             }
 
@@ -293,20 +280,17 @@ impl RdpState {
                         available = remainder;
                         for message in &tls.msg {
                             match message {
-                                TlsMessage::Handshake(
-                                    TlsMessageHandshake::Certificate(contents),
-                                ) => {
+                                TlsMessage::Handshake(TlsMessageHandshake::Certificate(
+                                    contents,
+                                )) => {
                                     let mut chain = Vec::new();
                                     for cert in &contents.cert_chain {
                                         chain.push(CertificateBlob {
                                             data: cert.data.to_vec(),
                                         });
                                     }
-                                    let tx = self.new_tx(
-                                        RdpTransactionItem::TlsCertificateChain(
-                                            chain,
-                                        ),
-                                    );
+                                    let tx =
+                                        self.new_tx(RdpTransactionItem::TlsCertificateChain(chain));
                                     self.transactions.push(tx);
                                     self.bypass_parsing = true;
                                 }
@@ -336,11 +320,8 @@ impl RdpState {
                         match t123.child {
                             // X.224 connection confirm
                             T123TpktChild::X224ConnectionConfirm(x224) => {
-                                let tx = self.new_tx(
-                                    RdpTransactionItem::X224ConnectionConfirm(
-                                        x224,
-                                    ),
-                                );
+                                let tx =
+                                    self.new_tx(RdpTransactionItem::X224ConnectionConfirm(x224));
                                 self.transactions.push(tx);
                             }
 
@@ -397,10 +378,7 @@ pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) {
+pub extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -424,11 +402,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 /// probe for T.123 message, whether to client or to server
 #[no_mangle]
 pub extern "C" fn rs_rdp_probe_ts_tc(
-    _flow: *const Flow,
-    _direction: u8,
-    input: *const u8,
-    input_len: u32,
-    _rdir: *mut u8,
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
         // probe bytes for `rdp` protocol pattern
@@ -455,13 +429,8 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_parse_ts(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
@@ -476,13 +445,8 @@ pub extern "C" fn rs_rdp_parse_ts(
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_parse_tc(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
@@ -539,16 +503,10 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_RDP = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name)
-            != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     }
@@ -587,28 +545,27 @@ mod tests {
     fn test_parse_ts_rdp() {
         let buf_1: &[u8] = &[0x03, 0x00, 0x00, 0x25, 0x20, 0xe0, 0x00, 0x00];
         let buf_2: &[u8] = &[
-            0x00, 0x00, 0x00, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x3a, 0x20,
-            0x6d, 0x73, 0x74, 0x73, 0x68, 0x61, 0x73, 0x68, 0x3d, 0x75, 0x73,
-            0x65, 0x72, 0x31, 0x32, 0x33, 0x0d, 0x0a,
+            0x00, 0x00, 0x00, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x3a, 0x20, 0x6d, 0x73, 0x74,
+            0x73, 0x68, 0x61, 0x73, 0x68, 0x3d, 0x75, 0x73, 0x65, 0x72, 0x31, 0x32, 0x33, 0x0d,
+            0x0a,
         ];
         let mut state = RdpState::new();
         assert_eq!(true, state.parse_ts(&buf_1));
         assert_eq!(0, state.transactions.len());
         assert_eq!(true, state.parse_ts(&buf_2));
         assert_eq!(1, state.transactions.len());
-        let item =
-            RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
-                cdt: 0,
-                dst_ref: 0,
-                src_ref: 0,
-                class: 0,
-                options: 0,
-                cookie: Some(RdpCookie {
-                    mstshash: String::from("user123"),
-                }),
-                negotiation_request: None,
-                data: Vec::new(),
-            });
+        let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
+            cdt: 0,
+            dst_ref: 0,
+            src_ref: 0,
+            class: 0,
+            options: 0,
+            cookie: Some(RdpCookie {
+                mstshash: String::from("user123"),
+            }),
+            negotiation_request: None,
+            data: Vec::new(),
+        });
         assert_eq!(item, state.transactions[0].item);
     }
 
@@ -628,8 +585,7 @@ mod tests {
         assert_eq!(0, state.transactions.len());
         assert_eq!(true, state.parse_tc(&buf_2));
         assert_eq!(1, state.transactions.len());
-        let item =
-            RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
+        let item = RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
         assert_eq!(item, state.transactions[0].item);
     }
 
