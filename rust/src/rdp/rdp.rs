@@ -122,8 +122,6 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 #[derive(Debug, PartialEq)]
 pub struct RdpState {
     next_id: u64,
-    to_client: Vec<u8>,
-    to_server: Vec<u8>,
     transactions: Vec<RdpTransaction>,
     tls_parsing: bool,
     bypass_parsing: bool,
@@ -133,8 +131,6 @@ impl RdpState {
     fn new() -> Self {
         Self {
             next_id: 0,
-            to_client: Vec::new(),
-            to_server: Vec::new(),
             transactions: Vec::new(),
             tls_parsing: false,
             bypass_parsing: false,
@@ -174,35 +170,34 @@ impl RdpState {
     }
 
     /// parse buffer captures from client to server
-    fn parse_ts(&mut self, input: &[u8]) -> bool {
+    fn parse_ts(&mut self, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
-            return true;
+            return AppLayerResult::ok();
         }
-        // combine residual buffer with provided buffer
-        self.to_server.extend(input);
-        let temp: Vec<u8> = self.to_server.split_off(0);
-        let mut available = temp.as_slice();
+        let mut available = input;
 
         loop {
             if available.len() == 0 {
-                return true;
+                return AppLayerResult::ok();
             }
             if self.tls_parsing {
                 match parse_tls_plaintext(&available) {
                     Ok((remainder, _tls)) => {
-                        // update awaiting-parsing buffer
+                        // bytes available for futher parsing are what remain
                         available = remainder;
                     }
 
                     Err(nom::Err::Incomplete(_)) => {
-                        // save unparsed residual buffer for next parse
-                        self.to_server.extend(available);
-                        return true;
+                        // nom need not compatible with applayer need, request one more byte
+                        return AppLayerResult::incomplete(
+                            (input.len() - available.len()) as u32,
+                            (available.len() + 1) as u32,
+                        );
                     }
 
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
-                        return false;
+                        return AppLayerResult::err();
                     }
                 }
             } else {
@@ -210,7 +205,7 @@ impl RdpState {
                 match parse_t123_tpkt(&available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // update awaiting-parsing buffer
+                        // bytes available for futher parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
@@ -240,9 +235,11 @@ impl RdpState {
                     }
 
                     Err(nom::Err::Incomplete(_)) => {
-                        // save unparsed residual buffer for next parse
-                        self.to_server.extend(available);
-                        return true;
+                        // nom need not compatible with applayer need, request one more byte
+                        return AppLayerResult::incomplete(
+                            (input.len() - available.len()) as u32,
+                            (available.len() + 1) as u32,
+                        );
                     }
 
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
@@ -250,7 +247,7 @@ impl RdpState {
                             self.tls_parsing = true;
                             return self.parse_ts(available);
                         } else {
-                            return false;
+                            return AppLayerResult::err();
                         }
                     }
                 }
@@ -259,24 +256,21 @@ impl RdpState {
     }
 
     /// parse buffer captures from server to client
-    fn parse_tc(&mut self, input: &[u8]) -> bool {
+    fn parse_tc(&mut self, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
-            return true;
+            return AppLayerResult::ok();
         }
-        // combine residual buffer with provided buffer
-        self.to_client.extend(input);
-        let temp: Vec<u8> = self.to_client.split_off(0);
-        let mut available = temp.as_slice();
+        let mut available = input;
 
         loop {
             if available.len() == 0 {
-                return true;
+                return AppLayerResult::ok();
             }
             if self.tls_parsing {
                 match parse_tls_plaintext(&available) {
                     Ok((remainder, tls)) => {
-                        // update awaiting-parsing buffer
+                        // bytes available for futher parsing are what remain
                         available = remainder;
                         for message in &tls.msg {
                             match message {
@@ -300,13 +294,15 @@ impl RdpState {
                     }
 
                     Err(nom::Err::Incomplete(_)) => {
-                        // save unparsed residual buffer for next parse
-                        self.to_client.extend(available);
-                        return true;
+                        // nom need not compatible with applayer need, request one more byte
+                        return AppLayerResult::incomplete(
+                            (input.len() - available.len()) as u32,
+                            (available.len() + 1) as u32,
+                        );
                     }
 
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
-                        return false;
+                        return AppLayerResult::err();
                     }
                 }
             } else {
@@ -314,7 +310,7 @@ impl RdpState {
                 match parse_t123_tpkt(&available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // update awaiting-parsing buffer
+                        // bytes available for futher parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
@@ -333,7 +329,7 @@ impl RdpState {
                                             .new_tx(RdpTransactionItem::McsConnectResponse(mcs));
                                         self.transactions.push(tx);
                                         self.bypass_parsing = true;
-                                        return true;
+                                        return AppLayerResult::ok();
                                     }
 
                                     // unknown message in X.223, skip
@@ -347,8 +343,11 @@ impl RdpState {
                     }
 
                     Err(nom::Err::Incomplete(_)) => {
-                        self.to_client.extend(available);
-                        return true;
+                        // nom need not compatible with applayer need, request one more byte
+                        return AppLayerResult::incomplete(
+                            (input.len() - available.len()) as u32,
+                            (available.len() + 1) as u32,
+                        );
                     }
 
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
@@ -356,7 +355,7 @@ impl RdpState {
                             self.tls_parsing = true;
                             return self.parse_tc(available);
                         } else {
-                            return false;
+                            return AppLayerResult::err();
                         }
                     }
                 }
@@ -435,12 +434,7 @@ pub extern "C" fn rs_rdp_parse_ts(
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
-    if state.parse_ts(buf) {
-        AppLayerResult::ok()
-    } else {
-        // no need for further parsing
-        AppLayerResult::err()
-    }
+    return state.parse_ts(buf);
 }
 
 #[no_mangle]
@@ -451,12 +445,7 @@ pub extern "C" fn rs_rdp_parse_tc(
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
-    if state.parse_tc(buf) {
-        AppLayerResult::ok()
-    } else {
-        // no need for further parsing
-        AppLayerResult::err()
-    }
+    return state.parse_tc(buf);
 }
 
 export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);
@@ -545,14 +534,16 @@ mod tests {
     fn test_parse_ts_rdp() {
         let buf_1: &[u8] = &[0x03, 0x00, 0x00, 0x25, 0x20, 0xe0, 0x00, 0x00];
         let buf_2: &[u8] = &[
-            0x00, 0x00, 0x00, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x3a, 0x20, 0x6d, 0x73, 0x74,
-            0x73, 0x68, 0x61, 0x73, 0x68, 0x3d, 0x75, 0x73, 0x65, 0x72, 0x31, 0x32, 0x33, 0x0d,
-            0x0a,
+            0x03, 0x00, 0x00, 0x25, 0x20, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43, 0x6f, 0x6f,
+            0x6b, 0x69, 0x65, 0x3a, 0x20, 0x6d, 0x73, 0x74, 0x73, 0x68, 0x61, 0x73, 0x68, 0x3d,
+            0x75, 0x73, 0x65, 0x72, 0x31, 0x32, 0x33, 0x0d, 0x0a,
         ];
         let mut state = RdpState::new();
-        assert_eq!(true, state.parse_ts(&buf_1));
+        // will consume 0, request length + 1
+        assert_eq!(AppLayerResult::incomplete(0, 9), state.parse_ts(&buf_1));
         assert_eq!(0, state.transactions.len());
-        assert_eq!(true, state.parse_ts(&buf_2));
+        // exactly aligns with transaction
+        assert_eq!(AppLayerResult::ok(), state.parse_ts(&buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
             cdt: 0,
@@ -573,17 +564,19 @@ mod tests {
     fn test_parse_ts_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(false, state.parse_ts(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_ts(&buf));
     }
 
     #[test]
     fn test_parse_tc_rdp() {
         let buf_1: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02];
-        let buf_2: &[u8] = &[0xf0, 0x80, 0x7f, 0x66];
+        let buf_2: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02, 0xf0, 0x80, 0x7f, 0x66];
         let mut state = RdpState::new();
-        assert_eq!(true, state.parse_tc(&buf_1));
+        // will consume 0, request length + 1
+        assert_eq!(AppLayerResult::incomplete(0, 6), state.parse_tc(&buf_1));
         assert_eq!(0, state.transactions.len());
-        assert_eq!(true, state.parse_tc(&buf_2));
+        // exactly aligns with transaction
+        assert_eq!(AppLayerResult::ok(), state.parse_tc(&buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
         assert_eq!(item, state.transactions[0].item);
@@ -593,7 +586,7 @@ mod tests {
     fn test_parse_tc_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(false, state.parse_tc(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_tc(&buf));
     }
 
     #[test]
