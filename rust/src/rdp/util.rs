@@ -17,11 +17,11 @@
 
 // Author: Zach Kelly <zach.kelly@lmco.com>
 
+use crate::rdp::error::RdpError;
 use byteorder::ReadBytesExt;
 use memchr::memchr;
 use nom;
 use nom::{IResult, Needed};
-use crate::rdp::error::RdpError;
 use std::io::Cursor;
 use widestring::U16CString;
 
@@ -101,8 +101,8 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32, RdpErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom;
     use crate::rdp::error::RdpError;
+    use nom;
 
     #[test]
     fn test_le_string_abc() {
