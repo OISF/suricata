@@ -386,6 +386,13 @@ impl NFSState {
             ts: 0,
         }
     }
+
+    fn update_ts(&mut self, ts: u64) {
+        if ts != self.ts {
+            self.ts = ts;
+        }
+    }
+
     pub fn free(&mut self) {
         self.files.free();
     }
@@ -1463,12 +1470,8 @@ pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
-    state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_ts(buf) == 0 {
-        1
-    } else {
-        -1
-    }
+    state.update_ts(flow.get_last_time().as_secs());
+    return  state.parse_tcp_data_ts(buf) as i8;
 }
 
 #[no_mangle]
@@ -1495,12 +1498,8 @@ pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
-    state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_tc(buf) == 0 {
-        1
-    } else {
-        -1
-    }
+    state.update_ts(flow.get_last_time().as_secs());
+    return state.parse_tcp_data_tc(buf) as i8;
 }
 
 #[no_mangle]
