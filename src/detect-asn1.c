@@ -40,7 +40,9 @@
 static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectAsn1RegisterTests(void);
+#endif
 static void DetectAsn1Free(DetectEngineCtx *, void *);
 
 /**
@@ -52,9 +54,9 @@ void DetectAsn1Register(void)
     sigmatch_table[DETECT_ASN1].Match = DetectAsn1Match;
     sigmatch_table[DETECT_ASN1].Setup = DetectAsn1Setup;
     sigmatch_table[DETECT_ASN1].Free  = DetectAsn1Free;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ASN1].RegisterTests = DetectAsn1RegisterTests;
-
-    return;
+#endif
 }
 
 /**
@@ -459,18 +461,14 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectAsn1
  */
 static void DetectAsn1RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectAsn1TestReal01", DetectAsn1TestReal01);
     UtRegisterTest("DetectAsn1TestReal02", DetectAsn1TestReal02);
     UtRegisterTest("DetectAsn1TestReal03", DetectAsn1TestReal03);
     UtRegisterTest("DetectAsn1TestReal04", DetectAsn1TestReal04);
-
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

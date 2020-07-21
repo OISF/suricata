@@ -77,8 +77,9 @@ static DetectParseRegex access_parse_regex;
 
 static int g_modbus_buffer_id = 0;
 
-
+#ifdef UNITTESTS
 void DetectModbusRegisterTests(void);
+#endif
 
 /** \internal
  *
@@ -555,8 +556,9 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
     sigmatch_table[DETECT_AL_MODBUS].Setup         = DetectModbusSetup;
     sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX_UNIT_ID, &unit_id_parse_regex);
     DetectSetupParseRegexes(PARSE_REGEX_FUNCTION, &function_parse_regex);
     DetectSetupParseRegexes(PARSE_REGEX_ACCESS, &access_parse_regex);
@@ -974,14 +976,12 @@ static int DetectModbusTest13(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectModbus
  */
 void DetectModbusRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectModbusTest01 - Testing function",
                    DetectModbusTest01);
     UtRegisterTest("DetectModbusTest02 - Testing function and subfunction",
@@ -1008,5 +1008,5 @@ void DetectModbusRegisterTests(void)
                    DetectModbusTest12);
     UtRegisterTest("DetectModbusTest13 - Testing a range of unit_id",
                    DetectModbusTest13);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

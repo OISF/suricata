@@ -36,7 +36,9 @@
 
 static int DetectTransformToMd5Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
+#ifdef UNITTESTS
 static void DetectTransformToMd5RegisterTests(void);
+#endif
 static void TransformToMd5(InspectionBuffer *buffer, void *options);
 #endif
 
@@ -52,8 +54,10 @@ void DetectTransformMd5Register(void)
 #ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_MD5].Transform =
         TransformToMd5;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_MD5].RegisterTests =
         DetectTransformToMd5RegisterTests;
+#endif
 #endif
     sigmatch_table[DETECT_TRANSFORM_MD5].flags |= SIGMATCH_NOOPT;
 }
@@ -118,13 +122,10 @@ static int DetectTransformToMd5Test01(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformToMd5RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformToMd5Test01",
             DetectTransformToMd5Test01);
-#endif
 }
+#endif
 #endif

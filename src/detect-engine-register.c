@@ -602,11 +602,11 @@ void SigTableSetup(void)
     DetectBufferTypeCloseRegistration();
 }
 
+#ifdef UNITTESTS
 void SigTableRegisterTests(void)
 {
     /* register the tests */
-    int i = 0;
-    for (i = 0; i < DETECT_TBLSIZE; i++) {
+    for (int i = 0; i < DETECT_TBLSIZE; i++) {
         g_ut_modules++;
         if (sigmatch_table[i].RegisterTests != NULL) {
             sigmatch_table[i].RegisterTests();
@@ -621,3 +621,4 @@ void SigTableRegisterTests(void)
         }
     }
 }
+#endif

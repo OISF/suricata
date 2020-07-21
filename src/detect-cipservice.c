@@ -41,7 +41,9 @@
  */
 static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectCipServiceFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectCipServiceRegisterTests(void);
+#endif
 static int g_cip_buffer_id = 0;
 
 /**
@@ -56,9 +58,10 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("cip",
             ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectCIP);
@@ -272,20 +275,17 @@ static int DetectCipServiceSignatureTest01 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectCipService
  */
 static void DetectCipServiceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectCipServiceParseTest01",
             DetectCipServiceParseTest01);
     UtRegisterTest("DetectCipServiceSignatureTest01",
             DetectCipServiceSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */
 
 /*
  * ENIP COMMAND CODE
@@ -296,7 +296,9 @@ static void DetectCipServiceRegisterTests(void)
  */
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectEnipCommandFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectEnipCommandRegisterTests(void);
+#endif
 static int g_enip_buffer_id = 0;
 
 /**
@@ -311,9 +313,10 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("enip",
             ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectENIP);
@@ -448,17 +451,14 @@ static int DetectEnipCommandSignatureTest01 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectEnipCommand
  */
 static void DetectEnipCommandRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectEnipCommandParseTest01",
             DetectEnipCommandParseTest01);
     UtRegisterTest("DetectEnipCommandSignatureTest01",
             DetectEnipCommandSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

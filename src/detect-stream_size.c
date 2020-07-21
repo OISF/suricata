@@ -48,7 +48,9 @@ static int DetectStreamSizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectStreamSizeFree(DetectEngineCtx *de_ctx, void *);
-void DetectStreamSizeRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectStreamSizeRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for stream_size: keyword
@@ -62,8 +64,9 @@ void DetectStreamSizeRegister(void)
     sigmatch_table[DETECT_STREAM_SIZE].Match = DetectStreamSizeMatch;
     sigmatch_table[DETECT_STREAM_SIZE].Setup = DetectStreamSizeSetup;
     sigmatch_table[DETECT_STREAM_SIZE].Free = DetectStreamSizeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_STREAM_SIZE].RegisterTests = DetectStreamSizeRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -489,18 +492,15 @@ static int DetectStreamSizeParseTest04 (void)
     SCFree(p);
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectStreamSize
  */
 void DetectStreamSizeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01);
     UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02);
     UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03);
     UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

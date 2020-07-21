@@ -56,7 +56,9 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIPRepSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIPRepFree (DetectEngineCtx *, void *);
-void IPRepRegisterTests(void);
+#ifdef UNITTESTS
+static void IPRepRegisterTests(void);
+#endif
 
 void DetectIPRepRegister (void)
 {
@@ -66,7 +68,9 @@ void DetectIPRepRegister (void)
     sigmatch_table[DETECT_IPREP].Match = DetectIPRepMatch;
     sigmatch_table[DETECT_IPREP].Setup = DetectIPRepSetup;
     sigmatch_table[DETECT_IPREP].Free  = DetectIPRepFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_IPREP].RegisterTests = IPRepRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -997,14 +1001,12 @@ end:
     HostShutdown();
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for IPRep
  */
 void IPRepRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectIPRepTest01", DetectIPRepTest01);
     UtRegisterTest("DetectIPRepTest02", DetectIPRepTest02);
     UtRegisterTest("DetectIPRepTest03", DetectIPRepTest03);
@@ -1014,5 +1016,5 @@ void IPRepRegisterTests(void)
     UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07);
     UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08);
     UtRegisterTest("DetectIPRepTest09", DetectIPRepTest09);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

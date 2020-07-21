@@ -50,7 +50,9 @@ static DetectParseRegex parse_regex;
 static int DetectRpcMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectRpcSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectRpcRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectRpcRegisterTests(void);
+#endif
 void DetectRpcFree(DetectEngineCtx *, void *);
 
 /**
@@ -64,8 +66,9 @@ void DetectRpcRegister (void)
     sigmatch_table[DETECT_RPC].Match = DetectRpcMatch;
     sigmatch_table[DETECT_RPC].Setup = DetectRpcSetup;
     sigmatch_table[DETECT_RPC].Free  = DetectRpcFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_RPC].RegisterTests = DetectRpcRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -569,19 +572,17 @@ cleanup:
 end:
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectRpc
  */
-void DetectRpcRegisterTests(void)
+static void DetectRpcRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectRpcTestParse01", DetectRpcTestParse01);
     UtRegisterTest("DetectRpcTestParse02", DetectRpcTestParse02);
     UtRegisterTest("DetectRpcTestParse03", DetectRpcTestParse03);
     UtRegisterTest("DetectRpcTestParse04", DetectRpcTestParse04);
     UtRegisterTest("DetectRpcTestParse05", DetectRpcTestParse05);
     UtRegisterTest("DetectRpcTestSig01", DetectRpcTestSig01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

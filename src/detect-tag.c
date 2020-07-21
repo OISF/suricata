@@ -59,7 +59,9 @@ static DetectParseRegex parse_regex;
 static int DetectTagMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTagSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectTagRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectTagRegisterTests(void);
+#endif
 void DetectTagDataFree(DetectEngineCtx *, void *);
 
 /**
@@ -71,7 +73,9 @@ void DetectTagRegister(void)
     sigmatch_table[DETECT_TAG].Match = DetectTagMatch;
     sigmatch_table[DETECT_TAG].Setup = DetectTagSetup;
     sigmatch_table[DETECT_TAG].Free  = DetectTagDataFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
+#endif
     sigmatch_table[DETECT_TAG].flags |= SIGMATCH_IPONLY_COMPAT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -441,14 +445,11 @@ static int DetectTagTestParse05(void)
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectTag
  */
 void DetectTagRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTagTestParse01", DetectTagTestParse01);
     UtRegisterTest("DetectTagTestParse02", DetectTagTestParse02);
     UtRegisterTest("DetectTagTestParse03", DetectTagTestParse03);
@@ -456,5 +457,5 @@ void DetectTagRegisterTests(void)
     UtRegisterTest("DetectTagTestParse05", DetectTagTestParse05);
 
     DetectEngineTagRegisterTests();
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

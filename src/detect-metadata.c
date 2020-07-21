@@ -35,7 +35,9 @@
 #include "util-unittest.h"
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectMetadataRegisterTests(void);
+#endif
 
 void DetectMetadataRegister (void)
 {
@@ -45,7 +47,9 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
+#endif
 }
 
 /**
@@ -209,16 +213,12 @@ static int DetectMetadataParseTest02(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectCipService
  */
 static void DetectMetadataRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectMetadataParseTest01", DetectMetadataParseTest01);
     UtRegisterTest("DetectMetadataParseTest02", DetectMetadataParseTest02);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

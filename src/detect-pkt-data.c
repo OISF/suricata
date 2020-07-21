@@ -44,7 +44,9 @@
 #include "util-unittest-helper.h"
 
 static int DetectPktDataSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectPktDataTestRegister(void);
+#endif
 
 /**
  * \brief Registration function for keyword: file_data
@@ -53,7 +55,9 @@ void DetectPktDataRegister(void)
 {
     sigmatch_table[DETECT_PKT_DATA].name = "pkt_data";
     sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktDataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;
+#endif
     sigmatch_table[DETECT_PKT_DATA].flags = SIGMATCH_NOOPT;
 }
 
@@ -123,15 +127,11 @@ static int DetectPktDataTest02(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-#endif
 
 static void DetectPktDataTestRegister(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
-
     UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01);
     UtRegisterTest("DetectPktDataTest02", DetectPktDataTest02);
-#endif
 }
-
+#endif

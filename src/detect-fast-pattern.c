@@ -43,7 +43,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectFastPatternRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectFastPatternRegisterTests(void);
+#endif
 
 /* holds the list of sm match lists that need to be searched for a keyword
  * that has fp support */
@@ -170,8 +172,9 @@ void DetectFastPatternRegister(void)
     sigmatch_table[DETECT_FAST_PATTERN].Match = NULL;
     sigmatch_table[DETECT_FAST_PATTERN].Setup = DetectFastPatternSetup;
     sigmatch_table[DETECT_FAST_PATTERN].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FAST_PATTERN].RegisterTests = DetectFastPatternRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -18864,11 +18867,8 @@ static int DetectFastPatternTest671(void)
     PASS;
 }
 
-#endif
-
-void DetectFastPatternRegisterTests(void)
+static void DetectFastPatternRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_http_method_buffer_id = DetectBufferTypeGetByName("http_method");
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
@@ -19584,7 +19584,5 @@ void DetectFastPatternRegisterTests(void)
      * - if 2 duplicate patterns, with no chop set get unique ids.
      */
     UtRegisterTest("DetectFastPatternTest671", DetectFastPatternTest671);
-#endif
-
-    return;
 }
+#endif

@@ -53,7 +53,9 @@ static DetectParseRegex parse_regex;
 static int DetectDetectionFilterMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectDetectionFilterRegisterTests(void);
+#endif
 static void DetectDetectionFilterFree(DetectEngineCtx *, void *);
 
 /**
@@ -67,7 +69,9 @@ void DetectDetectionFilterRegister (void)
     sigmatch_table[DETECT_DETECTION_FILTER].Match = DetectDetectionFilterMatch;
     sigmatch_table[DETECT_DETECTION_FILTER].Setup = DetectDetectionFilterSetup;
     sigmatch_table[DETECT_DETECTION_FILTER].Free = DetectDetectionFilterFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DETECTION_FILTER].RegisterTests = DetectDetectionFilterRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -625,11 +629,9 @@ end:
     HostShutdown();
     return result;
 }
-#endif /* UNITTESTS */
 
 static void DetectDetectionFilterRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDetectionFilterTestParse01",
                    DetectDetectionFilterTestParse01);
     UtRegisterTest("DetectDetectionFilterTestParse02",
@@ -648,6 +650,5 @@ static void DetectDetectionFilterRegisterTests(void)
                    DetectDetectionFilterTestSig2);
     UtRegisterTest("DetectDetectionFilterTestSig3",
                    DetectDetectionFilterTestSig3);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

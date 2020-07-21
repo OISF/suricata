@@ -65,7 +65,9 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
 static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const char *optstr, char **offset);
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytejumpFree(DetectEngineCtx*, void *ptr);
+#ifdef UNITTESTS
 static void DetectBytejumpRegisterTests(void);
+#endif
 
 void DetectBytejumpRegister (void)
 {
@@ -75,8 +77,9 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Match = DetectBytejumpMatch;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -1339,15 +1342,11 @@ static int DetectByteJumpTestPacket08 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
-
 /**
  * \brief this function registers unit tests for DetectBytejump
  */
 static void DetectBytejumpRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
@@ -1374,6 +1373,5 @@ static void DetectBytejumpRegisterTests(void)
     UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06);
     UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07);
     UtRegisterTest("DetectByteJumpTestPacket08", DetectByteJumpTestPacket08);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

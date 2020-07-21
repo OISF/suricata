@@ -81,7 +81,9 @@ void DetectFilemagicRegister(void)
 static int DetectFilemagicMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFilemagicRegisterTests(void);
+#endif
 static void DetectFilemagicFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 
@@ -110,7 +112,9 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].FileMatch = DetectFilemagicMatch;
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].Free  = DetectFilemagicFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILEMAGIC].RegisterTests = DetectFilemagicRegisterTests;
+#endif
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILEMAGIC].alternative = DETECT_FILE_MAGIC;
 
@@ -632,19 +636,15 @@ static int DetectFilemagicTestParse03 (void)
     return 0;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFilemagic
  */
 void DetectFilemagicRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01);
     UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02);
     UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */
 #endif /* HAVE_MAGIC */
 

@@ -49,7 +49,9 @@ static DetectParseRegex parse_regex;
 static int DetectWindowMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectWindowSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectWindowRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectWindowRegisterTests(void);
+#endif
 void DetectWindowFree(DetectEngineCtx *, void *);
 
 /**
@@ -64,8 +66,9 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].Match = DetectWindowMatch;
     sigmatch_table[DETECT_WINDOW].Setup = DetectWindowSetup;
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_WINDOW].RegisterTests = DetectWindowRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -327,18 +330,15 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectWindow
  */
 void DetectWindowRegisterTests(void)
 {
-    #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectWindowTestParse01", DetectWindowTestParse01);
     UtRegisterTest("DetectWindowTestParse02", DetectWindowTestParse02);
     UtRegisterTest("DetectWindowTestParse03", DetectWindowTestParse03);
     UtRegisterTest("DetectWindowTestParse04", DetectWindowTestParse04);
     UtRegisterTest("DetectWindowTestPacket01", DetectWindowTestPacket01);
-    #endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

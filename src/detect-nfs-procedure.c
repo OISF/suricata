@@ -71,7 +71,9 @@ typedef struct DetectNfsProcedureData_ {
 static DetectNfsProcedureData *DetectNfsProcedureParse (const char *);
 static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectNfsProcedureRegisterTests(void);
+#endif
 static int g_nfs_request_buffer_id = 0;
 
 static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
@@ -96,8 +98,9 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Free = DetectNfsProcedureFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
-
+#endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
@@ -608,14 +611,11 @@ static int ValidityTestParse15 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief Register unit tests for nfs_procedure.
  */
 void DetectNfsProcedureRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("ValidityTestParse01", ValidityTestParse01);
     UtRegisterTest("ValidityTestParse02", ValidityTestParse02);
     UtRegisterTest("ValidityTestParse03", ValidityTestParse03);
@@ -631,5 +631,5 @@ void DetectNfsProcedureRegisterTests(void)
     UtRegisterTest("ValidityTestParse13", ValidityTestParse13);
     UtRegisterTest("ValidityTestParse14", ValidityTestParse14);
     UtRegisterTest("ValidityTestParse15", ValidityTestParse15);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

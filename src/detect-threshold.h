@@ -86,10 +86,4 @@ typedef struct DetectThresholdEntry_ {
 
 void DetectThresholdRegister(void);
 
-/**
- * This function registers unit tests for Threshold
- */
-
-void ThresholdRegisterTests(void);
-
 #endif /*__DETECT_THRESHOLD_H__ */

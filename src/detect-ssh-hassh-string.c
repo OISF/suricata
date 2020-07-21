@@ -126,7 +126,6 @@ void DetectSshHasshStringRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].alias = KEYWORD_ALIAS;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].Setup = DetectSshHasshStringSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;

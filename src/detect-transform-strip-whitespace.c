@@ -35,8 +35,9 @@
 #include "util-print.h"
 
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTransformStripWhitespaceRegisterTests(void);
-
+#endif
 static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
 static bool TransformStripWhitespaceValidate(const uint8_t *content, uint16_t content_len, void *options);
 
@@ -53,9 +54,10 @@ void DetectTransformStripWhitespaceRegister(void)
         TransformStripWhitespaceValidate;
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Setup =
         DetectTransformStripWhitespaceSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].RegisterTests =
         DetectTransformStripWhitespaceRegisterTests;
-
+#endif
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].flags |= SIGMATCH_NOOPT;
 }
 
@@ -191,16 +193,13 @@ static int DetectTransformStripWhitespaceTest03(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformStripWhitespaceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformStripWhitespaceTest01",
             DetectTransformStripWhitespaceTest01);
     UtRegisterTest("DetectTransformStripWhitespaceTest02",
             DetectTransformStripWhitespaceTest02);
     UtRegisterTest("DetectTransformStripWhitespaceTest03",
             DetectTransformStripWhitespaceTest03);
-#endif
 }
+#endif

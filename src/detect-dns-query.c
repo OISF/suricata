@@ -62,7 +62,9 @@
 #include "rust.h"
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectDnsQueryRegisterTests(void);
+#endif
 static int g_dns_query_buffer_id = 0;
 
 struct DnsQueryGetDataArgs {
@@ -210,7 +212,9 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
     sigmatch_table[DETECT_AL_DNS_QUERY].url = "/rules/dns-keywords.html#dns-query";
     sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
@@ -1248,11 +1252,8 @@ static int DetectDnsQueryIsdataatParseTest(void)
     PASS;
 }
 
-#endif
-
 static void DetectDnsQueryRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01);
     UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02);
     UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03);
@@ -1266,5 +1267,5 @@ static void DetectDnsQueryRegisterTests(void)
 
     UtRegisterTest("DetectDnsQueryIsdataatParseTest",
             DetectDnsQueryIsdataatParseTest);
-#endif
 }
+#endif

@@ -36,7 +36,9 @@
 
 static int DetectTransformToSha1Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
+#ifdef UNITTESTS
 static void DetectTransformToSha1RegisterTests(void);
+#endif
 static void TransformToSha1(InspectionBuffer *buffer, void *options);
 #endif
 
@@ -52,8 +54,10 @@ void DetectTransformSha1Register(void)
 #ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_SHA1].Transform =
         TransformToSha1;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests =
         DetectTransformToSha1RegisterTests;
+#endif
 #endif
     sigmatch_table[DETECT_TRANSFORM_SHA1].flags |= SIGMATCH_NOOPT;
 }
@@ -118,13 +122,10 @@ static int DetectTransformToSha1Test01(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformToSha1RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformToSha1Test01",
             DetectTransformToSha1Test01);
-#endif
 }
+#endif
 #endif

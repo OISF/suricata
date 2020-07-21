@@ -108,7 +108,9 @@ static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectPcreData 
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPcreFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectPcreRegisterTests(void);
+#endif
 
 void DetectPcreRegister (void)
 {
@@ -118,7 +120,9 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].Match = NULL;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
+#endif
     sigmatch_table[DETECT_PCRE].flags = (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
     intmax_t val = 0;
@@ -3560,14 +3564,11 @@ static int DetectPcreParseCaptureTest(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectPcre
  */
 static void DetectPcreRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
@@ -3649,6 +3650,5 @@ static void DetectPcreRegisterTests(void)
     UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost);
     UtRegisterTest("DetectPcreParseCaptureTest", DetectPcreParseCaptureTest);
 
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

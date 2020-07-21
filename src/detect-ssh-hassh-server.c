@@ -193,7 +193,6 @@ void DetectSshHasshServerRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].alias = KEYWORD_ALIAS;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].Setup = DetectSshHasshServerSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;

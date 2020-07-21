@@ -33,7 +33,9 @@
 #include "util-unittest.h"
 
 static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectSidRegisterTests(void);
+#endif
 
 void DetectSidRegister (void)
 {
@@ -42,8 +44,9 @@ void DetectSidRegister (void)
     sigmatch_table[DETECT_SID].url = "/rules/meta.html#sid-signature-id";
     sigmatch_table[DETECT_SID].Match = NULL;
     sigmatch_table[DETECT_SID].Setup = DetectSidSetup;
-    sigmatch_table[DETECT_SID].Free = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_SID].RegisterTests = DetectSidRegisterTests;
+#endif
 }
 
 static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)
@@ -139,16 +142,13 @@ end:
     return result;
 }
 
-#endif
-
 /**
  * \brief Register DetectSid unit tests.
  */
 static void DetectSidRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("SidTestParse01", SidTestParse01);
     UtRegisterTest("SidTestParse02", SidTestParse02);
     UtRegisterTest("SidTestParse03", SidTestParse03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

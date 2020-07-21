@@ -36,7 +36,9 @@
 
 static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
+#ifdef UNITTESTS
 static void DetectTransformToSha256RegisterTests(void);
+#endif
 static void TransformToSha256(InspectionBuffer *buffer, void *options);
 #endif
 
@@ -52,8 +54,10 @@ void DetectTransformSha256Register(void)
 #ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_SHA256].Transform =
         TransformToSha256;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_SHA256].RegisterTests =
         DetectTransformToSha256RegisterTests;
+#endif
 #endif
     sigmatch_table[DETECT_TRANSFORM_SHA256].flags |= SIGMATCH_NOOPT;
 }
@@ -118,13 +122,10 @@ static int DetectTransformToSha256Test01(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformToSha256RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformToSha256Test01",
             DetectTransformToSha256Test01);
-#endif
 }
+#endif
 #endif

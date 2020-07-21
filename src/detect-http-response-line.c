@@ -61,7 +61,9 @@
 #include "detect-http-response-line.h"
 
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectHttpResponseLineRegisterTests(void);
+#endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
@@ -78,8 +80,9 @@ void DetectHttpResponseLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].desc = "content modifier to match only on the HTTP response line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = "/rules/http-keywords.html#http-response-line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
-
+#endif
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_response_line",
@@ -256,17 +259,12 @@ static int DetectHttpResponseLineTest02(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 void DetectHttpResponseLineRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectHttpResponseLineTest01", DetectHttpResponseLineTest01);
     UtRegisterTest("DetectHttpResponseLineTest02", DetectHttpResponseLineTest02);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */
 /**
  * @}
  */

@@ -42,7 +42,9 @@ static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx,
                                    void *txv, const Signature *s,
                                    const SigMatchCtx *ctx);
 static int DetectRfbSecresultSetup (DetectEngineCtx *, Signature *, const char *);
-void RfbSecresultRegisterTests(void);
+#ifdef UNITTESTS
+static void RfbSecresultRegisterTests(void);
+#endif
 void DetectRfbSecresultFree(DetectEngineCtx *, void *);
 
 static int DetectEngineInspectRfbSecresultGeneric(ThreadVars *tv,
@@ -66,8 +68,9 @@ void DetectRfbSecresultRegister (void)
     sigmatch_table[DETECT_AL_RFB_SECRESULT].AppLayerTxMatch = DetectRfbSecresultMatch;
     sigmatch_table[DETECT_AL_RFB_SECRESULT].Setup = DetectRfbSecresultSetup;
     sigmatch_table[DETECT_AL_RFB_SECRESULT].Free  = DetectRfbSecresultFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_RFB_SECRESULT].RegisterTests = RfbSecresultRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("rfb.secresult",
@@ -300,15 +303,12 @@ static int RfbSecresultTestParse02 (void)
     return 1;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for RfbSecresult
  */
 void RfbSecresultRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("RfbSecresultTestParse01", RfbSecresultTestParse01);
     UtRegisterTest("RfbSecresultTestParse02", RfbSecresultTestParse02);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

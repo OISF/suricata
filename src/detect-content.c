@@ -50,7 +50,9 @@
 #include "util-profiling.h"
 #include "detect-dsize.h"
 
+#ifdef UNITTESTS
 static void DetectContentRegisterTests(void);
+#endif
 
 void DetectContentRegister (void)
 {
@@ -60,7 +62,9 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
+#endif
     sigmatch_table[DETECT_CONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
@@ -2992,14 +2996,11 @@ static int DetectLongContentTest3(void)
     return !DetectLongContentTestCommon(sig, 1);
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectContent
  */
 static void DetectContentRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
@@ -3113,5 +3114,5 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectLongContentTest1", DetectLongContentTest1);
     UtRegisterTest("DetectLongContentTest2", DetectLongContentTest2);
     UtRegisterTest("DetectLongContentTest3", DetectLongContentTest3);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

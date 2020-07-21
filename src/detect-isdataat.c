@@ -54,7 +54,9 @@
 static DetectParseRegex parse_regex;
 
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectIsdataatRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectIsdataatRegisterTests(void);
+#endif
 void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
@@ -71,8 +73,9 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
     sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
-
+#endif
     sigmatch_table[DETECT_ENDS_WITH].name = "endswith";
     sigmatch_table[DETECT_ENDS_WITH].desc = "make sure the previous content matches exactly at the end of the buffer";
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
@@ -667,14 +670,12 @@ static int DetectIsdataatTestPacket03 (void)
 end:
     return result;
 }
-#endif
 
 /**
  * \brief this function registers unit tests for DetectIsdataat
  */
 void DetectIsdataatRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
     UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01);
@@ -687,5 +688,5 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
     UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03);
-#endif
 }
+#endif

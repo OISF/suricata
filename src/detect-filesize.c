@@ -53,7 +53,9 @@ static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);
 static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilesizeFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectFilesizeRegisterTests (void);
+#endif
 static int g_file_match_list_id = 0;
 
 /**
@@ -68,8 +70,9 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].FileMatch = DetectFilesizeMatch;
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
@@ -481,19 +484,16 @@ end:
     return res;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFilesize
  */
 void DetectFilesizeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFilesizeParseTest01", DetectFilesizeParseTest01);
     UtRegisterTest("DetectFilesizeParseTest02", DetectFilesizeParseTest02);
     UtRegisterTest("DetectFilesizeParseTest03", DetectFilesizeParseTest03);
     UtRegisterTest("DetectFilesizeParseTest04", DetectFilesizeParseTest04);
     UtRegisterTest("DetectFilesizeParseTest05", DetectFilesizeParseTest05);
     UtRegisterTest("DetectFilesizeSetpTest01", DetectFilesizeSetpTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

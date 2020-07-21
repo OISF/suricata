@@ -55,7 +55,9 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
 static int FlowbitOrAddData(DetectEngineCtx *, DetectFlowbitsData *, char *);
 void DetectFlowbitFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 void FlowBitsRegisterTests(void);
+#endif
 
 void DetectFlowbitsRegister (void)
 {
@@ -65,7 +67,9 @@ void DetectFlowbitsRegister (void)
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FLOWBITS].RegisterTests = FlowBitsRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -1395,14 +1399,12 @@ static int FlowBitsTestSig11(void)
     SCFree(p);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for FlowBits
  */
 void FlowBitsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01);
     UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01);
     UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02);
@@ -1415,5 +1417,5 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig09", FlowBitsTestSig09);
     UtRegisterTest("FlowBitsTestSig10", FlowBitsTestSig10);
     UtRegisterTest("FlowBitsTestSig11", FlowBitsTestSig11);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

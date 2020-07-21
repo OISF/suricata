@@ -34,7 +34,9 @@ static DetectParseRegex decode_pcre;
 
 static int DetectBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBase64DecodeFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectBase64DecodeRegisterTests(void);
+#endif
 
 void DetectBase64DecodeRegister(void)
 {
@@ -45,9 +47,10 @@ void DetectBase64DecodeRegister(void)
         "/rules/base64-keywords.html#base64-decode";
     sigmatch_table[DETECT_BASE64_DECODE].Setup = DetectBase64DecodeSetup;
     sigmatch_table[DETECT_BASE64_DECODE].Free = DetectBase64DecodeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BASE64_DECODE].RegisterTests =
         DetectBase64DecodeRegisterTests;
-
+#endif
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(decode_pattern, &decode_pcre);
@@ -657,11 +660,8 @@ end:
     return retval;
 }
 
-#endif
-
 static void DetectBase64DecodeRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 
     UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
@@ -676,5 +676,5 @@ static void DetectBase64DecodeRegisterTests(void)
                    DetectBase64DecodeTestDecodeLargeOffset);
     UtRegisterTest("DetectBase64DecodeTestDecodeRelative",
                    DetectBase64DecodeTestDecodeRelative);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

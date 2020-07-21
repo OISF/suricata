@@ -72,7 +72,9 @@ static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(DetectEngineCtx *, void *ptr);
+#ifdef UNITTESTS
 static void DetectBytetestRegisterTests(void);
+#endif
 
 void DetectBytetestRegister (void)
 {
@@ -82,8 +84,9 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].Match = DetectBytetestMatch;
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -1668,15 +1671,11 @@ static int DetectByteTestTestPacket06(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
-
 /**
  * \brief this function registers unit tests for DetectBytetest
  */
 static void DetectBytetestRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
@@ -1711,6 +1710,5 @@ static void DetectBytetestRegisterTests(void)
     UtRegisterTest("DetectByteTestTestPacket04", DetectByteTestTestPacket04);
     UtRegisterTest("DetectByteTestTestPacket05", DetectByteTestTestPacket05);
     UtRegisterTest("DetectByteTestTestPacket06", DetectByteTestTestPacket06);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

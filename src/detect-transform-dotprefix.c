@@ -37,8 +37,9 @@
 #include "util-memcpy.h"
 
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTransformDotPrefixRegisterTests(void);
-
+#endif
 static void TransformDotPrefix(InspectionBuffer *buffer, void *options);
 
 void DetectTransformDotPrefixRegister(void)
@@ -50,9 +51,10 @@ void DetectTransformDotPrefixRegister(void)
         "/rules/transforms.html#dotprefix";
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Transform = TransformDotPrefix;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Setup = DetectTransformDotPrefixSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].RegisterTests =
         DetectTransformDotPrefixRegisterTests;
-
+#endif
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].flags |= SIGMATCH_NOOPT;
 }
 
@@ -173,13 +175,11 @@ static int DetectTransformDotPrefixTest03(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-#endif
 
 static void DetectTransformDotPrefixRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformDotPrefixTest01", DetectTransformDotPrefixTest01);
     UtRegisterTest("DetectTransformDotPrefixTest02", DetectTransformDotPrefixTest02);
     UtRegisterTest("DetectTransformDotPrefixTest03", DetectTransformDotPrefixTest03);
-#endif
 }
+#endif

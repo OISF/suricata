@@ -1198,8 +1198,9 @@ typedef struct SigTableElmt_ {
     int (*SetupPrefilter)(DetectEngineCtx *de_ctx, struct SigGroupHead_ *sgh);
 
     void (*Free)(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
     void (*RegisterTests)(void);
-
+#endif
     uint16_t flags;
     /* coccinelle: SigTableElmt:flags:SIGMATCH_ */
 

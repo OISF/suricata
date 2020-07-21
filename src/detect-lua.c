@@ -80,7 +80,6 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
     sigmatch_table[DETECT_LUA].Free  = NULL;
-    sigmatch_table[DETECT_LUA].RegisterTests = NULL;
     sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
 
 	SCLogDebug("registering lua rule option");
@@ -98,7 +97,9 @@ static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
                                 void *state, void *txv, const Signature *s,
                                 const SigMatchCtx *ctx);
 static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectLuaRegisterTests(void);
+#endif
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
@@ -121,8 +122,9 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
-
+#endif
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
     DetectAppLayerInspectEngineRegister("smtp_generic",
@@ -2051,18 +2053,14 @@ end:
     return result;
 }
 
-#endif
-
 void DetectLuaRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("LuaMatchTest01", LuaMatchTest01);
     UtRegisterTest("LuaMatchTest02", LuaMatchTest02);
     UtRegisterTest("LuaMatchTest03", LuaMatchTest03);
     UtRegisterTest("LuaMatchTest04", LuaMatchTest04);
     UtRegisterTest("LuaMatchTest05", LuaMatchTest05);
     UtRegisterTest("LuaMatchTest06", LuaMatchTest06);
-#endif
 }
-
+#endif
 #endif /* HAVE_LUAJIT */

@@ -45,7 +45,9 @@ static DetectParseRegex parse_regex;
 static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectIcmpIdRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectIcmpIdRegisterTests(void);
+#endif
 void DetectIcmpIdFree(DetectEngineCtx *, void *);
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
@@ -61,8 +63,9 @@ void DetectIcmpIdRegister (void)
     sigmatch_table[DETECT_ICMP_ID].Match = DetectIcmpIdMatch;
     sigmatch_table[DETECT_ICMP_ID].Setup = DetectIcmpIdSetup;
     sigmatch_table[DETECT_ICMP_ID].Free = DetectIcmpIdFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ICMP_ID].RegisterTests = DetectIcmpIdRegisterTests;
-
+#endif
     sigmatch_table[DETECT_ICMP_ID].SupportsPrefilter = PrefilterIcmpIdIsPrefilterable;
     sigmatch_table[DETECT_ICMP_ID].SetupPrefilter = PrefilterSetupIcmpId;
 
@@ -533,11 +536,9 @@ end:
     SCFree(p);
     return result;
 }
-#endif /* UNITTESTS */
 
-void DetectIcmpIdRegisterTests (void)
+static void DetectIcmpIdRegisterTests (void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01);
     UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02);
     UtRegisterTest("DetectIcmpIdParseTest03", DetectIcmpIdParseTest03);
@@ -545,6 +546,5 @@ void DetectIcmpIdRegisterTests (void)
     UtRegisterTest("DetectIcmpIdParseTest05", DetectIcmpIdParseTest05);
     UtRegisterTest("DetectIcmpIdMatchTest01", DetectIcmpIdMatchTest01);
     UtRegisterTest("DetectIcmpIdMatchTest02", DetectIcmpIdMatchTest02);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

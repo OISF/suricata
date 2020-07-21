@@ -53,7 +53,6 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_DEPTH].Match = NULL;
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
     sigmatch_table[DETECT_DEPTH].Free  = NULL;
-    sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
 
     sigmatch_table[DETECT_STARTS_WITH].name = "startswith";
     sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";

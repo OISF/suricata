@@ -66,7 +66,9 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectSshVersionRegisterTests(void);
+#endif
 static void DetectSshVersionFree(DetectEngineCtx *, void *);
 static int g_ssh_banner_list_id = 0;
 
@@ -81,7 +83,9 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerTxMatch = DetectSshVersionMatch;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_INFO_DEPRECATED;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].alternative = DETECT_AL_SSH_PROTOCOL;
 
@@ -566,14 +570,11 @@ static int DetectSshVersionTestDetect03(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectSshVersion
  */
-void DetectSshVersionRegisterTests(void)
+static void DetectSshVersionRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01);
     UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02);
     UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03);
@@ -583,6 +584,5 @@ void DetectSshVersionRegisterTests(void)
                    DetectSshVersionTestDetect02);
     UtRegisterTest("DetectSshVersionTestDetect03",
                    DetectSshVersionTestDetect03);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

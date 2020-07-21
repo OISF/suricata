@@ -52,7 +52,9 @@ static int DetectFtpbounceALMatch(DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 
 static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFtpbounceRegisterTests(void);
+#endif
 static int g_ftp_request_list_id = 0;
 
 static int InspectFtpRequest(ThreadVars *tv,
@@ -71,7 +73,9 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].desc = "detect FTP bounce attacks";
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerTxMatch = DetectFtpbounceALMatch;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FTPBOUNCE].RegisterTests = DetectFtpbounceRegisterTests;
+#endif
     sigmatch_table[DETECT_FTPBOUNCE].url = "/rules/ftp-keywords.html#ftpbounce";
     sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
 
@@ -558,18 +562,15 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFtpbounce
  */
-void DetectFtpbounceRegisterTests(void)
+static void DetectFtpbounceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFtpbounceTestSetup01", DetectFtpbounceTestSetup01);
     UtRegisterTest("DetectFtpbounceTestALMatch02",
                    DetectFtpbounceTestALMatch02);
     UtRegisterTest("DetectFtpbounceTestALMatch03",
                    DetectFtpbounceTestALMatch03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

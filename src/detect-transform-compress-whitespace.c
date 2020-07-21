@@ -35,8 +35,9 @@
 #include "util-print.h"
 
 static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTransformCompressWhitespaceRegisterTests(void);
-
+#endif
 static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options);
 
 void DetectTransformCompressWhitespaceRegister(void)
@@ -51,9 +52,10 @@ void DetectTransformCompressWhitespaceRegister(void)
         TransformCompressWhitespace;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Setup =
         DetectTransformCompressWhitespaceSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].RegisterTests =
         DetectTransformCompressWhitespaceRegisterTests;
-
+#endif
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].flags |= SIGMATCH_NOOPT;
 }
 
@@ -158,14 +160,11 @@ static int DetectTransformCompressWhitespaceTest02(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformCompressWhitespaceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformCompressWhitespaceTest01",
             DetectTransformCompressWhitespaceTest01);
     UtRegisterTest("DetectTransformCompressWhitespaceTest02",
             DetectTransformCompressWhitespaceTest02);
-#endif
 }
+#endif

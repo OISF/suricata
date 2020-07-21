@@ -49,7 +49,9 @@
 #include "util-unittest-helper.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectDistanceRegisterTests(void);
+#endif
 
 void DetectDistanceRegister(void)
 {
@@ -59,7 +61,9 @@ void DetectDistanceRegister(void)
     sigmatch_table[DETECT_DISTANCE].Match = NULL;
     sigmatch_table[DETECT_DISTANCE].Setup = DetectDistanceSetup;
     sigmatch_table[DETECT_DISTANCE].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DISTANCE].RegisterTests = DetectDistanceRegisterTests;
+#endif
 }
 
 static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
@@ -234,14 +238,11 @@ static int DetectDistanceTestPacket01 (void)
 end:
     return result;
 }
-#endif /* UNITTESTS */
 
 static void DetectDistanceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDistanceTest01 -- distance / within mix",
                    DetectDistanceTest01);
     UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

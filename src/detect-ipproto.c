@@ -51,7 +51,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectIPProtoSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectIPProtoRegisterTests(void);
+#endif
 static void DetectIPProtoFree(DetectEngineCtx *, void *);
 
 void DetectIPProtoRegister(void)
@@ -62,7 +64,9 @@ void DetectIPProtoRegister(void)
     sigmatch_table[DETECT_IPPROTO].Match = NULL;
     sigmatch_table[DETECT_IPPROTO].Setup = DetectIPProtoSetup;
     sigmatch_table[DETECT_IPPROTO].Free  = DetectIPProtoFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
+#endif
     sigmatch_table[DETECT_IPPROTO].flags = SIGMATCH_QUOTES_OPTIONAL;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -2066,15 +2070,12 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \internal
  * \brief Register ip_proto tests.
  */
 static void DetectIPProtoRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectIPProtoTestParse01", DetectIPProtoTestParse01);
     UtRegisterTest("DetectIPProtoTestParse02", DetectIPProtoTestParse02);
     UtRegisterTest("DetectIPProtoTestSetup01", DetectIPProtoTestSetup01);
@@ -2119,5 +2120,5 @@ static void DetectIPProtoRegisterTests(void)
     UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1);
     UtRegisterTest("DetectIPProtoTestSig2", DetectIPProtoTestSig2);
     UtRegisterTest("DetectIPProtoTestSig3", DetectIPProtoTestSig3);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

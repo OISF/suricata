@@ -56,7 +56,9 @@ int DetectFlowintMatch(DetectEngineThreadCtx *, Packet *,
                        const Signature *, const SigMatchCtx *);
 static int DetectFlowintSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFlowintFree(DetectEngineCtx *, void *);
-void DetectFlowintRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectFlowintRegisterTests(void);
+#endif
 
 void DetectFlowintRegister(void)
 {
@@ -66,8 +68,9 @@ void DetectFlowintRegister(void)
     sigmatch_table[DETECT_FLOWINT].Match = DetectFlowintMatch;
     sigmatch_table[DETECT_FLOWINT].Setup = DetectFlowintSetup;
     sigmatch_table[DETECT_FLOWINT].Free = DetectFlowintFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FLOWINT].RegisterTests = DetectFlowintRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -1300,14 +1303,11 @@ static int DetectFlowintTestPacket03Real(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFlowint
  */
 void DetectFlowintRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFlowintTestParseVal01", DetectFlowintTestParseVal01);
     UtRegisterTest("DetectFlowintTestParseVar01", DetectFlowintTestParseVar01);
     UtRegisterTest("DetectFlowintTestParseVal02", DetectFlowintTestParseVal02);
@@ -1336,5 +1336,5 @@ void DetectFlowintRegisterTests(void)
                    DetectFlowintTestPacket02Real);
     UtRegisterTest("DetectFlowintTestPacket03Real",
                    DetectFlowintTestPacket03Real);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

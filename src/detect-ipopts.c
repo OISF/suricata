@@ -45,7 +45,9 @@ static DetectParseRegex parse_regex;
 static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
-void IpOptsRegisterTests(void);
+#ifdef UNITTESTS
+static void IpOptsRegisterTests(void);
+#endif
 void DetectIpOptsFree(DetectEngineCtx *, void *);
 
 /**
@@ -59,8 +61,9 @@ void DetectIpOptsRegister (void)
     sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
     sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -349,17 +352,15 @@ error:
     SCFree(p);
     return 1;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for IpOpts
  */
 void IpOptsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01);
     UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02);
     UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
     UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

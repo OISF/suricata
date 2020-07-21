@@ -51,7 +51,9 @@ static DetectParseRegex parse_regex;
 int DetectFlowMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectFlowRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectFlowRegisterTests(void);
+#endif
 void DetectFlowFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -68,8 +70,9 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FLOW].SupportsPrefilter = PrefilterFlowIsPrefilterable;
     sigmatch_table[DETECT_FLOW].SetupPrefilter = PrefilterSetupFlow;
 
@@ -1061,14 +1064,11 @@ static int DetectFlowTestOnlyFragMatch(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFlow
  */
-void DetectFlowRegisterTests(void)
+static void DetectFlowRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFlowTestParse01", DetectFlowTestParse01);
     UtRegisterTest("DetectFlowTestParse02", DetectFlowTestParse02);
     UtRegisterTest("DetectFlowTestParse03", DetectFlowTestParse03);
@@ -1114,5 +1114,5 @@ void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestOnlyFragMatch", DetectFlowTestOnlyFragMatch);
 
     UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

@@ -59,8 +59,10 @@ static DetectParseRegex parse_regex;
 
 static int DetectXbitMatch (DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectXbitSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectXbitFree (DetectEngineCtx *, void *);
-void XBitsRegisterTests(void);
+#ifdef UNITTESTS
+static void XBitsRegisterTests(void);
+#endif
+static void DetectXbitFree (DetectEngineCtx *, void *);
 
 void DetectXbitsRegister (void)
 {
@@ -70,7 +72,9 @@ void DetectXbitsRegister (void)
     sigmatch_table[DETECT_XBITS].Match = DetectXbitMatch;
     sigmatch_table[DETECT_XBITS].Setup = DetectXbitSetup;
     sigmatch_table[DETECT_XBITS].Free  = DetectXbitFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_XBITS].RegisterTests = XBitsRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_XBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -363,7 +367,7 @@ error:
     return -1;
 }
 
-void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
+static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectXbitsData *fd = (DetectXbitsData *)ptr;
 
@@ -534,16 +538,13 @@ static int XBitsTestSig02(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for XBits
  */
-void XBitsRegisterTests(void)
+static void XBitsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("XBitsTestParse01", XBitsTestParse01);
     UtRegisterTest("XBitsTestSig01", XBitsTestSig01);
     UtRegisterTest("XBitsTestSig02", XBitsTestSig02);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

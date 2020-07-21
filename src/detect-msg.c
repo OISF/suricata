@@ -35,7 +35,9 @@
 #include "detect-msg.h"
 
 static int DetectMsgSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectMsgRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectMsgRegisterTests(void);
+#endif
 
 void DetectMsgRegister (void)
 {
@@ -45,7 +47,9 @@ void DetectMsgRegister (void)
     sigmatch_table[DETECT_MSG].Match = NULL;
     sigmatch_table[DETECT_MSG].Setup = DetectMsgSetup;
     sigmatch_table[DETECT_MSG].Free = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
+#endif
     sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
 }
 
@@ -206,17 +210,13 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectMsg
  */
 void DetectMsgRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01);
     UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02);
     UtRegisterTest("DetectMsgParseTest03", DetectMsgParseTest03);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

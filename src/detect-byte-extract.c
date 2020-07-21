@@ -89,7 +89,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectByteExtractRegisterTests(void);
+#endif
 static void DetectByteExtractFree(DetectEngineCtx *, void *);
 
 /**
@@ -103,8 +105,9 @@ void DetectByteExtractRegister(void)
     sigmatch_table[DETECT_BYTE_EXTRACT].Match = NULL;
     sigmatch_table[DETECT_BYTE_EXTRACT].Setup = DetectByteExtractSetup;
     sigmatch_table[DETECT_BYTE_EXTRACT].Free = DetectByteExtractFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BYTE_EXTRACT].RegisterTests = DetectByteExtractRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -4728,11 +4731,8 @@ static int DetectByteExtractTestParseNoBase(void)
     return result;
 }
 
-#endif /* UNITTESTS */
-
 static void DetectByteExtractRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 
@@ -4810,7 +4810,5 @@ static void DetectByteExtractRegisterTests(void)
 
     UtRegisterTest("DetectByteExtractTestParseNoBase",
                    DetectByteExtractTestParseNoBase);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

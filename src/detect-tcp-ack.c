@@ -46,7 +46,9 @@
 static int DetectAckSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectAckMatch(DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
+#ifdef UNITTESTS
 static void DetectAckRegisterTests(void);
+#endif
 static void DetectAckFree(DetectEngineCtx *, void *);
 static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTcpAckIsPrefilterable(const Signature *s);
@@ -63,8 +65,9 @@ void DetectAckRegister(void)
 
     sigmatch_table[DETECT_ACK].SupportsPrefilter = PrefilterTcpAckIsPrefilterable;
     sigmatch_table[DETECT_ACK].SetupPrefilter = PrefilterSetupTcpAck;
-
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ACK].RegisterTests = DetectAckRegisterTests;
+#endif
 }
 
 /**
@@ -323,15 +326,12 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \internal
  * \brief This function registers unit tests for DetectAck
  */
 static void DetectAckRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectAckSigTest01", DetectAckSigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

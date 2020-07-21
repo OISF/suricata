@@ -51,7 +51,9 @@
 static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectAppLayerEventRegisterTests(void);
+#endif
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -72,9 +74,10 @@ void DetectAppLayerEventRegister(void)
         DetectAppLayerEventPktMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetupP1;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
             DetectEngineAptEventInspect);
@@ -806,21 +809,17 @@ static int DetectAppLayerEventTest06(void)
     DetectAppLayerEventFree(NULL, aled);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief This function registers unit tests for "app-layer-event" keyword.
  */
-void DetectAppLayerEventRegisterTests(void)
+static void DetectAppLayerEventRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectAppLayerEventTest01", DetectAppLayerEventTest01);
     UtRegisterTest("DetectAppLayerEventTest02", DetectAppLayerEventTest02);
     UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
     UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
     UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
     UtRegisterTest("DetectAppLayerEventTest06", DetectAppLayerEventTest06);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

@@ -60,7 +60,9 @@
 #define KEYWORD_NAME "dce_stub_data"
 
 static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectDceStubDataRegisterTests(void);
+#endif
 static int g_dce_stub_data_buffer_id = 0;
 
 static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
@@ -117,7 +119,9 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dcerpc.stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].alias = "dce_stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
+#endif
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
@@ -1893,12 +1897,8 @@ static int DetectDceStubDataTestParse05(void)
     return result;
 }
 
-
-#endif
-
 static void DetectDceStubDataRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDceStubDataTestParse01",
                    DetectDceStubDataTestParse01);
     UtRegisterTest("DetectDceStubDataTestParse02",
@@ -1909,7 +1909,5 @@ static void DetectDceStubDataRegisterTests(void)
                    DetectDceStubDataTestParse04);
     UtRegisterTest("DetectDceStubDataTestParse05",
                    DetectDceStubDataTestParse05);
-#endif
-
-    return;
 }
+#endif

@@ -121,10 +121,12 @@ DNP3Mapping DNP3FunctionNameMap[] = {
     {"authenticate_resp",    131}
 };
 
+#ifdef UNITTESTS
 static void DetectDNP3FuncRegisterTests(void);
 static void DetectDNP3IndRegisterTests(void);
 static void DetectDNP3ObjRegisterTests(void);
 static void DetectDNP3DataRegisterTests(void);
+#endif
 
 /**
  * \brief Utility function to trim leading and trailing whitespace
@@ -498,9 +500,10 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
     sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_DNP3FUNC].RegisterTests =
         DetectDNP3FuncRegisterTests;
-
+#endif
     SCReturn;
 }
 
@@ -516,9 +519,10 @@ static void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
     sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_DNP3IND].RegisterTests =
         DetectDNP3IndRegisterTests;
-
+#endif
     SCReturn;
 }
 
@@ -534,9 +538,10 @@ static void DetectDNP3ObjRegister(void)
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
     sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
     sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_DNP3OBJ].RegisterTests =
         DetectDNP3ObjRegisterTests;
-
+#endif
     SCReturn;
 }
 
@@ -561,9 +566,10 @@ static void DetectDNP3DataRegister(void)
     sigmatch_table[DETECT_AL_DNP3DATA].desc          = "make the following content options to match on the re-assembled application buffer";
     sigmatch_table[DETECT_AL_DNP3DATA].url           = "/rules/dnp3-keywords.html#dnp3-data";
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =
         DetectDNP3DataRegisterTests;
-
+#endif
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("dnp3_data",
@@ -1029,39 +1035,30 @@ static int DetectDNP3DataTest02(void)
     PASS;
 }
 
-#endif
-
 static void DetectDNP3FuncRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest",
                    DetectDNP3FuncParseFunctionCodeTest);
     UtRegisterTest("DetectDNP3FuncTest01", DetectDNP3FuncTest01);
-#endif
 }
 
 static void DetectDNP3IndRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDNP3IndTestParseAsInteger",
                    DetectDNP3IndTestParseAsInteger);
     UtRegisterTest("DetectDNP3IndTestParseByName",
                    DetectDNP3IndTestParseByName);
-#endif
 }
 
 static void DetectDNP3ObjRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDNP3ObjParseTest", DetectDNP3ObjParseTest);
     UtRegisterTest("DetectDNP3ObjSetupTest", DetectDNP3ObjSetupTest);
-#endif
 }
 
 void DetectDNP3DataRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDNP3DataTest01", DetectDNP3DataTest01);
     UtRegisterTest("DetectDNP3DataTest02", DetectDNP3DataTest02);
-#endif
 }
+#endif

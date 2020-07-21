@@ -113,7 +113,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectByteMathSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectByteMathRegisterTests(void);
+#endif
 static void DetectByteMathFree(DetectEngineCtx *, void *);
 
 /**
@@ -125,8 +127,9 @@ void DetectBytemathRegister(void)
     sigmatch_table[DETECT_BYTEMATH].Match = NULL;
     sigmatch_table[DETECT_BYTEMATH].Setup = DetectByteMathSetup;
     sigmatch_table[DETECT_BYTEMATH].Free = DetectByteMathFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BYTEMATH].RegisterTests = DetectByteMathRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -1171,11 +1174,8 @@ static int DetectByteMathContext01(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 static void DetectByteMathRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectByteMathParseTest01", DetectByteMathParseTest01);
     UtRegisterTest("DetectByteMathParseTest02", DetectByteMathParseTest02);
     UtRegisterTest("DetectByteMathParseTest03", DetectByteMathParseTest03);
@@ -1193,7 +1193,5 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
     UtRegisterTest("DetectByteMathPacket01",    DetectByteMathPacket01);
     UtRegisterTest("DetectByteMathContext01", DetectByteMathContext01);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

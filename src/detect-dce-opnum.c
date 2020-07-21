@@ -59,7 +59,9 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchCtx *m);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceOpnumFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectDceOpnumRegisterTests(void);
+#endif
 static int g_dce_generic_list_id = 0;
 
 /**
@@ -72,8 +74,9 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
@@ -2402,11 +2405,9 @@ static int DetectDceOpnumTestParse13(void)
     return result;
 }
 #endif
-#endif /* UNITTESTS */
 
 static void DetectDceOpnumRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
     UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
@@ -2417,5 +2418,5 @@ static void DetectDceOpnumRegisterTests(void)
     UtRegisterTest("DetectDceOpnumTestParse12", DetectDceOpnumTestParse12, 1);
     UtRegisterTest("DetectDceOpnumTestParse13", DetectDceOpnumTestParse13, 1);
 #endif
-#endif
 }
+#endif /* UNITTESTS */

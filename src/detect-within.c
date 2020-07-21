@@ -45,7 +45,9 @@
 #include "util-unittest.h"
 
 static int DetectWithinSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectWithinRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectWithinRegisterTests(void);
+#endif
 
 void DetectWithinRegister(void)
 {
@@ -54,8 +56,9 @@ void DetectWithinRegister(void)
     sigmatch_table[DETECT_WITHIN].url = "/rules/payload-keywords.html#within";
     sigmatch_table[DETECT_WITHIN].Match = NULL;
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
-    sigmatch_table[DETECT_WITHIN].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_WITHIN].RegisterTests = DetectWithinRegisterTests;
+#endif
 }
 
 /** \brief Setup within pattern (content/uricontent) modifier.
@@ -229,13 +232,10 @@ static int DetectWithinTestVarSetup(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 void DetectWithinRegisterTests(void)
 {
-    #ifdef UNITTESTS
     UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01);
     UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02);
     UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup);
-    #endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

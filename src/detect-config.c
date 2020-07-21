@@ -67,7 +67,9 @@ static int DetectConfigPostMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx);
 static int DetectConfigSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectConfigFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectConfigRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for keyword: filestore
@@ -78,8 +80,9 @@ void DetectConfigRegister(void)
     sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
     sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
     sigmatch_table[DETECT_CONFIG].Free  = DetectConfigFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -318,11 +321,9 @@ static int DetectConfigTest01(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-#endif /* UNITTESTS */
 
 void DetectConfigRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectConfigTest01", DetectConfigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

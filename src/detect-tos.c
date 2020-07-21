@@ -50,7 +50,9 @@ static DetectParseRegex parse_regex;
 static int DetectTosSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectTosMatch(DetectEngineThreadCtx *, Packet *,
                           const Signature *, const SigMatchCtx *);
+#ifdef UNITTESTS
 static void DetectTosRegisterTests(void);
+#endif
 static void DetectTosFree(DetectEngineCtx *, void *);
 
 #define DETECT_IPTOS_MIN 0
@@ -66,7 +68,9 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].Match = DetectTosMatch;
     sigmatch_table[DETECT_TOS].Setup = DetectTosSetup;
     sigmatch_table[DETECT_TOS].Free = DetectTosFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TOS].RegisterTests = DetectTosRegisterTests;
+#endif
     sigmatch_table[DETECT_TOS].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
     sigmatch_table[DETECT_TOS].url =
@@ -346,11 +350,8 @@ end:
     return result;
 }
 
-#endif
-
 void DetectTosRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTosTest01", DetectTosTest01);
     UtRegisterTest("DetectTosTest02", DetectTosTest02);
     UtRegisterTest("DetectTosTest04", DetectTosTest04);
@@ -361,6 +362,6 @@ void DetectTosRegisterTests(void)
     UtRegisterTest("DetectTosTest09", DetectTosTest09);
     UtRegisterTest("DetectTosTest10", DetectTosTest10);
     UtRegisterTest("DetectTosTest12", DetectTosTest12);
-#endif
     return;
 }
+#endif

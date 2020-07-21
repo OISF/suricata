@@ -47,7 +47,9 @@ static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
     DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
     const Signature *s, const SigMatchData *smd,
     Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+#ifdef UNITTESTS
 static void DetectTemplateRustBufferRegisterTests(void);
+#endif
 static int g_template_rust_id = 0;
 
 void DetectTemplateRustBufferRegister(void)
@@ -63,9 +65,10 @@ void DetectTemplateRustBufferRegister(void)
         "Template content modififier to match on the template buffers";
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].Setup =
         DetectTemplateRustBufferSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].RegisterTests =
         DetectTemplateRustBufferRegisterTests;
-
+#endif
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].flags |= SIGMATCH_NOOPT;
 
     /* register inspect engines */
@@ -205,12 +208,9 @@ static int DetectTemplateRustBufferTest(void)
     PASS;
 }
 
-#endif
-
 static void DetectTemplateRustBufferRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTemplateRustBufferTest",
         DetectTemplateRustBufferTest);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

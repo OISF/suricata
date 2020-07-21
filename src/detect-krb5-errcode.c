@@ -45,7 +45,9 @@ static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *, Flow *,
                                    const SigMatchCtx *);
 static int DetectKrb5ErrCodeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectKrb5ErrCodeFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectKrb5ErrCodeRegisterTests (void);
+#endif
 
 static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -60,7 +62,8 @@ static int g_krb5_err_code_list_id = 0;
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectKrb5ErrCodeRegister(void) {
+void DetectKrb5ErrCodeRegister(void)
+{
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].name = "krb5_err_code";
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].desc = "match Kerberos 5 error code";
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].url = "/rules/kerberos-keywords.html#krb5-err-code";
@@ -68,8 +71,9 @@ void DetectKrb5ErrCodeRegister(void) {
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].AppLayerTxMatch = DetectKrb5ErrCodeMatch;
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].Setup = DetectKrb5ErrCodeSetup;
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].Free = DetectKrb5ErrCodeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("krb5_err_code",
             ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectKRB5Generic);
@@ -223,7 +227,6 @@ static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr) {
 }
 
 #ifdef UNITTESTS
-
 /**
  * \test description of the test
  */
@@ -249,15 +252,13 @@ static int DetectKrb5ErrCodeSignatureTest01 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectKrb5ErrCode
  */
-static void DetectKrb5ErrCodeRegisterTests(void) {
-#ifdef UNITTESTS
+static void DetectKrb5ErrCodeRegisterTests(void)
+{
     UtRegisterTest("DetectKrb5ErrCodeParseTest01", DetectKrb5ErrCodeParseTest01);
     UtRegisterTest("DetectKrb5ErrCodeSignatureTest01",
                    DetectKrb5ErrCodeSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */
