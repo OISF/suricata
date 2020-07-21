@@ -382,7 +382,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
             if (*value == NULL)
                 goto error;
         } else {
-            if (StringParseUint64(&data->value, 0, 0, test_value) <= 0) {
+            if (ByteExtractStringUint64(&data->value, 0, 0, test_value) <= 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed value: %s", test_value);
                 goto error;
             }
