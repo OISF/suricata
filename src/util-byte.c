@@ -223,7 +223,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str, bo
         SCLogDebug("invalid numeric value");
         return -1;
     }
-    else if (strict && len && *endptr != '\0') {
+    else if (strict && *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Extra characters following numeric value");
         return -1;
     }
