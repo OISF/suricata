@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -212,6 +212,9 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
+#ifdef UNITTESTS
+static void HTPParserRegisterTests(void);
+#endif
 
 static inline uint64_t HtpGetActiveRequestTxID(HtpState *s)
 {
@@ -7386,14 +7389,12 @@ static int HTPParserTest27(void)
 
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  *  \brief  Register the Unit tests for the HTTP protocol
  */
-void HTPParserRegisterTests(void)
+static void HTPParserRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("HTPParserTest01", HTPParserTest01);
     UtRegisterTest("HTPParserTest01a", HTPParserTest01a);
     UtRegisterTest("HTPParserTest01b", HTPParserTest01b);
@@ -7448,8 +7449,8 @@ void HTPParserRegisterTests(void)
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */
 
 /**
  * @}

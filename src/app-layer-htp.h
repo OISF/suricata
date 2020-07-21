@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -271,7 +271,6 @@ typedef struct HtpState_ {
 SC_ATOMIC_EXTERN(uint32_t, htp_config_flags);
 
 void RegisterHTPParsers(void);
-void HTPParserRegisterTests(void);
 void HTPAtExitPrintStats(void);
 void HTPFreeConfig(void);
 
