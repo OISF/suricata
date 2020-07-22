@@ -861,6 +861,8 @@ Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
     return f;
 }
 
+#define FLOW_GET_NEW_TRIES 5
+
 /** \internal
  *  \brief Get a flow from the hash directly.
  *
@@ -878,19 +880,16 @@ Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
  */
 static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
 {
-    uint32_t idx = SC_ATOMIC_GET(flow_prune_idx) % flow_config.hash_size;
+    uint32_t idx = SC_ATOMIC_ADD(flow_prune_idx, FLOW_GET_NEW_TRIES) % flow_config.hash_size;
     uint32_t cnt = flow_config.hash_size;
     uint32_t tried = 0;
 
     while (cnt--) {
-        tried++;
+        if (tried++ > FLOW_GET_NEW_TRIES)
+            break;
+
         if (++idx >= flow_config.hash_size)
             idx = 0;
-
-        if (tried >= 25) {
-            (void) SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
-            break;
-        }
 
         FlowBucket *fb = &flow_hash[idx];
 
@@ -960,8 +959,6 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
         FlowUpdateState(f, FLOW_STATE_NEW);
 
         FLOWLOCK_UNLOCK(f);
-
-        (void) SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
         return f;
     }
 

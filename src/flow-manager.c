@@ -108,9 +108,9 @@ void FlowTimeoutsEmergency(void)
 /* 1 seconds */
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 1
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
-/* 0.1 seconds */
+/* 0.3 seconds */
 #define FLOW_EMERG_MODE_UPDATE_DELAY_SEC 0
-#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 100000
+#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 300000
 #define NEW_FLOW_COUNT_COND 10
 
 typedef struct FlowTimeoutCounters_ {
