@@ -157,11 +157,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->response_status == NULL)
+        if (htp_tx_response_status(tx) == NULL)
             return NULL;
 
-        const uint32_t data_len = bstr_len(tx->response_status);
-        const uint8_t *data = bstr_ptr(tx->response_status);
+        const uint32_t data_len = bstr_len(htp_tx_response_status(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_response_status(tx));
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

@@ -94,17 +94,17 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         return buf->buffer;
     }
 
-    htp_headers_t *headers;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <=
                 HTP_REQUEST_HEADERS)
             return NULL;
-        headers = tx->request_headers;
+        headers = htp_tx_request_headers(tx);
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <=
                 HTP_RESPONSE_HEADERS)
             return NULL;
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     }
     if (headers == NULL)
         return NULL;
@@ -172,7 +172,7 @@ static void PrefilterTxHttpRequestHeaderNames(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->request_headers == NULL)
+    if (htp_tx_request_headers(tx) == NULL)
         return;
 
     const PrefilterMpmHttpHeaderCtx *ctx = pectx;
@@ -250,7 +250,7 @@ static void PrefilterTxHttpResponseHeaderNames(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->response_headers == NULL)
+    if (htp_tx_response_headers(tx) == NULL)
         return;
 
     const PrefilterMpmHttpHeaderCtx *ctx = pectx;

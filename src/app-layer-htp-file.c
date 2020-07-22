@@ -402,9 +402,9 @@ static int HTPFileParserTest01(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -477,8 +477,8 @@ static int HTPFileParserTest02(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->tail);
     FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
@@ -569,9 +569,9 @@ static int HTPFileParserTest03(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->head);
@@ -665,9 +665,9 @@ static int HTPFileParserTest04(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->head);
@@ -731,9 +731,9 @@ static int HTPFileParserTest05(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->head);
@@ -806,9 +806,9 @@ static int HTPFileParserTest06(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->head);
@@ -871,8 +871,8 @@ static int HTPFileParserTest07(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->tail);
@@ -1193,9 +1193,9 @@ static int HTPFileParserTest11(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     FAIL_IF_NULL(http_state->files_ts);
     FAIL_IF_NULL(http_state->files_ts->tail);

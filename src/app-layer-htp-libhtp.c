@@ -50,14 +50,14 @@
  *        That duty has now been passed to us.  A lot of this code has been
  *        copied from libhtp.
  *
- *        Keep an eye out on the tx->parsed_uri struct and how the parameters
+ *        Keep an eye out on the htp_tx_parsed_uri(tx) struct and how the parameters
  *        in it are generated, just in case some modifications are made to
  *        them in the future.
  *
  * \param uri_include_all boolean to indicate if scheme, username/password,
                           hostname and port should be part of the buffer
  */
-bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_all)
+bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, const htp_uri_t *uri, int uri_include_all)
 {
     if (uri == NULL)
         return NULL;
@@ -154,7 +154,7 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_a
         bstr *query = bstr_dup(uri->query);
         if (query) {
             uint64_t flags = 0;
-            htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, query, &flags);
+            htp_urldecode_inplace(htp_tx_cfg(tx), HTP_DECODER_URLENCODED, query, &flags);
             bstr_add_c_noex(r, "?");
             bstr_add_noex(r, query);
             bstr_free(query);

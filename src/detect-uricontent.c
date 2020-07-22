@@ -238,20 +238,20 @@ static int HTTPUriTest01(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != HTP_M_GET ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->request_hostname == NULL) ||
-            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
+    if ((htp_tx_request_hostname(tx) == NULL) ||
+            (bstr_cmp_c(htp_tx_request_hostname(tx), "www.example.com") != 0))
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
+    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
+            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -309,20 +309,20 @@ static int HTTPUriTest02(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != HTP_M_GET ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->request_hostname == NULL) ||
-            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
+    if ((htp_tx_request_hostname(tx) == NULL) ||
+            (bstr_cmp_c(htp_tx_request_hostname(tx), "www.example.com") != 0))
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
+    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
+            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -380,20 +380,20 @@ static int HTTPUriTest03(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != HTP_M_UNKNOWN ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->request_hostname == NULL) ||
-            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
+    if ((htp_tx_request_hostname(tx) == NULL) ||
+            (bstr_cmp_c(htp_tx_request_hostname(tx), "www.example.com") != 0))
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
+    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
+            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -452,20 +452,20 @@ static int HTTPUriTest04(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != HTP_M_GET ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->request_hostname == NULL) ||
-            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
+    if ((htp_tx_request_hostname(tx) == NULL) ||
+            (bstr_cmp_c(htp_tx_request_hostname(tx), "www.example.com") != 0))
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->path == NULL) ||
-           (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
+    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
+           (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
     {
         goto end;
     }

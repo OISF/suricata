@@ -66,11 +66,11 @@ static int HttpGetRequestHost(lua_State *luastate)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    if (tx->request_hostname == NULL)
+    if (htp_tx_request_hostname(tx) == NULL)
         return LuaCallbackError(luastate, "no request hostname");
 
     return LuaPushStringBuffer(luastate,
-            bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
+            bstr_ptr(htp_tx_request_hostname(tx)), bstr_len(htp_tx_request_hostname(tx)));
 }
 
 static int HttpGetRequestUriRaw(lua_State *luastate)
@@ -82,11 +82,11 @@ static int HttpGetRequestUriRaw(lua_State *luastate)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    if (tx->request_uri == NULL)
+    if (htp_tx_request_uri(tx) == NULL)
         return LuaCallbackError(luastate, "no request uri");
 
     return LuaPushStringBuffer(luastate,
-            bstr_ptr(tx->request_uri), bstr_len(tx->request_uri));
+            bstr_ptr(htp_tx_request_uri(tx)), bstr_len(htp_tx_request_uri(tx)));
 }
 
 static int HttpGetRequestUriNormalized(lua_State *luastate)
@@ -121,11 +121,11 @@ static int HttpGetRequestLine(lua_State *luastate)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    if (tx->request_line == NULL)
+    if (htp_tx_request_line(tx) == NULL)
         return LuaCallbackError(luastate, "no request_line");
 
     return LuaPushStringBuffer(luastate,
-            bstr_ptr(tx->request_line), bstr_len(tx->request_line));
+            bstr_ptr(htp_tx_request_line(tx)), bstr_len(htp_tx_request_line(tx)));
 }
 
 static int HttpGetResponseLine(lua_State *luastate)
@@ -137,11 +137,11 @@ static int HttpGetResponseLine(lua_State *luastate)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    if (tx->response_line == NULL)
+    if (htp_tx_response_line(tx) == NULL)
         return LuaCallbackError(luastate, "no response_line");
 
     return LuaPushStringBuffer(luastate,
-            bstr_ptr(tx->response_line), bstr_len(tx->response_line));
+            bstr_ptr(htp_tx_response_line(tx)), bstr_len(htp_tx_response_line(tx)));
 }
 
 static int HttpGetHeader(lua_State *luastate, int dir)
@@ -157,9 +157,9 @@ static int HttpGetHeader(lua_State *luastate, int dir)
     if (name == NULL)
         return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
 
-    htp_table_t *headers = tx->request_headers;
+    htp_table_t *headers = htp_tx_request_headers(tx);
     if (dir == 1)
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     if (headers == NULL)
         return LuaCallbackError(luastate, "tx has no headers");
 
@@ -227,10 +227,10 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    htp_table_t *table = tx->request_headers;
+    htp_table_t *table = htp_tx_request_headers(tx);
     if (dir == 1)
-        table = tx->response_headers;
-    if (tx->request_headers == NULL)
+        table = htp_tx_response_headers(tx);
+    if (htp_tx_request_headers(tx) == NULL)
         return LuaCallbackError(luastate, "no headers");
 
     lua_newtable(luastate);

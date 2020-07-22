@@ -102,9 +102,9 @@ static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff)
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL && tx->request_hostname != NULL) {
-            PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname),
-                          bstr_len(tx->request_hostname));
+        if (tx != NULL && htp_tx_request_hostname(tx) != NULL) {
+            PrintRawUriFp(fp, (uint8_t *)bstr_ptr(htp_tx_request_hostname(tx)),
+                          bstr_len(htp_tx_request_hostname(tx)));
             return;
         }
     }
@@ -119,7 +119,7 @@ static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+            h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx),
                                                 "Referer");
             if (h != NULL) {
                 PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
@@ -139,7 +139,7 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+            h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx),
                                                 "User-Agent");
             if (h != NULL) {
                 PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),

@@ -450,11 +450,11 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
          * As htp_tx_destroy_incomplete isn't available in the public API,
          * we hack around it here. */
         if (unlikely(!(
-            tx->request_progress == HTP_REQUEST_COMPLETE &&
-            tx->response_progress == HTP_RESPONSE_COMPLETE)))
+            htp_tx_request_progress(tx) == HTP_REQUEST_COMPLETE &&
+            htp_tx_response_progress(tx) == HTP_RESPONSE_COMPLETE)))
         {
-            tx->request_progress = HTP_REQUEST_COMPLETE;
-            tx->response_progress = HTP_RESPONSE_COMPLETE;
+            htp_tx_set_request_progress(tx, HTP_REQUEST_COMPLETE);
+            htp_tx_set_response_progress(tx, HTP_RESPONSE_COMPLETE);
         }
         htp_tx_destroy(tx);
     }
@@ -615,7 +615,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
 #endif
-    if (tx->flags & (   HTP_REQUEST_INVALID_T_E|HTP_REQUEST_INVALID_C_L|
+    if (htp_tx_flags(tx) & (   HTP_REQUEST_INVALID_T_E|HTP_REQUEST_INVALID_C_L|
                         HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
                         HTP_HOSTH_INVALID))
     {
@@ -623,35 +623,35 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         if (htud == NULL)
             return;
 
-        if (tx->flags & HTP_REQUEST_INVALID_T_E)
+        if (htp_tx_flags(tx) & HTP_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
-        if (tx->flags & HTP_REQUEST_INVALID_C_L)
+        if (htp_tx_flags(tx) & HTP_REQUEST_INVALID_C_L)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
-        if (tx->flags & HTP_HOST_MISSING)
+        if (htp_tx_flags(tx) & HTP_HOST_MISSING)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_MISSING_HOST_HEADER);
-        if (tx->flags & HTP_HOST_AMBIGUOUS)
+        if (htp_tx_flags(tx) & HTP_HOST_AMBIGUOUS)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS);
-        if (tx->flags & HTP_HOSTU_INVALID)
+        if (htp_tx_flags(tx) & HTP_HOSTU_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_URI_HOST_INVALID);
-        if (tx->flags & HTP_HOSTH_INVALID)
+        if (htp_tx_flags(tx) & HTP_HOSTH_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
-    if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
+    if (htp_tx_request_auth_type(tx) == HTP_AUTH_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTP_LOG_CODE_AUTH_UNRECOGNIZED);
     }
-    if (tx->is_protocol_0_9 && tx->request_method_number == HTP_M_UNKNOWN &&
-        (tx->request_protocol_number == HTP_PROTOCOL_INVALID ||
-         tx->request_protocol_number == HTP_PROTOCOL_UNKNOWN)) {
+    if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_M_UNKNOWN &&
+        (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
+         htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_UNKNOWN)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
@@ -1032,7 +1032,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(d->tx->request_headers,
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(d->tx),
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
         uint8_t *boundary = NULL;
@@ -1508,12 +1508,6 @@ end:
  *  \todo really needed? */
 static int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud)
 {
-//    if (d->tx->parsed_uri == NULL || d->tx->parsed_uri->path == NULL) {
-//        return -1;
-//    }
-
-    /* filename is d->tx->parsed_uri->path */
-
     return 0;
 }
 
@@ -1532,9 +1526,9 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* get the name */
-        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-            filename_len = bstr_len(tx->parsed_uri->path);
+        if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
+            filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
+            filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
         }
 
         if (filename != NULL) {
@@ -1586,9 +1580,9 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* get the name */
-        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-            filename_len = bstr_len(tx->parsed_uri->path);
+        if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
+            filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
+            filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
         }
 
         if (filename != NULL) {
@@ -1633,11 +1627,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     int result = 0;
 
     /* see if we need to open the file
-     * we check for tx->response_line in case of junk
+     * we check for htp_tx_response_line(tx) in case of junk
      * interpreted as body before response line
      */
     if (!(htud->tcflags & HTP_FILENAME_SET) &&
-        (tx->response_line != NULL || tx->is_protocol_0_9))
+        (htp_tx_response_line(tx) != NULL || htp_tx_is_protocol_0_9(tx)))
     {
         SCLogDebug("setting up file name");
 
@@ -1645,7 +1639,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx),
                 "Content-Disposition");
         if (h != NULL && bstr_len(h->value) > 0) {
             /* parse content-disposition */
@@ -1656,9 +1650,9 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         /* fall back to name from the uri */
         if (filename == NULL) {
             /* get the name */
-            if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-                filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-                filename_len = bstr_len(tx->parsed_uri->path);
+            if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
+                filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
+                filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
             }
         }
 
@@ -1676,13 +1670,13 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
             //set range if present
-            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+            htp_header_t *h_content_range = htp_table_get_c(htp_tx_response_headers(tx), "content-range");
             if (h_content_range != NULL) {
                 HTPFileSetRange(hstate, h_content_range->value);
             }
         }
     }
-    else if (tx->response_line != NULL || tx->is_protocol_0_9)
+    else if (htp_tx_response_line(tx) != NULL || htp_tx_is_protocol_0_9(tx))
     {
         /* otherwise, just store the data */
 
@@ -1725,7 +1719,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     printf("HTPBODY END: \n");
 #endif
 
-    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(d->tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -1747,7 +1741,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
 
-        if (d->tx->request_method_number == HTP_M_POST) {
+        if (htp_tx_request_method_number(d->tx) == HTP_M_POST) {
             SCLogDebug("POST");
             int r = HtpRequestBodySetupMultipart(d, tx_ud);
             if (r == 1) {
@@ -1756,7 +1750,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 tx_ud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
-        } else if (d->tx->request_method_number == HTP_M_PUT) {
+        } else if (htp_tx_request_method_number(d->tx) == HTP_M_PUT) {
             if (HtpRequestBodySetupPUT(d, tx_ud) == 0) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
             }
@@ -1861,7 +1855,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (d->data == NULL || d->len == 0)
         SCReturnInt(HTP_OK);
 
-    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(d->tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2003,7 +1997,7 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
  */
 static int HTPCallbackRequestStart(htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2020,7 +2014,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
  */
 static int HTPCallbackResponseStart(htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2046,7 +2040,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2086,7 +2080,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
 {
     SCEnter();
 
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2108,20 +2102,20 @@ static int HTPCallbackResponse(htp_tx_t *tx)
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
 
     /* handle HTTP CONNECT */
-    if (tx->request_method_number == HTP_M_CONNECT) {
+    if (htp_tx_request_method_number(tx) == HTP_M_CONNECT) {
         /* any 2XX status response implies that the connection will become
            a tunnel immediately after this packet (RFC 7230, 3.3.3). */
-        if ((tx->response_status_number >= 200) &&
-                (tx->response_status_number < 300) &&
+        if ((htp_tx_response_status_number(tx) >= 200) &&
+                (htp_tx_response_status_number(tx) < 300) &&
                 (hstate->transaction_cnt == 1)) {
             uint16_t dp = 0;
-            if (tx->request_port_number != -1) {
-                dp = (uint16_t)tx->request_port_number;
+            if (htp_tx_request_port_number(tx) != -1) {
+                dp = (uint16_t)htp_tx_request_port_number(tx);
             }
             // both ALPROTO_HTTP and ALPROTO_TLS are normal options
             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
-            tx->request_progress = HTP_REQUEST_COMPLETE;
-            tx->response_progress = HTP_RESPONSE_COMPLETE;
+            htp_tx_set_request_progress(tx, HTP_REQUEST_COMPLETE);
+            htp_tx_set_response_progress(tx, HTP_RESPONSE_COMPLETE);
         }
     }
 
@@ -2133,10 +2127,10 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
 {
     HtpTxUserData *tx_ud;
     bstr *request_uri_normalized;
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     const HTPCfgRec *cfg = hstate->cfg;
 
-    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
+    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, htp_tx_parsed_uri(tx), cfg->uri_include_all);
     if (request_uri_normalized == NULL)
         return HTP_OK;
 
@@ -2154,7 +2148,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
         bstr_free(tx_ud->request_uri_normalized);
     tx_ud->request_uri_normalized = request_uri_normalized;
 
-    if (tx->flags) {
+    if (htp_tx_flags(tx)) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
     return HTP_OK;
@@ -2167,7 +2161,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 
     uint64_t flags = 0;
     size_t prevlen = bstr_len(part);
-    htp_status_t res = htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, part, &flags);
+    htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), HTP_DECODER_URLENCODED, part, &flags);
     // shorter string means that uri was encoded
     if (res == HTP_OK && prevlen > bstr_len(part)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
@@ -2177,7 +2171,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
                 return HTP_OK;
             htp_tx_set_user_data(tx, htud);
         }
-        HtpState *s = htp_connp_get_user_data(tx->connp);
+        HtpState *s = htp_connp_get_user_data(htp_tx_connp(tx));
         if (s == NULL)
             return HTP_OK;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
@@ -2189,18 +2183,18 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 
 static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
 {
-    if (tx->parsed_uri == NULL)
+    if (htp_tx_parsed_uri(tx) == NULL)
         return HTP_OK;
 
-    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->query);
+    return HTPCallbackDoubleDecodeUriPart(tx, htp_tx_parsed_uri(tx)->query);
 }
 
 static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 {
-    if (tx->parsed_uri == NULL)
+    if (htp_tx_parsed_uri(tx) == NULL)
         return HTP_OK;
 
-    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->path);
+    return HTPCallbackDoubleDecodeUriPart(tx, htp_tx_parsed_uri(tx)->path);
 }
 
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
@@ -2222,7 +2216,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->request_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
         HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
@@ -2233,8 +2227,8 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
            tx_data->data, tx_data->len);
     tx_ud->request_headers_raw_len += tx_data->len;
 
-    if (tx_data->tx && tx_data->tx->flags) {
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
+    if (tx_data->tx && htp_tx_flags(tx_data->tx)) {
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
         HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
     }
     return HTP_OK;
@@ -2259,7 +2253,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->response_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
         HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
@@ -2858,9 +2852,9 @@ static FileContainer *HTPStateGetFiles(void *state, uint8_t direction)
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 {
     if (direction & STREAM_TOSERVER)
-        return ((htp_tx_t *)tx)->request_progress;
+        return htp_tx_request_progress((htp_tx_t *)tx);
     else
-        return ((htp_tx_t *)tx)->response_progress;
+        return htp_tx_response_progress((htp_tx_t *)tx);
 }
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
@@ -3177,12 +3171,12 @@ static int HTPParserTest01(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
-    FAIL_IF(tx->request_method_number != HTP_M_POST);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3222,12 +3216,12 @@ static int HTPParserTest01b(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
-    FAIL_IF(tx->request_method_number != HTP_M_POST);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3278,12 +3272,12 @@ static int HTPParserTest01c(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
-    FAIL_IF(tx->request_method_number != HTP_M_POST);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3346,16 +3340,16 @@ static int HTPParserTest01a(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     if (strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0")
-        || tx->request_method_number != HTP_M_POST ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_0)
+        || htp_tx_request_method_number(tx) != HTP_M_POST ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
     {
         printf("expected header value: Victor/1.0 and got %s: and expected"
                 " method: POST and got %s, expected protocol number HTTP/1.0"
                 "  and got: %s \n", bstr_util_strdup_to_c(h->value),
-                bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
     result = 1;
@@ -3409,11 +3403,11 @@ static int HTPParserTest02(void)
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NOT_NULL(h);
 
-    FAIL_IF_NULL(tx->request_method);
-    char *method = bstr_util_strdup_to_c(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
+    char *method = bstr_util_strdup_to_c(htp_tx_request_method(tx));
     FAIL_IF_NULL(method);
 
     FAIL_IF(strcmp(method, "POST") != 0);
@@ -3479,13 +3473,13 @@ static int HTPParserTest03(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_UNKNOWN ||
-        h != NULL || tx->request_protocol_number != HTP_PROTOCOL_1_0)
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
+        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
-                "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
     result = 1;
@@ -3539,13 +3533,13 @@ static int HTPParserTest04(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_UNKNOWN ||
-        h != NULL || tx->request_protocol_number != HTP_PROTOCOL_0_9)
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
+        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_0_9)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
-                "NULL and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "NULL and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
     result = 1;
@@ -3620,13 +3614,13 @@ static int HTPParserTest05(void)
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NOT(tx->request_method_number == HTP_M_POST);
-    FAIL_IF_NOT(tx->request_protocol_number == HTP_PROTOCOL_1_0);
+    FAIL_IF_NOT(htp_tx_request_method_number(tx) == HTP_M_POST);
+    FAIL_IF_NOT(htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_1_0);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF_NOT(tx->response_status_number == 200);
+    FAIL_IF_NOT(htp_tx_response_status_number(tx) == 200);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3710,13 +3704,13 @@ static int HTPParserTest06(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != 200);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_response_status_number(tx) != 200);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -3883,7 +3877,7 @@ libhtp:\n\
         goto end;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
+        //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
@@ -3967,7 +3961,7 @@ libhtp:\n\
         goto end;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
+        //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
@@ -4039,7 +4033,7 @@ static int HTPParserTest10(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     if (h == NULL) {
         goto end;
     }
@@ -4304,7 +4298,7 @@ static int HTPParserTest13(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     if (h == NULL) {
         goto end;
     }
@@ -4724,17 +4718,17 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    if (tx->cfg != htp) {
+    if (htp_tx_cfg(tx) != htp) {
         printf("wrong HTP config (%p instead of %p - default=%p): ",
-               tx->cfg, htp, cfglist.cfg);
+               htp_tx_cfg(tx), htp, cfglist.cfg);
         goto end;
     }
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    if (tx->cfg != htp) {
+    if (htp_tx_cfg(tx) != htp) {
         printf("wrong HTP config (%p instead of %p - default=%p): ",
-               tx->cfg, htp, cfglist.cfg);
+               htp_tx_cfg(tx), htp, cfglist.cfg);
         goto end;
     }
 
@@ -5971,8 +5965,12 @@ static int HTPBodyReassemblyTest01(void)
     Flow flow;
     memset(&flow, 0x00, sizeof(flow));
     AppLayerParserState *parser = AppLayerParserStateAlloc();
-    htp_tx_t tx;
-    memset(&tx, 0, sizeof(tx));
+    htp_cfg_t *cfg = htp_config_create();
+    BUG_ON(cfg == NULL);
+    htp_connp_t *connp = htp_connp_create(cfg);
+    BUG_ON(connp == NULL);
+    htp_tx_t *tx = htp_tx_create(connp);
+    BUG_ON(tx == NULL);
 
     hstate.f = &flow;
     flow.alparser = parser;
@@ -6010,6 +6008,10 @@ static int HTPBodyReassemblyTest01(void)
 
     result = 1;
 end:
+    htp_tx_destroy(tx);
+    htp_connp_destroy_all(connp);
+    htp_config_destroy(cfg);
+
     return result;
 }
 
@@ -6177,8 +6179,8 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
     void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
@@ -6289,11 +6291,11 @@ libhtp:\n\
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_M_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
@@ -6372,11 +6374,11 @@ static int HTPParserTest16(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_M_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx ? bstr_util_strdup_to_c(tx->request_method) : "tx null",
-                tx ? bstr_util_strdup_to_c(tx->request_protocol) : "tx null");
+                "HTTP/1.1 and got %s \n", tx ? bstr_util_strdup_to_c(htp_tx_request_method(tx)) : "tx null",
+                tx ? bstr_util_strdup_to_c(htp_tx_request_protocol(tx)) : "tx null");
         goto end;
     }
 
@@ -6487,42 +6489,42 @@ static int HTPParserTest17(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_CONNECT ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
+        h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_POST and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
-    if (tx->response_status_number != 200) {
+    if (htp_tx_response_status_number(tx) != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
+                "HTTP/1.1 and got %s \n", htp_tx_response_status_number(tx),
+               bstr_util_strdup_to_c(htp_tx_response_message(tx)),
+                bstr_util_strdup_to_c(htp_tx_response_protocol(tx)));
         goto end;
     }
 
     tx = HTPStateGetTx(http_state, 1);
     if (tx == NULL)
         goto end;
-    h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_GET ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
+        h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
-    if (tx->response_status_number != 200) {
+    if (htp_tx_response_status_number(tx) != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
+                "HTTP/1.1 and got %s \n", htp_tx_response_status_number(tx),
+               bstr_util_strdup_to_c(htp_tx_response_message(tx)),
+                bstr_util_strdup_to_c(htp_tx_response_protocol(tx)));
         goto end;
     }
     result = 1;
@@ -6619,42 +6621,42 @@ static int HTPParserTest18(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_CONNECT ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
+        h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_POST and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
-    if (tx->response_status_number != 200) {
+    if (htp_tx_response_status_number(tx) != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
+                "HTTP/1.1 and got %s \n", htp_tx_response_status_number(tx),
+               bstr_util_strdup_to_c(htp_tx_response_message(tx)),
+                bstr_util_strdup_to_c(htp_tx_response_protocol(tx)));
         goto end;
     }
 
     tx = HTPStateGetTx(http_state, 1);
     if (tx == NULL)
         goto end;
-    h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_GET ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
+        h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
-    if (tx->response_status_number != 200) {
+    if (htp_tx_response_status_number(tx) != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
+                "HTTP/1.1 and got %s \n", htp_tx_response_status_number(tx),
+               bstr_util_strdup_to_c(htp_tx_response_message(tx)),
+                bstr_util_strdup_to_c(htp_tx_response_protocol(tx)));
         goto end;
     }
     result = 1;
@@ -6731,21 +6733,21 @@ static int HTPParserTest19(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_CONNECT ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
+        h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_POST and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
+                bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
     }
 
-    if (tx->response_status_number != 200) {
+    if (htp_tx_response_status_number(tx) != 200) {
         printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
+                "HTTP/1.1 and got %s \n", htp_tx_response_status_number(tx),
+               bstr_util_strdup_to_c(htp_tx_response_message(tx)),
+                bstr_util_strdup_to_c(htp_tx_response_protocol(tx)));
         goto end;
     }
 
@@ -6810,14 +6812,14 @@ static int HTPParserTest20(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != 0);
-    FAIL_IF(tx->response_protocol_number != -1);
+    FAIL_IF(htp_tx_response_status_number(tx) != 0);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -6872,14 +6874,14 @@ static int HTPParserTest21(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != 0);
-    FAIL_IF(tx->response_protocol_number != -1);
+    FAIL_IF(htp_tx_response_status_number(tx) != 0);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -6928,14 +6930,14 @@ static int HTPParserTest22(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != -0);
-    FAIL_IF(tx->response_protocol_number != -1);
+    FAIL_IF(htp_tx_response_status_number(tx) != -0);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -6984,14 +6986,14 @@ static int HTPParserTest23(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != -1);
-    FAIL_IF(tx->response_protocol_number != -2);
+    FAIL_IF(htp_tx_response_status_number(tx) != -1);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != -2);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -7040,14 +7042,14 @@ static int HTPParserTest24(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(tx->request_method_number != HTP_M_GET);
-    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    FAIL_IF(tx->response_status_number != -1);
-    FAIL_IF(tx->response_protocol_number != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_response_status_number(tx) != -1);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
