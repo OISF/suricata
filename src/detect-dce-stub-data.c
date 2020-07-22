@@ -1902,6 +1902,19 @@ static int DetectDceStubDataTestParse05(void)
     return result;
 }
 
+// invalid signature because of invalid protocol
+static int DetectDceStubDataTestParse06(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags = DE_QUIET;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any dce_stub_data;content:\"0\";");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 static void DetectDceStubDataRegisterTests(void)
 {
     UtRegisterTest("DetectDceStubDataTestParse01",
@@ -1914,5 +1927,7 @@ static void DetectDceStubDataRegisterTests(void)
                    DetectDceStubDataTestParse04);
     UtRegisterTest("DetectDceStubDataTestParse05",
                    DetectDceStubDataTestParse05);
+    UtRegisterTest("DetectDceStubDataTestParse06",
+                   DetectDceStubDataTestParse06);
 }
 #endif
