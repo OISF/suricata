@@ -85,7 +85,7 @@ static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
-            HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+            HtpTxUserData *tx_ud = htp_tx_user_data(tx);
             if (tx_ud->request_uri_normalized != NULL) {
                 PrintRawUriFp(fp, bstr_ptr(tx_ud->request_uri_normalized),
                               bstr_len(tx_ud->request_uri_normalized));

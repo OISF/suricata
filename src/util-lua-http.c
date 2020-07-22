@@ -98,7 +98,7 @@ static int HttpGetRequestUriNormalized(lua_State *luastate)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (htud == NULL)
         return LuaCallbackError(luastate, "no htud in tx");
 
@@ -190,7 +190,7 @@ static int HttpGetRawHeaders(lua_State *luastate, int dir)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (htud == NULL)
         return LuaCallbackError(luastate, "no htud in tx");
 
@@ -269,7 +269,7 @@ static int HttpGetBody(lua_State *luastate, int dir)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (htud == NULL)
         return LuaCallbackError(luastate, "no htud in tx");
 

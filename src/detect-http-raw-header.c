@@ -177,7 +177,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+        HtpTxUserData *tx_ud = htp_tx_user_data(tx);
         if (tx_ud == NULL)
             return NULL;
 
@@ -248,7 +248,7 @@ static void PrefilterMpmHttpTrailerRaw(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     htp_tx_t *tx = txv;
-    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
+    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_user_data(tx);
     /* if the request wasn't flagged as having a trailer, we skip */
     if (htud && (
             ((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||

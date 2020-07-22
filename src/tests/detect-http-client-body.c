@@ -2301,7 +2301,7 @@ static int DetectHttpClientBodyTest15(void)
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 1);
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(t1);
 
     HtpBodyChunk *cur = htud->request_body.first;
     if (htud->request_body.first == NULL) {
@@ -2316,7 +2316,7 @@ static int DetectHttpClientBodyTest15(void)
         goto end;
     }
 
-    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *) htp_tx_user_data(t2);
 
     cur = htud->request_body.first;
     if (htud->request_body.first == NULL) {

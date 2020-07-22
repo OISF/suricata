@@ -267,7 +267,7 @@ static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     htp_tx_t *tx = txv;
-    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
+    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_user_data(tx);
     /* if the request wasn't flagged as having a trailer, we skip */
     if (htud && (
             ((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||

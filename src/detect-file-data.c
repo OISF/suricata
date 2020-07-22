@@ -211,7 +211,7 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
 
 static inline HtpBody *GetResponseBody(htp_tx_t *tx)
 {
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud == NULL) {
         SCLogDebug("no htud");
         return NULL;

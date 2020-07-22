@@ -309,7 +309,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     if (tx == NULL && tx_id > 0)
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
-        htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud != NULL) {
             AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, e);
             s->events++;
@@ -323,7 +323,7 @@ static AppLayerDecoderEvents *HTPGetEvents(void *tx)
 {
     SCLogDebug("get HTTP events for TX %p", tx);
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (htud != NULL) {
         SCLogDebug("has htud, htud->decoder_events %p", htud->decoder_events);
         return htud->decoder_events;
@@ -400,7 +400,7 @@ void HTPStateFree(void *state)
             for (tx_id = 0; tx_id < total_txs; tx_id++) {
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
-                    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+                    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
                     HtpTxUserDataFree(s, htud);
                     htp_tx_set_user_data(tx, NULL);
                 }
@@ -441,7 +441,7 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
     htp_tx_t *tx = HTPStateGetTx(s, id);
     if (tx != NULL) {
         /* This will remove obsolete body chunks */
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         HtpTxUserDataFree(s, htud);
         htp_tx_set_user_data(tx, NULL);
 
@@ -520,7 +520,7 @@ void AppLayerHtpNeedFileInspection(void)
 
 static void AppLayerHtpSetStreamDepthFlag(void *tx, uint8_t flags)
 {
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data((htp_tx_t *)tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data((htp_tx_t *)tx);
     if (tx_ud) {
         if (flags & STREAM_TOCLIENT) {
             tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
@@ -619,7 +619,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
                         HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
                         HTP_HOSTH_INVALID))
     {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
             return;
 
@@ -643,7 +643,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
                         HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
     if (htp_tx_request_auth_type(tx) == HTP_AUTH_UNRECOGNIZED) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
@@ -652,7 +652,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
     if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_M_UNKNOWN &&
         (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
          htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_UNKNOWN)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
@@ -1727,7 +1727,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
                "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(d->tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1863,7 +1863,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
                "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(d->tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1975,7 +1975,7 @@ void HTPFreeConfig(void)
 
 static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
 {
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud != NULL) {
         htud->request_has_trailers = 1;
     }
@@ -1984,7 +1984,7 @@ static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
 
 static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
 {
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud != NULL) {
         htud->response_has_trailers = 1;
     }
@@ -2052,7 +2052,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
 
     HTPErrorCheckTxRequestFlags(hstate, tx);
 
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud != NULL) {
         if (htud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -2088,7 +2088,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
     /* we have one whole transaction now */
     hstate->transaction_cnt++;
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (htud != NULL) {
         if (htud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -2134,7 +2134,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (request_uri_normalized == NULL)
         return HTP_OK;
 
-    tx_ud = htp_tx_get_user_data(tx);
+    tx_ud = htp_tx_user_data(tx);
     if (likely(tx_ud == NULL)) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL)) {
@@ -2164,7 +2164,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
     htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), HTP_DECODER_URLENCODED, part, &flags);
     // shorter string means that uri was encoded
     if (res == HTP_OK && prevlen > bstr_len(part)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (likely(htud == NULL)) {
             htud = HTPCalloc(1, sizeof(*htud));
             if (unlikely(htud == NULL))
@@ -2203,7 +2203,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
     if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx_data->tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
@@ -2240,7 +2240,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx_data->tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
@@ -2883,7 +2883,7 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 static void HTPStateSetTxLogged(void *alstate, void *vtx, LoggerId bits)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud)
         tx_ud->logged = bits;
 }
@@ -2891,7 +2891,7 @@ static void HTPStateSetTxLogged(void *alstate, void *vtx, LoggerId bits)
 static LoggerId HTPStateGetTxLogged(void *alstate, void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL)
         return tx_ud->logged;
 
@@ -2946,14 +2946,14 @@ static void HTPStateTruncate(void *state, uint8_t direction)
 static DetectEngineState *HTPGetTxDetectState(void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     return tx_ud ? tx_ud->de_state : NULL;
 }
 
 static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
@@ -2968,7 +2968,7 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
 static uint64_t HTPGetTxDetectFlags(void *vtx, uint8_t dir)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud) {
         if (dir & STREAM_TOSERVER) {
             return tx_ud->detect_flags_ts;
@@ -2982,7 +2982,7 @@ static uint64_t HTPGetTxDetectFlags(void *vtx, uint8_t dir)
 static void HTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
@@ -3778,7 +3778,7 @@ static int HTPParserTest07(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -3875,7 +3875,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
@@ -3959,7 +3959,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         //printf("uri %s\n", bstr_util_strdup_to_c(htp_tx_request_uri_normalized(tx)));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
@@ -4127,7 +4127,7 @@ static int HTPParserTest11(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (tx != NULL && tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (4 != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be 2, is %"PRIuMAX,
@@ -4212,7 +4212,7 @@ static int HTPParserTest12(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (7 != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be 5, is %"PRIuMAX,
@@ -4897,7 +4897,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4924,7 +4924,7 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4950,7 +4950,7 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 2);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5066,7 +5066,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5093,7 +5093,7 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5119,7 +5119,7 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 2);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX" (3): ",
@@ -5233,7 +5233,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5260,7 +5260,7 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     if (tx == NULL)
         goto end;
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5370,7 +5370,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5480,7 +5480,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5590,7 +5590,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5701,7 +5701,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5809,7 +5809,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -5918,7 +5918,7 @@ libhtp:\n\
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx == NULL)
         goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
