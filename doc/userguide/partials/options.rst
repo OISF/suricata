@@ -47,6 +47,12 @@
    interrupted. This is useful with directories to add new files and not reset
    flow state between files.
 
+.. option:: --pcap-file-recursive
+   Used with the -r option when the path provided is a directory.  This option
+   enables recursive traversal into subdirectories to a maximum depth of 255.
+   This option cannot be combined with --pcap-file-continuous.  Symlinks are
+   ignored.   
+
 .. option:: --pcap-file-delete
 
    Used with the -r option to indicate that the mode should delete pcap files
