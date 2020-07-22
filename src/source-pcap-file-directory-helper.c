@@ -26,6 +26,7 @@
 #include "source-pcap-file-directory-helper.h"
 #include "runmode-unix-socket.h"
 #include "util-mem.h"
+#include "util-path.h"
 #include "source-pcap-file.h"
 
 static void GetTime(struct timespec *tm);
@@ -41,6 +42,7 @@ static TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv,
                                            struct timespec * older_than);
 static TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                                                  struct timespec *older_than);
+static const uint8_t max_directory_recursion = UINT8_MAX;
 
 void GetTime(struct timespec *tm)
 {
@@ -314,82 +316,107 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
         SCLogError(SC_ERR_INVALID_ARGUMENT, "No directory filename was passed");
         SCReturnInt(TM_ECODE_FAILED);
     }
+    if ((pv->should_recurse == false) && (pv->cur_dir_depth > 0)) {
+        /* User has not enabled recursion; this is a subdirectory */
+        SCLogInfo("Subdirectory %s will be ignored.  Enable recursive mode using --pcap-file-recursive.", pv->filename);
+        SCReturnInt(TM_ECODE_OK);
+    }
+    if ((pv->should_recurse == true) && (pv->cur_dir_depth >= max_directory_recursion)){
+        /* Maximum allowable depth reached; ending recursive traversal. */
+        SCLogInfo("Directory depth of %d has been reached.  "
+                  "Ignoring subdirectory %s", max_directory_recursion, pv->filename);
+        SCReturnInt(TM_ECODE_OK);
+    }
     struct dirent * dir = NULL;
     PendingFile *file_to_add = NULL;
 
     while ((dir = readdir(pv->directory)) != NULL) {
-#ifndef OS_WIN32
-        if (dir->d_type != DT_REG) {
+        if (!SCIsRegularDirectory(dir) && !SCIsRegularFile(dir)) {
             continue;
         }
-#endif
-        if (strcmp(dir->d_name, ".") == 0 ||
-            strcmp(dir->d_name, "..") == 0) {
+        if (SCIsRegularDirectory(dir)){
+            DIR *cur_dir = pv->directory;
+            char *cur_path = pv->filename;
+
+            /* Create nested directory path */
+            char next_dir [PATH_MAX] = {0};
+            int result = PathJoin(next_dir, PATH_MAX, pv->filename, dir->d_name);
+            if (result != TM_ECODE_OK) {
+                return result;
+            }
+            /* Update pv to point to the nested directory.  Note, this open may fail.
+             * Only set pv->directory on success */
+            DIR *directory = opendir(next_dir);
+            if (directory == NULL) {
+                SCLogWarning(SC_WARN_PATH_READ_ERROR, "Error opening directory %s.  %s", next_dir, strerror(errno));
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+            pv->directory = directory;
+            pv->filename = next_dir;
+            /* Recursively descend into directory structure */
+            ++pv->cur_dir_depth;
+            PcapDirectoryPopulateBuffer(pv, older_than);
+            --pv->cur_dir_depth;
+            closedir(pv->directory);
+            pv->directory = cur_dir;
+            pv->filename = cur_path;
             continue;
         }
+        char pathbuff [PATH_MAX] = {0};
+        int result = PathJoin(pathbuff, PATH_MAX, pv->filename, dir->d_name);
+        if (result != TM_ECODE_OK) {
+            return result;
+        }
+        struct timespec temp_time;
+        memset(&temp_time, 0, sizeof(struct timespec));
 
-        char pathbuff[PATH_MAX] = {0};
+        if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0) {
+            SCLogDebug("%" PRIuMAX " < %" PRIuMAX "(%s) < %" PRIuMAX ")",
+                       (uintmax_t)SCTimespecAsEpochMillis(&pv->shared->last_processed),
+                       (uintmax_t)SCTimespecAsEpochMillis(&temp_time),
+                       pathbuff,
+                       (uintmax_t)SCTimespecAsEpochMillis(older_than));
 
-        int written = 0;
-
-        written = snprintf(pathbuff, PATH_MAX, "%s/%s", pv->filename, dir->d_name);
-
-        if (written <= 0 || written >= PATH_MAX) {
-            SCLogError(SC_ERR_SPRINTF, "Could not write path");
-
-            SCReturnInt(TM_ECODE_FAILED);
-        } else {
-            struct timespec temp_time;
-            memset(&temp_time, 0, sizeof(struct timespec));
-
-            if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0) {
-                SCLogDebug("%" PRIuMAX " < %" PRIuMAX "(%s) < %" PRIuMAX ")",
-                           (uintmax_t)SCTimespecAsEpochMillis(&pv->shared->last_processed),
-                           (uintmax_t)SCTimespecAsEpochMillis(&temp_time),
-                           pathbuff,
-                           (uintmax_t)SCTimespecAsEpochMillis(older_than));
-
-                // Skip files outside of our time range
-                if (CompareTimes(&temp_time, &pv->shared->last_processed) <= 0) {
-                    SCLogDebug("Skipping old file %s", pathbuff);
-                    continue;
-                }
-                else if (CompareTimes(&temp_time, older_than) >= 0) {
-                    SCLogDebug("Skipping new file %s", pathbuff);
-                    continue;
-                }
-            } else {
-                SCLogDebug("Unable to get modified time on %s, skipping", pathbuff);
+            // Skip files outside of our time range
+            if (CompareTimes(&temp_time, &pv->shared->last_processed) <= 0) {
+                SCLogDebug("Skipping old file %s", pathbuff);
                 continue;
             }
-
-            file_to_add = SCCalloc(1, sizeof(PendingFile));
-            if (unlikely(file_to_add == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate pending file");
-
-                SCReturnInt(TM_ECODE_FAILED);
+            else if (CompareTimes(&temp_time, older_than) >= 0) {
+                SCLogDebug("Skipping new file %s", pathbuff);
+                continue;
             }
+        } else {
+            SCLogDebug("Unable to get modified time on %s, skipping", pathbuff);
+            continue;
+        }
 
-            file_to_add->filename = SCStrdup(pathbuff);
-            if (unlikely(file_to_add->filename == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy filename");
-                CleanupPendingFile(file_to_add);
+        file_to_add = SCCalloc(1, sizeof(PendingFile));
+        if (unlikely(file_to_add == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate pending file");
 
-                SCReturnInt(TM_ECODE_FAILED);
-            }
+            SCReturnInt(TM_ECODE_FAILED);
+        }
 
-            memset(&file_to_add->modified_time, 0, sizeof(struct timespec));
-            CopyTime(&temp_time, &file_to_add->modified_time);
+        file_to_add->filename = SCStrdup(pathbuff);
+        if (unlikely(file_to_add->filename == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy filename");
+            CleanupPendingFile(file_to_add);
 
-            SCLogInfo("Found \"%s\" at %" PRIuMAX, file_to_add->filename,
-                       (uintmax_t)SCTimespecAsEpochMillis(&file_to_add->modified_time));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
 
-            if (PcapDirectoryInsertFile(pv, file_to_add) == TM_ECODE_FAILED) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to add file");
-                CleanupPendingFile(file_to_add);
+        memset(&file_to_add->modified_time, 0, sizeof(struct timespec));
+        CopyTime(&temp_time, &file_to_add->modified_time);
 
-                SCReturnInt(TM_ECODE_FAILED);
-            }
+        SCLogInfo("Found \"%s\" at %" PRIuMAX, file_to_add->filename,
+                   (uintmax_t)SCTimespecAsEpochMillis(&file_to_add->modified_time));
+
+        if (PcapDirectoryInsertFile(pv, file_to_add) == TM_ECODE_FAILED) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to add file");
+            CleanupPendingFile(file_to_add);
+
+            SCReturnInt(TM_ECODE_FAILED);
         }
     }
 
