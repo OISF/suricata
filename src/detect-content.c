@@ -499,7 +499,11 @@ void DetectContentPropagateLimits(Signature *s)
                     SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth, offset_plus_pat);
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                        offset = cd->offset = offset_plus_pat + cd->distance;
+                        if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
+                            offset = cd->offset = offset_plus_pat + cd->distance;
+                        } else {
+                            SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
+                        }
                         SCLogDebug("updated content to have offset %u", cd->offset);
                     }
                     if (have_anchor && !last_reset && offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
