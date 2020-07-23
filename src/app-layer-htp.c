@@ -850,8 +850,8 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
 /**
  *  \param name /Lowercase/ version of the variable name
  */
-static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
-        uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
+static int HTTPParseContentDispositionHeader(const uint8_t *name, size_t name_len,
+        const uint8_t *data, size_t len, uint8_t const**retptr, size_t *retlen)
 {
 #ifdef PRINT
     printf("DATA START: \n");
@@ -869,7 +869,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
     if (x >= len)
         return 0;
 
-    uint8_t *line = data+x;
+    const uint8_t *line = data+x;
     size_t line_len = len-x;
     size_t offset = 0;
 #ifdef PRINT
@@ -884,7 +884,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
             }
 
             if (((line[x - 1] != '\\' && line[x] == ';') || ((x + 1) == line_len)) && (quote == 0 || quote % 2 == 0)) {
-                uint8_t *token = line + offset;
+                const uint8_t *token = line + offset;
                 size_t token_len = x - offset;
 
                 if ((x + 1) == line_len) {
@@ -904,7 +904,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
 #endif
                 if (token_len > name_len) {
                     if (name == NULL || SCMemcmpLowercase(name, token, name_len) == 0) {
-                        uint8_t *value = token + name_len;
+                        const uint8_t *value = token + name_len;
                         size_t value_len = token_len - name_len;
 
                         if (value[0] == '\"') {
@@ -934,8 +934,8 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
 /**
  *  \param name /Lowercase/ version of the variable name
  */
-static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
-        uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
+static int HTTPParseContentTypeHeader(const uint8_t *name, const size_t name_len,
+        const uint8_t *data, const size_t len, uint8_t const **retptr, size_t *retlen)
 {
     SCEnter();
 #ifdef PRINT
@@ -955,7 +955,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
         SCReturnInt(0);
     }
 
-    uint8_t *line = data+x;
+    const uint8_t *line = data+x;
     size_t line_len = len-x;
     size_t offset = 0;
 #ifdef PRINT
@@ -970,7 +970,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
             }
 
             if (((line[x - 1] != '\\' && line[x] == ';') || ((x + 1) == line_len)) && (quote == 0 || quote % 2 == 0)) {
-                uint8_t *token = line + offset;
+                const uint8_t *token = line + offset;
                 size_t token_len = x - offset;
 
                 if ((x + 1) == line_len) {
@@ -990,7 +990,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
 #endif
                 if (token_len > name_len) {
                     if (name == NULL || SCMemcmpLowercase(name, token, name_len) == 0) {
-                        uint8_t *value = token + name_len;
+                        const uint8_t *value = token + name_len;
                         size_t value_len = token_len - name_len;
 
                         if (value[0] == '\"') {
@@ -1032,14 +1032,13 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(d->tx),
-            "Content-Type");
-    if (h != NULL && bstr_len(h->value) > 0) {
-        uint8_t *boundary = NULL;
+    const htp_header_t *h = htp_tx_request_header(d->tx, "Content-Type");
+    if (h != NULL && htp_header_value_len(h) > 0) {
+        const uint8_t *boundary = NULL;
         size_t boundary_len = 0;
 
         int r = HTTPParseContentTypeHeader((uint8_t *)"boundary=", 9,
-                (uint8_t *) bstr_ptr(h->value), bstr_len(h->value),
+                htp_header_value_ptr(h), htp_header_value_len(h),
                 &boundary, &boundary_len);
         if (r == 1) {
 #ifdef PRINT
@@ -1075,12 +1074,12 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
 static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         HtpTxUserData *htud,
         uint8_t *header, uint32_t header_len,
-        uint8_t **filename, uint16_t *filename_len,
-        uint8_t **filetype, uint16_t *filetype_len)
+        const uint8_t **filename, uint16_t *filename_len,
+        const uint8_t **filetype, uint16_t *filetype_len)
 {
-    uint8_t *fn = NULL;
+    const uint8_t *fn = NULL;
     size_t fn_len = 0;
-    uint8_t *ft = NULL;
+    const uint8_t *ft = NULL;
     size_t ft_len = 0;
 
 #ifdef PRINT
@@ -1314,9 +1313,9 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             header_end < (chunks_buffer + chunks_buffer_len) &&
             header_start < header_end)
     {
-        uint8_t *filename = NULL;
+        const uint8_t *filename = NULL;
         uint16_t filename_len = 0;
-        uint8_t *filetype = NULL;
+        const uint8_t *filetype = NULL;
         uint16_t filetype_len = 0;
 
         uint32_t header_len = header_end - header_start;
@@ -1635,16 +1634,16 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     {
         SCLogDebug("setting up file name");
 
-        uint8_t *filename = NULL;
+        const uint8_t *filename = NULL;
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx),
-                "Content-Disposition");
-        if (h != NULL && bstr_len(h->value) > 0) {
+        const htp_header_t *h = htp_tx_response_header(tx, "Content-Disposition");
+        if (h != NULL && htp_header_value_len(h) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, &filename_len);
+                    htp_header_value_ptr(h), htp_header_value_len(h),
+                    &filename, &filename_len);
         }
 
         /* fall back to name from the uri */
@@ -1670,9 +1669,9 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
             //set range if present
-            htp_header_t *h_content_range = htp_table_get_c(htp_tx_response_headers(tx), "content-range");
+            const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
             if (h_content_range != NULL) {
-                HTPFileSetRange(hstate, h_content_range->value);
+                HTPFileSetRange(hstate, htp_header_value(h_content_range));
             }
         }
     }
@@ -3171,10 +3170,10 @@ static int HTPParserTest01(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(bstr_cmp_c(htp_header_value(h), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
@@ -3216,10 +3215,10 @@ static int HTPParserTest01b(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
@@ -3272,10 +3271,10 @@ static int HTPParserTest01c(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
 
@@ -3340,14 +3339,14 @@ static int HTPParserTest01a(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
-    if (strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0")
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
+    if (strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0")
         || htp_tx_request_method_number(tx) != HTP_M_POST ||
         htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
     {
         printf("expected header value: Victor/1.0 and got %s: and expected"
                 " method: POST and got %s, expected protocol number HTTP/1.0"
-                "  and got: %s \n", bstr_util_strdup_to_c(h->value),
+                "  and got: %s \n", bstr_util_strdup_to_c(htp_header_value(h)),
                 bstr_util_strdup_to_c(htp_tx_request_method(tx)),
                 bstr_util_strdup_to_c(htp_tx_request_protocol(tx)));
         goto end;
@@ -3403,7 +3402,7 @@ static int HTPParserTest02(void)
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NOT_NULL(h);
 
     FAIL_IF_NULL(htp_tx_request_method(tx));
@@ -3473,7 +3472,7 @@ static int HTPParserTest03(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
         h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
     {
@@ -3533,7 +3532,7 @@ static int HTPParserTest04(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
         h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_0_9)
     {
@@ -3617,7 +3616,7 @@ static int HTPParserTest05(void)
     FAIL_IF_NOT(htp_tx_request_method_number(tx) == HTP_M_POST);
     FAIL_IF_NOT(htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_1_0);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF_NOT(htp_tx_response_status_number(tx) == 200);
@@ -3710,7 +3709,7 @@ static int HTPParserTest06(void)
     FAIL_IF(htp_tx_response_status_number(tx) != 200);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
 
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -4033,34 +4032,20 @@ static int HTPParserTest10(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
-    if (h == NULL) {
-        goto end;
-    }
+    const htp_header_t *h = htp_tx_request_header_index(tx, 0);
 
-    char *name = bstr_util_strdup_to_c(h->name);
-    if (name == NULL) {
-        goto end;
-    }
-
-    if (strcmp(name, "Host") != 0) {
+    if (bstr_cmp_c(htp_header_name(h), "Host") != 0) {
+        char *name = bstr_util_strdup_to_c(htp_header_name(h));
         printf("header name not \"Host\", instead \"%s\": ", name);
         free(name);
         goto end;
     }
-    free(name);
-
-    char *value = bstr_util_strdup_to_c(h->value);
-    if (value == NULL) {
-        goto end;
-    }
-
-    if (strcmp(value, "www.google.com") != 0) {
+    if (bstr_cmp_c(htp_header_value(h), "www.google.com") != 0) {
+        char *value = bstr_util_strdup_to_c(htp_header_value(h));
         printf("header value not \"www.google.com\", instead \"%s\": ", value);
         free(value);
         goto end;
     }
-    free(value);
 
     result = 1;
 end:
@@ -4298,12 +4283,12 @@ static int HTPParserTest13(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (h == NULL) {
         goto end;
     }
 
-    char *name = bstr_util_strdup_to_c(h->name);
+    char *name = bstr_util_strdup_to_c(htp_header_name(h));
     if (name == NULL) {
         goto end;
     }
@@ -4315,7 +4300,7 @@ static int HTPParserTest13(void)
     }
     free(name);
 
-    char *value = bstr_util_strdup_to_c(h->value);
+    char *value = bstr_util_strdup_to_c(htp_header_value(h));
     if (value == NULL) {
         goto end;
     }
@@ -6489,7 +6474,7 @@ static int HTPParserTest17(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
         h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
@@ -6510,7 +6495,7 @@ static int HTPParserTest17(void)
     tx = HTPStateGetTx(http_state, 1);
     if (tx == NULL)
         goto end;
-    h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    h = htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_GET ||
         h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
@@ -6621,7 +6606,7 @@ static int HTPParserTest18(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
         h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
@@ -6642,7 +6627,7 @@ static int HTPParserTest18(void)
     tx = HTPStateGetTx(http_state, 1);
     if (tx == NULL)
         goto end;
-    h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    h = htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_GET ||
         h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
@@ -6733,7 +6718,7 @@ static int HTPParserTest19(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     if (tx == NULL)
         goto end;
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (htp_tx_request_method_number(tx) != HTP_M_CONNECT ||
         h == NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
     {
@@ -6812,7 +6797,7 @@ static int HTPParserTest20(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
@@ -6874,7 +6859,7 @@ static int HTPParserTest21(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
@@ -6930,7 +6915,7 @@ static int HTPParserTest22(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
@@ -6986,7 +6971,7 @@ static int HTPParserTest23(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
@@ -7042,7 +7027,7 @@ static int HTPParserTest24(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h =  htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);

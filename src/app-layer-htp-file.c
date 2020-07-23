@@ -158,7 +158,7 @@ end:
  *
  * @return HTP_OK on success, HTP_ERROR on failure.
  */
-int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
+int HTPParseContentRange(const bstr * rawvalue, HtpContentRange *range)
 {
     unsigned char *data = bstr_ptr(rawvalue);
     size_t len = bstr_len(rawvalue);
@@ -225,7 +225,7 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
  *  \retval -2 error parsing
  *  \retval -3 error negative end in range
  */
-int HTPFileSetRange(HtpState *s, bstr *rawvalue)
+int HTPFileSetRange(HtpState *s, const bstr *rawvalue)
 {
     SCEnter();
 

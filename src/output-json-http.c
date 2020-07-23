@@ -230,46 +230,52 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
 
     if (htp_tx_request_headers(tx) != NULL) {
         /* user agent */
-        htp_header_t *h_user_agent = htp_table_get_c(htp_tx_request_headers(tx), "user-agent");
+        const htp_header_t *h_user_agent = htp_tx_request_header(tx, "user-agent");
         if (h_user_agent != NULL) {
-            const size_t size = bstr_len(h_user_agent->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_user_agent) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_user_agent->value), bstr_len(h_user_agent->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_user_agent),
+                    htp_header_value_len(h_user_agent), string, size);
             json_object_set_new(js, "http_user_agent", SCJsonString(string));
         }
 
         /* x-forwarded-for */
-        htp_header_t *h_x_forwarded_for = htp_table_get_c(htp_tx_request_headers(tx), "x-forwarded-for");
+        const htp_header_t *h_x_forwarded_for = htp_tx_request_header(tx,
+                "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
-            const size_t size = bstr_len(h_x_forwarded_for->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_x_forwarded_for) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_x_forwarded_for->value), bstr_len(h_x_forwarded_for->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_x_forwarded_for),
+                    htp_header_value_len(h_x_forwarded_for), string, size);
             json_object_set_new(js, "xff", json_string(string));
         }
     }
 
     /* content-type */
     if (htp_tx_response_headers(tx) != NULL) {
-        htp_header_t *h_content_type = htp_table_get_c(htp_tx_response_headers(tx), "content-type");
+        const htp_header_t *h_content_type = htp_tx_response_header(tx,
+                "content-type");
         if (h_content_type != NULL) {
-            const size_t size = bstr_len(h_content_type->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_content_type) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_content_type->value), bstr_len(h_content_type->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_content_type),
+                    htp_header_value_len(h_content_type), string, size);
             char *p = strchr(string, ';');
             if (p != NULL)
                 *p = '\0';
             json_object_set_new(js, "http_content_type", SCJsonString(string));
         }
-        htp_header_t *h_content_range = htp_table_get_c(htp_tx_response_headers(tx), "content-range");
+        const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
         if (h_content_range != NULL) {
-            const size_t size = bstr_len(h_content_range->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_content_range) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_content_range->value), bstr_len(h_content_range->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_content_range),
+                    htp_header_value_len(h_content_range), string, size);
             json_t *crjs = json_object();
             if (crjs != NULL) {
                 json_object_set_new(crjs, "raw", SCJsonString(string));
                 HtpContentRange crparsed;
-                if (HTPParseContentRange(h_content_range->value, &crparsed) == 0) {
+                if (HTPParseContentRange(htp_header_value(h_content_range), &crparsed) == 0) {
                     if (crparsed.start >= 0)
                         json_object_set_new(crjs, "start", json_integer(crparsed.start));
                     if (crparsed.end >= 0)
@@ -298,21 +304,21 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
                 ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
                       (http_fields[f].flags & LOG_HTTP_EXTENDED)))
             {
-                htp_header_t *h_field = NULL;
+                const htp_header_t *h_field = NULL;
                 if ((http_fields[f].flags & LOG_HTTP_REQUEST) != 0)
                 {
                     if (htp_tx_request_headers(tx) != NULL) {
-                        h_field = htp_table_get_c(htp_tx_request_headers(tx),
+                        h_field = htp_tx_request_header(tx,
                                                   http_fields[f].htp_field);
                     }
                 } else {
                     if (htp_tx_response_headers(tx) != NULL) {
-                        h_field = htp_table_get_c(htp_tx_response_headers(tx),
+                        h_field = htp_tx_response_header(tx,
                                                   http_fields[f].htp_field);
                     }
                 }
                 if (h_field != NULL) {
-                    c = bstr_util_strdup_to_c(h_field->value);
+                    c = bstr_util_strdup_to_c(htp_header_value(h_field));
                     if (c != NULL) {
                         json_object_set_new(js,
                                 http_fields[f].config_field,
@@ -328,14 +334,15 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
 static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
 {
     /* referer */
-    htp_header_t *h_referer = NULL;
+    const htp_header_t *h_referer = NULL;
     if (htp_tx_request_headers(tx) != NULL) {
-        h_referer = htp_table_get_c(htp_tx_request_headers(tx), "referer");
+        h_referer = htp_tx_request_header(tx, "referer");
     }
     if (h_referer != NULL) {
-        const size_t size = bstr_len(h_referer->value) * 2 + 1;
+        const size_t size = htp_header_value_len(h_referer) * 2 + 1;
         char string[size];
-        BytesToStringBuffer(bstr_ptr(h_referer->value), bstr_len(h_referer->value), string, size);
+        BytesToStringBuffer(htp_header_value_ptr(h_referer),
+                htp_header_value_len(h_referer), string, size);
 
         json_object_set_new(js, "http_refer", SCJsonString(string));
     }
@@ -365,11 +372,12 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
         unsigned int val = strtoul(status_string, NULL, 10);
         json_object_set_new(js, "status", json_integer(val));
 
-        htp_header_t *h_location = htp_table_get_c(htp_tx_response_headers(tx), "location");
+        const htp_header_t *h_location = htp_tx_response_header(tx, "location");
         if (h_location != NULL) {
-            const size_t size = bstr_len(h_location->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_location) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_location->value), bstr_len(h_location->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_location),
+                    htp_header_value_len(h_location), string, size);
             json_object_set_new(js, "redirect", SCJsonString(string));
         }
     }
@@ -380,17 +388,17 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
 
 static void JsonHttpLogJSONHeaders(json_t *js, uint32_t direction, htp_tx_t *tx)
 {
-    const htp_headers_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
+    const htp_headers_t *headers = direction & LOG_HTTP_REQ_HEADERS ?
         htp_tx_request_headers(tx) : htp_tx_response_headers(tx);
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
-    size_t n = htp_table_size(headers);
+    size_t n = htp_headers_size(headers);
     json_t * arr = json_array();
     if (arr == NULL) {
         return;
     }
     for (size_t i = 0; i < n; i++) {
-        htp_header_t * h = htp_table_get_index(headers, i, NULL);
+        const htp_header_t * h = htp_headers_get_index(headers, i);
         if (h == NULL) {
             continue;
         }
@@ -398,14 +406,14 @@ static void JsonHttpLogJSONHeaders(json_t *js, uint32_t direction, htp_tx_t *tx)
         if (obj == NULL) {
             continue;
         }
-        size_t size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ?
-            bstr_len(h->name) : MAX_SIZE_HEADER_NAME - 1;
-        memcpy(name, bstr_ptr(h->name), size_name);
+        size_t size_name = htp_header_name_len(h) < MAX_SIZE_HEADER_NAME - 1 ?
+            htp_header_name_len(h) : MAX_SIZE_HEADER_NAME - 1;
+        memcpy(name, htp_header_name_ptr(h), size_name);
         name[size_name] = '\0';
         json_object_set_new(obj, "name", SCJsonString(name));
-        size_t size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1 ?
-            bstr_len(h->value) : MAX_SIZE_HEADER_VALUE - 1;
-        memcpy(value, bstr_ptr(h->value), size_value);
+        size_t size_value = htp_header_value_len(h) < MAX_SIZE_HEADER_VALUE - 1 ?
+            htp_header_value_len(h) : MAX_SIZE_HEADER_VALUE - 1;
+        memcpy(value, htp_header_value_ptr(h), size_value);
         value[size_value] = '\0';
         json_object_set_new(obj, "value", SCJsonString(value));
         json_array_append_new(arr, obj);

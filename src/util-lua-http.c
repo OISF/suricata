@@ -157,18 +157,18 @@ static int HttpGetHeader(lua_State *luastate, int dir)
     if (name == NULL)
         return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
 
-    htp_table_t *headers = htp_tx_request_headers(tx);
-    if (dir == 1)
-        headers = htp_tx_response_headers(tx);
-    if (headers == NULL)
-        return LuaCallbackError(luastate, "tx has no headers");
-
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(headers, name);
-    if (h == NULL || bstr_len(h->value) == 0)
+    const htp_header_t *h = NULL;
+    if (dir == 0) {
+        h = htp_tx_request_header(tx, name);
+    } else {
+        h = htp_tx_response_header(tx, name);
+    }
+        
+    if (h == NULL || htp_header_value_len(h) == 0)
         return LuaCallbackError(luastate, "header not found");
 
     return LuaPushStringBuffer(luastate,
-            bstr_ptr(h->value), bstr_len(h->value));
+            htp_header_value_ptr(h), htp_header_value_len(h));
 }
 
 static int HttpGetRequestHeader(lua_State *luastate)
@@ -227,20 +227,20 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    htp_table_t *table = htp_tx_request_headers(tx);
+    const htp_table_t *table = htp_tx_request_headers(tx);
     if (dir == 1)
         table = htp_tx_response_headers(tx);
     if (htp_tx_request_headers(tx) == NULL)
         return LuaCallbackError(luastate, "no headers");
 
     lua_newtable(luastate);
-    htp_header_t *h = NULL;
+    const htp_header_t *h = NULL;
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(table);
+    size_t no_of_headers = htp_headers_size(table);
     for (; i < no_of_headers; i++) {
-        h = htp_table_get_index(table, i, NULL);
-        LuaPushStringBuffer(luastate, bstr_ptr(h->name), bstr_len(h->name));
-        LuaPushStringBuffer(luastate, bstr_ptr(h->value), bstr_len(h->value));
+        h = htp_headers_get_index(table, i);
+        LuaPushStringBuffer(luastate, htp_header_name_ptr(h), htp_header_name_len(h));
+        LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
         lua_settable(luastate, -3);
     }
     return 1;

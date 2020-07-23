@@ -97,20 +97,20 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         return NULL;
 
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(headers);
+    size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
-        size_t size1 = bstr_size(h->name);
-        size_t size2 = bstr_size(h->value);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
+        size_t size1 = htp_header_name_len(h);
+        size_t size2 = htp_header_value_len(h);
 
         if (flags & STREAM_TOSERVER) {
             if (size1 == 6 &&
-                SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6) == 0) {
+                SCMemcmpLowercase("cookie", htp_header_name_ptr(h), 6) == 0) {
                 continue;
             }
         } else {
             if (size1 == 10 &&
-                SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
+                SCMemcmpLowercase("set-cookie", htp_header_name_ptr(h), 10) == 0) {
                 continue;
             }
         }
@@ -126,12 +126,12 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
             }
         }
 
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->name), bstr_size(h->name));
-        buf->len += bstr_size(h->name);
+        memcpy(buf->buffer + buf->len, htp_header_name_ptr(h), htp_header_name_len(h));
+        buf->len += htp_header_name_len(h);
         buf->buffer[buf->len++] = ':';
         buf->buffer[buf->len++] = ' ';
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->value), bstr_size(h->value));
-        buf->len += bstr_size(h->value);
+        memcpy(buf->buffer + buf->len, htp_header_value_ptr(h), htp_header_value_len(h));
+        buf->len += htp_header_value_len(h);
         buf->buffer[buf->len++] = '\r';
         buf->buffer[buf->len++] = '\n';
 #if 0 // looks like this breaks existing rules

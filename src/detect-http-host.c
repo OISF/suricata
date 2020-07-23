@@ -294,13 +294,12 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
-            htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx),
-                    "Host");
-            if (h == NULL || h->value == NULL)
+            const htp_header_t *h = htp_tx_request_header(tx, "Host");
+            if (h == NULL || htp_header_value(h) == NULL)
                 return NULL;
 
-            data = (const uint8_t *)bstr_ptr(h->value);
-            data_len = bstr_len(h->value);
+            data = htp_header_value_ptr(h);
+            data_len = htp_header_value_len(h);
         } else {
             data = (const uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->hostname);
             data_len = bstr_len(htp_tx_parsed_uri(tx)->hostname);
