@@ -479,6 +479,9 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
     SigMatch *sm_new;
     int sm_type;
 
+    if ((uint32_t)list_id >= s->init_data->smlists_array_size) {
+        return NULL;
+    }
     SigMatch *sm_list = s->init_data->smlists_tail[list_id];
     if (sm_list == NULL)
         return NULL;
