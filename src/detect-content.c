@@ -553,7 +553,11 @@ void DetectContentPropagateLimits(Signature *s)
                             (cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE)) {
                         if (cd->distance >= 0) {
                             // only distance
-                            offset = cd->offset = offset_plus_pat + cd->distance;
+                            if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
+                                offset = cd->offset = offset_plus_pat + cd->distance;
+                            } else {
+                                SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
+                            }
                             offset_plus_pat = offset + cd->content_len;
                             SCLogDebug("offset %u offset_plus_pat %u", offset, offset_plus_pat);
                         }
@@ -717,6 +721,8 @@ static int DetectContentDepthTest01(void)
     // low end: offset 4 + patlen 1 = 5. So 5 + distance 55 = 60.
     // hi end: depth '13' (4+9) + distance 55 = 68 + within 2 = 70
     TEST_RUN("content:\"=\"; offset:4; depth:9; content:\"=&\"; distance:55; within:2;", 60, 70);
+
+    TEST_RUN("content:\"0123456789\"; content:\"abcdef\"; distance:2147483647;", 10, 0);
 
     TEST_DONE;
 }
