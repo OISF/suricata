@@ -118,7 +118,7 @@ pub struct HTTP2Frame {
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,
-    state: HTTP2TransactionState,
+    pub state: HTTP2TransactionState,
     child_stream_id: u32,
 
     pub frames_tc: Vec<HTTP2Frame>,
@@ -374,7 +374,7 @@ impl HTTP2State {
         return self.transactions.last_mut().unwrap();
     }
 
-    fn find_or_create_tx(
+    pub fn find_or_create_tx(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
     ) -> &mut HTTP2Transaction {
         if header.stream_id == 0 {
