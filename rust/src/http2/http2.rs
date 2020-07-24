@@ -674,44 +674,7 @@ impl HTTP2State {
         }
     }
 
-    fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
-        //very first : skip magic
-        if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
-            //skip magic
-            if input.len() >= HTTP2_MAGIC_LEN {
-                //skip magic
-                match std::str::from_utf8(&input[..HTTP2_MAGIC_LEN]) {
-                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
-                        input = &input[HTTP2_MAGIC_LEN..];
-                    }
-                    Ok(&_) => {
-                        self.set_event(HTTP2Event::InvalidClientMagic);
-                    }
-                    Err(_) => {
-                        return AppLayerResult::err();
-                    }
-                }
-                self.progress = HTTP2ConnectionState::Http2StateMagicDone;
-            } else {
-                //still more buffer
-                return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
-            }
-        }
-        //first consume frame bytes
-        let il = input.len();
-        if self.request_frame_size > 0 {
-            let ilen = input.len() as u32;
-            if self.request_frame_size >= ilen {
-                self.request_frame_size -= ilen;
-                return AppLayerResult::ok();
-            } else {
-                let start = self.request_frame_size as usize;
-                input = &input[start..];
-                self.request_frame_size = 0;
-            }
-        }
-
-        //then parse all we can
+    fn parse_frames_ts(&mut self, mut input: &[u8], il: usize) -> AppLayerResult {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
@@ -783,6 +746,47 @@ impl HTTP2State {
             }
         }
         return AppLayerResult::ok();
+    }
+
+    fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
+        //very first : skip magic
+        if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
+            //skip magic
+            if input.len() >= HTTP2_MAGIC_LEN {
+                //skip magic
+                match std::str::from_utf8(&input[..HTTP2_MAGIC_LEN]) {
+                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
+                        input = &input[HTTP2_MAGIC_LEN..];
+                    }
+                    Ok(&_) => {
+                        self.set_event(HTTP2Event::InvalidClientMagic);
+                    }
+                    Err(_) => {
+                        return AppLayerResult::err();
+                    }
+                }
+                self.progress = HTTP2ConnectionState::Http2StateMagicDone;
+            } else {
+                //still more buffer
+                return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
+            }
+        }
+        //first consume frame bytes
+        let il = input.len();
+        if self.request_frame_size > 0 {
+            let ilen = input.len() as u32;
+            if self.request_frame_size >= ilen {
+                self.request_frame_size -= ilen;
+                return AppLayerResult::ok();
+            } else {
+                let start = self.request_frame_size as usize;
+                input = &input[start..];
+                self.request_frame_size = 0;
+            }
+        }
+
+        //then parse all we can
+        return self.parse_frames_ts(input, il);
     }
 
     fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
