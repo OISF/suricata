@@ -69,3 +69,22 @@ void RegisterHTTP2Parsers(void)
     //TODOask HTTP2ParserRegisterTests();
 #endif
 }
+
+void HTTP2MimicHttp1Request(void *h1, void *h2s) {
+    if (h2s == NULL) {
+        return;
+    }
+    htp_tx_t *h1tx = (htp_tx_t *) h1;
+    void * tmp = malloc(bstr_len(h1tx->request_method));
+    memcpy(tmp, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
+    rs_http2_tx_set_method(h2s, tmp, bstr_len(h1tx->request_method));
+    rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
+    size_t nbheaders = htp_table_size(h1tx->request_headers);
+    for (size_t i = 0; i < nbheaders; i++) {
+        htp_header_t *h =  htp_table_get_index(h1tx->request_headers, i, NULL);
+        if (h != NULL) {
+            rs_http2_tx_add_header(h2s, bstr_ptr(h->name), bstr_len(h->name),
+                                   bstr_ptr(h->value), bstr_len(h->value));
+        }
+    }
+}
