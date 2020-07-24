@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -98,17 +98,15 @@ end:
 
 static TmEcode JsonSshLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogSSH.  \"initdata\" argument NULL");
+        return TM_ECODE_FAILED;
+    }
+
     JsonSshLogThread *aft = SCMalloc(sizeof(JsonSshLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(JsonSshLogThread));
-
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for EveLogSSH.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
-    }
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->sshlog_ctx = ((OutputCtx *)initdata)->data;
