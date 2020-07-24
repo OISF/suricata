@@ -260,6 +260,15 @@ static int TcpSegmentPoolInit(void *data, void *initdata)
      * won't have uninitialized memory to consider. */
     memset(seg, 0, sizeof (TcpSegment));
 
+    /*
+     * Initialize seg->pkt_hdr to hold TCPSEG_PKT_HDR_DEFAULT_SIZE bytes of data
+     * for packet headers. The size of the packet header will be checked before
+     * copying data and seg->pkt_hdr will be grown if necessary.
+     */
+    seg->pkt_hdr = SCMalloc(sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
+    if (unlikely(seg->pkt_hdr == NULL))
+        return 1;
+
     if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
         return 0;
     }
@@ -281,7 +290,10 @@ static void TcpSegmentPoolCleanup(void *ptr)
 {
     if (ptr == NULL)
         return;
-
+    TcpSegment *seg = (TcpSegment *) ptr;
+    if (seg) {
+        SCFree(seg->pkt_hdr);
+    }
     StreamTcpReassembleDecrMemuse((uint32_t)sizeof(TcpSegment));
 
 #ifdef DEBUG

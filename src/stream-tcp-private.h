@@ -58,12 +58,18 @@ int TcpSackCompare(struct StreamTcpSackRecord *a, struct StreamTcpSackRecord *b)
 RB_HEAD(TCPSACK, StreamTcpSackRecord);
 RB_PROTOTYPE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
 
+#define TCPSEG_PKT_HDR_DEFAULT_SIZE 64
+
 typedef struct TcpSegment {
     PoolThreadReserved res;
     uint16_t payload_len;       /**< actual size of the payload */
     uint32_t seq;
     RB_ENTRY(TcpSegment) __attribute__((__packed__)) rb;
     StreamingBufferSegment sbseg;
+    struct timeval ts;
+    uint32_t pktlen;
+    uint64_t pcap_cnt;
+    uint8_t *pkt_hdr;
 } __attribute__((__packed__)) TcpSegment;
 
 /** \brief compare function for the Segment tree

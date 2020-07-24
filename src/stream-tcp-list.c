@@ -32,6 +32,7 @@
 #include "util-validate.h"
 
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg);
+static void StreamTcpSegmentAddPacketData(TcpSegment *seg, Packet *p);
 
 static int check_overlap_different_data = 0;
 
@@ -564,6 +565,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* insert segment into list. Note: doesn't handle the data */
     int r = DoInsertSegment (stream, seg, &dup_seg, p);
+    StreamTcpSegmentAddPacketData(seg, p);
     SCLogDebug("DoInsertSegment returned %d", r);
     if (r < 0) {
         StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
@@ -890,6 +892,45 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     SCReturn;
 }
 
+/**
+ * \brief Adds the following information to the TcpSegment from the current
+ *  packet being processed: time values, packet length, pcap_cnt, and the
+ *  header data of the packet. This information is added to the TcpSegment so
+ *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
+ *  session at the beginning of the pcap capture.
+ * \param seg TcpSegment where information is being stored.
+ * \param p Packet being processed.
+ */
+static void StreamTcpSegmentAddPacketData(TcpSegment *seg, Packet *p)
+{
+    if (GET_PKT_DATA(p) != NULL && GET_PKT_LEN(p) > p->payload_len) {
+        seg->ts.tv_sec = p->ts.tv_sec;
+        seg->ts.tv_usec = p->ts.tv_usec;
+        seg->pktlen = GET_PKT_LEN(p);
+        seg->pcap_cnt = p->pcap_cnt;
+        /*
+         * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
+         * need to check that this is sufficient and allocate more memory if
+         * not.
+         */
+        if(GET_PKT_LEN(p) - p->payload_len > TCPSEG_PKT_HDR_DEFAULT_SIZE) {
+            seg->pkt_hdr = (uint8_t *) SCReallocFunc(seg->pkt_hdr,
+                    GET_PKT_LEN(p) - p->payload_len);
+        }
+        if (seg->pkt_hdr != NULL) {
+            memcpy(seg->pkt_hdr, GET_PKT_DATA(p), (size_t) GET_PKT_LEN(p) -
+                    p->payload_len);
+        } else {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for packet"
+                                         "data in TCP segment.");
+        }
+    } else {
+        seg->ts.tv_sec = 0;
+        seg->ts.tv_usec = 0;
+        seg->pktlen = 0;
+        seg->pcap_cnt = 0;
+    }
+}
 
 /*
  *  unittests

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,27 +15,22 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- *
- */
+#ifndef __SURICATA_PCAP_HELPER_H__
+#define __SURICATA_PCAP_HELPER_H__
 
-#ifndef __UTIL_PATH_H__
-#define __UTIL_PATH_H__
+struct TimevalHelper {
+    bpf_int32 tv_sec;
+    bpf_int32 tv_usec;
+};
 
-#ifndef HAVE_NON_POSIX_MKDIR
-    #define SCMkDir(a, b) mkdir(a, b)
-#else
-    #define SCMkDir(a, b) mkdir(a)
-#endif
+struct PcapSfPktHdr {
+    struct TimevalHelper ts;
+    bpf_u_int32 caplen;
+    bpf_u_int32 len;
+} __attribute__((packed));
 
-int PathIsAbsolute(const char *);
-int PathIsRelative(const char *);
-int SCDefaultMkDir(const char *path);
-int SCCreateDirectoryTree(const char *path, const bool final);
-bool SCPathExists(const char *path);
-void SCUndotFilepath(const char *dotted_filepath);
+void SplitPcapDump(u_char *user, struct pcap_pkthdr *libpcap_hdr,
+        const u_char *p1, bpf_u_int32 p1_len, const u_char *p2,
+        bpf_u_int32 p2_len);
 
-#endif /* __UTIL_PATH_H__ */
+#endif //SURICATA_PCAP_HELPER_H
