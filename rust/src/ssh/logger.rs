@@ -28,11 +28,15 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         if tx.cli_hdr.swver.len() > 0 {
             js.set_string_from_bytes("software_version", &tx.cli_hdr.swver)?;
         }
-        if tx.cli_hdr.hassh.len() > 0 {
-            js.set_string_from_bytes("hassh", &tx.cli_hdr.hassh)?;
-        }
-        if tx.cli_hdr.hassh_string.len() > 0 {
-            js.set_string_from_bytes("hassh.string", &tx.cli_hdr.hassh_string)?;
+        if tx.cli_hdr.hassh.len() > 0 || tx.cli_hdr.hassh_string.len() > 0 {
+            js.open_object("hassh")?;
+            if tx.cli_hdr.hassh.len() > 0 {
+                js.set_string_from_bytes("hash", &tx.cli_hdr.hassh)?;
+            }
+            if tx.cli_hdr.hassh_string.len() > 0 {
+                js.set_string_from_bytes("string", &tx.cli_hdr.hassh_string)?;
+            }
+            js.close()?;
         }
         js.close()?;
     }
@@ -42,11 +46,15 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         if tx.srv_hdr.swver.len() > 0 {
             js.set_string_from_bytes("software_version", &tx.srv_hdr.swver)?;
         }
-        if tx.srv_hdr.hassh.len() > 0 {
-            js.set_string_from_bytes("hassh", &tx.srv_hdr.hassh)?;
-        }
-        if tx.srv_hdr.hassh_string.len() > 0 {
-            js.set_string_from_bytes("hassh.string", &tx.srv_hdr.hassh_string)?;
+        if tx.srv_hdr.hassh.len() > 0 || tx.srv_hdr.hassh_string.len() > 0 {
+            js.open_object("hassh")?;
+            if tx.srv_hdr.hassh.len() > 0 {
+                js.set_string_from_bytes("hash", &tx.srv_hdr.hassh)?;
+            }
+            if tx.srv_hdr.hassh_string.len() > 0 {
+                js.set_string_from_bytes("string", &tx.srv_hdr.hassh_string)?;
+            }
+            js.close()?;
         }
         js.close()?;
     }

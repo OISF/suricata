@@ -980,7 +980,7 @@ Fields
 
 * "proto_version": The protocol version transported with the ssh protocol (1.x, 2.x)
 * "software_version": The software version used by end user
-* "hassh": MD5 of hassh algorithms of client or server
+* "hassh.hash": MD5 of hassh algorithms of client or server
 * "hassh.string": hassh algorithms of client or server
 
 Hassh must be enabled in the Suricata config file (set 'app-layer.protocols.ssh.hassh' to 'yes').
@@ -993,14 +993,18 @@ Example of SSH logging:
     "client": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
-        "hassh": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
-        "hassh.string": "curve25519-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,ext-info-c",
+        "hassh": {
+            "hash": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+            "string": "curve25519-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,ext-info-c",
+        }
      },
     "server": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
-        "hassh": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
-        "hassh.string": "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256",
+        "hassh": {
+            "hash": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+            "string": "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256",
+        }
      }
   }
 
