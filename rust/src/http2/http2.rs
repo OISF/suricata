@@ -841,7 +841,6 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 
-//TODOnext connection upgrade from HTTP1 cf SMTP STARTTLS
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
@@ -851,13 +850,6 @@ pub extern "C" fn rs_http2_probing_parser_tc(
         let slice = build_slice!(input, input_len as usize);
         match parser::http2_parse_frame_header(slice) {
             Ok((_, header)) => {
-                //TODO9 remove this by having change protocol start in the middle
-                if header.ftype == parser::HTTP2FrameType::HEADERS as u8
-                    && header.length <= HTTP2_DEFAULT_MAX_FRAME_SIZE
-                    && header.reserved == 0
-                {
-                    return unsafe { ALPROTO_HTTP2 };
-                }
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
