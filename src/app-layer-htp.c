@@ -947,11 +947,28 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    htp_tx_t *tx = NULL;
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
+                break;
+            case HTP_STREAM_TUNNEL:
+                tx = htp_connp_get_out_tx(hstate->connp);
+                if (tx != NULL && tx->response_status_number == 101) {
+                    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                                                                      "Upgrade");
+                    if (h != NULL) {
+                        if (bstr_cmp_c(h->value, "h2c") == 0) {
+                            uint16_t dp = 0;
+                            if (tx->request_port_number != -1) {
+                                dp = (uint16_t)tx->request_port_number;
+                            }
+                            AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
+                        }
+                    }
+                }
                 break;
             default:
                 break;

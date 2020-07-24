@@ -850,6 +850,13 @@ pub extern "C" fn rs_http2_probing_parser_tc(
         let slice = build_slice!(input, input_len as usize);
         match parser::http2_parse_frame_header(slice) {
             Ok((_, header)) => {
+                //TODO9 remove this by having change protocol start in the middle
+                if header.ftype == parser::HTTP2FrameType::HEADERS as u8
+                    && header.length <= HTTP2_DEFAULT_MAX_FRAME_SIZE
+                    && header.reserved == 0
+                {
+                    return unsafe { ALPROTO_HTTP2 };
+                }
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
@@ -1052,8 +1059,7 @@ const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
-    //TODOend default port
-    let default_port = CString::new("[3000]").unwrap();
+    let default_port = CString::new("[80]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
