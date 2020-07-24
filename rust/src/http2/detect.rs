@@ -15,9 +15,12 @@
  * 02110-1301, USA.
  */
 
-use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
+use super::http2::{
+    HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
+};
 use super::parser;
 use crate::core::STREAM_TOSERVER;
+use crate::log::*;
 use std::ffi::CStr;
 use std::mem::transmute;
 use std::str::FromStr;
@@ -539,4 +542,62 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
     }
 
     return 0;
+}
+
+fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
+    let head = parser::HTTP2FrameHeader {
+        length: 0,
+        ftype: parser::HTTP2FrameType::HEADERS as u8,
+        flags: 0,
+        reserved: 0,
+        stream_id: 1,
+    };
+    let mut blocks = Vec::new();
+    let b = parser::HTTP2FrameHeaderBlock {
+        name: name.to_vec(),
+        value: input.to_vec(),
+        error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+        sizeupdate: 0,
+    };
+    blocks.push(b);
+    let hs = parser::HTTP2FrameHeaders {
+        padlength: None,
+        priority: None,
+        blocks: blocks,
+    };
+    let txdata = HTTP2FrameTypeData::HEADERS(hs);
+    let tx = state.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
+    tx.frames_ts.push(HTTP2Frame {
+        header: head,
+        data: txdata,
+    });
+    //we do not expect more data from client
+    tx.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_set_method(
+    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
+) {
+    let slice = build_slice!(buffer, buffer_len as usize);
+    http2_tx_set_header(state, ":method".as_bytes(), slice)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_set_uri(state: &mut HTTP2State, buffer: *const u8, buffer_len: u32) {
+    let slice = build_slice!(buffer, buffer_len as usize);
+    http2_tx_set_header(state, ":path".as_bytes(), slice)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_add_header(
+    state: &mut HTTP2State, name: *const u8, name_len: u32, value: *const u8, value_len: u32,
+) {
+    let slice_name = build_slice!(name, name_len as usize);
+    let slice_value = build_slice!(value, value_len as usize);
+    if slice_name == "HTTP2-Settings".as_bytes() {
+        SCLogNotice!("lol seetings TODO");
+    } else {
+        http2_tx_set_header(state, slice_name, slice_value)
+    }
 }
