@@ -335,10 +335,8 @@ impl HTTP2State {
         for i in 0..self.transactions.len() {
             //reverse order should be faster
             let idx = self.transactions.len() - 1 - i;
-            if sid == self.transactions[self.transactions.len() - 1 - i].stream_id {
-                if self.transactions[self.transactions.len() - 1 - i].state
-                    == HTTP2TransactionState::HTTP2StateClosed
-                {
+            if sid == self.transactions[idx].stream_id {
+                if self.transactions[idx].state == HTTP2TransactionState::HTTP2StateClosed {
                     self.set_event(HTTP2Event::StreamIdReuse);
                     return 0;
                 }

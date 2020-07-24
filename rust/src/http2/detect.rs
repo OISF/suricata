@@ -78,8 +78,7 @@ pub extern "C" fn rs_http2_tx_has_errorcode(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match tx.frames_tc[i].data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
@@ -140,8 +139,7 @@ pub extern "C" fn rs_http2_tx_get_next_priority(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::PRIORITY(prio) => {
@@ -186,8 +184,7 @@ pub extern "C" fn rs_http2_tx_get_next_window(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match tx.frames_tc[i].data {
                 HTTP2FrameTypeData::WINDOWUPDATE(wu) => {
@@ -291,8 +288,7 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
@@ -387,8 +383,7 @@ pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -424,8 +419,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -488,8 +482,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                 _ => {}
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
