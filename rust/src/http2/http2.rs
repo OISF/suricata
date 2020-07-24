@@ -674,7 +674,7 @@ impl HTTP2State {
         }
     }
 
-    fn parse_frames_ts(&mut self, mut input: &[u8], il: usize) -> AppLayerResult {
+    fn parse_frames(&mut self, mut input: &[u8], il: usize, dir: u8) -> AppLayerResult {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
@@ -715,20 +715,27 @@ impl HTTP2State {
                         &rem[..hlsafe],
                         complete,
                         head.flags,
-                        STREAM_TOSERVER,
+                        dir,
                     );
 
-                    let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOSERVER);
-                    tx.handle_frame(&head, &txdata, STREAM_TOSERVER);
+                    let tx = self.find_or_create_tx(&head, &txdata, dir);
+                    tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let txid = tx.tx_id;
                     let ftype = head.ftype;
-                    tx.frames_ts.push(HTTP2Frame {
-                        header: head,
-                        data: txdata,
-                    });
+                    if dir == STREAM_TOSERVER {
+                        tx.frames_ts.push(HTTP2Frame {
+                            header: head,
+                            data: txdata,
+                        });
+                    } else {
+                        tx.frames_tc.push(HTTP2Frame {
+                            header: head,
+                            data: txdata,
+                        });
+                    }
                     if ftype == parser::HTTP2FrameType::DATA as u8 {
-                        self.stream_data(STREAM_TOSERVER, &rem[..hlsafe], over, txid);
+                        self.stream_data(dir, &rem[..hlsafe], over, txid);
                     }
                     input = &rem[hlsafe..];
                 }
@@ -786,7 +793,7 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        return self.parse_frames_ts(input, il);
+        return self.parse_frames(input, il, STREAM_TOSERVER);
     }
 
     fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
@@ -804,77 +811,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        while input.len() > 0 {
-            match parser::http2_parse_frame_header(input) {
-                Ok((rem, head)) => {
-                    let hl = head.length as usize;
-
-                    //we check for completeness first
-                    if rem.len() < hl {
-                        //but limit ourselves so as not to exhaust memory
-                        if hl < HTTP2_MAX_HANDLED_FRAME_SIZE {
-                            return AppLayerResult::incomplete(
-                                (il - input.len()) as u32,
-                                (HTTP2_FRAME_HEADER_LEN + hl) as u32,
-                            );
-                        } else if rem.len() < HTTP2_MIN_HANDLED_FRAME_SIZE {
-                            return AppLayerResult::incomplete(
-                                (il - input.len()) as u32,
-                                (HTTP2_FRAME_HEADER_LEN + HTTP2_MIN_HANDLED_FRAME_SIZE) as u32,
-                            );
-                        } else {
-                            self.set_event(HTTP2Event::LongFrameData);
-                            self.request_frame_size = head.length - (rem.len() as u32);
-                        }
-                    }
-
-                    //get a safe length for the buffer
-                    let (hlsafe, complete) = if rem.len() < hl {
-                        (rem.len(), false)
-                    } else {
-                        (hl, true)
-                    };
-
-                    if head.length == 0 && head.ftype == parser::HTTP2FrameType::SETTINGS as u8 {
-                        input = &rem[hlsafe..];
-                        continue;
-                    }
-                    let txdata = self.parse_frame_data(
-                        head.ftype,
-                        &rem[..hlsafe],
-                        complete,
-                        head.flags,
-                        STREAM_TOCLIENT,
-                    );
-
-                    let tx = self.find_or_create_tx(&head, &txdata, STREAM_TOCLIENT);
-                    tx.handle_frame(&head, &txdata, STREAM_TOCLIENT);
-                    let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
-                    let txid = tx.tx_id;
-                    let ftype = head.ftype;
-                    tx.frames_tc.push(HTTP2Frame {
-                        header: head,
-                        data: txdata,
-                    });
-                    if ftype == parser::HTTP2FrameType::DATA as u8 {
-                        self.stream_data(STREAM_TOCLIENT, &rem[..hlsafe], over, txid);
-                    }
-                    input = &rem[hlsafe..];
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    //we may have consumed data from previous records
-                    return AppLayerResult::incomplete(
-                        (il - input.len()) as u32,
-                        HTTP2_FRAME_HEADER_LEN as u32,
-                    );
-                }
-                Err(_) => {
-                    self.set_event(HTTP2Event::InvalidFrameHeader);
-                    return AppLayerResult::err();
-                }
-            }
-        }
-        return AppLayerResult::ok();
+        return self.parse_frames(input, il, STREAM_TOCLIENT);
     }
 
     fn tx_iterator(
