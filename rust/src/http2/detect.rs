@@ -470,8 +470,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let vec = http2_escape_header(&hd, nb - pos);
-                        let value = &vec;
+                        tx.escaped_tmp = http2_escape_header(&hd, nb - pos);
+                        let value = &tx.escaped_tmp;
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;
@@ -487,8 +487,8 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let vec = http2_escape_header(&hd, nb - pos);
-                        let value = &vec;
+                        tx.escaped_tmp = http2_escape_header(&hd, nb - pos);
+                        let value = &tx.escaped_tmp;
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;
