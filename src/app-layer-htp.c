@@ -968,6 +968,19 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                             }
                             consumed = htp_connp_res_data_consumed(hstate->connp);
                             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
+                            // close connection to log HTTP1 request in tunnel mode
+                            if (!(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
+                                htp_connp_close(hstate->connp, &ts);
+                                hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
+                            }
+                            //TODO mimic HTTP1 request into HTTP2
+
+                            // During HTTP2 upgrade, we may consume the HTTP1 part of the data
+                            // and we need to parser the remaining part with HTTP2
+                            if (consumed > 0 && consumed < input_len) {
+                                SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                            }
+                            SCReturnStruct(APP_LAYER_OK);
                         }
                     }
                 }
@@ -990,11 +1003,6 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
 
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
-    }
-    if (consumed > 0) {
-        // During HTTP2 upgrade, we may consume the HTTP1 part of the data
-        // and we need to parser the remaining part with HTTP2
-        SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
     }
     SCReturnStruct(APP_LAYER_OK);
 }
