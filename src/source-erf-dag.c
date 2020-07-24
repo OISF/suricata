@@ -47,7 +47,6 @@ TmModuleReceiveErfDagRegister(void)
     tmm_modules[TMM_RECEIVEERFDAG].Func = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].cap_flags = SC_CAP_NET_ADMIN;
     tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -60,7 +59,6 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].Func = NULL;
     tmm_modules[TMM_DECODEERFDAG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
     tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
@@ -141,7 +139,6 @@ TmModuleReceiveErfDagRegister(void)
     tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats =
         ReceiveErfDagThreadExitStats;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].cap_flags = 0;
     tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -157,7 +154,6 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].Func = DecodeErfDag;
     tmm_modules[TMM_DECODEERFDAG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = DecodeErfDagThreadDeinit;
-    tmm_modules[TMM_DECODEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
     tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }

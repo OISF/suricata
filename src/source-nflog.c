@@ -120,7 +120,6 @@ void TmModuleReceiveNFLOGRegister (void)
     tmm_modules[TMM_RECEIVENFLOG].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENFLOG].ThreadExitPrintStats = ReceiveNFLOGThreadExitStats;
     tmm_modules[TMM_RECEIVENFLOG].ThreadDeinit = ReceiveNFLOGThreadDeinit;
-    tmm_modules[TMM_RECEIVENFLOG].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENFLOG].flags = TM_FLAG_RECEIVE_TM;
 }
 
@@ -134,7 +133,6 @@ void TmModuleDecodeNFLOGRegister (void)
     tmm_modules[TMM_DECODENFLOG].Func = DecodeNFLOG;
     tmm_modules[TMM_DECODENFLOG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFLOG].ThreadDeinit = DecodeNFLOGThreadDeinit;
-    tmm_modules[TMM_DECODENFLOG].RegisterTests = NULL;
     tmm_modules[TMM_DECODENFLOG].flags = TM_FLAG_DECODE_TM;
 }
 

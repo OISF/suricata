@@ -63,7 +63,6 @@ void TmModuleReceiveNFQRegister (void)
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENFQ].cap_flags = SC_CAP_NET_ADMIN;
     tmm_modules[TMM_RECEIVENFQ].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -74,7 +73,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
     tmm_modules[TMM_VERDICTNFQ].cap_flags = SC_CAP_NET_ADMIN;
 }
 
@@ -84,7 +82,6 @@ void TmModuleDecodeNFQRegister (void)
     tmm_modules[TMM_DECODENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
     tmm_modules[TMM_DECODENFQ].cap_flags = 0;
     tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
@@ -189,7 +186,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = VerdictNFQThreadDeinit;
-    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 
 void TmModuleDecodeNFQRegister (void)

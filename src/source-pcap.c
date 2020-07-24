@@ -116,7 +116,9 @@ static TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
 static TmEcode DecodePcap(ThreadVars *, Packet *, void *);
 
-void SourcePcapRegisterTests(void);
+#ifdef UNITTESTS
+static void SourcePcapRegisterTests(void);
+#endif
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
@@ -134,7 +136,9 @@ void TmModuleReceivePcapRegister (void)
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEPCAP].flags = TM_FLAG_RECEIVE_TM;
+#ifdef UNITTESTS
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = SourcePcapRegisterTests;
+#endif
 }
 
 /**
@@ -711,14 +715,11 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
 
 #ifdef UNITTESTS
 #include "tests/source-pcap.c"
-#endif /* UNITTESTS */
-
 /**
  *  \brief  Register the Unit tests for pcap source
  */
-void SourcePcapRegisterTests(void)
+static void SourcePcapRegisterTests(void)
 {
-#ifdef UNITTESTS
     SourcePcapRegisterStatsTests();
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

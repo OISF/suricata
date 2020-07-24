@@ -118,7 +118,6 @@ void TmModuleReceivePcapFileRegister (void)
     tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = ReceivePcapFileThreadDeinit;
-    tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -130,7 +129,6 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].Func = DecodePcapFile;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = DecodePcapFileThreadDeinit;
-    tmm_modules[TMM_DECODEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }

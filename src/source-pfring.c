@@ -70,7 +70,6 @@ void TmModuleReceivePfringRegister (void)
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPFRING].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
         SC_CAP_NET_BIND_SERVICE | SC_CAP_NET_BROADCAST;
     tmm_modules[TMM_RECEIVEPFRING].flags = TM_FLAG_RECEIVE_TM;
@@ -83,7 +82,6 @@ void TmModuleDecodePfringRegister (void)
     tmm_modules[TMM_DECODEPFRING].Func = NULL;
     tmm_modules[TMM_DECODEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPFRING].cap_flags = 0;
     tmm_modules[TMM_DECODEPFRING].flags = TM_FLAG_DECODE_TM;
 }
@@ -169,7 +167,6 @@ void TmModuleReceivePfringRegister (void)
     tmm_modules[TMM_RECEIVEPFRING].PktAcqBreakLoop = PfringBreakLoop;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = ReceivePfringThreadExitStats;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = ReceivePfringThreadDeinit;
-    tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPFRING].flags = TM_FLAG_RECEIVE_TM;
 }
 
@@ -184,7 +181,6 @@ void TmModuleDecodePfringRegister (void)
     tmm_modules[TMM_DECODEPFRING].Func = DecodePfring;
     tmm_modules[TMM_DECODEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = DecodePfringThreadDeinit;
-    tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPFRING].flags = TM_FLAG_DECODE_TM;
 }
 

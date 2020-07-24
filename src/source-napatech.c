@@ -48,7 +48,6 @@ void TmModuleNapatechStreamRegister(void)
     tmm_modules[TMM_RECEIVENAPATECH].Func = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_ADMIN;
 }
 
@@ -59,7 +58,6 @@ void TmModuleNapatechDecodeRegister(void)
     tmm_modules[TMM_DECODENAPATECH].Func = NULL;
     tmm_modules[TMM_DECODENAPATECH].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_DECODENAPATECH].cap_flags = 0;
     tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
 }
@@ -136,7 +134,6 @@ void TmModuleNapatechStreamRegister(void)
     tmm_modules[TMM_RECEIVENAPATECH].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NapatechStreamThreadExitStats;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechStreamThreadDeinit;
-    tmm_modules[TMM_RECEIVENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVENAPATECH].flags = TM_FLAG_RECEIVE_TM;
 
@@ -167,7 +164,6 @@ void TmModuleNapatechDecodeRegister(void)
     tmm_modules[TMM_DECODENAPATECH].Func = NapatechDecode;
     tmm_modules[TMM_DECODENAPATECH].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NapatechDecodeThreadDeinit;
-    tmm_modules[TMM_DECODENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_DECODENAPATECH].cap_flags = 0;
     tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
 }

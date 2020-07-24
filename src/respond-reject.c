@@ -52,7 +52,6 @@ void TmModuleRespondRejectRegister (void)
     tmm_modules[TMM_RESPONDREJECT].ThreadInit = NULL;
     tmm_modules[TMM_RESPONDREJECT].Func = RespondRejectFunc;
     tmm_modules[TMM_RESPONDREJECT].ThreadDeinit = RespondRejectThreadDeinit;
-    tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
     tmm_modules[TMM_RESPONDREJECT].cap_flags = 0; /* libnet is not compat with caps */
 }
 
