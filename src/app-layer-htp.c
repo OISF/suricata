@@ -947,11 +947,43 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    htp_tx_t *tx = NULL;
+    size_t consumed = 0;
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
+                break;
+            case HTP_STREAM_TUNNEL:
+                tx = htp_connp_get_out_tx(hstate->connp);
+                if (tx != NULL && tx->response_status_number == 101) {
+                    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                                                                      "Upgrade");
+                    if (h != NULL) {
+                        if (bstr_cmp_c(h->value, "h2c") == 0) {
+                            uint16_t dp = 0;
+                            if (tx->request_port_number != -1) {
+                                dp = (uint16_t)tx->request_port_number;
+                            }
+                            consumed = htp_connp_res_data_consumed(hstate->connp);
+                            AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
+                            // close connection to log HTTP1 request in tunnel mode
+                            if (!(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
+                                htp_connp_close(hstate->connp, &ts);
+                                hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
+                            }
+                            //TODO mimic HTTP1 request into HTTP2
+
+                            // During HTTP2 upgrade, we may consume the HTTP1 part of the data
+                            // and we need to parser the remaining part with HTTP2
+                            if (consumed > 0 && consumed < input_len) {
+                                SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                            }
+                            SCReturnStruct(APP_LAYER_OK);
+                        }
+                    }
+                }
                 break;
             default:
                 break;
