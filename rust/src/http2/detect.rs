@@ -17,24 +17,21 @@
 
 use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::STREAM_TOSERVER;
 use std::ffi::CStr;
 use std::mem::transmute;
 use std::str::FromStr;
 
-#[no_mangle]
-pub extern "C" fn rs_http2_tx_has_frametype(
-    tx: *mut std::os::raw::c_void, direction: u8, value: u8,
+fn http2_tx_has_frametype(
+    tx: &mut HTTP2Transaction, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             if tx.frames_ts[i].header.ftype as u8 == value {
                 return 1;
             }
         }
-    }
-    if direction & STREAM_TOCLIENT != 0 {
+    } else {
         for i in 0..tx.frames_tc.len() {
             if tx.frames_tc[i].header.ftype as u8 == value {
                 return 1;
@@ -42,6 +39,14 @@ pub extern "C" fn rs_http2_tx_has_frametype(
         }
     }
     return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_has_frametype(
+    tx: *mut std::os::raw::c_void, direction: u8, value: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_tx_has_frametype(tx, direction, value);
 }
 
 #[no_mangle]
@@ -57,11 +62,9 @@ pub unsafe extern "C" fn rs_http2_parse_frametype(
     return -1;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_http2_tx_has_errorcode(
-    tx: *mut std::os::raw::c_void, direction: u8, code: u32,
+fn http2_tx_has_errorcode(
+    tx: &mut HTTP2Transaction, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
@@ -99,6 +102,14 @@ pub extern "C" fn rs_http2_tx_has_errorcode(
 }
 
 #[no_mangle]
+pub extern "C" fn rs_http2_tx_has_errorcode(
+    tx: *mut std::os::raw::c_void, direction: u8, code: u32,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_tx_has_errorcode(tx, direction, code);
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_errorcode(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
@@ -111,11 +122,9 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
     return -1;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_http2_tx_get_next_priority(
-    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+fn http2_tx_get_next_priority(
+    tx: &mut HTTP2Transaction, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     let mut pos = 0 as u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
@@ -166,10 +175,16 @@ pub extern "C" fn rs_http2_tx_get_next_priority(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_next_window(
+pub extern "C" fn rs_http2_tx_get_next_priority(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_tx_get_next_priority(tx, direction, nb);
+}
+
+fn http2_tx_get_next_window(
+    tx: &mut HTTP2Transaction, direction: u8, nb: u32,
+) -> std::os::raw::c_int {
     let mut pos = 0 as u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
@@ -199,6 +214,14 @@ pub extern "C" fn rs_http2_tx_get_next_window(
         }
     }
     return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_next_window(
+    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_tx_get_next_window(tx, direction, nb);
 }
 
 #[no_mangle]
@@ -271,12 +294,9 @@ fn http2_detect_settings_match(
     return 0;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_http2_detect_settingsctx_match(
-    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+fn http2_detect_settingsctx_match(
+    ctx: &mut parser::DetectHTTP2settingsSigCtx, tx: &mut HTTP2Transaction, direction: u8,
 ) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
@@ -301,6 +321,15 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
         }
     }
     return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_detect_settingsctx_match(
+    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+) -> std::os::raw::c_int {
+    let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_detect_settingsctx_match(ctx, tx, direction);
 }
 
 #[no_mangle]
@@ -366,12 +395,9 @@ fn http2_detect_sizeupdate_match(
     return 0;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
-    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+fn http2_detect_sizeupdatectx_match(
+    ctx: &mut parser::DetectU64Data, tx: &mut HTTP2Transaction, direction: u8,
 ) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, parser::DetectU64Data);
-    let tx = cast_pointer!(tx, HTTP2Transaction);
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
@@ -398,6 +424,17 @@ pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
     return 0;
 }
 
+#[no_mangle]
+pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
+    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+) -> std::os::raw::c_int {
+    let ctx = cast_pointer!(ctx, parser::DetectU64Data);
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    return http2_detect_sizeupdatectx_match(ctx, tx, direction);
+}
+
+//TODOask better syntax between rs_http2_tx_get_header_name in argument
+// and rs_http2_detect_sizeupdatectx_match explicitly casting
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
