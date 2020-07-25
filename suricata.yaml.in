@@ -1839,6 +1839,32 @@ napatech:
     #
     hashmode: hash5tuplesorted
 
+# DPDK configuration
+dpdk:
+    # use RTE-ACL for preflitering SRC-IP,DST-IP,SRC-PORT,DST-PORT
+    pre-acl: yes
+    #use RTE-ACL for FWD - applicable to IPS
+    post-acl: no
+    # allow packet fragementation
+    tx-fragment: no
+    # allow reassembly
+    rx-reassemble: no
+    # mode of operation: BYPASS, IDS, IPS
+    mode: IPS
+    # port index mapping for IPS: [in-port:out-port]
+    input-output-map: ["0-1", "1-0"]
+    # EAL args
+    eal-args: ["--log-level=eal,1", "-l 1", "--file-prefix=suricata-dpdk", "-m 2048"]
+    # mempool
+    mempool-port-common: [name=suricata-port,n=24000,elt_size=2000,private_data_size=0]
+    mempool-reas-common: [name=suricatareassembly,n=8000,elt_size=10000,private_data_size=0]
+    # port config
+    port-config-0: [mempool=portpool,queues=4,rss-tuple=3,ebpf=NULL,jumbo=no,mtu=1500,tx-mode=0]
+    port-config-1: [mempool=portpool,queues=4,rss-tuple=3,ebpf=NULL,jumbo=no,mtu=1500,tx-mode=0]
+    # DPDK pre-acl
+    ipv4-preacl: 1024
+    ipv6-preacl: 1024
+
 ##
 ## Configure Suricata to load Suricata-Update managed rules.
 ##
