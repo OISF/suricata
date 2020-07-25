@@ -9,3 +9,4 @@ Output
    custom-http-logging
    custom-tls-logging
    log-rotation
+   pcap-alert-output
