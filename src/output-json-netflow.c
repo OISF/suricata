@@ -61,7 +61,7 @@ typedef struct JsonNetFlowLogThread_ {
     MemBuffer *buffer;
 } JsonNetFlowLogThread;
 
-static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_type, int dir)
+static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -122,9 +122,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_typ
         jb_set_string(js, "in_iface", f->livedev->dev);
     }
 
-    if (event_type) {
-        jb_set_string(js, "event_type", event_type);
-    }
+    JB_SET_STRING(js, "event_type", "netflow");
 
     /* vlan */
     if (f->vlan_idx > 0) {
@@ -284,7 +282,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    JsonBuilder *jb = CreateEveHeaderFromFlow(f, "netflow", 0);
+    JsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jhl, jb, f);
@@ -296,7 +294,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (f->tosrcpktcnt) {
         /* reset */
         MemBufferReset(jhl->buffer);
-        jb = CreateEveHeaderFromFlow(f, "netflow", 1);
+        jb = CreateEveHeaderFromNetFlow(f, 1);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jhl, jb, f);
