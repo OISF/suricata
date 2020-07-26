@@ -63,7 +63,7 @@ typedef struct JsonFlowLogThread_ {
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
-static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_type)
+static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -118,9 +118,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_typ
         jb_set_string(jb, "in_iface", f->livedev->dev);
     }
 
-    if (event_type) {
-        jb_set_string(jb, "event_type", event_type);
-    }
+    JB_SET_STRING(jb, "event_type", "flow");
 
     /* vlan */
     if (f->vlan_idx > 0) {
@@ -333,7 +331,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    JsonBuilder *jb = CreateEveHeaderFromFlow(f, "flow");
+    JsonBuilder *jb = CreateEveHeaderFromFlow(f);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
