@@ -31,6 +31,7 @@
 #include "flow-worker.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include "datasets.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -4093,6 +4094,7 @@ int DetectEngineReload(const SCInstance *suri)
     if (old_de_ctx == NULL)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
+    DatasetReload();
 
     /* only reload a regular 'normal' and 'delayed detect stub' detect engines */
     if (!(old_de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
@@ -4133,6 +4135,8 @@ int DetectEngineReload(const SCInstance *suri)
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
+
+    DatasetPostReloadCleanup();
 
     DetectEngineBumpVersion();
 
