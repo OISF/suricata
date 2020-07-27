@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -191,7 +191,7 @@ static void JsonTlsLogNotAfter(JsonBuilder *js, SSLState *ssl_state)
         tv.tv_sec = ssl_state->server_connp.cert0_not_after;
         tv.tv_usec = 0;
         CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-       jb_set_string(js, "notafter", timebuf);
+        jb_set_string(js, "notafter", timebuf);
     }
 }
 
