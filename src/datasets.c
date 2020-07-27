@@ -72,7 +72,7 @@ static Dataset *DatasetSearchByName(const char *name)
 {
     Dataset *set = sets;
     while (set) {
-        if (strcasecmp(name, set->name) == 0) {
+        if (strcasecmp(name, set->name) == 0 && set->hidden == false) {
             return set;
         }
         set = set->next;
@@ -476,11 +476,11 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     set->type = type;
     if (save && strlen(save)) {
         strlcpy(set->save, save, sizeof(set->save));
-        SCLogDebug("name %s save '%s'", name, set->save);
+        SCLogInfo("name %s save '%s'", name, set->save);
     }
     if (load && strlen(load)) {
         strlcpy(set->load, load, sizeof(set->load));
-        SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
+        SCLogInfo("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
     }
 
     char cnf_name[128];
@@ -513,8 +513,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
     }
 
-    SCLogDebug("set %p/%s type %u save %s load %s",
-            set, set->name, set->type, set->save, set->load);
+    SCLogInfo("set %p/%s type %u save %s load %s address %p",
+            set, set->name, set->type, set->save, set->load, set);
 
     set->next = sets;
     sets = set;
@@ -530,6 +530,46 @@ out_err:
     }
     SCMutexUnlock(&sets_lock);
     return NULL;
+}
+
+int DatasetReload(uint32_t de_vers)
+{
+    Dataset *set = sets;
+    // Reload if its a static set only
+    while (set != NULL) {
+        // Check if the set is static or dynamic
+        if ((set->save == NULL || strcmp(set->save, "") == 0) || (set->from_yaml == false)) {
+            SCLogInfo("It is a static set or not defined in YAML, so we can continue...");
+        } else {
+            continue;
+        }
+        SCLogInfo("Soon to be hidden Dataset name: %s", set->name);
+        SCLogInfo("Soon to be hidden Dataset type: %d", set->type);
+        set->hidden = true;
+        set = set->next;
+    }
+    return 1;
+}
+
+void DatasetRemoveCopies(void)
+{
+    SCLogInfo("destroying old copies of datasets: %p", sets);
+    SCMutexLock(&sets_lock);
+    Dataset *set = sets;
+    while (set) {
+        if (set->hidden == false) {
+            set = set->next;
+            continue;
+        }
+        SCLogInfo("destroying set %s, hidden: %d address: %p", set->name, set->hidden, set);
+        Dataset *next = set->next;
+        THashShutdown(set->hash);
+        SCFree(set);
+        set = next;
+    }
+    SCLogInfo("destroying old copies of datasets done: %p", sets);
+    sets = NULL;
+    SCMutexUnlock(&sets_lock);
 }
 
 int DatasetsInit(void)
@@ -585,6 +625,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
@@ -592,6 +633,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
@@ -599,6 +641,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
             }
 

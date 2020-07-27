@@ -31,6 +31,7 @@
 #include "flow-worker.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include "datasets.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -4093,6 +4094,9 @@ int DetectEngineReload(const SCInstance *suri)
     if (old_de_ctx == NULL)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
+    if (DatasetReload(old_de_ctx->version) == -1) {
+        SCLogInfo("Dataset reload failed");
+    }
 
     /* only reload a regular 'normal' and 'delayed detect stub' detect engines */
     if (!(old_de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
@@ -4118,6 +4122,7 @@ int DetectEngineReload(const SCInstance *suri)
         return -1;
     }
     SCLogDebug("set up new_de_ctx %p", new_de_ctx);
+    DatasetRemoveCopies();
 
     /* add to master */
     DetectEngineAddToMaster(new_de_ctx);
