@@ -264,10 +264,13 @@ static void *ParsePfringConfig(const char *iface)
                 }
             }
         } else {
-            if (StringParseUint16(&pfconf->threads, 10, 0, (const char *)threadsstr) < 0) {
+            uint16_t threads = 0;
+            if (StringParseUint16(&threads, 10, 0, (const char *)threadsstr) < 0) {
                 SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
                              "pfring.threads: '%s'. Resetting to 1.", threadsstr);
                 pfconf->threads = 1;
+            } else {
+                pfconf->threads = threads;
             }
         }
     }
