@@ -47,6 +47,7 @@ static inline void DatasetUnlockData(THashData *d)
     (void) THashDecrUsecnt(d);
     THashDataUnlock(d);
 }
+static bool DatasetIsStatic(Dataset *set);
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s)
 {
@@ -72,7 +73,7 @@ static Dataset *DatasetSearchByName(const char *name)
 {
     Dataset *set = sets;
     while (set) {
-        if (strcasecmp(name, set->name) == 0) {
+        if (strcasecmp(name, set->name) == 0 && set->hidden == false) {
             return set;
         }
         set = set->next;
@@ -532,6 +533,62 @@ out_err:
     return NULL;
 }
 
+static bool DatasetIsStatic(Dataset *set)
+{
+    // A set is static if it does not have any dynamic properties like
+    // save and/or state defined.
+    if (set->save == NULL || strcmp(set->save, "") == 0) {
+        return true;
+    }
+    return false;
+}
+
+void DatasetReload(void)
+{
+    // In order to reload the datasets, just mark the current sets as hidden
+    // and clean them up later.
+    // New datasets shall be created with the rule reload and do not require
+    // any intervention.
+    SCMutexLock(&sets_lock);
+    Dataset *set = sets;
+    SCLogInfo("Inside reload function. Sets: %p", sets);
+    while (set != NULL) {
+        if (!DatasetIsStatic(set) || set->from_yaml == true) {
+            SCLogDebug("Not a static set, skipping %s", set->name);
+            set = set->next;
+            continue;
+        }
+        set->hidden = true;
+        SCLogDebug("Set %s at %p hidden successfully", set->name, set);
+        set = set->next;
+    }
+    SCMutexUnlock(&sets_lock);
+}
+
+void DatasetPostReloadCleanup(void)
+{
+    SCLogDebug("Post Reload Cleanup starting.. Hidden sets will be removed");
+    SCMutexLock(&sets_lock);
+    Dataset *cur = sets;
+    Dataset *prev = NULL;
+    while (cur) {
+        Dataset *next = cur->next;
+        if (cur->hidden == false) {
+            prev = cur;
+            cur = next;
+            continue;
+        }
+        // Delete the set in case it was hidden
+        if (prev != NULL) {
+            prev->next = next;
+        }
+        THashShutdown(cur->hash);
+        SCFree(cur);
+        cur = next;
+    }
+    SCMutexUnlock(&sets_lock);
+}
+
 int DatasetsInit(void)
 {
     SCLogDebug("datasets start");
@@ -585,6 +642,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
@@ -592,6 +650,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
@@ -599,6 +658,7 @@ int DatasetsInit(void)
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
+                dset->from_yaml = true;
                 n++;
             }
 
