@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2016 Open Information Security Foundation
+/* Copyright (C) 2013-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -81,15 +81,12 @@ typedef struct JsonMetadataLogThread_ {
 
 static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet *p)
 {
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "metadata", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "metadata", NULL);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
-    OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
-    json_object_del(js, "metadata");
-    json_object_clear(js);
-    json_decref(js);
+    EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
 
     return TM_ECODE_OK;
 }
