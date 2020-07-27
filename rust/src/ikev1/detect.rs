@@ -17,7 +17,7 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use crate::ikev1::ikev1::*;
+use crate::ikev1::ike::*;
 use crate::log::*;
 use std::ptr;
 use std::ffi::CStr;
@@ -31,11 +31,24 @@ pub extern "C" fn rs_ikev1_state_get_exch_type(
         return 0;
     }
 
-    if let Some(r) = tx.exchange_type {
-        unsafe{
-            *exch_type = r as u32;
-        }
-        return 1;
+    match tx.ike_version {
+         1 => {
+             if let Some(r) = tx.hdr.ikev1_header.exchange_type {
+                unsafe {
+                    *exch_type = r as u32;
+                }
+                return 1;
+            }
+         }
+         2 => {
+             if let Some(r) = tx.hdr.ikev1_header.exchange_type {
+                 unsafe {
+                     *exch_type = r as u32;
+                 }
+                 return 1;
+             }
+         }
+        _ => ()
     }
 
     unsafe {
@@ -54,7 +67,7 @@ pub extern "C" fn rs_ikev1_state_get_spi_initiator(
         return 0;
     }
 
-    if let Some(ref r) = tx.spi_initiator {
+    if let Some(ref r) = tx.hdr.spi_initiator {
         unsafe {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
@@ -80,7 +93,7 @@ pub extern "C" fn rs_ikev1_state_get_spi_responder(
         return 0;
     }
 
-    if let Some(ref r) = tx.spi_responder {
+    if let Some(ref r) = tx.hdr.spi_responder {
         unsafe {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
@@ -106,8 +119,8 @@ pub extern "C" fn rs_ikev1_state_get_nonce(
         return 0;
     }
 
-    if !tx.nonce.is_empty() {
-        let p = &tx.nonce;
+    if !tx.hdr.ikev1_header.nonce.is_empty() {
+        let p = &tx.hdr.ikev1_header.nonce;
         unsafe {
             *buffer = p.as_ptr();
             *buffer_len = p.len() as u32;
@@ -133,8 +146,8 @@ pub extern "C" fn rs_ikev1_state_get_key_exchange(
         return 0;
     }
 
-    if !tx.key_exchange.is_empty() {
-        let p = &tx.key_exchange;
+    if !tx.hdr.ikev1_header.key_exchange.is_empty() {
+        let p = &tx.hdr.ikev1_header.key_exchange;
         unsafe {
             *buffer = p.as_ptr();
             *buffer_len = p.len() as u32;
@@ -156,7 +169,7 @@ pub unsafe extern "C" fn rs_ikev1_state_vendors_contain(
     input: *const std::os::raw::c_char,
 ) -> u8 {
     if let Ok(vendor_id) = CStr::from_ptr(input).to_str() {
-        if tx.vendor_ids.contains(vendor_id) {
+        if tx.hdr.ikev1_header.vendor_ids.contains(vendor_id) {
             return 1;
         }
     }
@@ -174,7 +187,7 @@ pub unsafe extern "C" fn rs_ikev1_state_get_sa_attribute(
     }
 
     if let Ok(sa) = CStr::from_ptr(sa_type).to_str() {
-        for (i, server_transform) in tx.transforms.iter().enumerate() {
+        for (i, server_transform) in tx.hdr.ikev1_header.transforms.iter().enumerate() {
             if i >= 1 {
                 SCLogDebug!("More than one chosen proposal from responder, should not happen.");
                 break;
@@ -203,8 +216,8 @@ pub unsafe extern "C" fn rs_ikev1_state_get_key_exchange_payload_length(
         return 0;
     }
 
-    if !tx.key_exchange.is_empty() {
-        *value = tx.key_exchange.len() as u32;
+    if !tx.hdr.ikev1_header.key_exchange.is_empty() {
+        *value = tx.hdr.ikev1_header.key_exchange.len() as u32;
         return 1;
     }
 
@@ -221,8 +234,8 @@ pub unsafe extern "C" fn rs_ikev1_state_get_nonce_payload_length(
         return 0;
     }
 
-    if !tx.nonce.is_empty() {
-        *value = tx.nonce.len() as u32;
+    if !tx.hdr.ikev1_header.nonce.is_empty() {
+        *value = tx.hdr.ikev1_header.nonce.len() as u32;
         return 1;
     }
 

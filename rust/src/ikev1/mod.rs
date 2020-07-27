@@ -14,8 +14,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
+extern crate ipsec_parser;
 
-pub mod ikev1;
+pub mod ike;
 pub mod logger;
 mod parser;
 mod detect;
+mod ikev1;
+mod ikev2;

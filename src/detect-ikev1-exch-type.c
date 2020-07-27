@@ -29,29 +29,14 @@
 #include "detect-ikev1-exch-type.h"
 #include "app-layer-parser.h"
 #include "util-byte.h"
+#include "detect-engine-uint.h"
 
 #include "rust-bindings.h"
 
 /**
  *   [ikev1.exchtype]:[<|>|<=|>=]<type>;
  */
-#define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*$"
-static DetectParseRegex parse_regex;
 
-enum DetectIkev1ExchTypeCompareMode {
-    PROCEDURE_EQ = 1, /* equal */
-    PROCEDURE_LT, /* less than */
-    PROCEDURE_LE, /* less than or equal */
-    PROCEDURE_GT, /* greater than */
-    PROCEDURE_GE, /* greater than or equal */
-};
-
-typedef struct {
-    uint32_t exch_type;
-    enum DetectIkev1ExchTypeCompareMode mode;
-} DetectIkev1ExchTypeData;
-
-static DetectIkev1ExchTypeData *DetectIkev1ExchTypeParse (const char *);
 static int DetectIkev1ExchTypeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectIkev1ExchTypeFree(DetectEngineCtx *, void *);
 static int g_ikev1_exch_type_buffer_id = 0;
@@ -78,8 +63,6 @@ void DetectIkev1ExchTypeRegister (void)
     sigmatch_table[DETECT_AL_IKEV1_EXCH_TYPE].Setup = DetectIkev1ExchTypeSetup;
     sigmatch_table[DETECT_AL_IKEV1_EXCH_TYPE].Free = DetectIkev1ExchTypeFree;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
     DetectAppLayerInspectEngineRegister("ikev1.exchtype",
             ALPROTO_IKEV1, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectIkev1ExchTypeGeneric);
@@ -89,6 +72,8 @@ void DetectIkev1ExchTypeRegister (void)
             DetectEngineInspectIkev1ExchTypeGeneric);
 
     g_ikev1_exch_type_buffer_id = DetectBufferTypeGetByName("ikev1.exchtype");
+
+    DetectU32Register();
 }
 
 static int DetectEngineInspectIkev1ExchTypeGeneric(ThreadVars *tv,
@@ -101,34 +86,6 @@ static int DetectEngineInspectIkev1ExchTypeGeneric(ThreadVars *tv,
                                           f, flags, alstate, txv, tx_id);
 }
 
-static inline int ExchTypeMatch(const uint32_t exch_type,
-        enum DetectIkev1ExchTypeCompareMode mode, uint32_t ref_exch_type)
-{
-    switch (mode) {
-        case PROCEDURE_EQ:
-            if (exch_type == ref_exch_type)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LT:
-            if (exch_type < ref_exch_type)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_LE:
-            if (exch_type <= ref_exch_type)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GT:
-            if (exch_type > ref_exch_type)
-                SCReturnInt(1);
-            break;
-        case PROCEDURE_GE:
-            if (exch_type >= ref_exch_type)
-                SCReturnInt(1);
-            break;
-    }
-    SCReturnInt(0);
-}
-
 /**
  * \internal
  * \brief Function to match exchange type of a IKEv1 state
@@ -139,7 +96,7 @@ static inline int ExchTypeMatch(const uint32_t exch_type,
  * \param state   App layer state.
  * \param txv     Pointer to the Ikev1 Transaction.
  * \param s       Pointer to the Signature.
- * \param ctx     Pointer to the sigmatch that we will cast into DetectIkev1ExchTypeData.
+ * \param ctx     Pointer to the sigmatch that we will cast into DetectU32Data.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -151,90 +108,12 @@ static int DetectIkev1ExchTypeMatch (DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const DetectIkev1ExchTypeData *dd = (const DetectIkev1ExchTypeData *)ctx;
     uint32_t exch_type;
     if (!rs_ikev1_state_get_exch_type(txv, &exch_type))
         SCReturnInt(0);
-    if (ExchTypeMatch(exch_type, dd->mode, dd->exch_type))
-        SCReturnInt(1);
-    SCReturnInt(0);
-}
 
-/**
- * \internal
- * \brief Function to parse options passed via ikev1.exchtype keywords.
- *
- * \param rawstr Pointer to the user provided options.
- *
- * \retval dd pointer to DetectIkev1ExchTypeData on success.
- * \retval NULL on failure.
- */
-static DetectIkev1ExchTypeData *DetectIkev1ExchTypeParse (const char *rawstr)
-{
-    DetectIkev1ExchTypeData *dd = NULL;
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
-    char mode[2] = "";
-    char value1[20] = "";
-
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
-        goto error;
-    }
-
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, mode,
-                              sizeof(mode));
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
-        goto error;
-    }
-
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value1,
-                              sizeof(value1));
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
-        goto error;
-    }
-
-    dd = SCCalloc(1, sizeof(DetectIkev1ExchTypeData));
-    if (unlikely(dd == NULL))
-        goto error;
-
-    if (strlen(mode) == 0) {
-        dd->mode = PROCEDURE_EQ;
-    } else if (strlen(mode) == 1) {
-        if (mode[0] == '<')
-            dd->mode = PROCEDURE_LT;
-        else if (mode[0] == '>')
-            dd->mode = PROCEDURE_GT;
-    } else if (strlen(mode) == 2) {
-        if (strcmp(mode, "<=") == 0)
-            dd->mode = PROCEDURE_LE;
-        if (strcmp(mode, ">=") == 0)
-            dd->mode = PROCEDURE_GE;
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid mode for ikev1.exchtype keyword");
-        goto error;
-    }
-
-    if (dd->mode == 0) {
-        dd->mode = PROCEDURE_EQ;
-    }
-
-    /* set the first value */
-    if (ByteExtractStringUint32(&dd->exch_type, 10, strlen(value1), value1) <= 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
-                   "to ikev1.exchtype keyword");
-        goto error;
-    }
-
-    return dd;
-
-error:
-    if (dd)
-        SCFree(dd);
-    return NULL;
+    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
+    return DetectU32Match(exch_type, du32);
 }
 
 /**
@@ -252,11 +131,9 @@ static int DetectIkev1ExchTypeSetup (DetectEngineCtx *de_ctx, Signature *s, cons
     if (DetectSignatureSetAppProto(s, ALPROTO_IKEV1) != 0)
         return -1;
 
-    DetectIkev1ExchTypeData *dd = DetectIkev1ExchTypeParse(rawstr);
-    if (dd == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
-        goto error;
-    }
+    DetectU32Data *ikev1_exch_type = DetectU32Parse(rawstr);
+    if (ikev1_exch_type == NULL)
+        return -1;
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -265,21 +142,21 @@ static int DetectIkev1ExchTypeSetup (DetectEngineCtx *de_ctx, Signature *s, cons
         goto error;
 
     sm->type = DETECT_AL_IKEV1_EXCH_TYPE;
-    sm->ctx = (void *)dd;
+    sm->ctx = (SigMatchCtx *)ikev1_exch_type;
 
     SigMatchAppendSMToList(s, sm, g_ikev1_exch_type_buffer_id);
     return 0;
 
 error:
-    DetectIkev1ExchTypeFree(de_ctx, dd);
+    DetectIkev1ExchTypeFree(de_ctx, ikev1_exch_type);
     return -1;
 }
 
 /**
  * \internal
- * \brief Function to free memory associated with DetectIkev1ExchTypeData.
+ * \brief Function to free memory associated with DetectU32Data.
  *
- * \param de_ptr Pointer to DetectIkev1ExchTypeData.
+ * \param de_ptr Pointer to DetectU32Data.
  */
 static void DetectIkev1ExchTypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {

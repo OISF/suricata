@@ -16,10 +16,11 @@
  */
 
 use std;
-use super::ikev1::{IKEV1Transaction, IKEV1State};
+use super::ike::{IKEV1Transaction, IKEV1State};
 use crate::ikev1::parser::{SaAttribute, ExchangeType, IsakmpPayloadType};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std::convert::TryFrom;
+use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
 
 const LOG_EXTENDED:    u32 = 0x01;
 
@@ -43,26 +44,27 @@ fn add_attributes(transform: &Vec<SaAttribute>, flags: u32, js: &mut JsonBuilder
         }
     }
 
+
     return Ok(());
 }
 
 fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("ikev1")?;
 
-    if let Some(spi_initiator) = &tx.spi_initiator {
+    if let Some(spi_initiator) = &tx.hdr.spi_initiator {
         js.set_string("spi_initiator", spi_initiator)?;
     }
-    if let Some(spi_responder) = &tx.spi_responder {
+    if let Some(spi_responder) = &tx.hdr.spi_responder {
         js.set_string("spi_responder", spi_responder)?;
     }
 
-    if let Some(maj_ver) = tx.maj_ver {
+    if let Some(maj_ver) = tx.hdr.ikev1_header.maj_ver {
         js.set_uint("maj_ver", maj_ver as u64)?;
     }
-    if let Some(min_ver) = tx.min_ver {
+    if let Some(min_ver) = tx.hdr.ikev1_header.min_ver {
         js.set_uint("min_ver", min_ver as u64)?;
     }
-    if let Some(payload_types) = &tx.payload_types {
+    if let Some(payload_types) = &tx.payload_types.ikev1_payload_types {
         js.open_array("contained_payload_types")?;
         for pt in payload_types {
             js.append_string(pt.to_string().as_str())?;
@@ -101,12 +103,12 @@ fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut Jso
         }
 
     }
-    if let Some(doi) = state.domain_of_interpretation {
+    if let Some(doi) = state.ikev1_container.domain_of_interpretation {
         js.set_uint("doi", doi as u64)?;
     }
-    js.set_bool("encrypted_payloads", tx.encrypted_payloads)?;
+    js.set_bool("encrypted_payloads", tx.hdr.ikev1_header.encrypted_payloads)?;
 
-    if let Some(exchange_type) = tx.exchange_type {
+    if let Some(exchange_type) = tx.hdr.ikev1_header.exchange_type {
         js.set_uint("exchange_type", exchange_type as u64)?;
 
         if (flags & LOG_EXTENDED) == LOG_EXTENDED {
@@ -124,26 +126,26 @@ fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut Jso
         }
     }
 
-    if !tx.encrypted_payloads {
+    if !tx.hdr.ikev1_header.encrypted_payloads {
         // enable logging of collected state if not-encrypted payloads
 
         // client data
         js.open_object("client")?;
-        if state.client_key_exchange.len() > 0 {
-            js.set_string("key_exchange_payload", &state.client_key_exchange)?;
-            if let Ok(client_key_length) = u64::try_from(state.client_key_exchange.len()) {
+        if state.ikev1_container.client_key_exchange.len() > 0 {
+            js.set_string("key_exchange_payload", &state.ikev1_container.client_key_exchange)?;
+            if let Ok(client_key_length) = u64::try_from(state.ikev1_container.client_key_exchange.len()) {
                 js.set_uint("key_exchange_payload_length", client_key_length / 2)?;
             }
         }
-        if state.client_nonce.len() > 0 {
-            js.set_string("nonce_payload", &state.client_nonce)?;
-            if let Ok(client_nonce_length) = u64::try_from(state.client_nonce.len()) {
+        if state.ikev1_container.client_nonce.len() > 0 {
+            js.set_string("nonce_payload", &state.ikev1_container.client_nonce)?;
+            if let Ok(client_nonce_length) = u64::try_from(state.ikev1_container.client_nonce.len()) {
                 js.set_uint("nonce_payload_length", client_nonce_length / 2)?;
             }
         }
 
         js.open_array("proposals")?;
-        for client_transform in &state.client_transforms {
+        for client_transform in &state.ikev1_container.client_transforms {
             js.start_object()?;
             add_attributes(client_transform, flags, js)?;
             js.close()?;
@@ -153,20 +155,20 @@ fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut Jso
 
         // server data
         js.open_object("server")?;
-        if state.server_key_exchange.len() > 0 {
-            js.set_string("key_exchange_payload", &state.server_key_exchange)?;
-            if let Ok(server_key_length) = u64::try_from(state.server_key_exchange.len()) {
+        if state.ikev1_container.server_key_exchange.len() > 0 {
+            js.set_string("key_exchange_payload", &state.ikev1_container.server_key_exchange)?;
+            if let Ok(server_key_length) = u64::try_from(state.ikev1_container.server_key_exchange.len()) {
                 js.set_uint("key_exchange_payload_length", server_key_length / 2)?;
             }
         }
-        if state.server_nonce.len() > 0 {
-            js.set_string("nonce_payload", &state.server_nonce)?;
-            if let Ok(server_nonce_length) = u64::try_from(state.server_nonce.len()) {
+        if state.ikev1_container.server_nonce.len() > 0 {
+            js.set_string("nonce_payload", &state.ikev1_container.server_nonce)?;
+            if let Ok(server_nonce_length) = u64::try_from(state.ikev1_container.server_nonce.len()) {
                 js.set_uint("nonce_payload_length", server_nonce_length / 2)?;
             }
         }
         let mut index = 0;
-        for server_transform in &state.server_transforms {
+        for server_transform in &state.ikev1_container.server_transforms {
             if index >= 1 {
                 // this should never happen!
                 break;
@@ -180,18 +182,57 @@ fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut Jso
         js.close()?; // server
 
         js.open_array("vendor_ids")?;
-        for vendor in state.client_vendor_ids.union(&state.server_vendor_ids) {
+        for vendor in state.ikev1_container.client_vendor_ids.union(&state.ikev1_container.server_vendor_ids) {
             js.append_string(vendor)?;
         }
         js.close()?; // vendor_ids
     }
-    js.close()?; // mqtt
+    js.close()?;
 
     return Ok(());
+}
+
+fn log_ikev2(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, jb: &mut JsonBuilder) -> Result<(), JsonError>
+{
+    jb.open_object("ikev1")?;
+
+    jb.set_uint("version_major", tx.hdr.ikev2_header.maj_ver as u64)?;
+    jb.set_uint("version_minor", tx.hdr.ikev2_header.min_ver as u64)?;
+    jb.set_uint("exchange_type", tx.hdr.ikev2_header.exch_type.0 as u64)?;
+    jb.set_uint("message_id", tx.hdr.ikev2_header.msg_id as u64)?;
+    jb.set_string("init_spi", &format!("{:016x}", tx.hdr.ikev2_header.init_spi))?;
+    jb.set_string("resp_spi", &format!("{:016x}", tx.hdr.ikev2_header.resp_spi))?;
+    if tx.hdr.ikev2_header.flags & IKEV2_FLAG_INITIATOR != 0 {
+        jb.set_string("role", &"initiator")?;
+    } else {
+        jb.set_string("role", &"responder")?;
+        jb.set_string("alg_enc", &format!("{:?}", state.ikev2_container.alg_enc))?;
+        jb.set_string("alg_auth", &format!("{:?}", state.ikev2_container.alg_auth))?;
+        jb.set_string("alg_prf", &format!("{:?}", state.ikev2_container.alg_prf))?;
+        jb.set_string("alg_dh", &format!("{:?}", state.ikev2_container.alg_dh))?;
+        jb.set_string("alg_esn", &format!("{:?}", state.ikev2_container.alg_esn))?;
+    }
+    jb.set_uint("errors", tx.errors as u64)?;
+    jb.open_array("payload")?;
+    for payload in tx.payload_types.ikev2_payload_types.iter() {
+        jb.append_string(&format!("{:?}", payload))?;
+    }
+    jb.close()?;
+    jb.open_array("notify")?;
+    for notify in tx.notify_types.iter() {
+        jb.append_string(&format!("{:?}", notify))?;
+    }
+    jb.close()?;
+    jb.close()?;
+    Ok(())
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ikev1_logger_log(state: &mut IKEV1State, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, IKEV1Transaction);
-    log_ikev1(state, tx, flags, js).is_ok()
+    match tx.ike_version {
+        1 => log_ikev1(state, tx, flags, js).is_ok(),
+        2 => log_ikev2(state, tx, flags, js).is_ok(),
+        _ => false
+    }
 }

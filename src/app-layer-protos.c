@@ -87,9 +87,6 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_TFTP:
             proto_name = "tftp";
             break;
-        case ALPROTO_IKEV2:
-            proto_name = "ikev2";
-            break;
         case ALPROTO_KRB5:
             proto_name = "krb5";
             break;
@@ -151,7 +148,6 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"dnp3")==0) return ALPROTO_DNP3;
     if (strcmp(proto_name,"nfs")==0) return ALPROTO_NFS;
     if (strcmp(proto_name,"ntp")==0) return ALPROTO_NTP;
-    if (strcmp(proto_name,"ikev2")==0) return ALPROTO_IKEV2;
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
