@@ -1,3 +1,5 @@
+
+
 /* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
@@ -50,14 +52,11 @@ static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
  *
  * \return The decoded value (0 or above), or -1 if the parameter is invalid
  */
-static inline int GetBase64Value(uint8_t c)
-{
+static inline int GetBase64Value(uint8_t c) {
     int val = -1;
 
     /* Pull from conversion table */
-    if (c <= BASE64_TABLE_MAX) {
-        val = b64table[(int) c];
-    }
+    if (c <= BASE64_TABLE_MAX) { val = b64table[(int) c]; }
 
     return val;
 }
