@@ -75,7 +75,6 @@
 #define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
-static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed);
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
@@ -212,60 +211,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     jb_set_uint(jb, "tx_id", ff->txid);
 }
 
-static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
-{
-    if (p == NULL || p->pktvar == NULL) {
-        return;
-    }
-    json_t *js_pktvars = NULL;
-    PktVar *pv = p->pktvar;
-    while (pv != NULL) {
-        if (pv->key || pv->id > 0) {
-            if (js_pktvars == NULL) {
-                js_pktvars = json_array();
-                if (js_pktvars == NULL)
-                    break;
-            }
-            json_t *js_pair = json_object();
-            if (js_pair == NULL) {
-                break;
-            }
-
-            if (pv->key != NULL) {
-                uint32_t offset = 0;
-                uint8_t keybuf[pv->key_len + 1];
-                PrintStringsToBuffer(keybuf, &offset,
-                        sizeof(keybuf),
-                        pv->key, pv->key_len);
-                uint32_t len = pv->value_len;
-                uint8_t printable_buf[len + 1];
-                offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        pv->value, pv->value_len);
-                json_object_set_new(js_pair, (char *)keybuf,
-                        json_string((char *)printable_buf));
-            } else {
-                const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
-                uint32_t len = pv->value_len;
-                uint8_t printable_buf[len + 1];
-                uint32_t offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        pv->value, pv->value_len);
-
-                json_object_set_new(js_pair, varname,
-                        json_string((char *)printable_buf));
-            }
-            json_array_append_new(js_pktvars, js_pair);
-        }
-        pv = pv->next;
-    }
-    if (js_pktvars) {
-        json_object_set_new(js_vars, "pktvars", js_pktvars);
-    }
-}
-
 static void EveAddPacketVars(const Packet *p, JsonBuilder *js_vars)
 {
     if (p == NULL || p->pktvar == NULL) {
@@ -327,151 +272,6 @@ static bool SCStringHasPrefix(const char *s, const char *prefix)
         return true;
     }
     return false;
-}
-
-/**
- * \brief Add flow variables to a json object.
- *
- * Adds "flowvars" (map), "flowints" (map) and "flowbits" (array) to
- * the json object provided as js_root.
- */
-static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
-{
-    if (f == NULL || f->flowvar == NULL) {
-        return;
-    }
-    json_t *js_flowvars = NULL;
-    json_t *js_traffic_id = NULL;
-    json_t *js_traffic_label = NULL;
-    json_t *js_flowints = NULL;
-    json_t *js_flowbits = NULL;
-    GenericVar *gv = f->flowvar;
-    while (gv != NULL) {
-        if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
-            FlowVar *fv = (FlowVar *)gv;
-            if (fv->datatype == FLOWVAR_TYPE_STR && fv->key == NULL) {
-                const char *varname = VarNameStoreLookupById(fv->idx,
-                        VAR_TYPE_FLOW_VAR);
-                if (varname) {
-                    if (js_flowvars == NULL) {
-                        js_flowvars = json_array();
-                        if (js_flowvars == NULL)
-                            break;
-                    }
-
-                    uint32_t len = fv->data.fv_str.value_len;
-                    uint8_t printable_buf[len + 1];
-                    uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset,
-                            sizeof(printable_buf),
-                            fv->data.fv_str.value, fv->data.fv_str.value_len);
-
-                    json_t *js_flowvar = json_object();
-                    if (unlikely(js_flowvar == NULL)) {
-                        break;
-                    }
-                    json_object_set_new(js_flowvar, varname,
-                            json_string((char *)printable_buf));
-                    json_array_append_new(js_flowvars, js_flowvar);
-                }
-            } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
-                if (js_flowvars == NULL) {
-                    js_flowvars = json_array();
-                    if (js_flowvars == NULL)
-                        break;
-                }
-
-                uint8_t keybuf[fv->keylen + 1];
-                uint32_t offset = 0;
-                PrintStringsToBuffer(keybuf, &offset,
-                        sizeof(keybuf),
-                        fv->key, fv->keylen);
-
-                uint32_t len = fv->data.fv_str.value_len;
-                uint8_t printable_buf[len + 1];
-                offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        fv->data.fv_str.value, fv->data.fv_str.value_len);
-
-                json_t *js_flowvar = json_object();
-                if (unlikely(js_flowvar == NULL)) {
-                    break;
-                }
-                json_object_set_new(js_flowvar, (const char *)keybuf,
-                        json_string((char *)printable_buf));
-                json_array_append_new(js_flowvars, js_flowvar);
-            } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                const char *varname = VarNameStoreLookupById(fv->idx,
-                        VAR_TYPE_FLOW_INT);
-                if (varname) {
-                    if (js_flowints == NULL) {
-                        js_flowints = json_object();
-                        if (js_flowints == NULL)
-                            break;
-                    }
-
-                    json_object_set_new(js_flowints, varname,
-                            json_integer(fv->data.fv_int.value));
-                }
-
-            }
-        } else if (gv->type == DETECT_FLOWBITS) {
-            FlowBit *fb = (FlowBit *)gv;
-            const char *varname = VarNameStoreLookupById(fb->idx,
-                    VAR_TYPE_FLOW_BIT);
-            if (varname) {
-                if (SCStringHasPrefix(varname, TRAFFIC_ID_PREFIX)) {
-                    if (js_traffic_id == NULL) {
-                        js_traffic_id = json_array();
-                        if (unlikely(js_traffic_id == NULL)) {
-                            break;
-                        }
-                    }
-                    json_array_append_new(js_traffic_id,
-                            json_string(&varname[traffic_id_prefix_len]));
-                } else if (SCStringHasPrefix(varname, TRAFFIC_LABEL_PREFIX)) {
-                    if (js_traffic_label == NULL) {
-                        js_traffic_label = json_array();
-                        if (unlikely(js_traffic_label == NULL)) {
-                            break;
-                        }
-                    }
-                    json_array_append_new(js_traffic_label,
-                            json_string(&varname[traffic_label_prefix_len]));
-                } else {
-                    if (js_flowbits == NULL) {
-                        js_flowbits = json_array();
-                        if (unlikely(js_flowbits == NULL))
-                            break;
-                    }
-                    json_array_append_new(js_flowbits, json_string(varname));
-                }
-            }
-        }
-        gv = gv->next;
-    }
-    if (js_flowbits) {
-        json_object_set_new(js_root, "flowbits", js_flowbits);
-    }
-    if (js_flowints) {
-        json_object_set_new(js_root, "flowints", js_flowints);
-    }
-    if (js_flowvars) {
-        json_object_set_new(js_root, "flowvars", js_flowvars);
-    }
-
-    if (js_traffic_id != NULL || js_traffic_label != NULL) {
-        *js_traffic = json_object();
-        if (likely(*js_traffic != NULL)) {
-            if (js_traffic_id != NULL) {
-                json_object_set_new(*js_traffic, "id", js_traffic_id);
-            }
-            if (js_traffic_label != NULL) {
-                json_object_set_new(*js_traffic, "label", js_traffic_label);
-            }
-        }
-    }
 }
 
 static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js_traffic)
@@ -612,30 +412,6 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
     }
 }
 
-/**
- * \brief Add top-level metadata to the eve json object.
- */
-static void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
-{
-    if ((p && p->pktvar) || (f && f->flowvar)) {
-        json_t *js_vars = json_object();
-        json_t *js_traffic = NULL;
-        if (js_vars) {
-            if (f && f->flowvar) {
-                JsonAddFlowVars(f, js_vars, &js_traffic);
-                if (js_traffic != NULL) {
-                    json_object_set_new(js, "traffic", js_traffic);
-                }
-            }
-            if (p && p->pktvar) {
-                JsonAddPacketvars(p, js_vars);
-            }
-
-            json_object_set_new(js, "metadata", js_vars);
-        }
-    }
-}
-
 static void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
@@ -659,17 +435,6 @@ static void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
     }
 }
 
-void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, json_t *js)
-{
-    if (cfg->include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
-    if (cfg->include_community_id && f != NULL) {
-        CreateJSONCommunityFlowId(js, f, cfg->community_id_seed);
-    }
-}
-
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js)
 {
@@ -679,31 +444,6 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
     }
-}
-
-/**
- * \brief Jsonify a packet
- *
- * \param p Packet
- * \param js JSON object
- * \param max_length If non-zero, restricts the number of packet data bytes handled.
- */
-void JsonPacket(const Packet *p, json_t *js, unsigned long max_length)
-{
-    unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
-    unsigned long len = 2 * max_len;
-    uint8_t encoded_packet[len];
-    if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
-        json_object_set_new(js, "packet", json_string((char *)encoded_packet));
-    }
-
-    /* Create packet info. */
-    json_t *packetinfo_js = json_object();
-    if (unlikely(packetinfo_js == NULL)) {
-        return;
-    }
-    json_object_set_new(packetinfo_js, "linktype", json_integer(p->datalink));
-    json_object_set_new(js, "packet_info", packetinfo_js);
 }
 
 /**
@@ -729,29 +469,6 @@ void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
         return;
     }
     jb_close(js);
-}
-
-/** \brief jsonify tcp flags field
- *  Only add 'true' fields in an attempt to keep things reasonably compact.
- */
-void JsonTcpFlags(uint8_t flags, json_t *js)
-{
-    if (flags & TH_SYN)
-        json_object_set_new(js, "syn", json_true());
-    if (flags & TH_FIN)
-        json_object_set_new(js, "fin", json_true());
-    if (flags & TH_RST)
-        json_object_set_new(js, "rst", json_true());
-    if (flags & TH_PUSH)
-        json_object_set_new(js, "psh", json_true());
-    if (flags & TH_ACK)
-        json_object_set_new(js, "ack", json_true());
-    if (flags & TH_URG)
-        json_object_set_new(js, "urg", json_true());
-    if (flags & TH_ECN)
-        json_object_set_new(js, "ecn", json_true());
-    if (flags & TH_CWR)
-        json_object_set_new(js, "cwr", json_true());
 }
 
 /** \brief jsonify tcp flags field
@@ -1148,20 +865,6 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
     return false;
 }
 
-static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed)
-{
-    unsigned char buf[COMMUNITY_ID_BUF_SIZE];
-    if (f->flags & FLOW_IPV4) {
-        if (CalculateCommunityFlowIdv4(f, seed, buf)) {
-            json_object_set_new(js, "community_id", json_string((const char *)buf));
-        }
-    } else if (f->flags & FLOW_IPV6) {
-        if (CalculateCommunityFlowIdv6(f, seed, buf)) {
-            json_object_set_new(js, "community_id", json_string((const char *)buf));
-        }
-    }
-}
-
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed)
 {
     unsigned char buf[COMMUNITY_ID_BUF_SIZE];
@@ -1354,19 +1057,6 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
             }
             break;
     }
-
-    return js;
-}
-
-json_t *CreateJSONHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
-                                 const char *event_type, uint64_t tx_id)
-{
-    json_t *js = CreateJSONHeader(p, dir, event_type, NULL);
-    if (unlikely(js == NULL))
-        return NULL;
-
-    /* tx id for correlation with other events */
-    json_object_set_new(js, "tx_id", json_integer(tx_id));
 
     return js;
 }
