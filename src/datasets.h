@@ -24,6 +24,8 @@
 int DatasetsInit(void);
 void DatasetsDestroy(void);
 void DatasetsSave(void);
+void DatasetReload(void);
+void DatasetPostReloadCleanup(void);
 
 enum DatasetTypes {
 #define DATASET_TYPE_NOTSET 0
@@ -37,7 +39,8 @@ typedef struct Dataset {
     char name[DATASET_NAME_MAX_LEN + 1];
     enum DatasetTypes type;
     uint32_t id;
-
+    bool from_yaml;                     /* Mark whether the set was retrieved from YAML */
+    bool hidden;                        /* Mark the old sets hidden in case of reload */
     THashTableContext *hash;
 
     char load[PATH_MAX];
