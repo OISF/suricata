@@ -55,7 +55,6 @@ typedef struct LogDHCPFileCtx_ {
 
 typedef struct LogDHCPLogThread_ {
     LogDHCPFileCtx *dhcplog_ctx;
-    uint32_t        count;
     MemBuffer      *buffer;
 } LogDHCPLogThread;
 

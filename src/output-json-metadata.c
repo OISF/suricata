@@ -65,8 +65,6 @@
 
 #define MODULE_NAME "JsonMetadataLog"
 
-#define JSON_STREAM_BUFFER_SIZE 4096
-
 typedef struct MetadataJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     OutputJsonCommonSettings cfg;

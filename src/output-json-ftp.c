@@ -55,7 +55,6 @@ typedef struct LogFTPFileCtx_ {
 
 typedef struct LogFTPLogThread_ {
     LogFTPFileCtx *ftplog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogFTPLogThread;
 
