@@ -25,7 +25,6 @@
 #define __UTIL_LOGOPENFILE_H__
 
 #include "conf.h"            /* ConfNode   */
-#include "tm-modules.h"      /* LogFileCtx */
 #include "util-buffer.h"
 
 #ifdef HAVE_LIBHIREDIS
