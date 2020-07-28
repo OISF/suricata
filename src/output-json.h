@@ -69,15 +69,10 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
-void CreateJSONFlowId(json_t *js, const Flow *f);
 void CreateEveFlowId(JsonBuilder *js, const Flow *f);
 void EveFileInfo(JsonBuilder *js, const File *file, const bool stored);
 void EveTcpFlags(uint8_t flags, JsonBuilder *js);
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);
-void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
-json_t *CreateJSONHeader(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type,
-        JsonAddrInfo *addr);
 JsonBuilder *CreateEveHeader(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type,
         JsonAddrInfo *addr);
