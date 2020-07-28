@@ -278,33 +278,10 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
 }
 
 static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
-        const PacketAlert *pa, JsonBuilder *ajs)
+        const PacketAlert *pa, JsonBuilder *js)
 {
-    if (pa->s->metadata) {
-        const DetectMetadata* kv = pa->s->metadata;
-        json_t *mjs = json_object();
-        if (unlikely(mjs == NULL)) {
-            return;
-        }
-        while (kv) {
-            json_t *jkey = json_object_get(mjs, kv->key);
-            if (jkey == NULL) {
-                jkey = json_array();
-                if (unlikely(jkey == NULL))
-                    break;
-                json_array_append_new(jkey, json_string(kv->value));
-                json_object_set_new(mjs, kv->key, jkey);
-            } else {
-                json_array_append_new(jkey, json_string(kv->value));
-            }
-
-            kv = kv->next;
-        }
-
-        if (json_object_size(mjs) > 0) {
-            jb_set_jsont(ajs, "metadata", mjs);
-        }
-        json_decref(mjs);
+    if (pa->s->metadata && pa->s->metadata->json_str) {
+        jb_set_formatted(js, pa->s->metadata->json_str);
     }
 }
 
