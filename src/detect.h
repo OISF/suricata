@@ -589,7 +589,7 @@ typedef struct Signature_ {
     /** Reference */
     DetectReference *references;
     /** Metadata */
-    DetectMetadata *metadata;
+    DetectMetadataHead *metadata;
 
     char *sig_str;
 

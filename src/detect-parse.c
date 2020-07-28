@@ -1298,18 +1298,19 @@ static void SigMetadataFree(Signature *s)
     DetectMetadata *mdata = NULL;
     DetectMetadata *next_mdata = NULL;
 
-    if (s == NULL) {
+    if (s == NULL || s->metadata == NULL) {
         SCReturn;
     }
 
     SCLogDebug("s %p, s->metadata %p", s, s->metadata);
 
-    for (mdata = s->metadata; mdata != NULL;)   {
+    for (mdata = s->metadata->list; mdata != NULL;)   {
         next_mdata = mdata->next;
         DetectMetadataFree(mdata);
         mdata = next_mdata;
     }
-
+    SCFree(s->metadata->json_str);
+    SCFree(s->metadata);
     s->metadata = NULL;
 
     SCReturn;
