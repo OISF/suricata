@@ -50,7 +50,6 @@ pub mod core;
 #[macro_use]
 pub mod common;
 pub mod conf;
-pub mod json;
 pub mod jsonbuilder;
 #[macro_use]
 pub mod applayer;
