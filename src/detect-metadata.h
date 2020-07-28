@@ -36,6 +36,11 @@ typedef struct DetectMetadata_ {
     struct DetectMetadata_ *next;
 } DetectMetadata;
 
+typedef struct DetectMetadataHead {
+    char *json_str;
+    DetectMetadata *list;
+} DetectMetadataHead;
+
 /* prototypes */
 void DetectMetadataRegister (void);
 
