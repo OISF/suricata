@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,6 +55,7 @@ typedef struct LogSIPFileCtx_ {
 } LogSIPFileCtx;
 
 typedef struct LogSIPLogThread_ {
+    LogFileCtx *file_ctx;
     LogSIPFileCtx *siplog_ctx;
     MemBuffer          *buffer;
 } LogSIPLogThread;
@@ -87,7 +88,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     }
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -145,20 +146,30 @@ static TmEcode JsonSIPLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogSIP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->siplog_ctx = ((OutputCtx *)initdata)->data;
+
+    thread->file_ctx = LogFileEnsureExists(thread->siplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonSIPLogThreadDeinit(ThreadVars *t, void *data)

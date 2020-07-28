@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,6 +67,7 @@ typedef struct JsonDropOutputCtx_ {
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
+    LogFileCtx *file_ctx;
     JsonDropOutputCtx *drop_ctx;
     MemBuffer *buffer;
 } JsonDropLogThread;
@@ -173,7 +174,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJsonBuilderBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -181,29 +182,37 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 
 static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonDropLogThread *aft = SCMalloc(sizeof(JsonDropLogThread));
+    JsonDropLogThread *aft = SCCalloc(1, sizeof(JsonDropLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(*aft));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogDrop.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->drop_ctx = ((OutputCtx *)initdata)->data;
+    aft->file_ctx = LogFileEnsureExists(aft->drop_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)

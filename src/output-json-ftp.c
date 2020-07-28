@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,6 +54,7 @@ typedef struct LogFTPFileCtx_ {
 } LogFTPFileCtx;
 
 typedef struct LogFTPLogThread_ {
+    LogFileCtx *file_ctx;
     LogFTPFileCtx *ftplog_ctx;
     MemBuffer          *buffer;
 } LogFTPLogThread;
@@ -175,7 +176,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
         }
 
         MemBufferReset(thread->buffer);
-        OutputJsonBuilderBuffer(jb, thread->ftplog_ctx->file_ctx, &thread->buffer);
+        OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
         jb_free(jb);
     }
@@ -234,20 +235,30 @@ static TmEcode JsonFTPLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogFTP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->ftplog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->ftplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonFTPLogThreadDeinit(ThreadVars *t, void *data)

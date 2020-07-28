@@ -1022,6 +1022,17 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ||
             json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM)
         {
+            if (json_ctx->json_out == LOGFILE_TYPE_FILE) {
+                /* Threaded file output */
+                const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
+                if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
+                    SCLogConfig("Enabling threaded eve logging.");
+                    json_ctx->file_ctx->threaded = true;
+                } else {
+                    json_ctx->file_ctx->threaded = false;
+                }
+            }
+
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
@@ -1029,6 +1040,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 return result;
             }
             OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
+
         }
 #ifndef OS_WIN32
 	else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {

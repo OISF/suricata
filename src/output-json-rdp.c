@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,6 +51,7 @@ typedef struct LogRdpFileCtx_ {
 
 typedef struct LogRdpLogThread_ {
     LogRdpFileCtx *rdplog_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer       *buffer;
 } LogRdpLogThread;
 
@@ -69,7 +70,7 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->rdplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
 
     jb_free(js);
     return TM_ECODE_OK;
@@ -126,14 +127,24 @@ static TmEcode JsonRdpLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->rdplog_ctx = ((OutputCtx *)initdata)->data;
-    *data = (void *)thread;
+    thread->file_ctx = LogFileEnsureExists(thread->rdplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
 
+    *data = (void *)thread;
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonRdpLogThreadDeinit(ThreadVars *t, void *data)

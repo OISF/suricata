@@ -106,30 +106,37 @@ static int JsonMetadataLogCondition(ThreadVars *tv, const Packet *p)
 
 static TmEcode JsonMetadataLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonMetadataLogThread *aft = SCMalloc(sizeof(JsonMetadataLogThread));
+    JsonMetadataLogThread *aft = SCCalloc(1, sizeof(JsonMetadataLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonMetadataLogThread));
-    if(initdata == NULL)
-    {
+
+    if(initdata == NULL) {
         SCLogDebug("Error getting context for EveLogMetadata.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /** Use the Output Context (file pointer and mutex) */
     MetadataJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = json_output_ctx->file_ctx;
+    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
     aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->json_buffer != NULL) {
+        MemBufferFree(aft->json_buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonMetadataLogThreadDeinit(ThreadVars *t, void *data)

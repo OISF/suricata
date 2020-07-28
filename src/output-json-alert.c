@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2014 Open Information Security Foundation
+/* Copyright (C) 2013-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,6 +35,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 
+#include "util-logopenfile.h"
 #include "util-misc.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -716,37 +717,47 @@ static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
 
 static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonAlertLogThread *aft = SCMalloc(sizeof(JsonAlertLogThread));
+    JsonAlertLogThread *aft = SCCalloc(1, sizeof(JsonAlertLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonAlertLogThread));
-    if(initdata == NULL)
+
+    if (initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogAlert.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /** Use the Output Context (file pointer and mutex) */
     AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = json_output_ctx->file_ctx;
-    aft->json_output_ctx = json_output_ctx;
 
     aft->payload_buffer = MemBufferCreateNew(json_output_ctx->payload_buffer_size);
     if (aft->payload_buffer == NULL) {
-        MemBufferFree(aft->json_buffer);
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
+    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
+
+    aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->json_buffer != NULL) {
+        MemBufferFree(aft->json_buffer);
+    }
+    if (aft->payload_buffer != NULL) {
+        MemBufferFree(aft->payload_buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)

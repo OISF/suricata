@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,6 +51,7 @@ typedef struct LogDNP3FileCtx_ {
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
+    LogFileCtx *file_ctx;
     LogDNP3FileCtx *dnp3log_ctx;
     MemBuffer      *buffer;
 } LogDNP3LogThread;
@@ -231,7 +232,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
         jb_free(js);
     }
 
@@ -258,7 +259,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
         jb_free(js);
     }
 
@@ -314,20 +315,30 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for DNP3.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->dnp3log_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->dnp3log_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
