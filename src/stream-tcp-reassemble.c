@@ -1822,15 +1822,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
 
-    /* we need to update the opposing stream in
-     * StreamTcpReassembleHandleSegmentUpdateACK */
-    TcpStream *opposing_stream = NULL;
-    if (stream == &ssn->client) {
-        opposing_stream = &ssn->server;
-    } else {
-        opposing_stream = &ssn->client;
-    }
-
     /* default IDS: update opposing side (triggered by ACK) */
     enum StreamUpdateDir dir = UPDATE_DIR_OPPOSING;
     /* inline and stream end and flow timeout packets trigger same dir handling */
@@ -1847,13 +1838,32 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
 
     /* handle ack received */
-    if ((dir == UPDATE_DIR_OPPOSING || dir == UPDATE_DIR_BOTH) &&
-        StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
-    {
-        SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
-        SCReturnInt(-1);
-    }
+    if ((dir == UPDATE_DIR_OPPOSING || dir == UPDATE_DIR_BOTH)) {
+        /* we need to update the opposing stream in
+         * StreamTcpReassembleHandleSegmentUpdateACK */
+        TcpStream *opposing_stream = NULL;
+        if (stream == &ssn->client) {
+            opposing_stream = &ssn->server;
+        } else {
+            opposing_stream = &ssn->client;
+        }
 
+        const bool reversed_before_ack_handling = (p->flow->flags & FLOW_DIR_REVERSED) != 0;
+
+        if (StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0) {
+            SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
+            SCReturnInt(-1);
+        }
+
+        /* StreamTcpReassembleHandleSegmentUpdateACK
+         * may swap content of ssn->server and ssn->client structures.
+         * We have to continue with initial content of the stream in such case */
+        const bool reversed_after_ack_handling = (p->flow->flags & FLOW_DIR_REVERSED) != 0;
+        if (reversed_before_ack_handling != reversed_after_ack_handling) {
+            SCLogDebug("TCP streams were swapped");
+            stream = opposing_stream;
+        }
+    }
     /* if this segment contains data, insert it */
     if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
