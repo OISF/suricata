@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,12 +46,20 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
+struct LogFileCtx_;
+typedef struct LogThreadedFileCtx_ {
+    int slot_count;
+    SCMutex mutex;
+    struct LogFileCtx_ **lf_slots;
+    char *append;
+} LogThreadedFileCtx;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+        LogThreadedFileCtx *threads;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
@@ -70,6 +78,11 @@ typedef struct LogFileCtx_ {
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
     SCMutex fp_mutex;
+
+    /** When threaded, track of the parent and thread id */
+    bool threaded;
+    struct LogFileCtx_ *parent;
+    int id;
 
     /** the type of file */
     enum LogFileType type;
@@ -144,6 +157,7 @@ LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
+LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx, int thread_id);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 
