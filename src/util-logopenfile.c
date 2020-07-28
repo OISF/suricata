@@ -509,7 +509,7 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
 }
 
 /** \brief LogFileNewCtx() Get a new LogFileCtx
- *  \retval LogFileCtx * pointer if succesful, NULL if error
+ *  \retval LogFileCtx * pointer if successful, NULL if error
  *  */
 LogFileCtx *LogFileNewCtx(void)
 {
