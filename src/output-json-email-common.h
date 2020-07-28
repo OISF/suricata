@@ -32,6 +32,7 @@ typedef struct OutputJsonEmailCtx_ {
 } OutputJsonEmailCtx;
 
 typedef struct JsonEmailLogThread_ {
+    LogFileCtx *file_ctx;
     OutputJsonEmailCtx *emaillog_ctx;
     MemBuffer *buffer;
 } JsonEmailLogThread;

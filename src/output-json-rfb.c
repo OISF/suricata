@@ -53,6 +53,7 @@ typedef struct LogRFBFileCtx_ {
 
 typedef struct LogRFBLogThread_ {
     LogRFBFileCtx *rfblog_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer          *buffer;
 } LogRFBLogThread;
 
@@ -84,7 +85,7 @@ static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
     }
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->rfblog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -142,14 +143,24 @@ static TmEcode JsonRFBLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->rfblog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->rfblog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonRFBLogThreadDeinit(ThreadVars *t, void *data)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -266,6 +266,7 @@ typedef struct LogDnsFileCtx_ {
 typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } LogDnsLogThread;
 
@@ -330,7 +331,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         jb_close(jb);
 
         MemBufferReset(td->buffer);
-        OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+        OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
         jb_free(jb);
     }
 
@@ -361,7 +362,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
             jb_close(jb);
             MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
             jb_free(jb);
         }
     } else {
@@ -382,7 +383,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
 
             MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
             jb_free(jb);
         }
         /* Log authorities. */
@@ -402,7 +403,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
 
             MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
             jb_free(jb);
         }
     }
@@ -412,29 +413,37 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
+    LogDnsLogThread *aft = SCCalloc(1, sizeof(LogDnsLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogDnsLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogDNS.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
+    aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)

@@ -61,6 +61,7 @@ typedef struct OutputSshCtx_ {
 
 typedef struct JsonSshLogThread_ {
     OutputSshCtx *sshlog_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } JsonSshLogThread;
 
@@ -103,22 +104,32 @@ static TmEcode JsonSshLogThreadInit(ThreadVars *t, const void *initdata, void **
         return TM_ECODE_FAILED;
     }
 
-    JsonSshLogThread *aft = SCMalloc(sizeof(JsonSshLogThread));
+    JsonSshLogThread *aft = SCCalloc(1, sizeof(JsonSshLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonSshLogThread));
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->sshlog_ctx = ((OutputCtx *)initdata)->data;
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->file_ctx = LogFileEnsureExists(aft->sshlog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonSshLogThreadDeinit(ThreadVars *t, void *data)

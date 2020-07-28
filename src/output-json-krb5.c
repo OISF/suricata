@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,6 +55,7 @@ typedef struct LogKRB5FileCtx_ {
 } LogKRB5FileCtx;
 
 typedef struct LogKRB5LogThread_ {
+    LogFileCtx *file_ctx;
     LogKRB5FileCtx *krb5log_ctx;
     MemBuffer          *buffer;
 } LogKRB5LogThread;
@@ -79,7 +80,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
     jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->krb5log_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
     jb_free(jb);
     return TM_ECODE_OK;
@@ -136,20 +137,29 @@ static TmEcode JsonKRB5LogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogKRB5.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->krb5log_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->krb5log_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonKRB5LogThreadDeinit(ThreadVars *t, void *data)

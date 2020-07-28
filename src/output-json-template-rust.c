@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,6 +61,7 @@ typedef struct LogTemplateFileCtx_ {
 
 typedef struct LogTemplateLogThread_ {
     LogTemplateFileCtx *templatelog_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer          *buffer;
 } LogTemplateLogThread;
 
@@ -82,7 +83,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     jb_close(js);
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -137,20 +138,29 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, const void *initdata, vo
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogTemplate.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->templatelog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->templatelog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)

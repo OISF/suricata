@@ -55,6 +55,7 @@ typedef struct LogJsonFileCtx_ {
 } LogJsonFileCtx;
 
 typedef struct JsonNetFlowLogThread_ {
+    LogFileCtx *file_ctx;
     LogJsonFileCtx *flowlog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
 
@@ -287,7 +288,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jhl, jb, f);
     EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb);
-    OutputJsonBuilderBuffer(jb, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
+    OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
     jb_free(jb);
 
     /* only log a response record if we actually have seen response packets */
@@ -299,7 +300,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jhl, jb, f);
         EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb);
-        OutputJsonBuilderBuffer(jb, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
+        OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
         jb_free(jb);
     }
     SCReturnInt(TM_ECODE_OK);
@@ -386,16 +387,13 @@ static OutputInitResult OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *paren
 
 static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonNetFlowLogThread *aft = SCMalloc(sizeof(JsonNetFlowLogThread));
+    JsonNetFlowLogThread *aft = SCCalloc(1, sizeof(JsonNetFlowLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonNetFlowLogThread));
 
-    if(initdata == NULL)
-    {
+    if(initdata == NULL) {
         SCLogDebug("Error getting context for EveLogNetflow.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /* Use the Ouptut Context (file pointer and mutex) */
@@ -403,12 +401,23 @@ static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, const void *initdata, voi
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->file_ctx = LogFileEnsureExists(aft->flowlog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonNetFlowLogThreadDeinit(ThreadVars *t, void *data)

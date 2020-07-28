@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -89,7 +89,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     jb_close(jb);
 
     if (EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJsonBuilderBuffer(jb, jhl->emaillog_ctx->file_ctx, &jhl->buffer);
+        OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
     }
 
     jb_free(jb);
@@ -206,29 +206,36 @@ static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_c
 
 static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonEmailLogThread *aft = SCMalloc(sizeof(JsonEmailLogThread));
+    JsonEmailLogThread *aft = SCCalloc(1, sizeof(JsonEmailLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonEmailLogThread));
 
-    if(initdata == NULL)
-    {
+    if(initdata == NULL) {
         SCLogDebug("Error getting context for EveLogSMTP.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->emaillog_ctx = ((OutputCtx *)initdata)->data;
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
+    aft->file_ctx = LogFileEnsureExists(aft->emaillog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)

@@ -287,23 +287,32 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogAnomaly.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /** Use the Output Context (file pointer and mutex) */
     AnomalyJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = json_output_ctx->file_ctx;
+
+    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
     aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->json_buffer != NULL) {
+        MemBufferFree(aft->json_buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)

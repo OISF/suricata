@@ -106,6 +106,7 @@ typedef struct OutputTlsCtx_ {
 
 
 typedef struct JsonTlsLogThread_ {
+    LogFileCtx *file_ctx;
     OutputTlsCtx *tlslog_ctx;
     MemBuffer *buffer;
 } JsonTlsLogThread;
@@ -440,7 +441,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* Close the tls object. */
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, tls_ctx->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
     jb_free(js);
 
     return 0;
@@ -448,30 +449,37 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
 static TmEcode JsonTlsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonTlsLogThread *aft = SCMalloc(sizeof(JsonTlsLogThread));
+    JsonTlsLogThread *aft = SCCalloc(1, sizeof(JsonTlsLogThread));
     if (unlikely(aft == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    memset(aft, 0, sizeof(JsonTlsLogThread));
-
     if (initdata == NULL) {
         SCLogDebug("Error getting context for eve-log tls 'initdata' argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        goto error_exit;
     }
 
     /* use the Output Context (file pointer and mutex) */
     aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+    aft->file_ctx = LogFileEnsureExists(aft->tlslog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
-
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
