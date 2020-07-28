@@ -51,7 +51,6 @@ typedef struct LogRdpFileCtx_ {
 
 typedef struct LogRdpLogThread_ {
     LogRdpFileCtx *rdplog_ctx;
-    uint32_t         count;
     MemBuffer       *buffer;
 } LogRdpLogThread;
 

@@ -53,7 +53,6 @@ typedef struct LogRFBFileCtx_ {
 
 typedef struct LogRFBLogThread_ {
     LogRFBFileCtx *rfblog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogRFBLogThread;
 

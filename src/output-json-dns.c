@@ -266,8 +266,6 @@ typedef struct LogDnsFileCtx_ {
 typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t dns_cnt;
-
     MemBuffer *buffer;
 } LogDnsLogThread;
 

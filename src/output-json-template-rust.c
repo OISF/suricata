@@ -61,7 +61,6 @@ typedef struct LogTemplateFileCtx_ {
 
 typedef struct LogTemplateLogThread_ {
     LogTemplateFileCtx *templatelog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogTemplateLogThread;
 

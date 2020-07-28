@@ -58,7 +58,6 @@ typedef struct LogTFTPFileCtx_ {
 
 typedef struct LogTFTPLogThread_ {
     LogTFTPFileCtx *tftplog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogTFTPLogThread;
 
