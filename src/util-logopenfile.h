@@ -101,7 +101,7 @@ typedef struct LogFileCtx_ {
     size_t prefix_len;
 
     /** Generic size_limit and size_current
-     * They must be common to the threads accesing the same file */
+     * They must be common to the threads accessing the same file */
     uint64_t size_limit;    /**< file size limit */
     uint64_t size_current;  /**< file current size */
 
@@ -112,7 +112,7 @@ typedef struct LogFileCtx_ {
     uint8_t send_flags;
 
     /* Flag if file is a regular file or not.  Only regular files
-     * allow for rotataion. */
+     * allow for rotation. */
     uint8_t is_regular;
 
     /* JSON flags */
