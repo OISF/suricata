@@ -25,11 +25,9 @@
  */
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
-#include "tm-modules.h"      /* LogFileCtx */
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-byte.h"
-#include "util-path.h"
 #include "util-logopenfile.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
