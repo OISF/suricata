@@ -574,13 +574,12 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
  */
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
-    if (s == NULL || s->conn == NULL ||
-	htp_conn_get_messages(s->conn) == NULL) {
+    if (s == NULL || s->conn == NULL) {
         return;
     }
 
-    size_t size = htp_list_size(htp_conn_get_messages(s->conn));
-    size_t msg;
+    ssize_t size = htp_conn_message_size(s->conn);
+    ssize_t msg;
     if(size >= HTP_MAX_MESSAGES) {
         if (s->htp_messages_offset < HTP_MAX_MESSAGES) {
             //only once per HtpState
@@ -594,14 +593,14 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     }
 
     for (msg = s->htp_messages_offset; msg < size; msg++) {
-        char *log = htp_log_get(htp_conn_get_messages(s->conn), msg);
+        char *log = htp_conn_message_log(s->conn, msg);
         if (log == NULL)
             continue;
 
         SCLogDebug("message %s", log);
 
-        int id = htp_log_get_code(htp_conn_get_messages(s->conn), msg);
-        if (id > 0) {
+        htp_log_code id = htp_conn_message_code(s->conn, msg);
+        if (id != HTP_LOG_CODE_UNKNOWN && id != HTP_LOG_CODE_ERROR) {
             HTPSetEvent(s, NULL, dir, id);
         }
         htp_log_free(log);
@@ -2860,8 +2859,8 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL) {
-        const uint64_t size = (uint64_t)htp_list_size(htp_conn_get_txs(http_state->conn));
+    if (http_state != NULL && htp_conn_tx_size(http_state->conn) >= 0) {
+        const uint64_t size = (uint64_t) htp_conn_tx_size(http_state->conn);
         SCLogDebug("size %"PRIu64, size);
         return size;
     } else {
@@ -2874,7 +2873,7 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
     HtpState *http_state = (HtpState *)alstate;
 
     if (http_state != NULL && http_state->conn != NULL)
-        return htp_list_get(htp_conn_get_txs(http_state->conn), tx_id);
+        return htp_conn_tx(http_state->conn, tx_id);
     else
         return NULL;
 }
