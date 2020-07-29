@@ -520,6 +520,11 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 char *strptime(const char * __restrict, const char * __restrict, struct tm * __restrict);
 #endif
 
+#ifndef HAVE_FWRITE_UNLOCKED
+#define SCFwriteUnlocked    fwrite
+#else
+#define SCFwriteUnlocked    fwrite_unlocked
+#endif
 extern int coverage_unittests;
 extern int g_ut_modules;
 extern int g_ut_covered;
