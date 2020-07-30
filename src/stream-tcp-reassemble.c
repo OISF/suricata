@@ -1108,6 +1108,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
 
             /* AppLayerHandleTCPData has likely updated progress. */
+            const bool no_progress_update = (app_progress == STREAM_APP_PROGRESS(*stream));
             app_progress = STREAM_APP_PROGRESS(*stream);
 
             /* a GAP also consumes 'data required'. TODO perhaps we can use
@@ -1121,8 +1122,10 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             }
             if (r < 0)
                 return 0;
-
+            if (no_progress_update)
+                break;
             continue;
+
         } else if (mydata == NULL || mydata_len == 0) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
