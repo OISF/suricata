@@ -24,6 +24,9 @@ Output types::
 
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # Enable for multi-threaded eve.json output; output files are suffixed
+      # with an identifier, e.g., eve.json.9.. Default: off
+      #threaded: off
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -297,6 +300,25 @@ C library should be supported. See the man page for ``strftime`` for all support
 modifiers.
 
 .. _output_eve_rotate:
+
+Threaded file output
+~~~~~~~~~~~~~~~~~~~~
+
+By default, all output is written to the named filename in the outputs section. The ``threaded`` option enables
+each output thread to write to individual files prefixed with the configured ``filenmae``.
+
+::
+
+   outputs:
+     - eve-log:
+         filename: eve.json
+         threaded: on
+
+This example will cause each Suricata thread to write to its own "eve.json" file. Filenames are constructed
+by adding a suffix with the thread id. For example, the thread with id 7 would write to `eve.json.7`.
+
+With ``threaded`` enabled, the output will be split among many files -- each having the same prefix and a unique suffix -- and
+the aggregate of each file's contents must be treated together.
 
 Rotate log file
 ~~~~~~~~~~~~~~~
