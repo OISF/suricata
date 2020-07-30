@@ -547,8 +547,11 @@ impl DNSState {
         let mut cur_i = input;
         let mut consumed = 0;
         while cur_i.len() > 0 {
-            let size = match be_u16(&cur_i) as IResult<&[u8],_> {
-                Ok((_, len)) => i32::from(len),
+            if cur_i.len() == 1 {
+                return AppLayerResult::incomplete(consumed as u32, 2 as u32);
+            }
+            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+                Ok((_, len)) => len,
                 _ => 0
             } as usize;
             SCLogDebug!("[request] Have {} bytes, need {} to parse",
@@ -565,7 +568,7 @@ impl DNSState {
                 SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
                             consumed as u32, (cur_i.len() - consumed) as u32);
                 return AppLayerResult::incomplete(consumed as u32,
-                    (cur_i.len() - consumed) as u32);
+                    (size  + 2) as u32);
             }
         }
         AppLayerResult::ok()
@@ -588,8 +591,11 @@ impl DNSState {
         let mut cur_i = input;
         let mut consumed = 0;
         while cur_i.len() > 0 {
-            let size = match be_u16(&cur_i) as IResult<&[u8],_> {
-                Ok((_, len)) => i32::from(len),
+            if cur_i.len() == 1 {
+                return AppLayerResult::incomplete(consumed as u32, 2 as u32);
+            }
+            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+                Ok((_, len)) => len,
                 _ => 0
             } as usize;
             SCLogDebug!("[response] Have {} bytes, need {} to parse",
@@ -606,7 +612,7 @@ impl DNSState {
                 SCLogDebug!("[response]Not enough DNS traffic to parse. Returning {}/{}",
                     consumed as u32, (cur_i.len() - consumed) as u32);
                 return AppLayerResult::incomplete(consumed as u32,
-                    (cur_i.len() - consumed) as u32);
+                    (size + 2) as u32);
             }
         }
         AppLayerResult::ok()
@@ -1155,7 +1161,7 @@ mod tests {
 
         let mut state = DNSState::new();
         assert_eq!(
-            AppLayerResult::incomplete(0, 51),
+            AppLayerResult::incomplete(0, 52),
             state.parse_request_tcp(&request)
         );
     }
@@ -1240,7 +1246,7 @@ mod tests {
 
         let mut state = DNSState::new();
         assert_eq!(
-            AppLayerResult::incomplete(0, 102),
+            AppLayerResult::incomplete(0, 103),
             state.parse_response_tcp(&request)
         );
     }
@@ -1463,7 +1469,7 @@ mod tests {
         ];
         let mut state = DNSState::new();
         assert_eq!(
-            AppLayerResult::incomplete(0, 14),
+            AppLayerResult::incomplete(0, 30),
             state.parse_request_tcp(buf1)
         );
         assert_eq!(
