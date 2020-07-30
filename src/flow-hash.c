@@ -574,6 +574,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, DecodeThreadVars *dtv,
     FlowInit(f, p);
     f->flow_hash = hash;
     f->fb = fb;
+    FlowUpdateState(f, FLOW_STATE_NEW);
 
     f->thread_id[0] = thread_id[0];
     f->thread_id[1] = thread_id[1];
@@ -951,8 +952,6 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
             (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
 
         FlowClearMemory(f, f->protomap);
-
-        FlowUpdateState(f, FLOW_STATE_NEW);
 
         FLOWLOCK_UNLOCK(f);
         return f;
