@@ -47,8 +47,6 @@
 #include "output.h"
 #include "output-flow.h"
 
-#define FLOW_DEFAULT_FLOW_PRUNE 5
-
 FlowBucket *flow_hash;
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
@@ -67,9 +65,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv);
  */
 static inline int FlowHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t *b)
 {
-    int i;
-
-    for (i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (a[i] > b[i])
             return 1;
         if (a[i] < b[i])
