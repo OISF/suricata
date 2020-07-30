@@ -4,6 +4,9 @@ outputs:
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # Enable for multi-threaded eve.json output; output files are suffixed
+      # with an identifier, e.g., eve.json.9.
+      #threaded: false
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
