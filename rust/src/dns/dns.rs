@@ -744,7 +744,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            state.parse_request_tcp(buf);
+            return state.parse_request_tcp(buf);
         }
         state.request_gap(input_len);
     }
