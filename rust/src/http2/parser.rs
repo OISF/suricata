@@ -497,7 +497,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
                 },
             ));
         }
-        let mut sizeupdate = 0 as u64;
+        let mut sizeupdate = 31 as u64;
         for i in 0..maxsize2.len() {
             sizeupdate += ((maxsize2[i] & 0x7F) as u64) << (7 * i);
         }
