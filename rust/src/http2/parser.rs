@@ -704,7 +704,7 @@ impl std::str::FromStr for HTTP2SettingsId {
     }
 }
 
-//TODOask move elsewhere generic
+//TODOask move elsewhere generic with DetectU64Data and such
 #[derive(PartialEq, Debug)]
 pub enum DetectUintMode {
     DetectUintModeEqual,
@@ -788,7 +788,6 @@ named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
     )
 );
 
-//TODOask move somewhere else generic
 pub struct DetectU64Data {
     pub value: u64,
     pub valrange: u64,

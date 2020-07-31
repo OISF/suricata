@@ -127,7 +127,6 @@ void DetectHttp2Register(void)
 {
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].name = "http2.frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].desc = "match on HTTP2 frame type field";
-    //TODOnext create a new doc file for HTTP2 keywords
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = "/rules/http2-keywords.html#frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].AppLayerTxMatch = DetectHTTP2frametypeMatch;
@@ -885,7 +884,6 @@ static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id)
 {
-    //TODOask use PrefilterMpmListId elsewhere
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
         return -1;
@@ -912,7 +910,6 @@ static int DetectEngineInspectHttp2Header(
     }
 
     while (1) {
-        //TODOask use MpmListIdDataArgs elsewhere
         struct MpmListIdDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = GetHttp2HeaderData(det_ctx, flags,
                 transforms, f, &cbdata, engine->sm_list, false);

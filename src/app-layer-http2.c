@@ -66,7 +66,7 @@ void RegisterHTTP2Parsers(void)
     rs_http2_register_parser();
 
 #ifdef UNITTESTS
-    //TODOask tests
+    //TODOask HTTP2ParserRegisterTests();
 #endif
 }
 

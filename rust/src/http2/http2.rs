@@ -237,7 +237,6 @@ impl Drop for HTTP2Transaction {
     }
 }
 
-//TODOnext rules file
 #[repr(u32)]
 pub enum HTTP2Event {
     InvalidFrameHeader = 0,
