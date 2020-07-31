@@ -654,7 +654,7 @@ impl HTTP2State {
                     if tx.tx_id == txid {
                         let xid: u32 = tx.tx_id as u32;
                         let (files, flags) = self.files.get(dir);
-                        tx.ft.tx_id = tx.tx_id - 1;
+                        tx.ft.tx_id = tx.tx_id;
                         tx.ft.new_chunk(
                             sfcm,
                             files,
@@ -911,7 +911,6 @@ pub extern "C" fn rs_http2_parse_tc(
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
     state.files.flags_tc = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
-    state.files.flags_tc = state.files.flags_tc | 0x2000;
     return state.parse_tc(buf);
 }
 
@@ -1044,11 +1043,10 @@ pub extern "C" fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
     let state = cast_pointer!(state, HTTP2State);
-    //TODO8 understand inversion ?
     if direction == STREAM_TOCLIENT {
-        &mut state.files.files_ts as *mut FileContainer
-    } else {
         &mut state.files.files_tc as *mut FileContainer
+    } else {
+        &mut state.files.files_ts as *mut FileContainer
     }
 }
 

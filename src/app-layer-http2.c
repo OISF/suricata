@@ -60,10 +60,10 @@ void RegisterHTTP2Parsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP2, proto_name);
         if (HTTP2RegisterPatternsForProtocolDetection() < 0)
             return;
-    }
 
-    rs_http2_init(&sfc);
-    rs_http2_register_parser();
+        rs_http2_init(&sfc);
+        rs_http2_register_parser();
+    }
 
 #ifdef UNITTESTS
     //TODOask HTTP2ParserRegisterTests();
