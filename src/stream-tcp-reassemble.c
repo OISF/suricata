@@ -1166,7 +1166,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 (uint8_t *)mydata, mydata_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
-        if (new_app_progress == app_progress)
+        if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;
     }
