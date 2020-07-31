@@ -409,7 +409,12 @@ fn http2_parse_headers_block_literal_incindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    let r = http2_parse_headers_block_literal_common(i2, indexed.1, dyn_headers);
+    let (i3, indexreal) = if indexed.1 == 0x3F {
+        map!(i2, be_u8, |i| i + 0x3F)
+    } else {
+        Ok((i2, indexed.1))
+    }?;
+    let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     match r {
         Ok((r, head)) => {
             let headcopy = HTTP2FrameHeaderBlock {
@@ -467,7 +472,12 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    let r = http2_parse_headers_block_literal_common(i2, indexed.1, dyn_headers);
+    let (i3, indexreal) = if indexed.1 == 0xF {
+        map!(i2, be_u8, |i| i + 0xF)
+    } else {
+        Ok((i2, indexed.1))
+    }?;
+    let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
 
