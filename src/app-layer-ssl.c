@@ -46,6 +46,7 @@
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
 #include "util-spm.h"
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-print.h"
@@ -147,6 +148,26 @@ SslConfig ssl_config;
 #define SHA1_STRING_LENGTH             60
 
 #define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) > (uint64_t)(input_len)) ?  0 : 1
+
+static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
+        const void *src, size_t src_offset, size_t src_size, size_t src_tocopy) WARN_UNUSED;
+
+static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
+        const void *src, size_t src_offset, size_t src_size, size_t src_tocopy)
+{
+    DEBUG_VALIDATE_BUG_ON(dst_offset >= dst_size);
+    DEBUG_VALIDATE_BUG_ON(src_offset >= src_size);
+    DEBUG_VALIDATE_BUG_ON(src_tocopy > (src_size - src_offset));
+    DEBUG_VALIDATE_BUG_ON(src_tocopy > (dst_size - dst_offset));
+
+    if (dst_offset < dst_size && src_offset < src_size &&
+        src_tocopy <= (src_size - src_offset) &&
+        src_tocopy <= (dst_size - dst_offset)) {
+        memcpy(dst + dst_offset, src + src_offset, src_tocopy);
+        return 0;
+    }
+    return -1;
+}
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -727,7 +748,10 @@ static inline int TLSDecodeHSHelloSessionID(SSLState *ssl_state,
             return -1;
         }
 
-        memcpy(ssl_state->curr_connp->session_id, input, session_id_length);
+        if (SafeMemcpy(ssl_state->curr_connp->session_id, 0, session_id_length,
+                    input, 0, input_len, session_id_length) != 0) {
+            return -1;
+        }
         ssl_state->curr_connp->session_id_length = session_id_length;
 
         if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
@@ -1976,12 +2000,11 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 4:
                         if (input_len >= 6) {
-                            ssl_state->curr_connp->session_id_length = input[4] << 8;
-                            ssl_state->curr_connp->session_id_length |= input[5];
+                            uint16_t session_id_length = input[5] | (input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
-                            if (ssl_state->curr_connp->session_id_length == 0) {
+                            if (session_id_length == 0) {
                                 ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
@@ -2016,14 +2039,12 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                         /* fall through */
                     case 8:
-                        ssl_state->curr_connp->session_id_length = *(input++) << 8;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
 
                         /* fall through */
                     case 9:
-                        ssl_state->curr_connp->session_id_length |= *(input++);
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
@@ -2035,12 +2056,11 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 3:
                         if (input_len >= 6) {
-                            ssl_state->curr_connp->session_id_length = input[4] << 8;
-                            ssl_state->curr_connp->session_id_length |= input[5];
+                            uint16_t session_id_length = input[5] | (input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
-                            if (ssl_state->curr_connp->session_id_length == 0) {
+                            if (session_id_length == 0) {
                                 ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
@@ -2075,14 +2095,12 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                         /* fall through */
                     case 7:
-                        ssl_state->curr_connp->session_id_length = *(input++) << 8;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
 
                         /* fall through */
                     case 8:
-                        ssl_state->curr_connp->session_id_length |= *(input++);
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
