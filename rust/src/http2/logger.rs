@@ -66,21 +66,21 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
     for i in 0..frames.len() {
         match &frames[i].data {
             HTTP2FrameTypeData::HEADERS(hd) => {
-                if !has_settings {
+                if !has_headers {
                     js.open_array("headers")?;
                     has_headers = true;
                 }
                 log_http2_headers(&hd.blocks, js)?;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                if !has_settings {
+                if !has_headers {
                     js.open_array("headers")?;
                     has_headers = true;
                 }
                 log_http2_headers(&hd.blocks, js)?;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                if !has_settings {
+                if !has_headers {
                     js.open_array("headers")?;
                     has_headers = true;
                 }
