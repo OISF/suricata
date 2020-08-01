@@ -84,6 +84,27 @@ typedef struct JsonAnomalyLogThread_ {
     AnomalyJsonOutputCtx* json_output_ctx;
 } JsonAnomalyLogThread;
 
+/*
+ * Restrict the anomaly logger count due to decoder state maintenance issues
+ */
+
+#define MAX_ANOMALY_LOGGERS 1
+static int anomaly_loggers = 0;
+static bool OutputAnomalyLoggerEnable(void)
+{
+    if (anomaly_loggers < MAX_ANOMALY_LOGGERS) {
+        anomaly_loggers++;
+        return true;
+    }
+    return false;
+}
+
+static void OutputAnomalyLoggerDisable(void)
+{
+    if (anomaly_loggers)
+        anomaly_loggers--;
+}
+
 static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                   const Packet *p)
 {
@@ -338,7 +359,7 @@ static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
+static void JsonAnomalyLogDeInitCtxSubHelper(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
 
@@ -348,6 +369,13 @@ static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
+}
+
+static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputAnomalyLoggerDisable();
+
+    JsonAnomalyLogDeInitCtxSubHelper(output_ctx);
 }
 
 #define DEFAULT_LOG_FILENAME "anomaly.json"
@@ -395,12 +423,7 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
     json_output_ctx->flags |= flags;
 }
 
-/**
- * \brief Create a new LogFileCtx for "fast" output style.
- * \param conf The configuration node for this output.
- * \return A LogFileCtx pointer on success, NULL on failure.
- */
-static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonAnomalyLogInitCtxHelper(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -420,7 +443,7 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
     json_output_ctx->cfg = ajt->cfg;
 
     output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonAnomalyLogDeInitCtxSub;
+    output_ctx->DeInit = JsonAnomalyLogDeInitCtxSubHelper;
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -428,6 +451,29 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
 
 error:
     SCFree(output_ctx);
+
+    return result;
+}
+
+/**
+ * \brief Create a new LogFileCtx for "fast" output style.
+ * \param conf The configuration node for this output.
+ * \return A LogFileCtx pointer on success, NULL on failure.
+ */
+static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+
+    if (!OutputAnomalyLoggerEnable()) {
+        OutputInitResult result = { NULL, false };
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'anomaly' logger "
+                "can be enabled");
+        return result;
+    }
+
+    OutputInitResult result = JsonAnomalyLogInitCtxHelper(conf, parent_ctx);
+    if (result.ok) {
+        result.ctx->DeInit = JsonAnomalyLogDeInitCtxSub;
+    }
 
     return result;
 }
@@ -440,7 +486,7 @@ void JsonAnomalyLogRegister (void)
         NULL);
 
     OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, ALPROTO_UNKNOWN,
+        "eve-log.anomaly", JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN,
         JsonAnomalyTxLogger, JsonAnomalyLogThreadInit,
         JsonAnomalyLogThreadDeinit, NULL);
 }
