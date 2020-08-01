@@ -96,7 +96,8 @@ typedef struct TcpStream_ {
     /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
     uint16_t wscale:4;              /**< wscale setting in this direction, 4 bits as max val is 15 */
     uint8_t os_policy;              /**< target based OS policy used for reassembly and handling packets*/
-    uint8_t tcp_flags;              /**< TCP flags seen */
+    uint8_t tcp_init_flags;         /**< TCP flags seen in first packet */
+    uint8_t tcp_flags;              /**< union of TCP flags seen in all packets */
 
     uint32_t isn;                   /**< initial sequence number */
     uint32_t next_seq;              /**< next expected sequence number */
