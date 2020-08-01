@@ -983,9 +983,11 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
 
         if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags = tcph->th_flags;
+            ssn->client.tcp_init_flags = tcph->th_flags;
             ssn->server.tcp_flags = 0;
         } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags = tcph->th_flags;
+            ssn->server.tcp_init_flags = tcph->th_flags;
             ssn->client.tcp_flags = 0;
         }
     }
@@ -1196,12 +1198,52 @@ static int StreamTcpPacketStateNone(
         ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn)
 {
     const TCPHdr *tcph = PacketGetTCP(p);
+    
     if (tcph->th_flags & TH_RST) {
-        StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
-        SCLogDebug("RST packet received, no session setup");
-        return -1;
+        ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
+        
+        if (!stream_config.midstream) {
+            StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
+            SCLogDebug("RST packet received, no session setup");
+            return -1;
+        }
+        if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW)) {
+            StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
+            SCLogDebug("RST packet received, no session setup");
+            return -1;
+        }
+        SCLogDebug("midstream picked up");
+        
+        if (ssn == NULL) {
+            ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
+            if (ssn == NULL) {
+                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                return -1;
+            }
+            StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+        }
+        /* set the state */
+        StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+        SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_CLOSED", ssn);
 
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
+        if (stream_config.async_oneside) {
+            SCLogDebug("ssn %p: =~ ASYNC", ssn);
+            ssn->flags |= STREAMTCP_FLAG_ASYNC;
+        }
+
+        if (PKT_IS_TOSERVER(p)) {
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        } else {
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        }
     } else if (tcph->th_flags & TH_FIN) {
+
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
         StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
@@ -5681,10 +5723,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     /* track TCP flags */
     if (ssn != NULL) {
         ssn->tcp_packet_flags |= tcph->th_flags;
-        if (PKT_IS_TOSERVER(p))
+        if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags |= tcph->th_flags;
-        else if (PKT_IS_TOCLIENT(p))
+            if (unlikely(ssn->client.tcp_init_flags == 0))
+                ssn->client.tcp_init_flags = tcph->th_flags;
+        } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags |= tcph->th_flags;
+            if (unlikely(ssn->server.tcp_init_flags == 0))
+                ssn->server.tcp_init_flags = tcph->th_flags;
+        }
 
         /* check if we need to unset the ASYNC flag */
         if (ssn->flags & STREAMTCP_FLAG_ASYNC &&
