@@ -747,9 +747,11 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
 
         if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
+            ssn->client.tcp_init_flags = p->tcph->th_flags;
             ssn->server.tcp_flags = 0;
         } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
+            ssn->server.tcp_init_flags = p->tcph->th_flags;
             ssn->client.tcp_flags = 0;
         }
     }
@@ -935,14 +937,54 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         PacketQueueNoLock *pq)
 {
     if (p->tcph->th_flags & TH_RST) {
-        StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
-        SCLogDebug("RST packet received, no session setup");
-        return -1;
+        if (stream_config.midstream == FALSE) {
+            StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
+            SCLogDebug("RST packet received, no session setup");
+            return -1;
+        }
+        ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+        if (ssn == NULL) {
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+            return -1;
+        }
+        StatsIncr(tv, stt->counter_tcp_sessions);
+        StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
+
+        if (PKT_IS_TOSERVER(p)) {
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        } else {
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        }
+        StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+        SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_CLOSED", ssn);
 
     } else if (p->tcph->th_flags & TH_FIN) {
-        StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
-        SCLogDebug("FIN packet received, no session setup");
-        return -1;
+        if (stream_config.midstream == FALSE) {
+            StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
+            SCLogDebug("FIN packet received, no session setup");
+            return -1;
+        }
+        ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+        if (ssn == NULL) {
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+            return -1;
+        }
+        StatsIncr(tv, stt->counter_tcp_sessions);
+        StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
+
+        if (PKT_IS_TOSERVER(p)) {
+            StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
+            SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_CLOSE_WAIT", ssn);
+        } else {
+            StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
+            SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_FIN_WAIT1", ssn);
+        }
 
     /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
@@ -5060,10 +5102,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     /* track TCP flags */
     if (ssn != NULL) {
         ssn->tcp_packet_flags |= p->tcph->th_flags;
-        if (PKT_IS_TOSERVER(p))
+        if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags |= p->tcph->th_flags;
-        else if (PKT_IS_TOCLIENT(p))
+            if (unlikely(ssn->client.tcp_init_flags == 0))
+                ssn->client.tcp_init_flags = p->tcph->th_flags;
+        } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags |= p->tcph->th_flags;
+            if (unlikely(ssn->server.tcp_init_flags == 0))
+                ssn->server.tcp_init_flags = p->tcph->th_flags;
+        }
 
         /* check if we need to unset the ASYNC flag */
         if (ssn->flags & STREAMTCP_FLAG_ASYNC &&

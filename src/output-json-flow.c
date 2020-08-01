@@ -318,8 +318,16 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
         jb_set_string(jb, "tcp_flags_ts", hexflags);
 
         snprintf(hexflags, sizeof(hexflags), "%02x",
+                ssn ? ssn->client.tcp_init_flags : 0);
+        jb_set_string(jb, "tcp_init_flags_ts", hexflags);
+
+        snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->server.tcp_flags : 0);
         jb_set_string(jb, "tcp_flags_tc", hexflags);
+
+        snprintf(hexflags, sizeof(hexflags), "%02x",
+                ssn ? ssn->server.tcp_init_flags : 0);
+        jb_set_string(jb, "tcp_init_flags_tc", hexflags);
 
         EveTcpFlags(ssn ? ssn->tcp_packet_flags : 0, jb);
 
