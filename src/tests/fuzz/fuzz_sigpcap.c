@@ -130,6 +130,8 @@ app-layer:\n\
     ssh:\n\
       enabled: yes\n\
       hassh: yes\n\
+    mqtt:\n\
+      enabled: yes\n\
 ";
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
