@@ -77,7 +77,9 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
 
 DetectU32Data *DetectU32Parse (const char *u32str)
 {
-    DetectU32Data u32da;
+    /* We initialize these to please static checkers, these values will
+       either be updated or not used later on */
+    DetectU32Data u32da = {0, 0, 0};
     DetectU32Data *u32d = NULL;
     char arg1[16] = "";
     char arg2[16] = "";
@@ -269,7 +271,9 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
 
 DetectU8Data *DetectU8Parse (const char *u8str)
 {
-    DetectU8Data u8da;
+    /* We initialize these to please static checkers, these values will
+       either be updated or not used later on */
+    DetectU8Data u8da = {0, 0, 0};
     DetectU8Data *u8d = NULL;
     char arg1[16] = "";
     char arg2[16] = "";
