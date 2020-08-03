@@ -281,7 +281,10 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
-        - http2
+        # HTTP2 logging. HTTP2 support is currently experimental and
+        # disabled by default. To enable, uncomment the following line
+        # and be sure to enable http2 in the app-layer section.
+        #- http2
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -757,8 +760,9 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+    # HTTP2: Experimental HTTP 2 support. Disabled by default.
     http2:
-      enabled: yes
+      enabled: no
     smtp:
       enabled: yes
       raw-extraction: no
