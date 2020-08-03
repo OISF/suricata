@@ -154,8 +154,8 @@ static bool *DetectMQTTConnackSessionPresentParse(const char *rawstr)
     return de;
 
 error:
-    if (de != NULL)
-        SCFree(de);
+    /* de can't be NULL here */
+    SCFree(de);
     return NULL;
 }
 
