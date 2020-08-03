@@ -538,7 +538,7 @@ static bool DatasetIsStatic(const char *save, const char *load)
     /* A set is static if it does not have any dynamic properties like
      * save and/or state defined but has load defined.
      * */
-    if ((load != NULL || strlen(load) > 0) &&
+    if ((load != NULL && strlen(load) > 0) &&
             (save == NULL || strlen(save) == 0)) {
         return true;
     }
