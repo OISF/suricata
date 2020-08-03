@@ -42,6 +42,28 @@ fn log_http2_headers(
     return Ok(());
 }
 
+fn log_headers(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    let mut has_headers = false;
+    for frame in frames {
+        match &frame.data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                log_http2_headers(&hd.blocks, js)?;
+                has_headers = true;
+            }
+            HTTP2FrameTypeData::PUSHPROMISE(hd) => {
+                log_http2_headers(&hd.blocks, js)?;
+                has_headers = true;
+            }
+            HTTP2FrameTypeData::CONTINUATION(hd) => {
+                log_http2_headers(&hd.blocks, js)?;
+                has_headers = true;
+            }
+            _ => {}
+        }
+    }
+    Ok(has_headers)
+}
+
 fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
     let mut has_settings = false;
     for i in 0..frames.len() {
@@ -59,37 +81,6 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
         }
     }
     if has_settings {
-        js.close()?;
-    }
-
-    let mut has_headers = false;
-    for i in 0..frames.len() {
-        match &frames[i].data {
-            HTTP2FrameTypeData::HEADERS(hd) => {
-                if !has_headers {
-                    js.open_array("headers")?;
-                    has_headers = true;
-                }
-                log_http2_headers(&hd.blocks, js)?;
-            }
-            HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                if !has_headers {
-                    js.open_array("headers")?;
-                    has_headers = true;
-                }
-                log_http2_headers(&hd.blocks, js)?;
-            }
-            HTTP2FrameTypeData::CONTINUATION(hd) => {
-                if !has_headers {
-                    js.open_array("headers")?;
-                    has_headers = true;
-                }
-                log_http2_headers(&hd.blocks, js)?;
-            }
-            _ => {}
-        }
-    }
-    if has_headers {
         js.close()?;
     }
 
@@ -159,19 +150,42 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
             _ => {}
         }
     }
-    return Ok(has_settings || has_headers || has_error_code || has_priority);
+    return Ok(has_settings || has_error_code || has_priority);
 }
 
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    let mut has_headers = false;
+
+    // Request headers.
+    let mark = js.get_mark();
+    js.open_array("request_headers")?;
+    if log_headers(&tx.frames_ts, js)? {
+        js.close()?;
+        has_headers = true;
+    } else {
+        js.restore_mark(&mark)?;
+    }
+
+    // Response headers.
+    let mark = js.get_mark();
+    js.open_array("response_headers")?;
+    if log_headers(&tx.frames_tc, js)? {
+        js.close()?;
+        has_headers = true;
+    } else {
+        js.restore_mark(&mark)?;
+    }
+
     js.set_uint("stream_id", tx.stream_id as u64)?;
     js.open_object("request")?;
     let has_request = log_http2_frames(&tx.frames_ts, js)?;
     js.close()?;
+
     js.open_object("response")?;
     let has_response = log_http2_frames(&tx.frames_tc, js)?;
     js.close()?;
 
-    return Ok(has_request || has_response);
+    return Ok(has_request || has_response || has_headers);
 }
 
 #[no_mangle]
