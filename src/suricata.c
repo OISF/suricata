@@ -1990,6 +1990,8 @@ static int InitSignalHandler(SCInstance *suri)
  * Will be run once per pcap in unix-socket mode */
 void PreRunInit(const int runmode)
 {
+    /* Initialize Datasets to be able to use them with unix socket */
+    DatasetsInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
@@ -2001,7 +2003,6 @@ void PreRunInit(const int runmode)
     SCProfilingSghsGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */
-    DatasetsInit();
     DefragInit();
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);
