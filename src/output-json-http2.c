@@ -87,7 +87,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "http2", NULL, tx_id);
+    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "http", NULL, tx_id);
     if (unlikely(js == NULL))
         return 0;
 
@@ -96,7 +96,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* reset */
     MemBufferReset(aft->buffer);
 
-    jb_open_object(js, "http2");
+    jb_open_object(js, "http");
     if (!rs_http2_log_json(txptr, js)) {
         goto end;
     }

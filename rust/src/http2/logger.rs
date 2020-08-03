@@ -19,9 +19,21 @@ use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
+use std::collections::HashMap;
 
-fn log_http2_headers(
-    blocks: &Vec<parser::HTTP2FrameHeaderBlock>, js: &mut JsonBuilder,
+#[derive(std::hash::Hash, PartialEq, Eq)]
+enum HeaderName {
+    Method,
+    Path,
+    Host,
+    UserAgent,
+    Status,
+    ContentLength,
+}
+
+fn log_http2_headers<'a>(
+    blocks: &'a Vec<parser::HTTP2FrameHeaderBlock>, js: &mut JsonBuilder,
+    common: &mut HashMap<HeaderName, &'a Vec<u8>>,
 ) -> Result<(), JsonError> {
     for j in 0..blocks.len() {
         js.start_object()?;
@@ -29,6 +41,29 @@ fn log_http2_headers(
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
                 js.set_string_from_bytes("name", &blocks[j].name)?;
                 js.set_string_from_bytes("value", &blocks[j].value)?;
+                if let Ok(name) = std::str::from_utf8(&blocks[j].name) {
+                    match name.to_lowercase().as_ref() {
+                        ":method" => {
+                            common.insert(HeaderName::Method, &blocks[j].value);
+                        }
+                        ":path" => {
+                            common.insert(HeaderName::Path, &blocks[j].value);
+                        }
+                        ":status" => {
+                            common.insert(HeaderName::Status, &blocks[j].value);
+                        }
+                        "user-agent" => {
+                            common.insert(HeaderName::UserAgent, &blocks[j].value);
+                        }
+                        "host" => {
+                            common.insert(HeaderName::Host, &blocks[j].value);
+                        }
+                        "content-length" => {
+                            common.insert(HeaderName::ContentLength, &blocks[j].value);
+                        }
+                        _ => {}
+                    }
+                }
             }
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate => {
                 js.set_uint("table_size_update", blocks[j].sizeupdate)?;
@@ -42,20 +77,23 @@ fn log_http2_headers(
     return Ok(());
 }
 
-fn log_headers(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+fn log_headers<'a>(
+    frames: &'a Vec<HTTP2Frame>, js: &mut JsonBuilder,
+    common: &mut HashMap<HeaderName, &'a Vec<u8>>,
+) -> Result<bool, JsonError> {
     let mut has_headers = false;
     for frame in frames {
         match &frame.data {
             HTTP2FrameTypeData::HEADERS(hd) => {
-                log_http2_headers(&hd.blocks, js)?;
+                log_http2_headers(&hd.blocks, js, common)?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                log_http2_headers(&hd.blocks, js)?;
+                log_http2_headers(&hd.blocks, js, common)?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                log_http2_headers(&hd.blocks, js)?;
+                log_http2_headers(&hd.blocks, js, common)?;
                 has_headers = true;
             }
             _ => {}
@@ -154,12 +192,16 @@ fn log_http2_frames(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bo
 }
 
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    js.set_string("version", "2")?;
+
+    let mut common: HashMap<HeaderName, &Vec<u8>> = HashMap::new();
+
     let mut has_headers = false;
 
     // Request headers.
     let mark = js.get_mark();
     js.open_array("request_headers")?;
-    if log_headers(&tx.frames_ts, js)? {
+    if log_headers(&tx.frames_ts, js, &mut common)? {
         js.close()?;
         has_headers = true;
     } else {
@@ -169,12 +211,46 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     // Response headers.
     let mark = js.get_mark();
     js.open_array("response_headers")?;
-    if log_headers(&tx.frames_tc, js)? {
+    if log_headers(&tx.frames_tc, js, &mut common)? {
         js.close()?;
         has_headers = true;
     } else {
         js.restore_mark(&mark)?;
     }
+
+    for (name, value) in common {
+        match name {
+            HeaderName::Method => {
+                js.set_string_from_bytes("http_method", value)?;
+            }
+            HeaderName::Path => {
+                js.set_string_from_bytes("url", value)?;
+            }
+            HeaderName::Host => {
+                js.set_string_from_bytes("hostname", value)?;
+            }
+            HeaderName::UserAgent => {
+                js.set_string_from_bytes("http_user_agent", value)?;
+            }
+            HeaderName::ContentLength => {
+                if let Ok(value) = std::str::from_utf8(value) {
+                    if let Ok(value) = value.parse::<u64>() {
+                        js.set_uint("length", value)?;
+                    }
+                }
+            }
+            HeaderName::Status => {
+                if let Ok(value) = std::str::from_utf8(value) {
+                    if let Ok(value) = value.parse::<u64>() {
+                        js.set_uint("status", value)?;
+                    }
+                }
+            }
+        }
+    }
+
+    // The rest of http2 logging is placed in an "http2" object.
+    js.open_object("http2")?;
 
     js.set_uint("stream_id", tx.stream_id as u64)?;
     js.open_object("request")?;
@@ -183,6 +259,9 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 
     js.open_object("response")?;
     let has_response = log_http2_frames(&tx.frames_tc, js)?;
+    js.close()?;
+
+    // Close http2.
     js.close()?;
 
     return Ok(has_request || has_response || has_headers);
