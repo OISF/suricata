@@ -209,8 +209,8 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
     return de;
 
 error:
-    if (de != NULL)
-        SCFree(de);
+    /* de can't be NULL here */
+    SCFree(de);
     return NULL;
 }
 
