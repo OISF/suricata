@@ -1053,6 +1053,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1199,6 +1200,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1341,6 +1343,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1484,6 +1487,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
