@@ -134,30 +134,36 @@ static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx,
 static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawstr)
 {
     DetectMQTTConnectFlagsData *de = NULL;
+    char *copy = NULL;
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid flag definition: %s", rawstr);
-        return NULL;
+        goto error;
     }
 
     de = SCCalloc(1, sizeof(DetectMQTTConnectFlagsData));
     if (unlikely(de == NULL))
-        return NULL;
+        goto error;
     de->username = de->password = de->will = MQTT_DONT_CARE;
     de->will_retain = de->clean_session = MQTT_DONT_CARE;
 
-    char copy[strlen(rawstr)+1];
-    strlcpy(copy, rawstr, sizeof(copy));
+    copy = SCStrdup(rawstr);
+    if (unlikely(copy == NULL))
+        goto error;
+
     char *xsaveptr = NULL;
+    /* Iterate through comma-separated string... */
     char *flagv = strtok_r(copy, ",", &xsaveptr);
     while (flagv != NULL) {
+        /* skip blanks */
         while (*flagv != '\0' && isblank(*flagv)) {
             flagv++;
         }
         if (strlen(flagv) < 2) {
+            /* flags have a minimum length */
             SCLogError(SC_ERR_UNKNOWN_VALUE, "malformed flag value: %s", flagv);
             goto error;
         }  else {
@@ -206,11 +212,15 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
         flagv = strtok_r(NULL, ",", &xsaveptr);
     }
 
+    if (copy != NULL)
+        SCFree(copy);
     return de;
 
 error:
     if (de != NULL)
         SCFree(de);
+    if (copy != NULL)
+        SCFree(copy);
     return NULL;
 }
 

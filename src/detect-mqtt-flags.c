@@ -129,24 +129,26 @@ static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx,
 static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
 {
     DetectMQTTFlagsData *de = NULL;
+    char *copy = NULL;
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid flag definition: %s", rawstr);
-        return NULL;
+        goto error;
     }
 
     de = SCCalloc(1, sizeof(DetectMQTTFlagsData));
     if (unlikely(de == NULL))
-        return NULL;
+        goto error;
     de->retain = de->dup = MQTT_DONT_CARE;
 
-    char copy[strlen(rawstr)+1];
-    strlcpy(copy, rawstr, sizeof(copy));
-    char *xsaveptr = NULL;
+    copy = SCStrdup(rawstr);
+    if (unlikely(copy == NULL))
+        goto error;
 
+    char *xsaveptr = NULL;
     /* Iterate through comma-separated string... */
     char *flagv = strtok_r(copy, ",", &xsaveptr);
     while (flagv != NULL) {
@@ -186,11 +188,15 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
         flagv = strtok_r(NULL, ",", &xsaveptr);
     }
 
+    if (copy != NULL)
+        SCFree(copy);
     return de;
 
 error:
     if (de != NULL)
         SCFree(de);
+    if (copy != NULL)
+        SCFree(copy);
     return NULL;
 }
 

@@ -135,7 +135,7 @@ static bool *DetectMQTTConnackSessionPresentParse(const char *rawstr)
     bool *de = NULL;
     de = SCMalloc(sizeof(bool));
     if (unlikely(de == NULL))
-        return NULL;
+        goto error;
     *de = false;
 
     if (strcmp(rawstr, "yes") == 0) {
