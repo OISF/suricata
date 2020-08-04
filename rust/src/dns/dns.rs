@@ -566,7 +566,7 @@ impl DNSState {
                 }
             } else {
                 SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
-                            consumed as u32, (cur_i.len() - consumed) as u32);
+                            consumed as u32, (size + 2) as u32);
                 return AppLayerResult::incomplete(consumed as u32,
                     (size  + 2) as u32);
             }
