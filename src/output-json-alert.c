@@ -233,6 +233,22 @@ static void AlertJsonSNMP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
     }
 }
 
+static void AlertJsonRDP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
+{
+    void *rdp_state = (void *)FlowGetAppState(f);
+    if (rdp_state != NULL) {
+        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_RDP, rdp_state,
+                tx_id);
+        if (tx != NULL) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            if (!rs_rdp_to_json(tx, js)) {
+                jb_restore_mark(js, &mark);
+            }
+        }
+    }
+}
+
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
 {
@@ -499,6 +515,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_SNMP:
             AlertJsonSNMP(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_RDP:
+            AlertJsonRDP(p->flow, tx_id, jb);
             break;
         default:
             break;
