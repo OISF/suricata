@@ -526,11 +526,11 @@ To achieve this, edit the beginning of `ebpf/xdp_filter.c` and do ::
 Then build the bpf file with `make` and install it in the expected place.
 
 On Suricata configuration side, this is rather simple as you need to activate
-hardware mode and the `no-percpu-hash` option in the `af-packet` configuration
+hardware mode and the `use-percpu-hash` option in the `af-packet` configuration
 of the interface ::
 
     xdp-mode: hw
-    no-percpu-hash: true
+    use-percpu-hash: no
 
 The load  balancing will be done on IP pairs inside the eBPF code, so
 using `cluster_qm` as cluster type is a good idea ::
