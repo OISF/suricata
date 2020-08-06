@@ -173,7 +173,28 @@ void FlowSparePoolUpdate(uint32_t size)
 {
     const int64_t todo = (int64_t)flow_config.prealloc - (int64_t)size;
     if (todo < 0) {
-        // remove
+        /* remove one block at most at a time */
+        uint32_t to_remove = (uint32_t)(todo * -1) / 10;
+        if (to_remove < flow_spare_pool_block_size)
+            return;
+
+        FlowSparePool *p = NULL;
+        SCMutexLock(&flow_spare_pool_m);
+        p = flow_spare_pool;
+        if (p != NULL) {
+            flow_spare_pool = p->next;
+            flow_spare_pool_flow_cnt -= p->queue.len;
+        }
+        SCMutexUnlock(&flow_spare_pool_m);
+
+        if (p != NULL) {
+            Flow *f;
+            while ((f = FlowQueuePrivateGetFromTop(&p->queue))) {
+                FlowFree(f);
+            }
+            SCFree(p);
+        }
+
     } else if (todo > 0) {
         FlowSparePool *head = NULL, *tail = NULL;
 
