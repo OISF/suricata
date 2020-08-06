@@ -72,3 +72,19 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
     }
     drop(CString::from_raw(s));
 }
+
+/// Convert an u8-array of data into a hexadecimal representation
+pub fn to_hex(input: &[u8]) -> String {
+    static CHARS: &'static [u8] = b"0123456789abcdef";
+
+    let mut output = Vec::with_capacity(input.len() * 2);
+    for &byte in input {
+        output.push(CHARS[(byte >>  4) as usize]);
+        output.push(CHARS[(byte & 0xf) as usize]);
+    }
+
+    // this should never fail, characters are from a defined set
+    unsafe {
+        return std::str::from_utf8_unchecked(output.as_slice()).to_string();
+    }
+}
