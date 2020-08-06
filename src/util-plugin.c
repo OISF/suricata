@@ -168,11 +168,4 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
     }
     return plugin;
 }
-
-#else
-
-void PluginsLoad(void)
-{
-}
-
 #endif
