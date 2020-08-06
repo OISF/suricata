@@ -90,7 +90,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         goto end;
     }
     jb_close(js);
-    OutputJsonBuilderBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
 
 end:
     jb_free(js);
