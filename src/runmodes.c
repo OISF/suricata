@@ -308,12 +308,14 @@ void RunModeDispatch(int runmode, const char *custom_mode,
                 break;
 #endif
             case RUNMODE_PLUGIN: {
+#ifdef HAVE_PLUGINS
                 SCCapturePlugin *plugin = SCPluginFindCaptureByName(capture_plugin_name);
                 if (plugin == NULL) {
                     FatalError(SC_ERR_PLUGIN, "No capture plugin found with name %s",
                             capture_plugin_name);
                 }
                 custom_mode = (const char *)plugin->GetDefaultMode();
+#endif
                 break;
             }
             case RUNMODE_NFQ:
