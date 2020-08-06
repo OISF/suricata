@@ -507,8 +507,10 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        tx.escaped_tmp = http2_escape_header(&hd, nb - pos);
-                        let value = &tx.escaped_tmp;
+                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        tx.escaped.push(ehdr);
+                        let idx = tx.escaped.len() - 1;
+                        let value = &tx.escaped[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;
@@ -524,8 +526,10 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        tx.escaped_tmp = http2_escape_header(&hd, nb - pos);
-                        let value = &tx.escaped_tmp;
+                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        tx.escaped.push(ehdr);
+                        let idx = tx.escaped.len() - 1;
+                        let value = &tx.escaped[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;

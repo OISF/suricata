@@ -131,7 +131,7 @@ pub struct HTTP2Transaction {
 
     //temporary escaped header for detection
     //must be attached to transaction for memory management (be freed at the right time)
-    pub escaped_tmp: Vec<u8>,
+    pub escaped: Vec<Vec<u8>>,
 }
 
 impl HTTP2Transaction {
@@ -147,7 +147,7 @@ impl HTTP2Transaction {
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
             ft: FileTransferTracker::new(),
-            escaped_tmp: Vec::new(),
+            escaped: Vec::with_capacity(16),
         }
     }
 
