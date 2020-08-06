@@ -1201,14 +1201,14 @@ int DetectPortTestConfVars(void)
             DetectPortCleanupList(NULL, gh);
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                         "failed to parse port var \"%s\" with value \"%s\". "
-                        "Please check it's syntax", seq_node->name, seq_node->val);
+                        "Please check its syntax", seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectPortIsCompletePortSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                        "Port var - \"%s\" has the complete Port range negated "
-                       "with it's value \"%s\".  Port space range is NIL. "
+                       "with its value \"%s\".  Port space range is NIL. "
                        "Probably have a !any or a port range that supplies "
                        "a NULL address range", seq_node->name, seq_node->val);
             DetectPortCleanupList(NULL, gh);
