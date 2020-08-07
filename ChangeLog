@@ -1,3 +1,169 @@
+6.0.0-beta1 -- 2020-08-07
+
+Feature #641: Flowbits group for ORing
+Feature #1807: Cisco HDLC Decoder
+Feature #1947: HTTP2 decoder
+Feature #2015: eve: add fileinfo in alert
+Feature #2196: Add flow_id to the file extracted .meta file
+Feature #2311: math on extracted values
+Feature #2312: http: parsing for async streams
+Feature #2385: deprecate: unified2
+Feature #2524: Allow user to choose the reject iface
+Feature #2553: support 'by_both' in threshold rule keyword
+Feature #2694: thresholding: feature parity between global and per-rule options
+Feature #2698: hassh and hasshServer for ssh fingerprinting
+Feature #2859: Oss-fuzz integration
+Feature #3199: transformation should be able to take options
+Feature #3200: pcre: allow operation as transform
+Feature #3293: eve: per thread output files
+Feature #3332: Dynamic Loadable Module/Plugin Support
+Feature #3422: GRE ERSPAN Type 1 Support
+Feature #3444: app-layer: signal stream engine about expected data size
+Feature #3445: Convert SSH parser to Rust
+Feature #3501: Add RFB parser
+Feature #3546: Teredo port configuration
+Feature #3549: Add MQTT parser
+Feature #3626: implement from_end byte_jump keyword
+Feature #3635: datasets: add 'dataset-remove' unix command
+Feature #3661: validate strip_whitespace content before loading a rule
+Feature #3693: DCERPC multi tx support
+Feature #3694: DCERPC logging support
+Feature #3760: datasets: distinguish between 'static' and 'dynamic' sets
+Feature #3823: conditional logging: tx log filtering
+Optimization #749: pcre 8.32 introduces JIT pcre_jit_exec(...)
+Optimization #947: dynamic allocation of thread queues
+Optimization #1038: Flow Queue should be a stack
+Optimization #2779: Convert DCE_RPC from C to Rust
+Optimization #2845: Counters for kernel_packets decreases at times without restart
+Optimization #2977: replace asn1 parser with rust based implementation
+Optimization #3234: dns app-layer c vs rust cleanup
+Optimization #3308: rust: use cbindgen to generate bindings
+Optimization #3538: dns: use app-layer incomplete support
+Optimization #3539: rdp: use app-layer incomplete support
+Optimization #3541: applayertemplate: use app-layer incomplete support
+Optimization #3655: default to c11 standard
+Optimization #3708: Convert SSH logging to JsonBuilder
+Optimization #3709: Convert DNP3 logging to JsonBuilder
+Optimization #3710: Convert SMTP logging to JsonBuilder
+Optimization #3711: Convert NFS logging to JsonBuilder
+Optimization #3712: Convert SMB logging to JsonBuilder
+Optimization #3713: Convert RFB logging to JsonBuilder
+Optimization #3714: Convert FTP logging to JsonBuilder
+Optimization #3715: Convert RDP logging to JsonBuilder
+Optimization #3716: Use uuid crate wherever possible in smb rust parser
+Optimization #3754: Convert KRB to JsonBuilder
+Optimization #3755: Convert IKEv2 to JsonBuilder
+Optimization #3756: Convert SNMP to JsonBuilder
+Optimization #3757: Convert Netflow to JsonBuilder
+Optimization #3764: Convert TFTP to JsonBuilder
+Optimization #3765: Convert Templates to JsonBuilder
+Optimization #3773: DNP3 CRC disabled when fuzzing
+Optimization #3838: Convert 'vars' (metadata logging) to JsonBuilder
+Task #2381: deprecate: 'drop' log output
+Task #2959: deprecate: filestore v1
+Task #3128: nom 5
+Task #3167: convert all _Bool use to bool
+Task #3255: rdp: enable by default
+Task #3256: sip: enable by default
+Task #3331: Rust: Move to 2018 Edition
+Task #3344: devguide: setup sphinx
+Task #3408: FTP should place constraints on filename lengths
+Task #3409: SMTP should place restraints on variable length items (e.g., filenames)
+Task #3460: autotools: check autoscan output
+Task #3515: GRE ERSPAN Type 1 Support configuration
+Task #3564: dcerpc: support GAP recovery
+Documentation #3335: doc: add ipv4.hdr and ipv6.hdr
+Bug #2506: filestore v1: with stream-depth not null, files are never truncated
+Bug #2525: Add VLAN support to reject feature
+Bug #2639: Alert for tcp rules with established without 3whs
+Bug #2726: writing large number of json events on high speed traffic results in packet drops
+Bug #2737: Invalid memory read on malformed rule with Lua script
+Bug #3053: Replace atoi with StringParse* for better error handling
+Bug #3078: flow-timeout: check that 'emergency' settings are < normal settings
+Bug #3096: random failures on sip and http-evader suricata-verify tests
+Bug #3108: Calculation of threads in autofp mode is wrong
+Bug #3188: Use FatalError wherever possible
+Bug #3265: Dropping privileges does not work with NFLOG
+Bug #3282: --list-app-layer-protos only uses default suricata.yaml location.
+Bug #3283: bitmask option of payload-keyword byte_test not working
+Bug #3339: Missing community ID in smb, rdp, tftp, dhcp
+Bug #3378: ftp: asan detects leaks of expectations
+Bug #3435: afl: Compile/make fails on openSUSE Leap-15.1
+Bug #3441: alerts: missing rdp and snmp metadata
+Bug #3451: gcc10: compilation failure unless -fcommon is supplied
+Bug #3463: Faulty signature with two threshold keywords does not generate an error and never match
+Bug #3465: build-info and configure wrongly display libnss status
+Bug #3468: BUG_ON(strcasecmp(str, "any") in DetectAddressParseString
+Bug #3476: datasets: Dataset not working in unix socket mode
+Bug #3483: SIP: Input not parsed when header values contain trailing spaces
+Bug #3486: Make Rust probing parsers optional
+Bug #3489: rule parsing: memory leaks
+Bug #3490: Segfault when facing malformed SNMP rules
+Bug #3496: defrag: asan issue
+Bug #3504: http.header.raw prematurely truncates in some conditions
+Bug #3509: Behavior for tcp fastopen
+Bug #3517: Convert DER parser to Rust
+Bug #3519: FTP: Incorrect ftp_memuse calculation.
+Bug #3522: TCP Fast Open - Bypass of stateless alerts
+Bug #3523: Suricata does not log alert metadata info when running in unix-socket mode
+Bug #3525: Kerberos vulnerable to TCP splitting evasion
+Bug #3529: rust: smb compile warnings
+Bug #3532: Skip over ERF_TYPE_META records
+Bug #3547: file logging: complete files sometimes marked 'TRUNCATED'
+Bug #3565: ssl/tls: ASAN issue in SSLv3ParseHandshakeType
+Bug #3566: rules: minor memory leak involving pcre_get_substring
+Bug #3567: rules/bsize: memory issue during parsing
+Bug #3568: rules: bad rule leads to memory exhaustion
+Bug #3569: fuzz: memory leak in bidir rules
+Bug #3570: rfb: invalid AppLayerResult use
+Bug #3583: rules: missing 'consumption' of transforms before pkt_data would lead to crash
+Bug #3584: rules: crash on 'internal'-only keywords
+Bug #3586: rules: bad address block leads to stack exhaustion
+Bug #3593: Stack overflow when parsing ERF file
+Bug #3594: rules: memory leaks in pktvar keyword
+Bug #3595: sslv3: asan detects leaks
+Bug #3615: Protocol detection evasion by packet splitting
+Bug #3628: Incorrect ASN.1 long form length parsing
+Bug #3630: Recursion stack-overflow in parsing YAML configuration
+Bug #3631: FTP response buffering against TCP stream
+Bug #3632: rules: memory leaks on failed rules
+Bug #3638: TOS IP Keyword not triggering an alert
+Bug #3640: coverity: leak in fast.log setup error path
+Bug #3641: coverity: data directory handling issues
+Bug #3642: RFB parser wrongly handles incomplete data
+Bug #3643: Libhtp request: extra whitespace interpreted as dummy new request
+Bug #3654: Rules reload with Napatech can hang Suricata UNIX manager process
+Bug #3657: Multiple DetectEngineReload and bad insertion into linked list lead to buffer overflow
+Bug #3662: Signature with an IP range creates one IPOnlyCIDRItem by IP address
+Bug #3677: Segfault on SMTP TLS
+Bug #3680: Dataset reputation invalid value logging
+Bug #3683: rules: memory leak on bad rule
+Bug #3687: Null dereference in DetectEngineSignatureIsDuplicate
+Bug #3689: Protocol detection evasion by packet splitting on enip/nfs
+Bug #3690: eve.json windows timestamp field has "Eastern Daylight Time" appended to timestamp
+Bug #3699: smb: post-GAP file handling
+Bug #3700: nfs: post-GAP file handling
+Bug #3720: Incorrect handling of ASN1 relative_offset keyword
+Bug #3732: filemagic logging resulting in performance hit
+Bug #3749: redis: Reconnect is invalid in batch mode
+Bug #3750: redis: no or delayed data in low speed network
+Bug #3772: DNP3 probing parser does not detect the proper direction in midstream
+Bug #3779: Exit on signature with invalid transform pcrexform
+Bug #3783: Stack overflow in DetectFlowbitsAnalyze
+Bug #3802: Rule filename mutation when reading file hash files from a directory other than the default-rule-directory
+Bug #3808: pfring: compile warnings
+Bug #3814: Coverity scan issue -- null pointer deref in ftp logger
+Bug #3815: Coverity scan issue -- control flow issue ftp logger
+Bug #3817: Coverity scan issue -- resource leak in filestore output logger
+Bug #3818: Coverity scan issue -- null pointer deref in detect engine
+Bug #3820: ssh: invalid use to 'AppLayerResult::incomplete`
+Bug #3821: Memory leak in signature parsing with keyword rfb.secresult
+Bug #3822: Rust panic at DCERPC signature parsing
+Bug #3840: Integer overflow in DetectContentPropagateLimits leading to unintended signature behavior
+Bug #3841: Heap-buffer-overflow READ 8 · DetectGetLastSMByListId
+Bug #3851: Invalid DNS incomplete result
+Bug #3855: mqtt: coverity static analysis issues
+
 5.0.1 -- 2019-12-13
 
 Bug #1871: intermittent abort()s at shutdown and in unix-socket
