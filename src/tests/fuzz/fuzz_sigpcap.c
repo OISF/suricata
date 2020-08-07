@@ -132,6 +132,8 @@ app-layer:\n\
       hassh: yes\n\
     mqtt:\n\
       enabled: yes\n\
+    http2:\n\
+      enabled: yes\n\
 ";
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
