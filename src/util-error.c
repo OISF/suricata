@@ -375,6 +375,9 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_FILESTORE_CONFIG);
         CASE_CODE (SC_WARN_PATH_READ_ERROR);
         CASE_CODE (SC_ERR_PLUGIN);
+        CASE_CODE (SC_ERR_TS);
+        CASE_CODE (SC_ERR_RENAME);
+        CASE_CODE (SC_ERR_PCAPLEN_OVERFLOW);
 
         CASE_CODE (SC_ERR_MAX);
     }

@@ -79,6 +79,12 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+  # Outputs a PCAP file per tagged alert.
+  - stream-pcap-log:
+      enabled: no
+      # output-directory: /data/pcap # Defaults to the default-log-dir.
+      # session-dump: yes # Dumps tcp session upon creation of PCAP file.
+
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: @e_enable_evelog@

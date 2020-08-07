@@ -33,6 +33,7 @@
 #include "util-hashlist.h"
 #include "detect-engine-tag.h"
 #include "detect-tag.h"
+#include "detect-tag-pcap.h"
 #include "host.h"
 #include "host-storage.h"
 #include "flow-storage.h"
@@ -104,6 +105,7 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
 
     tde->first_ts = dtd->first_ts;
     tde->last_ts = dtd->last_ts;
+    tde->pcap_file = dtd->pcap_file;
     return tde;
 }
 
@@ -288,14 +290,14 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
@@ -315,14 +317,14 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
@@ -345,14 +347,14 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
@@ -408,13 +410,13 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
@@ -434,13 +436,13 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
@@ -464,13 +466,13 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
-                            SCFree(tde);
+                            DetectTagDataEntryFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
@@ -568,7 +570,7 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
             tde = tmp;
             tmp = tde->next;
 
-            SCFree(tde);
+            DetectTagDataEntryFree(tde);
             (void) SC_ATOMIC_SUB(num_tags, 1);
         } else {
             HostSetStorageById(host, host_tag_id, tmp->next);
@@ -576,11 +578,20 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
             tde = tmp;
             tmp = tde->next;
 
-            SCFree(tde);
+            DetectTagDataEntryFree(tde);
             (void) SC_ATOMIC_SUB(num_tags, 1);
         }
     }
     return retval;
+}
+
+/**
+ *  \retval The linked list of tags for the specified flow if it exists.
+ *  \retval Null if no tags exist.
+ */
+DetectTagDataEntry *TagGetFlowTag(Flow* flow)
+{
+    return FlowGetStorageById(flow, flow_tag_id);
 }
 
 #ifdef UNITTESTS
