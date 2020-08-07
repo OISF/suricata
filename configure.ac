@@ -1079,7 +1079,13 @@ return 0;
             CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
         fi
 
-        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_MSG_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,
+            [AC_MSG_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)],
+            [
+                #define _GNU_SOURCE
+                #include <sys/types.h>
+                #include <stdint.h>
+            ])
 
         if test "$with_libnetfilter_queue_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
@@ -1103,6 +1109,9 @@ return 0;
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
+                    #define _GNU_SOURCE
+                    #include <sys/types.h>
+                    #include <stdint.h>
                     #include <stdio.h>
                     #include <libnetfilter_queue/libnetfilter_queue.h>
                 ],
