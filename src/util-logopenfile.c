@@ -209,9 +209,9 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
     }
 
     if (log_ctx->fp) {
-        clearerr(log_ctx->fp);
+        SCClearErrUnlocked(log_ctx->fp);
         ret = SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp);
-        fflush(log_ctx->fp);
+        SCFflushUnlocked(log_ctx->fp);
     }
 
     return ret;
