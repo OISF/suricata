@@ -202,6 +202,8 @@ jobs:
         run: |
           yum -y install epel-release
           yum -y install \
+                autoconf \
+                automake \
                 cargo \
                 diffutils \
                 file-devel \
@@ -233,6 +235,12 @@ jobs:
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
+      # This isn't really needed as we are building from a prepared
+      # package, but some package managers like RPM and Debian like to
+      # run this command even on prepared packages, so make sure it
+      # works.
+      - name: Test autoreconf
+        run: autoreconf -fv --install
       - run: ./configure
       - run: make -j2
       - run: make install
