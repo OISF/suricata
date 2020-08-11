@@ -210,8 +210,17 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 
     if (log_ctx->fp) {
         SCClearErrUnlocked(log_ctx->fp);
-        ret = SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp);
-        SCFflushUnlocked(log_ctx->fp);
+        if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
+            /* Only the first error is logged */
+            if (!log_ctx->output_errors) {
+                SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                        SCFerrorUnlocked(log_ctx->fp) ? strerror(errno) : "unknown error",
+                        log_ctx->filename);
+            }
+            log_ctx->output_errors++;
+        } else {
+            SCFflushUnlocked(log_ctx->fp);
+        }
     }
 
     return ret;
@@ -250,8 +259,17 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
 
         if (log_ctx->fp) {
             clearerr(log_ctx->fp);
-            ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-            fflush(log_ctx->fp);
+            if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
+                /* Only the first error is logged */
+                if (!log_ctx->output_errors) {
+                    SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                            ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
+                            log_ctx->filename);
+                }
+                log_ctx->output_errors++;
+            } else {
+                fflush(log_ctx->fp);
+            }
         }
     }
 
@@ -285,6 +303,11 @@ static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
 {
     if (log_ctx->fp)
         fclose(log_ctx->fp);
+
+    if (log_ctx->output_errors) {
+        SCLogError(SC_ERR_LOG_OUTPUT, "There were %" PRIu64 " output errors to %s",
+                log_ctx->output_errors, log_ctx->filename);
+    }
 }
 
 static void SCLogFileClose(LogFileCtx *log_ctx)
