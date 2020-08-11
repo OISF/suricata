@@ -528,8 +528,14 @@ char *strptime(const char * __restrict, const char * __restrict, struct tm * __r
 
 #ifndef HAVE_FWRITE_UNLOCKED
 #define SCFwriteUnlocked    fwrite
+#define SCFflushUnlocked    fflush
+#define SCClearErrUnlocked  clearerr
+#define SCFerrorUnlocked    ferror
 #else
 #define SCFwriteUnlocked    fwrite_unlocked
+#define SCFflushUnlocked    fflush_unlocked
+#define SCClearErrUnlocked  clearerr_unlocked
+#define SCFerrorUnlocked    ferror_unlocked
 #endif
 extern int coverage_unittests;
 extern int g_ut_modules;
