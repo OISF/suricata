@@ -365,6 +365,7 @@ typedef enum {
     SC_WARN_PATH_READ_ERROR,
     SC_ERR_HTTP2_LOG_GENERIC,
     SC_ERR_PLUGIN,
+    SC_ERR_LOG_OUTPUT,
 
     SC_ERR_MAX
 } SCError;
