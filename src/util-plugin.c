@@ -79,7 +79,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
                     InitPlugin(path);
                 }
             }
-            free(dir);
+            closedir(dir);
         } else {
             InitPlugin(plugin->val);
         }
