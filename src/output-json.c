@@ -1198,6 +1198,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
+                return result;
             } else {
                 json_ctx->file_ctx->plugin = json_ctx->plugin;
                 json_ctx->file_ctx->plugin_data = plugin_data;
