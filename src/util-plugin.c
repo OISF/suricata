@@ -23,6 +23,20 @@
 
 #include <dlfcn.h>
 
+typedef struct PluginListNode_ {
+    SCPlugin *plugin;
+    void *lib;
+    TAILQ_ENTRY(PluginListNode_) entries;
+} PluginListNode;
+
+/**
+ * The list of loaded plugins.
+ *
+ * Currently only used as a place to stash the pointer returned from
+ * dlopen, but could have other uses, such as a plugin unload destructor.
+ */
+static TAILQ_HEAD(, PluginListNode_) plugins = TAILQ_HEAD_INITIALIZER(plugins);
+
 static TAILQ_HEAD(, SCPluginFileType_) output_types =
     TAILQ_HEAD_INITIALIZER(output_types);
 
@@ -38,11 +52,22 @@ static void InitPlugin(char *path)
         SCPlugin *plugin = dlsym(lib, "PluginSpec");
         if (plugin == NULL) {
             SCLogError(SC_ERR_PLUGIN, "Plugin does not export a plugin specification: %s", path);
+            dlclose(lib);
         } else {
             BUG_ON(plugin->name == NULL);
             BUG_ON(plugin->author == NULL);
             BUG_ON(plugin->license == NULL);
             BUG_ON(plugin->Init == NULL);
+
+            PluginListNode *node = SCCalloc(1, sizeof(*node));
+            if (node == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocated memory for plugin");
+                dlclose(lib);
+                return;
+            }
+            node->plugin = plugin;
+            node->lib = lib;
+            TAILQ_INSERT_TAIL(&plugins, node, entries);
             SCLogNotice("Initializing plugin %s; author=%s; license=%s",
                 plugin->name, plugin->author, plugin->license);
             (*plugin->Init)();
