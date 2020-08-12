@@ -270,20 +270,12 @@ error:
 
 void JsonMetadataLogRegister (void)
 {
-    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "metadata-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
-        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
-        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
         "eve-log.metadata", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,
         JsonMetadataLogThreadDeinit, NULL);
 
     /* Kept for compatibility. */
-    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "vars-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
-        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
-        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
         "eve-log.vars", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,
