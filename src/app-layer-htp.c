@@ -1031,7 +1031,8 @@ static int HTTPParseContentTypeHeader(const uint8_t *name, const size_t name_len
  */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
 {
-    const htp_header_t *h = htp_tx_request_header(d->tx, "Content-Type");
+    const htp_header_t *h = htp_tx_request_header(
+            htp_tx_data_tx(d), "Content-Type");
     if (h != NULL && htp_header_value_len(h) > 0) {
         const uint8_t *boundary = NULL;
         size_t boundary_len = 0;
@@ -1513,8 +1514,11 @@ static int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud)
  *  \brief Handle POST, no multipart body data
  */
 static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+        htp_tx_data_t *tx_data)
 {
+    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const uint8_t *data = htp_tx_data_data(tx_data);
+    uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
 
     /* see if we need to open the file */
@@ -1567,8 +1571,11 @@ end:
  *  \brief Handle PUT body data
  */
 static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+        htp_tx_data_t *tx_data)
 {
+    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const uint8_t *data = htp_tx_data_data(tx_data);
+    uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
 
     /* see if we need to open the file */
@@ -1618,10 +1625,13 @@ end:
 }
 
 static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+        htp_tx_data_t *tx_data)
 {
     SCEnter();
 
+    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const uint8_t *data = htp_tx_data_data(tx_data);
+    uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
 
     /* see if we need to open the file
@@ -1705,27 +1715,30 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
+    htp_tx_t *tx = htp_tx_data_tx(d);
+
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_OK);
 
-    if (d->data == NULL || d->len == 0)
+    if (htp_tx_data_is_empty(d))
         SCReturnInt(HTP_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
-    PrintRawDataFp(stdout, (uint8_t *)d->data, d->len);
+    PrintRawDataFp(stdout, (uint8_t *)htp_tx_data_data(d), htp_tx_data_len(d));
     printf("HTPBODY END: \n");
 #endif
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(d->tx));
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%"PRIu32"", hstate, d,
+               htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1734,12 +1747,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         memset(tx_ud, 0, sizeof(HtpTxUserData));
 
         /* Set the user data for handling body chunks on this transaction */
-        htp_tx_set_user_data(d->tx, tx_ud);
+        htp_tx_set_user_data(tx, tx_ud);
     }
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
 
-        if (htp_tx_request_method_number(d->tx) == HTP_M_POST) {
+        if (htp_tx_request_method_number(tx) == HTP_M_POST) {
             SCLogDebug("POST");
             int r = HtpRequestBodySetupMultipart(d, tx_ud);
             if (r == 1) {
@@ -1748,7 +1761,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 tx_ud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
-        } else if (htp_tx_request_method_number(d->tx) == HTP_M_PUT) {
+        } else if (htp_tx_request_method_number(tx) == HTP_M_PUT) {
             if (HtpRequestBodySetupPUT(d, tx_ud) == 0) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
             }
@@ -1768,10 +1781,11 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                                                      hstate->cfg->request.body_limit,
                                                      stream_depth,
                                                      tx_ud->tsflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                                                     (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&hstate->cfg->request, &tx_ud->request_body, d->data, len);
+        HtpBodyAppendChunk(&hstate->cfg->request, &tx_ud->request_body,
+                htp_tx_data_data(d), len);
 
         const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1792,12 +1806,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             printf("REASSCHUNK END: \n");
 #endif
 
-            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
+            HtpRequestBodyHandleMultipart(hstate, tx_ud, tx, chunks_buffer, chunks_buffer_len);
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST) {
-            HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+            HtpRequestBodyHandlePOST(hstate, tx_ud, d);
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+            HtpRequestBodyHandlePUT(hstate, tx_ud, d);
         }
 
     } else {
@@ -1847,21 +1861,24 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
+    htp_tx_t *tx = htp_tx_data_tx(d);
+
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
         SCReturnInt(HTP_OK);
 
-    if (d->data == NULL || d->len == 0)
+    if (htp_tx_data_is_empty(d))
         SCReturnInt(HTP_OK);
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(d->tx));
+    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%"PRIu32"", hstate, d,
+               htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1870,7 +1887,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         memset(tx_ud, 0, sizeof(HtpTxUserData));
 
         /* Set the user data for handling body chunks on this transaction */
-        htp_tx_set_user_data(d->tx, tx_ud);
+        htp_tx_set_user_data(tx, tx_ud);
     }
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
@@ -1889,12 +1906,13 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
                                                      hstate->cfg->response.body_limit,
                                                      stream_depth,
                                                      tx_ud->tcflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                                                     (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body, d->data, len);
+        HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body,
+                htp_tx_data_data(d), len);
 
-        HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+        HtpResponseBodyHandle(hstate, tx_ud, d);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -2198,36 +2216,37 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx_data->tx, tx_ud);
+        htp_tx_set_user_data(tx, tx_ud);
     }
     ptmp = HTPRealloc(tx_ud->request_headers_raw,
                      tx_ud->request_headers_raw_len,
-                     tx_ud->request_headers_raw_len + tx_data->len);
+                     tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
         HtpTxUserDataFree(hstate, tx_ud);
-        htp_tx_set_user_data(tx_data->tx, NULL);
+        htp_tx_set_user_data(tx, NULL);
         return HTP_OK;
     }
     tx_ud->request_headers_raw = ptmp;
 
     memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->request_headers_raw_len += tx_data->len;
+           htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
-    if (tx_data->tx && htp_tx_flags(tx_data->tx)) {
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
-        HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
+    if (tx && htp_tx_flags(tx)) {
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+        HTPErrorCheckTxRequestFlags(hstate, tx);
     }
     return HTP_OK;
 }
@@ -2235,32 +2254,33 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx_data->tx, tx_ud);
+        htp_tx_set_user_data(tx, tx_ud);
     }
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
-                     tx_ud->response_headers_raw_len + tx_data->len);
+                     tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx_data->tx));
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
         HtpTxUserDataFree(hstate, tx_ud);
-        htp_tx_set_user_data(tx_data->tx, NULL);
+        htp_tx_set_user_data(tx, NULL);
         return HTP_OK;
     }
     tx_ud->response_headers_raw = ptmp;
 
     memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->response_headers_raw_len += tx_data->len;
+           htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    tx_ud->response_headers_raw_len += htp_tx_data_len(tx_data);
 
     return HTP_OK;
 }
