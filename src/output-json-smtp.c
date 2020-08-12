@@ -254,12 +254,7 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
 }
 
 void JsonSmtpLogRegister (void) {
-    /* register as separate module */
-    OutputRegisterTxModule(LOGGER_JSON_SMTP, "JsonSmtpLog", "smtp-json-log",
-        OutputSmtpLogInit, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
-        JsonSmtpLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_SMTP, "eve-log", "JsonSmtpLog",
         "eve-log.smtp", OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger,
         JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit, NULL);

@@ -445,9 +445,6 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 
 void JsonDropLogRegister (void)
 {
-    OutputRegisterPacketModule(LOGGER_JSON_DROP, MODULE_NAME, "drop-json-log",
-        JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition,
-        JsonDropLogThreadInit, JsonDropLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME,
         "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
         JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,

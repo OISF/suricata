@@ -793,12 +793,7 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonHttpLogRegister (void)
 {
-    /* register as separate module */
-    OutputRegisterTxModule(LOGGER_JSON_HTTP, "JsonHttpLog", "http-json-log",
-        OutputHttpLogInit, ALPROTO_HTTP, JsonHttpLogger, JsonHttpLogThreadInit,
-        JsonHttpLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_HTTP, "eve-log", "JsonHttpLog",
         "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
         JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
