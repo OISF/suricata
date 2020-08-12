@@ -1,3 +1,5 @@
+.. _custom-http-log:
+
 Custom http logging
 ===================
 
