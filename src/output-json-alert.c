@@ -820,20 +820,6 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
-{
-    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
-    if (json_output_ctx != NULL) {
-        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
-        if (xff_cfg != NULL) {
-            SCFree(xff_cfg);
-        }
-        LogFileFreeCtx(json_output_ctx->file_ctx);
-        SCFree(json_output_ctx);
-    }
-    SCFree(output_ctx);
-}
-
 static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -956,53 +942,6 @@ static HttpXFFCfg *JsonAlertLogGetXffCfg(ConfNode *conf)
         }
     }
     return xff_cfg;
-}
-
-/**
- * \brief Create a new LogFileCtx for "fast" output style.
- * \param conf The configuration node for this output.
- * \return A LogFileCtx pointer on success, NULL on failure.
- */
-static OutputInitResult JsonAlertLogInitCtx(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    AlertJsonOutputCtx *json_output_ctx = NULL;
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("AlertFastLogInitCtx2: Could not create new LogFileCtx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
-    if (unlikely(json_output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        SCFree(output_ctx);
-        return result;
-    }
-    memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
-
-    json_output_ctx->file_ctx = logfile_ctx;
-
-    JsonAlertLogSetupMetadata(json_output_ctx, conf);
-    json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);
-
-    output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonAlertLogDeInitCtx;
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
 }
 
 /**

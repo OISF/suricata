@@ -461,14 +461,6 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
-    LogFileFreeCtx(dnslog_ctx->file_ctx);
-    SCFree(dnslog_ctx);
-    SCFree(output_ctx);
-}
-
 static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -640,65 +632,6 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log sub-module initialized");
-
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
-#define DEFAULT_LOG_FILENAME "dns.json"
-/** \brief Create a new dns log LogFileCtx.
- *  \param conf Pointer to ConfNode containing this loggers configuration.
- *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
- * */
-static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
-    if (enabled != NULL && !ConfValIsTrue(enabled)) {
-        return result;
-    }
-
-    DnsVersion version = JsonDnsParseVersion(conf);
-
-    LogFileCtx *file_ctx = LogFileNewCtx();
-
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
-    if (unlikely(dnslog_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
-
-    dnslog_ctx->file_ctx = file_ctx;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(dnslog_ctx);
-        return result;
-    }
-
-    output_ctx->data = dnslog_ctx;
-    output_ctx->DeInit = LogDnsLogDeInitCtx;
-
-    dnslog_ctx->version = version;
-    JsonDnsLogInitFilters(dnslog_ctx, conf);
-
-    SCLogDebug("DNS log output initialized");
 
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);

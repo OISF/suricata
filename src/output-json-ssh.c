@@ -147,55 +147,6 @@ static TmEcode JsonSshLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void OutputSshLogDeinit(OutputCtx *output_ctx)
-{
-    OutputSshCtx *ssh_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = ssh_ctx->file_ctx;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(ssh_ctx);
-    SCFree(output_ctx);
-}
-
-#define DEFAULT_LOG_FILENAME "ssh.json"
-static OutputInitResult OutputSshLogInit(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_SSH_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputSshCtx *ssh_ctx = SCMalloc(sizeof(OutputSshCtx));
-    if (unlikely(ssh_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(ssh_ctx);
-        return result;
-    }
-
-    ssh_ctx->file_ctx = file_ctx;
-
-    output_ctx->data = ssh_ctx;
-    output_ctx->DeInit = OutputSshLogDeinit;
-
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
 static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
 {
     OutputSshCtx *ssh_ctx = output_ctx->data;
