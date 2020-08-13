@@ -187,7 +187,11 @@ static void *ParseAFPConfig(const char *iface)
         if_default = NULL;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    char* active_runmode = RunmodeGetActive();
+    if (active_runmode && !strcmp("single", active_runmode)) {
+        aconf->threads = 1;
+    }
+    else if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 0;
     } else {
         if (threadsstr != NULL) {
@@ -688,7 +692,6 @@ finalize:
             break;
     }
 
-    char *active_runmode = RunmodeGetActive();
     if (active_runmode && !strcmp("workers", active_runmode)) {
         aconf->flags |= AFP_ZERO_COPY;
     } else {
