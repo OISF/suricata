@@ -250,8 +250,8 @@ static int HTTPUriTest01(void)
         goto end;
     }
 
-    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
-            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
+    if ((htp_uri_path(htp_tx_parsed_uri(tx)) == NULL) ||
+            (bstr_cmp_c(htp_uri_path(htp_tx_parsed_uri(tx)), "/images.gif") != 0))
     {
         goto end;
     }
@@ -321,8 +321,8 @@ static int HTTPUriTest02(void)
         goto end;
     }
 
-    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
-            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
+    if ((htp_uri_path(htp_tx_parsed_uri(tx)) == NULL) ||
+            (bstr_cmp_c(htp_uri_path(htp_tx_parsed_uri(tx)), "/images.gif") != 0))
     {
         goto end;
     }
@@ -392,8 +392,8 @@ static int HTTPUriTest03(void)
         goto end;
     }
 
-    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
-            (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
+    if ((htp_uri_path(htp_tx_parsed_uri(tx)) == NULL) ||
+            (bstr_cmp_c(htp_uri_path(htp_tx_parsed_uri(tx)), "/images.gif") != 0))
     {
         goto end;
     }
@@ -464,8 +464,8 @@ static int HTTPUriTest04(void)
         goto end;
     }
 
-    if ((htp_tx_parsed_uri(tx)->path == NULL) ||
-           (bstr_cmp_c(htp_tx_parsed_uri(tx)->path, "/images.gif") != 0))
+    if ((htp_uri_path(htp_tx_parsed_uri(tx)) == NULL) ||
+           (bstr_cmp_c(htp_uri_path(htp_tx_parsed_uri(tx)), "/images.gif") != 0))
     {
         goto end;
     }

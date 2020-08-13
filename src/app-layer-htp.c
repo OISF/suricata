@@ -1528,9 +1528,9 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* get the name */
-        if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
-            filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
+        if (htp_uri_path(htp_tx_parsed_uri(tx)) != NULL) {
+            filename = (uint8_t *)bstr_ptr(htp_uri_path(htp_tx_parsed_uri(tx)));
+            filename_len = bstr_len(htp_uri_path(htp_tx_parsed_uri(tx)));
         }
 
         if (filename != NULL) {
@@ -1585,9 +1585,9 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* get the name */
-        if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
-            filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
+        if (htp_uri_path(htp_tx_parsed_uri(tx)) != NULL) {
+            filename = (uint8_t *)bstr_ptr(htp_uri_path(htp_tx_parsed_uri(tx)));
+            filename_len = bstr_len(htp_uri_path(htp_tx_parsed_uri(tx)));
         }
 
         if (filename != NULL) {
@@ -1658,9 +1658,9 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         /* fall back to name from the uri */
         if (filename == NULL) {
             /* get the name */
-            if (htp_tx_parsed_uri(tx) != NULL && htp_tx_parsed_uri(tx)->path != NULL) {
-                filename = (uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->path);
-                filename_len = bstr_len(htp_tx_parsed_uri(tx)->path);
+            if (htp_uri_path(htp_tx_parsed_uri(tx)) != NULL) {
+                filename = (uint8_t *)bstr_ptr(htp_uri_path(htp_tx_parsed_uri(tx)));
+                filename_len = bstr_len(htp_uri_path(htp_tx_parsed_uri(tx)));
             }
         }
 
@@ -2202,7 +2202,7 @@ static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
     if (htp_tx_parsed_uri(tx) == NULL)
         return HTP_OK;
 
-    return HTPCallbackDoubleDecodeUriPart(tx, htp_tx_parsed_uri(tx)->query);
+    return HTPCallbackDoubleDecodeUriPart(tx, (bstr *) htp_uri_query(htp_tx_parsed_uri(tx)));
 }
 
 static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
@@ -2210,7 +2210,7 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
     if (htp_tx_parsed_uri(tx) == NULL)
         return HTP_OK;
 
-    return HTPCallbackDoubleDecodeUriPart(tx, htp_tx_parsed_uri(tx)->path);
+    return HTPCallbackDoubleDecodeUriPart(tx, (bstr *) htp_uri_path(htp_tx_parsed_uri(tx)));
 }
 
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)

@@ -66,47 +66,47 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, const htp_uri_t *uri, int uri_inc
     size_t len = 0;
 
     if (uri_include_all) {
-        if (uri->scheme != NULL) {
-            len += bstr_len(uri->scheme);
+        if (htp_uri_scheme(uri) != NULL) {
+            len += bstr_len(htp_uri_scheme(uri));
             len += 3; // "://"
         }
 
-        if ((uri->username != NULL) || (uri->password != NULL)) {
-            if (uri->username != NULL) {
-                len += bstr_len(uri->username);
+        if ((htp_uri_username(uri) != NULL) || (htp_uri_password(uri) != NULL)) {
+            if (htp_uri_username(uri) != NULL) {
+                len += bstr_len(htp_uri_username(uri));
             }
 
             len += 1; // ":"
 
-            if (uri->password != NULL) {
-                len += bstr_len(uri->password);
+            if (htp_uri_password(uri) != NULL) {
+                len += bstr_len(htp_uri_password(uri));
             }
 
             len += 1; // "@"
         }
 
-        if (uri->hostname != NULL) {
-            len += bstr_len(uri->hostname);
+        if (htp_uri_hostname(uri) != NULL) {
+            len += bstr_len(htp_uri_hostname(uri));
         }
 
-        if (uri->port != NULL) {
+        if (htp_uri_port(uri) != NULL) {
             len += 1; // ":"
-            len += bstr_len(uri->port);
+            len += bstr_len(htp_uri_port(uri));
         }
     }
 
-    if (uri->path != NULL) {
-        len += bstr_len(uri->path);
+    if (htp_uri_path(uri) != NULL) {
+        len += bstr_len(htp_uri_path(uri));
     }
 
-    if (uri->query != NULL) {
+    if (htp_uri_query(uri) != NULL) {
         len += 1; // "?"
-        len += bstr_len(uri->query);
+        len += bstr_len(htp_uri_query(uri));
     }
 
-    if (uri->fragment != NULL) {
+    if (htp_uri_fragment(uri) != NULL) {
         len += 1; // "#"
-        len += bstr_len(uri->fragment);
+        len += bstr_len(htp_uri_fragment(uri));
     }
 
     // On the second pass construct the string
@@ -117,41 +117,41 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, const htp_uri_t *uri, int uri_inc
     }
 
     if (uri_include_all) {
-        if (uri->scheme != NULL) {
-            bstr_add_noex(r, uri->scheme);
+        if (htp_uri_scheme(uri) != NULL) {
+            bstr_add_noex(r, htp_uri_scheme(uri));
             bstr_add_c_noex(r, "://");
         }
 
-        if ((uri->username != NULL) || (uri->password != NULL)) {
-            if (uri->username != NULL) {
-                bstr_add_noex(r, uri->username);
+        if ((htp_uri_username(uri) != NULL) || (htp_uri_password(uri) != NULL)) {
+            if (htp_uri_username(uri) != NULL) {
+                bstr_add_noex(r, htp_uri_username(uri));
             }
 
             bstr_add_c_noex(r, ":");
 
-            if (uri->password != NULL) {
-                bstr_add_noex(r, uri->password);
+            if (htp_uri_password(uri) != NULL) {
+                bstr_add_noex(r, htp_uri_password(uri));
             }
 
             bstr_add_c_noex(r, "@");
         }
 
-        if (uri->hostname != NULL) {
-            bstr_add_noex(r, uri->hostname);
+        if (htp_uri_hostname(uri) != NULL) {
+            bstr_add_noex(r, htp_uri_hostname(uri));
         }
 
-        if (uri->port != NULL) {
+        if (htp_uri_port(uri) != NULL) {
             bstr_add_c_noex(r, ":");
-            bstr_add_noex(r, uri->port);
+            bstr_add_noex(r, htp_uri_port(uri));
         }
     }
 
-    if (uri->path != NULL) {
-        bstr_add_noex(r, uri->path);
+    if (htp_uri_path(uri) != NULL) {
+        bstr_add_noex(r, htp_uri_path(uri));
     }
 
-    if (uri->query != NULL) {
-        bstr *query = bstr_dup(uri->query);
+    if (htp_uri_query(uri) != NULL) {
+        bstr *query = bstr_dup(htp_uri_query(uri));
         if (query) {
             uint64_t flags = 0;
             htp_urldecode_inplace(htp_tx_cfg(tx), HTP_DECODER_URLENCODED, query, &flags);
@@ -161,9 +161,9 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, const htp_uri_t *uri, int uri_inc
         }
     }
 
-    if (uri->fragment != NULL) {
+    if (htp_uri_fragment(uri) != NULL) {
         bstr_add_c_noex(r, "#");
-        bstr_add_noex(r, uri->fragment);
+        bstr_add_noex(r, htp_uri_fragment(uri));
     }
 
     return r;

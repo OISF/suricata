@@ -290,19 +290,19 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = NULL;
         uint32_t data_len = 0;
 
-        if (htp_tx_parsed_uri(tx) == NULL || htp_tx_parsed_uri(tx)->hostname == NULL) {
+        if (htp_uri_hostname(htp_tx_parsed_uri(tx)) == NULL) {
             if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
             const htp_header_t *h = htp_tx_request_header(tx, "Host");
-            if (h == NULL || htp_header_value(h) == NULL)
+            if (htp_header_value(h) == NULL)
                 return NULL;
 
             data = htp_header_value_ptr(h);
             data_len = htp_header_value_len(h);
         } else {
-            data = (const uint8_t *)bstr_ptr(htp_tx_parsed_uri(tx)->hostname);
-            data_len = bstr_len(htp_tx_parsed_uri(tx)->hostname);
+            data = (const uint8_t *)bstr_ptr(htp_uri_hostname(htp_tx_parsed_uri(tx)));
+            data_len = bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
         }
 
         InspectionBufferSetup(buffer, data, data_len);
