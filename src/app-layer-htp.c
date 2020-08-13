@@ -702,7 +702,7 @@ static int Setup(Flow *f, HtpState *hstate)
         goto error;
     }
 
-    hstate->conn = htp_connp_get_connection(hstate->connp);
+    hstate->conn = htp_connp_connection(hstate->connp);
 
     htp_connp_set_user_data(hstate->connp, (void *)hstate);
     hstate->cfg = htp_cfg_rec;
@@ -1729,7 +1729,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     printf("HTPBODY END: \n");
 #endif
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -1869,7 +1869,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (htp_tx_data_is_empty(d))
         SCReturnInt(HTP_OK);
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2013,7 +2013,7 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
  */
 static int HTPCallbackRequestStart(htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2030,7 +2030,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
  */
 static int HTPCallbackResponseStart(htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2056,7 +2056,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2096,7 +2096,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
 {
     SCEnter();
 
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
     }
@@ -2143,7 +2143,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
 {
     HtpTxUserData *tx_ud;
     bstr *request_uri_normalized;
-    HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+    HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     const HTPCfgRec *cfg = hstate->cfg;
 
     request_uri_normalized = SCHTPGenerateNormalizedUri(tx, htp_tx_parsed_uri(tx), cfg->uri_include_all);
@@ -2187,7 +2187,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
                 return HTP_OK;
             htp_tx_set_user_data(tx, htud);
         }
-        HtpState *s = htp_connp_get_user_data(htp_tx_connp(tx));
+        HtpState *s = htp_connp_user_data(htp_tx_connp(tx));
         if (s == NULL)
             return HTP_OK;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
@@ -2233,7 +2233,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+        HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
         HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx, NULL);
         return HTP_OK;
@@ -2245,7 +2245,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
     tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
     if (tx && htp_tx_flags(tx)) {
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+        HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
     return HTP_OK;
@@ -2271,7 +2271,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_connp(tx));
+        HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
         HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx, NULL);
         return HTP_OK;
