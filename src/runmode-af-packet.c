@@ -122,6 +122,7 @@ static void *ParseAFPConfig(const char *iface)
     const char *out_iface = NULL;
     int cluster_type = PACKET_FANOUT_HASH;
     const char *ebpf_file = NULL;
+    const char *active_runmode = RunmodeGetActive();
 
     if (iface == NULL) {
         return NULL;
@@ -187,7 +188,9 @@ static void *ParseAFPConfig(const char *iface)
         if_default = NULL;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    if (active_runmode && !strcmp("single", active_runmode)) {
+        aconf->threads = 1;
+    } else if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 0;
     } else {
         if (threadsstr != NULL) {
@@ -688,7 +691,6 @@ finalize:
             break;
     }
 
-    char *active_runmode = RunmodeGetActive();
     if (active_runmode && !strcmp("workers", active_runmode)) {
         aconf->flags |= AFP_ZERO_COPY;
     } else {
