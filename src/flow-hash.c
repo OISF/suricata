@@ -476,6 +476,7 @@ static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
                 StatsIncr(tv, dtv->counter_flow_icmp6);
                 break;
         }
+        FlowManagerIncrActiveFlows(1);
 #ifdef UNITTESTS
     }
 #endif

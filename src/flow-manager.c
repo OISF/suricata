@@ -87,6 +87,9 @@ SC_ATOMIC_DECLARE(uint32_t, flowrec_cnt);
 SC_ATOMIC_DECLARE(uint32_t, flowrec_busy);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
+/* global active flows - incremented by FlowManagerIncrActiveFlows */
+SC_ATOMIC_DECLARE(uint64_t, active_flow_cnt);
+
 void FlowTimeoutsInit(void)
 {
     SC_ATOMIC_SET(flow_timeouts, flow_timeouts_normal);
@@ -657,6 +660,7 @@ typedef struct FlowCounters_ {
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
 
+    uint16_t flow_mgr_flows_active;
     uint16_t flow_mgr_flows_checked;
     uint16_t flow_mgr_flows_notimeout;
     uint16_t flow_mgr_flows_timeout;
@@ -693,6 +697,7 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
 
     fc->flow_mgr_rows_maxlen = StatsRegisterMaxCounter("flow.mgr.rows_maxlen", t);
+    fc->flow_mgr_flows_active = StatsRegisterGlobalCounter("flow_mgr.flows_active", FlowManagerGetActiveFlows);
     fc->flow_mgr_flows_checked = StatsRegisterCounter("flow.mgr.flows_checked", t);
     fc->flow_mgr_flows_notimeout = StatsRegisterCounter("flow.mgr.flows_notimeout", t);
     fc->flow_mgr_flows_timeout = StatsRegisterCounter("flow.mgr.flows_timeout", t);
@@ -921,6 +926,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters.est);
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters.byp);
 
+            StatsSetUI64(th_v, ftd->cnt.flow_mgr_flows_active,
+                            (uint64_t)SC_ATOMIC_SUB(active_flow_cnt, counters.flows_aside));
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters.flows_checked);
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters.flows_notimeout);
 
@@ -1357,7 +1364,31 @@ void TmModuleFlowManagerRegister (void)
     SCLogDebug("%s registered", tmm_modules[TMM_FLOWMANAGER].name);
 
     SC_ATOMIC_INIT(flowmgr_cnt);
+    SC_ATOMIC_INIT(active_flow_cnt);
     SC_ATOMIC_INITPTR(flow_timeouts);
+}
+
+uint64_t FlowManagerGetActiveFlows() {
+    uint64_t flow_cnt = SC_ATOMIC_GET(active_flow_cnt);
+    return flow_cnt;
+}
+
+/**
+ * \brief Used externally to increment flow-manager's active flow stat.
+ */
+void FlowManagerIncrActiveFlows(uint32_t n) {
+    SC_ATOMIC_ADD(active_flow_cnt, n);
+}
+
+/**
+ * \brief Used externally to decrement flow-manager's active flow stat.
+ */
+void FlowManagerDecrActiveFlows(uint32_t n) {
+    if (n > SC_ATOMIC_GET(active_flow_cnt)) {
+        SCLogError(SC_ERR_STAT, "Invalid decrement to active flows.");
+        return;
+    }
+    SC_ATOMIC_SUB(active_flow_cnt, n);
 }
 
 void TmModuleFlowRecyclerRegister (void)

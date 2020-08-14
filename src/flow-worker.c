@@ -51,6 +51,8 @@
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
+SC_ATOMIC_EXTERN(uint64_t, active_flow_cnt);
+
 typedef struct FlowTimeoutCounters {
     uint32_t flows_aside_needs_work;
     uint32_t flows_aside_pkt_inject;
@@ -459,6 +461,7 @@ static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv,
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
     if (fw->fls.work_queue.len) {
         StatsAddUI64(tv, fw->cnt.flows_removed, (uint64_t)fw->fls.work_queue.len);
+        FlowManagerDecrActiveFlows((uint64_t)fw->fls.work_queue.len);
 
         FlowTimeoutCounters counters = { 0, 0, };
         CheckWorkQueue(tv, fw, detect_thread, &counters, &fw->fls.work_queue);
