@@ -27,6 +27,7 @@ Suricata Rules
    sip-keywords
    rfb-keywords
    mqtt-keywords
+   ike-keywords
    app-layer
    xbits
    thresholding

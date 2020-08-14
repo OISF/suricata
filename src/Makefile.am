@@ -324,6 +324,14 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+detect-ike-exch-type.c detect-ike-exch-type.h \
+detect-ike-spi.c detect-ike-spi.h \
+detect-ike-vendor.c detect-ike-vendor.h \
+detect-ike-chosen-sa.c detect-ike-chosen-sa.h \
+detect-ike-key-exchange-payload-length.c detect-ike-key-exchange-payload-length.h \
+detect-ike-nonce-payload-length.c detect-ike-nonce-payload-length.h \
+detect-ike-nonce-payload.c detect-ike-nonce-payload.h \
+detect-ike-key-exchange-payload.c detect-ike-key-exchange-payload.h \
 device-storage.c device-storage.h \
 feature.c feature.h \
 flow-bit.c flow-bit.h \

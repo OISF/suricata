@@ -30,10 +30,44 @@ use std::ffi::{CString, CStr};
 use nom;
 use crate::ike::parser::*;
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
-use crate::ike::ikev2::{handle_ikev2, IKEV2Event, Ikev2Container};
+use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use std::collections::HashSet;
 
 static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
+
+#[repr(u32)]
+pub enum IkeEvent {
+    MalformedData = 0,
+    NoEncryption,
+    WeakCryptoEnc,
+    WeakCryptoPRF,
+    WeakCryptoDH,
+    WeakCryptoAuth,
+    WeakCryptoNoDH,
+    WeakCryptoNoAuth,
+    InvalidProposal,
+    UnknownProposal,
+    PayloadExtraData,
+}
+
+impl IkeEvent {
+    pub fn from_i32(value: i32) -> Option<IkeEvent> {
+        match value {
+            0 => Some(IkeEvent::MalformedData),
+            1 => Some(IkeEvent::NoEncryption),
+            2 => Some(IkeEvent::WeakCryptoEnc),
+            3 => Some(IkeEvent::WeakCryptoPRF),
+            4 => Some(IkeEvent::WeakCryptoDH),
+            5 => Some(IkeEvent::WeakCryptoAuth),
+            6 => Some(IkeEvent::WeakCryptoNoDH),
+            7 => Some(IkeEvent::WeakCryptoNoAuth),
+            8 => Some(IkeEvent::InvalidProposal),
+            9 => Some(IkeEvent::UnknownProposal),
+            10 => Some(IkeEvent::PayloadExtraData),
+            _ => None,
+        }
+    }
+}
 
 pub struct IkeHeaderWrapper {
     pub spi_initiator: String,
@@ -180,12 +214,12 @@ impl IKEState{
     }
 
     /// Set an event. The event is set on the most recent transaction.
-    pub fn set_event(&mut self, event: IKEV2Event) {
+    pub fn set_event(&mut self, event: IkeEvent) {
         if let Some(tx) = self.transactions.last_mut() {
             let ev = event as u8;
             core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
         } else {
-            SCLogDebug!("IKEv2: trying to set event {} on non-existing transaction", event as u32);
+            SCLogDebug!("IKE: trying to set event {} on non-existing transaction", event as u32);
         }
     }
 
@@ -448,18 +482,19 @@ pub extern "C" fn rs_ike_state_get_event_info_by_id(event_id: std::os::raw::c_in
                                                       event_type: *mut core::AppLayerEventType)
                                                       -> i8
 {
-    if let Some(e) = IKEV2Event::from_i32(event_id as i32) {
+    if let Some(e) = IkeEvent::from_i32(event_id as i32) {
         let estr = match e {
-            IKEV2Event::MalformedData    => { "malformed_data\0" },
-            IKEV2Event::NoEncryption     => { "no_encryption\0" },
-            IKEV2Event::WeakCryptoEnc    => { "weak_crypto_enc\0" },
-            IKEV2Event::WeakCryptoPRF    => { "weak_crypto_prf\0" },
-            IKEV2Event::WeakCryptoDH     => { "weak_crypto_dh\0" },
-            IKEV2Event::WeakCryptoAuth   => { "weak_crypto_auth\0" },
-            IKEV2Event::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
-            IKEV2Event::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
-            IKEV2Event::InvalidProposal  => { "invalid_proposal\0" },
-            IKEV2Event::UnknownProposal  => { "unknown_proposal\0" },
+            IkeEvent::MalformedData    => { "malformed_data\0" },
+            IkeEvent::NoEncryption     => { "no_encryption\0" },
+            IkeEvent::WeakCryptoEnc    => { "weak_crypto_enc\0" },
+            IkeEvent::WeakCryptoPRF    => { "weak_crypto_prf\0" },
+            IkeEvent::WeakCryptoDH     => { "weak_crypto_dh\0" },
+            IkeEvent::WeakCryptoAuth   => { "weak_crypto_auth\0" },
+            IkeEvent::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
+            IkeEvent::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
+            IkeEvent::InvalidProposal  => { "invalid_proposal\0" },
+            IkeEvent::UnknownProposal  => { "unknown_proposal\0" },
+            IkeEvent::PayloadExtraData => { "payload_extra_data\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -482,16 +517,17 @@ pub extern "C" fn rs_ike_state_get_event_info(event_name: *const std::os::raw::c
     let event = match c_event_name.to_str() {
         Ok(s) => {
             match s {
-                "malformed_data"     => IKEV2Event::MalformedData as i32,
-                "no_encryption"      => IKEV2Event::NoEncryption as i32,
-                "weak_crypto_enc"    => IKEV2Event::WeakCryptoEnc as i32,
-                "weak_crypto_prf"    => IKEV2Event::WeakCryptoPRF as i32,
-                "weak_crypto_auth"   => IKEV2Event::WeakCryptoAuth as i32,
-                "weak_crypto_dh"     => IKEV2Event::WeakCryptoDH as i32,
-                "weak_crypto_nodh"   => IKEV2Event::WeakCryptoNoDH as i32,
-                "weak_crypto_noauth" => IKEV2Event::WeakCryptoNoAuth as i32,
-                "invalid_proposal"   => IKEV2Event::InvalidProposal as i32,
-                "unknown_proposal"   => IKEV2Event::UnknownProposal as i32,
+                "malformed_data"     => IkeEvent::MalformedData as i32,
+                "no_encryption"      => IkeEvent::NoEncryption as i32,
+                "weak_crypto_enc"    => IkeEvent::WeakCryptoEnc as i32,
+                "weak_crypto_prf"    => IkeEvent::WeakCryptoPRF as i32,
+                "weak_crypto_auth"   => IkeEvent::WeakCryptoAuth as i32,
+                "weak_crypto_dh"     => IkeEvent::WeakCryptoDH as i32,
+                "weak_crypto_nodh"   => IkeEvent::WeakCryptoNoDH as i32,
+                "weak_crypto_noauth" => IkeEvent::WeakCryptoNoAuth as i32,
+                "invalid_proposal"   => IkeEvent::InvalidProposal as i32,
+                "unknown_proposal"   => IkeEvent::UnknownProposal as i32,
+                "payload_extra_data" => IkeEvent::PayloadExtraData as i32,
                 _                    => -1, // unknown event
             }
         },

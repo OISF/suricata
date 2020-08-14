@@ -22,42 +22,10 @@ use crate::core::{STREAM_TOCLIENT};
 use crate::applayer::*;
 
 use crate::log::*;
-use crate::ike::ike::IKEState;
+use crate::ike::ike::{IKEState, IkeEvent};
 use crate::ike::parser::IsakmpHeader;
 use ipsec_parser::{IkeV2Header, IkeExchangeType, IkePayloadType};
 use super::ipsec_parser::IkeV2Transform;
-
-#[repr(u32)]
-pub enum IKEV2Event {
-    MalformedData = 0,
-    NoEncryption,
-    WeakCryptoEnc,
-    WeakCryptoPRF,
-    WeakCryptoDH,
-    WeakCryptoAuth,
-    WeakCryptoNoDH,
-    WeakCryptoNoAuth,
-    InvalidProposal,
-    UnknownProposal,
-}
-
-impl IKEV2Event {
-    pub fn from_i32(value: i32) -> Option<IKEV2Event> {
-        match value {
-            0 => Some(IKEV2Event::MalformedData),
-            1 => Some(IKEV2Event::NoEncryption),
-            2 => Some(IKEV2Event::WeakCryptoEnc),
-            3 => Some(IKEV2Event::WeakCryptoPRF),
-            4 => Some(IKEV2Event::WeakCryptoDH),
-            5 => Some(IKEV2Event::WeakCryptoAuth),
-            6 => Some(IKEV2Event::WeakCryptoNoDH),
-            7 => Some(IKEV2Event::WeakCryptoNoAuth),
-            8 => Some(IKEV2Event::InvalidProposal),
-            9 => Some(IKEV2Event::UnknownProposal),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
@@ -247,7 +215,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         IkeTransformEncType::ENCR_NULL => {
                             SCLogDebug!("Weak Encryption: {:?}", enc);
                             // XXX send event only if direction == STREAM_TOCLIENT ?
-                            state.set_event(IKEV2Event::WeakCryptoEnc);
+                            state.set_event(IkeEvent::WeakCryptoEnc);
                         },
                         _ => (),
                     }
@@ -256,12 +224,12 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                     match *prf {
                         IkeTransformPRFType::PRF_NULL => {
                             SCLogDebug!("'Null' PRF transform proposed");
-                            state.set_event(IKEV2Event::InvalidProposal);
+                            state.set_event(IkeEvent::InvalidProposal);
                         },
                         IkeTransformPRFType::PRF_HMAC_MD5 |
                         IkeTransformPRFType::PRF_HMAC_SHA1 => {
                             SCLogDebug!("Weak PRF: {:?}", prf);
-                            state.set_event(IKEV2Event::WeakCryptoPRF);
+                            state.set_event(IkeEvent::WeakCryptoPRF);
                         },
                         _ => (),
                     }
@@ -281,7 +249,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         IkeTransformAuthType::AUTH_HMAC_MD5_128 |
                         IkeTransformAuthType::AUTH_HMAC_SHA1_160 => {
                             SCLogDebug!("Weak auth: {:?}", auth);
-                            state.set_event(IKEV2Event::WeakCryptoAuth);
+                            state.set_event(IkeEvent::WeakCryptoAuth);
                         },
                         _ => (),
                     }
@@ -290,21 +258,21 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                     match *dh {
                         IkeTransformDHType::None => {
                             SCLogDebug!("'None' DH transform proposed");
-                            state.set_event(IKEV2Event::InvalidProposal);
+                            state.set_event(IkeEvent::InvalidProposal);
                         },
                         IkeTransformDHType::Modp768 |
                         IkeTransformDHType::Modp1024 |
                         IkeTransformDHType::Modp1024s160 |
                         IkeTransformDHType::Modp1536 => {
                             SCLogDebug!("Weak DH: {:?}", dh);
-                            state.set_event(IKEV2Event::WeakCryptoDH);
+                            state.set_event(IkeEvent::WeakCryptoDH);
                         },
                         _ => (),
                     }
                 },
                 IkeV2Transform::Unknown(tx_type, tx_id) => {
                     SCLogDebug!("Unknown proposal: type={:?}, id={}", tx_type, tx_id);
-                    state.set_event(IKEV2Event::UnknownProposal);
+                    state.set_event(IkeEvent::UnknownProposal);
                 },
                 _ => (),
             }
@@ -318,12 +286,12 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
         })
         {
             SCLogDebug!("No DH transform found");
-            state.set_event(IKEV2Event::WeakCryptoNoDH);
+            state.set_event(IkeEvent::WeakCryptoNoDH);
         }
         // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
         if p.protocol_id == ProtocolID::AH {
             SCLogDebug!("Proposal uses protocol AH - no confidentiality");
-            state.set_event(IKEV2Event::NoEncryption);
+            state.set_event(IkeEvent::NoEncryption);
         }
         // Rule 4: lack of integrity is accepted only if using an AEAD proposal
         // Look if no auth was proposed, including if proposal is Auth::None
@@ -342,7 +310,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                 }
             }) {
                 SCLogDebug!("No integrity transform found");
-                state.set_event(IKEV2Event::WeakCryptoNoAuth);
+                state.set_event(IkeEvent::WeakCryptoNoAuth);
             }
         }
         // Finally
