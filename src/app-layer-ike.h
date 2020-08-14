@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,20 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ * \file
+ *
+ * \author Frank Honza <frank.honza@dcso.de>
+ */
 
-extern crate ipsec_parser;
+#ifndef __APP_LAYER_IKE_H__
+#define __APP_LAYER_IKE_H__
 
-pub mod ikev2;
-pub mod state;
-pub mod log;
+void RegisterIKEParsers(void);
+void IKEParserRegisterTests(void);
+
+/** Opaque Rust types. */
+typedef struct IKEState_ IKEState;
+typedef struct IKETransaction_ IKETransaction;
+
+#endif /* __APP_LAYER_IKE_H__ */

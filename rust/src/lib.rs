@@ -67,7 +67,6 @@ pub mod smb;
 pub mod krb;
 pub mod dcerpc;
 
-pub mod ikev2;
 pub mod snmp;
 
 pub mod ntp;
@@ -76,6 +75,7 @@ pub mod dhcp;
 pub mod sip;
 pub mod rfb;
 pub mod mqtt;
+pub mod ike;
 pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
