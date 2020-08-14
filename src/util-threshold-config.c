@@ -669,6 +669,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;
     ThresholdRuleType rule_type;
+    int res = -1;
 
     if (de_ctx == NULL)
         return -1;
@@ -941,7 +942,9 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     *ret_parsed_seconds = parsed_seconds;
     *ret_parsed_timeout = parsed_timeout;
     *ret_th_ip = th_ip;
-    return 0;
+    th_ip = NULL;
+    /* Success */
+    res = 0;
 error:
     if (th_track != NULL)
         SCFree((char *)th_track);
@@ -953,7 +956,7 @@ error:
         SCFree((char *)th_type);
     if (th_ip != NULL)
         SCFree((char *)th_ip);
-    return -1;
+    return res;
 }
 
 /**
