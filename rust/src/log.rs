@@ -19,8 +19,6 @@ use std;
 use std::ffi::CString;
 use std::path::Path;
 
-use crate::core::*;
-
 #[derive(Debug)]
 pub enum Level {
     NotSet = -1,
@@ -159,16 +157,14 @@ pub fn sc_log_message(level: Level,
                       code: std::os::raw::c_int,
                       message: &str) -> std::os::raw::c_int
 {
-    unsafe {
-        if let Some(c) = SC {
-            return (c.SCLogMessage)(
-                level as i32,
-                to_safe_cstring(filename).as_ptr(),
-                line,
-                to_safe_cstring(function).as_ptr(),
-                code,
-                to_safe_cstring(message).as_ptr());
-        }
+    if let Some(fun) = *crate::ffi::SCLogMessage {
+        return fun(
+            level as i32,
+            to_safe_cstring(filename).as_ptr(),
+            line,
+            to_safe_cstring(function).as_ptr(),
+            code,
+            to_safe_cstring(message).as_ptr());
     }
 
     // Fall back if the Suricata C context is not registered which is

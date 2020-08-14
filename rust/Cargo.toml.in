@@ -39,6 +39,7 @@ snmp-parser = "0.6"
 tls-parser = "0.9"
 x509-parser = "0.6.5"
 libc = "0.2.67"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 test-case = "1.0"

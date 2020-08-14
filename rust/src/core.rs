@@ -21,8 +21,8 @@ use std;
 use crate::filecontainer::*;
 
 /// Opaque C types.
-pub enum DetectEngineState {}
-pub enum AppLayerDecoderEvents {}
+pub type DetectEngineState = crate::ffi::DetectEngineState;
+pub type AppLayerDecoderEvents = crate::ffi::AppLayerDecoderEvents;
 pub enum AppLayerParserState {}
 
 // From app-layer-events.h
@@ -65,26 +65,11 @@ extern {
 // Function types for calls into C.
 //
 
-#[allow(non_snake_case)]
-pub type SCLogMessageFunc =
-    extern "C" fn(level: std::os::raw::c_int,
-                  filename: *const std::os::raw::c_char,
-                  line: std::os::raw::c_uint,
-                  function: *const std::os::raw::c_char,
-                  code: std::os::raw::c_int,
-                  message: *const std::os::raw::c_char) -> std::os::raw::c_int;
-
-pub type DetectEngineStateFreeFunc =
-    extern "C" fn(state: *mut DetectEngineState);
-
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
                    event: u8);
 
-pub type AppLayerDecoderEventsFreeEventsFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
-
-pub struct SuricataStreamingBufferConfig;
+pub type SuricataStreamingBufferConfig = crate::ffi::SuricataStreamingBufferConfig;
 
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
@@ -110,34 +95,9 @@ pub type SCFilePrune = extern "C" fn (
         file_container: &FileContainer);
 pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer);
-
 pub type SCFileSetTx = extern "C" fn (
         file: &FileContainer,
         tx_id: u64);
-
-// A Suricata context that is passed in from C. This is alternative to
-// using functions from Suricata directly, so they can be wrapped so
-// Rust unit tests will still compile when they are not linked
-// directly to the real function.
-//
-// This might add a little too much complexity to keep pure Rust test
-// cases working.
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct SuricataContext {
-    pub SCLogMessage: SCLogMessageFunc,
-    DetectEngineStateFree: DetectEngineStateFreeFunc,
-    AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
-    AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
-
-    pub FileOpenFile: SCFileOpenFileWithId,
-    pub FileCloseFile: SCFileCloseFileById,
-    pub FileAppendData: SCFileAppendDataById,
-    pub FileAppendGAP: SCFileAppendGAPById,
-    pub FileContainerRecycle: SCFileContainerRecycle,
-    pub FilePrune: SCFilePrune,
-    pub FileSetTx: SCFileSetTx,
-}
 
 #[allow(non_snake_case)]
 #[repr(C)]
@@ -145,24 +105,19 @@ pub struct SuricataFileContext {
     pub files_sbcfg: &'static SuricataStreamingBufferConfig,
 }
 
-pub static mut SC: Option<&'static SuricataContext> = None;
-
 #[no_mangle]
-pub extern "C" fn rs_init(context: &'static mut SuricataContext)
+pub extern "C" fn rs_init()
 {
     unsafe {
-        SC = Some(context);
         ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
 }
 
 /// DetectEngineStateFree wrapper.
-pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
+pub fn sc_detect_engine_state_free(state: *mut crate::ffi::DetectEngineState)
 {
-    unsafe {
-        if let Some(c) = SC {
-            (c.DetectEngineStateFree)(state);
-        }
+    if let Some(f) = *crate::ffi::DetectEngineStateFree {
+        f(state);
     }
 }
 
@@ -170,10 +125,8 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
 pub fn sc_app_layer_decoder_events_set_event_raw(
     events: *mut *mut AppLayerDecoderEvents, event: u8)
 {
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsSetEventRaw)(events, event);
-        }
+    if let Some(f) = *crate::ffi::AppLayerDecoderEventsSetEventRaw {
+        f(events, event);
     }
 }
 
@@ -181,10 +134,8 @@ pub fn sc_app_layer_decoder_events_set_event_raw(
 pub fn sc_app_layer_decoder_events_free_events(
     events: *mut *mut AppLayerDecoderEvents)
 {
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsFreeEvents)(events);
-        }
+    if let Some(f) = *crate::ffi::AppLayerDecoderEventsFreeEvents {
+        f(events);
     }
 }
 

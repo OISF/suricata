@@ -25,29 +25,6 @@
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
 
-typedef struct SuricataContext_ {
-    SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
-            const char *, const SCError, const char *message);
-    void (*DetectEngineStateFree)(DetectEngineState *);
-    void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **,
-            uint8_t);
-    void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
-
-    int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
-        uint32_t track_id, const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
-    int (*FileCloseFileById)(FileContainer *, uint32_t track_id,
-            const uint8_t *data, uint32_t data_len, uint16_t flags);
-    int (*FileAppendDataById)(FileContainer *, uint32_t track_id,
-            const uint8_t *data, uint32_t data_len);
-    int (*FileAppendGAPById)(FileContainer *, uint32_t track_id,
-            const uint8_t *data, uint32_t data_len);
-    void (*FileContainerRecycle)(FileContainer *ffc);
-    void (*FilePrune)(FileContainer *ffc);
-    void (*FileSetTx)(FileContainer *, uint64_t);
-
-} SuricataContext;
-
 typedef struct SuricataFileContext_ {
 
     const StreamingBufferConfig *sbcfg;

@@ -82,3 +82,4 @@ pub mod x509;
 pub mod asn1;
 pub mod ssh;
 pub mod http2;
+pub mod ffi;

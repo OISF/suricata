@@ -40,25 +40,22 @@ impl FileContainer {
     }
     pub fn free(&mut self) {
         SCLogDebug!("freeing self");
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FileContainerRecycle)(&self);
-            },
+        if let Some(f) = *crate::ffi::FileContainerRecycle {
+            f(&self);
+        } else {
+            panic!("FileContainerRecycle function pointer not set");
         }
     }
 
     pub fn file_open(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, name: &[u8], flags: u16) -> i32 {
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
-
-                let res = (c.FileOpenFile)(&self, cfg.files_sbcfg, *track_id,
-                        name.as_ptr(), name.len() as u16,
-                        ptr::null(), 0u32, flags);
-                res
-            }
+        if let Some(f) = *crate::ffi::FileOpenFile {
+            SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
+            let res = f(&self, cfg.files_sbcfg, *track_id,
+                    name.as_ptr(), name.len() as u16,
+                    ptr::null(), 0u32, flags);
+            res
+        } else {
+            panic!("FileOpenFile function pointer not set");
         }
     }
 
@@ -67,57 +64,46 @@ impl FileContainer {
         if data.len() == 0 {
             return 0
         }
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                let res = match is_gap {
-                    false => {
-                        SCLogDebug!("appending file data");
-                        let r = (c.FileAppendData)(&self, *track_id,
-                                data.as_ptr(), data.len() as u32);
-                        r
-                    },
-                    true => {
-                        SCLogDebug!("appending GAP");
-                        let r = (c.FileAppendGAP)(&self, *track_id,
-                                data.as_ptr(), data.len() as u32);
-                        r
-                    },
-                };
-                res
+        if is_gap {
+            SCLogDebug!("appending GAP");
+            if let Some(f) = *crate::ffi::FileAppendGAP {
+                f(&self, *track_id, data.as_ptr(), data.len() as u32)
+            } else {
+                panic!("FileAppendGAP function pointer not set");
+            }
+        } else {
+            SCLogDebug!("appending file data");
+            if let Some(f) = *crate::ffi::FileAppendData {
+                f(&self, *track_id, data.as_ptr(), data.len() as u32)
+            } else {
+                panic!("FileAppendData function pointer net set");
             }
         }
     }
 
     pub fn file_close(&mut self, track_id: &u32, flags: u16) -> i32 {
         SCLogDebug!("FILECONTAINER: CLOSEing");
-
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                let res = (c.FileCloseFile)(&self, *track_id, ptr::null(), 0u32, flags);
-                res
-            }
+        if let Some(f) = *crate::ffi::FileCloseFile {
+            f(&self, *track_id, ptr::null(), 0u32, flags)
+        } else {
+            panic!("FileCloseFile function pointer not set");
         }
-
     }
 
     pub fn files_prune(&mut self) {
         SCLogDebug!("FILECONTAINER: pruning");
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FilePrune)(&self);
-            }
+        if let Some(f) = *crate::ffi::FilePrune {
+            f(&self);
+        } else {
+            panic!("FilePrune function pointer not set");
         }
     }
 
     pub fn file_set_txid_on_last_file(&mut self, tx_id: u64) {
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FileSetTx)(&self, tx_id);
-            }
+        if let Some(f) = *crate::ffi::FileSetTx {
+            f(&self, tx_id);
+        } else {
+            panic!("FileSetTx function pointer not set");
         }
     }
 }

@@ -96,11 +96,14 @@ exclude = [
     "NTPTransaction",
     "SNMPState",
     "SNMPTransaction",
-    "SuricataContext",
     "SuricataFileContext",
     "TFTPState",
     "TFTPTransaction",
     "free",
+
+    # Our definitions conflict with the Windows definitions in mingw.
+    "GetModuleHandleA",
+    "GetProcAddress",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
