@@ -91,15 +91,14 @@ static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
         h = HostLookupHostFromHash(&(p->src));
 
         p->flags |= PKT_HOST_SRC_LOOKED_UP;
+        p->host_src = h;
 
         if (h == NULL)
             return 0;
-
-        HostReference(&p->host_src, h);
     }
 
     if (h->iprep == NULL) {
-        HostRelease(h);
+        HostUnlock(h);
         return 0;
     }
 
@@ -112,7 +111,7 @@ static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
     else
         SCLogDebug("version mismatch %u != %u", r->version, version);
 
-    HostRelease(h);
+    HostUnlock(h);
     return val;
 }
 
@@ -130,16 +129,15 @@ static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
         h = HostLookupHostFromHash(&(p->dst));
 
         p->flags |= PKT_HOST_DST_LOOKED_UP;
+        p->host_dst = h;
 
         if (h == NULL) {
             return 0;
         }
-
-        HostReference(&p->host_dst, h);
     }
 
     if (h->iprep == NULL) {
-        HostRelease(h);
+        HostUnlock(h);
         return 0;
     }
 
@@ -152,7 +150,7 @@ static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
     else
         SCLogDebug("version mismatch %u != %u", r->version, version);
 
-    HostRelease(h);
+    HostUnlock(h);
     return val;
 }
 
