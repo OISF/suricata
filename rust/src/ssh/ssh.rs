@@ -19,7 +19,6 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::log::*;
 use std::ffi::{CStr, CString};
 use std::mem::transmute;
 use std::sync::atomic::{AtomicBool, Ordering};

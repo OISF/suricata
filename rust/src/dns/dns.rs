@@ -23,7 +23,6 @@ use std::mem::transmute;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-use crate::log::*;
 use crate::applayer::*;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;

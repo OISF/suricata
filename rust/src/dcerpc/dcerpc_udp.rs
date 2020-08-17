@@ -23,7 +23,6 @@ use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFC_FIRST_FRAG,
 };
 use crate::dcerpc::parser;
-use crate::log::*;
 use std::cmp;
 
 // Constant DCERPC UDP Header length

@@ -17,7 +17,6 @@
 
 // written by Victor Julien
 
-use crate::log::*;
 use crate::core::*;
 
 use crate::nfs::nfs::*;

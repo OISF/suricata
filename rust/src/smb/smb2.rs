@@ -18,7 +18,6 @@
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
