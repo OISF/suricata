@@ -25,7 +25,6 @@ use std::ffi::CStr;
 
 use nom;
 
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core::*;

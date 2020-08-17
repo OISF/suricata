@@ -17,7 +17,6 @@
 
 // written by Victor Julien
 
-use crate::log::*;
 use uuid;
 use crate::smb::smb::*;
 use crate::smb::smb2::*;

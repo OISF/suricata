@@ -17,7 +17,6 @@
 
 use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use crate::log::*;
 use std::mem::transmute;
 use crate::applayer::{self, *};
 use std::ffi::CString;

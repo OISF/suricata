@@ -24,7 +24,6 @@ use crate::core::{
 };
 use crate::filecontainer::*;
 use crate::filetracker::*;
-use crate::log::*;
 use nom;
 use std;
 use std::ffi::{CStr, CString};
