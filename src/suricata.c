@@ -1203,7 +1203,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"strict-rule-keywords", optional_argument, 0, 0},
 
         {"capture-plugin", required_argument, 0, 0},
-        {"cpature-plugin-args", required_argument, 0, 0},
+        {"capture-plugin-args", required_argument, 0, 0},
 
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
