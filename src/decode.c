@@ -92,6 +92,8 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_NSH:
+            return DecodeNSH(tv, dtv, p, pkt, len);
         default:
             SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
@@ -517,6 +519,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
     dtv->counter_max_mac_addrs_dst = StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", tv);
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
+    dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
 
     dtv->counter_flow_tcp = StatsRegisterCounter("flow.tcp", tv);

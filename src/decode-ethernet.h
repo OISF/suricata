@@ -48,6 +48,7 @@
 #define ETHERNET_TYPE_ERSPAN          0x88BE
 #define ETHERNET_TYPE_DCE             0x8903 /* Data center ethernet,
                                               * Cisco Fabric Path */
+#define ETHERNET_TYPE_NSH 0x894F
 
 typedef struct EthernetHdr_ {
     uint8_t eth_dst[6];
