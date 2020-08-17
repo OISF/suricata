@@ -35,7 +35,6 @@ use std::collections::HashMap;
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 

@@ -17,9 +17,6 @@
 
 use crate::smb::smb::*;
 
-#[cfg(feature = "debug")]
-use crate::log::*;
-
 impl SMBState {
     #[cfg(not(feature = "debug"))]
     pub fn _debug_tx_stats(&self) { }

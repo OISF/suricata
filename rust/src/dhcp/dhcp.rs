@@ -20,7 +20,6 @@ use crate::core;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
-use crate::log::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;

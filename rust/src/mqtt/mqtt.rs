@@ -22,7 +22,6 @@ use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::log::*;
 use num_traits::FromPrimitive;
 use nom;
 use std;
