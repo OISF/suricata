@@ -1325,7 +1325,6 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 
     //SCOutputPrint(sc_did->startup_message);
 
-    rs_log_set_level(sc_log_global_log_level);
     return;
 }
 

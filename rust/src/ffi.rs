@@ -144,4 +144,6 @@ lazy_static! {
         link_fn("FileContainerRecycle");
     pub static ref FilePrune: Option<SCFilePrune> = link_fn("FilePrune");
     pub static ref FileSetTx: Option<SCFileSetTx> = link_fn("FileContainerSetTx");
+    pub static ref LOG_LEVEL: Option<i32> =
+        unsafe { load_symbol("sc_log_global_log_level").map(|sym| *(sym as *mut i32)) };
 }

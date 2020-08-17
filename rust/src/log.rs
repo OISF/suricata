@@ -35,12 +35,11 @@ pub enum Level {
     Debug,
 }
 
-pub static mut LEVEL: i32 = Level::NotSet as i32;
+// Default to Notice if unable to get the log level from the main C process.
+pub static DEFAULT_LEVEL: i32 = Level::Notice as i32;
 
 pub fn get_log_level() -> i32 {
-    unsafe {
-        LEVEL
-    }
+    (*crate::ffi::LOG_LEVEL).unwrap_or(DEFAULT_LEVEL)
 }
 
 fn basename(filename: &str) -> &str {
@@ -135,17 +134,6 @@ macro_rules!SCLogDebug {
 macro_rules!SCLogDebug {
     ($last:expr) => { let _ = &$last; let _ = $crate::log::Level::Debug; };
     ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
-}
-
-#[no_mangle]
-pub extern "C" fn rs_log_set_level(level: i32) {
-    unsafe {
-        LEVEL = level;
-    }
-}
-
-pub fn log_set_level(level: Level) {
-    rs_log_set_level(level as i32);
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered
