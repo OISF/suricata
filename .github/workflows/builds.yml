@@ -19,6 +19,9 @@ env:
 
   DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
+  # Apt sometimes likes to ask for user input, this will prevent that.
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   prep:
@@ -436,6 +439,67 @@ jobs:
       - run: test -e doc/devguide/devguide.pdf
       - run: test -e doc/userguide/userguide.pdf
       - run: make distcheck
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py
+
+  ubuntu-20-04:
+    name: Ubuntu 20.04 (no nss, no nspr)
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    needs: prep
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags
+      - name: Install cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests --disable-nss --disable-nspr
+      - run: make -j2
+      - run: make dist
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
