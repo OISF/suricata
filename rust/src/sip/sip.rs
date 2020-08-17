@@ -22,7 +22,6 @@ extern crate nom;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
-use crate::log::*;
 use crate::sip::parser::*;
 use std;
 use std::ffi::{CStr, CString};

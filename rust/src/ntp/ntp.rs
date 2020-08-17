@@ -25,8 +25,6 @@ use crate::applayer::{self, *};
 use std;
 use std::ffi::{CStr,CString};
 
-use crate::log::*;
-
 use nom;
 
 #[repr(u32)]

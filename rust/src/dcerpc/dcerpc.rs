@@ -19,7 +19,6 @@ use std::mem::transmute;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::parser;
-use crate::log::*;
 use nom::error::ErrorKind;
 use nom::number::Endianness;
 use nom;

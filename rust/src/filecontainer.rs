@@ -18,7 +18,6 @@
 use std::ptr;
 use std::os::raw::{c_void};
 
-use crate::log::*;
 use crate::core::*;
 
 // Defined in util-file.h
