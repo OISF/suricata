@@ -187,6 +187,14 @@ const struct DecodeEvents_ DEvents[] = {
     /* Cisco HDLC events. */
     { "decoder.chdlc.pkt_too_small", CHDLC_PKT_TOO_SMALL, },
 
+    /* NSH events */
+    { "decoder.nsh.header_too_small", NSH_HEADER_TOO_SMALL, },
+    { "decoder.nsh.unsupported_version", NSH_UNSUPPORTED_VERSION, },
+    { "decoder.nsh.bad_header_length", NSH_BAD_HEADER_LENGTH, },
+    { "decoder.nsh.reserved_type", NSH_RESERVED_TYPE, },
+    { "decoder.nsh.unsupported_type", NSH_UNSUPPORTED_TYPE, },
+    { "decoder.nsh.unknown_payload", NSH_UNKNOWN_PAYLOAD, },
+
     /* STREAM EVENTS */
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
