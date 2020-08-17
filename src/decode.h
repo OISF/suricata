@@ -93,6 +93,7 @@ enum PktSrcEnum {
 #include "decode-vlan.h"
 #include "decode-vxlan.h"
 #include "decode-mpls.h"
+#include "decode-nsh.h"
 
 #include "detect-reference.h"
 
@@ -665,6 +666,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_ipv4inipv6;
     uint16_t counter_ipv6inipv6;
     uint16_t counter_erspan;
+    uint16_t counter_nsh;
 
     /** frag stats - defrag runs in the context of the decoder. */
     uint16_t counter_defrag_ipv4_fragments;
@@ -905,6 +907,7 @@ enum DecodeTunnelProto {
     DECODE_TUNNEL_IPV6,
     DECODE_TUNNEL_IPV6_TEREDO,  /**< separate protocol for stricter error handling */
     DECODE_TUNNEL_PPP,
+    DECODE_TUNNEL_NSH,
 };
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
@@ -957,6 +960,7 @@ int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, ui
 int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
 void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
@@ -1253,6 +1257,9 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             } else {
                 DecodeEthernet(tv, dtv, p, data, len);
             }
+            break;
+        case ETHERNET_TYPE_NSH:
+            DecodeNSH(tv, dtv, p, data, len);
             break;
         default:
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
