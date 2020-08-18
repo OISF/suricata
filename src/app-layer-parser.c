@@ -909,6 +909,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     uint64_t new_min = min;
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
+    const bool is_unidir =
+            AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -936,6 +938,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         }
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        bool inspected = false;
         if (txd && has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
                 uint64_t detect_flags_ts = GetTxDetectFlags(txd, STREAM_TOSERVER);
@@ -943,7 +946,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
                     skipped = true;
-                    goto next;
+                } else {
+                    inspected = true;
                 }
             }
             if (!IS_DISRUPTED(tc_disrupt_flags) && f->sgh_toclient != NULL) {
@@ -952,10 +956,26 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
                     skipped = true;
-                    goto next;
+                } else {
+                    inspected = true;
                 }
             }
         }
+
+        // If not a unidirectional transaction both sides are required to have
+        // been inspected.
+        if (!is_unidir && skipped) {
+            goto next;
+        }
+
+        // If this is a unidirectional transaction require only one side to be
+        // inspected, which the inspected flag tells us. This is also guarded
+        // with skip to limit this check to transactions that actually had the
+        // tx inspected flag checked.
+        if (is_unidir && skipped && !inspected) {
+            goto next;
+        }
+
         if (txd && logger_expectation != 0) {
             LoggerId tx_logged = GetTxLogged(txd);
             if (tx_logged != logger_expectation) {
