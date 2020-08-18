@@ -628,7 +628,7 @@ pub fn parse_message(input: &[u8], protocol_version: u8, max_msg_size: usize) ->
                             _ => MQTTOperation::UNASSIGNED,
                         },
                     };
-                    return Ok((&rem[skiplen+len..], msg));
+                    return Ok((&input[skiplen+len..], msg));
                 }
                 MQTTTypeCode::DISCONNECT => match parse_disconnect(rem, len, protocol_version) {
                     Ok((_rem, disco)) => {
