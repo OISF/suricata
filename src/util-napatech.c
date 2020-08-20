@@ -931,7 +931,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                                            "Napatech range and individual specifiers cannot be combined.");
                     }
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
-                    if (StringParseUint16(&stream_config[instance_cnt].stream_id,
+                    if (StringParseUint8(&stream_config[instance_cnt].stream_id,
                                           10, 0, (const char *)stream->val) < 0) {
                         FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
                                    "stream id: '%s'", stream->val);
