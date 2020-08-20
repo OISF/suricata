@@ -1012,11 +1012,6 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
 
-        /* reverse packet and flow */
-        SCLogDebug("reversing flow and packet");
-        PacketSwap(p);
-        FlowSwap(p->flow);
-
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
         SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
