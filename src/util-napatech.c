@@ -1385,7 +1385,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     NtConfigStream_t hconfig;
     char ntpl_cmd[512];
     int is_inline = 0;
+#ifdef NAPATECH_ENABLE_BYPASS
     int is_span_port[MAX_PORTS] = { 0 };
+#endif
 
     char span_ports[128];
     memset(span_ports, 0, sizeof(span_ports));
