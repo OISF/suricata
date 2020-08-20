@@ -744,6 +744,7 @@ static uint32_t CountWorkerThreads(void)
                 TAILQ_FOREACH(lnode, &node->head, next)
                 {
                     uint8_t start, end;
+                    char *end_str;
                     if (strncmp(lnode->val, "all", 4) == 0) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
@@ -752,7 +753,7 @@ static uint32_t CountWorkerThreads(void)
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
                         worker_count = UtilCpuGetNumProcessorsConfigured();
-                    } else if (strchr(lnode->val, '-')) {
+                    } else if ((end_str = strchr(lnode->val, '-'))) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
                                     FatalError(SC_ERR_FATAL,
@@ -760,21 +761,18 @@ static uint32_t CountWorkerThreads(void)
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
 
-                        char copystr[16];
-                        strlcpy(copystr, lnode->val, 16);
-                        if (StringParseUint8(&start, 10, 0, (const char *)copystr) < 0) {
+
+                        if (StringParseUint8(&start, 10, end_str - lnode->val, (const char *)lnode->val) < 0) {
                             FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
-                                       " worker range start: '%s'", copystr);
+                                       " worker range start: '%s'", lnode->val);
                         }
-                        char *end_str = strchr(copystr, '-');
-                        if ((end_str == NULL) || (end_str != NULL && StringParseUint8(&end,
-                                        10, 0, (const char *) (end_str + 1)) < 0)) {
+                        if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
                             FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
                                        " worker range end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
                         }
                         if (end < start) {
                             FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
-                                       " worker range start: '%s' is greater than end: '%s'", start, end);
+                                       " worker range start: '%d' is greater than end: '%d'", start, end);
                         }
                         worker_count = end - start + 1;
 
@@ -909,7 +907,8 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     return -1;
                 }
 
-                if (strchr(stream->val, '-')) {
+                char *end_str = strchr(stream->val, '-');
+                if (end_str) {
                     if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
                         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
                                 "Only one Napatech stream range specifier allowed.");
@@ -917,15 +916,12 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     }
                     stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                    char copystr[16];
-                    strlcpy(copystr, stream->val, 16);
-                    if (StringParseUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                    if (StringParseUint8(&start, 10, end_str - stream->val,
+                                (const char *)stream->val) < 0) {
                         FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
-                                   "stream id start: '%s'", copystr);
+                                   "stream id start: '%s'", stream->val);
                     }
-                    char *end_str = strchr(copystr, '-');
-                    if ((end_str == NULL) || (end_str != NULL && StringParseUint8(&end,
-                                    10, 0, (const char *) (end_str + 1)) < 0)) {
+                    if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
                         FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
                                    "stream id end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
                     }
@@ -1468,10 +1464,8 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             if (strchr(port->val, '-')) {
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                char copystr[16];
-                strlcpy(copystr, port->val, sizeof(copystr));
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, copystr);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10,  0, strchr(copystr, '-')+1);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1);
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
@@ -1551,10 +1545,8 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                char copystr[16];
-                strlcpy(copystr, port->val, sizeof (copystr));
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, copystr);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10,  0, strchr(copystr, '-') + 1);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-') + 1);
                 snprintf(ports_spec.str, sizeof (ports_spec.str), "(%d..%d)", ports_spec.first[iteration], ports_spec.second[iteration]);
             } else {
                 /* check that the sting in the config file is correctly specified */
