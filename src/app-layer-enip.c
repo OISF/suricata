@@ -343,7 +343,12 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
         tx = ENIPTransactionAlloc(enip);
         if (tx == NULL)
             SCReturnStruct(APP_LAYER_OK);
-
+        if (flags & STREAM_TOSERVER)
+        {
+            tx->tx_data.detect_flags_tc |= APP_LAYER_TX_INSPECTED_FLAG;
+        } else {
+            tx->tx_data.detect_flags_ts |= APP_LAYER_TX_INSPECTED_FLAG;
+        }
         SCLogDebug("ENIPParse input len %d", input_len);
         DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
