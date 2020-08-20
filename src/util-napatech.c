@@ -1556,7 +1556,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, port->val);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
 
                 /* Determine the ports to use on the NTPL assign statement*/
                 if (iteration == 0) {
