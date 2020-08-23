@@ -2,10 +2,10 @@ Rule Management with Suricata-Update
 ====================================
 
 While it is possible to download and install rules manually, it is
-recommended to use a management tool for this. Suricata-Update is the
+recommended to use a management tool for this. ``suricata-update`` is the
 official way to update and manage rules for Suricata.
 
-Suricata-update is bundled with Suricata and is normally installed
+``suricata-update`` is bundled with Suricata and is normally installed
 with it. For instructions on installing manually, see http://suricata-update.readthedocs.io/en/latest/quickstart.html#install-suricata-update
 
 .. note:: ``suricata-update`` is bundled with Suricata version 4.1 and
@@ -82,7 +82,7 @@ To see which rulesets are currently active, use "list-enabled-sources".
 Controlling which rules are used
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default suricata-update will merge all rules into a single file
+By default ``suricata-update`` will merge all rules into a single file
 "/var/lib/suricata/rules/suricata.rules".
 
 To enable rules that are disabled by default, use `/etc/suricata/enable.conf`

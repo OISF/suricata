@@ -52,7 +52,7 @@ Valid actions are:
 * reject - send RST/ICMP unreach error to the sender of the matching packet.
 * rejectsrc - same as just `reject`
 * rejectdst - send RST/ICMP error packet to receiver of the matching packet.
-* rejectboth - send RST/ICMP error packets to both sides of the coversation.
+* rejectboth - send RST/ICMP error packets to both sides of the conversation.
 
 .. note:: In IPS mode, using any of the `reject` actions also enables `drop`.
 
