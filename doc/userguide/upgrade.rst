@@ -23,7 +23,7 @@ Configuration Updates
 
 New versions of Suricata will occasionally include updated config files:
 ``classification.config`` and ``reference.config``. Since the Suricata
-installation will not overwrite these if they exist, they should be manually
+installation will not overwrite these if they exist, they must be manually
 updated. If there are no local modifications they can simply be overwritten
 by the ones Suricata supplies.
 
@@ -33,11 +33,22 @@ remove features.
 Upgrading 5.0 to 6.0
 --------------------
 - SIP now enabled by default
-- EDP now enabled by default
+- RDP now enabled by default
+- ERSPAN Type I enabled by default.
+
+Major changes
+~~~~~~~~~~~~~
+- New protocols enabled by default: mqtt, rfb
+- SSH Client fingerprinting for SSH clients
+- Conditional logging
+- Initial HTTP/2 support
+- DCERPC logging
+- Improved EVE logging performance
 
 Removals
 ~~~~~~~~
-- File-store v1 has been removed. If using file extraction, the file-store configuration will need to be updated to version 2. See :ref:`filestore-update-v1-to-v2`.
+- File-store v1 has been removed. If using file extraction, the file-store configuration
+  will need to be updated to version 2. See :ref:`filestore-update-v1-to-v2`.
 
 Upgrading 4.1 to 5.0
 --------------------
@@ -60,5 +71,6 @@ Removals
 ~~~~~~~~
 - ``dns-log``, the text dns log. Use EVE.dns instead.
 - ``file-log``, the non-EVE JSON file log. Use EVE.files instead.
+- ``drop-log``, the non-EVE JSON drop log.
 
 See https://suricata-ids.org/about/deprecation-policy/

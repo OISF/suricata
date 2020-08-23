@@ -6,22 +6,18 @@ Storing MD5s checksums
 Configuration
 ~~~~~~~~~~~~~
 
-In the suricata yaml:
+In the Suricata config file:
 
 ::
-
-
     - file-store:
          enabled: yes       # set to yes to enable
-         log-dir: files     # directory to store the files
-         force-magic: yes   # force logging magic on all stored files
+         dir: filestore     # directory to store the files
          force-hash: [md5]  # force logging of md5 checksums
-         #waldo: file.waldo # waldo file to store the file_id across runs
+
 
 For JSON output:
 
 ::
-
     outputs:
       - eve-log:
         enabled: yes
@@ -37,10 +33,7 @@ For JSON output:
 
 Other settings affecting :doc:`file-extraction`
 
-
 ::
-
-
   stream:
     memcap: 64mb
     checksum-validation: yes      # reject wrong csums
@@ -55,8 +48,6 @@ Make sure we have *depth: 0* so all files can be tracked fully.
 
 
 ::
-
-
   libhtp:
     default-config:
       personality: IDS
@@ -75,25 +66,19 @@ For the purpose of testing we use this rule only in a file.rules (a test/example
 
 ::
 
-
   alert http any any -> any any (msg:"FILE store all"; filestore; sid:1; rev:1;)
 
 This rule above will save all the file data for files that are opened/downloaded through HTTP
 
-Start Suricata (-S option loads ONLY the specified rule file, with disregard if any other rules that are enabled in suricata.yaml):
-
+Start Suricata (``-S`` option *ONLY loads* the specified rule file and disregards any other rules that are enabled in suricata.yaml):
 
 ::
-
-
   suricata -c /etc/suricata/suricata.yaml -S file.rules -i eth0
 
 
 Meta data:
 
-
 ::
-
 
   TIME:              05/01/2012-11:09:52.425751
   SRC IP:            2.23.144.170
@@ -115,7 +100,6 @@ and in files-json.log (or eve.json) :
 
 ::
 
-
   { "id": 1, "timestamp": "05\/01\/2012-11:10:27.693583", "ipver": 4, "srcip": "2.23.144.170", "dstip": "192.168.1.91", "protocol": 6, "sp": 80, "dp": 51598, "http_uri": "\/en\/US\/prod\/collateral\/routers\/ps5855\/prod_brochure0900aecd8019dc1f.pdf", "http_host": "www.cisco.com", "http_referer": "http:\/\/www.google.com\/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0CDAQFjAA&url=http%3A%2F%2Fwww.cisco.com%2Fen%2FUS%2Fprod%2Fcollateral%2Frouters%2Fps5855%2Fprod_brochure0900aecd8019dc1f.pdf&ei=OqyfT9eoJubi4QTyiamhAw&usg=AFQjCNGdjDBpBDfQv2r3VogSH41V6T5x9Q", "filename": "\/en\/US\/prod\/collateral\/routers\/ps5855\/prod_brochure0900aecd8019dc1f.pdf", "magic": "PDF document, version 1.6", "state": "CLOSED", "md5": "59eba188e52467adc11bf2442ee5bf57", "stored": true, "size": 9485123 }
   { "id": 12, "timestamp": "05\/01\/2012-11:12:57.421420", "ipver": 4, "srcip": "2.23.144.170", "dstip": "192.168.1.91", "protocol": 6, "sp": 80, "dp": 51598, "http_uri": "\/en\/US\/prod\/collateral\/routers\/ps5855\/prod_brochure0900aecd8019dc1f.pdf", "http_host": "www.cisco.com", "http_referer": "http:\/\/www.google.com\/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0CDAQFjAA&url=http%3A%2F%2Fwww.cisco.com%2Fen%2FUS%2Fprod%2Fcollateral%2Frouters%2Fps5855%2Fprod_brochure0900aecd8019dc1f.pdf&ei=OqyfT9eoJubi4QTyiamhAw&usg=AFQjCNGdjDBpBDfQv2r3VogSH41V6T5x9Q", "filename": "\/en\/US\/prod\/collateral\/routers\/ps5855\/prod_brochure0900aecd8019dc1f.pdf", "magic": "PDF document, version 1.6", "state": "CLOSED", "md5": "59eba188e52467adc11bf2442ee5bf57", "stored": true, "size": 9485123 }
 
@@ -125,21 +109,11 @@ Log all MD5s without any rules
 
 If you would like to log MD5s for everything and anything that passes through the traffic that you are inspecting with Suricata, but not log the files themselves, all you have to do is disable file-store and enable only the JSON output with forced MD5s - in suricata.yaml like so:
 
-
 ::
 
-
   - file-store:
+      version: 2
       enabled: no       # set to yes to enable
       log-dir: files    # directory to store the files
-      force-magic: yes   # force logging magic on all stored files
-      force-hash: [md5]  # force logging of md5 checksums
-      #waldo: file.waldo # waldo file to store the file_id across runs
-
-  - file-log:
-      enabled: yes
-      filename: files-json.log
-      append: no
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-      force-magic: yes   # force logging magic on all logged files
+      force-filestore: no
       force-hash: [md5]  # force logging of md5 checksums

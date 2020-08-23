@@ -17,12 +17,13 @@ Given a file-store configuration like::
       write-meta: yes     # write a .meta file if set to yes
       include-pid: yes    # include the pid in filenames if set to yes.
 
-the following changes will need to be made to convert to a V2 style configuration:
+The following changes will need to be made to convert to a v2 style configuration:
 
-* A ``version`` field must be set to 2.
+* The ``version`` field must be set to 2.
 * The ``log-dir`` field should be renamed to ``dir``. It is recommended to use a new directory instead of an existing v1 directory.
 * Remove the ``waldo`` option. It is no longer used.
-* Remove the ``write-meta`` option. Optionally set ``write-fileinfo`` to enable writing of a metadata file along side the extracted file. Not that this option is disabled by default as a ``fileinfo`` event can be written to the Eve log file.
+* Remove the ``write-meta`` option.
+* Optionally set ``write-fileinfo`` to enable writing of a metadata file along side the extracted file. Not that this option is disabled by default as a ``fileinfo`` event can be written to the Eve log file.
 * Remove the ``include-pid`` option. There is no equivalent to this option in file-store v2.
 
 Example converted configuration::
