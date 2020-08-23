@@ -7,7 +7,7 @@ Datasets
 Using the ``dataset`` and ``datarep`` keyword it is possible to match on
 large amounts of data against any sticky buffer.
 
-For example, to match against a dns black list called ``dns-bl``::
+For example, to match against a DNs black list called ``dns-bl``::
 
     dns.query; dataset:isset,dns-bl;
 

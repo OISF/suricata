@@ -87,7 +87,7 @@ Time in seconds during which the ``rate_filter`` will remain active.
 Example
 ^^^^^^^
 
-Lets say we want to limit incoming connections to our SSH server. The rule
+Let's say we want to limit incoming connections to our SSH server. The rule
 ``888`` below simply alerts on SYN packets to the SSH port of our SSH server.
 If an IP-address triggers this more than 10 or more with a minute, the
 drop ``rate_filter`` is set with a timeout of 5 minutes.

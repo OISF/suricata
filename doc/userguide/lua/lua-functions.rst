@@ -31,7 +31,7 @@ Get packets timestamp as 2 numbers: seconds & microseconds elapsed since
 SCPacketTimeString
 ~~~~~~~~~~~~~~~~~~
 
-Add SCPacketTimeString to get the packets time string in the format:
+Use ``SCPacketTimeString`` to get the packet's time string in the format:
 11/24/2009-18:57:25.179869
 
 ::
@@ -92,7 +92,7 @@ SCFlowTuple
 SCFlowAppLayerProto
 ~~~~~~~~~~~~~~~~~~~
 
-Get alprotos as string from the flow. If a alproto is not (yet) known, it
+Get alproto as a string from the flow. If a alproto is not (yet) known, it
 returns "unknown".
 
 Example:
