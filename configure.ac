@@ -2517,6 +2517,12 @@ fi
 	[])
     AC_MSG_RESULT(yes)
 
+    RUST_FEATURES=""
+    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
+        [],
+	[RUST_FEATURES="$RUST_FEATURES function-macro"],
+	[RUST_FEATURES="$RUST_FEATURES function-macro"])
+
     rust_vendor_comment="# "
     have_rust_vendor="no"
 
@@ -2765,6 +2771,7 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
+AC_SUBST(RUST_FEATURES)
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
