@@ -46,6 +46,17 @@ pub fn get_log_level() -> i32 {
     }
 }
 
+pub fn log_set_level(level: i32) {
+    unsafe {
+        LEVEL = level;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_log_set_level(level: i32) {
+    log_set_level(level);
+}
+
 fn basename(filename: &str) -> &str {
     let path = Path::new(filename);
     for os_str in path.file_name() {
@@ -157,17 +168,6 @@ macro_rules!SCLogDebug {
 macro_rules!SCLogDebug {
     ($last:expr) => { let _ = &$last; let _ = $crate::log::Level::Debug; };
     ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
-}
-
-#[no_mangle]
-pub extern "C" fn rs_log_set_level(level: i32) {
-    log_set_level(level);
-}
-
-pub fn log_set_level(level: i32) {
-    unsafe {
-        LEVEL = level;
-    }
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered
