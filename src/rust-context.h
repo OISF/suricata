@@ -54,9 +54,4 @@ typedef struct SuricataFileContext_ {
 
 } SuricataFileContext;
 
-struct _Store;
-typedef struct _Store Store;
-
-/** Opaque Rust types. */
-
 #endif /* !__RUST_CONTEXT_H__ */
