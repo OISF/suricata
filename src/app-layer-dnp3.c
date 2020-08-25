@@ -271,18 +271,22 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
         const uint8_t *input, uint32_t len,
         uint8_t *rdir)
 {
-    DNP3LinkHeader *hdr = (DNP3LinkHeader *)input;
+    const DNP3LinkHeader* const hdr = (const DNP3LinkHeader*)input;
+    const bool toserver = (direction & STREAM_TOSERVER) != 0;
+
+    /* May be a banner. */
+    if (DNP3ContainsBanner(input, len)) {
+        SCLogDebug("Packet contains a DNP3 banner.");
+        if (toserver) {
+            *rdir = STREAM_TOCLIENT;
+        }
+        return ALPROTO_DNP3;
+    }
 
     /* Check that we have the minimum amount of bytes. */
     if (len < sizeof(DNP3LinkHeader)) {
         SCLogDebug("Length too small to be a DNP3 header.");
         return ALPROTO_UNKNOWN;
-    }
-
-    /* May be a banner. */
-    if (DNP3ContainsBanner(input, len)) {
-        SCLogDebug("Packet contains a DNP3 banner.");
-        goto end;
     }
 
     /* Verify start value (from AN2013-004b). */
@@ -297,11 +301,9 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
         return ALPROTO_FAILED;
     }
 
-end:
     // Test compatibility between direction and dnp3.ctl.direction
-    if ((DNP3_LINK_DIR(hdr->control) != 0) ^
-        ((direction & STREAM_TOCLIENT) != 0)) {
-        *rdir = 1;
+    if ((DNP3_LINK_DIR(hdr->control) != 0) != toserver) {
+        *rdir = toserver ? STREAM_TOCLIENT : STREAM_TOSERVER;
     }
     SCLogDebug("Detected DNP3.");
     return ALPROTO_DNP3;
@@ -2103,6 +2105,7 @@ static int DNP3ProbingParserTest(void)
     /* Send a banner. */
     char mybanner[] = "Welcome to DNP3 SCADA.";
     FAIL_IF(DNP3ProbingParser(NULL, STREAM_TOSERVER, (uint8_t *)mybanner, sizeof(mybanner) - 1, &rdir) != ALPROTO_DNP3);
+    FAIL_IF(rdir != STREAM_TOCLIENT);
 
     PASS;
 }
