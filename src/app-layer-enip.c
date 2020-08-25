@@ -343,6 +343,7 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
         tx = ENIPTransactionAlloc(enip);
         if (tx == NULL)
             SCReturnStruct(APP_LAYER_OK);
+        tx->direction = (flags & STREAM_TOSERVER) | (flags & STREAM_TOCLIENT);
 
         SCLogDebug("ENIPParse input len %d", input_len);
         DecodeENIPPDU(input, input_len, tx);

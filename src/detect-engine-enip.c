@@ -267,6 +267,10 @@ int DetectEngineInspectENIP(ThreadVars *tv,
     ENIPTransaction *tx = (ENIPTransaction *) txv;
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) smd->ctx;
 
+    if ((flags & (STREAM_TOSERVER|STREAM_TOCLIENT)) != tx->direction) {
+        SCReturnInt(0);
+    }
+
     if (enipcmdd == NULL)
     {
         SCLogDebug("no enipcommand state, no match");

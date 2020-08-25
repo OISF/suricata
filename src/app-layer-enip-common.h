@@ -198,6 +198,7 @@ typedef struct ENIPTransaction_
     uint16_t tx_num;                            /**< internal: id */
     uint16_t tx_id;                             /**< transaction id */
     uint16_t service_count;
+    uint8_t direction;
 
     ENIPEncapHdr header;                        /**< encapsulation header */
     ENIPEncapDataHdr encap_data_header;         /**< encapsulation data header */
