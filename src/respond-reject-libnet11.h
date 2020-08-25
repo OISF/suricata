@@ -25,11 +25,11 @@
 #ifndef __RESPOND_REJECT_LIBNET11_H__
 #define __RESPOND_REJECT_LIBNET11_H__
 
-int RejectSendLibnet11IPv4TCP(ThreadVars *, Packet *, void *,int);
-int RejectSendLibnet11IPv4ICMP(ThreadVars *, Packet *, void *,int);
+int RejectSendLibnet11IPv4TCP(ThreadVars *, Packet *, void *, enum RejectDirection);
+int RejectSendLibnet11IPv4ICMP(ThreadVars *, Packet *, void *, enum RejectDirection);
 
-int RejectSendLibnet11IPv6TCP(ThreadVars *, Packet *, void *,int);
-int RejectSendLibnet11IPv6ICMP(ThreadVars *, Packet *, void *,int);
+int RejectSendLibnet11IPv6TCP(ThreadVars *, Packet *, void *, enum RejectDirection);
+int RejectSendLibnet11IPv6ICMP(ThreadVars *, Packet *, void *, enum RejectDirection);
 
 void FreeCachedCtx(void);
 

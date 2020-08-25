@@ -26,8 +26,10 @@
 
 #include "tm-threads.h"
 
-#define REJECT_DIR_SRC 0
-#define REJECT_DIR_DST 1
+enum RejectDirection {
+    REJECT_DIR_SRC = 0,
+    REJECT_DIR_DST = 1,
+};
 
 void TmModuleRespondRejectRegister (void);
 
