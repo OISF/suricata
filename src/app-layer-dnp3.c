@@ -299,9 +299,11 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
 
 end:
     // Test compatibility between direction and dnp3.ctl.direction
-    if ((DNP3_LINK_DIR(hdr->control) != 0) ^
-        ((direction & STREAM_TOCLIENT) != 0)) {
-        *rdir = 1;
+    {
+        const bool toserver = (direction & STREAM_TOSERVER) != 0;
+        if ((DNP3_LINK_DIR(hdr->control) != 0) != toserver) {
+            *rdir = toserver ? STREAM_TOCLIENT : STREAM_TOSERVER;
+        }
     }
     SCLogDebug("Detected DNP3.");
     return ALPROTO_DNP3;
