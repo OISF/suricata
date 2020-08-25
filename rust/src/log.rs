@@ -22,6 +22,7 @@ use std::path::Path;
 use crate::core::*;
 
 #[derive(Debug)]
+#[repr(C)]
 pub enum Level {
     NotSet = -1,
     None = 0,
@@ -141,13 +142,13 @@ macro_rules!SCLogDebug {
 
 #[no_mangle]
 pub extern "C" fn rs_log_set_level(level: i32) {
+    log_set_level(level);
+}
+
+pub fn log_set_level(level: i32) {
     unsafe {
         LEVEL = level;
     }
-}
-
-pub fn log_set_level(level: Level) {
-    rs_log_set_level(level as i32);
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered
