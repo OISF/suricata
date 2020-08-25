@@ -2663,8 +2663,6 @@ static void SuricataMainLoop(SCInstance *suri)
     }
 }
 
-SuricataContext context;
-
 /**
  * \brief Global initialization common to all runmodes.
  *
@@ -2672,21 +2670,21 @@ SuricataContext context;
  */
 
 int InitGlobal(void) {
-    context.SCLogMessage = SCLogMessage;
-    context.DetectEngineStateFree = DetectEngineStateFree;
-    context.AppLayerDecoderEventsSetEventRaw =
+    suricata_context.SCLogMessage = SCLogMessage;
+    suricata_context.DetectEngineStateFree = DetectEngineStateFree;
+    suricata_context.AppLayerDecoderEventsSetEventRaw =
         AppLayerDecoderEventsSetEventRaw;
-    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+    suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
 
-    context.FileOpenFileWithId = FileOpenFileWithId;
-    context.FileCloseFileById = FileCloseFileById;
-    context.FileAppendDataById = FileAppendDataById;
-    context.FileAppendGAPById = FileAppendGAPById;
-    context.FileContainerRecycle = FileContainerRecycle;
-    context.FilePrune = FilePrune;
-    context.FileSetTx = FileContainerSetTx;
+    suricata_context.FileOpenFileWithId = FileOpenFileWithId;
+    suricata_context.FileCloseFileById = FileCloseFileById;
+    suricata_context.FileAppendDataById = FileAppendDataById;
+    suricata_context.FileAppendGAPById = FileAppendGAPById;
+    suricata_context.FileContainerRecycle = FileContainerRecycle;
+    suricata_context.FilePrune = FilePrune;
+    suricata_context.FileSetTx = FileContainerSetTx;
 
-    rs_init(&context);
+    rs_init(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);
 
