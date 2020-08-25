@@ -1543,6 +1543,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* WINDIVERT */
             } else if(strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
 #ifdef HAVE_LIBNET11
+                BUG_ON(optarg == NULL); /* for static analysis */
                 extern char *g_reject_dev;
                 extern uint16_t g_reject_dev_mtu;
                 g_reject_dev = optarg;
