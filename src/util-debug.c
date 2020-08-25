@@ -971,6 +971,11 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     return;
 }
 
+SCLogLevel SCLogGetLogLevel(void)
+{
+    return sc_log_global_log_level;
+}
+
 static inline const char *SCLogGetDefaultLogFormat(void)
 {
     const char *prog_ver = GetProgramVersion();
