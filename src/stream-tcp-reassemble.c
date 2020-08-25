@@ -475,8 +475,10 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
-    AppLayerDestroyCtxThread(ra_ctx->app_tctx);
-    SCFree(ra_ctx);
+    if (ra_ctx) {
+        AppLayerDestroyCtxThread(ra_ctx->app_tctx);
+        SCFree(ra_ctx);
+    }
     SCReturn;
 }
 
