@@ -90,6 +90,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
             continue;
         }
         if (S_ISDIR(statbuf.st_mode)) {
+            // coverity[toctou : FALSE]
             DIR *dir = opendir(plugin->val);
             if (dir == NULL) {
                 SCLogError(SC_ERR_DIR_OPEN, "Failed to open plugin directory %s: %s",
