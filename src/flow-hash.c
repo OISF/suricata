@@ -604,9 +604,13 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls,
                              FlowBucket *fb, Flow *old_f,
                              const uint32_t hash, const Packet *p)
 {
+#ifdef UNITTESTS
     if (tv != NULL && fls->dtv != NULL) {
+#endif
         StatsIncr(tv, fls->dtv->counter_flow_tcp_reuse);
+#ifdef UNITTESTS
     }
+#endif
     /* tag flow as reused so future lookups won't find it */
     old_f->flags |= FLOW_TCP_REUSED;
     /* time out immediately */
@@ -1089,8 +1093,15 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const struct
             f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
 
         /* invoke flow log api */
-        if (dtv && dtv->output_flow_thread_data)
-            (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
+#ifdef UNITTESTS
+        if (dtv) {
+#endif
+            if (dtv->output_flow_thread_data) {
+                (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
+            }
+#ifdef UNITTESTS
+        }
+#endif
 
         FlowClearMemory(f, f->protomap);
 
