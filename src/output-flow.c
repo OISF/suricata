@@ -173,6 +173,9 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    if (op_thread_data == NULL)
+        return TM_ECODE_OK;
+
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFlowLogger *logger = list;
 
