@@ -23,6 +23,8 @@
 
 #include <dlfcn.h>
 
+typedef SCPlugin *(*SCPluginRegisterFunc)(void);
+
 typedef struct PluginListNode_ {
     SCPlugin *plugin;
     void *lib;
@@ -49,29 +51,37 @@ static void InitPlugin(char *path)
         SCLogNotice("Failed to open %s as a plugin: %s", path, dlerror());
     } else {
         SCLogNotice("Loading plugin %s", path);
-        SCPlugin *plugin = dlsym(lib, "PluginSpec");
-        if (plugin == NULL) {
-            SCLogError(SC_ERR_PLUGIN, "Plugin does not export a plugin specification: %s", path);
-            dlclose(lib);
-        } else {
-            BUG_ON(plugin->name == NULL);
-            BUG_ON(plugin->author == NULL);
-            BUG_ON(plugin->license == NULL);
-            BUG_ON(plugin->Init == NULL);
 
-            PluginListNode *node = SCCalloc(1, sizeof(*node));
-            if (node == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocated memory for plugin");
-                dlclose(lib);
-                return;
-            }
-            node->plugin = plugin;
-            node->lib = lib;
-            TAILQ_INSERT_TAIL(&plugins, node, entries);
-            SCLogNotice("Initializing plugin %s; author=%s; license=%s",
-                plugin->name, plugin->author, plugin->license);
-            (*plugin->Init)();
+        SCPluginRegisterFunc plugin_register = dlsym(lib, "SCPluginRegister");
+        if (plugin_register == NULL) {
+            SCLogError(SC_ERR_PLUGIN, "Plugin does not export SCPluginRegister function: %s", path);
+            dlclose(lib);
+            return;
         }
+        SCPlugin *plugin = (*plugin_register)();
+        if (plugin == NULL) {
+            SCLogError(SC_ERR_PLUGIN, "Plugin registration failed: %s", path);
+            dlclose(lib);
+            return;
+        }
+
+        BUG_ON(plugin->name == NULL);
+        BUG_ON(plugin->author == NULL);
+        BUG_ON(plugin->license == NULL);
+        BUG_ON(plugin->Init == NULL);
+
+        PluginListNode *node = SCCalloc(1, sizeof(*node));
+        if (node == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocated memory for plugin");
+            dlclose(lib);
+            return;
+        }
+        node->plugin = plugin;
+        node->lib = lib;
+        TAILQ_INSERT_TAIL(&plugins, node, entries);
+        SCLogNotice("Initializing plugin %s; author=%s; license=%s",
+            plugin->name, plugin->author, plugin->license);
+        (*plugin->Init)();
     }
 }
 
