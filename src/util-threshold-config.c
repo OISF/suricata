@@ -643,7 +643,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     uint8_t *ret_parsed_type, uint8_t *ret_parsed_track,
     uint32_t *ret_parsed_count, uint32_t *ret_parsed_seconds, uint32_t *ret_parsed_timeout,
     uint8_t *ret_parsed_new_action,
-    const char **ret_th_ip)
+    char **ret_th_ip)
 {
     char th_rule_type[32];
     char th_gid[16];
@@ -968,7 +968,7 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
     uint32_t parsed_count = 0;
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
-    const char *th_ip = NULL;
+    char *th_ip = NULL;
     uint32_t id = 0, gid = 0;
 
     int r = 0;
@@ -991,10 +991,11 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
         goto error;
     }
 
+    SCFree(th_ip);
     return 0;
 error:
     if (th_ip != NULL)
-        SCFree((char *)th_ip);
+        SCFree(th_ip);
     return -1;
 }
 
