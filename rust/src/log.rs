@@ -68,9 +68,28 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
                    message);
 }
 
-/// Return the function name, but for now just return <rust> as Rust
-/// has no macro to return the function name, but may in the future,
-/// see: https://github.com/rust-lang/rfcs/pull/1719
+// This macro returns the function name.
+//
+// This macro has been borrowed from https://github.com/popzxc/stdext-rs, which
+// is released under the MIT license as there is currently no macro in Rust
+// to provide the function name.
+#[cfg(feature = "function-macro")]
+#[macro_export(local_inner_macros)]
+macro_rules!function {
+    () => {{
+         // Okay, this is ugly, I get it. However, this is the best we can get on a stable rust.
+         fn __f() {}
+         fn type_name_of<T>(_: T) -> &'static str {
+             std::any::type_name::<T>()
+         }
+         let name = type_name_of(__f);
+         &name[..name.len() - 5]
+    }}
+}
+
+// Rust versions less than 1.38 can not use the above macro, so keep the old
+// macro around for a while.
+#[cfg(not(feature = "function-macro"))]
 #[macro_export(local_inner_macros)]
 macro_rules!function {
     () => {{ "<rust>" }}
