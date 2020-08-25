@@ -224,6 +224,12 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
         jb_set_uint(js, "bytes_toclient", f->tosrcbytecnt);
     }
 
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+    if ((ssn != NULL) && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
+	JB_SET_TRUE(js, "midstream");
+    }
+    
+
     char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
     jb_set_string(js, "start", timebuf1);
