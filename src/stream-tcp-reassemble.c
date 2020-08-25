@@ -1092,11 +1092,14 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     const uint8_t *mydata;
     uint32_t mydata_len;
     bool gap_ahead = false;
+    const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
 
     while (1) {
         bool check_for_gap_ahead = ((*stream)->data_required > 0);
         gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
                 app_progress, check_for_gap_ahead);
+        /* make sure to only deal with ACK'd data */
+        mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
@@ -1128,7 +1131,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 break;
             continue;
 
-        } else if (mydata == NULL || mydata_len == 0) {
+        } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
                 SCReturnInt(0);
@@ -1141,12 +1144,6 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
         SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
-
-        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
-        /* get window of data that is acked */
-        mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
-        if (mydata_len == 0 && (flags & STREAM_EOF) == 0)
-            SCReturnInt(0);
 
         if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
             if (mydata_len < (*stream)->data_required) {
