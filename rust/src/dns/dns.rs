@@ -564,6 +564,9 @@ impl DNSState {
                 } else {
                     return AppLayerResult::err();
                 }
+            } else if size == 0 {
+                cur_i = &cur_i[2..];
+                consumed += 2;
             } else {
                 SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
                             consumed as u32, (size + 2) as u32);
@@ -608,6 +611,9 @@ impl DNSState {
                 } else {
                     return AppLayerResult::err();
                 }
+            } else if size == 0 {
+                cur_i = &cur_i[2..];
+                consumed += 2;
             } else  {
                 SCLogDebug!("[response]Not enough DNS traffic to parse. Returning {}/{}",
                     consumed as u32, (cur_i.len() - consumed) as u32);
