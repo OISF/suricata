@@ -648,6 +648,10 @@ to specify a lowercase pattern.
 Notes
 ~~~~~
 
+-  ``http.host`` does not contain the port associated with
+   the host (i.e. abc.com:1234). To match on the host and port
+   or negate a host and port use ``http.host.raw``.
+
 -  The ``http.host`` and ``http.host.raw`` buffers are populated
    from either the URI (if the full URI is present in the request like
    in a proxy request) or the HTTP Host header. If both are present, the
