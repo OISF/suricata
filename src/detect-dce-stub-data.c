@@ -176,6 +176,8 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 {
     if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
         return -1;
+
+    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
