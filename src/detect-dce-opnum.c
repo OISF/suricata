@@ -154,6 +154,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     sm->ctx = (void *)dod;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
+    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
