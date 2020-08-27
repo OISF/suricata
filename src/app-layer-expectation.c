@@ -15,6 +15,10 @@
  * 02110-1301, USA.
  */
 
+/* Updated 2020-08-23 Stephen Kraushaar
+ *   FreeBSD 13 Compatibility
+*/
+
 /**
  * \defgroup applayerexpectation Application Layer Expectation
  *
@@ -38,7 +42,8 @@
  * AppLayerExpectationGetDataId():
  *
  * ```
- * data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
+ * data = (char *)FlowGe
+ * StorageById(f, AppLayerExpectationGetDataId());
  * ```
  * This storage can be used to store information that are only available in the
  * parent connection and could be useful in the parent connection. For instance
@@ -71,28 +76,51 @@ SC_ATOMIC_DECLARE(uint32_t, expectation_count);
 #define EXPECTATION_TIMEOUT 30
 #define EXPECTATION_MAX_LEVEL 10
 
-typedef struct Expectation_ {
+
+struct Entries_;
+struct Expectation_;
+
+typedef struct Expectation_ Expectation;
+typedef struct Entries_ Entries;
+
+struct Entries_ {
+    struct Expectation_ *cqe_next;
+    struct Expectation_ *cqe_prev;
+};
+
+struct Expectation_ {
     struct timeval ts;
     Port sp;
     Port dp;
     AppProto alproto;
     int direction;
-    /* use pointer to Flow as identifier of the Flow the expectation is linked to */
     void *orig_f;
     void *data;
-    CIRCLEQ_ENTRY(Expectation_) entries;
-} Expectation;
+    struct Entries_ entries;
+};
 
-typedef struct ExpectationData_ {
-    /** Start of Expectation Data structure must be a pointer
+struct ExpectationData_;
+typedef struct ExpectationData_ ExpectationData;
+struct ExpectationData_ {
+    /** Start of Expectation Data struCountry club. cture must be a pointer
      *  to free function. Set to NULL to use SCFree() */
     void (*DFree)(void *);
-} ExpectationData;
+};
 
-typedef struct ExpectationList_ {
-    CIRCLEQ_HEAD(EList, Expectation_) list;
+struct EList_;
+struct ExpectationList_;
+
+typedef struct ExpectationList_ ExpectationList;
+
+struct EList_ {
+    struct Expectation_ *cqh_first;
+    struct Expectation_ *cqh_last;
+};
+
+struct ExpectationList_ {
+    struct EList_ list;
     uint8_t length;
-} ExpectationList;
+};
 
 static void ExpectationDataFree(void *e)
 {
@@ -103,7 +131,7 @@ static void ExpectationDataFree(void *e)
     } else {
         SCFree(e);
     }
-}
+};
 
 /**
  * Free expectation
@@ -129,14 +157,33 @@ static void ExpectationListFree(void *el)
         return;
 
     if (exp_list->length > 0) {
-        CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, pexp) {
-            CIRCLEQ_REMOVE(&exp_list->list, exp, entries);
+    for ((exp) = ((&exp_list->list)->cqh_first);
+        (exp) != ((void *)(&exp_list->list)) &&
+        ((pexp) = ((exp)->entries.cqe_next), 1);
+        (exp) = (pexp)) {
+            do {				
+    	        if (&exp->entries.cqe_next == ((void *)(&exp_list->list)))			
+		    (&exp_list->list)->cqh_last = (exp)->entries.cqe_prev;		
+	        else								
+		    (exp)->entries.cqe_next->entries.cqe_prev =			
+		        (exp)->entries.cqe_prev;				
+	        if (&exp->entries.cqe_prev == ((void *)(&exp_list->list)))			
+		    (&exp_list->list)->cqh_first = (exp)->entries.cqe_next;		
+	        else								
+		   (exp)->entries.cqe_prev->entries.cqe_next =			
+		   (exp)->entries.cqe_next;				
+		/* (&exp->entries)->cqe_prev = ((void *)-1)
+		* (&exp->entries)->cqe_next = ((void *)-1)
+		*/
+            				
+            } while (0);
             exp_list->length--;
             AppLayerFreeExpectation(exp);
         }
     }
     SCFree(exp_list);
 }
+
 
 uint64_t ExpectationGetCounter(void)
 {
@@ -185,7 +232,18 @@ static ExpectationList *AppLayerExpectationRemove(IPPair *ipp,
                                                   ExpectationList *exp_list,
                                                   Expectation *exp)
 {
-    CIRCLEQ_REMOVE(&exp_list->list, exp, entries);
+    do {
+	if (&exp->entries.cqe_next == ((void *)(&exp_list->list)))			
+		(&exp_list->list)->cqh_last = (exp)->entries.cqe_prev;		
+	else								
+		(exp->entries.cqe_next)->entries.cqe_prev =			
+		    (exp)->entries.cqe_prev;				
+	if (&exp->entries.cqe_prev == ((void *)(&exp_list->list)))			
+		(&exp_list->list)->cqh_first = (exp)->entries.cqe_next;		
+	else								
+		(exp)->entries.cqe_prev->entries.cqe_next =			
+		    (exp)->entries.cqe_next;
+    } while (0);
     AppLayerFreeExpectation(exp);
     SC_ATOMIC_SUB(expectation_count, 1);
     exp_list->length--;
@@ -242,13 +300,38 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
 
     exp_list = IPPairGetStorageById(ipp, g_expectation_id);
     if (exp_list) {
-        CIRCLEQ_INSERT_HEAD(&exp_list->list, exp, entries);
+        do {			\
+	    (exp)->entries.cqe_next = (&exp_list->list)->cqh_first;			
+   	    (exp)->entries.cqe_prev = ((void *)(&exp_list->list));			
+	    if ((&exp_list->list)->cqh_last == ((void *)(&exp_list->list)))			
+		(&exp_list->list)->cqh_last = (exp);				
+	    else								
+		(&exp_list->list)->cqh_first->entries.cqe_prev = (exp);		
+	    (&exp_list->list)->cqh_first = (exp);					
+        } while (0);
         /* In case there is already EXPECTATION_MAX_LEVEL expectations waiting to be fullfill,
          * we remove the older expectation to limit the total number of expectations */
         if (exp_list->length >= EXPECTATION_MAX_LEVEL) {
-            Expectation *last_exp = CIRCLEQ_LAST(&exp_list->list);
-            CIRCLEQ_REMOVE(&exp_list->list, last_exp, entries);
-            AppLayerFreeExpectation(last_exp);
+            Expectation *last_exp = (&exp_list->list)->cqh_last;
+            do {				
+    	        if (&last_exp->entries.cqe_next == ((void *)(&exp_list->list)))			
+		    (&exp_list->list)->cqh_last = (last_exp)->entries.cqe_prev;		
+	        else								
+		    (last_exp)->entries.cqe_next->entries.cqe_prev =			
+		        (last_exp)->entries.cqe_prev;				
+	        if (&last_exp->entries.cqe_prev == ((void *)(&exp_list->list)))			
+		    (&exp_list->list)->cqh_first = (last_exp)->entries.cqe_next;		
+	        else								
+		   (last_exp)->entries.cqe_prev->entries.cqe_next =			
+		   (last_exp)->entries.cqe_next;				
+		/* (&last_exp->entries)->cqe_prev = ((void *)-1)
+		* (&last_exp->entries)->cqe_next = ((void *)-1)
+		*/
+            				
+            } while (0);
+            
+
+	    AppLayerFreeExpectation(last_exp);
             /* We keep the same amount of expectation so we fully release
              * the IP pair */
             f->flags |= FLOW_HAS_EXPECTATION;
@@ -260,8 +343,20 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
         if (exp_list == NULL)
             goto error;
         exp_list->length = 0;
-        CIRCLEQ_INIT(&exp_list->list);
-        CIRCLEQ_INSERT_HEAD(&exp_list->list, exp, entries);
+        do {						
+	    (&exp_list->list)->cqh_first = ((void *)(&exp_list->list));				
+   	    (&exp_list->list)->cqh_last = ((void *)(&exp_list->list));				
+        } while (0);
+        do {			\
+	    (exp)->entries.cqe_next = (&exp_list->list)->cqh_first;			
+   	    (exp)->entries.cqe_prev = ((void *)(&exp_list->list));			
+	    if ((&exp_list->list)->cqh_last == ((void *)(&exp_list->list)))			
+		(&exp_list->list)->cqh_last = (exp);				
+	    else								
+		(&exp_list->list)->cqh_first->entries.cqe_prev = (exp);		
+	    (&exp_list->list)->cqh_first = (exp);					
+        } while (0);
+
         IPPairSetStorageById(ipp, g_expectation_id, exp_list);
     }
 
@@ -318,19 +413,23 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
 
     time_t ctime = f->lastts.tv_sec;
 
-    CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, lexp) {
+    for (
+     (exp) = ((&exp_list->list)->cqh_first);
+     (exp) != ((void *)(&exp_list->list)) &&
+     ((lexp) = ((exp)->entries.cqe_next), 1);
+     (exp) = (lexp)
+    ) {
         if ((exp->direction & direction) &&
-             ((exp->sp == 0) || (exp->sp == f->sp)) &&
-             ((exp->dp == 0) || (exp->dp == f->dp))) {
+         ((exp->sp == 0) || (exp->sp == f->sp)) &&
+         ((exp->dp == 0) || (exp->dp == f->dp))
+        ) {
             alproto = exp->alproto;
             f->alproto_ts = alproto;
             f->alproto_tc = alproto;
             void *fdata = FlowGetStorageById(f, g_expectation_id);
             if (fdata) {
-                /* We already have an expectation so let's clean this one */
                 ExpectationDataFree(exp->data);
             } else {
-                /* Transfer ownership of Expectation data to the Flow */
                 if (FlowSetStorageById(f, g_expectation_data_id, exp->data) != 0) {
                     SCLogDebug("Unable to set flow storage");
                 }
@@ -342,7 +441,7 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
             continue;
         }
         /* Cleaning remove old entries */
-        if (ctime > exp->ts.tv_sec + EXPECTATION_TIMEOUT) {
+        if (exp->orig_f == (void *)f) {
             exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);
             if (exp_list == NULL)
                 goto out;
@@ -350,6 +449,7 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
         }
     }
 
+/* Transfer ownership of Expectation data to the Flow */
 out:
     if (ipp)
         IPPairRelease(ipp);
@@ -368,17 +468,19 @@ void AppLayerExpectationClean(Flow *f)
     }
 
     /* Call will take reference of the ip pair in 'ipp' */
-    ExpectationList *exp_list = AppLayerExpectationLookup(f, &ipp);
+    ExpectationList *exp_list = AppLayerExpectationLookup(f, &ipp);    
     if (exp_list == NULL)
         goto out;
 
-    CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, pexp) {
-        /* Cleaning remove old entries */
-        if (exp->orig_f == (void *)f) {
-            exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);
-            if (exp_list == NULL)
-                goto out;
-        }
+    for ((exp) = ((&exp_list->list)->cqh_first);
+        (exp) != ((void *)(&exp_list->list)) &&
+        ((pexp) = ((exp)->entries.cqe_next), 1);
+        (exp) = (pexp)) {
+            if (exp->orig_f == (void *)f) {
+                exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);
+                if (exp_list == NULL)
+                    goto out;
+            }
     }
 
 out:
@@ -386,7 +488,3 @@ out:
         IPPairRelease(ipp);
     return;
 }
-
-/**
- * @}
- */
