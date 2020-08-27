@@ -281,6 +281,7 @@ void DetectDceStubDataRegister(void)
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_dce_stub_data_buffer_id;
+    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
