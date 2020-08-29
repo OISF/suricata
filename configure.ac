@@ -2252,7 +2252,7 @@ return 0;
     AM_CONDITIONAL([HAVE_LUA], [test "x$enable_lua" != "xno"])
 
     # If Lua is enabled, test the integer size.
-    if test "x$enable_lua" = "xyes"; then
+    if test "x$enable_lua" = "xyes" -a "$cross_compiling" != "yes"; then
         TMPLIBS="$LIBS"
         LIBS=""
 
