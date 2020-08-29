@@ -793,32 +793,33 @@ return 0;
 
     if test "x$pcre_jit_works" = "xyes"; then
 
-       AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
-       AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-                          #include <pcre.h>
-                          #include <string.h>
-                          ]],
-           [[
-           const char *error;
-           int err_offset;
-           pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
-           pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
-           if (study == NULL)
-               exit(EXIT_FAILURE);
-           pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
-           if (stack == 0)
-               exit(EXIT_FAILURE);
-           int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
-           if (ret != 0)
-               exit(EXIT_FAILURE);
-           exit(EXIT_SUCCESS);
-           ]])],[ pcre_jit_exec_works=yes ],[:]
-       )
-       if test "x$pcre_jit_exec_works" != "xyes"; then
+       AC_MSG_CHECKING(for PCRE JIT exec availability)
+       AC_COMPILE_IFELSE(
+           [AC_LANG_PROGRAM(
+               [
+                  #include <pcre.h>
+                  #include <string.h>
+               ],
+               [
+                   const char *error;
+                   int err_offset;
+                   pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
+                   pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+                   if (study == NULL)
+                       exit(EXIT_FAILURE);
+                   pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
+                   if (stack == 0)
+                       exit(EXIT_FAILURE);
+                   int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
+                   exit(ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+               ])],
+           [pcre_jit_exec_available="yes" ],
+           [pcre_jit_exec_available="no" ])
+       if test "x$pcre_jit_exec_available" != "xyes"; then
            AC_MSG_RESULT(no)
        else
            AC_MSG_RESULT(yes)
-           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [Pcre with JIT compiler support enabled supporting pcre_jit_exec])
+           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [PCRE with JIT compiler support enabled supporting pcre_jit_exec])
        fi
     else
         AC_MSG_RESULT(no)
