@@ -73,6 +73,10 @@
 #include <stdlib.h>
 #endif
 
+#ifdef HAVE_PTHREAD_H
+#include <pthread.h>
+#endif
+
 #if HAVE_ERRNO_H
 #include <errno.h>
 #endif

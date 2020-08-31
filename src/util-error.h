@@ -365,6 +365,11 @@ typedef enum {
     SC_WARN_PATH_READ_ERROR,
     SC_ERR_HTTP2_LOG_GENERIC,
     SC_ERR_PLUGIN,
+    SC_ERR_TS, /** Error indicating a failure to create time struct.**/
+    SC_ERR_RENAME, /** Error indicating a failure to rename file. **/
+    SC_ERR_PCAPLEN_OVERFLOW,
+    SC_ERR_PCAP_DUMP_OPEN,
+    SC_ERR_PCAP_DUMP_FILE,
 
     SC_ERR_MAX
 } SCError;
