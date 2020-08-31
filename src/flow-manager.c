@@ -802,8 +802,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             return TM_ECODE_OK;
     }
 
-    SCLogNotice("FM %s/%d starting. min_timeout %us. Full hash pass in %us",
-            th_v->name, ftd->instance, min_timeout, pass_in_sec);
+    SCLogDebug("FM %s/%d starting. min_timeout %us. Full hash pass in %us", th_v->name,
+            ftd->instance, min_timeout, pass_in_sec);
 
 #ifdef FM_PROFILE
     struct timeval endts;
@@ -1295,8 +1295,12 @@ void FlowDisableFlowRecyclerThread(void)
     int cnt = 0;
 
     /* move all flows still in the hash to the recycler queue */
+#ifndef DEBUG
+    (void)FlowCleanupHash();
+#else
     uint32_t flows = FlowCleanupHash();
-    SCLogNotice("flows to progress: %u", flows);
+    SCLogDebug("flows to progress: %u", flows);
+#endif
 
     /* make sure all flows are processed */
     do {

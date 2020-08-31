@@ -537,7 +537,8 @@ void FlowInitConfig(char quiet)
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of 1 and 100 (as percentage)");
+            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of "
+                                             "1 and 100 (as percentage)");
             flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
         }
     } else {
@@ -550,7 +551,7 @@ void FlowInitConfig(char quiet)
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
-    uint64_t flow_memcap_copy;
+    uint64_t flow_memcap_copy = 0;
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
@@ -632,7 +633,9 @@ void FlowInitConfig(char quiet)
     FlowInitFlowProto();
 
     uint32_t sz = sizeof(Flow) + FlowStorageSize();
-    SCLogNotice("flow size %u, memcap allows for %"PRIu64" flows. Per hash row in perfect conditions %"PRIu64, sz, flow_memcap_copy/sz, (flow_memcap_copy/sz)/flow_config.hash_size);
+    SCLogConfig("flow size %u, memcap allows for %" PRIu64 " flows. Per hash row in perfect "
+                "conditions %" PRIu64,
+            sz, flow_memcap_copy / sz, (flow_memcap_copy / sz) / flow_config.hash_size);
     return;
 }
 
