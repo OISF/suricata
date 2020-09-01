@@ -22,6 +22,9 @@ env:
   # Apt sometimes likes to ask for user input, this will prevent that.
   DEBIAN_FRONTEND: "noninteractive"
 
+  # A known good Rust version we should test against.
+  RUST_VERSION_KNOWN: "1.37.0"
+
 jobs:
 
   prep:
@@ -906,17 +909,17 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
-      - name: Bundling suricata-update
-        run: |
-          curl -L \
-              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
-              tar zxvf - --strip-components=1
-        working-directory: suricata-update
+      - name: Install cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
