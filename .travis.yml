@@ -175,17 +175,6 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
-    # Linux, gcc, no nss/nspr.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,no-nssnspr"
-        - *default-cflags
-        - ARGS="--disable-nss --disable-nspr"
-      addons:
-        apt:
-          packages:
-            - *packages-without-nssnspr
 
 script: ./qa/travis.sh
 
