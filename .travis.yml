@@ -141,14 +141,6 @@ matrix:
         - NAME="linux,gcc,profiling"
         - *default-cflags
         - ARGS="--enable-profiling"
-    # Linux, gcc, debug.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,debug"
-        - *default-cflags
-        - ARGS="--enable-debug"
-        - ENABLE_DEBUG="yes"
     # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc
