@@ -47,11 +47,11 @@ jobs:
           fi
           echo "::set-env name=libhtp_repo::${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}"
           echo "::set-env name=libhtp_branch::${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}"
-          echo "::set-env name=libhtp_pr::${libhtp_branch:-${DEFAULT_LIBHTP_PR}}"
+          echo "::set-env name=libhtp_pr::${libhtp_pr:-${DEFAULT_LIBHTP_PR}}"
 
           echo "::set-env name=su_repo::${su_repo:-${DEFAULT_SU_REPO}}"
           echo "::set-env name=su_branch::${su_branch:-${DEFAULT_SU_BRANCH}}"
-          echo "::set-env name=su_pr::${su_branch:-${DEFAULT_SU_PR}}"
+          echo "::set-env name=su_pr::${su_pr:-${DEFAULT_SU_PR}}"
 
           echo "::set-env name=sv_repo::${sv_repo:-${DEFAULT_SV_REPO}}"
           echo "::set-env name=sv_branch::${sv_branch:-${DEFAULT_SV_BRANCH}}"
@@ -61,7 +61,7 @@ jobs:
           git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
           if [[ "${libhtp_pr}" != "" ]]; then
               cd libhtp
-              git fetch origin pull/${su_pr}/head:prep
+              git fetch origin pull/${libhtp_pr}/head:prep
               git checkout prep
               cd ..
           fi
