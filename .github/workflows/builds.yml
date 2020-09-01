@@ -287,7 +287,7 @@ jobs:
         run: make install-conf
 
   fedora-32:
-    name: Fedora 32 (clang, asan, wshadow, rust-strict)
+    name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:32
     needs: prep
@@ -347,7 +347,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-unittests --disable-shared --enable-rust-strict
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict
         env:
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
