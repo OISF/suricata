@@ -2595,7 +2595,22 @@ fi
         have_cargo_vendor=$have_cargo_vendor_bin
     fi
 
-    AC_CHECK_FILES([$srcdir/rust/dist $srcdir/rust/gen], [have_rust_headers="yes"])
+    have_rust_headers="no"
+    AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
+    if test -f "$srcdir/rust/dist/rust-bindings.h"; then
+       AC_MSG_RESULT(yes)
+       have_rust_headers="yes"
+    else
+       AC_MSG_RESULT(no)
+       AC_MSG_CHECKING(for $srcdir/rust/gen/rust-bindings.h)
+       if test -f "$srcdir/rust/gen/rust-bindings.h"; then
+           AC_MSG_RESULT(yes)
+           have_rust_headers="yes"
+       else
+           AC_MSG_RESULT(no)
+       fi
+    fi
+
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
