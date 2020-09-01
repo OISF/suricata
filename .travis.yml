@@ -134,13 +134,6 @@ matrix:
         - NAME="linux,clang"
         - *default-cflags
         - EXTRA_CFLAGS="-Wshadow"
-    # Linux, gcc, profiling.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,profiling"
-        - *default-cflags
-        - ARGS="--enable-profiling"
     # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc
