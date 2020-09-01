@@ -175,13 +175,6 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
-    # Too old version of Rust.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="Unsupported Rust version"
-        - RUST_VERSION="1.32.0"
-        - CONFIGURE_SHOULD_FAIL="yes"
     # Linux, gcc, no nss/nspr.
     - os: linux
       compiler: gcc
