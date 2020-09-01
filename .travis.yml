@@ -108,16 +108,6 @@ matrix:
         - ARGS="--enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (auto detect).
-    # - Use latest known working version of Rust.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,rust-${RUST_VERSION_KNOWN}"
-        - *default-cflags
-        - RUST_VERSION="${RUST_VERSION_KNOWN}"
-        - ARGS="--enable-rust-strict"
-        - DO_DISTCHECK="yes"
     # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc
