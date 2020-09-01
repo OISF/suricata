@@ -118,15 +118,6 @@ matrix:
         - RUST_VERSION="${RUST_VERSION_KNOWN}"
         - ARGS="--enable-rust-strict"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (oldest supported)
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,rust-${RUST_VERSION_MIN}"
-        - *default-cflags
-        - RUST_VERSION="${RUST_VERSION_MIN}"
-        - ARGS="--enable-rust-strict"
-        - DO_DISTCHECK="yes"
     # Linux, clang. For this build we'll also enable -Wshadow.
     - os: linux
       compiler: clang
