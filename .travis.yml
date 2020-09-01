@@ -118,13 +118,6 @@ matrix:
         - RUST_VERSION="${RUST_VERSION_KNOWN}"
         - ARGS="--enable-rust-strict"
         - DO_DISTCHECK="yes"
-    # Linux, clang. For this build we'll also enable -Wshadow.
-    - os: linux
-      compiler: clang
-      env:
-        - NAME="linux,clang"
-        - *default-cflags
-        - EXTRA_CFLAGS="-Wshadow"
     # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc
