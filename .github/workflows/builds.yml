@@ -182,7 +182,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          ./configure
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2 distcheck
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks"
@@ -249,7 +249,7 @@ jobs:
       # works.
       - name: Test autoreconf
         run: autoreconf -fv --install
-      - run: ./configure
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2
       - run: make install
       - run: make install-conf
@@ -291,7 +291,7 @@ jobs:
         with:
           name: dist
       - run: tar xvf dist/suricata-*.tar.gz --strip-components=1
-      - run: ./configure
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2
       - run: make install
       - run: make install-conf
@@ -502,7 +502,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: make dist
@@ -567,7 +567,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --disable-nss --disable-nspr
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --disable-nss --disable-nspr
       - run: make -j2
       - run: make dist
       - name: Extracting suricata-verify
@@ -751,7 +751,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-debug-validation
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
       - run: make -j2
       - run: make check
       - name: Extracting suricata-verify
@@ -833,7 +833,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
       - run: make tags
       - name: Running unit tests and cocci checks
@@ -956,7 +956,7 @@ jobs:
       - name: Extract
         run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: Configure
-        run: ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - name: Build
         run: make -j2
       - name: Testing
@@ -1025,7 +1025,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-fuzztargets
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -1086,7 +1086,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -1135,7 +1135,7 @@ jobs:
           path: prep
       - run: tar xvf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
