@@ -178,17 +178,15 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          ./configure --enable-unittests \
-                --enable-debug \
-                --enable-lua \
-                --enable-geoip \
-                --enable-profiling \
-                --enable-profiling-locks
-      - name: Building
-        run: make -j2
-      - name: Running unittests
-        run: make check
-      - name: Building distribution
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j2 distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks"
+      - run: test -e doc/userguide/suricata.1
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - name: Preparing distribution
         run: |
           make dist
           mkdir dist
@@ -239,8 +237,14 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: tar zxvf ./dist/suricata-*.tar.gz --strip-components=1
-      - run: ./configure
+      - run: tar zxvf suricata-*.tar.gz --strip-components=1
+      # This isn't really needed as we are building from a prepared
+      # package, but some package managers like RPM and Debian like to
+      # run this command even on prepared packages, so make sure it
+      # works.
+      - name: Test autoreconf
+        run: autoreconf -fv --install
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2
       - run: make install
       - run: make install-conf
@@ -277,17 +281,14 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: mkdir suricata
-      - working-directory: suricata
-        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
-      - working-directory: suricata
-        run: ./configure
-      - working-directory: suricata
-        run: make -j2
-      - working-directory: suricata
-        run: make install
-      - working-directory: suricata
-        run: make install-conf
+      - run: tar xvf dist/suricata-*.tar.gz --strip-components=1
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j2
+      - run: make install
+      - run: make install-conf
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
 
   fedora-32:
     name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
@@ -412,7 +413,7 @@ jobs:
                 zlib-devel
       - run: |
           cargo install --debug cbindgen
-          echo "::add-path::$HOME/.cargo/bin"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -480,7 +481,7 @@ jobs:
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: make distcheck
@@ -546,7 +547,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --disable-nss --disable-nspr
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --disable-nss --disable-nspr
       - run: make -j2
       - run: make dist
       - name: Extracting suricata-verify
@@ -730,7 +731,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-debug-validation
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
       - run: make -j2
       - run: make check
       - name: Extracting suricata-verify
@@ -795,7 +796,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
@@ -852,8 +853,7 @@ jobs:
         working-directory: suricata
         run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
       - name: Configure
-        working-directory: suricata
-        run: ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - name: Build
         working-directory: suricata
         run: make -j2
@@ -926,7 +926,7 @@ jobs:
               tar zxvf - --strip-components=1
         working-directory: suricata-update
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
       - run: make check
       - name: Fetching suricata-verify
@@ -988,7 +988,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - name: Fetching suricata-verify
@@ -1030,7 +1030,7 @@ jobs:
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - name: Fetching suricata-verify
