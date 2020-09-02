@@ -502,7 +502,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: ./configure --enable-unittests --enable-debug
       - run: make -j2
       - run: make check
       - run: make dist
