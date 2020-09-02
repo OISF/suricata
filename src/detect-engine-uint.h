@@ -31,6 +31,8 @@ typedef enum {
     DETECT_UINT_EQ,
     DETECT_UINT_GT,
     DETECT_UINT_RA,
+    DETECT_UINT_LTE,
+    DETECT_UINT_GTE,
 } DetectUintMode;
 
 typedef struct DetectU32Data_ {
