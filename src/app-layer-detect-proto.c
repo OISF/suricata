@@ -1878,7 +1878,7 @@ void AppLayerProtoDetectReset(Flow *f)
     f->probing_parser_toserver_alproto_masks = 0;
     f->probing_parser_toclient_alproto_masks = 0;
 
-    AppLayerParserStateCleanup(f, f->alstate, f->alparser);
+    // Does not free the structures for the parser
     f->alstate = NULL;
     f->alparser = NULL;
     f->alproto    = ALPROTO_UNKNOWN;

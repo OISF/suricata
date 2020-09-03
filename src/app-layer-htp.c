@@ -416,10 +416,6 @@ void HTPStateFree(void *state)
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
-    if (s->upgrade_tx != NULL) {
-        htp_tx_destroy(s->upgrade_tx);
-        s->upgrade_tx = NULL;
-    }
     HTPFree(s, sizeof(HtpState));
 
 #ifdef DEBUG
@@ -464,9 +460,6 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
         {
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
-        }
-        if (unlikely(tx == s->upgrade_tx)) {
-            return;
         }
         htp_tx_destroy(tx);
     }
@@ -975,12 +968,6 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                             }
                             consumed = htp_connp_res_data_consumed(hstate->connp);
                             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
-                            // close connection to log HTTP1 request in tunnel mode
-                            if (!(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
-                                htp_connp_close(hstate->connp, &ts);
-                                hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
-                            }
-                            hstate->upgrade_tx = tx;
                             // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                             // and we need to parser the remaining part with HTTP2
                             if (consumed > 0 && consumed < input_len) {
@@ -2966,22 +2953,15 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 
 void *HtpGetTxForH2(void *alstate)
 {
+    // gets last transaction
     HtpState *http_state = (HtpState *)alstate;
-    // gets last transaction (and remove it)
-    htp_tx_t *tx = http_state->upgrade_tx;
-    htp_list_array_pop(http_state->conn->transactions);
-    // remove the link to the connection
-    if (tx != NULL) {
-        tx->conn = NULL;
-        tx->connp = NULL;
+    if (http_state != NULL && http_state->conn != NULL) {
+        size_t txid = htp_list_array_size(http_state->conn->transactions);
+        if (txid > 0) {
+            return htp_list_get(http_state->conn->transactions, txid - 1);
+        }
     }
-    http_state->upgrade_tx = NULL;
-    return tx;
-}
-
-void HtpFreeTxFromH2(void *tx)
-{
-    htp_tx_destroy(tx);
+    return NULL;
 }
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)

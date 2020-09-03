@@ -72,7 +72,7 @@ void RegisterHTTP2Parsers(void)
 
 void HTTP2MimicHttp1Request(void *h1, void *h2s)
 {
-    if (h2s == NULL) {
+    if (h2s == NULL || h1 == NULL) {
         return;
     }
     htp_tx_t *h1tx = (htp_tx_t *)h1;
