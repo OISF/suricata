@@ -76,9 +76,7 @@ void HTTP2MimicHttp1Request(void *h1, void *h2s)
         return;
     }
     htp_tx_t *h1tx = (htp_tx_t *)h1;
-    void *tmp = malloc(bstr_len(h1tx->request_method));
-    memcpy(tmp, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
-    rs_http2_tx_set_method(h2s, tmp, bstr_len(h1tx->request_method));
+    rs_http2_tx_set_method(h2s, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
     rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
     size_t nbheaders = htp_table_size(h1tx->request_headers);
     for (size_t i = 0; i < nbheaders; i++) {

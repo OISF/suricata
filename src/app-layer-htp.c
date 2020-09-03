@@ -416,6 +416,10 @@ void HTPStateFree(void *state)
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
+    if (s->upgrade_tx != NULL) {
+        htp_tx_destroy(s->upgrade_tx);
+        s->upgrade_tx = NULL;
+    }
     HTPFree(s, sizeof(HtpState));
 
 #ifdef DEBUG
@@ -460,6 +464,9 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
         {
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
+        }
+        if (unlikely(tx == s->upgrade_tx)) {
+            return;
         }
         htp_tx_destroy(tx);
     }
@@ -973,6 +980,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                                 htp_connp_close(hstate->connp, &ts);
                                 hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
                             }
+                            hstate->upgrade_tx = tx;
                             // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                             // and we need to parser the remaining part with HTTP2
                             if (consumed > 0 && consumed < input_len) {
@@ -2960,10 +2968,14 @@ void *HtpGetTxForH2(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
     // gets last transaction (and remove it)
-    htp_tx_t *tx = (htp_tx_t *)htp_list_array_pop(http_state->conn->transactions);
+    htp_tx_t *tx = http_state->upgrade_tx;
+    htp_list_array_pop(http_state->conn->transactions);
     // remove the link to the connection
-    tx->conn = NULL;
-    tx->connp = NULL;
+    if (tx != NULL) {
+        tx->conn = NULL;
+        tx->connp = NULL;
+    }
+    http_state->upgrade_tx = NULL;
     return tx;
 }
 
