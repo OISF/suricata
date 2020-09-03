@@ -724,7 +724,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
         ftd->max = flow_config.hash_size;
     } else {
         ftd->min = (range * ftd->instance) + 1;
-        ftd->max = (range * ftd->instance);
+        ftd->max = (range * (ftd->instance + 1));
     }
     BUG_ON(ftd->min > flow_config.hash_size || ftd->max > flow_config.hash_size);
 
