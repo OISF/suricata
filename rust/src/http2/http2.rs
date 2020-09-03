@@ -246,6 +246,7 @@ pub enum HTTP2Event {
     ExtraHeaderData,
     LongFrameData,
     StreamIdReuse,
+    InvalidHTTP1Settings,
 }
 
 impl HTTP2Event {
@@ -259,6 +260,7 @@ impl HTTP2Event {
             5 => Some(HTTP2Event::ExtraHeaderData),
             6 => Some(HTTP2Event::LongFrameData),
             7 => Some(HTTP2Event::StreamIdReuse),
+            8 => Some(HTTP2Event::InvalidHTTP1Settings),
             _ => None,
         }
     }
@@ -297,7 +299,7 @@ impl HTTP2State {
         self.files.free();
     }
 
-    fn set_event(&mut self, event: HTTP2Event) {
+    pub fn set_event(&mut self, event: HTTP2Event) {
         let len = self.transactions.len();
         if len == 0 {
             return;
@@ -994,6 +996,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "extra_header_data" => HTTP2Event::ExtraHeaderData as i32,
                 "long_frame_data" => HTTP2Event::LongFrameData as i32,
                 "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
+                "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1021,6 +1024,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::ExtraHeaderData => "extra_header_data\0",
             HTTP2Event::LongFrameData => "long_frame_data\0",
             HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
+            HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
