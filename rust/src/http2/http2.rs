@@ -839,7 +839,6 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 
-//TODOnext connection upgrade from HTTP1 cf SMTP STARTTLS
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
@@ -1051,8 +1050,7 @@ const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
-    //TODOend default port
-    let default_port = CString::new("[3000]").unwrap();
+    let default_port = CString::new("[80]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
