@@ -2357,6 +2357,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
+    // disable by default
+    htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
     htp_config_set_lzma_memlimit(cfg_prec->cfg,
             HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
 #endif
@@ -2685,11 +2687,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
         } else if (strcasecmp("lzma-enabled", p->name) == 0) {
-            if (ConfValIsFalse(p->val)) {
-                htp_config_set_lzma_memlimit(cfg_prec->cfg, 0);
+            if (ConfValIsTrue(p->val)) {
+                htp_config_set_lzma_layers(cfg_prec->cfg, 1);
+            } else if (!ConfValIsFalse(p->val)) {
+                int8_t limit;
+                if (StringParseInt8(&limit, 10, 0, (const char *)p->val) < 0) {
+                    FatalError(SC_ERR_SIZE_PARSE,
+                            "failed to parse 'lzma-enabled' "
+                            "from conf file - %s.",
+                            p->val);
+                }
+                SCLogConfig("Setting HTTP LZMA decompression layers to %" PRIu32 "", (int)limit);
+                htp_config_set_lzma_layers(cfg_prec->cfg, limit);
             }
 #endif
 #ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT

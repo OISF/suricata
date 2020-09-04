@@ -1358,8 +1358,8 @@ use of libhtp.
        # Default value of randomize-inspection-range is 10.
        #randomize-inspection-range: 10
 
-       # Can disable LZMA decompression
-       #lzma-enabled: yes
+       # Can enable LZMA decompression
+       #lzma-enabled: false
        # Memory limit usage for LZMA decompression dictionary
        # Data is decompressed until dictionary reaches this size
        #lzma-memlimit: 1 Mb
