@@ -1432,7 +1432,7 @@ static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))

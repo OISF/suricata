@@ -159,7 +159,7 @@ static int ENIPStateGetEventInfoById(int event_id, const char **event_name,
  *
  *  return state
  */
-static void *ENIPStateAlloc(void)
+static void *ENIPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCLogDebug("ENIPStateAlloc");
     void *s = SCMalloc(sizeof(ENIPState));
