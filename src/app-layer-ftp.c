@@ -833,7 +833,7 @@ static uint64_t ftp_state_memuse = 0;
 static uint64_t ftp_state_memcnt = 0;
 #endif
 
-static void *FTPStateAlloc(void)
+static void *FTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     void *s = FTPCalloc(1, sizeof(FtpState));
     if (unlikely(s == NULL))
@@ -1152,7 +1152,7 @@ static uint64_t ftpdata_state_memuse = 0;
 static uint64_t ftpdata_state_memcnt = 0;
 #endif
 
-static void *FTPDataStateAlloc(void)
+static void *FTPDataStateAlloc(void *orig_state, AppProto proto_orig)
 {
     void *s = FTPCalloc(1, sizeof(FtpDataState));
     if (unlikely(s == NULL))

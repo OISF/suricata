@@ -63,9 +63,9 @@ SCEnumCharMap nfs_udp_decoder_event_table[] = {
     { NULL, 0 }
 };
 
-static void *NFSStateAlloc(void)
+static void *NFSStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    return rs_nfs_state_new();
+    return rs_nfs_state_new(orig_state, proto_orig);
 }
 
 static void NFSStateFree(void *state)

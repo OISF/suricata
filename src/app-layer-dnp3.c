@@ -432,7 +432,7 @@ static int DNP3ReassembleApplicationLayer(const uint8_t *input,
  *
  * The DNP3 state object represents a single DNP3 TCP session.
  */
-static void *DNP3StateAlloc(void)
+static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCEnter();
     DNP3State *dnp3;
@@ -2510,7 +2510,7 @@ static int DNP3ParserTestParsePDU01(void)
         0xe1, 0xc8, 0x01, 0x01, 0x00, 0x06, 0x77, 0x6e
     };
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     int pdus = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(pdus < 1);
     DNP3Transaction *dnp3tx = DNP3GetTx(dnp3state, 0);
@@ -2549,7 +2549,7 @@ static int DNP3ParserDecodeG70V3Test(void)
         0xc4, 0x8b
     };
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
@@ -2610,7 +2610,7 @@ static int DNP3ParserUnknownEventAlertTest(void)
 
     DNP3FixCrc(pkt + 10, sizeof(pkt) - 10);
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
