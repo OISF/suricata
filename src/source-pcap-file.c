@@ -307,6 +307,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (pv->should_recurse == true && pv->should_loop == true) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous and --pcap-file-recursive "
                                                 "cannot be used together.");
+            CleanupPcapFileDirectoryVars(pv);
+            CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
 

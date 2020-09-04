@@ -653,14 +653,13 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
 
     struct addrinfo ai_hints;
     struct addrinfo *ai_list = NULL;
-    int ret = 0;
 
     memset(&ai_hints, 0, sizeof(ai_hints));
     ai_hints.ai_family = AF_UNSPEC;
     ai_hints.ai_flags = AI_NUMERICHOST;
 
     /* try to translate IP */
-    if ((ret = getaddrinfo(pcap_dev, NULL, &ai_hints, &ai_list)) != 0) {
+    if (getaddrinfo(pcap_dev, NULL, &ai_hints, &ai_list) != 0) {
         return;
     }
 
