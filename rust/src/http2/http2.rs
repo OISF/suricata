@@ -117,7 +117,7 @@ pub struct HTTP2Frame {
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,
-    state: HTTP2TransactionState,
+    pub state: HTTP2TransactionState,
     child_stream_id: u32,
 
     pub frames_tc: Vec<HTTP2Frame>,
@@ -373,7 +373,7 @@ impl HTTP2State {
         return self.transactions.last_mut().unwrap();
     }
 
-    fn find_or_create_tx(
+    pub fn find_or_create_tx(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
     ) -> &mut HTTP2Transaction {
         if header.stream_id == 0 {
@@ -876,11 +876,27 @@ pub extern "C" fn rs_http2_probing_parser_tc(
     return ALPROTO_UNKNOWN;
 }
 
+/// Extern functions operating on HTTP2.
+extern "C" {
+    pub fn HTTP2MimicHttp1Request(
+        orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
+    );
+}
+
 #[no_mangle]
-pub extern "C" fn rs_http2_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_http2_state_new(
+    orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    let r = unsafe { transmute(boxed) };
+    if orig_state != std::ptr::null_mut() {
+        //we could check ALPROTO_HTTP == orig_proto
+        unsafe {
+            HTTP2MimicHttp1Request(orig_state, r);
+        }
+    }
+    return r;
 }
 
 #[no_mangle]
