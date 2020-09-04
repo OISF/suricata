@@ -1214,7 +1214,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     SetEOFFlags(pstate, flags);
 
     alstate = f->alstate;
-    if (alstate == NULL) {
+    if (alstate == NULL || FlowChangeProto(f)) {
         f->alstate = alstate = p->StateAlloc(alstate, f->alproto_orig);
         if (alstate == NULL)
             goto error;
@@ -1449,12 +1449,12 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
 
 /***** Cleanup *****/
 
-void AppLayerParserStateCleanup(const Flow *f, void *alstate,
-                                AppLayerParserState *pstate)
+void AppLayerParserStateProtoCleanup(
+        uint8_t protomap, AppProto alproto, void *alstate, AppLayerParserState *pstate)
 {
     SCEnter();
 
-    AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[f->protomap][f->alproto];
+    AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[protomap][alproto];
 
     if (ctx->StateFree != NULL && alstate != NULL)
         ctx->StateFree(alstate);
@@ -1464,6 +1464,11 @@ void AppLayerParserStateCleanup(const Flow *f, void *alstate,
         AppLayerParserStateFree(pstate);
 
     SCReturn;
+}
+
+void AppLayerParserStateCleanup(const Flow *f, void *alstate, AppLayerParserState *pstate)
+{
+    AppLayerParserStateProtoCleanup(f->protomap, f->alproto, alstate, pstate);
 }
 
 static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
