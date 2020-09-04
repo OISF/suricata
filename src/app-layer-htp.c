@@ -340,7 +340,7 @@ static AppLayerDecoderEvents *HTPGetEvents(void *tx)
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
  *         connection parser to be used by the HTP library
  */
-static void *HTPStateAlloc(void)
+static void *HTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCEnter();
 
