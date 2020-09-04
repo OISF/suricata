@@ -81,9 +81,9 @@ static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
     }
 }
 
-static void *RustDCERPCStateNew(void)
+static void *RustDCERPCStateNew(void *state_orig, AppProto proto_orig)
 {
-    return rs_dcerpc_state_new();
+    return rs_dcerpc_state_new(state_orig, proto_orig);
 }
 
 static void DCERPCStateFree(void *s)

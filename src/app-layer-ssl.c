@@ -2634,7 +2634,7 @@ static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParse
  * \internal
  * \brief Function to allocate the SSL state memory.
  */
-static void *SSLStateAlloc(void)
+static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SSLState *ssl_state = SCMalloc(sizeof(SSLState));
     if (unlikely(ssl_state == NULL))

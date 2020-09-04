@@ -99,7 +99,7 @@ typedef struct AppLayerParserProtoCtx_
     bool logger;
     uint32_t logger_bits;   /**< registered loggers for this proto */
 
-    void *(*StateAlloc)(void);
+    void *(*StateAlloc)(void *, AppProto);
     void (*StateFree)(void *);
     void (*StateTransactionFree)(void *, uint64_t);
     void *(*LocalStorageAlloc)(void);
@@ -396,8 +396,7 @@ uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto)
 }
 
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
-                           void *(*StateAlloc)(void),
-                           void (*StateFree)(void *))
+        void *(*StateAlloc)(void *, AppProto), void (*StateFree)(void *))
 {
     SCEnter();
 
@@ -1216,7 +1215,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
     alstate = f->alstate;
     if (alstate == NULL) {
-        f->alstate = alstate = p->StateAlloc();
+        f->alstate = alstate = p->StateAlloc(alstate, f->alproto_orig);
         if (alstate == NULL)
             goto error;
         SCLogDebug("alloced new app layer state %p (name %s)",
@@ -1679,7 +1678,7 @@ static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerPars
 
 /** \brief Function to allocates the Test protocol state memory
  */
-static void *TestProtocolStateAlloc(void)
+static void *TestProtocolStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCEnter();
     void *s = SCMalloc(sizeof(TestState));
