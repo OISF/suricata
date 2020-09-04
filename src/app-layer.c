@@ -32,7 +32,6 @@
 #include "app-layer-expectation.h"
 #include "app-layer-ftp.h"
 #include "app-layer-htp.h"
-#include "app-layer-http2.h"
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
@@ -633,21 +632,19 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         f->alproto_orig = f->alproto;
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
-        void *alstate_orig = f->alstate;
+        alstate_orig = f->alstate;
         AppLayerParserState *alparser = f->alparser;
         // we delay AppLayerParserStateCleanup because we may need previous parser state
         AppLayerProtoDetectReset(f);
         /* rerun protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
-                           data, data_len, flags) != 0) {
+        int r = TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
+                               data, data_len, flags);
+        FlowUnsetChangeProtoFlag(f);
+        AppLayerParserStateProtoCleanup(f->protomap, f->alproto_orig, alstate_orig, alparser);
+        if (r != 0) {
             SCLogDebug("proto detect failure");
-            AppLayerParserStateProtoCleanup(f->protomap, f->alproto_orig, alstate_orig, alparser);
             goto failure;
         }
-        if (f->alproto_orig == ALPROTO_HTTP && f->alproto_expect == ALPROTO_HTTP2) {
-            HTTP2MimicHttp1Request(HtpGetTxForH2(alstate_orig), f->alstate);
-        }
-        AppLayerParserStateProtoCleanup(f->protomap, f->alproto_orig, alstate_orig, alparser);
         SCLogDebug("protocol change, old %s, new %s",
                 AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
 

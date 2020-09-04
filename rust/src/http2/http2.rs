@@ -19,8 +19,8 @@ use super::files::*;
 use super::parser;
 use crate::applayer::{self, *};
 use crate::core::{
-    self, AppProto, Flow, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
-    STREAM_TOCLIENT, STREAM_TOSERVER,
+    self, AppProto, Flow, FlowChangeProto, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN,
+    IPPROTO_TCP, STREAM_TOCLIENT, STREAM_TOSERVER,
 };
 use crate::filecontainer::*;
 use crate::filetracker::*;
@@ -903,11 +903,21 @@ pub extern "C" fn rs_http2_parse_ts(
     return state.parse_ts(buf);
 }
 
+/// Extern functions operating on HTTP2.
+extern "C" {
+    pub fn HTTP2MimicHttp1Request(flow: *const Flow);
+}
+
 #[no_mangle]
 pub extern "C" fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
+    unsafe {
+        if FlowChangeProto(flow) > 0 {
+            HTTP2MimicHttp1Request(flow);
+        }
+    }
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
     state.files.flags_tc = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };

@@ -1868,7 +1868,6 @@ void AppLayerRequestProtocolTLSUpgrade(Flow *f)
 
 void AppLayerProtoDetectReset(Flow *f)
 {
-    FlowUnsetChangeProtoFlag(f);
     FLOW_RESET_PM_DONE(f, STREAM_TOSERVER);
     FLOW_RESET_PM_DONE(f, STREAM_TOCLIENT);
     FLOW_RESET_PP_DONE(f, STREAM_TOSERVER);

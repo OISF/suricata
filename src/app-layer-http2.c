@@ -32,6 +32,9 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
+//FIXME include for accessing alstate_orig
+#include "app-layer.h"
+#include "app-layer-htp.h"
 #include "app-layer-http2.h"
 #include "rust.h"
 
@@ -70,12 +73,18 @@ void RegisterHTTP2Parsers(void)
 #endif
 }
 
-void HTTP2MimicHttp1Request(void *h1, void *h2s)
+void HTTP2MimicHttp1Request(const Flow *f)
 {
+    void *h1 = HtpGetTxForH2(alstate_orig);
+    htp_tx_t *h1tx = (htp_tx_t *)h1;
+    void *h2s = f->alstate;
+    if (f->alproto_orig != ALPROTO_HTTP || f->alproto_expect != ALPROTO_HTTP2) {
+        return;
+    }
     if (h2s == NULL || h1 == NULL) {
         return;
     }
-    htp_tx_t *h1tx = (htp_tx_t *)h1;
+
     rs_http2_tx_set_method(h2s, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
     rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
     size_t nbheaders = htp_table_size(h1tx->request_headers);

@@ -26,6 +26,6 @@
 
 void RegisterHTTP2Parsers(void);
 
-void HTTP2MimicHttp1Request(void *, void *);
+void HTTP2MimicHttp1Request(const Flow *);
 
 #endif /* __APP_LAYER_HTTP2_H__ */

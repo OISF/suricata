@@ -194,6 +194,7 @@ pub enum Flow {}
 /// Extern functions operating on Flow.
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
+    pub fn FlowChangeProto(flow: *const Flow) -> std::os::raw::c_int;
 }
 
 /// Rust implementation of Flow.

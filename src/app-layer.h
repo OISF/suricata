@@ -137,6 +137,9 @@ static inline void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p
 
 void AppLayerRegisterGlobalCounters(void);
 
+//FIXME Dummy global to remove
+void *alstate_orig;
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
