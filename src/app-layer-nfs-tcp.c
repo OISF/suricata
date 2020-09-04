@@ -66,9 +66,9 @@ SCEnumCharMap nfs_decoder_event_table[] = {
     { NULL, 0 }
 };
 
-static void *NFSTCPStateAlloc(void)
+static void *NFSTCPStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    return rs_nfs_state_new();
+    return rs_nfs_state_new(orig_state, proto_orig);
 }
 
 static void NFSTCPStateFree(void *state)

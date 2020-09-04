@@ -105,7 +105,7 @@ static void TemplateTxFree(void *txv)
     SCFree(tx);
 }
 
-static void *TemplateStateAlloc(void)
+static void *TemplateStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCLogNotice("Allocating template state.");
     TemplateState *state = SCCalloc(1, sizeof(TemplateState));
