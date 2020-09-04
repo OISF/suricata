@@ -968,13 +968,6 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                             }
                             consumed = htp_connp_res_data_consumed(hstate->connp);
                             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
-                            // close connection to log HTTP1 request in tunnel mode
-                            if (!(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
-                                htp_connp_close(hstate->connp, &ts);
-                                hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
-                            }
-                            // TODO mimic HTTP1 request into HTTP2
-
                             // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                             // and we need to parser the remaining part with HTTP2
                             if (consumed > 0 && consumed < input_len) {
@@ -2956,6 +2949,19 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
         return htp_list_get(http_state->conn->transactions, tx_id);
     else
         return NULL;
+}
+
+void *HtpGetTxForH2(void *alstate)
+{
+    // gets last transaction
+    HtpState *http_state = (HtpState *)alstate;
+    if (http_state != NULL && http_state->conn != NULL) {
+        size_t txid = htp_list_array_size(http_state->conn->transactions);
+        if (txid > 0) {
+            return htp_list_get(http_state->conn->transactions, txid - 1);
+        }
+    }
+    return NULL;
 }
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
