@@ -204,10 +204,8 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
 {
     /* hostname */
     if (tx->request_hostname != NULL) {
-        const size_t size = bstr_len(tx->request_hostname) * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname), string, size);
-        jb_set_string(js, "hostname", string);
+        jb_set_string_from_bytes(
+                js, "hostname", bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
     }
 
     /* port */
@@ -222,29 +220,22 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
 
     /* uri */
     if (tx->request_uri != NULL) {
-        const size_t size = bstr_len(tx->request_uri) * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(bstr_ptr(tx->request_uri), bstr_len(tx->request_uri), string, size);
-        jb_set_string(js, "url", string);
+        jb_set_string_from_bytes(js, "url", bstr_ptr(tx->request_uri), bstr_len(tx->request_uri));
     }
 
     if (tx->request_headers != NULL) {
         /* user agent */
         htp_header_t *h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
         if (h_user_agent != NULL) {
-            const size_t size = bstr_len(h_user_agent->value) * 2 + 1;
-            char string[size];
-            BytesToStringBuffer(bstr_ptr(h_user_agent->value), bstr_len(h_user_agent->value), string, size);
-            jb_set_string(js, "http_user_agent", string);
+            jb_set_string_from_bytes(js, "http_user_agent", bstr_ptr(h_user_agent->value),
+                    bstr_len(h_user_agent->value));
         }
 
         /* x-forwarded-for */
         htp_header_t *h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
-            const size_t size = bstr_len(h_x_forwarded_for->value) * 2 + 1;
-            char string[size];
-            BytesToStringBuffer(bstr_ptr(h_x_forwarded_for->value), bstr_len(h_x_forwarded_for->value), string, size);
-            jb_set_string(js, "xff", string);
+            jb_set_string_from_bytes(js, "xff", bstr_ptr(h_x_forwarded_for->value),
+                    bstr_len(h_x_forwarded_for->value));
         }
     }
 
@@ -262,11 +253,9 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
         }
         htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
         if (h_content_range != NULL) {
-            const size_t size = bstr_len(h_content_range->value) * 2 + 1;
-            char string[size];
-            BytesToStringBuffer(bstr_ptr(h_content_range->value), bstr_len(h_content_range->value), string, size);
             jb_open_object(js, "content_range");
-            jb_set_string(js, "raw", string);
+            jb_set_string_from_bytes(
+                    js, "raw", bstr_ptr(h_content_range->value), bstr_len(h_content_range->value));
             HtpContentRange crparsed;
             if (HTPParseContentRange(h_content_range->value, &crparsed) == 0) {
                 if (crparsed.start >= 0)
@@ -329,27 +318,20 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
         h_referer = htp_table_get_c(tx->request_headers, "referer");
     }
     if (h_referer != NULL) {
-        const size_t size = bstr_len(h_referer->value) * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(bstr_ptr(h_referer->value), bstr_len(h_referer->value), string, size);
-
-        jb_set_string(js, "http_refer", string);
+        jb_set_string_from_bytes(
+                js, "http_refer", bstr_ptr(h_referer->value), bstr_len(h_referer->value));
     }
 
     /* method */
     if (tx->request_method != NULL) {
-        const size_t size = bstr_len(tx->request_method) * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(bstr_ptr(tx->request_method), bstr_len(tx->request_method), string, size);
-        jb_set_string(js, "http_method", string);
+        jb_set_string_from_bytes(
+                js, "http_method", bstr_ptr(tx->request_method), bstr_len(tx->request_method));
     }
 
     /* protocol */
     if (tx->request_protocol != NULL) {
-        const size_t size = bstr_len(tx->request_protocol) * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(bstr_ptr(tx->request_protocol), bstr_len(tx->request_protocol), string, size);
-        jb_set_string(js, "protocol", string);
+        jb_set_string_from_bytes(
+                js, "protocol", bstr_ptr(tx->request_protocol), bstr_len(tx->request_protocol));
     }
 
     /* response status */
@@ -363,10 +345,8 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
 
         htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
         if (h_location != NULL) {
-            const size_t size = bstr_len(h_location->value) * 2 + 1;
-            char string[size];
-            BytesToStringBuffer(bstr_ptr(h_location->value), bstr_len(h_location->value), string, size);
-            jb_set_string(js, "redirect", string);
+            jb_set_string_from_bytes(
+                    js, "redirect", bstr_ptr(h_location->value), bstr_len(h_location->value));
         }
     }
 
