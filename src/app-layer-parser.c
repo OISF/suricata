@@ -1235,15 +1235,25 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto],
                 flags);
-        if (res.status < 0)
-        {
+        if (res.status < 0) {
             goto error;
         } else if (res.status > 0) {
+            DEBUG_VALIDATE_BUG_ON(res.consumed > input_len);
+            DEBUG_VALIDATE_BUG_ON(res.needed + res.consumed < input_len);
+            DEBUG_VALIDATE_BUG_ON(res.needed == 0);
+            /* incomplete is only supported for TCP */
+            DEBUG_VALIDATE_BUG_ON(f->proto != IPPROTO_TCP);
+
+            /* put protocol in error state on improper use of the
+             * return codes. */
+            if (res.consumed > input_len || res.needed + res.consumed < input_len) {
+                goto error;
+            }
+
             if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
                 TcpSession *ssn = f->protoctx;
                 SCLogDebug("direction %d/%s", direction,
                         (flags & STREAM_TOSERVER) ? "toserver" : "toclient");
-                BUG_ON(res.consumed > input_len);
                 if (direction == 0) {
                     /* parser told us how much data it needs on top of what it
                      * consumed. So we need tell stream engine how much we need
@@ -1257,12 +1267,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                     ssn->server.data_required = res.needed;
                     SCLogDebug("setting data_required %u", ssn->server.data_required);
                 }
-            } else {
-                /* incomplete is only supported for TCP */
-                BUG_ON(f->proto != IPPROTO_TCP);
             }
-            BUG_ON(res.needed + res.consumed < input_len);
-            BUG_ON(res.needed == 0);
             consumed = res.consumed;
         }
     }
