@@ -1478,16 +1478,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 						" to receive packets using --dag.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
-		}
-        else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
+            }
+            else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
 #ifdef HAVE_NAPATECH
-            suri->run_mode = RUNMODE_NAPATECH;
+                suri->run_mode = RUNMODE_NAPATECH;
 #else
-            SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
-                                                 " to capture packets using --napatech.");
-            return TM_ECODE_FAILED;
+                SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
+                        " to capture packets using --napatech.");
+                return TM_ECODE_FAILED;
 #endif /* HAVE_NAPATECH */
-			}
+            }
             else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
