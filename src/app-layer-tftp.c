@@ -44,7 +44,7 @@
  * be the size of a header. */
 #define TFTP_MIN_FRAME_LEN 4
 
-static void *TFTPStateAlloc(void)
+static void *TFTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     return rs_tftp_state_alloc();
 }
