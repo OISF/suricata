@@ -1394,7 +1394,7 @@ static AppLayerResult ModbusParseResponse(Flow      *f,
 /** \internal
  *     \brief Function to allocate the Modbus state memory
  */
-static void *ModbusStateAlloc(void)
+static void *ModbusStateAlloc(void *orig_state, AppProto proto_orig)
 {
     ModbusState *modbus;
 

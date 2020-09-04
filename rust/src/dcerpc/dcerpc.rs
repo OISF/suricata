@@ -1137,7 +1137,7 @@ pub extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_new() -> *mut std::os::raw::c_void {
+pub unsafe extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     transmute(boxed)
