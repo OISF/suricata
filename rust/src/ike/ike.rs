@@ -548,6 +548,7 @@ pub extern "C" fn rs_ike_state_get_tx_iterator(
 
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ike\0";
+const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 
@@ -601,6 +602,10 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+
+        AppLayerRegisterParserAlias(PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+                                    PARSER_ALIAS.as_ptr() as *const std::os::raw::c_char
+        );
         SCLogDebug!("Rust IKE parser registered.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for IKE.");
