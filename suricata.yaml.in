@@ -889,8 +889,8 @@ app-layer:
            double-decode-path: no
            double-decode-query: no
 
-           # Can disable LZMA decompression
-           #lzma-enabled: yes
+           # Disables LZMA decompression by default
+           lzma-enabled: false
            # Memory limit usage for LZMA decompression dictionary
            # Data is decompressed until dictionary reaches this size
            #lzma-memlimit: 1mb
