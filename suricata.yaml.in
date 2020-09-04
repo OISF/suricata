@@ -1349,6 +1349,11 @@ decoder:
     typeI:
       enabled: false
 
+  # Geneve decoder is assigned to up to 4 UDP ports. By default only the
+  # IANA assigned port 6081 is enabled.
+  geneve:
+    enabled: true
+    ports: $GENEVE_PORTS # syntax: '[6081, 1234]' or '6081'.
 
 ##
 ## Performance tuning and profiling
