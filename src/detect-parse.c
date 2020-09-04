@@ -1212,6 +1212,11 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
 {
     SCEnter();
 
+    if (!rs_check_utf8(sigstr)) {
+        SCLogError(SC_ERR_RULE_INVALID_UTF8, "rule is not valid UTF-8");
+        SCReturnInt(-1);
+    }
+
     s->sig_str = SCStrdup(sigstr);
     if (unlikely(s->sig_str == NULL)) {
         SCReturnInt(-1);
