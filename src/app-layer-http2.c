@@ -32,6 +32,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
+#include "app-layer-htp.h"
 #include "app-layer-http2.h"
 #include "rust.h"
 
@@ -68,4 +69,23 @@ void RegisterHTTP2Parsers(void)
 #ifdef UNITTESTS
     //TODOask HTTP2ParserRegisterTests();
 #endif
+}
+
+void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
+{
+    htp_tx_t *h1tx = HtpGetTxForH2(alstate_orig);
+    if (h2s == NULL || h1tx == NULL) {
+        return;
+    }
+
+    rs_http2_tx_set_method(h2s, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
+    rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
+    size_t nbheaders = htp_table_size(h1tx->request_headers);
+    for (size_t i = 0; i < nbheaders; i++) {
+        htp_header_t *h = htp_table_get_index(h1tx->request_headers, i, NULL);
+        if (h != NULL) {
+            rs_http2_tx_add_header(h2s, bstr_ptr(h->name), bstr_len(h->name), bstr_ptr(h->value),
+                    bstr_len(h->value));
+        }
+    }
 }

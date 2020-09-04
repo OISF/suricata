@@ -288,6 +288,8 @@ void HTPConfigure(void);
 void HtpConfigCreateBackup(void);
 void HtpConfigRestoreBackup(void);
 
+void *HtpGetTxForH2(void *);
+
 #endif	/* __APP_LAYER_HTP_H__ */
 
 /**
