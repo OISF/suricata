@@ -675,10 +675,10 @@ typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, voi
                             int mapfd, int cpus_count);
 
 /**
- * Bypassed flows cleaning for IPv4
+ * Bypassed flows iterator for IPv4
  *
  * This function iterates on all the flows of the IPv4 table
- * looking for timeouted flow to delete from the flow table.
+ * running a callback function on each flow.
  */
 static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
                                   struct timespec *ctime,
@@ -784,10 +784,10 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
 }
 
 /**
- * Bypassed flows cleaning for IPv6
+ * Bypassed flows iterator for IPv6
  *
  * This function iterates on all the flows of the IPv4 table
- * looking for timeouted flow to delete from the flow table.
+ * running a callback function on each flow.
  */
 static int EBPFForEachFlowV6Table(ThreadVars *th_v,
                                   LiveDevice *dev, const char *name,
