@@ -1710,6 +1710,7 @@ static int DNP3ParserTestCheckCRC(void)
     FAIL_IF(!DNP3CheckCRC(request + sizeof(DNP3LinkHeader),
             DNP3_BLOCK_SIZE + DNP3_CRC_LEN));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Change a byte in link header, should fail now. */
     request[2]++;
     FAIL_IF(DNP3CheckCRC(request, sizeof(DNP3LinkHeader)));
@@ -1719,6 +1720,7 @@ static int DNP3ParserTestCheckCRC(void)
     request[sizeof(DNP3LinkHeader) + 3]++;
     FAIL_IF(DNP3CheckCRC(request + sizeof(DNP3LinkHeader),
             DNP3_BLOCK_SIZE + DNP3_CRC_LEN));
+#endif
 
     PASS;
 }
@@ -1778,6 +1780,7 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x01, /* Invalid byte. */
         0xff, 0xff, /* CRC. */
     };
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     FAIL_IF(DNP3CheckUserDataCRCs(data_invalid, sizeof(data_invalid)));
 
     /* 1 byte - need at least 3. */
@@ -1787,6 +1790,7 @@ static int DNP3CheckUserDataCRCsTest(void)
     /* 2 bytes - need at least 3. */
     uint8_t two_byte_nocrc[] = { 0x01, 0x02 };
     FAIL_IF(DNP3CheckUserDataCRCs(two_byte_nocrc, sizeof(two_byte_nocrc)));
+#endif
 
     /* 3 bytes, valid CRC. */
     uint8_t three_bytes_good_crc[] = { 0x00, 0x00, 0x00 };
@@ -1882,9 +1886,11 @@ static int DNP3ParserCheckLinkHeaderCRC(void)
     DNP3LinkHeader *header = (DNP3LinkHeader *)request;
     FAIL_IF(!DNP3CheckLinkHeaderCRC(header));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Alter a byte in the header. */
     request[4] = 0;
     FAIL_IF(DNP3CheckLinkHeaderCRC(header));
+#endif
 
     PASS;
 }
