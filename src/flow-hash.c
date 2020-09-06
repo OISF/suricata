@@ -849,20 +849,25 @@ static inline int FlowCompareKey(Flow *f, FlowKey *key)
  *  \retval f *LOCKED* flow or NULL
  */
 
-Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash)
+Flow *FlowGetFromFlowKey(ThreadVars *th_v, FlowLookupStruct *fls, FlowKey *key, struct timespec *ttime,
+                         const uint32_t hash)
 {
     Flow *f = FlowGetExistingFlowFromHash(key, hash);
 
     if (f != NULL) {
         return f;
     }
-    /* TODO use spare pool */
-    /* now see if we can alloc a new flow */
-    f = FlowAlloc();
+
+    /* get a flow from the spare queue */
+    f = FlowQueuePrivateGetFromTop(&fls->spare_queue);
     if (f == NULL) {
-        SCLogDebug("Can't get a spare flow at start");
-        return NULL;
+        f = FlowAlloc();
+        if (f == NULL) {
+            SCLogDebug("Can't get a spare flow at start");
+            return NULL;
+        }
     }
+
     f->proto = key->proto;
     f->vlan_id[0] = key->vlan_id[0];
     f->vlan_id[1] = key->vlan_id[1];
