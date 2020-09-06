@@ -26,6 +26,7 @@
 #include "flow.h"
 #include "flow-bypass.h"
 #include "flow-private.h"
+#include "flow-util.h"
 #include "util-ebpf.h"
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
@@ -43,6 +44,7 @@ typedef struct BypassedFlowManagerThreadData_ {
     uint16_t flow_bypassed_cnt_clo;
     uint16_t flow_bypassed_pkts;
     uint16_t flow_bypassed_bytes;
+    FlowLookupStruct fls;
 } BypassedFlowManagerThreadData;
 
 #define BYPASSFUNCMAX   4
@@ -77,7 +79,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 
     for (i = 0; i < g_bypassed_func_max_index; i++) {
         if (bypassedfunclist[i].FuncInit) {
-            bypassedfunclist[i].FuncInit(th_v, &curtime, bypassedfunclist[i].data);
+            bypassedfunclist[i].FuncInit(th_v, &ftd->fls, &curtime, bypassedfunclist[i].data);
         }
     }
 
@@ -142,8 +144,14 @@ static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata
 
 static TmEcode BypassedFlowManagerThreadDeinit(ThreadVars *t, void *data)
 {
-    if (data)
+    BypassedFlowManagerThreadData *fmt = data;
+    if (data) {
+        Flow *f;
+        while ((f = FlowQueuePrivateGetFromTop(&fmt->fls.spare_queue)) != NULL) {
+            FlowFree(f);
+        }
         SCFree(data);
+    }
     return TM_ECODE_OK;
 }
 

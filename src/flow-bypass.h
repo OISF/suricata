@@ -33,8 +33,8 @@ struct flows_stats {
 typedef int (*BypassedCheckFunc)(ThreadVars *th_v,
                                  struct flows_stats *bypassstats,
                                  struct timespec *curtime, void *data);
-typedef int (*BypassedCheckFuncInit)(ThreadVars *th_v,
-                                     struct timespec *curtime, void *data);
+typedef int (*BypassedCheckFuncInit)(
+        ThreadVars *th_v, FlowLookupStruct *fls, struct timespec *curtime, void *data);
 typedef int (*BypassedUpdateFunc)(Flow *f, Packet *p, void *data);
 
 void FlowAddToBypassed(Flow *f);

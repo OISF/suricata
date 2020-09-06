@@ -81,7 +81,8 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 int EBPFCheckBypassedFlowTimeout(ThreadVars *th_v, struct flows_stats *bypassstats,
                                         struct timespec *curtime,
                                         void *data);
-int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data);
+int EBPFCheckBypassedFlowCreate(
+        ThreadVars *th_v, FlowLookupStruct *fls, struct timespec *curtime, void *data);
 
 void EBPFRegisterExtension(void);
 

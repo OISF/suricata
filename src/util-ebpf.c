@@ -501,15 +501,14 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
  *
  * \return false (this create function never returns true)
  */
-static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev, void *key,
-                                 size_t skey, FlowKey *flow_key, struct timespec *ctime,
-                                 uint64_t pkts_cnt, uint64_t bytes_cnt,
-                                 int mapfd, int cpus_count)
+static bool EBPFCreateFlowForKey(ThreadVars *th_v, FlowLookupStruct *fls,
+        struct flows_stats *flowstats, LiveDevice *dev, void *key, size_t skey, FlowKey *flow_key,
+        struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt, int mapfd, int cpus_count)
 {
     Flow *f = NULL;
     uint32_t hash = FlowKeyGetHash(flow_key);
 
-    f = FlowGetFromFlowKey(flow_key, ctime, hash);
+    f = FlowGetFromFlowKey(th_v, fls, flow_key, ctime, hash);
     if (f == NULL)
         return false;
 
@@ -669,10 +668,9 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     return false;
 }
 
-typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, void *key,
-                            size_t skey, FlowKey *flow_key, struct timespec *ctime,
-                            uint64_t pkts_cnt, uint64_t bytes_cnt,
-                            int mapfd, int cpus_count);
+typedef bool (*OpFlowForKey)(ThreadVars *th_v, FlowLookupStruct *fls, struct flows_stats *flowstats,
+        LiveDevice *dev, void *key, size_t skey, FlowKey *flow_key, struct timespec *ctime,
+        uint64_t pkts_cnt, uint64_t bytes_cnt, int mapfd, int cpus_count);
 
 /**
  * Bypassed flows iterator for IPv4
@@ -680,11 +678,9 @@ typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, voi
  * This function iterates on all the flows of the IPv4 table
  * running a callback function on each flow.
  */
-static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
-                                  struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg,
-                                  OpFlowForKey EBPFOpFlowForKey
-                                  )
+static int EBPFForEachFlowV4Table(ThreadVars *th_v, FlowLookupStruct *fls, LiveDevice *dev,
+        const char *name, struct timespec *ctime, struct ebpf_timeout_config *tcfg,
+        OpFlowForKey EBPFOpFlowForKey)
 {
     struct flows_stats flowstats = { 0, 0, 0};
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
@@ -758,9 +754,8 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
-                                     ctime, pkts_cnt, bytes_cnt,
-                                     mapfd, tcfg->cpus_count);
+        dead_flow = EBPFOpFlowForKey(th_v, fls, &flowstats, dev, &next_key, sizeof(next_key),
+                &flow_key, ctime, pkts_cnt, bytes_cnt, mapfd, tcfg->cpus_count);
         if (dead_flow) {
             found = 1;
         }
@@ -789,12 +784,9 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
  * This function iterates on all the flows of the IPv4 table
  * running a callback function on each flow.
  */
-static int EBPFForEachFlowV6Table(ThreadVars *th_v,
-                                  LiveDevice *dev, const char *name,
-                                  struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg,
-                                  OpFlowForKey EBPFOpFlowForKey
-                                  )
+static int EBPFForEachFlowV6Table(ThreadVars *th_v, FlowLookupStruct *fls, LiveDevice *dev,
+        const char *name, struct timespec *ctime, struct ebpf_timeout_config *tcfg,
+        OpFlowForKey EBPFOpFlowForKey)
 {
     struct flows_stats flowstats = { 0, 0, 0};
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
@@ -875,9 +867,8 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
-                                    ctime, pkts_cnt, bytes_cnt,
-                                    mapfd, tcfg->cpus_count);
+        pkts_cnt = EBPFOpFlowForKey(th_v, fls, &flowstats, dev, &next_key, sizeof(next_key),
+                &flow_key, ctime, pkts_cnt, bytes_cnt, mapfd, tcfg->cpus_count);
         if (pkts_cnt > 0) {
             found = 1;
         }
@@ -899,18 +890,16 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
     return found;
 }
 
-
-int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data)
+int EBPFCheckBypassedFlowCreate(
+        ThreadVars *th_v, FlowLookupStruct *fls, struct timespec *curtime, void *data)
 {
     LiveDevice *ldev = NULL, *ndev;
     struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
     while(LiveDeviceForEach(&ldev, &ndev)) {
-        EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
-                curtime,
-                cfg, EBPFCreateFlowForKey);
-        EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
-                curtime,
-                cfg, EBPFCreateFlowForKey);
+        EBPFForEachFlowV4Table(
+                th_v, fls, ldev, "flow_table_v4", curtime, cfg, EBPFCreateFlowForKey);
+        EBPFForEachFlowV6Table(
+                th_v, fls, ldev, "flow_table_v6", curtime, cfg, EBPFCreateFlowForKey);
     }
 
     return 0;
