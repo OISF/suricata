@@ -185,9 +185,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     return 0;
 }
 
-AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias)
+int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias)
 {
     AppLayerProtoDetectRegisterAlias(proto_name, proto_alias);
+
+    return 0;
 }
 
 static const char * IpProtoToString(int ip_proto)
