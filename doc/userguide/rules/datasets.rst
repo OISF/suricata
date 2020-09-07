@@ -1,9 +1,6 @@
 Datasets
 ========
 
-.. warning:: This is an experimental feature. Syntax and functionality may
-             change in future releases.
-
 Using the ``dataset`` and ``datarep`` keyword it is possible to match on
 large amounts of data against any sticky buffer.
 
@@ -59,14 +56,15 @@ Syntax::
 
 type <type>
   the data type: string, md5, sha256
-save <file name>
-  file name for saving the in-memory data when Suricata exits
 load <file name>
   file name for load the data when Suricata starts up
 state
-  sets both 'save' and 'load' to the same value
+  sets file name for loading and saving a dataset
+save <file name>
+  advanced option to set the file name for saving the in-memory data
+  when Suricata exits.
 
-.. note:: 'load' or 'load' plus 'save' and 'state' cannot be mixed.
+.. note:: 'load' and 'state' or 'save' and 'state' cannot be mixed.
 
 datarep
 ~~~~~~~
@@ -88,6 +86,18 @@ In these examples the DNS query string is checked against three different
 reputation lists. A MD5 list, a SHA256 list, and a raw string (buffer) list.
 The rules will only match if the data is in the list and the reputation
 value is higher than 200.
+
+
+Rule Reloads
+------------
+
+Sets that are defined in the yaml, or sets that only use `state` or `save`, are
+considered `dynamic` sets. These are not reloaded during rule reloads.
+
+Sets that are defined in rules using only `load` are considered `static` tests.
+These are not expected to change during runtime. During rule reloads these are
+reloaded from disk. This reload is effective when the complete rule reload
+process is complete.
 
 
 Unix Socket
@@ -114,6 +124,22 @@ Example adding 'google.com' to set 'myset'::
 
     dataset-add myset string Z29vZ2xlLmNvbQ==
 
+dataset-remove
+~~~~~~~~~~~~~~
+
+Unix Socket command to remove data from a set. On success, the removal becomes
+active instantly.
+
+Syntax::
+
+    dataset-remove <set name> <set type> <data>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256
+data
+  Data to remove in serialized form (base64 for string, hex notation for md5/sha256)
 
 File formats
 ------------
