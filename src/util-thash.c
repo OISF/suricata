@@ -753,6 +753,9 @@ static THashData *THashGetUsed(THashTableContext *ctx)
         h->prev = NULL;
         HRLOCK_UNLOCK(hb);
 
+        if (h->data != NULL) {
+            ctx->config.DataFree(h->data);
+        }
         SCMutexUnlock(&h->m);
 
         (void) SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));
