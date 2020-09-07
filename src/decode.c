@@ -407,6 +407,9 @@ void PacketDefragPktSetupParent(Packet *parent)
  */
 void PacketBypassCallback(Packet *p)
 {
+    if (PKT_IS_PSEUDOPKT(p))
+        return;
+
 #ifdef CAPTURE_OFFLOAD
     /* Don't try to bypass if flow is already out or
      * if we have failed to do it once */
