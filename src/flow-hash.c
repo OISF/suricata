@@ -506,9 +506,7 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
         f = FlowQueuePrivateGetFromTop(&fls->spare_queue);
         spare_sync = true;
     }
-#ifdef UNITTESTS
     if (tv && fls->dtv) {
-#endif
         if (spare_sync) {
             if (f != NULL) {
                 StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len+1);
@@ -520,9 +518,7 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
             }
             StatsIncr(tv, fls->dtv->counter_flow_spare_sync);
         }
-#ifdef UNITTESTS
     }
-#endif
     return f;
 }
 
