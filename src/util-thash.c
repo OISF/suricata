@@ -473,6 +473,10 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
                 return NULL;
             }
 
+            if (!SC_ATOMIC_GET(ctx->memcap_reached)) {
+                SC_ATOMIC_SET(ctx->memcap_reached, true);
+            }
+
             /* freed data, but it's unlocked */
         } else {
             /* now see if we can alloc a new data */

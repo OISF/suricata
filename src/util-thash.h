@@ -152,6 +152,8 @@ typedef struct THashTableContext_ {
 
     THashConfig config;
 
+    /* flag set if memcap was reached at least once. */
+    SC_ATOMIC_DECLARE(bool, memcap_reached);
 } THashTableContext;
 
 /** \brief check if a memory alloc would fit in the memcap
