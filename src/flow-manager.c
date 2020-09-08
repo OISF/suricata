@@ -332,7 +332,7 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
                 f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
                 FlowForceReassemblyNeedReassembly(f) == 1)
         {
-            FlowForceReassemblyForFlow(f); // TODO error check?
+            FlowForceReassemblyForFlow(f);
             /* flow ownership is passed to the worker thread */
 
             /* flow remains locked */

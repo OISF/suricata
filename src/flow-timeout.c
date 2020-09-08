@@ -345,11 +345,10 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
  *
  * \retval 0 This flow doesn't need any reassembly processing; 1 otherwise.
  */
-int FlowForceReassemblyForFlow(Flow *f)
+void FlowForceReassemblyForFlow(Flow *f)
 {
     const int thread_id = (int)f->thread_id[0];
     TmThreadsInjectFlowById(f, thread_id);
-    return 1;
 }
 
 /**
