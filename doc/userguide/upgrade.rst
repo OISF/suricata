@@ -49,6 +49,9 @@ Removals
 ~~~~~~~~
 - File-store v1 has been removed. If using file extraction, the file-store configuration
   will need to be updated to version 2. See :ref:`filestore-update-v1-to-v2`.
+- Individual Eve (JSON) loggers have been removed. For example,
+  ``stats-json``, ``dns-json``, etc. Use multiple Eve logger instances
+  if this behavior is still required. See :ref:`multiple-eve-instances`.
 
 Upgrading 4.1 to 5.0
 --------------------

@@ -353,6 +353,8 @@ The example above rotates eve-log each 30 seconds. This could be replaced with
 ``30m`` to rotate every 30 minutes, ``30h`` to rotate every 30 hours, ``30d``
 to rotate every 30 days, or ``30w`` to rotate every 30 weeks.
 
+.. _multiple-eve-instances:
+
 Multiple Logger Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
