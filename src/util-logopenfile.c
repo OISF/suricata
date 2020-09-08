@@ -736,8 +736,10 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     thread->threaded = false;
     thread->parent = parent_ctx;
     thread->id = thread_id;
+    thread->is_regular = true;
     thread->Write = SCLogFileWriteNoLock;
     thread->Close = SCLogFileCloseNoLock;
+    OutputRegisterFileRotationFlag(&thread->rotation_flag);
 
     parent_ctx->threads->lf_slots[thread_id] = thread;
     return true;
