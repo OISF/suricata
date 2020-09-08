@@ -736,8 +736,10 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     thread->threaded = false;
     thread->parent = parent_ctx;
     thread->id = thread_id;
+    thread->is_regular = true;
     thread->Write = SCLogFileWriteNoLock;
     thread->Close = SCLogFileCloseNoLock;
+    OutputRegisterFileRotationFlag(&thread->rotation_flag);
 
     parent_ctx->threads->lf_slots[thread_id] = thread;
     return true;
@@ -767,6 +769,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexDestroy(&lf_ctx->threads->mutex);
         for(int i = 0; i < lf_ctx->threads->slot_count; i++) {
             if (lf_ctx->threads->lf_slots[i]) {
+                OutputUnregisterFileRotationFlag(&lf_ctx->threads->lf_slots[i]->rotation_flag);
                 SCFree(lf_ctx->threads->lf_slots[i]->filename);
                 SCFree(lf_ctx->threads->lf_slots[i]);
             }
@@ -801,7 +804,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     if (lf_ctx->sensor_name)
         SCFree(lf_ctx->sensor_name);
 
-    OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
+    if (!lf_ctx->threaded) {
+        OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
+    }
 
     SCFree(lf_ctx);
 
