@@ -534,6 +534,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td,
         cnt += ProcessAsideQueue(td, counters);
     }
     counters->flows_removed += cnt;
+    /* coverity[missing_unlock : FALSE] */
     return cnt;
 }
 
