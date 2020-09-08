@@ -68,6 +68,7 @@
 #include "ippair-timeout.h"
 
 #include "output-flow.h"
+#include "util-validate.h"
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
@@ -425,7 +426,7 @@ static void FlowManagerHashRowClearEvictedList(FlowManagerTimeoutThread *td,
         f->next = NULL;
         f->fb = NULL;
 
-        BUG_ON(f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters));
+        DEBUG_VALIDATE_BUG_ON(f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters));
 
         FlowQueuePrivateAppendFlow(&td->aside_queue, f);
         /* flow is still locked in the queue */
