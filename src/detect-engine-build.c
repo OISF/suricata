@@ -1858,6 +1858,12 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         }
         SCFree(s->init_data->smlists);
         SCFree(s->init_data->smlists_tail);
+        for (i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
+            if (s->init_data->transforms.transforms[i].options) {
+                SCFree(s->init_data->transforms.transforms[i].options);
+                s->init_data->transforms.transforms[i].options = NULL;
+            }
+        }
         SCFree(s->init_data);
         s->init_data = NULL;
     }
