@@ -39,6 +39,8 @@ static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature 
 static void DetectTransformCompressWhitespaceRegisterTests(void);
 #endif
 static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options);
+static bool TransformCompressWhitespaceValidate(
+        const uint8_t *content, uint16_t content_len, void *options);
 
 void DetectTransformCompressWhitespaceRegister(void)
 {
@@ -50,6 +52,8 @@ void DetectTransformCompressWhitespaceRegister(void)
         "/rules/transforms.html#compress-whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform =
         TransformCompressWhitespace;
+    sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].TransformValidate =
+            TransformCompressWhitespaceValidate;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Setup =
         DetectTransformCompressWhitespaceSetup;
 #ifdef UNITTESTS
@@ -73,6 +77,30 @@ static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *de_ctx, Sign
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_COMPRESS_WHITESPACE, NULL);
     SCReturnInt(r);
+}
+
+/*
+ *  \brief Validate content bytes to see if it's compatible with this transform
+ *  \param content Byte array to check for compatibility
+ *  \param content_len Number of bytes to check
+ *  \param options Ignored
+ *  \retval false If the string contains spaces
+ *  \retval true Otherwise.
+ */
+static bool TransformCompressWhitespaceValidate(
+        const uint8_t *content, uint16_t content_len, void *options)
+{
+    if (content) {
+        for (uint32_t i = 0; i < content_len; i++) {
+            if (!isspace(*content++)) {
+                continue;
+            }
+            if ((i + 1) < content_len && isspace(*content)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
@@ -132,7 +160,7 @@ static int DetectTransformCompressWhitespaceTest01(void)
     uint32_t input_len = strlen((char *)input);
 
     InspectionBuffer buffer;
-    InspectionBufferInit(&buffer, 8);
+    InspectionBufferInit(&buffer, 9);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformCompressWhitespace(&buffer, NULL);
@@ -147,7 +175,7 @@ static int DetectTransformCompressWhitespaceTest02(void)
     uint32_t input_len = strlen((char *)input);
 
     InspectionBuffer buffer;
-    InspectionBufferInit(&buffer, 8);
+    InspectionBufferInit(&buffer, 9);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
@@ -160,11 +188,42 @@ static int DetectTransformCompressWhitespaceTest02(void)
     PASS;
 }
 
+static int DetectTransformCompressWhitespaceTest03(void)
+{
+    const uint8_t *input = (const uint8_t *)" A B C D  ";
+    uint32_t input_len = strlen((char *)input);
+
+    InspectionBuffer buffer;
+    InspectionBufferInit(&buffer, 10);
+    InspectionBufferSetup(&buffer, input, input_len);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    FAIL_IF(TransformCompressWhitespaceValidate(buffer.inspect, buffer.inspect_len, NULL));
+    PASS;
+}
+
+static int DetectTransformCompressWhitespaceTest04(void)
+{
+    const uint8_t *input = (const uint8_t *)" A B C D ";
+    uint32_t input_len = strlen((char *)input);
+
+    InspectionBuffer buffer;
+    InspectionBufferInit(&buffer, 9);
+    InspectionBufferSetup(&buffer, input, input_len);
+    TransformDoubleWhitespace(&buffer);
+    PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    FAIL_IF(TransformCompressWhitespaceValidate(buffer.inspect, buffer.inspect_len, NULL));
+    PASS;
+}
+
 static void DetectTransformCompressWhitespaceRegisterTests(void)
 {
     UtRegisterTest("DetectTransformCompressWhitespaceTest01",
             DetectTransformCompressWhitespaceTest01);
     UtRegisterTest("DetectTransformCompressWhitespaceTest02",
             DetectTransformCompressWhitespaceTest02);
+    UtRegisterTest(
+            "DetectTransformCompressWhitespaceTest03", DetectTransformCompressWhitespaceTest03);
+    UtRegisterTest(
+            "DetectTransformCompressWhitespaceTest04", DetectTransformCompressWhitespaceTest04);
 }
 #endif
