@@ -52,6 +52,7 @@ Removals
 - Individual Eve (JSON) loggers have been removed. For example,
   ``stats-json``, ``dns-json``, etc. Use multiple Eve logger instances
   if this behavior is still required. See :ref:`multiple-eve-instances`.
+- Unified2 has been removed. See :ref:`unified2-removed`.
 
 Upgrading 4.1 to 5.0
 --------------------
