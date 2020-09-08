@@ -264,7 +264,7 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
     if (snprintf(path, sizeof(path), "%s/%s", dir, load) >= (int)sizeof(path)) // TODO windows path
         return -1;
 
-    if (SCPathExists(load)) {
+    if (SCPathExists(path)) {
         done = true;
         strlcpy(load, path, load_size);
         SCLogDebug("using path '%s' (HAVE_LIBGEN_H)", load);
