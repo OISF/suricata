@@ -285,7 +285,14 @@ fn http2_frame_header_static(
         });
     } else {
         //use dynamic table
-        if dyn_headers.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
+        if n == 0 {
+            return Some(HTTP2FrameHeaderBlock {
+                name: Vec::new(),
+                value: Vec::new(),
+                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0,
+                sizeupdate: 0,
+            });
+        } else if dyn_headers.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
             return Some(HTTP2FrameHeaderBlock {
                 name: Vec::new(),
                 value: Vec::new(),
@@ -313,6 +320,7 @@ pub enum HTTP2HeaderDecodeStatus {
     HTTP2HeaderDecodeError = 0x80,
     HTTP2HeaderDecodeNotIndexed = 0x81,
     HTTP2HeaderDecodeIntegerOverflow = 0x82,
+    HTTP2HeaderDecodeIndex0 = 0x83,
 }
 
 impl fmt::Display for HTTP2HeaderDecodeStatus {
@@ -939,6 +947,21 @@ mod tests {
                 assert_eq!(hd.name, ":authority".as_bytes().to_vec());
                 assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec());
                 // And we should have no bytes left.
+                assert_eq!(remainder.len(), 0);
+                assert_eq!(dynh.len(), 2);
+            }
+            Err(Err::Incomplete(_)) => {
+                panic!("Result should not have been incomplete.");
+            }
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+        let buf4: &[u8] = &[0x80];
+        let r4 = http2_parse_headers_block(buf4, &mut dynh);
+        match r4 {
+            Ok((remainder, hd)) => {
+                assert_eq!(hd.error, HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0);
                 assert_eq!(remainder.len(), 0);
                 assert_eq!(dynh.len(), 2);
             }
