@@ -659,12 +659,9 @@ pub fn parse_message(input: &[u8], protocol_version: u8, max_msg_size: usize) ->
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
-    #[test]
-    fn test_mqtt_parse_variable_integer() {
-        let buf0: &[u8] = &[0xFF, 0xFF, 0xFF, 0xFF];
+    fn test_mqtt_parse_variable_fail(buf0: &[u8]) {
         let r0 = parse_mqtt_variable_integer(buf0);
         match r0 {
             Ok((_, _)) => {
@@ -677,5 +674,37 @@ mod tests {
                 panic!("Result should be an error.");
             }
         }
+    }
+
+    fn test_mqtt_parse_variable_check(buf0: &[u8], expected: u32) {
+        let r0 = parse_mqtt_variable_integer(buf0);
+        match r0 {
+            Ok((_, val)) => {
+                assert_eq!(val, expected);
+            }
+            Err(_) => {
+                panic!("Result should have been ok.");
+            }
+        }
+    }
+
+    #[test]
+    fn test_mqtt_parse_variable_integer_largest_input() {
+        test_mqtt_parse_variable_fail(&[0xFF, 0xFF, 0xFF, 0xFF]);
+    }
+
+    #[test]
+    fn test_mqtt_parse_variable_integer_boundary() {
+        test_mqtt_parse_variable_fail(&[0xFF, 0xFF, 0xFF, 0x80]);
+    }
+
+    #[test]
+    fn test_mqtt_parse_variable_integer_largest_valid() {
+        test_mqtt_parse_variable_check(&[0xFF, 0xFF, 0xFF, 0x7F], 268435455);
+    }
+
+    #[test]
+    fn test_mqtt_parse_variable_integer_smallest_valid() {
+        test_mqtt_parse_variable_check(&[0x0], 0);
     }
 }
