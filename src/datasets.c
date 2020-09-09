@@ -357,6 +357,8 @@ static int DatasetLoadString(Dataset *set)
         }
     }
 
+    // TODO figure out how to reset memcap after load is finished, a reset function? a macro?
+
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
@@ -644,12 +646,16 @@ int DatasetsInit(void)
             }
 
             ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
-            if (StringParseUint64(&memcap, 10, 0, set_memcap->val) < 0) {
-                FatalError(SC_ERR_FATAL, "memcap value cannot be deduced: %s", set_memcap->val);
+            if (set_memcap) {
+                if (StringParseUint64(&memcap, 10, 0, set_memcap->val) < 0) {
+                    FatalError(SC_ERR_FATAL, "memcap value cannot be deduced: %s", set_memcap->val);
+                }
             }
             ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
-            if (StringParseUint32(&hashsize, 10, 0, set_hashsize->val) < 0) {
-                FatalError(SC_ERR_FATAL, "hashsize value cannot be deduced: %s", set_hashsize->val);
+            if (set_hashsize) {
+                if (StringParseUint32(&hashsize, 10, 0, set_hashsize->val) < 0) {
+                    FatalError(SC_ERR_FATAL, "hashsize value cannot be deduced: %s", set_hashsize->val);
+                }
             }
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
