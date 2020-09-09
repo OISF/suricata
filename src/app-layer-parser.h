@@ -257,6 +257,8 @@ int AppLayerParserIsEnabled(AppProto alproto);
 
 /***** Cleanup *****/
 
+void AppLayerParserStateProtoCleanup(
+        uint8_t protomap, AppProto alproto, void *alstate, AppLayerParserState *pstate);
 void AppLayerParserStateCleanup(const Flow *f, void *alstate, AppLayerParserState *pstate);
 
 void AppLayerParserRegisterProtocolParsers(void);
