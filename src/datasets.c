@@ -177,7 +177,7 @@ static int DatasetLoadMd5(Dataset *set)
         /* straight black/white list */
         if (strlen(line) == 33) {
             line[strlen(line) - 1] = '\0';
-            //SCLogDebug("line: '%s'", line);
+            SCLogDebug("line: '%s'", line);
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0)
@@ -216,6 +216,7 @@ static int DatasetLoadMd5(Dataset *set)
                     (uint32_t)strlen(line), line);
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -246,7 +247,7 @@ static int DatasetLoadSha256(Dataset *set)
         /* straight black/white list */
         if (strlen(line) == 65) {
             line[strlen(line) - 1] = '\0';
-//            SCLogDebug("line: '%s'", line);
+            SCLogDebug("line: '%s'", line);
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0)
@@ -281,6 +282,7 @@ static int DatasetLoadSha256(Dataset *set)
             cnt++;
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -314,7 +316,7 @@ static int DatasetLoadString(Dataset *set)
         char *r = strchr(line, ',');
         if (r == NULL) {
             line[strlen(line) - 1] = '\0';
-//            SCLogDebug("line: '%s'", line);
+            SCLogDebug("line: '%s'", line);
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
@@ -329,7 +331,7 @@ static int DatasetLoadString(Dataset *set)
             cnt++;
         } else {
             line[strlen(line) - 1] = '\0';
-//            SCLogDebug("line: '%s'", line);
+            SCLogDebug("line: '%s'", line);
 
             *r = '\0';
 
@@ -356,8 +358,7 @@ static int DatasetLoadString(Dataset *set)
             SCLogDebug("line with rep %s, %s", line, r);
         }
     }
-
-    // TODO figure out how to reset memcap after load is finished, a reset function? a macro?
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);

@@ -329,6 +329,14 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     return ctx;
 }
 
+/* \brief Set memcap to current memuse
+ * */
+void THashConsolidateMemcap(THashTableContext *ctx)
+{
+    ctx->config.memcap = SC_ATOMIC_GET(ctx->memuse);
+    SCLogDebug("memcap after load set to: %lu", ctx->config.memcap);
+}
+
 /** \brief shutdown the flow engine
  *  \warning Not thread safe */
 void THashShutdown(THashTableContext *ctx)
