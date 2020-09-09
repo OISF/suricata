@@ -96,7 +96,8 @@ static int DetectDatarepParse(const char *str,
         char *name, int name_len,
         enum DatasetTypes *type,
         char *load, size_t load_size,
-        uint16_t *rep_value)
+        uint16_t *rep_value,
+        uint64_t *memcap, uint32_t *hashsize)
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -168,6 +169,18 @@ static int DetectDatarepParse(const char *str,
             } else if (strcmp(key, "load") == 0) {
                 SCLogDebug("load %s", val);
                 strlcpy(load, val, load_size);
+            }
+            if (strcmp(key, "memcap") == 0) {
+                if (StringParseUint64(memcap, 10, 0, val) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for memcap: %s", val);
+                    return -1;
+                }
+            }
+            if (strcmp(key, "hashsize") == 0) {
+                if (StringParseUint32(hashsize, 10, 0, val) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for hashsize: %s", val);
+                    return -1;
+                }
             }
         }
 
@@ -279,6 +292,8 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
     char load[PATH_MAX];
     uint16_t value = 0;
+    uint64_t memcap = 0;
+    uint32_t hashsize = 0;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
@@ -294,7 +309,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (!DetectDatarepParse(rawstr, cmd_str, sizeof(cmd_str), name,
-            sizeof(name), &type, load, sizeof(load), &value)) {
+            sizeof(name), &type, load, sizeof(load), &value, &memcap, &hashsize)) {
         return -1;
     }
 
@@ -316,7 +331,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load);
+    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load, memcap, hashsize);
     if (set == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE,
                 "failed to set up datarep set '%s'.", name);

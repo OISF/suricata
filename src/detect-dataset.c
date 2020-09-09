@@ -37,6 +37,7 @@
 
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-byte.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static DetectParseRegex parse_regex;
@@ -104,7 +105,8 @@ static int DetectDatasetParse(const char *str,
         char *name, int name_len,
         enum DatasetTypes *type,
         char *load, size_t load_size,
-        char *save, size_t save_size)
+        char *save, size_t save_size,
+        uint64_t *memcap, uint32_t *hashsize) // TODO datatype for hashsize?
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -117,6 +119,7 @@ static int DetectDatasetParse(const char *str,
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
     while (key != NULL) {
+        SCLogDebug("key: %s", key);
         while (*key != '\0' && isblank(*key)) {
             key++;
         }
@@ -181,7 +184,7 @@ static int DetectDatasetParse(const char *str,
                         "'load' can only appear once");
                     return -1;
                 }
-                SCLogDebug("load %s", val);
+                SCLogDebug("load %s size: %lu", val, load_size);
                 strlcpy(load, val, load_size);
                 load_set = true;
             } else if (strcmp(key, "state") == 0) {
@@ -194,6 +197,18 @@ static int DetectDatasetParse(const char *str,
                 strlcpy(load, val, load_size);
                 strlcpy(save, val, save_size);
                 state_set = true;
+            }
+            if (strcmp(key, "memcap") == 0) {
+                if (StringParseUint64(memcap, 10, 0, val) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for memcap: %s", val);
+                    return -1;
+                }
+            }
+            if (strcmp(key, "hashsize") == 0) {
+                if (StringParseUint32(hashsize, 10, 0, val) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for hashsize: %s", val);
+                    return -1;
+                }
             }
         }
 
@@ -314,6 +329,8 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     DetectDatasetData *cd = NULL;
     SigMatch *sm = NULL;
     uint8_t cmd = 0;
+    uint64_t memcap = 0;
+    uint32_t hashsize = 0;
     char cmd_str[16] = "", name[DATASET_NAME_MAX_LEN + 1] = "";
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
     char load[PATH_MAX] = "";
@@ -333,7 +350,8 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
 
     if (!DetectDatasetParse(rawstr, cmd_str, sizeof(cmd_str), name,
-            sizeof(name), &type, load, sizeof(load), save, sizeof(save))) {
+            sizeof(name), &type, load, sizeof(load), save, sizeof(save),
+            &memcap, &hashsize)) {
         return -1;
     }
 
@@ -371,7 +389,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
 
     SCLogDebug("name '%s' load '%s' save '%s'", name, load, save);
-    Dataset *set = DatasetGet(name, type, save, load);
+    Dataset *set = DatasetGet(name, type, save, load, memcap, hashsize);
     if (set == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                 "failed to set up dataset '%s'.", name);
