@@ -594,10 +594,26 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         f->alproto_orig = f->alproto;
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
+        void *alstate_orig = f->alstate;
+        AppLayerParserState *alparser = f->alparser;
+        // we delay AppLayerParserStateCleanup because we may need previous parser state
         AppLayerProtoDetectReset(f);
+        StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+        StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->server);
         /* rerun protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
-                           data, data_len, flags) != 0) {
+        int rd = TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags);
+        if (f->alproto == ALPROTO_UNKNOWN) {
+            // not enough data, revert AppLayerProtoDetectReset to rerun detection
+            f->alparser = alparser;
+            f->alstate = alstate_orig;
+            f->alproto = f->alproto_orig;
+            f->alproto_tc = f->alproto_orig;
+            f->alproto_ts = f->alproto_orig;
+        } else {
+            FlowUnsetChangeProtoFlag(f);
+            AppLayerParserStateProtoCleanup(f->protomap, f->alproto_orig, alstate_orig, alparser);
+        }
+        if (rd != 0) {
             SCLogDebug("proto detect failure");
             goto failure;
         }
