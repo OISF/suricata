@@ -475,6 +475,7 @@
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
+    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo $rust_compiler_version | grep -q nightly])
     AC_PROG_CXX
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
         AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
