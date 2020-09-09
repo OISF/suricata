@@ -172,8 +172,6 @@ typedef struct HtpTxUserData_ {
     HtpBody request_body;
     HtpBody response_body;
 
-    bstr *request_uri_normalized;
-
     uint8_t *request_headers_raw;
     uint8_t *response_headers_raw;
     uint32_t request_headers_raw_len;

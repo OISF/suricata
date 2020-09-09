@@ -218,15 +218,13 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
-        HtpTxUserData *tx_ud = htp_tx_user_data(tx);
-
-        if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL) {
-            SCLogDebug("no tx_id or uri");
+        HtpState *htp_state = htp_connp_user_data(htp_tx_connp(tx));
+        bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx, htp_state->cfg->uri_include_all);
+        if (request_uri_normalized == NULL)
             return NULL;
-        }
 
-        const uint32_t data_len = bstr_len(tx_ud->request_uri_normalized);
-        const uint8_t *data = bstr_ptr(tx_ud->request_uri_normalized);
+        const uint32_t data_len = bstr_len(request_uri_normalized);
+        const uint8_t *data = bstr_ptr(request_uri_normalized);
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
