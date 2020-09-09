@@ -755,6 +755,7 @@ impl HTTP2State {
 
     fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
         //very first : skip magic
+        let mut magic_consumed = 0;
         if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
             //skip magic
             if input.len() >= HTTP2_MAGIC_LEN {
@@ -762,6 +763,7 @@ impl HTTP2State {
                 match std::str::from_utf8(&input[..HTTP2_MAGIC_LEN]) {
                     Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
                         input = &input[HTTP2_MAGIC_LEN..];
+                        magic_consumed = HTTP2_MAGIC_LEN;
                     }
                     Ok(&_) => {
                         self.set_event(HTTP2Event::InvalidClientMagic);
@@ -791,7 +793,13 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        return self.parse_frames(input, il, STREAM_TOSERVER);
+        let r = self.parse_frames(input, il, STREAM_TOSERVER);
+        if r.status == 1 {
+            //adds bytes consumed by banner to incomplete result
+            return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
+        } else {
+            return r;
+        }
     }
 
     fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
