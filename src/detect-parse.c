@@ -2463,7 +2463,7 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
 
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
 {
-    const char *eb;
+    const char *eb = NULL;
     int eo;
 
     detect_parse->regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
