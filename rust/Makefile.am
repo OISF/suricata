@@ -7,8 +7,12 @@ if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
 endif
 
+if BUILD_FUZZTARGETS
+RELEASE = -Z build-std
+else
 if !DEBUG
 RELEASE = --release
+endif
 endif
 
 if HAVE_LUA
