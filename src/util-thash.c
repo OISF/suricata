@@ -294,7 +294,8 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     int (*DataSet)(void *, void *),
      void (*DataFree)(void *),
      uint32_t (*DataHash)(void *),
-     bool (*DataCompare)(void *, void *))
+     bool (*DataCompare)(void *, void *),
+     bool reset_memcap)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
@@ -308,7 +309,7 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     /* set defaults */
     ctx->config.hash_rand = (uint32_t)RandomGet();
     ctx->config.hash_size = THASH_DEFAULT_HASHSIZE;
-    ctx->config.memcap = THASH_DEFAULT_MEMCAP;
+    ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
     SC_ATOMIC_INIT(ctx->counter);
@@ -467,6 +468,7 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
     h = THashDataDequeue(&ctx->spare_q);
     if (h == NULL) {
         /* If we reached the max memcap, we get used data */
+//        SCLogDebug("memcap: %ld", ctx->config.memcap);
         if (!(THASH_CHECK_MEMCAP(ctx, THASH_DATA_SIZE(ctx)))) {
             h = THashGetUsed(ctx);
             if (h == NULL) {

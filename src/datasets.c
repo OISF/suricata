@@ -177,7 +177,7 @@ static int DatasetLoadMd5(Dataset *set)
         /* straight black/white list */
         if (strlen(line) == 33) {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
+            //SCLogDebug("line: '%s'", line);
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0)
@@ -246,7 +246,7 @@ static int DatasetLoadSha256(Dataset *set)
         /* straight black/white list */
         if (strlen(line) == 65) {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
+//            SCLogDebug("line: '%s'", line);
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0)
@@ -314,7 +314,7 @@ static int DatasetLoadString(Dataset *set)
         char *r = strchr(line, ',');
         if (r == NULL) {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
+//            SCLogDebug("line: '%s'", line);
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
@@ -329,7 +329,7 @@ static int DatasetLoadString(Dataset *set)
             cnt++;
         } else {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
+//            SCLogDebug("line: '%s'", line);
 
             *r = '\0';
 
@@ -419,6 +419,7 @@ Dataset *DatasetFind(const char *name, enum DatasetTypes type)
 Dataset *DatasetGet(const char *name, enum DatasetTypes type,
         const char *save, const char *load)
 {
+    SCLogDebug("Datasetget now");
     if (strlen(name) > DATASET_NAME_MAX_LEN) {
         return NULL;
     }
@@ -490,15 +491,16 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet,
-                    Md5StrFree, Md5StrHash, Md5StrCompare);
+                    Md5StrFree, Md5StrHash, Md5StrCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
+            SCLogDebug("%d", load!=NULL?1:0);
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet,
-                    StringFree, StringHash, StringCompare);
+                    StringFree, StringHash, StringCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -506,7 +508,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet,
-                    Sha256StrFree, Sha256StrHash, Sha256StrCompare);
+                    Sha256StrFree, Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
