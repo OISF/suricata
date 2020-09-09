@@ -7,8 +7,12 @@ if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
 endif
 
+if RUST_BUILD_STD
+RELEASE = -Z build-std
+else
 if !DEBUG
 RELEASE = --release
+endif
 endif
 
 if HAVE_LUA
