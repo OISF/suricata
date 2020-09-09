@@ -44,6 +44,9 @@
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 static bool SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
+// Threaded eve.json suffixes
+static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint32_t, eve_file_suffix, 1);
+
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -721,7 +724,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 
     *thread = *parent_ctx;
     char fname[NAME_MAX];
-    snprintf(fname, sizeof(fname), "%s.%d", log_path, thread_id);
+    snprintf(fname, sizeof(fname), "%s.%d", log_path, SC_ATOMIC_ADD(eve_file_suffix, 1));
     SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
     thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
     if (thread->fp == NULL) {
@@ -745,6 +748,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     return true;
 
 error:
+    SC_ATOMIC_SUB(eve_file_suffix, 1);
     if (thread->fp) {
         thread->Close(thread);
     }
