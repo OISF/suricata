@@ -44,6 +44,9 @@
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 static bool SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
+// Threaded eve.json suffixes
+static SC_ATOMIC_DECLARE(uint32_t, eve_suffix);
+
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -713,15 +716,22 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
  */
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int thread_id)
 {
+    static bool eve_suffix_init = false;
+
     LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
     if (!thread) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate thread file context slot %d", thread_id);
         return false;
     }
 
+    if (!eve_suffix_init) {
+        SC_ATOMIC_INIT(eve_suffix);
+        eve_suffix_init = true;
+    }
+
     *thread = *parent_ctx;
     char fname[NAME_MAX];
-    snprintf(fname, sizeof(fname), "%s.%d", log_path, thread_id);
+    snprintf(fname, sizeof(fname), "%s.%d", log_path, SC_ATOMIC_ADD(eve_suffix, 1));
     SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
     thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
     if (thread->fp == NULL) {
@@ -745,6 +755,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     return true;
 
 error:
+    SC_ATOMIC_SUB(eve_suffix, 1);
     if (thread->fp) {
         thread->Close(thread);
     }
