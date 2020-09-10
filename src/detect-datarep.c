@@ -38,6 +38,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-misc.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static DetectParseRegex parse_regex;
@@ -171,13 +172,13 @@ static int DetectDatarepParse(const char *str,
                 strlcpy(load, val, load_size);
             }
             if (strcmp(key, "memcap") == 0) {
-                if (StringParseUint64(memcap, 10, 0, val) < 0) {
+                if (ParseSizeStringU64(val, memcap) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for memcap: %s", val);
                     return -1;
                 }
             }
             if (strcmp(key, "hashsize") == 0) {
-                if (StringParseUint32(hashsize, 10, 0, val) < 0) {
+                if (ParseSizeStringU32(val, hashsize) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for hashsize: %s", val);
                     return -1;
                 }
