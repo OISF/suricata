@@ -39,6 +39,30 @@ Rules to go with the above:
 
     alert http any any -> any any (msg: "http user-agent test"; http.user_agent; dataset:set,ua-seen; sid:234; rev:1;)
 
+It is also possible to optionally define global default memcap and hashsize.
+
+Example::
+
+    datasets:
+      defaults:
+        memcap: 100mb
+        hashsize: 2048
+      ua-seen:
+        type: string
+        load: ua-seen.lst
+
+or define memcap and hashsize per dataset.
+
+Example::
+
+    datasets:
+      ua-seen:
+        type: string
+        load: ua-seen.lst
+        memcap: 10mb
+        hashsize: 1024
+
+
 Rule keywords
 -------------
 
@@ -52,7 +76,7 @@ Syntax::
     dataset:<cmd>,<name>,<options>;
 
     dataset:<set|isset|isnotset>,<name> \
-        [, type <string|md5|sha256>, save <file name>, load <file name>, state <file name>];
+        [, type <string|md5|sha256>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>];
 
 type <type>
   the data type: string, md5, sha256
@@ -63,6 +87,10 @@ state
 save <file name>
   advanced option to set the file name for saving the in-memory data
   when Suricata exits.
+memcap <size>
+  maximum memory limit for the respective dataset
+hashsize <size>
+  allowed size of the hash for the respective dataset
 
 .. note:: 'load' and 'state' or 'save' and 'state' cannot be mixed.
 
@@ -74,11 +102,11 @@ Data Reputation allows matching data against a reputation list.
 Syntax::
 
     datarep:<name>,<operator>,<value>, \
-        [, load <file name>, type <string|md5|sha256>];
+        [, load <file name>, type <string|md5|sha256>, memcap <size>, hashsize <size>];
 
 Example rules could look like::
 
-    alert dns any any -> any any (dns.query; to_md5; datarep:dns_md5, >, 200, load dns_md5.rep, type md5; sid:1;)
+    alert dns any any -> any any (dns.query; to_md5; datarep:dns_md5, >, 200, load dns_md5.rep, type md5, memcap 100mb, hashsize 2048; sid:1;)
     alert dns any any -> any any (dns.query; to_sha256; datarep:dns_sha256, >, 200, load dns_sha256.rep, type sha256; sid:2;)
     alert dns any any -> any any (dns.query; datarep:dns_string, >, 200, load dns_string.rep, type string; sid:3;)
 
