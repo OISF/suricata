@@ -490,7 +490,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet,
-                    Md5StrFree, Md5StrHash, Md5StrCompare);
+                    Md5StrFree, Md5StrHash, Md5StrCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
@@ -498,7 +498,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet,
-                    StringFree, StringHash, StringCompare);
+                    StringFree, StringHash, StringCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -506,7 +506,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet,
-                    Sha256StrFree, Sha256StrHash, Sha256StrCompare);
+                    Sha256StrFree, Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
