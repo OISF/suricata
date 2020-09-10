@@ -290,12 +290,9 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     return;
 }
 
-THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
-    int (*DataSet)(void *, void *),
-     void (*DataFree)(void *),
-     uint32_t (*DataHash)(void *),
-     bool (*DataCompare)(void *, void *),
-     bool reset_memcap)
+THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
+        int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(void *),
+        bool (*DataCompare)(void *, void *), bool reset_memcap, uint64_t memcap, uint32_t hashsize)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
@@ -308,8 +305,14 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
 
     /* set defaults */
     ctx->config.hash_rand = (uint32_t)RandomGet();
-    ctx->config.hash_size = THASH_DEFAULT_HASHSIZE;
-    ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
+    ctx->config.hash_size = hashsize > 0 ? hashsize : THASH_DEFAULT_HASHSIZE;
+    /* Reset memcap in case of loading from file to the highest possible value
+     unless defined by the rule keyword */
+    if (memcap > 0) {
+        ctx->config.memcap = memcap;
+    } else {
+        ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
+    }
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
     SC_ATOMIC_INIT(ctx->counter);
@@ -319,6 +322,14 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
 
     THashInitConfig(ctx, cnf_prefix);
     return ctx;
+}
+
+/* \brief Set memcap to current memuse
+ * */
+void THashConsolidateMemcap(THashTableContext *ctx)
+{
+    ctx->config.memcap = MAX(SC_ATOMIC_GET(ctx->memuse), THASH_DEFAULT_MEMCAP);
+    SCLogDebug("memcap after load set to: %lu", ctx->config.memcap);
 }
 
 /** \brief shutdown the flow engine

@@ -51,8 +51,8 @@ typedef struct Dataset {
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s);
 Dataset *DatasetFind(const char *name, enum DatasetTypes type);
-Dataset *DatasetGet(const char *name, enum DatasetTypes type,
-        const char *save, const char *load);
+Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t memcap, uint32_t hashsize);
 int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
