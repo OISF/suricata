@@ -38,6 +38,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-misc.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static DetectParseRegex parse_regex;
@@ -96,7 +97,8 @@ static int DetectDatarepParse(const char *str,
         char *name, int name_len,
         enum DatasetTypes *type,
         char *load, size_t load_size,
-        uint16_t *rep_value)
+        uint16_t *rep_value,
+        uint64_t *memcap, uint32_t *hashsize)
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -168,6 +170,20 @@ static int DetectDatarepParse(const char *str,
             } else if (strcmp(key, "load") == 0) {
                 SCLogDebug("load %s", val);
                 strlcpy(load, val, load_size);
+            }
+            if (strcmp(key, "memcap") == 0) {
+                if (ParseSizeStringU64(val, memcap) < 0) {
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "invalid value for memcap: %s,"
+                            " resetting to default", val);
+                    *memcap = 0;
+                }
+            }
+            if (strcmp(key, "hashsize") == 0) {
+                if (ParseSizeStringU32(val, hashsize) < 0) {
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "invalid value for hashsize: %s,"
+                            " resetting to default", val);
+                    *hashsize = 0;
+                }
             }
         }
 
@@ -279,6 +295,8 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
     char load[PATH_MAX];
     uint16_t value = 0;
+    uint64_t memcap = 0;
+    uint32_t hashsize = 0;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
@@ -294,7 +312,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (!DetectDatarepParse(rawstr, cmd_str, sizeof(cmd_str), name,
-            sizeof(name), &type, load, sizeof(load), &value)) {
+            sizeof(name), &type, load, sizeof(load), &value, &memcap, &hashsize)) {
         return -1;
     }
 
@@ -316,7 +334,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load);
+    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load, memcap, hashsize);
     if (set == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE,
                 "failed to set up datarep set '%s'.", name);
