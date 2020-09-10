@@ -969,6 +969,13 @@ app-layer:
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
 
+# Datasets default settings
+# datasets:
+#   # Default fallback memcap and hashsize values for datasets in case these
+#   # were not explicitly defined.
+#   defaults:
+#     memcap: 100mb
+#     hashsize: 2048
 
 ##############################################################################
 ##
