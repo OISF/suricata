@@ -92,12 +92,8 @@ int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
-static int DetectDatarepParse(const char *str,
-        char *cmd, int cmd_len,
-        char *name, int name_len,
-        enum DatasetTypes *type,
-        char *load, size_t load_size,
-        uint16_t *rep_value,
+static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *name, int name_len,
+        enum DatasetTypes *type, char *load, size_t load_size, uint16_t *rep_value,
         uint64_t *memcap, uint32_t *hashsize)
 {
     bool cmd_set = false;
@@ -309,8 +305,8 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
         SCReturnInt(-1);
     }
 
-    if (!DetectDatarepParse(rawstr, cmd_str, sizeof(cmd_str), name,
-            sizeof(name), &type, load, sizeof(load), &value, &memcap, &hashsize)) {
+    if (!DetectDatarepParse(rawstr, cmd_str, sizeof(cmd_str), name, sizeof(name), &type, load,
+                sizeof(load), &value, &memcap, &hashsize)) {
         return -1;
     }
 
