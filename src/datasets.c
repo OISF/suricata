@@ -216,6 +216,7 @@ static int DatasetLoadMd5(Dataset *set)
                     (uint32_t)strlen(line), line);
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -281,6 +282,7 @@ static int DatasetLoadSha256(Dataset *set)
             cnt++;
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -356,6 +358,7 @@ static int DatasetLoadString(Dataset *set)
             SCLogDebug("line with rep %s, %s", line, r);
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -417,7 +420,7 @@ Dataset *DatasetFind(const char *name, enum DatasetTypes type)
 }
 
 Dataset *DatasetGet(const char *name, enum DatasetTypes type,
-        const char *save, const char *load)
+        const char *save, const char *load, uint64_t memcap, uint32_t hashsize)
 {
     if (strlen(name) > DATASET_NAME_MAX_LEN) {
         return NULL;
@@ -490,7 +493,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet,
-                    Md5StrFree, Md5StrHash, Md5StrCompare, load != NULL ? 1 : 0);
+                    Md5StrFree, Md5StrHash, Md5StrCompare, load != NULL ? 1 : 0,
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
@@ -498,7 +502,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet,
-                    StringFree, StringHash, StringCompare, load != NULL ? 1 : 0);
+                    StringFree, StringHash, StringCompare, load != NULL ? 1 : 0,
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -506,7 +511,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             break;
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet,
-                    Sha256StrFree, Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0);
+                    Sha256StrFree, Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0,
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
@@ -609,6 +615,8 @@ int DatasetsInit(void)
 
             char save[PATH_MAX] = "";
             char load[PATH_MAX] = "";
+            uint64_t memcap = 0;
+            uint32_t hashsize = 0;
 
             const char *set_name = iter->name;
             if (strlen(set_name) > DATASET_NAME_MAX_LEN) {
@@ -636,13 +644,25 @@ int DatasetsInit(void)
                 }
             }
 
+            ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
+            if (set_memcap) {
+                if (StringParseUint64(&memcap, 10, 0, set_memcap->val) < 0) {
+                    FatalError(SC_ERR_FATAL, "memcap value cannot be deduced: %s", set_memcap->val);
+                }
+            }
+            ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
+            if (set_hashsize) {
+                if (StringParseUint32(&hashsize, 10, 0, set_hashsize->val) < 0) {
+                    FatalError(SC_ERR_FATAL, "hashsize value cannot be deduced: %s", set_hashsize->val);
+                }
+            }
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
 
             SCLogDebug("(%d) set %s type %s. Conf %s", n, set_name, set_type->val, conf_str);
 
             if (strcmp(set_type->val, "md5") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load, memcap, hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -650,7 +670,7 @@ int DatasetsInit(void)
                 n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load, memcap, hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -658,7 +678,7 @@ int DatasetsInit(void)
                 n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load, memcap, hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);

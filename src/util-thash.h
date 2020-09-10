@@ -190,7 +190,9 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     void (*DataFree)(void *),
     uint32_t (*DataHash)(void *),
     bool (*DataCompare)(void *, void *),
-    bool reset_memcap);
+    bool reset_memcap,
+    uint64_t memcap,
+    uint32_t hashsize);
 
 void THashShutdown(THashTableContext *ctx);
 
@@ -215,5 +217,6 @@ THashDataQueue *THashDataQueueNew(void);
 void THashCleanup(THashTableContext *ctx);
 int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
 int THashRemoveFromHash (THashTableContext *ctx, void *data);
+void THashConsolidateMemcap(THashTableContext *ctx);
 
 #endif /* __THASH_H__ */
