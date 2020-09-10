@@ -79,6 +79,13 @@
     _Atomic(type) (name ## _sc_atomic__) = 0
 
 /**
+ *  \brief wrapper for declaring an atomic variable and initializing it
+ *  to a specific value
+ **/
+#define SC_ATOMIC_DECL_AND_INIT_WITH_VAL(type, name, val) \
+    _Atomic(type) (name ## _sc_atomic__) = val
+
+/**
  *  \brief wrapper for initializing an atomic variable.
  **/
 #define SC_ATOMIC_INIT(name) \
