@@ -39,6 +39,12 @@ pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Direction {
+    ToServer = 0x04,
+    ToClient = 0x08,
+ }
+
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = std::os::raw::c_int;
 
