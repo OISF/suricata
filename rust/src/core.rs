@@ -39,6 +39,35 @@ pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Direction {
+    ToServer = 0x04,
+    ToClient = 0x08,
+}
+
+impl Default for Direction {
+    fn default() -> Self { Direction::ToServer }
+}
+
+impl From<u8> for Direction {
+    fn from(d: u8) -> Self {
+        match d {
+            0x04 => { Direction::ToServer },
+            0x08 => { Direction::ToClient },
+            _ => {
+                if d & 0b0000_0100 != 0 {
+                    Direction::ToServer
+                } else if d & 0b0000_1000 != 0 {
+                    Direction::ToClient
+                } else {
+                    panic!("Unknown direction!!");
+                }
+            }
+        }
+    }
+}
+
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = u16;
 
