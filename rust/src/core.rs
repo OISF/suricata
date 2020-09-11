@@ -19,6 +19,7 @@
 
 use std;
 use crate::filecontainer::*;
+use crate::debug_validate_fail;
 
 /// Opaque C types.
 pub enum DetectEngineState {}
@@ -38,6 +39,42 @@ pub const STREAM_TOCLIENT: u8 = 0x08;
 pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
+pub const DIR_BOTH:        u8 = 0b0000_1100;
+const DIR_TOSERVER:        u8 = 0b0000_0100;
+const DIR_TOCLIENT:        u8 = 0b0000_1000;
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Direction {
+    ToServer = 0x04,
+    ToClient = 0x08,
+}
+
+impl Default for Direction {
+    fn default() -> Self { Direction::ToServer }
+}
+
+impl From<u8> for Direction {
+    fn from(d: u8) -> Self {
+        if d & (DIR_TOSERVER | DIR_TOCLIENT) == (DIR_TOSERVER | DIR_TOCLIENT) {
+            debug_validate_fail!("Both directions are set");
+            Direction::ToServer
+        } else if d & DIR_TOSERVER != 0 {
+            Direction::ToServer
+        } else if d & DIR_TOCLIENT != 0 {
+            Direction::ToClient
+        } else {
+            debug_validate_fail!("Unknown direction!!");
+            Direction::ToServer
+        }
+    }
+}
+
+impl From<Direction> for u8 {
+    fn from(d: Direction) -> u8 {
+        d as u8
+    }
+}
 
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = u16;
