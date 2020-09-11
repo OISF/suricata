@@ -60,7 +60,7 @@ pub struct DCEOpnumData {
 }
 
 fn extract_op_version(opver: &str) -> Result<(u8, u16), ()> {
-    if opver.len() < 1 {
+    if !opver.is_char_boundary(1){
         return Err(());
     }
     let (op, version) = opver.split_at(1);
