@@ -1751,7 +1751,6 @@ static int AppLayerParserTest01(void)
 {
     AppLayerParserBackupParserTable();
 
-    int result = 0;
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1770,37 +1769,24 @@ static int AppLayerParserTest01(void)
     AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
                                 testlen);
-    if (r != -1) {
-        printf("returned %" PRId32 ", expected -1: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != -1);
 
-    if (!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        printf("flag should have been set, but is not: ");
-        goto end;
-    }
+    FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
 
-    result = 1;
- end:
     AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(TRUE);
-
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /**
@@ -1811,7 +1797,6 @@ static int AppLayerParserTest02(void)
 {
     AppLayerParserBackupParserTable();
 
-    int result = 1;
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1827,31 +1812,22 @@ static int AppLayerParserTest02(void)
     AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_UDP;
     f->protomap = FlowGetProtoMapping(f->proto);
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
                                 testlen);
-    if (r != -1) {
-        printf("returned %" PRId32 ", expected -1: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != -1);
 
- end:
     AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 
