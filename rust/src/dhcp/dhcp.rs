@@ -426,7 +426,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_tx_iterator: Some(rs_dhcp_state_get_tx_iterator),
         set_tx_detect_flags: None,
         get_tx_detect_flags: None,
-        flags              : 0,
+        flags              : crate::core::APP_LAYER_PARSER_OPT_UNIDIR_TXS,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
