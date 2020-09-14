@@ -828,7 +828,7 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_tx_iterator: Some(rs_mqtt_state_get_tx_iterator),
         get_tx_data: rs_mqtt_get_tx_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
     };
 
