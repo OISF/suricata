@@ -436,7 +436,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
         get_tx_data        : rs_dhcp_get_tx_data,
         apply_tx_config    : None,
-        flags              : 0,
+        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
     };
 
