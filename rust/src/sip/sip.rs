@@ -424,7 +424,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_tx_iterator: None,
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        flags: 0,
+        flags: crate::core::APP_LAYER_PARSER_OPT_UNIDIR_TXS,
     };
 
     /* For 5.0 we want this disabled by default, so check that it
