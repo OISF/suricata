@@ -1,3 +1,5 @@
+.. _custom-tls-log:
+
 Custom tls logging
 ===================
 
