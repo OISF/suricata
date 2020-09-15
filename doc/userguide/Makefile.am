@@ -31,14 +31,14 @@ EXTRA_DIST = \
 	what-is-suricata.rst
 
 if HAVE_SURICATA_MAN
-man1_MANS = suricata.1
+dist_man1_MANS = suricata.1
 endif
 
 if HAVE_SPHINXBUILD
-man1_MANS = suricata.1
+dist_man1_MANS = suricata.1
 
 if HAVE_PDFLATEX
-EXTRA_DIST += $(man1_MANS) userguide.pdf
+EXTRA_DIST += userguide.pdf
 endif
 
 SPHINX_BUILD = sphinx-build -q
