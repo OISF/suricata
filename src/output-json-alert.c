@@ -556,7 +556,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
             if (tx_id == file->txid) {
                 if (!isopen) {
                     isopen = true;
-                    jb_open_array(jb, "fileinfo");
+                    jb_open_array(jb, "files");
                 }
                 jb_start_object(jb);
                 EveFileInfo(jb, file, file->flags & FILE_STORED);
