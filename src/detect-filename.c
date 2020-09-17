@@ -344,6 +344,7 @@ static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, cons
 {
     if (DetectBufferSetActiveList(s, g_file_name_buffer_id) < 0)
         return -1;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
     return 0;
 }
 
