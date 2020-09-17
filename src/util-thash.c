@@ -311,7 +311,12 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     if (memcap > 0) {
         ctx->config.memcap = memcap;
     } else {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        // limit hash size to default when fuzzing
+        ctx->config.memcap = THASH_DEFAULT_MEMCAP;
+#else
         ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
+#endif
     }
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
