@@ -1857,6 +1857,11 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     "support file matching", AppProtoToString(s->alproto));
             SCReturnInt(0);
         }
+        if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
+            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL,
+                    "protocol HTTP2 doesn't support file name matching");
+            SCReturnInt(0);
+        }
 
         if (s->alproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
