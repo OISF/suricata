@@ -360,8 +360,21 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(input, tuple!(take_bits!(1u8), take_bits!(7u8)))
     }
-    let (i2, huffslen) = parser(input)?;
-    let (i3, data) = take!(i2, huffslen.1 as usize)?;
+    let (i1, huffslen) = parser(input)?;
+    let (i2, stringlen) = if huffslen.1 == 0x7F {
+        let (i3, maxsize2) = take_while_m_n!(i1, 0, 9, |ch| (ch & 0x80) != 0)?;
+        let (i4, maxsize3) = be_u8(i3)?;
+        let mut maxsize = 0x7F as u64;
+        for i in 0..maxsize2.len() {
+            maxsize += ((maxsize2[i] & 0x7F) as u64) << (7 * i);
+        }
+        maxsize += (maxsize3 as u64) << (7 * maxsize2.len());
+        (i4, maxsize)
+    } else {
+        (i1, huffslen.1 as u64)
+    };
+
+    let (i3, data) = take!(i2, stringlen as usize)?;
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
     } else {
@@ -1174,5 +1187,4 @@ mod tests {
             }
         }
     }
-
 }
