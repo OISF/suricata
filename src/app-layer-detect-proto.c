@@ -398,6 +398,37 @@ static AppProto AppLayerProtoDetectPMGetProto(
     SCReturnUInt(0);
 }
 
+
+static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectGetProbingParser(AppLayerProtoDetectProbingParser *pp,
+                                                                                  uint8_t ipproto, AppProto alproto)
+{
+    AppLayerProtoDetectProbingParserElement *pp_elem = NULL;
+    AppLayerProtoDetectProbingParserPort *pp_port = NULL;
+
+    while (pp != NULL) {
+        if (pp->ipproto == ipproto)
+            break;
+        pp = pp->next;
+    }
+    if (pp == NULL)
+        return NULL;
+
+    pp_port = pp->port;
+    while (pp_port != NULL) {
+        if (pp_port->dp != NULL && pp_port->dp->alproto == alproto) {
+            pp_elem = pp_port->dp;
+            break;
+        }
+        if (pp_port->sp != NULL && pp_port->sp->alproto == alproto) {
+            pp_elem = pp_port->sp;
+            break;
+        }
+        pp_port = pp_port->next;
+    }
+
+    SCReturnPtr(pp_elem, "AppLayerProtoDetectProbingParserElement *");
+}
+
 static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParsers(AppLayerProtoDetectProbingParser *pp,
                                                                                   uint8_t ipproto,
                                                                                   uint16_t port)
@@ -491,6 +522,7 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
 {
     const AppLayerProtoDetectProbingParserPort *pp_port_dp = NULL;
     const AppLayerProtoDetectProbingParserPort *pp_port_sp = NULL;
+    const AppLayerProtoDetectProbingParserElement *pe0 = NULL;
     const AppLayerProtoDetectProbingParserElement *pe1 = NULL;
     const AppLayerProtoDetectProbingParserElement *pe2 = NULL;
     AppProto alproto = ALPROTO_UNKNOWN;
@@ -552,7 +584,13 @@ again_midstream:
         }
     }
 
-    if (pe1 == NULL && pe2 == NULL) {
+    if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
+        pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_tc);
+    } else if (dir == STREAM_TOCLIENT && f->alproto_ts != ALPROTO_UNKNOWN) {
+        pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_ts);
+    }
+
+    if (pe1 == NULL && pe2 == NULL && pe0 == NULL) {
         SCLogDebug("%s - No probing parsers found for either port",
                 (dir == STREAM_TOSERVER) ? "toserver":"toclient");
         if (dir == idir)
@@ -562,6 +600,9 @@ again_midstream:
 
     /* run the parser(s): always call with original direction */
     uint8_t rdir = 0;
+    alproto = PPGetProto(pe0, f, idir, buf, buflen, alproto_masks, &rdir);
+    if (AppProtoIsValid(alproto))
+        goto end;
     alproto = PPGetProto(pe1, f, idir, buf, buflen, alproto_masks, &rdir);
     if (AppProtoIsValid(alproto))
         goto end;
