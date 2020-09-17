@@ -7,12 +7,12 @@ if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
 endif
 
-if RUST_BUILD_STD
-RELEASE = -Z build-std
-else
 if !DEBUG
 RELEASE = --release
 endif
+
+if RUST_BUILD_STD
+NIGHTLY_ARGS = -Z build-std
 endif
 
 if HAVE_LUA
@@ -42,7 +42,7 @@ else
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		$(CARGO) build $(RELEASE) \
+		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
 	$(MAKE) gen/rust-bindings.h
