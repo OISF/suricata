@@ -128,11 +128,11 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
             return TM_ECODE_OK;
         }
 
-        jb_open_object(js, ANOMALY_EVENT_TYPE);
-
         if (is_ip_pkt) {
             EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
+
+        jb_open_object(js, ANOMALY_EVENT_TYPE);
 
         if (event_code < DECODE_EVENT_MAX) {
             const char *event = DEvents[event_code].event_name;
