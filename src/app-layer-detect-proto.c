@@ -1552,6 +1552,16 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         if (pm_matches > 0) {
             alproto = pm_results[0];
 
+            // rerun probing parser for other direction if it is unknown
+            uint8_t reverse_dir = (direction & STREAM_TOSERVER) ? STREAM_TOCLIENT : STREAM_TOSERVER;
+            if (FLOW_IS_PP_DONE(f, reverse_dir)) {
+                AppProto rev_alproto =
+                        (direction & STREAM_TOSERVER) ? f->alproto_tc : f->alproto_ts;
+                if (rev_alproto == ALPROTO_UNKNOWN) {
+                    FLOW_RESET_PP_DONE(f, reverse_dir);
+                }
+            }
+
             /* HACK: if detected protocol is dcerpc/udp, we run PP as well
              * to avoid misdetecting DNS as DCERPC. */
             if (!(ipproto == IPPROTO_UDP && alproto == ALPROTO_DCERPC))
