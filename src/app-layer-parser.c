@@ -870,6 +870,7 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
     SCReturnPtr(ptr, "FileContainer *");
 }
 
+extern int g_detect_disabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -882,7 +883,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxData != NULL);
+    const bool has_tx_detect_flags = (p->GetTxData != NULL && !g_detect_disabled);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -948,7 +949,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 }
             }
         }
-        if (txd &&logger_expectation != 0) {
+        if (txd && logger_expectation != 0) {
             LoggerId tx_logged = GetTxLogged(txd);
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
