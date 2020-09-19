@@ -349,6 +349,27 @@ impl DCERPCState {
         tx
     }
 
+    pub fn free_tx(&mut self, tx_id: u64) {
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        let len = self.transactions.len();
+        let mut found = false;
+        let mut index = 0;
+        for i in 0..len {
+            let tx = &self.transactions[i];
+            if tx.id as u64 == tx_id { //+ 1 {
+                found = true;
+                index = i;
+                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
+                break;
+            }
+        }
+        if found {
+            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.transactions.remove(index);
+        }
+    }
+
     fn get_hdr_drep_0(&self) -> u8 {
         if let Some(ref hdr) = &self.header {
             return hdr.packed_drep[0];
@@ -1155,8 +1176,10 @@ pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_transaction_free(_state: *mut std::os::raw::c_void, _tx_id: u64) {
-    // do nothing
+pub extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+    let dce_state = cast_pointer!(state, DCERPCState);
+    SCLogDebug!("freeing tx {}", tx_id as u64);
+    dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
