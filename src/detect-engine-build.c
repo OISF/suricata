@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -631,18 +631,20 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     uint32_t mpms_min = 0;
     uint32_t mpms_max = 0;
 
+    int max_buffer_type_id = DetectBufferTypeMaxId() + 1;
+
     struct {
         uint32_t total;
         uint32_t cnt;
         uint32_t min;
         uint32_t max;
-    } mpm_stats[DETECT_SM_LIST_MAX];
+    } mpm_stats[max_buffer_type_id];
     memset(mpm_stats, 0x00, sizeof(mpm_stats));
 
     uint32_t alstats[ALPROTO_MAX] = {0};
-    uint32_t mpm_sizes[DETECT_SM_LIST_MAX][256];
+    uint32_t mpm_sizes[max_buffer_type_id][256];
     memset(mpm_sizes, 0, sizeof(mpm_sizes));
-    uint32_t alproto_mpm_bufs[ALPROTO_MAX][DETECT_SM_LIST_MAX];
+    uint32_t alproto_mpm_bufs[ALPROTO_MAX][max_buffer_type_id];
     memset(alproto_mpm_bufs, 0, sizeof(alproto_mpm_bufs));
 
     json_t *js = json_object();
@@ -802,10 +804,10 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
 
-            for (x = 0; x < DETECT_SM_LIST_MAX; x++) {
-                if (alproto_mpm_bufs[i][x] == 0)
+            for (int y = 0; y < max_buffer_type_id; y++) {
+                if (alproto_mpm_bufs[i][y] == 0)
                     continue;
-                json_object_set_new(app, DetectListToHumanString(x), json_integer(alproto_mpm_bufs[i][x]));
+                json_object_set_new(app, DetectListToHumanString(y), json_integer(alproto_mpm_bufs[i][y]));
             }
 
             json_object_set_new(stats, AppProtoToString(i), app);
@@ -815,17 +817,17 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     if (add_mpm_stats) {
         json_t *mpm_js = json_object();
 
-        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
 
                 json_t *mpm_sizes_array = json_array();
-                for (x = 0; x < 256; x++) {
-                    if (mpm_sizes[i][x] == 0)
+                for (int y = 0; y < 256; y++) {
+                    if (mpm_sizes[i][y] == 0)
                         continue;
 
                     json_t *e = json_object();
-                    json_object_set_new(e, "size", json_integer(x));
-                    json_object_set_new(e, "count", json_integer(mpm_sizes[i][x]));
+                    json_object_set_new(e, "size", json_integer(y));
+                    json_object_set_new(e, "count", json_integer(mpm_sizes[i][y]));
                     json_array_append_new(mpm_sizes_array, e);
                 }
 
@@ -845,7 +847,8 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     }
     json_object_set_new(js, "stats", stats);
 
-    json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
+    if (sgh->init)
+        json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
 
     return js;
 }
