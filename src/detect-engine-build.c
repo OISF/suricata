@@ -814,7 +814,8 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             for (int y = 0; y < max_buffer_type_id; y++) {
                 if (alproto_mpm_bufs[i][y] == 0)
                     continue;
-                json_object_set_new(app, DetectListToHumanString(y), json_integer(alproto_mpm_bufs[i][y]));
+                json_object_set_new(
+                        app, DetectListToHumanString(y), json_integer(alproto_mpm_bufs[i][y]));
             }
 
             json_object_set_new(stats, AppProtoToString(i), app);
