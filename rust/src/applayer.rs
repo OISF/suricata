@@ -230,6 +230,10 @@ pub struct RustParser {
     pub apply_tx_config: Option<ApplyTxConfigFn>,
 
     pub flags: u32,
+
+    /// Function to handle the end of data coming on one of the sides
+    /// due to the stream reaching its 'depth' limit.
+    pub truncate: Option<TruncateFn>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -279,6 +283,8 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              -> AppLayerGetTxIterTuple;
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
+pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
+
 
 // Defined in app-layer-register.h
 extern {

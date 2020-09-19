@@ -1108,6 +1108,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_tx_data: rs_http2_get_tx_data,
         apply_tx_config: None,
         flags: 0,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

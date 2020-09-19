@@ -549,6 +549,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
