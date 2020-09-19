@@ -306,6 +306,8 @@ pub struct DCERPCState {
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
     pub tc_ssn_gap: bool,
+    pub ts_ssn_trunc: bool, /// true if Truncated in this direction
+    pub tc_ssn_trunc: bool,
 }
 
 impl DCERPCState {
@@ -330,6 +332,8 @@ impl DCERPCState {
             tc_gap: false,
             ts_ssn_gap: false,
             tc_ssn_gap: false,
+            ts_ssn_trunc: false,
+            tc_ssn_trunc: false,
         };
     }
 
@@ -340,6 +344,8 @@ impl DCERPCState {
         tx.call_id = call_id;
         tx.endianness = endianness;
         self.tx_id += 1;
+        tx.req_done = self.ts_ssn_trunc;
+        tx.resp_done = self.tc_ssn_trunc;
         tx
     }
 
@@ -1151,6 +1157,24 @@ pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_state_transaction_free(_state: *mut std::os::raw::c_void, _tx_id: u64) {
     // do nothing
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
+    let dce_state = cast_pointer!(state, DCERPCState);
+    if direction & core::STREAM_TOSERVER != 0 {
+        dce_state.ts_ssn_trunc = true;
+        for tx in &mut dce_state.transactions {
+            tx.req_done = true;
+        }
+        SCLogDebug!("dce_state.ts_ssn_trunc = true; txs {}", dce_state.transactions.len());
+    } else if direction & core::STREAM_TOCLIENT != 0 {
+        dce_state.tc_ssn_trunc = true;
+        for tx in &mut dce_state.transactions {
+            tx.resp_done = true;
+        }
+        SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());
+    }
 }
 
 #[no_mangle]
