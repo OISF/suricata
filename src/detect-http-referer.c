@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -31,13 +30,14 @@
  */
 
 #define KEYWORD_NAME_LEGACY "http_referer"
-#define KEYWORD_NAME "http.referer"
-#define KEYWORD_DOC "http-keywords.html#http-referer"
-#define BUFFER_NAME "http_referer"
-#define BUFFER_DESC "http referer header"
-#define HEADER_NAME "Referer"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_REFERER
-#define KEYWORD_TOSERVER 1
+#define KEYWORD_NAME        "http.referer"
+#define KEYWORD_DOC         "http-keywords.html#http-referer"
+#define BUFFER_NAME         "http_referer"
+#define BUFFER_DESC         "http referer header"
+#define HEADER_NAME         "Referer"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_REFERER
+#define KEYWORD_ID_LEGACY   DETECT_HTTP_HEADER_REFERER
+#define KEYWORD_TOSERVER    1
 
 #include "detect-http-headers-stub.h"
 #include "detect-http-referer.h"
