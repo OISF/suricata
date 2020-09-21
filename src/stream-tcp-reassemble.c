@@ -1129,6 +1129,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 break;
             continue;
 
+        } else if (flags & STREAM_DEPTH) {
+            // we're just called once with this flag, so make sure we pass it on
+
         } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
@@ -1169,6 +1172,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;
+        if (flags & STREAM_DEPTH)
+            break;
     }
 
     SCReturnInt(0);
