@@ -57,8 +57,8 @@ typedef struct LogIKEFileCtx_ {
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
+    LogFileCtx *file_ctx;
     LogIKEFileCtx *ikelog_ctx;
-    uint32_t count;
     MemBuffer *buffer;
 } LogIKELogThread;
 
@@ -90,7 +90,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     }
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->ikelog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -162,9 +162,21 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
     }
 
     thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonIKELogThreadDeinit(ThreadVars *t, void *data)

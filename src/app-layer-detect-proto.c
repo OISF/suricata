@@ -179,7 +179,7 @@ struct AppLayerProtoDetectThreadCtx_ {
 
 /* The global app layer proto detection context. */
 static AppLayerProtoDetectCtx alpd_ctx;
-static AppLayerProtoDetectAliases *alpda_ctx;
+static AppLayerProtoDetectAliases *alpda_ctx = NULL;
 
 static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
                                              uint8_t *ipprotos);
@@ -1845,9 +1845,9 @@ int AppLayerProtoDetectDeSetup(void)
 
     SpmDestroyGlobalThreadCtx(alpd_ctx.spm_global_thread_ctx);
 
-    AppLayerProtoDetectFreeProbingParsers(alpd_ctx.ctx_pp);
-
     AppLayerProtoDetectFreeAliases();
+
+    AppLayerProtoDetectFreeProbingParsers(alpd_ctx.ctx_pp);
 
     SCReturnInt(0);
 }
@@ -1867,6 +1867,10 @@ void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_
     SCEnter();
 
     AppLayerProtoDetectAliases *new_alias = SCMalloc(sizeof(AppLayerProtoDetectAliases));
+    if (unlikely(new_alias == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+
     new_alias->proto_name = proto_name;
     new_alias->proto_alias = proto_alias;
     new_alias->next = NULL;

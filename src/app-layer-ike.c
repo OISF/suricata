@@ -80,11 +80,9 @@ static int IkeParserTest(void)
         0x92, 0x15, 0x52, 0x9d, 0x56, 0x00, 0x00, 0x00, 0x14, 0x90, 0xcb, 0x80, 0x91, 0x3e, 0xbb,
         0x69, 0x6e, 0x08, 0x63, 0x81, 0xb5, 0xec, 0x42, 0x7b, 0x1f };
 
-    FLOWLOCK_WRLOCK(&f);
     // the initiator sending the security association with proposals
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_IKE, STREAM_TOSERVER | STREAM_START,
             (uint8_t *)initiator_sa, sizeof(initiator_sa));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF_NOT(r == 0);
 
     static const unsigned char responder_sa[] = { 0xe4, 0x7a, 0x59, 0x1f, 0xd0, 0x57, 0x58, 0x7f,
@@ -96,11 +94,9 @@ static int IkeParserTest(void)
         0x04, 0x00, 0x01, 0x51, 0x80, 0x00, 0x00, 0x00, 0x14, 0x4a, 0x13, 0x1c, 0x81, 0x07, 0x03,
         0x58, 0x45, 0x5c, 0x57, 0x28, 0xf2, 0x0e, 0x95, 0x45, 0x2f };
 
-    FLOWLOCK_WRLOCK(&f);
     // responder answering with chosen proposal
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_IKE, STREAM_TOCLIENT,
             (uint8_t *)responder_sa, sizeof(responder_sa));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF_NOT(r == 0);
 
     static const unsigned char initiator_key[] = { 0xe4, 0x7a, 0x59, 0x1f, 0xd0, 0x57, 0x58, 0x7f,
@@ -125,10 +121,8 @@ static int IkeParserTest(void)
         0x69, 0xd6, 0x74, 0xf8, 0x56, 0x00 };
 
     // the initiator sending key exchange
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_IKE, STREAM_TOSERVER,
             (uint8_t *)initiator_key, sizeof(initiator_key));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF_NOT(r == 0);
 
     static const unsigned char responder_key[] = { 0xe4, 0x7a, 0x59, 0x1f, 0xd0, 0x57, 0x58, 0x7f,
@@ -154,10 +148,8 @@ static int IkeParserTest(void)
         0x02, 0x3f, 0x03, 0x8d, 0x45, 0xa0, 0x74, 0x98, 0xd8, 0xd0, 0x51 };
 
     // responder sending key exchange
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_IKE, STREAM_TOCLIENT,
             (uint8_t *)responder_key, sizeof(responder_key));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF_NOT(r == 0);
 
     static const unsigned char encrypted[] = { 0xe4, 0x7a, 0x59, 0x1f, 0xd0, 0x57, 0x58, 0x7f, 0xa0,
@@ -169,10 +161,8 @@ static int IkeParserTest(void)
         0x4d, 0xc8, 0x6a, 0x5a, 0x26, 0x44, 0x8a, 0xde, 0x72, 0x83, 0x06, 0x94, 0xe1, 0x5d, 0xca,
         0x2d, 0x96, 0x03, 0xeb, 0xc5, 0xf7, 0x90, 0x47, 0x3d };
     // the initiator sending encrypted data
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_IKE, STREAM_TOSERVER, (uint8_t *)encrypted,
             sizeof(encrypted));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF_NOT(r == 0);
 
     AppLayerParserTransactionsCleanup(&f);
