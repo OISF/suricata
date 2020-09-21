@@ -14,11 +14,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-extern crate ipsec_parser;
 
-pub mod ike;
-pub mod logger;
-mod parser;
-mod detect;
-mod ikev1;
-mod ikev2;
+/**
+ * \file
+ *
+ * \author Frank Honza <frank.honza@dcso.de>
+ */
+
+#ifndef __DETECT_IKE_CHOSEN_SA_H__
+#define __DETECT_IKE_CHOSEN_SA_H__
+
+void DetectIkeChosenSaRegister(void);
+
+#endif /* __DETECT_IKE_CHOSEN_SA_H__ */
