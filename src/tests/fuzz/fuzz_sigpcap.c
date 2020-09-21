@@ -88,7 +88,7 @@ outputs:\n\
         - nfs\n\
         - smb\n\
         - tftp\n\
-        - ikev2\n\
+	- ike\n\
         - krb5\n\
         - snmp\n\
         - rfb\n\

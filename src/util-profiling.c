@@ -1309,7 +1309,6 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_HTTP);
         CASE_CODE (LOGGER_JSON_DHCP);
         CASE_CODE (LOGGER_JSON_KRB5);
-        CASE_CODE (LOGGER_JSON_IKEV2);
         CASE_CODE (LOGGER_JSON_FTP);
         CASE_CODE (LOGGER_JSON_TFTP);
         CASE_CODE (LOGGER_JSON_SMTP);
@@ -1319,6 +1318,7 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_TEMPLATE_RUST);
         CASE_CODE (LOGGER_JSON_RFB);
         CASE_CODE (LOGGER_JSON_MQTT);
+        CASE_CODE(LOGGER_JSON_IKE);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
         CASE_CODE (LOGGER_JSON_RDP);
         CASE_CODE (LOGGER_JSON_DCERPC);
