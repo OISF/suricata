@@ -284,6 +284,7 @@ pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
     pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
+    pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
 }
 
 // Defined in app-layer-detect-proto.h
