@@ -870,6 +870,8 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
     SCReturnPtr(ptr, "FileContainer *");
 }
 
+#define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
+
 extern int g_detect_disabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
@@ -897,6 +899,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
     const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
+    const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
+    const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
@@ -916,21 +920,24 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
 
-        const int tx_progress_tc = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOCLIENT);
+        const int tx_progress_tc =
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
         if (tx_progress_tc < tx_end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
             skipped = true;
             goto next;
         }
-        const int tx_progress_ts = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOSERVER);
+        const int tx_progress_ts =
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
         if (tx_progress_ts < tx_end_state_ts) {
             SCLogDebug("%p/%"PRIu64" skipping: ts parser not done", tx, i);
             skipped = true;
             goto next;
         }
+
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (txd && has_tx_detect_flags) {
-            if (f->sgh_toserver != NULL) {
+            if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
                 uint64_t detect_flags_ts = GetTxDetectFlags(txd, STREAM_TOSERVER);
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
@@ -939,7 +946,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                     goto next;
                 }
             }
-            if (f->sgh_toclient != NULL) {
+            if (!IS_DISRUPTED(tc_disrupt_flags) && f->sgh_toclient != NULL) {
                 uint64_t detect_flags_tc = GetTxDetectFlags(txd, STREAM_TOCLIENT);
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
@@ -997,9 +1004,6 @@ next:
     }
     SCReturn;
 }
-
-#define IS_DISRUPTED(flags) \
-    ((flags) & (STREAM_DEPTH|STREAM_GAP))
 
 /**
  *  \brief get the progress value for a tx/protocol
