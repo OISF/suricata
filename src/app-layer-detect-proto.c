@@ -161,6 +161,12 @@ typedef struct AppLayerProtoDetectCtx_ {
     const char *alproto_names[ALPROTO_MAX];
 } AppLayerProtoDetectCtx;
 
+typedef struct AppLayerProtoDetectAliases_ {
+    const char *proto_name;
+    const char *proto_alias;
+    struct AppLayerProtoDetectAliases_ *next;
+} AppLayerProtoDetectAliases;
+
 /**
  * \brief The app layer protocol detection thread context.
  */
@@ -173,6 +179,7 @@ struct AppLayerProtoDetectThreadCtx_ {
 
 /* The global app layer proto detection context. */
 static AppLayerProtoDetectCtx alpd_ctx;
+static AppLayerProtoDetectAliases *alpda_ctx;
 
 static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
                                              uint8_t *ipprotos);
@@ -1566,6 +1573,27 @@ static void AppLayerProtoDetectFreeProbingParsers(AppLayerProtoDetectProbingPars
     SCReturn;
 }
 
+static void AppLayerProtoDetectFreeAliases(void)
+{
+    SCEnter();
+
+    AppLayerProtoDetectAliases *cur_alias = alpda_ctx;
+    if (cur_alias == NULL)
+        goto end;
+
+    AppLayerProtoDetectAliases *next_alias = NULL;
+    while (cur_alias != NULL) {
+        next_alias = cur_alias->next;
+        SCFree(cur_alias);
+        cur_alias = next_alias;
+    }
+
+    alpda_ctx = NULL;
+
+end:
+    SCReturn;
+}
+
 /***** State Preparation *****/
 
 int AppLayerProtoDetectPrepareState(void)
@@ -1819,6 +1847,8 @@ int AppLayerProtoDetectDeSetup(void)
 
     AppLayerProtoDetectFreeProbingParsers(alpd_ctx.ctx_pp);
 
+    AppLayerProtoDetectFreeAliases();
+
     SCReturnInt(0);
 }
 
@@ -1828,6 +1858,28 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 
     if (alpd_ctx.alproto_names[alproto] == NULL)
         alpd_ctx.alproto_names[alproto] = alproto_name;
+
+    SCReturn;
+}
+
+void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_alias)
+{
+    SCEnter();
+
+    AppLayerProtoDetectAliases *new_alias = SCMalloc(sizeof(AppLayerProtoDetectAliases));
+    new_alias->proto_name = proto_name;
+    new_alias->proto_alias = proto_alias;
+    new_alias->next = NULL;
+
+    if (alpda_ctx == NULL) {
+        alpda_ctx = new_alias;
+    } else {
+        AppLayerProtoDetectAliases *cur_alias = alpda_ctx;
+        while (cur_alias->next != NULL) {
+            cur_alias = cur_alias->next;
+        }
+        cur_alias->next = new_alias;
+    }
 
     SCReturn;
 }
@@ -2040,6 +2092,15 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 {
     SCEnter();
+
+    AppLayerProtoDetectAliases *cur_alias = alpda_ctx;
+    while (cur_alias != NULL) {
+        if (strcasecmp(alproto_name, cur_alias->proto_alias) == 0) {
+            alproto_name = cur_alias->proto_name;
+        }
+
+        cur_alias = cur_alias->next;
+    }
 
     AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {
