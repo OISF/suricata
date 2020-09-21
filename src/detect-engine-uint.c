@@ -49,8 +49,18 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
                 return 1;
             }
             return 0;
+        case DETECT_UINT_LTE:
+            if (parg <= du32->arg1) {
+                return 1;
+            }
+            return 0;
         case DETECT_UINT_GT:
             if (parg > du32->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_GTE:
+            if (parg >= du32->arg1) {
                 return 1;
             }
             return 0;
@@ -137,9 +147,17 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                     return NULL;
 
                 if (arg2[0] == '<') {
-                    u32da.mode = DETECT_UINT_LT;
+                    if (arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_LTE;
+                    } else {
+                        u32da.mode = DETECT_UINT_LT;
+                    }
                 } else { // arg2[0] == '>'
-                    u32da.mode = DETECT_UINT_GT;
+                    if (arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_GTE;
+                    } else {
+                        u32da.mode = DETECT_UINT_GT;
+                    }
                 }
                 break;
             case '-':
@@ -244,8 +262,18 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
                 return 1;
             }
             return 0;
+        case DETECT_UINT_LTE:
+            if (parg <= du8->arg1) {
+                return 1;
+            }
+            return 0;
         case DETECT_UINT_GT:
             if (parg > du8->arg1) {
+                return 1;
+            }
+            return 0;
+        case DETECT_UINT_GTE:
+            if (parg >= du8->arg1) {
                 return 1;
             }
             return 0;
@@ -328,9 +356,17 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                     return NULL;
 
                 if (arg2[0] == '<') {
-                    u8da.mode = DETECT_UINT_LT;
+                    if (arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_LTE;
+                    } else {
+                        u8da.mode = DETECT_UINT_LT;
+                    }
                 } else { // arg2[0] == '>'
-                    u8da.mode = DETECT_UINT_GT;
+                    if (arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_GTE;
+                    } else {
+                        u8da.mode = DETECT_UINT_GT;
+                    }
                 }
                 break;
             case '-':
