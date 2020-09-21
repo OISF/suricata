@@ -2167,7 +2167,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 
     uint64_t flags = 0;
     size_t prevlen = bstr_len(part);
-    htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), HTP_DECODER_URLENCODED, part, &flags);
+    htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), part, &flags);
     // shorter string means that uri was encoded
     if (res == HTP_OK && prevlen > bstr_len(part)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
@@ -2315,7 +2315,7 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
 
     /* don't convert + to space by default */
-    htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
+    htp_config_set_plusspace_decode(cfg_prec->cfg, 0);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
     htp_config_set_lzma_memlimit(cfg_prec->cfg,
             HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
@@ -2476,7 +2476,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 /* The IDS personality by default converts the path (and due to
                  * our query string callback also the query string) to lowercase.
                  * Signatures do not expect this, so override it. */
-                htp_config_set_convert_lowercase(cfg_prec->cfg, HTP_DECODER_URL_PATH, 0);
+                htp_config_set_convert_lowercase(cfg_prec->cfg, 0);
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Unknown personality "
                              "\"%s\", ignoring", p->val);
@@ -2553,12 +2553,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
 #endif
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
             htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
-                                                     HTP_DECODER_URL_PATH,
                                                      ConfValIsTrue(p->val));
         } else if (strcasecmp("path-bestfit-replacement-char", p->name) == 0) {
             if (strlen(p->val) == 1) {
                 htp_config_set_bestfit_replacement_byte(cfg_prec->cfg,
-                                                        HTP_DECODER_URL_PATH,
                                                         p->val[0]);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
@@ -2566,27 +2564,21 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
         } else if (strcasecmp("path-convert-lowercase", p->name) == 0) {
             htp_config_set_convert_lowercase(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
                                              ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-encoded-terminates", p->name) == 0) {
             htp_config_set_nul_encoded_terminates(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
                                                   ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-raw-terminates", p->name) == 0) {
             htp_config_set_nul_raw_terminates(cfg_prec->cfg,
-                                              HTP_DECODER_URL_PATH,
                                               ConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-compress", p->name) == 0) {
             htp_config_set_path_separators_compress(cfg_prec->cfg,
-                                                    HTP_DECODER_URL_PATH,
                                                     ConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-decode", p->name) == 0) {
             htp_config_set_path_separators_decode(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
                                                   ConfValIsTrue(p->val));
         } else if (strcasecmp("path-u-encoding-decode", p->name) == 0) {
             htp_config_set_u_encoding_decode(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
                                              ConfValIsTrue(p->val));
         } else if (strcasecmp("path-url-encoding-invalid-handling", p->name) == 0) {
             enum htp_url_encoding_handling_t handling;
@@ -2602,11 +2594,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 return;
             }
             htp_config_set_url_encoding_invalid_handling(cfg_prec->cfg,
-                                                         HTP_DECODER_URL_PATH,
                                                          handling);
         } else if (strcasecmp("path-utf8-convert-bestfit", p->name) == 0) {
             htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
-                                                HTP_DECODER_URL_PATH,
                                                 ConfValIsTrue(p->val));
         } else if (strcasecmp("uri-include-all", p->name) == 0) {
             cfg_prec->uri_include_all = ConfValIsTrue(p->val);
@@ -2614,7 +2604,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     cfg_prec->uri_include_all ? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
             htp_config_set_plusspace_decode(cfg_prec->cfg,
-                                                HTP_DECODER_URLENCODED,
                                                 ConfValIsTrue(p->val));
         } else if (strcasecmp("meta-field-limit", p->name) == 0) {
             uint32_t limit = 0;
