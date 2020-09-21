@@ -17,8 +17,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::ikev2::ipsec_parser::*;
-use crate::ikev2::state::IKEV2ConnectionState;
+use crate::ike::ipsec_parser::*;
+use crate::ike::state::IKEV2ConnectionState;
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
@@ -59,9 +59,9 @@ impl IKEV2Event {
     }
 }
 
-pub struct IKEV2State {
+pub struct IKEState {
     /// List of transactions for this session
-    transactions: Vec<IKEV2Transaction>,
+    transactions: Vec<IKETransaction>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -92,7 +92,7 @@ pub struct IKEV2State {
 }
 
 #[derive(Debug)]
-pub struct IKEV2Transaction {
+pub struct IKETransaction {
     /// The IKEV2 reference ID
     pub xid: u64,
 
@@ -118,9 +118,9 @@ pub struct IKEV2Transaction {
 
 
 
-impl IKEV2State {
-    pub fn new() -> IKEV2State {
-        IKEV2State{
+impl IKEState {
+    pub fn new() -> IKEState {
+        IKEState{
             transactions: Vec::new(),
             tx_id: 0,
             connection_state: IKEV2ConnectionState::Init,
@@ -136,7 +136,7 @@ impl IKEV2State {
     }
 }
 
-impl IKEV2State {
+impl IKEState {
     /// Parse an IKEV2 request message
     ///
     /// Returns The number of messages parsed, or -1 on error
@@ -236,12 +236,12 @@ impl IKEV2State {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> IKEV2Transaction {
+    fn new_tx(&mut self) -> IKETransaction {
         self.tx_id += 1;
-        IKEV2Transaction::new(self.tx_id)
+        IKETransaction::new(self.tx_id)
     }
 
-    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&IKEV2Transaction> {
+    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&IKETransaction> {
         self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
     }
 
@@ -402,9 +402,9 @@ impl IKEV2State {
     }
 }
 
-impl IKEV2Transaction {
-    pub fn new(id: u64) -> IKEV2Transaction {
-        IKEV2Transaction {
+impl IKETransaction {
+    pub fn new(id: u64) -> IKETransaction {
+        IKETransaction {
             xid: 0,
             hdr: IkeV2Header {
                 init_spi: 0,
@@ -437,7 +437,7 @@ impl IKEV2Transaction {
     }
 }
 
-impl Drop for IKEV2Transaction {
+impl Drop for IKETransaction {
     fn drop(&mut self) {
         self.free();
     }
@@ -446,7 +446,7 @@ impl Drop for IKEV2Transaction {
 /// Returns *mut IKEV2State
 #[no_mangle]
 pub extern "C" fn rs_ikev2_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = IKEV2State::new();
+    let state = IKEState::new();
     let boxed = Box::new(state);
     return unsafe{std::mem::transmute(boxed)};
 }
@@ -456,7 +456,7 @@ pub extern "C" fn rs_ikev2_state_new(_orig_state: *mut std::os::raw::c_void, _or
 #[no_mangle]
 pub extern "C" fn rs_ikev2_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let mut ikev2_state: Box<IKEV2State> = unsafe{std::mem::transmute(state)};
+    let mut ikev2_state: Box<IKEState> = unsafe{std::mem::transmute(state)};
     ikev2_state.free();
 }
 
@@ -469,7 +469,7 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     if state.parse(buf, STREAM_TOSERVER) < 0 {
         return AppLayerResult::err();
     }
@@ -485,7 +485,7 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     let res = state.parse(buf, STREAM_TOCLIENT);
     if state.connection_state == IKEV2ConnectionState::ParsingDone {
         unsafe{
@@ -505,7 +505,7 @@ pub extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => unsafe{std::mem::transmute(tx)},
         None     => std::ptr::null_mut(),
@@ -516,7 +516,7 @@ pub extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
 pub extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     state.tx_id
 }
 
@@ -524,7 +524,7 @@ pub extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
 pub extern "C" fn rs_ikev2_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     state.free_tx(tx_id);
 }
 
@@ -549,7 +549,7 @@ pub extern "C" fn rs_ikev2_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
-    let tx = cast_pointer!(tx,IKEV2Transaction);
+    let tx = cast_pointer!(tx,IKETransaction);
     tx.de_state = Some(de_state);
     0
 }
@@ -559,7 +559,7 @@ pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
-    let tx = cast_pointer!(tx,IKEV2Transaction);
+    let tx = cast_pointer!(tx,IKETransaction);
     match tx.de_state {
         Some(ds) => ds,
         None => std::ptr::null_mut(),
@@ -571,7 +571,7 @@ pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
 pub extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
-    let tx = cast_pointer!(tx, IKEV2Transaction);
+    let tx = cast_pointer!(tx, IKETransaction);
     return tx.events;
 }
 
@@ -675,12 +675,12 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
     }
 }
 
-export_tx_data_get!(rs_ikev2_get_tx_data, IKEV2Transaction);
+export_tx_data_get!(rs_ikev2_get_tx_data, IKETransaction);
 
 const PARSER_NAME : &'static [u8] = b"ikev2\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_ikev2_parser() {
+pub unsafe extern "C" fn rs_ike_register_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
         name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -729,7 +729,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
 
 #[cfg(test)]
 mod tests {
-    use super::IKEV2State;
+    use super::IKEState;
 
     #[test]
     fn test_ikev2_parse_request_valid() {
@@ -743,7 +743,7 @@ mod tests {
             0x18, 0x57, 0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe
         ];
 
-        let mut state = IKEV2State::new();
+        let mut state = IKEState::new();
         assert_eq!(1, state.parse(REQ, 0));
     }
 }
