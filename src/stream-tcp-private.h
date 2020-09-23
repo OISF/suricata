@@ -195,8 +195,7 @@ enum TcpState
  * Per STREAM flags
  */
 
-/** stream is in a gap state */
-#define STREAMTCP_STREAM_FLAG_GAP                           BIT_U16(0)
+// bit 0 vacant
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
 #define STREAMTCP_STREAM_FLAG_NOREASSEMBLY                  BIT_U16(1)
 /** we received a keep alive */

@@ -807,9 +807,7 @@ int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
     int use_app = 1;
     int use_raw = 1;
 
-    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-          (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
         // app is dead
         use_app = 0;
     }
@@ -1360,11 +1358,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     /* if app is active and beyond raw, sync raw to app */
-    } else if (progress == 0 &&
-            STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
-            !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
-            !(stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    } else if (progress == 0 && STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
+               !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         /* if trigger raw is set we sync the 2 trackers */
         if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
         {
@@ -3379,7 +3374,6 @@ static int StreamTcpReassembleInlineTest08(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 15;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
     f.protoctx = &ssn;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
@@ -3431,7 +3425,6 @@ static int StreamTcpReassembleInlineTest09(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 20;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
