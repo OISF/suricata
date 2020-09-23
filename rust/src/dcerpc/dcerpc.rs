@@ -886,39 +886,33 @@ impl DCERPCState {
         self.query_completed = false;
 
         // Skip the record since this means that its in the middle of a known length record
-        if self.ts_gap || self.tc_gap {
+        if (self.ts_gap && direction == core::STREAM_TOSERVER) || (self.tc_gap && direction == core::STREAM_TOCLIENT) {
             SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
-            while cur_i.len() > 0 { // min record size
-                match self.search_dcerpc_record(cur_i) {
-                    Ok((_, pg)) => {
-                        SCLogDebug!("DCERPC record found");
-                        let offset = cur_i.len() - pg.len();
-                        if offset == 1 {
-                            cur_i = &cur_i[offset + 2..];
-                            continue; // see if we have another record in our data
+            match self.search_dcerpc_record(cur_i) {
+                Ok((_, pg)) => {
+                    SCLogDebug!("DCERPC record found");
+                    let offset = cur_i.len() - pg.len();
+                    cur_i = &cur_i[offset..];
+                    match direction {
+                        core::STREAM_TOSERVER => {
+                            self.ts_gap = false;
+                        },
+                        _ => {
+                            self.tc_gap = false;
                         }
-                        match direction {
-                            core::STREAM_TOSERVER => {
-                                self.ts_gap = false;
-                                break;
-                            },
-                            _ => {
-                                self.tc_gap = false;
-                                break;
-                            }
-                        }
-                    },
-                    _ => {
-                        let mut consumed = cur_i.len();
-                        if consumed < 2 {
-                            consumed = 0;
-                        } else {
-                            consumed = consumed - 1;
-                        }
-                        SCLogDebug!("DCERPC record NOT found");
-                        return AppLayerResult::incomplete(consumed as u32, 2);
-                    },
-                }
+                    }
+                },
+                _ => {
+                    let mut consumed = cur_i.len();
+                    // At least 2 bytes are required to know if a new record is beginning
+                    if consumed < 2 {
+                        consumed = 0;
+                    } else {
+                        consumed = consumed - 1;
+                    }
+                    SCLogDebug!("DCERPC record NOT found");
+                    return AppLayerResult::incomplete(consumed as u32, 2);
+                },
             }
         }
 
