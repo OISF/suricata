@@ -37,6 +37,26 @@ Suricata to open new files:
           a PID file will be created by default, otherwise the
           :option:`--pidfile` option should be used to create a PID file.
 
+If using threaded Eve logging it is recommended to use the *logrotate*
+option to move old log files into their own directory, for example::
+
+  /var/log/suricata/*.json.*
+  {
+      daily
+      missingok
+      rotate 5
+      compress
+      delaycompress
+      minsize 500k
+      sharedscripts
+      postrotate
+          /bin/kill -HUP `cat suricata.pid 2> /dev/null` 2> /dev/null || true
+      endscript
+
+      olddir /var/log/suricata/old
+      createolddir
+  }
+
 In addition to the SIGHUP style rotation discussed above, some outputs
 support their own time and date based rotation, however removal of old
 log files is still the responsibility of external tools. These outputs
