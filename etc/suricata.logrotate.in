@@ -1,5 +1,5 @@
 # Sample /etc/logrotate.d/suricata configuration file.
-@e_logdir@*.log @e_logdir@*.json {
+@e_logdir@*.log @e_logdir@*.json @e_logdir@*.json.[^.] {
     daily
     missingok
     rotate 5
@@ -10,4 +10,10 @@
     postrotate
         /bin/kill -HUP `cat @e_rundir@suricata.pid 2> /dev/null` 2> /dev/null || true
     endscript
+
+    # If using threaded Eve output, it is best to move old logs to
+    # their own directory. But it also works fine when not usint
+    # threaded Eve log.
+    olddir @e_logdir@/old
+    createolddir
 }
