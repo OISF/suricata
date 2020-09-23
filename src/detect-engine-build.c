@@ -1807,7 +1807,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         int add_rules = 0;
         (void)ConfGetBool("detect.profiling.grouping.include-rules", &add_rules);
         int add_mpm_stats = 0;
-        (void)ConfGetBool("detect.profiling.grouping.include-mpm-stats", &add_rules);
+        (void)ConfGetBool("detect.profiling.grouping.include-mpm-stats", &add_mpm_stats);
 
         RulesDumpGrouping(de_ctx, add_rules, add_mpm_stats);
     }
