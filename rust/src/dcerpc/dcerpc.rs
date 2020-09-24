@@ -811,11 +811,11 @@ impl DCERPCState {
         }
         self.padleft = fraglen - DCERPC_HDR_LEN - bytes_consumed;
         let mut input_left = input.len() as u16 - bytes_consumed;
-        let mut parsed = bytes_consumed;
-        while input_left > 0 && parsed < fraglen {
+        let mut parsed = bytes_consumed as i32;
+        while input_left > 0 && parsed < fraglen as i32 {
             let retval = self.handle_stub_data(&input[parsed as usize..], input_left, dir);
             if retval > 0 && retval <= input_left {
-                parsed += retval;
+                parsed += retval as i32;
                 input_left -= retval;
             } else if input_left > 0 {
                 SCLogDebug!(
@@ -826,11 +826,11 @@ impl DCERPCState {
                         "response"
                     }
                 );
-                parsed -= input_left;
+                parsed -= input_left as i32;
                 input_left = 0;
             }
         }
-        parsed as i32
+        parsed
     }
 
     pub fn process_request_pdu(&mut self, input: &[u8]) -> i32 {
@@ -1012,7 +1012,7 @@ impl DCERPCState {
                 }
                 DCERPC_TYPE_REQUEST => {
                     retval = self.process_request_pdu(&buffer[parsed as usize..]);
-                    if retval == -1 {
+                    if retval < 0 {
                         return AppLayerResult::err();
                     }
                     // In case the response came first, the transaction would complete later when
@@ -1036,7 +1036,7 @@ impl DCERPCState {
                         0,
                         core::STREAM_TOCLIENT,
                     );
-                    if retval == -1 {
+                    if retval < 0 {
                         return AppLayerResult::err();
                     }
                     self.handle_bind_cache(current_call_id, true);
