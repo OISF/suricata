@@ -268,7 +268,7 @@ impl DCERPCUDPState {
 
 fn evaluate_stub_params(
     input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
-    stub_data_buffer_len: &mut u16,
+    stub_data_buffer_len: &mut u32,
 ) -> u16 {
     let stub_len: u16;
     stub_len = cmp::min(lenleft, input_len);
@@ -285,7 +285,7 @@ fn evaluate_stub_params(
 
     let input_slice = &input[..stub_len as usize];
     stub_data_buffer.extend_from_slice(&input_slice);
-    *stub_data_buffer_len += stub_len;
+    *stub_data_buffer_len += stub_len as u32;
 
     stub_len
 }
