@@ -31,6 +31,8 @@ pub type AppLayerEventType = libc::c_int;
 pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
 pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
 
+pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = 2;
+
 // From stream.h.
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
