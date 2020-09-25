@@ -44,8 +44,8 @@
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 static bool SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
-// Threaded eve.json suffixes
-static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint32_t, eve_file_suffix, 1);
+// Threaded eve.json identifier
+static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint32_t, eve_file_id, 1);
 
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
@@ -708,6 +708,37 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
     return parent_ctx->threads->lf_slots[thread_id];
 }
 
+/** \brief LogFileThreadedName() Create file name for threaded EVE storage
+ *
+ */
+static bool LogFileThreadedName(
+        const char *original_name, char *threaded_name, size_t len, uint32_t unique_id)
+{
+    char *dot = strrchr(original_name, '.');
+    if (dot) {
+        char *tname = SCStrdup(original_name);
+        if (!tname) {
+            return false;
+        }
+
+        int dotpos = dot - original_name;
+        tname[dotpos] = '\0';
+        char *ext = tname + dotpos + 1;
+        if (strlen(tname) && strlen(ext)) {
+            snprintf(threaded_name, len, "%s.%d.%s", tname, unique_id, ext);
+        } else {
+            FatalError(SC_ERR_FATAL,
+                    "Invalid filename for threaded mode \"%s\"; "
+                    "filenames must include an extension, e.g: \"name.ext\"",
+                    original_name);
+        }
+        SCFree(tname);
+    } else {
+        snprintf(threaded_name, len, "%s.%d", original_name, unique_id);
+    }
+    return true;
+}
+
 /** \brief LogFileNewThreadedCtx() Create file context for threaded output
  * \param parent_ctx
  * \param log_path
@@ -724,8 +755,11 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 
     *thread = *parent_ctx;
     char fname[NAME_MAX];
-    snprintf(fname, sizeof(fname), "%s.%d", log_path, SC_ATOMIC_ADD(eve_file_suffix, 1));
-    SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
+    if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
+        return false;
+    }
+    SCLogNotice("Thread open -- using name %s [replaces %s]", fname, log_path);
     thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
     if (thread->fp == NULL) {
         goto error;
@@ -748,7 +782,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     return true;
 
 error:
-    SC_ATOMIC_SUB(eve_file_suffix, 1);
+    SC_ATOMIC_SUB(eve_file_id, 1);
     if (thread->fp) {
         thread->Close(thread);
     }
