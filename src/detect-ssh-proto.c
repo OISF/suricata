@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -48,16 +47,16 @@
 #include "detect-ssh-proto.h"
 #include "rust.h"
 
-#define KEYWORD_NAME "ssh.proto"
+#define KEYWORD_NAME        "ssh.proto"
 #define KEYWORD_NAME_LEGACY "ssh_proto"
-#define KEYWORD_DOC "ssh-keywords.html#ssh-proto"
-#define BUFFER_NAME "ssh.proto"
-#define BUFFER_DESC "ssh protocol version field"
+#define KEYWORD_DOC         "ssh-keywords.html#ssh-proto"
+#define BUFFER_NAME         "ssh.proto"
+#define BUFFER_DESC         "ssh protocol version field"
 static int g_buffer_id = 0;
 
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -101,20 +100,22 @@ void DetectSshProtocolRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].Setup = DetectSshProtocolSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
+    sigmatch_table[DETECT_SSH_PROTOCOL].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_SSH_PROTOCOL].alternative = DETECT_AL_SSH_PROTOCOL;
+    sigmatch_table[DETECT_SSH_PROTOCOL].desc = "legacy match for ssh protocol version";
+    sigmatch_table[DETECT_SSH_PROTOCOL].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SSH_PROTOCOL].Setup = DetectSshProtocolSetup;
+    sigmatch_table[DETECT_SSH_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SshStateBannerDone),
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SshStateBannerDone),
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone),
+            DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+                    PrefilterGenericMpmRegister, GetSshData, ALPROTO_SSH, SshStateBannerDone),
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOSERVER, SshStateBannerDone,
-            DetectEngineInspectBufferGeneric, GetSshData);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SshStateBannerDone,
-            DetectEngineInspectBufferGeneric, GetSshData);
+            DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
+                    SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
