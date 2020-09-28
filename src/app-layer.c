@@ -636,6 +636,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* rerun protocol detection */
         int rd = TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags);
         if (f->alproto == ALPROTO_UNKNOWN) {
+            DEBUG_VALIDATE_BUG_ON(alstate_orig != f->alstate);
             // not enough data, revert AppLayerProtoDetectReset to rerun detection
             f->alparser = alparser;
             f->alproto = f->alproto_orig;
@@ -644,10 +645,13 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         } else {
             FlowUnsetChangeProtoFlag(f);
             AppLayerParserStateProtoCleanup(f->protomap, f->alproto_orig, alstate_orig, alparser);
+            if (alstate_orig == f->alstate) {
+                // we just freed it
+                f->alstate = NULL;
+            }
         }
         if (rd != 0) {
             SCLogDebug("proto detect failure");
-            f->alstate = NULL;
             goto failure;
         }
         SCLogDebug("protocol change, old %s, new %s",

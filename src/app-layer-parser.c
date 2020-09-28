@@ -1201,7 +1201,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (flags & STREAM_GAP) {
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
-            if (f->alstate != NULL) {
+            if (f->alstate != NULL && !FlowChangeProto(f)) {
                 AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
                         flags);
             }
