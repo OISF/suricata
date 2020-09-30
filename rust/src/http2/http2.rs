@@ -58,6 +58,8 @@ const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
+//TODO make this configurable
+pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
@@ -271,12 +273,30 @@ impl HTTP2Event {
     }
 }
 
+pub struct HTTP2DynTable {
+    pub table: Vec<parser::HTTP2FrameHeaderBlock>,
+    pub current_size: usize,
+    pub max_size: usize,
+    pub overflow: u8,
+}
+
+impl HTTP2DynTable {
+    pub fn new() -> Self {
+        Self {
+            table: Vec::with_capacity(64),
+            current_size: 0,
+            max_size: 4096, //default value
+            overflow: 0,
+        }
+    }
+}
+
 pub struct HTTP2State {
     tx_id: u64,
     request_frame_size: u32,
     response_frame_size: u32,
-    dynamic_headers_ts: Vec<parser::HTTP2FrameHeaderBlock>,
-    dynamic_headers_tc: Vec<parser::HTTP2FrameHeaderBlock>,
+    dynamic_headers_ts: HTTP2DynTable,
+    dynamic_headers_tc: HTTP2DynTable,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: HTTP2Files,
@@ -291,8 +311,8 @@ impl HTTP2State {
             // the headers are encoded on one byte
             // with a fixed number of static headers, and
             // a variable number of dynamic headers
-            dynamic_headers_ts: Vec::with_capacity(256 - parser::HTTP2_STATIC_HEADERS_NUMBER),
-            dynamic_headers_tc: Vec::with_capacity(256 - parser::HTTP2_STATIC_HEADERS_NUMBER),
+            dynamic_headers_ts: HTTP2DynTable::new(),
+            dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             files: HTTP2Files::new(),
@@ -444,6 +464,22 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::SETTINGS) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
+                        for i in 0..set.len() {
+                            if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                                //set for both endpoints ? to be tested
+                                self.dynamic_headers_tc.max_size = set[i].value as usize;
+                                self.dynamic_headers_ts.max_size = set[i].value as usize;
+                                if set[i].value > HTTP2_MAX_TABLESIZE {
+                                    //mark potential overflow
+                                    self.dynamic_headers_tc.overflow = 1;
+                                    self.dynamic_headers_ts.overflow = 1;
+                                } else {
+                                    //reset in case peer set a lower value, to be tested
+                                    self.dynamic_headers_tc.overflow = 0;
+                                    self.dynamic_headers_ts.overflow = 0;
+                                }
+                            }
+                        }
                         //we could set an event on remaining data
                         return HTTP2FrameTypeData::SETTINGS(set);
                     }
