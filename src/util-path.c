@@ -28,6 +28,12 @@
 #include "util-debug.h"
 #include "util-path.h"
 
+#ifdef OS_WIN32
+#define DIRECTORY_SEPARATOR '\\'
+#else
+#define DIRECTORY_SEPARATOR '/'
+#endif
+
 /**
  *  \brief Check if a path is absolute
  *
@@ -81,11 +87,6 @@ int PathIsRelative(const char *path)
 TmEcode PathJoin (char *out_buf, uint16_t buf_len, const char *const dir, const char *const fname)
 {
     SCEnter();
-#ifdef OS_WIN32
-#define DIRECTORY_SEPARATOR '\\'
-#else
-#define DIRECTORY_SEPARATOR '/'
-#endif
     uint16_t max_path_len = MAX(buf_len, PATH_MAX);
     int bytes_written = snprintf(out_buf, max_path_len, "%s%c%s", dir, DIRECTORY_SEPARATOR, fname);
     if (bytes_written <= 0) {
@@ -224,4 +225,25 @@ char *SCRealPath(const char *path, char *resolved_path)
 #else
     return realpath(path, resolved_path);
 #endif
+}
+
+/*
+ * \brief Return the basename of the provided path.
+ * \param path The path on which to compute the basename
+ *
+ * \retval the basename of the path or NULL if the path lacks a non-leaf
+ */
+const char *SCBasename(const char *path)
+{
+    if (!path || strlen(path) == 0)
+        return NULL;
+
+    char *final = strrchr(path, DIRECTORY_SEPARATOR);
+    if (!final)
+        return path;
+
+    if (*(final + 1) == '\0')
+        return NULL;
+
+    return final + 1;
 }
