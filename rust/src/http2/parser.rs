@@ -16,6 +16,7 @@
  */
 
 use super::huffman;
+use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
 use nom::character::complete::digit1;
 use nom::combinator::rest;
 use nom::error::ErrorKind;
@@ -209,9 +210,7 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
 
 pub const HTTP2_STATIC_HEADERS_NUMBER: usize = 61;
 
-fn http2_frame_header_static(
-    n: u64, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
-) -> Option<HTTP2FrameHeaderBlock> {
+fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP2FrameHeaderBlock> {
     let (name, value) = match n {
         1 => (":authority", ""),
         2 => (":method", "GET"),
@@ -292,7 +291,7 @@ fn http2_frame_header_static(
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0,
                 sizeupdate: 0,
             });
-        } else if dyn_headers.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
+        } else if dyn_headers.table.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
             return Some(HTTP2FrameHeaderBlock {
                 name: Vec::new(),
                 value: Vec::new(),
@@ -300,10 +299,10 @@ fn http2_frame_header_static(
                 sizeupdate: 0,
             });
         } else {
-            let indyn = dyn_headers.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
+            let indyn = dyn_headers.table.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
             let headcopy = HTTP2FrameHeaderBlock {
-                name: dyn_headers[indyn].name.to_vec(),
-                value: dyn_headers[indyn].value.to_vec(),
+                name: dyn_headers.table[indyn].name.to_vec(),
+                value: dyn_headers.table[indyn].value.to_vec(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
                 sizeupdate: 0,
             };
@@ -338,7 +337,7 @@ pub struct HTTP2FrameHeaderBlock {
 }
 
 fn http2_parse_headers_block_indexed<'a>(
-    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -379,7 +378,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
 }
 
 fn http2_parse_headers_block_literal_common<'a>(
-    input: &'a [u8], index: u64, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], index: u64, dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     let (i3, name, error) = if index == 0 {
         match http2_parse_headers_block_string(input) {
@@ -413,7 +412,7 @@ fn http2_parse_headers_block_literal_common<'a>(
 }
 
 fn http2_parse_headers_block_literal_incindex<'a>(
-    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -438,16 +437,28 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 error: head.error,
                 sizeupdate: 0,
             };
-            dyn_headers.push(headcopy);
-            let mut dynsize = 0;
-            //we may spend less CPU by storing in memory
-            for i in 0..dyn_headers.len() {
-                dynsize += 32 + dyn_headers[i].name.len() + dyn_headers[i].value.len();
-            }
-            //TODO keep track of settings + updates instead of magic default value
-            while dynsize > 4096 {
-                dynsize -= 32 + dyn_headers[0].name.len() + dyn_headers[0].value.len();
-                dyn_headers.remove(0);
+            if head.error == HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                dyn_headers.current_size += 32 + headcopy.name.len() + headcopy.value.len();
+                //in case of overflow, best effort is to keep first headers
+                if dyn_headers.overflow > 0 {
+                    if dyn_headers.overflow == 1 {
+                        if dyn_headers.current_size <= (HTTP2_MAX_TABLESIZE as usize) {
+                            //overflow had not yet happened
+                            dyn_headers.table.push(headcopy);
+                        } else if dyn_headers.current_size > dyn_headers.max_size {
+                            //overflow happens, we cannot replace evicted headers
+                            dyn_headers.overflow = 2;
+                        }
+                    }
+                } else {
+                    dyn_headers.table.push(headcopy);
+                }
+                while dyn_headers.current_size > dyn_headers.max_size && dyn_headers.table.len() > 0
+                {
+                    dyn_headers.current_size -=
+                        32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
+                    dyn_headers.table.remove(0);
+                }
             }
             return Ok((r, head));
         }
@@ -458,7 +469,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
 }
 
 fn http2_parse_headers_block_literal_noindex<'a>(
-    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -479,7 +490,7 @@ fn http2_parse_headers_block_literal_noindex<'a>(
 }
 
 fn http2_parse_headers_block_literal_neverindex<'a>(
-    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -521,7 +532,9 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     return Ok((i3, varval));
 }
 
-fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+fn http2_parse_headers_block_dynamic_size<'a>(
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
+) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
@@ -544,6 +557,15 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
             },
         ));
     }
+    if (maxsize2 as usize) < dyn_headers.max_size {
+        dyn_headers.max_size = maxsize2 as usize;
+        //may evict entries
+        while dyn_headers.current_size > dyn_headers.max_size {
+            dyn_headers.current_size -=
+                32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
+            dyn_headers.table.remove(0);
+        }
+    }
     return Ok((
         i3,
         HTTP2FrameHeaderBlock {
@@ -556,7 +578,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
 }
 
 fn http2_parse_headers_block<'a>(
-    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     //caller garantees o have at least one byte
     if input[0] & 0x80 != 0 {
@@ -564,7 +586,7 @@ fn http2_parse_headers_block<'a>(
     } else if input[0] & 0x40 != 0 {
         return http2_parse_headers_block_literal_incindex(input, dyn_headers);
     } else if input[0] & 0x20 != 0 {
-        return http2_parse_headers_block_dynamic_size(input);
+        return http2_parse_headers_block_dynamic_size(input, dyn_headers);
     } else if input[0] & 0x10 != 0 {
         return http2_parse_headers_block_literal_neverindex(input, dyn_headers);
     } else {
@@ -586,7 +608,7 @@ const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 pub fn http2_parse_frame_headers<'a>(
-    input: &'a [u8], flags: u8, dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaders> {
     let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
     let (mut i3, priority) = cond!(
@@ -630,7 +652,7 @@ pub struct HTTP2FramePushPromise {
 }
 
 pub fn http2_parse_frame_push_promise<'a>(
-    input: &'a [u8], flags: u8, dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
     let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
     let (mut i3, stream_id) = bits!(i2, tuple!(take_bits!(1u8), take_bits!(31u32)))?;
@@ -668,7 +690,7 @@ pub struct HTTP2FrameContinuation {
 }
 
 pub fn http2_parse_frame_continuation<'a>(
-    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameContinuation> {
     let mut i3 = input;
     let mut blocks = Vec::new();
@@ -897,8 +919,7 @@ mod tests {
     #[test]
     fn test_http2_parse_header() {
         let buf0: &[u8] = &[0x82];
-        let mut dynh: Vec<HTTP2FrameHeaderBlock> =
-            Vec::with_capacity(255 - HTTP2_STATIC_HEADERS_NUMBER);
+        let mut dynh = HTTP2DynTable::new();
         let r0 = http2_parse_headers_block(buf0, &mut dynh);
         match r0 {
             Ok((remainder, hd)) => {
@@ -924,7 +945,7 @@ mod tests {
                 assert_eq!(hd.value, "*/*".as_bytes().to_vec());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
-                assert_eq!(dynh.len(), 1);
+                assert_eq!(dynh.table.len(), 1);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
@@ -944,7 +965,7 @@ mod tests {
                 assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
-                assert_eq!(dynh.len(), 2);
+                assert_eq!(dynh.table.len(), 2);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
@@ -962,7 +983,7 @@ mod tests {
                 assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
-                assert_eq!(dynh.len(), 2);
+                assert_eq!(dynh.table.len(), 2);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
@@ -977,7 +998,7 @@ mod tests {
             Ok((remainder, hd)) => {
                 assert_eq!(hd.error, HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0);
                 assert_eq!(remainder.len(), 0);
-                assert_eq!(dynh.len(), 2);
+                assert_eq!(dynh.table.len(), 2);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
@@ -998,7 +1019,7 @@ mod tests {
                 assert_eq!(hd.value, "/doc/manual/html/index.html".as_bytes().to_vec());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
-                assert_eq!(dynh.len(), 2);
+                assert_eq!(dynh.table.len(), 2);
             }
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
