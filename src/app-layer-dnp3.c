@@ -277,10 +277,20 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
     /* May be a banner. */
     if (DNP3ContainsBanner(input, len)) {
         SCLogDebug("Packet contains a DNP3 banner.");
-        if (toserver) {
-            *rdir = STREAM_TOCLIENT;
+        bool is_banner = true;
+        // magic 0x100 = 256 seems good enough
+        for (uint32_t i = 0; i < len && i < 0x100; i++) {
+            if (!isprint(input[i])) {
+                is_banner = false;
+                break;
+            }
         }
-        return ALPROTO_DNP3;
+        if (is_banner) {
+            if (toserver) {
+                *rdir = STREAM_TOCLIENT;
+            }
+            return ALPROTO_DNP3;
+        }
     }
 
     /* Check that we have the minimum amount of bytes. */
