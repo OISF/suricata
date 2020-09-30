@@ -210,7 +210,7 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
 pub const HTTP2_STATIC_HEADERS_NUMBER: usize = 61;
 
 fn http2_frame_header_static(
-    n: u8, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    n: u64, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> Option<HTTP2FrameHeaderBlock> {
     let (name, value) = match n {
         1 => (":authority", ""),
@@ -350,9 +350,13 @@ fn http2_parse_headers_block_indexed<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    match http2_frame_header_static(indexed.1, dyn_headers) {
-        Some(h) => Ok((i2, h)),
-        _ => Err(Err::Error((i2, ErrorKind::MapOpt))),
+    let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x7F)?;
+    if indexreal == 0 && indexed.1 == 0x7F {
+        return Err(Err::Error((i3, ErrorKind::LengthValue)));
+    }
+    match http2_frame_header_static(indexreal, dyn_headers) {
+        Some(h) => Ok((i3, h)),
+        _ => Err(Err::Error((i3, ErrorKind::MapOpt))),
     }
 }
 
@@ -361,19 +365,10 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
         bits!(input, tuple!(take_bits!(1u8), take_bits!(7u8)))
     }
     let (i1, huffslen) = parser(input)?;
-    let (i2, stringlen) = if huffslen.1 == 0x7F {
-        let (i3, maxsize2) = take_while_m_n!(i1, 0, 9, |ch| (ch & 0x80) != 0)?;
-        let (i4, maxsize3) = be_u8(i3)?;
-        let mut maxsize = 0x7F as u64;
-        for i in 0..maxsize2.len() {
-            maxsize += ((maxsize2[i] & 0x7F) as u64) << (7 * i);
-        }
-        maxsize += (maxsize3 as u64) << (7 * maxsize2.len());
-        (i4, maxsize)
-    } else {
-        (i1, huffslen.1 as u64)
-    };
-
+    let (i2, stringlen) = http2_parse_var_uint(i1, huffslen.1 as u64, 0x7F)?;
+    if stringlen == 0 && huffslen.1 == 0x7F {
+        return Err(Err::Error((i2, ErrorKind::LengthValue)));
+    }
     let (i3, data) = take!(i2, stringlen as usize)?;
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
@@ -384,7 +379,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
 }
 
 fn http2_parse_headers_block_literal_common<'a>(
-    input: &'a [u8], index: u8, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], index: u64, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     let (i3, name, error) = if index == 0 {
         match http2_parse_headers_block_string(input) {
@@ -430,11 +425,10 @@ fn http2_parse_headers_block_literal_incindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    let (i3, indexreal) = if indexed.1 == 0x3F {
-        map!(i2, be_u8, |i| i + 0x3F)
-    } else {
-        Ok((i2, indexed.1))
-    }?;
+    let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x3F)?;
+    if indexreal == 0 && indexed.1 == 0x3F {
+        return Err(Err::Error((i3, ErrorKind::LengthValue)));
+    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     match r {
         Ok((r, head)) => {
@@ -445,10 +439,16 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 sizeupdate: 0,
             };
             dyn_headers.push(headcopy);
-            if dyn_headers.len() > 255 - HTTP2_STATIC_HEADERS_NUMBER {
+            let mut dynsize = 0;
+            //we may spend less CPU by storing in memory
+            for i in 0..dyn_headers.len() {
+                dynsize += 32 + dyn_headers[i].name.len() + dyn_headers[i].value.len();
+            }
+            //TODO keep track of settings + updates instead of magic default value
+            while dynsize > 4096 {
+                dynsize -= 32 + dyn_headers[0].name.len() + dyn_headers[0].value.len();
                 dyn_headers.remove(0);
             }
-            //we do not limit the dynamic table size
             return Ok((r, head));
         }
         Err(e) => {
@@ -470,12 +470,10 @@ fn http2_parse_headers_block_literal_noindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    //undocumented in RFC ?! found with wireshark
-    let (i3, indexreal) = if indexed.1 == 0xF {
-        map!(i2, be_u8, |i| i + 0xF)
-    } else {
-        Ok((i2, indexed.1))
-    }?;
+    let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
+    if indexreal == 0 && indexed.1 == 0xF {
+        return Err(Err::Error((i3, ErrorKind::LengthValue)));
+    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
@@ -493,13 +491,34 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
         )
     }
     let (i2, indexed) = parser(input)?;
-    let (i3, indexreal) = if indexed.1 == 0xF {
-        map!(i2, be_u8, |i| i + 0xF)
-    } else {
-        Ok((i2, indexed.1))
-    }?;
+    let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
+    if indexreal == 0 && indexed.1 == 0xF {
+        return Err(Err::Error((i3, ErrorKind::LengthValue)));
+    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
+}
+
+fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u64> {
+    if value < max {
+        return Ok((input, value));
+    }
+    let (i2, varia) = take_while!(input, |ch| (ch & 0x80) != 0)?;
+    let (i3, finalv) = be_u8(i2)?;
+    if varia.len() > 9 || (varia.len() == 9 && finalv > 1) {
+        // this will overflow u64
+        return Ok((i3, 0));
+    }
+    let mut varval = max;
+    for i in 0..varia.len() {
+        varval += ((varia[i] & 0x7F) as u64) << (7 * i);
+    }
+    varval += (finalv as u64) << (7 * varia.len());
+    if varval < max {
+        // this has overflown u64
+        return Ok((i3, 0));
+    }
+    return Ok((i3, varval));
 }
 
 fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
@@ -513,43 +532,25 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
         )
     }
     let (i2, maxsize) = parser(input)?;
-    if maxsize.1 == 31 {
-        let (i3, maxsize2) = take_while!(i2, |ch| (ch & 0x80) != 0)?;
-        let (i4, maxsize3) = be_u8(i3)?;
-        //9 is maximum size to encode a variable length u64
-        if maxsize2.len() > 9 {
-            return Ok((
-                i4,
-                HTTP2FrameHeaderBlock {
-                    name: Vec::new(),
-                    value: Vec::new(),
-                    error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
-                    sizeupdate: 0,
-                },
-            ));
-        }
-        let mut sizeupdate = 31 as u64;
-        for i in 0..maxsize2.len() {
-            sizeupdate += ((maxsize2[i] & 0x7F) as u64) << (7 * i);
-        }
-        sizeupdate += (maxsize3 as u64) << (7 * maxsize2.len());
+    let (i3, maxsize2) = http2_parse_var_uint(i2, maxsize.1 as u64, 0x1F)?;
+    if maxsize2 == 0 && maxsize.1 == 0x1F {
         return Ok((
-            i4,
+            i3,
             HTTP2FrameHeaderBlock {
                 name: Vec::new(),
                 value: Vec::new(),
-                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
-                sizeupdate: sizeupdate,
+                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
+                sizeupdate: 0,
             },
         ));
     }
     return Ok((
-        i2,
+        i3,
         HTTP2FrameHeaderBlock {
             name: Vec::new(),
             value: Vec::new(),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
-            sizeupdate: maxsize.1 as u64,
+            sizeupdate: maxsize2,
         },
     ));
 }
