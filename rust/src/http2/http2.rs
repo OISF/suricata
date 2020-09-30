@@ -101,8 +101,8 @@ pub enum HTTP2TransactionState {
     HTTP2StateOpen = 1,
     HTTP2StateReserved = 2,
     HTTP2StateDataClient = 3,
-    HTTP2StateDataServer = 4,
-    HTTP2StateHalfClosedClient = 5,
+    HTTP2StateHalfClosedClient = 4,
+    HTTP2StateDataServer = 5,
     HTTP2StateHalfClosedServer = 6,
     HTTP2StateClosed = 7,
     //not a RFC-defined state, used for stream 0 frames appyling to the global connection
@@ -195,7 +195,8 @@ impl HTTP2Transaction {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
                 if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
                     match self.state {
-                        HTTP2TransactionState::HTTP2StateHalfClosedClient => {
+                        HTTP2TransactionState::HTTP2StateHalfClosedClient
+                        | HTTP2TransactionState::HTTP2StateDataServer => {
                             if dir == STREAM_TOCLIENT {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
@@ -205,7 +206,7 @@ impl HTTP2Transaction {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
                         }
-                        // do not revert back to a hald closed state
+                        // do not revert back to a half closed state
                         HTTP2TransactionState::HTTP2StateClosed => {}
                         HTTP2TransactionState::HTTP2StateGlobal => {}
                         _ => {
@@ -219,9 +220,13 @@ impl HTTP2Transaction {
                 } else if header.ftype == parser::HTTP2FrameType::DATA as u8 {
                     //not end of stream
                     if dir == STREAM_TOSERVER {
-                        self.state = HTTP2TransactionState::HTTP2StateDataClient;
+                        if self.state < HTTP2TransactionState::HTTP2StateDataClient {
+                            self.state = HTTP2TransactionState::HTTP2StateDataClient;
+                        }
                     } else {
-                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
+                        if self.state < HTTP2TransactionState::HTTP2StateDataServer {
+                            self.state = HTTP2TransactionState::HTTP2StateDataServer;
+                        }
                     }
                 }
             }
@@ -336,14 +341,19 @@ impl HTTP2State {
         return None;
     }
 
-    fn find_tx_index(&mut self, sid: u32) -> usize {
+    fn find_tx_index(&mut self, sid: u32, header: &parser::HTTP2FrameHeader) -> usize {
         for i in 0..self.transactions.len() {
             //reverse order should be faster
             let idx = self.transactions.len() - 1 - i;
             if sid == self.transactions[idx].stream_id {
                 if self.transactions[idx].state == HTTP2TransactionState::HTTP2StateClosed {
-                    self.set_event(HTTP2Event::StreamIdReuse);
-                    return 0;
+                    //these frames can be received in this state for a short period
+                    if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
+                        && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
+                        && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
+                    {
+                        self.set_event(HTTP2Event::StreamIdReuse);
+                    }
                 }
                 return idx + 1;
             }
@@ -394,7 +404,7 @@ impl HTTP2State {
             }
             _ => header.stream_id,
         };
-        let index = self.find_tx_index(sid);
+        let index = self.find_tx_index(sid, header);
         if index > 0 {
             return &mut self.transactions[index - 1];
         } else {
