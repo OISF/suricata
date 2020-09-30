@@ -277,7 +277,17 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t *input, uint32_t len)
     /* May be a banner. */
     if (DNP3ContainsBanner(input, len)) {
         SCLogDebug("Packet contains a DNP3 banner.");
-        goto end;
+        bool is_banner = true;
+        // magic 0x100 = 256 seems good enough
+        for (uint32_t i = 0; i < len && i < 0x100; i++) {
+            if (!isprint(input[i])) {
+                is_banner = false;
+                break;
+            }
+        }
+        if (is_banner) {
+            goto end;
+        }
     }
 
     /* Verify start value (from AN2013-004b). */
