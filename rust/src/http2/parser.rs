@@ -168,13 +168,17 @@ named!(pub http2_parse_frame_rststream<HTTP2FrameRstStream>,
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FramePriority {
+    pub exclusive: u8,
+    pub dependency: u32,
     pub weight: u8,
 }
 
 named!(pub http2_parse_frame_priority<HTTP2FramePriority>,
     do_parse!(
+        sid: bits!( tuple!( take_bits!(1u8),
+                            take_bits!(31u32) ) ) >>
         weight: be_u8 >>
-        (HTTP2FramePriority{weight})
+        (HTTP2FramePriority{exclusive:sid.0, dependency:sid.1, weight})
     )
 );
 
