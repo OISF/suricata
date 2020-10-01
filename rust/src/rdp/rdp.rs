@@ -245,7 +245,14 @@ impl RdpState {
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
-                            return self.parse_ts(available);
+                            let r = self.parse_ts(available);
+                            if r.status == 1 {
+                                //adds bytes already consumed to incomplete result
+                                let consumed = (input.len() - available.len()) as u32;
+                                return AppLayerResult::incomplete(r.consumed + consumed, r.needed);
+                            } else {
+                                return r;
+                            }
                         } else {
                             return AppLayerResult::err();
                         }
