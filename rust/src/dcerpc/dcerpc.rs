@@ -29,6 +29,8 @@ pub const DCERPC_HDR_LEN: u16 = 16;
 // FIRST flag set on the packet
 pub const DCERPC_UUID_ENTRY_FLAG_FF: u16 = 0x0001;
 
+// Flag bits in connection-oriented PDU header.
+
 // Value to indicate first fragment
 pub const PFC_FIRST_FRAG: u8 = 0x01;
 // Value to indicate last fragment
@@ -47,6 +49,31 @@ pub const PFC_MAYBE: u8 = 0x40;
 //  is present in the optional object field. If false, the object field
 // is omitted.
 pub const PFC_OBJECT_UUID: u8 = 0x80;
+
+// Flag bits in first flag field in connectionless PDU header.
+pub const PFCL1_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
+pub const PFCL1_LASTFRAG: u8 = 0x02; // If set, the PDU is the last fragment
+                                     // of a multi-PDU transmission
+pub const PFCL1_FRAG: u8 = 0x04; // If set, the PDU is a fragment
+                                 // of a multi-PDU transmission
+pub const PFCL1_NOFACK: u8 = 0x08; // If set, the receiver is not requested
+                                   // to send a `fack' PDU for the fragment
+pub const PFCL1_MAYBE: u8 = 0x10; // If set, the PDU is for a `maybe' request
+pub const PFCL1_IDEMPOTENT: u8 = 0x20; // If set, the PDU is for
+                                       // an idempotent request
+pub const PFCL1_BROADCAST: u8 = 0x40; // If set, the PDU is for
+                                      // a broadcast request
+pub const PFCL1_RESERVED_80: u8 = 0x80; // Reserved for use by implementations
+
+// Flag bits in second flag field in connectionless PDU header.
+pub const PFCL2_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
+pub const PFCL2_CANCEL_PENDING: u8 = 0x02; // Cancel pending at the call end
+pub const PFCL2_RESERVED_04: u8 = 0x04; // Reserved for future use
+pub const PFCL2_RESERVED_08: u8 = 0x08; // Reserved for future use
+pub const PFCL2_RESERVED_10: u8 = 0x10; // Reserved for future use
+pub const PFCL2_RESERVED_20: u8 = 0x20; // Reserved for future use
+pub const PFCL2_RESERVED_40: u8 = 0x40; // Reserved for future use
+pub const PFCL2_RESERVED_80: u8 = 0x80; // Reserved for future use
 
 pub const REASON_NOT_SPECIFIED: u8 = 0;
 pub const TEMPORARY_CONGESTION: u8 = 1;
@@ -132,7 +159,7 @@ pub fn get_req_type_for_resp(t: u8) -> u8 {
 
 #[derive(Debug)]
 pub struct DCERPCTransaction {
-    pub id: u32, // internal transaction ID
+    pub id: u64, // internal transaction ID
     pub ctxid: u16,
     pub opnum: u16,
     pub first_request_seen: u8,
@@ -142,8 +169,6 @@ pub struct DCERPCTransaction {
     pub endianness: u8,
     pub stub_data_buffer_ts: Vec<u8>,
     pub stub_data_buffer_tc: Vec<u8>,
-    pub stub_data_buffer_len_ts: u32,
-    pub stub_data_buffer_len_tc: u32,
     pub stub_data_buffer_reset_ts: bool,
     pub stub_data_buffer_reset_tc: bool,
     pub req_done: bool,
@@ -152,6 +177,8 @@ pub struct DCERPCTransaction {
     pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
+    pub activityuuid: Vec<u8>,
+    pub seqnum: u32,
     pub tx_data: AppLayerTxData,
     pub de_state: Option<*mut core::DetectEngineState>,
 }
@@ -169,8 +196,6 @@ impl DCERPCTransaction {
             endianness: 0,
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
-            stub_data_buffer_len_ts: 0, // TODO maybe retrieve length from buffer and avoid this param
-            stub_data_buffer_len_tc: 0,
             stub_data_buffer_reset_ts: false,
             stub_data_buffer_reset_tc: false,
             req_done: false,
@@ -179,6 +204,8 @@ impl DCERPCTransaction {
             resp_lost: false,
             req_cmd: DCERPC_TYPE_REQUEST,
             resp_cmd: DCERPC_TYPE_RESPONSE,
+            activityuuid: Vec::new(),
+            seqnum: 0,
             tx_data: AppLayerTxData::new(),
             de_state: None,
         };
@@ -296,7 +323,7 @@ pub struct DCERPCState {
     pub pad: u8,
     pub padleft: u16,
     pub bytes_consumed: u16,
-    pub tx_id: u32,
+    pub tx_id: u64,
     pub query_completed: bool,
     pub data_needed_for_dir: u8,
     pub prev_dir: u8,
@@ -489,7 +516,7 @@ impl DCERPCState {
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
-    pub fn get_tx(&mut self, tx_id: u32) -> Option<&mut DCERPCTransaction> {
+    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
             let found = tx.id == tx_id;
             if found {
@@ -781,7 +808,6 @@ impl DCERPCState {
                         hdrpfcflags,
                         padleft,
                         &mut tx.stub_data_buffer_ts,
-                        &mut tx.stub_data_buffer_len_ts,
                         &mut tx.stub_data_buffer_reset_ts,
                     );
                     tx.req_done = true;
@@ -794,7 +820,6 @@ impl DCERPCState {
                         hdrpfcflags,
                         padleft,
                         &mut tx.stub_data_buffer_tc,
-                        &mut tx.stub_data_buffer_len_tc,
                         &mut tx.stub_data_buffer_reset_tc,
                     );
                     tx.resp_done = true;
@@ -1087,7 +1112,7 @@ impl DCERPCState {
 
 fn evaluate_stub_params(
     input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
-    stub_data_buffer_len: &mut u32, stub_data_buffer_reset: &mut bool,
+    stub_data_buffer_reset: &mut bool,
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
@@ -1101,7 +1126,6 @@ fn evaluate_stub_params(
 
     let input_slice = &input[..stub_len as usize];
     stub_data_buffer.extend_from_slice(&input_slice);
-    *stub_data_buffer_len += stub_len as u32;
 
     stub_len
 }
@@ -1216,7 +1240,7 @@ pub extern "C" fn rs_dcerpc_set_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_get_tx(
-    vtx: *mut std::os::raw::c_void, tx_id: u32,
+    vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut DCERPCTransaction {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
@@ -1226,7 +1250,7 @@ pub extern "C" fn rs_dcerpc_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u32 {
+pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
@@ -1264,12 +1288,12 @@ pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
 ) {
     match dir {
         core::STREAM_TOSERVER => {
-            *len = tx.stub_data_buffer_len_ts;
+            *len = tx.stub_data_buffer_ts.len() as u32;
             *buf = tx.stub_data_buffer_ts.as_ptr();
             SCLogDebug!("DCERPC Request stub buffer: Setting buffer to: {:?}", *buf);
         }
         _ => {
-            *len = tx.stub_data_buffer_len_tc;
+            *len = tx.stub_data_buffer_tc.len() as u32;
             *buf = tx.stub_data_buffer_tc.as_ptr();
             SCLogDebug!("DCERPC Response stub buffer: Setting buffer to: {:?}", *buf);
         }
@@ -1718,7 +1742,7 @@ mod tests {
         assert_eq!(11, tx.ctxid);
         assert_eq!(9, tx.opnum);
         assert_eq!(1, tx.first_request_seen);
-        assert_eq!(1000, tx.stub_data_buffer_len_ts);
+        assert_eq!(1000, tx.stub_data_buffer_ts.len());
         assert_eq!(true, tx.stub_data_buffer_reset_ts);
     }
 
@@ -1848,7 +1872,7 @@ mod tests {
             dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
-        assert_eq!(20, tx.stub_data_buffer_len_ts);
+        assert_eq!(20, tx.stub_data_buffer_ts.len());
     }
 
     #[test]
@@ -1906,7 +1930,7 @@ mod tests {
             dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
-        assert_eq!(12, tx.stub_data_buffer_len_ts);
+        assert_eq!(12, tx.stub_data_buffer_ts.len());
     }
 
     #[test]
@@ -2416,6 +2440,6 @@ mod tests {
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(2, tx.opnum);
         assert_eq!(0, tx.ctxid);
-        assert_eq!(14, tx.stub_data_buffer_len_ts);
+        assert_eq!(14, tx.stub_data_buffer_ts.len());
     }
 }
