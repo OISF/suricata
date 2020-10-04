@@ -770,7 +770,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     char fname[NAME_MAX];
     if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
-        return false;
+        goto error;
     }
     SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
     thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
