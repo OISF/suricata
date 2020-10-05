@@ -2908,9 +2908,11 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
     HtpState *http_state = (HtpState *)alstate;
 
     if (http_state != NULL && http_state->conn != NULL) {
-        const uint64_t size = (uint64_t)htp_list_size(http_state->conn->transactions);
+        const int64_t size = (int64_t)htp_list_size(http_state->conn->transactions);
+        if (size < 0)
+            return 0ULL;
         SCLogDebug("size %"PRIu64, size);
-        return size;
+        return (uint64_t)size;
     } else {
         return 0ULL;
     }
