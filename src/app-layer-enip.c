@@ -509,6 +509,8 @@ void RegisterENIPUDPParsers(void)
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_ENIP,
                 ENIPGetTxDetectFlags, ENIPSetTxDetectFlags);
 
+        AppLayerParserRegisterOptionFlags(IPPROTO_UDP, ALPROTO_ENIP,
+                APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     } else
     {
         SCLogInfo(
@@ -594,6 +596,8 @@ void RegisterENIPTCPParsers(void)
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPGetTxDetectFlags, ENIPSetTxDetectFlags);
 
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_ENIP,
+                APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     } else
     {
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.",
