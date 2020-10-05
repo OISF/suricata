@@ -298,6 +298,7 @@ static int DecodeGeneveTest01(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
+    g_geneve_enabled = true;
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -318,6 +319,7 @@ static int DecodeGeneveTest01(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    g_geneve_enabled = false;
     PASS;
 }
 
@@ -343,6 +345,7 @@ static int DecodeGeneveTest02(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
+    g_geneve_enabled = true;
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -363,6 +366,7 @@ static int DecodeGeneveTest02(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    g_geneve_enabled = false;
     PASS;
 }
 
@@ -393,6 +397,7 @@ static int DecodeGeneveTest03(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
+    g_geneve_enabled = true;
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -413,6 +418,7 @@ static int DecodeGeneveTest03(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    g_geneve_enabled = false;
     PASS;
 }
 
@@ -440,6 +446,7 @@ static int DecodeGeneveTest04(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
+    g_geneve_enabled = true;
     DecodeGeneveConfigPorts("1");  /* Set Suricata to use a non-default port for Geneve*/
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -456,6 +463,7 @@ static int DecodeGeneveTest04(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);  /* Reset Geneve port list for future calls */
     FlowShutdown();
     PacketFree(p);
+    g_geneve_enabled = false;
     PASS;
 }
 
@@ -484,6 +492,7 @@ static int DecodeGeneveTest05(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
+    g_geneve_enabled = true;
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
 
     memset(&tv, 0, sizeof(ThreadVars));
@@ -499,6 +508,7 @@ static int DecodeGeneveTest05(void)
 
     FlowShutdown();
     PacketFree(p);
+    g_geneve_enabled = false;
     PASS;
 }
 #endif /* UNITTESTS */
