@@ -493,7 +493,8 @@ void RegisterENIPUDPParsers(void)
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP,
                 ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
-
+        AppLayerParserRegisterOptionFlags(
+                IPPROTO_UDP, ALPROTO_ENIP, APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     } else
     {
         SCLogInfo(
@@ -576,6 +577,8 @@ void RegisterENIPTCPParsers(void)
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_ENIP,
                 APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
 
+        AppLayerParserRegisterOptionFlags(
+                IPPROTO_TCP, ALPROTO_ENIP, APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     } else
     {
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.",
