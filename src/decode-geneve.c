@@ -61,7 +61,7 @@
 #define GENEVE_DEFAULT_PORT                     6081
 #define GENEVE_DEFAULT_PORT_S                   "6081"
 
-static bool g_geneve_enabled = true;
+static bool g_geneve_enabled = false;
 static int g_geneve_ports_idx = 0;
 static int g_geneve_ports[GENEVE_MAX_PORTS] = { GENEVE_DEFAULT_PORT,
         GENEVE_UNSET_PORT, GENEVE_UNSET_PORT, GENEVE_UNSET_PORT };
