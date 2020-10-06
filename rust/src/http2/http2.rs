@@ -466,17 +466,19 @@ impl HTTP2State {
                     Ok((_, set)) => {
                         for i in 0..set.len() {
                             if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
-                                //set for both endpoints ? to be tested
-                                self.dynamic_headers_tc.max_size = set[i].value as usize;
-                                self.dynamic_headers_ts.max_size = set[i].value as usize;
+                                //reverse order as this is what we accept from the other endpoint
+                                let dyn_headers = if dir == STREAM_TOCLIENT {
+                                    &mut self.dynamic_headers_ts
+                                } else {
+                                    &mut self.dynamic_headers_tc
+                                };
+                                dyn_headers.max_size = set[i].value as usize;
                                 if set[i].value > HTTP2_MAX_TABLESIZE {
                                     //mark potential overflow
-                                    self.dynamic_headers_tc.overflow = 1;
-                                    self.dynamic_headers_ts.overflow = 1;
+                                    dyn_headers.overflow = 1;
                                 } else {
                                     //reset in case peer set a lower value, to be tested
-                                    self.dynamic_headers_tc.overflow = 0;
-                                    self.dynamic_headers_ts.overflow = 0;
+                                    dyn_headers.overflow = 0;
                                 }
                             }
                         }
