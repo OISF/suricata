@@ -70,6 +70,8 @@ struct AppLayerThreadCtx_ {
 #endif
 };
 
+#define FLOW_PROTO_CHANGE_MAX_DEPTH 4096
+
 #define MAX_COUNTER_SIZE 64
 typedef struct AppLayerCounterNames_ {
     char name[MAX_COUNTER_SIZE];
@@ -551,7 +553,18 @@ static int TCPProtoDetect(ThreadVars *tv,
             }
         } else {
             /* both sides unknown, let's see if we need to give up */
-            TCPProtoDetectCheckBailConditions(tv, f, ssn, p);
+            if (FlowChangeProto(f)) {
+                /* TCPProtoDetectCheckBailConditions does not work well because
+                 * size_tc from STREAM_RIGHT_EDGE is not reset to zero
+                 * so, we set a lower limit to the data we inspect
+                 * We could instead have set ssn->server.sb.stream_offset = 0;
+                 */
+                if (data_len >= FLOW_PROTO_CHANGE_MAX_DEPTH || (flags & STREAM_EOF)) {
+                    DisableAppLayer(tv, f, p);
+                }
+            } else {
+                TCPProtoDetectCheckBailConditions(tv, f, ssn, p);
+            }
         }
     }
     SCReturnInt(0);
@@ -619,13 +632,13 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * We receive 2 stream init msgs (one for each direction) but we
      * only run the proto detection once. */
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
+        DEBUG_VALIDATE_BUG_ON(FlowChangeProto(f));
         /* run protocol detection */
         if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
                            data, data_len, flags) != 0) {
             goto failure;
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
-        f->alproto_orig = f->alproto;
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
         void *alstate_orig = f->alstate;
         AppLayerParserState *alparser = f->alparser;
