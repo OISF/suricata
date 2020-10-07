@@ -1,3 +1,43 @@
+6.0.0 -- 2020-10-08
+
+Bug #3099: Weird handling of IKEv2 flows when alerts happen
+Bug #3691: strip_whitespace doesn't strip_whitespace
+Bug #3772: DNP3 probing parser does not detect the proper direction in midstream
+Bug #3774: Assert failed in TLS due to integer underflow
+Bug #3775: Memory leak in libhtp in error case
+Bug #3853: Multi-byte Heap buffer over-read in ssl parser
+Bug #3857: Protocol detection evasion by packet splitting on enip/dnp3
+Bug #3877: Transaction list grows without bound on parsers that use unidirectional transactions
+Bug #3896: app-layer-parser.c:1264: AppLayerParserParse: Assertion `!(res.needed + res.consumed < input_len)' failed.
+Bug #3904: Suricata ASAN issue when detect.profiling.grouping.dump-to-disk=true
+Bug #3926: dcerpc: Rust panic in handle_common_stub
+Bug #3927: Alert "fileinfo" array conflicts with "fileinfo" event type
+Bug #3928: eve: metadata section mixup with anomaly
+Bug #3929: Unexpected exit from THashInitConfig called by DetectDatasetSetup
+Bug #3930: Out of memory from THashInitConfig called by DetectDatasetSetup
+Bug #3931: Memory leak from signature with file.name
+Bug #3956: HTTP2 support variable integer lengths for headers
+Bug #3972: HTTP2: stream_id_reuse
+Bug #3977: SNMP: Better handling of unidirectional transactions
+Bug #3978: DHCP: Add unidirectional transaction handling
+Bug #3979: IKEv2: Add unidirectional transaction handling
+Bug #3980: MQTT: Add unidirectional transaction handling
+Bug #3981: SIP: Add unidirectional transaction handling
+Bug #3982: RDP: Add unidirectional transaction handling
+Bug #3983: KRB5: Add unidirectional transaction handling
+Bug #3984: NTP: Add unidirectional transaction handling
+Bug #3987: Hang while processing HTTP traffic
+Bug #3989: HTTP2: invalid_frame_data anomaly
+Bug #3991: Libhtp timeout in data_probe_chunk_length
+Bug #3992: RDP incorrect AppLayerResult::incomplete
+Bug #3993: Use of uninitialized value in DetectDatarepParse
+Bug #3998: HTTP2: invalid header anomaly
+Bug #4009: ENIP: Unidirectional transaction handling
+Feature #3955: Protocol detection : run probing parser for protocol found in other direction
+Task #3922: libhtp 0.5.35
+Task #4017: suricata-update: bundle 1.2.0
+Documentation #2211: doc: document issues with --set and lists in the command line parameters section of the manual
+
 6.0.0-rc1 -- 2020-09-11
 
 Feature #2970: DNS: Parse and extract SOA app layer data from DNS packets
