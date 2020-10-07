@@ -1,3 +1,36 @@
+4.1.9 -- 2020-10-08
+
+Feature #3796: validate strip_whitespace content before loading a rule
+Bug #3670: SMB evasion against EICAR file detection
+Bug #3724: eve.json windows timestamp field has "Eastern Daylight Time" appended to timestamp
+Bug #3738: Incorrect handling of ASN1 relative_offset keyword
+Bug #3740: Protocol detection evasion by packet splitting on enip/nfs
+Bug #3742: Null dereference in DetectEngineSignatureIsDuplicate
+Bug #3744: rules: memory leak on bad rule
+Bug #3785: redis: no or delayed data in low speed network
+Bug #3787: redis: Reconnect is invalid in batch mode
+Bug #3789: nfs: post-GAP file handling
+Bug #3791: Assert failed in TLS due to integer underflow
+Bug #3805: Rule filename mutation when reading file hash files from a directory other than the default-rule-directory
+Bug #3810: Missing community ID in smb, rdp, tftp, dhcp
+Bug #3932: Leak from bad signature with DCERPC keyword, then another protocol keyword
+Bug #3934: Integer overflow in SCSigOrderByPriorityCompare
+Bug #3936: Integer overflow in DetectContentPropagateLimits leading to unintended signature behavior
+Bug #3939: Protocol detection evasion by packet splitting on enip/dnp3
+Bug #3941: Multi-byte Heap buffer over-read in ssl parser
+Bug #3943: Heap-buffer-overflow READ 8 · DetectGetLastSMByListId
+Bug #3945: Incorrect ASN.1 long form length parsing
+Bug #3948: Transaction list grows without bound on parsers that use unidirectional transactions (4.1.x)
+Bug #3966: Suricata ASAN issue when detect.profiling.grouping.dump-to-disk=true
+Bug #3969: http: suricata-verify test broken for 4.1.x with libhtp 0.5.34
+Bug #4000: Hang while processing HTTP traffic
+Bug #4011: ENIP: Unidirectional transaction handling (4.1.x)
+Bug #4012: NTP: Add unidirectional transaction handling
+Bug #4013: KRB5: Add unidirectional transaction handling
+Bug #4014: IKEv2: Add unidirectional transaction handling
+Bug #4015: DHCP: Add unidirectional transaction handling
+Task #3997: libhtp 0.5.35
+
 4.1.8 -- 2020-04-28
 
 Bug #3492: Backport 4 BUG_ON(strcasecmp(str, "any") in DetectAddressParseString
