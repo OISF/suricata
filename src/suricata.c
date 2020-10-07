@@ -1752,10 +1752,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 #ifdef OS_WIN32
             struct _stat buf;
-            if(_stat(optarg, &buf) != 0) {
+            if(strcmp("-", optarg) != 0 && _stat(optarg, &buf) != 0) {
 #else
             struct stat buf;
-            if (stat(optarg, &buf) != 0) {
+            if (strcmp("-", optarg) != 0 && stat(optarg, &buf) != 0) {
 #endif /* OS_WIN32 */
                 SCLogError(SC_ERR_INITIALIZATION, "ERROR: Pcap file does not exist\n");
                 return TM_ECODE_FAILED;

@@ -237,7 +237,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
     DIR *directory = NULL;
     SCLogDebug("checking file or directory %s", (char*)initdata);
-    if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
+    if(strcmp("-", (char *)initdata) != 0 && PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
         CleanupPcapFileThreadVars(ptv);
         SCReturnInt(TM_ECODE_OK);
     }
