@@ -1,3 +1,46 @@
+5.0.4 -- 2020-10-08
+
+Feature #3795: validate strip_whitespace content before loading a rule
+Feature #3947: protocol decoder: geneve
+Bug #3475: SMB evasion against EICAR file detection
+Bug #3723: eve.json windows timestamp field has "Eastern Daylight Time" appended to timestamp
+Bug #3739: Incorrect handling of ASN1 relative_offset keyword
+Bug #3741: Protocol detection evasion by packet splitting on enip/nfs
+Bug #3743: Null dereference in DetectEngineSignatureIsDuplicate
+Bug #3745: rules: memory leak on bad rule
+Bug #3784: redis: no or delayed data in low speed network
+Bug #3786: redis: Reconnect is invalid in batch mode
+Bug #3788: nfs: post-GAP file handling
+Bug #3790: Stack overflow in DetectFlowbitsAnalyze
+Bug #3792: Assert failed in TLS due to integer underflow
+Bug #3794: DNP3 probing parser does not detect the proper direction in midstream
+Bug #3798: http.header.raw prematurely truncates in some conditions
+Bug #3804: Missing community ID in smb, rdp, tftp, dhcp
+Bug #3806: Rule filename mutation when reading file hash files from a directory other than the default-rule-directory
+Bug #3854: Suricata applayer anomaly eve-log
+Bug #3920: http: suricata-verify test broken for 5.0.x with libhtp 0.5.34
+Bug #3933: Leak from bad signature with DCERPC keyword, then another protocol keyword
+Bug #3935: Integer overflow in SCSigOrderByPriorityCompare
+Bug #3937: Integer overflow in DetectContentPropagateLimits leading to unintended signature behavior
+Bug #3938: Memory leak from signature with file.name
+Bug #3940: Protocol detection evasion by packet splitting on enip/dnp3
+Bug #3942: Multi-byte Heap buffer over-read in ssl parser
+Bug #3944: Heap-buffer-overflow READ 8 · DetectGetLastSMByListId
+Bug #3946: Incorrect ASN.1 long form length parsing
+Bug #3949: Transaction list grows without bound on parsers that use unidirectional transactions (5.0.x)
+Bug #3967: Suricata ASAN issue when detect.profiling.grouping.dump-to-disk=true
+Bug #3999: Hang while processing HTTP traffic
+Bug #4002: IKEv2: Add unidirectional transaction handling (5.0.x)
+Bug #4003: SIP: Add unidirectional transaction handling (5.0.x)
+Bug #4004: RDP: Add unidirectional transaction handling (5.0.x)
+Bug #4005: KRB5: Add unidirectional transaction handling (5.0.x)
+Bug #4006: NTP: Add unidirectional transaction handling (5.0.x)
+Bug #4007: SNMP: Better handling of unidirectional transactions (5.0.x)
+Bug #4008: DHCP: Add unidirectional transaction handling (5.0.x)
+Bug #4010: ENIP: Unidirectional transaction handling (5.0.x)
+Task #3970: suricata-update: bundle 1.1.3
+Task #3971: libhtp 0.5.35
+
 5.0.3 -- 2020-04-28
 
 Feature #3481: GRE ERSPAN Type 1 Support
