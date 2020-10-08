@@ -272,6 +272,12 @@ fn dns_parse_rdata_cname<'a>(input: &'a [u8], message: &'a [u8])
             (input, DNSRData::CNAME(name)))
 }
 
+fn dns_parse_rdata_ns<'a>(input: &'a [u8], message: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message).map(|(input, name)|
+            (input, DNSRData::NS(name)))
+}
+
 fn dns_parse_rdata_ptr<'a>(input: &'a [u8], message: &'a [u8])
                            -> IResult<&'a [u8], DNSRData> {
     dns_parse_name(input, message).map(|(input, name)|
@@ -353,6 +359,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
         DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message),
         DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
         DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message),
+        DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message),
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
         _ => dns_parse_rdata_unknown(input),

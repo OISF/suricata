@@ -443,6 +443,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         }
         DNSRData::CNAME(bytes) |
         DNSRData::MX(bytes) |
+        DNSRData::NS(bytes) |
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             jsa.set_string_from_bytes("rdata", &bytes)?;
@@ -514,6 +515,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                     }
                     DNSRData::CNAME(bytes) |
                     DNSRData::MX(bytes) |
+                    DNSRData::NS(bytes) |
                     DNSRData::TXT(bytes) |
                     DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
@@ -686,6 +688,7 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         }
         DNSRData::CNAME(bytes) |
         DNSRData::MX(bytes) |
+        DNSRData::NS(bytes) |
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             js.set_string_from_bytes("rdata", &bytes)?;
