@@ -176,6 +176,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 },
                 DNSRData::CNAME(ref bytes) |
                 DNSRData::MX(ref bytes) |
+                DNSRData::NS(ref bytes) |
                 DNSRData::TXT(ref bytes) |
                 DNSRData::NULL(ref bytes) |
                 DNSRData::PTR(ref bytes) |

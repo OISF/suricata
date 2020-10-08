@@ -269,6 +269,7 @@ pub enum DNSRData {
     CNAME(Vec<u8>),
     PTR(Vec<u8>),
     MX(Vec<u8>),
+    NS(Vec<u8>),
     // RData is text
     TXT(Vec<u8>),
     NULL(Vec<u8>),
