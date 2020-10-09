@@ -2817,7 +2817,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
-  Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
