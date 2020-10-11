@@ -254,8 +254,8 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
  * \test MarkTestParse01 is a test for a valid mark value
  *
  * \FAIL/PASS API
- *  \PASS macro returns 1 
- *  \FAIL macro returns 0
+ *  \PASS macro returns value 1
+ *  \FAIL macro returns value 0
  */
 static int MarkTestParse01 (void)
 {
@@ -275,8 +275,8 @@ static int MarkTestParse01 (void)
  * \test MarkTestParse02 is a test for an invalid mark value
  *
  * \FAIL/PASS API
- *  \PASS macro returns 1 
- *  \FAIL macro returns 0
+ *  \PASS macro returns value 1
+ *  \FAIL macro returns value 0
  */
 static int MarkTestParse02 (void)
 {
@@ -294,8 +294,8 @@ static int MarkTestParse02 (void)
  * \test MarkTestParse03 is a test for a valid mark value
  *
  * \FAIL/PASS API
- *  \PASS macro returns 1 
- *  \FAIL macro returns 0
+ *  \PASS macro returns value 1
+ *  \FAIL macro returns value 0
  */
 static int MarkTestParse03 (void)
 {
@@ -313,8 +313,8 @@ static int MarkTestParse03 (void)
  * \test MarkTestParse04 is a test for a invalid mark value
  *
  * \FAIL/PASS API
- *  \PASS macro returns 1 
- *  \FAIL macro returns 0
+ *  \PASS macro returns value 1
+ *  \FAIL macro returns value 0
  */
 static int MarkTestParse04 (void)
 {
