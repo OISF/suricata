@@ -119,6 +119,17 @@ extern int unittests_fatal;
         PASS;              \
     } while (0)
 
+/**
+ * \brief Pass the test if expression evaluates to true.
+ *
+ * Only to be used at the end of a function instead of returning the
+ * result of an expression.
+ */
+#define PASS_IF_NULL(expr)                                                                         \
+    do {                                                                                           \
+        PASS_IF(NULL == expr);                                                                     \
+    } while (0)
+
 #endif /* __UTIL_UNITTEST_H__ */
 
 /**
