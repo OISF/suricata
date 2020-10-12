@@ -253,8 +253,9 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \test MarkTestParse01 is a test for a valid mark value
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
+ * \FAIL/PASS API
+ *  \PASS macro returns 1
+ *  \FAIL macro returns 0
  */
 static int MarkTestParse01 (void)
 {
@@ -262,19 +263,18 @@ static int MarkTestParse01 (void)
 
     data = DetectMarkParse("1/1");
 
-    if (data == NULL) {
-        return 0;
-    }
+    FAIL_IF_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    return 1;
+    PASS;
 }
 
 /**
  * \test MarkTestParse02 is a test for an invalid mark value
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
+ * \FAIL/PASS API
+ *  \PASS macro returns 1
+ *  \FAIL macro returns 0
  */
 static int MarkTestParse02 (void)
 {
@@ -282,19 +282,18 @@ static int MarkTestParse02 (void)
 
     data = DetectMarkParse("4");
 
-    if (data == NULL) {
-        return 1;
-    }
+    PASS_IF_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    return 0;
+    FAIL;
 }
 
 /**
  * \test MarkTestParse03 is a test for a valid mark value
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
+ * \FAIL/PASS API
+ *  \PASS macro returns 1
+ *  \FAIL macro returns 0
  */
 static int MarkTestParse03 (void)
 {
@@ -302,19 +301,18 @@ static int MarkTestParse03 (void)
 
     data = DetectMarkParse("0x10/0xff");
 
-    if (data == NULL) {
-        return 0;
-    }
+    FAIL_IF_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    return 1;
+    PASS;
 }
 
 /**
  * \test MarkTestParse04 is a test for a invalid mark value
  *
- *  \retval 1 on succces
- *  \retval 0 on failure
+ * \FAIL/PASS API
+ *  \PASS macro returns 1
+ *  \FAIL macro returns 0
  */
 static int MarkTestParse04 (void)
 {
@@ -322,12 +320,10 @@ static int MarkTestParse04 (void)
 
     data = DetectMarkParse("0x1g/0xff");
 
-    if (data == NULL) {
-        return 1;
-    }
+    PASS_IF_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    return 0;
+    FAIL;
 }
 
 /**
