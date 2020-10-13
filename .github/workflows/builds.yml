@@ -53,6 +53,7 @@ jobs:
               sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
               sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
           fi
+          env
           echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
           echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
           echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
