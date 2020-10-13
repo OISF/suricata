@@ -53,17 +53,17 @@ jobs:
               sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
               sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
           fi
-          echo "::set-env name=libhtp_repo::${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}"
-          echo "::set-env name=libhtp_branch::${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}"
-          echo "::set-env name=libhtp_pr::${libhtp_pr:-${DEFAULT_LIBHTP_PR}}"
+          echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
+          echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
+          echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
 
-          echo "::set-env name=su_repo::${su_repo:-${DEFAULT_SU_REPO}}"
-          echo "::set-env name=su_branch::${su_branch:-${DEFAULT_SU_BRANCH}}"
-          echo "::set-env name=su_pr::${su_pr:-${DEFAULT_SU_PR}}"
+          echo "su_repo=${su_repo:-${DEFAULT_SU_REPO}}" >> $GITHUB_ENV
+          echo "su_branch=${su_branch:-${DEFAULT_SU_BRANCH}}" >> $GITHUB_ENV
+          echo "su_pr=${su_pr:-${DEFAULT_SU_PR}}" >> $GITHUB_ENV
 
-          echo "::set-env name=sv_repo::${sv_repo:-${DEFAULT_SV_REPO}}"
-          echo "::set-env name=sv_branch::${sv_branch:-${DEFAULT_SV_BRANCH}}"
-          echo "::set-env name=sv_pr::${sv_pr:-${DEFAULT_SV_PR}}"
+          echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
+          echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
+          echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
       - name: Fetching libhtp
         run: |
           git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
