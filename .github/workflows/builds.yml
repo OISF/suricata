@@ -178,7 +178,7 @@ jobs:
                 texlive-needspace \
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configuring
         run: |
           ./autogen.sh
