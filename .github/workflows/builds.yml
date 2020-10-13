@@ -53,17 +53,17 @@ jobs:
               sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
               sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
           fi
-          echo "::set-env name=libhtp_repo::${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}"
-          echo "::set-env name=libhtp_branch::${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}"
-          echo "::set-env name=libhtp_pr::${libhtp_pr:-${DEFAULT_LIBHTP_PR}}"
+          echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
+          echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
+          echo "libhtp_pr=${libhtp_pr:-${DEFAULT_LIBHTP_PR}}" >> $GITHUB_ENV
 
-          echo "::set-env name=su_repo::${su_repo:-${DEFAULT_SU_REPO}}"
-          echo "::set-env name=su_branch::${su_branch:-${DEFAULT_SU_BRANCH}}"
-          echo "::set-env name=su_pr::${su_pr:-${DEFAULT_SU_PR}}"
+          echo "su_repo=${su_repo:-${DEFAULT_SU_REPO}}" >> $GITHUB_ENV
+          echo "su_branch=${su_branch:-${DEFAULT_SU_BRANCH}}" >> $GITHUB_ENV
+          echo "su_pr=${su_pr:-${DEFAULT_SU_PR}}" >> $GITHUB_ENV
 
-          echo "::set-env name=sv_repo::${sv_repo:-${DEFAULT_SV_REPO}}"
-          echo "::set-env name=sv_branch::${sv_branch:-${DEFAULT_SV_BRANCH}}"
-          echo "::set-env name=sv_pr::${sv_pr:-${DEFAULT_SV_PR}}"
+          echo "sv_repo=${sv_repo:-${DEFAULT_SV_REPO}}" >> $GITHUB_ENV
+          echo "sv_branch=${sv_branch:-${DEFAULT_SV_BRANCH}}" >> $GITHUB_ENV
+          echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
       - name: Fetching libhtp
         run: |
           git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
@@ -178,7 +178,7 @@ jobs:
                 texlive-needspace \
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configuring
         run: |
           ./autogen.sh
@@ -265,7 +265,7 @@ jobs:
     steps:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -352,7 +352,7 @@ jobs:
                 zlib-devel
       - run: |
           cargo install --debug cbindgen
-          echo "::add-path::$HOME/.cargo/bin"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -422,7 +422,7 @@ jobs:
                 zlib-devel
       - run: |
           cargo install --debug cbindgen
-          echo "::add-path::$HOME/.cargo/bin"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -494,7 +494,7 @@ jobs:
                 texlive-scheme-full
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -559,7 +559,7 @@ jobs:
                 exuberant-ctags
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -621,7 +621,7 @@ jobs:
                 exuberant-ctags
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -676,7 +676,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v2
         with:
@@ -743,7 +743,7 @@ jobs:
                 exuberant-ctags
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -825,7 +825,7 @@ jobs:
           apt -y install coccinelle
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -900,7 +900,7 @@ jobs:
                 zlib1g-dev
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -948,7 +948,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v2
         with:
@@ -1016,7 +1016,7 @@ jobs:
                 zlib1g-dev
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -1075,7 +1075,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - uses: actions/checkout@v2
@@ -1125,7 +1125,7 @@ jobs:
           xz
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip install PyYAML
       - uses: actions/checkout@v2
       - name: Downloading prep archive
