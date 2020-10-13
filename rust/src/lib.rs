@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-#![allow(ellipsis_inclusive_range_patterns)] // TODO: Remove when MSRV is higher than 1.24
+#![allow(unknown_lints)]
+#![allow(ellipsis_inclusive_range_patterns)]
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 extern crate libc;
