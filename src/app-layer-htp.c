@@ -2330,9 +2330,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
      * config, we have to set the soft limit as well. If libhtp starts using
      * the soft limit in the future, we at least make sure we control what
      * it's value is. */
-    htp_config_set_field_limits(cfg_prec->cfg,
-            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
-            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD);
+    htp_config_set_field_limit(cfg_prec->cfg,
+            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT);
     return;
 }
 
@@ -2618,8 +2617,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 exit(EXIT_FAILURE);
             }
             /* set default soft-limit with our new hard limit */
-            htp_config_set_field_limits(cfg_prec->cfg,
-                    (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
+            htp_config_set_field_limit(cfg_prec->cfg,
                     (size_t)limit);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
         } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
