@@ -491,11 +491,13 @@ typedef struct Packet_
 
     /** The release function for packet structure and data */
     void (*ReleasePacket)(struct Packet_ *);
-    /** The reinit function for packet structure and data */
-    void (*ReinitPacket)(struct Packet_ *);
     /** The function triggering bypass the flow in the capture method.
      * Return 1 for success and 0 on error */
     int (*BypassPacketsFlow)(struct Packet_ *);
+
+    /** The reinit function for packet structure and data */
+    void (*ReinitPacket)(struct Packet_ *);
+    uint8_t* reinit_data;
 
     /* pkt vars */
     PktVar *pktvar;

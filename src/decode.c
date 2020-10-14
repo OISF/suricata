@@ -237,6 +237,7 @@ void PacketReinit(Packet *p) {
     PACKET_RESET_CHECKSUMS(p);
     PACKET_PROFILING_RESET(p);
     p->tenant_id = 0;
+    p->reinit_data = NULL;
 }
 
 /**
