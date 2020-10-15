@@ -1977,9 +1977,8 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
             if hdr.is_smb() {
                 SCLogDebug!("smb found");
                 return 1;
-            } else if hdr.is_valid() {
-                SCLogDebug!("nbss found, assume smb");
-                return 1;
+            } else if hdr.needs_more(){
+                return 0;
             }
         },
         _ => { },
