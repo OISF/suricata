@@ -171,6 +171,13 @@ void PacketFreeOrRelease(Packet *p)
 }
 
 /**
+ * \brief Reinitialize packet.
+ */
+void PacketReinit(Packet *p)
+{
+}
+
+/**
  *  \brief Get a packet. We try to get a packet from the packetpool first, but
  *         if that is empty we alloc a packet that is free'd again after
  *         processing.
