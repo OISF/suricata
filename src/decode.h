@@ -613,6 +613,10 @@ typedef struct Packet_
 #ifdef HAVE_NAPATECH
     NapatechPacketVars ntpv;
 #endif
+
+    /** Function invoked when packet reinitialization occurs */
+    void (*ReinitPacket)(struct Packet_ *);
+    void *reinit_data;
 } Packet;
 
 /** highest mtu of the interfaces we monitor */
@@ -745,6 +749,8 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
     (p)->livedev = NULL; \
+    (p)->ReinitPacket = PacketReinit; \
+    (p)->reinit_data = NULL; \
 }
 
 #define PACKET_RELEASE_REFS(p) do {              \
@@ -763,6 +769,9 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->dp = 0;                            \
         (p)->proto = 0;                         \
         (p)->recursion_level = 0;               \
+        if ((p)->ReinitPacket) (p)->ReinitPacket((p)); \
+        (p)->ReinitPacket = PacketReinit;       \
+        (p)->reinit_data = NULL;                \
         PACKET_FREE_EXTDATA((p));               \
         (p)->flags = (p)->flags & PKT_ALLOC;    \
         (p)->flowflags = 0;                     \
@@ -923,6 +932,7 @@ void PacketUpdateEngineEventCounters(ThreadVars *tv,
         DecodeThreadVars *dtv, Packet *p);
 void PacketFree(Packet *p);
 void PacketFreeOrRelease(Packet *p);
+void PacketReinit(Packet *p);
 int PacketCallocExtPkt(Packet *p, int datalen);
 int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen);
 int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen);
