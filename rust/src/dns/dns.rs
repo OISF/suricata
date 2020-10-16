@@ -18,7 +18,7 @@
 extern crate nom;
 
 use std;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::mem::transmute;
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -143,14 +143,7 @@ pub extern "C" fn rs_dns_state_get_event_info_by_id(
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
-    if let Some(e) = DNSEvent::from_id(event_id as i32) {
-        unsafe {
-            *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        }
-        return 0;
-    }
-    return -1;
+    get_event_info_by_id::<DNSEvent>(event_id, event_name, event_type)
 }
 
 #[no_mangle]
@@ -159,19 +152,7 @@ pub extern "C" fn rs_dns_state_get_event_info(
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match DNSEvent::from_cstring(c_event_name) {
-        Some(e) => e.as_i32() as i32,
-        None => -1,
-    };
-    unsafe {
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
+    get_event_info::<DNSEvent>(event_name, event_id, event_type)
 }
 
 #[derive(Debug,PartialEq)]

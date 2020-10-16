@@ -18,10 +18,11 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
+use std::ffi::CStr;
 
 #[repr(C)]
 #[derive(Debug,PartialEq)]
@@ -401,4 +402,48 @@ macro_rules!export_tx_set_detect_state {
             0
         }
     )
+}
+
+pub trait AppLayerEvent {
+    fn from_id(id: i32) -> Option<Self> where Self: std::marker::Sized;
+    fn to_cstring(&self) -> &str;
+    fn from_cstring(s: &std::ffi::CStr) -> Option<Self> where Self: std::marker::Sized;
+    fn as_i32(&self) -> i32;
+}
+
+#[inline(always)]
+pub fn get_event_info<T: AppLayerEvent>(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let event = match T::from_cstring(c_event_name) {
+        Some(e) => e.as_i32() as i32,
+        None => -1,
+    };
+    unsafe {
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event as std::os::raw::c_int;
+    };
+    0
+}
+
+#[inline(always)]
+pub fn get_event_info_by_id<T: AppLayerEvent>(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
+    if let Some(e) = T::from_id(event_id as i32) {
+        unsafe {
+            *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        }
+        return 0;
+    }
+    return -1;
 }
