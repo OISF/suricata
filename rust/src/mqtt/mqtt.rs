@@ -22,10 +22,9 @@ use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use num_traits::FromPrimitive;
 use nom;
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::CString;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
 // packet in a connection. Note that there is no risk of collision with a
@@ -38,10 +37,9 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
-#[derive(FromPrimitive, Debug)]
-#[repr(u32)]
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum MQTTEvent {
-    MissingConnect = 0,
+    MissingConnect,
     MissingPublish,
     MissingSubscribe,
     MissingUnsubscribe,
@@ -49,7 +47,7 @@ pub enum MQTTEvent {
     UnintroducedMessage,
     InvalidQosLevel,
     MissingMsgId,
-    UnassignedMsgtype,
+    UnassignedMsgType,
 }
 
 #[derive(Debug)]
@@ -368,7 +366,7 @@ impl MQTTState {
             MQTTOperation::UNASSIGNED => {
                 let mut tx = self.new_tx(msg, toclient);
                 tx.complete = true;
-                MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgtype);
+                MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgType);
                 self.transactions.push(tx);
             },
             MQTTOperation::TRUNCATED(_) => {
@@ -703,62 +701,6 @@ pub unsafe extern "C" fn rs_mqtt_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                      event_name: *mut *const std::os::raw::c_char,
-                                                      event_type: *mut core::AppLayerEventType)
-                                                      -> i8
-{
-    if let Some(e) = FromPrimitive::from_i32(event_id as i32) {
-        let estr = match e {
-            MQTTEvent::MissingConnect      => { "missing_connect\0" },
-            MQTTEvent::MissingPublish      => { "missing_publish\0" },
-            MQTTEvent::MissingSubscribe    => { "missing_subscribe\0" },
-            MQTTEvent::MissingUnsubscribe  => { "missing_unsubscribe\0" },
-            MQTTEvent::DoubleConnect       => { "double_connect\0" },
-            MQTTEvent::UnintroducedMessage => { "unintroduced_message\0" },
-            MQTTEvent::InvalidQosLevel     => { "invalid_qos_level\0" },
-            MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
-            MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "missing_connect"      => MQTTEvent::MissingConnect as i32,
-                "missing_publish"      => MQTTEvent::MissingPublish as i32,
-                "missing_subscribe"    => MQTTEvent::MissingSubscribe as i32,
-                "missing_unsubscribe"  => MQTTEvent::MissingUnsubscribe as i32,
-                "double_connect"       => MQTTEvent::DoubleConnect as i32,
-                "unintroduced_message" => MQTTEvent::UnintroducedMessage as i32,
-                "invalid_qos_level"    => MQTTEvent::InvalidQosLevel as i32,
-                "missing_msg_id"       => MQTTEvent::MissingMsgId as i32,
-                "unassigned_msg_type"  => MQTTEvent::UnassignedMsgtype as i32,
-                _                      => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    0
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
@@ -811,8 +753,8 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_de_state: rs_mqtt_tx_get_detect_state,
         set_de_state: rs_mqtt_tx_set_detect_state,
         get_events: Some(rs_mqtt_state_get_events),
-        get_eventinfo: Some(rs_mqtt_state_get_event_info),
-        get_eventinfo_byid: Some(rs_mqtt_state_get_event_info_by_id),
+        get_eventinfo: Some(MQTTEvent::get_event_info),
+        get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
