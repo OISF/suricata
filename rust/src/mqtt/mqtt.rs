@@ -22,7 +22,6 @@ use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use num_traits::FromPrimitive;
 use nom;
 use std;
 use std::ffi::{CStr,CString};
@@ -39,10 +38,9 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
-#[derive(FromPrimitive, Debug)]
-#[repr(u32)]
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum MQTTEvent {
-    MissingConnect = 0,
+    MissingConnect,
     MissingPublish,
     MissingSubscribe,
     MissingUnsubscribe,
@@ -50,7 +48,7 @@ pub enum MQTTEvent {
     UnintroducedMessage,
     InvalidQosLevel,
     MissingMsgId,
-    UnassignedMsgtype,
+    UnassignedMsgType,
 }
 
 #[derive(Debug)]
@@ -369,7 +367,7 @@ impl MQTTState {
             MQTTOperation::UNASSIGNED => {
                 let mut tx = self.new_tx(msg, toclient);
                 tx.complete = true;
-                &mut MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgtype);
+                &mut MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgType);
                 self.transactions.push(tx);
             },
             MQTTOperation::TRUNCATED(_) => {
@@ -714,18 +712,8 @@ pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_i
                                                       event_type: *mut core::AppLayerEventType)
                                                       -> i8
 {
-    if let Some(e) = FromPrimitive::from_i32(event_id as i32) {
-        let estr = match e {
-            MQTTEvent::MissingConnect      => { "missing_connect\0" },
-            MQTTEvent::MissingPublish      => { "missing_publish\0" },
-            MQTTEvent::MissingSubscribe    => { "missing_subscribe\0" },
-            MQTTEvent::MissingUnsubscribe  => { "missing_unsubscribe\0" },
-            MQTTEvent::DoubleConnect       => { "double_connect\0" },
-            MQTTEvent::UnintroducedMessage => { "unintroduced_message\0" },
-            MQTTEvent::InvalidQosLevel     => { "invalid_qos_level\0" },
-            MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
-            MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
-        };
+    if let Some(e) = MQTTEvent::from_id(event_id as i32) {
+        let estr = e.to_cstring();
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
             *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -744,22 +732,9 @@ pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::
 {
     if event_name == std::ptr::null() { return -1; }
     let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "missing_connect"      => MQTTEvent::MissingConnect as i32,
-                "missing_publish"      => MQTTEvent::MissingPublish as i32,
-                "missing_subscribe"    => MQTTEvent::MissingSubscribe as i32,
-                "missing_unsubscribe"  => MQTTEvent::MissingUnsubscribe as i32,
-                "double_connect"       => MQTTEvent::DoubleConnect as i32,
-                "unintroduced_message" => MQTTEvent::UnintroducedMessage as i32,
-                "invalid_qos_level"    => MQTTEvent::InvalidQosLevel as i32,
-                "missing_msg_id"       => MQTTEvent::MissingMsgId as i32,
-                "unassigned_msg_type"  => MQTTEvent::UnassignedMsgtype as i32,
-                _                      => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
+    let event = match MQTTEvent::from_cstring(c_event_name) {
+        Some(e) => e.as_i32() as i32,
+        None => -1,
     };
     unsafe{
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
