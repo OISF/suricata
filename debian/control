@@ -1,0 +1,42 @@
+Source: suricata
+Section: devel
+Priority: extra
+Maintainer: Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev,debhelper (>= 8.0.0), autotools-dev, pkg-config, libnss3-dev, libpcre3,libpcre3-dbg, libpcre3-dev, libpcap-dev, libnet1-dev, libyaml-0-2, libyaml-dev, zlib1g, zlib1g-dev, libcap-ng-dev, libcap-ng0, libnspr4-dev, libgeoip1, libgeoip-dev, libnetfilter-queue-dev, libnetfilter-queue1, libnfnetlink-dev, libnfnetlink0, file (>= 5.25), python-distutils-extra, python-setuptools, python-support|dh-python, libjansson4, libjansson-dev, libnuma1, libnuma-dev
+X-Python-Version: >= 2.6
+Standards-Version: 3.9.2
+Homepage: http://www.openinfosecfoundation.org/
+
+Package: suricata-xdp
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Replaces: libhtp1, suricata-dev, suricata-dbg, suricata2beta, suricata
+Conflicts: suricata2beta,suricata
+Provides: suricata
+Description: Suricata open source multi-thread IDS/IPS/NSM.
+ Suricata open source multi-thread IDS/IPS/NSM.
+
+Package: suricata-xdp-dev
+Architecture: any
+Depends: ${misc:Depends}, autotools-dev, libnss3-dev, libpcre3-dev, libpcap-dev, libnet1-dev, libyaml-dev, zlib1g-dev, libcap-ng-dev, libnspr4-dev, libgeoip-dev, libnetfilter-queue-dev, libnfnetlink-dev, libmagic-dev, libjansson-dev (>= 2.7)
+Replaces: libhtp1, suricata, suricata-dev, suricata2beta-dev, suricata-xdp
+Conflicts: suricata2beta-dev,suricata-dev
+Provides: suricata-dev
+Description: Suricata open source multi-thread IDS/IPS/NSM.
+ Suricata open source multi-thread IDS/IPS/NSM.
+ .
+ This package contains the files that are needed to build applications.
+
+Package: suricata-xdp-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: suricata-xdp (= ${binary:Version}), ${misc:Depends}
+Replaces: libhtp1, suricata-xdp-dev, suricata-xdp, suricata2beta-dbg, suricata-dev, suricata-dbg
+Conflicts: suricata2beta-dbg,suricata-dbg
+Provides: suricata-dbg
+Description: Suricata open source multi-thread IDS/IPS/NSM.
+ Suricata open source multi-thread IDS/IPS/NSM.
+ .
+ This package contains the debug symbols.
+

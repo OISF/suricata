@@ -353,6 +353,12 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    /* AWN: intentionally removing this block, as our version of ebpf
+     * doesn't have these functions, and we don't need them anyway,
+     * since we don't currently use any cards which support ebpf in
+     * hardware.
+     */
+#if 0
     if (config->flags & EBPF_XDP_HW_MODE) {
         unsigned int ifindex = if_nametoindex(iface);
         bpf_object__for_each_program(bpfprog, bpfobj) {
@@ -362,6 +368,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             bpf_map__set_ifindex(map, ifindex);
         }
     }
+#endif
 
     /* Let's check that our section is here */
     bpf_object__for_each_program(bpfprog, bpfobj) {

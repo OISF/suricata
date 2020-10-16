@@ -1,0 +1,6 @@
+usr/include/*
+usr/lib/lib*.a
+usr/lib/lib*.so
+usr/lib/pkgconfig/*
+src/*.h usr/include/suricata
+# JJW -> config.h usr/include/suricata
