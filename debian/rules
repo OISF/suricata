@@ -1,0 +1,96 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+#
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+#
+# Modified to make a template file for a multi-binary package with separated
+# build-arch and build-indep targets  by Bill Allombert 2001
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+CFLAGS := -ggdb
+# Build without optimization by putting "-e NO_OPTIMIZATION=yes" near the
+# start of debuild's args list.
+ifneq ($(NO_OPTIMIZATION),)
+CFLAGS += -O0
+else
+CFLAGS += -O2
+endif
+
+ifneq ($(DEBUG),)
+# enable debug logging
+CFLAGS += -DDEBUG=1
+endif
+
+%:
+	dh $@ --parallel
+override_dh_auto_configure:
+	#if [ ! -d libhtp ]; then git clone https://github.com/OISF/libhtp.git -b 0.5.x; fi
+	git submodule init
+	git submodule update
+	./autogen.sh
+	dh_auto_configure -- CC=clang-4.0 CXX=clang++-4.0 \
+		CFLAGS="$(CFLAGS)" \
+		--prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
+		--enable-ebpf \
+		--enable-pfring \
+		--enable-nfqueue \
+		--disable-gccmarch-native \
+		--enable-geoip \
+		--with-libnss-libraries=/usr/lib \
+		--with-libnss-includes=/usr/include/nss/ \
+		--with-libnspr-libraries=/usr/lib \
+		--with-libnspr-includes=/usr/include/nspr \
+		--with-libpfring-includes=/usr/local/pfring/include \
+		--with-libpfring-libraries=/usr/local/pfring/lib
+override_dh_auto_install:
+	dh_auto_install -- prefix=/usr
+	# remove the dependency_libs field (see wiki.debian.org/ReleaseGoals/LAFileRemoval)
+	sed -i "/dependency_libs/ s/'.*'/''/" `find $(CURDIR)/debian -name '*.la'`
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+.PHONY: override_dh_strip
+override_dh_strip:
+	dh_strip --dbg-package=suricata-xdp-dbg
+
+ifeq ($(SANITIZER),address)
+
+# Build with AddressSanitizer instrumentation.
+# To enable, put "-e SANITIZER=address" near the *beginning* of debuild's args list.
+# Sanitized builds require CFLAGS and LDFLAGS to be redefined in the build and test
+# steps as the sanitizer flags break the configure step in many ways.
+# Currently set up for AddressSanitizer, but this can be adapted for other sanitizers
+# as needed.
+# https://github.com/google/sanitizers/wiki/AddressSanitizer
+# https://github.com/google/sanitizers/wiki/AddressSanitizerAsDso
+#
+# Mini-HOWTO: Run an ASAN-instrumented suricata build:
+# 1. Build instrumented suricata: "debuild -e SANITIZER=address ..."
+# 2. Install instrumented suricata on target
+# 3. Install runtime packages on target:
+#		apt install binfmt-support libjsoncpp1 libllvm4.0 llvm-4.0-runtime llvm-4.0 \
+#		libclang-common-4.0-dev
+# 4. Stop suricata systemd service: systemctl stop suricata
+# 5. Execute suricata process as follows:
+# 	LD_PRELOAD=/usr/lib/llvm-4.0/lib/clang/4.0.0/lib/linux/libclang_rt.asan-x86_64.so \
+#			ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-4.0/bin/llvm-symbolizer \
+#			/usr/bin/suricata -c /etc/suricata/suricata.yaml --af-packet -F /tmp/suricata_bpf
+# 6. More runtime flags here: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags
+
+ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
+ASAN_LDFLAGS := -fsanitize=address -shared-libasan
+override_dh_auto_build:
+	dh_auto_build -- CFLAGS="$(CFLAGS) $(ASAN_CFLAGS)" LDFLAGS="$(ASAN_LDFLAGS)"
+
+override_dh_auto_test:
+	dh_auto_test -- LD_LIBRARY_PATH=/usr/lib/llvm-4.0/lib/clang/4.0.0/lib/linux \
+		CFLAGS="$(ASAN_CFLAGS)" LDFLAGS="$(ASAN_LDFLAGS)"
+endif

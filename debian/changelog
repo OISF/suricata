@@ -1,0 +1,263 @@
+suricata (4.1.4-0awn00) UNRELEASED; urgency=medium
+
+  * Upgrade suricata version. 
+
+ --  <vagrant@ubuntu-xenial>  Thu, 19 Sep 2019 21:48:34 +0000
+
+suricata (4.0.3-0awn02) precise; urgency=medium
+
+  * Suricata version corresponding to cell.rtkbox.suricata=4.4
+  * Add hyperscan support for Suricata
+
+ -- rtkwlf <dev@arcticwolf.com>  Mon, 25 Feb 2019 14:58:41 -0500
+
+suricata (4.0.3-0awn0) precise; urgency=low
+
+  * Package 4.0.3
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 08 Feb 2018 19:06:31 +0000
+
+suricata (3.2.1-0awn0) precise; urgency=low
+
+  * Package 3.2.1
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 18 Apr 2017 20:56:02 +0000
+
+suricata (3.2.0~RC1-0awn0) precise; urgency=low
+
+  * Package 3.2 RC1
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Sat, 19 Nov 2016 16:21:35 +0000
+
+suricata (3.1.2-0awn0) precise; urgency=low
+
+  * Package 3.1.2 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 20 Oct 2016 15:51:08 +0000
+
+suricata (3.0.1-awn2) precise; urgency=low
+
+  * Expose eve log configuration to include information from DNS packets in alerts
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 06 Sep 2016 21:44:56 +0000
+
+suricata (3.0.1-0awn1) precise; urgency=low
+
+  * netmap: close sw ring before hw rings 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 16 Jun 2016 18:13:34 +0000
+
+suricata (3.0.1-0awn0) precise; urgency=low
+
+  * Package 3.0.1
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Fri, 03 Jun 2016 19:41:11 +0000
+
+suricata (3.0~RC1-0awn3) precise; urgency=low
+
+  * Log TLS when a session is resumed
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Wed, 13 Jan 2016 18:19:50 +0000
+
+suricata (3.0~RC1-0awn2) precise; urgency=low
+
+  * Log TLS source and destination address with proper direction in IPS mode
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Wed, 23 Dec 2015 19:08:27 +0000
+
+suricata (3.0~RC1-0awn1) precise; urgency=low
+
+  * Update to suricata 3.0RC1
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Mon, 30 Nov 2015 19:54:16 +0000
+
+suricata2beta (2.1beta3-0awn11) precise; urgency=low
+
+  * Thread-local libmagic lookup
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Wed, 28 Oct 2015 02:24:31 +0000
+
+suricata2beta (2.1beta3-0awn10) precise; urgency=low
+
+  * Suricata JSON logging changes
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 20 Oct 2015 21:56:19 +0000
+
+suricata2beta (2.1beta3-0awn9) precise; urgency=low
+
+  * Only output numeric HTTP statuses 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 22 Sep 2015 20:26:07 +0000
+
+suricata2beta (2.1beta3-0awn8) precise; urgency=low
+
+  * Revert protection code
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 10 Sep 2015 02:21:14 +0000
+
+suricata2beta (2.1beta3-0awn7) precise; urgency=low
+
+  * Work around alert crash when ICMP packet points to DNS flow
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Wed, 29 Jul 2015 14:58:06 +0000
+
+suricata2beta (2.1beta3-0awn6) precise; urgency=low
+
+  * Look up all necessary arguments to AppLayerParserGetTx in Flow 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Mon, 29 Jun 2015 21:33:20 +0000
+
+suricata2beta (2.1beta3-0awn5) precise; urgency=low
+
+  * Include DNS query name as last field of fast alert 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Mon, 04 May 2015 02:52:57 +0000
+
+suricata2beta (2.1beta3-0awn4) precise; urgency=low
+
+  * Output error if awn_http module failed to load
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 30 Apr 2015 02:47:26 +0000
+
+suricata2beta (2.1beta3-0awn3) precise; urgency=low
+
+  * Output payload information for current transaction 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 31 Mar 2015 23:13:26 +0000
+
+suricata2beta (2.1beta3-0awn2) precise; urgency=low
+
+  *  Update build files to run on 12.04
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Tue, 31 Mar 2015 18:25:31 +0000
+
+suricata2beta (2.1beta3-0awn1) precise; urgency=low
+
+  * Mark file truncated if it's still open
+  * Don't close file from detection engine if global tracking is enabled
+  * Log NXDOMAIN results and be explicit about no replies 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Mon, 30 Mar 2015 14:45:40 +0000
+
+suricata2beta (2.1beta3-0awn0) precise; urgency=low
+
+  * Updated upstream to 2.1beta3 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 19:59:37 +0000
+
+suricata2beta (2.0-0awn11) precise; urgency=low
+
+  * Add md5-byte-limit option to cap bytes hashed 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:59:53 +0000
+
+suricata2beta (2.0-0awn10) precise; urgency=low
+
+  * Add magic number to http log. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:58:01 +0000
+
+suricata2beta (2.0-0awn9) precise; urgency=low
+
+  * Add force-md5 toggle under http-log. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:56:35 +0000
+
+suricata2beta (2.0-0awn8) precise; urgency=low
+
+  * MD5 hashes for truncated files.
+  * %M specifier to store MD5 hashes and file size in HTTP log. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:54:54 +0000
+
+suricata2beta (2.0-0awn7) precise; urgency=low
+
+  * Switch to storing protection-specific id. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:53:12 +0000
+
+suricata2beta (2.0-0awn6) precise; urgency=low
+
+  * Add format specifier for HTTP transaction id. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:51:47 +0000
+
+suricata2beta (2.0-0awn5) precise; urgency=low
+
+  * Changes based on code review for protection changes. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:50:01 +0000
+
+suricata2beta (2.0-0awn4) precise; urgency=low
+
+  * Added protection info to http custom logging 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:48:28 +0000
+
+suricata2beta (2.0-0awn3) precise; urgency=low
+
+  * Release GIL after initializing awn_http module 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:46:54 +0000
+
+suricata2beta (2.0-0awn2) precise; urgency=low
+
+  * Revert L4 protection changes 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:38:18 +0000
+
+suricata2beta (2.0-0awn1) precise; urgency=low
+
+  * L4 Protection Changes
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:31:26 +0000
+
+suricata2beta (1.9.0-0awn9) precise; urgency=low
+
+  * Clean up code in BlockSendLibnet11L3IPv4TCP 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:31:06 +0000
+
+suricata2beta (1.9.0-0awn8) precise; urgency=low
+
+  * Protection layer support 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:24:09 +0000
+
+suricata2beta (1.9.0-0awn7) precise; urgency=low
+
+  * Fixed an issue with logging DNS queries with no response. 
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:21:56 +0000
+
+suricata2beta (1.9.0-0awn6) precise; urgency=low
+
+  * Fixed an issue with counting response bytes for unsolicited DNS responses
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:16:25 +0000
+
+suricata2beta (1.9.0-0awn4) precise; urgency=low
+
+  * Fix an issue logging a DNS transaction with a query but no response or response but no query.
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:08:11 +0000
+
+suricata2beta (1.9.0-0awn3) precise; urgency=low
+
+  * Modified the DNS log format to include the query with the response.  Additionally
+    added the query and answer lengths.
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 14:05:24 +0000
+
+suricata2beta (1.9.0-0awn1) precise; urgency=low
+
+  * Added support for %I (total request bytes, header plus body) and %O
+    (total response bytes, header plus body) in the HTTP custom format.
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 13:56:09 +0000
+
+suricata2beta (2.0-0awn0) UNRELEASED; urgency=low
+
+  * Initial release.
+
+ -- Arctic Wolf Networks Inc. Development <dev@arcticwolf.com>  Thu, 19 Mar 2015 00:09:11 +0000

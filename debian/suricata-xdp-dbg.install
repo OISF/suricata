@@ -1,0 +1,11 @@
+usr/bin/*
+usr/include/htp/*
+usr/lib/*
+usr/lib/pkgconfig/*
+usr/lib/python3.5/site-packages/*
+usr/share/doc/suricata/*
+usr/share/suricata/classification.config /etc/suricata
+usr/share/suricata/reference.config /etc/suricata
+suricata.yaml /etc/suricata
+
+
