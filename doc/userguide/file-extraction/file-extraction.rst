@@ -21,6 +21,7 @@ Supported protocols are:
 - FTP
 - NFS
 - SMB
+- HTTP2
 
 Settings
 ~~~~~~~~
