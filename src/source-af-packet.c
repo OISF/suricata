@@ -321,7 +321,7 @@ typedef struct AFPThreadVars_
 
     int down_count;
 
-    int cluster_id;
+    uint16_t cluster_id;
     int cluster_type;
 
     int threads;
@@ -2038,7 +2038,7 @@ mmap_err:
 /** \brief test if we can use FANOUT. Older kernels like those in
  *         CentOS6 have HAVE_PACKET_FANOUT defined but fail to work
  */
-int AFPIsFanoutSupported(int cluster_id)
+int AFPIsFanoutSupported(uint16_t cluster_id)
 {
 #ifdef HAVE_PACKET_FANOUT
     int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -2046,8 +2046,7 @@ int AFPIsFanoutSupported(int cluster_id)
         return 0;
 
     uint32_t mode = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
-    uint16_t id = 1;
-    uint32_t option = (mode << 16) | (id & 0xffff);
+    uint32_t option = (mode << 16) | cluster_id;
     int r = setsockopt(fd, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
     close(fd);
 
