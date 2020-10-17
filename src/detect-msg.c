@@ -151,7 +151,7 @@ static int DetectMsgParseTest02(void)
     Signature *sig = NULL;
     const char *teststringparsed = "msg escape tests wxy'\"\\;:";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF (de_ctx == NULL);
+    FAIL_IF(de_ctx == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"msg escape tests \\w\\x\\y\\'\\\"\\\\;\\:\"; flow:to_server,established; content:\"blah\"; uricontent:\"/blah/\"; sid: 100;)");
     FAIL_IF(sig == NULL);
