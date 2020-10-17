@@ -128,13 +128,13 @@ static int DetectMsgParseTest01(void)
     Signature *sig = NULL;
     const char *teststringparsed = "flow stateless to_server";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
+    FAIL_IF(de_ctx == NULL);
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
-    FAIL_IF_NULL(sig);
+    FAIL_IF(sig == NULL);
 
     FAIL_IF(strcmp(sig->msg, teststringparsed) != 0);
 
@@ -150,10 +150,11 @@ static int DetectMsgParseTest02(void)
 {
     Signature *sig = NULL;
     const char *teststringparsed = "msg escape tests wxy'\"\\;:";
-    FAIL_IF_NULL(de_ctx);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF (de_ctx == NULL);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"msg escape tests \\w\\x\\y\\'\\\"\\\\;\\:\"; flow:to_server,established; content:\"blah\"; uricontent:\"/blah/\"; sid: 100;)");
-    FAIL_IF_NULL(sig);
+    FAIL_IF(sig == NULL);
 
     FAIL_IF(strcmp(sig->msg, teststringparsed) != 0);
 
@@ -170,13 +171,13 @@ static int DetectMsgParseTest03(void)
     const char *teststringparsed = "flow stateless to_server";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF_NULL(de_ctx);
+    FAIL_IF(de_ctx == NULL);
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg: \"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
-    FAIL_IF_NULL(sig);
+    FAIL_IF(sig == NULL);
 
     FAIL_IF(strcmp(sig->msg, teststringparsed) != 0);
 
