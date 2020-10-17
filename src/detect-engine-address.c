@@ -836,7 +836,7 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
                     }
                     DetectAddressHeadCleanup(&tmp_ghn);
 
-                    SCLogDebug("merged succesfully");
+                    SCLogDebug("merged successfully");
 
                     /* insert the IPv4 addresses into the negated list */
                     for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
@@ -1542,7 +1542,7 @@ void DetectAddressHeadCleanup(DetectAddressHead *gh)
  *        explanations on what these functions do.
  *
  * \param de_ctx Pointer to the DetectEngineCtx.
- * \param a      Pointer the the first address to be cut.
+ * \param a      Pointer to the first address to be cut.
  * \param b      Pointer to the second address to be cut.
  * \param c      Pointer to a pointer to a third DetectAddressData, in case the
  *               ranges from a and b, demand a third address range.
@@ -1746,7 +1746,7 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
  * \brief Check if a particular address(ipv4 or ipv6) matches the address
  *        range in the DetectAddress instance.
  *
- *        We basically check that the address falls inbetween the address
+ *        We basically check that the address falls in between the address
  *        range in DetectAddress.
  *
  * \param dd Pointer to the DetectAddress instance.
