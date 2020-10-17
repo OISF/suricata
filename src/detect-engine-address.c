@@ -1746,7 +1746,7 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
  * \brief Check if a particular address(ipv4 or ipv6) matches the address
  *        range in the DetectAddress instance.
  *
- *        We basically check that the address falls inbetween the address
+ *        We basically check that the address falls in between the address
  *        range in DetectAddress.
  *
  * \param dd Pointer to the DetectAddress instance.
