@@ -22,7 +22,7 @@ use self::ipsec_parser::*;
 
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
-pub enum IKEV2ConnectionState {
+pub enum IKEConnectionState {
     Init,
     InitSASent,
     InitKESent,
@@ -37,9 +37,9 @@ pub enum IKEV2ConnectionState {
     Invalid,
 }
 
-impl IKEV2ConnectionState {
-    pub fn advance(&self, payload: &IkeV2Payload) -> IKEV2ConnectionState {
-        use self::IKEV2ConnectionState::*;
+impl IKEConnectionState {
+    pub fn advance(&self, payload: &IkeV2Payload) -> IKEConnectionState {
+        use self::IKEConnectionState::*;
         match (self, &payload.content) {
             (&Init, &IkeV2PayloadContent::SA(_))                          => InitSASent,
             (&InitSASent, &IkeV2PayloadContent::KE(_))                    => InitKESent,

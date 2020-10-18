@@ -18,12 +18,12 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::ikev2::ikev2::{IKEV2State,IKEV2Transaction};
+use crate::ike::ike::{IKEState,IKETransaction};
 
-use crate::ikev2::ipsec_parser::IKEV2_FLAG_INITIATOR;
+use crate::ike::ipsec_parser::IKEV2_FLAG_INITIATOR;
 
-fn ikev2_log_response(state: &mut IKEV2State,
-                      tx: &mut IKEV2Transaction,
+fn ike_log_response(state: &mut IKEState,
+                      tx: &mut IKETransaction,
                       jb: &mut JsonBuilder)
                       -> Result<(), JsonError>
 {
@@ -58,10 +58,10 @@ fn ikev2_log_response(state: &mut IKEV2State,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State,
-                                             tx: &mut IKEV2Transaction,
+pub extern "C" fn rs_ike_log_json_response(state: &mut IKEState,
+                                             tx: &mut IKETransaction,
                                              jb: &mut JsonBuilder)
                                              -> bool
 {
-    ikev2_log_response(state, tx, jb).is_ok()
+    ike_log_response(state, tx, jb).is_ok()
 }
