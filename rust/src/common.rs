@@ -72,3 +72,12 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
     }
     drop(CString::from_raw(s));
 }
+
+/// Convert an u8-array of data into a hexadecimal representation
+pub fn to_hex(input: &[u8]) -> String {
+    static CHARS: &'static [u8] = b"0123456789abcdef";
+
+    return input.iter().map(
+        |b| vec![char::from(CHARS[(b >>  4) as usize]), char::from(CHARS[(b & 0xf) as usize])]
+    ).flatten().collect();
+}
