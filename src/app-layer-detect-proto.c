@@ -890,8 +890,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_NTP\n");
                     else if (pp_pe->alproto == ALPROTO_TFTP)
                         printf("            alproto: ALPROTO_TFTP\n");
-                    else if (pp_pe->alproto == ALPROTO_IKEV2)
-                        printf("            alproto: ALPROTO_IKEV2\n");
+                    else if (pp_pe->alproto == ALPROTO_IKE)
+                        printf("            alproto: ALPROTO_IKE\n");
                     else if (pp_pe->alproto == ALPROTO_KRB5)
                         printf("            alproto: ALPROTO_KRB5\n");
                     else if (pp_pe->alproto == ALPROTO_DHCP)
@@ -967,8 +967,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_NTP\n");
                 else if (pp_pe->alproto == ALPROTO_TFTP)
                     printf("            alproto: ALPROTO_TFTP\n");
-                else if (pp_pe->alproto == ALPROTO_IKEV2)
-                    printf("            alproto: ALPROTO_IKEV2\n");
+                else if (pp_pe->alproto == ALPROTO_IKE)
+                    printf("            alproto: ALPROTO_IKE\n");
                 else if (pp_pe->alproto == ALPROTO_KRB5)
                     printf("            alproto: ALPROTO_KRB5\n");
                 else if (pp_pe->alproto == ALPROTO_DHCP)

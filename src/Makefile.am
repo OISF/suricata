@@ -31,7 +31,7 @@ noinst_HEADERS = \
 	app-layer-htp-mem.h \
 	app-layer-htp-xff.h \
 	app-layer-http2.h \
-	app-layer-ikev2.h \
+	app-layer-ike.h \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
 	app-layer-mqtt.h \
@@ -383,7 +383,7 @@ noinst_HEADERS = \
 	output-json.h \
 	output-json-http2.h \
 	output-json-http.h \
-	output-json-ikev2.h \
+	output-json-ike.h \
 	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-mqtt.h \
@@ -605,7 +605,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-mem.c \
 	app-layer-htp-xff.c \
 	app-layer-http2.c \
-	app-layer-ikev2.c \
+	app-layer-ike.c \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
 	app-layer-mqtt.c \
@@ -951,7 +951,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-ftp.c \
 	output-json-http2.c \
 	output-json-http.c \
-	output-json-ikev2.c \
+	output-json-ike.c \
 	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-mqtt.c \
