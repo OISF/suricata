@@ -148,6 +148,8 @@ int AppLayerProtoDetectDeSetup(void);
  */
 void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_name);
 
+void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_alias);
+
 /**
  * \brief Given a protocol name, checks if proto detection is enabled in
  *        the conf file.
