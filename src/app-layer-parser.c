@@ -61,7 +61,7 @@
 #include "app-layer-nfs-udp.h"
 #include "app-layer-ntp.h"
 #include "app-layer-tftp.h"
-#include "app-layer-ikev2.h"
+#include "app-layer-ike.h"
 #include "app-layer-krb5.h"
 #include "app-layer-snmp.h"
 #include "app-layer-sip.h"
@@ -1621,7 +1621,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterNFSUDPParsers();
     RegisterNTPParsers();
     RegisterTFTPParsers();
-    RegisterIKEV2Parsers();
+    RegisterIKEParsers();
     RegisterKRB5Parsers();
     rs_dhcp_register_parser();
     RegisterSNMPParsers();
