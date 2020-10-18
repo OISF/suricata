@@ -1418,6 +1418,10 @@ detect:
       include-rules: false      # very verbose
       include-mpm-stats: false
 
+  # Maximum permitted length for address variables in string form (before parsing). Choose
+  # a value that is large enough for the values in in the address-group variables.
+  #max-address-size: 8192
+
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine.
 #

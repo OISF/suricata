@@ -51,6 +51,10 @@ static void DetectAddressPrint(DetectAddress *);
 #else
 #define DetectAddressPrint(...)
 #endif
+
+#define MAX_ADDRESS_SIZE         65535
+#define DEFAULT_MAX_ADDRESS_SIZE 8192
+
 static int DetectAddressCutNot(DetectAddress *, DetectAddress **);
 static int DetectAddressCut(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                             DetectAddress **);
@@ -733,10 +737,9 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
  * \retval  0 On successfully parsing.
  * \retval -1 On failure.
  */
-static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
-        DetectAddressHead *gh, DetectAddressHead *ghn,
-        const char *s, int negate, ResolvedVariablesList *var_list,
-        int recur)
+static int DetectAddressParse2(const DetectEngineCtx *de_ctx, DetectAddressHead *gh,
+        DetectAddressHead *ghn, const char *s, int negate, ResolvedVariablesList *var_list,
+        int recur, intmax_t max_address_size)
 {
     size_t x = 0;
     size_t u = 0;
@@ -750,6 +753,14 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     if (++recur > 64) {
         SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "address block recursion "
                 "limit reached (max 64)");
+        goto error;
+    }
+
+    if ((intmax_t)size > max_address_size) {
+        SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
+                "address variable exceeds "
+                "configured maximum limit (%" PRIiMAX ")",
+                max_address_size);
         goto error;
     }
 
@@ -784,7 +795,8 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     /* normal block */
                     SCLogDebug("normal block");
 
-                    if (DetectAddressParse2(de_ctx, gh, ghn, address, (negate + n_set) % 2, var_list, recur) < 0)
+                    if (DetectAddressParse2(de_ctx, gh, ghn, address, (negate + n_set) % 2,
+                                var_list, recur, max_address_size) < 0)
                         goto error;
                 } else {
                     /* negated block
@@ -797,7 +809,8 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     DetectAddressHead tmp_gh = { NULL, NULL };
                     DetectAddressHead tmp_ghn = { NULL, NULL };
 
-                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list, recur) < 0) {
+                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list, recur,
+                                max_address_size) < 0) {
                         DetectAddressHeadCleanup(&tmp_gh);
                         DetectAddressHeadCleanup(&tmp_ghn);
                         goto error;
@@ -895,10 +908,8 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         goto error;
                 }
 
-
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
-                                    (negate + n_set) % 2, var_list, recur) < 0)
-                {
+                            (negate + n_set) % 2, var_list, recur, max_address_size) < 0) {
                     if (temp_rule_var_address != rule_var_address)
                         SCFree(temp_rule_var_address);
                     goto error;
@@ -965,7 +976,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 }
 
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
-                                    (negate + n_set) % 2, var_list, recur) < 0) {
+                            (negate + n_set) % 2, var_list, recur, max_address_size) < 0) {
                     SCLogDebug("DetectAddressParse2 hates us");
                     if (temp_rule_var_address != rule_var_address)
                         SCFree(temp_rule_var_address);
@@ -1238,6 +1249,14 @@ int DetectAddressTestConfVars(void)
     DetectAddressHead *gh = NULL;
     DetectAddressHead *ghn = NULL;
 
+    intmax_t max_address_size;
+    if (ConfGetInt("detect.max-address-size", &max_address_size) != 1) {
+        max_address_size = DEFAULT_MAX_ADDRESS_SIZE;
+    } else if (max_address_size > MAX_ADDRESS_SIZE) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Maximum max-address-size setting is %d. ",
+                MAX_ADDRESS_SIZE);
+        goto error;
+    }
     ConfNode *seq_node;
     TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
         SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
@@ -1259,7 +1278,8 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        int r = DetectAddressParse2(NULL, gh, ghn, seq_node->val, /* start with negate no */0, &var_list, 0);
+        int r = DetectAddressParse2(NULL, gh, ghn, seq_node->val, /* start with negate no */ 0,
+                &var_list, 0, max_address_size);
 
         CleanVariableResolveList(&var_list);
 
@@ -1414,13 +1434,23 @@ int DetectAddressParse(const DetectEngineCtx *de_ctx,
         return -1;
     }
 
+    intmax_t max_address_size;
+    if (ConfGetInt("detect.max-address-size", &max_address_size) != 1) {
+        max_address_size = DEFAULT_MAX_ADDRESS_SIZE;
+    } else if (max_address_size > MAX_ADDRESS_SIZE) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Maximum max-address-size setting is %d. ",
+                MAX_ADDRESS_SIZE);
+        return -1;
+    }
+
     DetectAddressHead *ghn = DetectAddressHeadInit();
     if (ghn == NULL) {
         SCLogDebug("DetectAddressHeadInit for ghn failed");
         return -1;
     }
 
-    int r = DetectAddressParse2(de_ctx, gh, ghn, str, /* start with negate no */0, NULL, 0);
+    int r = DetectAddressParse2(
+            de_ctx, gh, ghn, str, /* start with negate no */ 0, NULL, 0, max_address_size);
     if (r < 0) {
         SCLogDebug("DetectAddressParse2 returned %d", r);
         DetectAddressHeadFree(ghn);
@@ -4986,6 +5016,172 @@ static int AddressConfVarsTest06(void)
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
+    FAIL_IF(-1 != DetectAddressTestConfVars());
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    PASS;
+}
+
+static int AddressConfVarsTest07(void)
+{
+    // HOME_NET value size = 10261 bytes
+    static const char *dummy_conf_string =
+            "%YAML 1.1\n"
+            "---\n"
+            "\n"
+            "vars:\n"
+            "\n"
+            "  address-groups:\n"
+            "\n"
+            "    HOME_NET: "
+            "\"[2002:0000:3238:DFE1:63:0000:0000:FEFB,2002:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2004:0000:3238:DFE1:63:0000:0000:FEFB,2005:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2006:0000:3238:DFE1:63:0000:0000:FEFB,2007:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB,"
+            "2002:0000:3238:DFE1:63:0000:0000:FEFB,2003:0000:3238:DFE1:63:0000:0000:FEFB]\"\n"
+            "\n"
+            "    EXTERNAL_NET: \"any\"\n"
+            "\n"
+            "detect:\n"
+            "   max-address-size: 12288\n"
+            "\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
     FAIL_IF(-1 == DetectAddressTestConfVars());
 
     ConfDeInit();
@@ -5197,5 +5393,6 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04);
     UtRegisterTest("AddressConfVarsTest05 ", AddressConfVarsTest05);
     UtRegisterTest("AddressConfVarsTest06 ", AddressConfVarsTest06);
+    UtRegisterTest("AddressConfVarsTest07 ", AddressConfVarsTest07);
 #endif /* UNITTESTS */
 }
