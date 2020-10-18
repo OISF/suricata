@@ -266,7 +266,7 @@ outputs:
         - nfs
         - smb
         - tftp
-        - ikev2
+        - ike
         - dcerpc
         - krb5
         - snmp
@@ -726,7 +726,7 @@ app-layer:
       enabled: yes
     snmp:
       enabled: yes
-    ikev2:
+    ike:
       enabled: yes
     tls:
       enabled: yes

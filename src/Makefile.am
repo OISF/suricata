@@ -47,7 +47,7 @@ app-layer-nfs-udp.c app-layer-nfs-udp.h \
 app-layer-ntp.c app-layer-ntp.h \
 app-layer-register.c app-layer-register.h \
 app-layer-tftp.c app-layer-tftp.h \
-app-layer-ikev2.c app-layer-ikev2.h \
+app-layer-ike.c app-layer-ike.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-rfb.c app-layer-rfb.h \
 app-layer-mqtt.c app-layer-mqtt.h \
@@ -384,7 +384,7 @@ output-json-tls.c output-json-tls.h \
 output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
-output-json-ikev2.c output-json-ikev2.h \
+output-json-ike.c output-json-ike.h \
 output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
