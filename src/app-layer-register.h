@@ -96,4 +96,6 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *parser, 
  */
 int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto);
 
+int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias);
+
 #endif /* __APP_LAYER_REGISTER_H__ */

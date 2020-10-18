@@ -290,6 +290,7 @@ pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
 // Defined in app-layer-register.h
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
+    pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
 }
 
 #[allow(non_snake_case)]
