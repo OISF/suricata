@@ -67,7 +67,7 @@ pub mod smb;
 pub mod krb;
 pub mod dcerpc;
 
-pub mod ikev2;
+pub mod ike;
 pub mod snmp;
 
 pub mod ntp;

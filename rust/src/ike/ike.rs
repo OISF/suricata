@@ -17,8 +17,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::ikev2::ipsec_parser::*;
-use crate::ikev2::state::IKEV2ConnectionState;
+use crate::ike::ipsec_parser::*;
+use crate::ike::state::IKEConnectionState;
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
@@ -28,7 +28,7 @@ use std::ffi::{CStr,CString};
 use nom;
 
 #[repr(u32)]
-pub enum IKEV2Event {
+pub enum IkeEvent {
     MalformedData = 0,
     NoEncryption,
     WeakCryptoEnc,
@@ -41,33 +41,33 @@ pub enum IKEV2Event {
     UnknownProposal,
 }
 
-impl IKEV2Event {
-    fn from_i32(value: i32) -> Option<IKEV2Event> {
+impl IkeEvent {
+    fn from_i32(value: i32) -> Option<IkeEvent> {
         match value {
-            0 => Some(IKEV2Event::MalformedData),
-            1 => Some(IKEV2Event::NoEncryption),
-            2 => Some(IKEV2Event::WeakCryptoEnc),
-            3 => Some(IKEV2Event::WeakCryptoPRF),
-            4 => Some(IKEV2Event::WeakCryptoDH),
-            5 => Some(IKEV2Event::WeakCryptoAuth),
-            6 => Some(IKEV2Event::WeakCryptoNoDH),
-            7 => Some(IKEV2Event::WeakCryptoNoAuth),
-            8 => Some(IKEV2Event::InvalidProposal),
-            9 => Some(IKEV2Event::UnknownProposal),
+            0 => Some(IkeEvent::MalformedData),
+            1 => Some(IkeEvent::NoEncryption),
+            2 => Some(IkeEvent::WeakCryptoEnc),
+            3 => Some(IkeEvent::WeakCryptoPRF),
+            4 => Some(IkeEvent::WeakCryptoDH),
+            5 => Some(IkeEvent::WeakCryptoAuth),
+            6 => Some(IkeEvent::WeakCryptoNoDH),
+            7 => Some(IkeEvent::WeakCryptoNoAuth),
+            8 => Some(IkeEvent::InvalidProposal),
+            9 => Some(IkeEvent::UnknownProposal),
             _ => None,
         }
     }
 }
 
-pub struct IKEV2State {
+pub struct IKEState {
     /// List of transactions for this session
-    transactions: Vec<IKEV2Transaction>,
+    transactions: Vec<IKETransaction>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
     /// The connection state
-    connection_state: IKEV2ConnectionState,
+    connection_state: IKEConnectionState,
 
     /// The transforms proposed by the initiator
     pub client_transforms : Vec<Vec<IkeV2Transform>>,
@@ -92,8 +92,8 @@ pub struct IKEV2State {
 }
 
 #[derive(Debug)]
-pub struct IKEV2Transaction {
-    /// The IKEV2 reference ID
+pub struct IKETransaction {
+    /// The IKE reference ID
     pub xid: u64,
 
     pub hdr: IkeV2Header,
@@ -118,12 +118,12 @@ pub struct IKEV2Transaction {
 
 
 
-impl IKEV2State {
-    pub fn new() -> IKEV2State {
-        IKEV2State{
+impl IKEState {
+    pub fn new() -> IKEState {
+        IKEState{
             transactions: Vec::new(),
             tx_id: 0,
-            connection_state: IKEV2ConnectionState::Init,
+            connection_state: IKEConnectionState::Init,
             dh_group: IkeTransformDHType::None,
             client_transforms: Vec::new(),
             server_transforms: Vec::new(),
@@ -136,8 +136,8 @@ impl IKEV2State {
     }
 }
 
-impl IKEV2State {
-    /// Parse an IKEV2 request message
+impl IKEState {
+    /// Parse an IKE request message
     ///
     /// Returns The number of messages parsed, or -1 on error
     fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
@@ -148,11 +148,11 @@ impl IKEV2State {
                 }
                 // Rule 0: check version
                 if hdr.maj_ver != 2 || hdr.min_ver != 0 {
-                    self.set_event(IKEV2Event::MalformedData);
+                    self.set_event(IkeEvent::MalformedData);
                     return -1;
                 }
                 if hdr.init_spi == 0 {
-                    self.set_event(IKEV2Event::MalformedData);
+                    self.set_event(IkeEvent::MalformedData);
                     return -1;
                 }
                 // only analyse IKE_SA, other payloads are encrypted
@@ -174,7 +174,7 @@ impl IKEV2State {
                             match payload.content {
                                 IkeV2PayloadContent::Dummy => (),
                                 IkeV2PayloadContent::SA(ref prop) => {
-                                    // if hdr.flags & IKEV2_FLAG_INITIATOR != 0 {
+                                    // if hdr.flags & IKE_FLAG_INITIATOR != 0 {
                                         self.add_proposals(prop, direction);
                                     // }
                                 },
@@ -213,18 +213,18 @@ impl IKEV2State {
                             }
                         };
                     },
-                    e => { SCLogDebug!("parse_ikev2_payload_with_type: {:?}",e); () },
+                    e => { SCLogDebug!("parse_ike_payload_with_type: {:?}",e); () },
                 }
                 1
             },
             Err(nom::Err::Incomplete(_)) => {
-                SCLogDebug!("Insufficient data while parsing IKEV2 data");
-                self.set_event(IKEV2Event::MalformedData);
+                SCLogDebug!("Insufficient data while parsing IKE data");
+                self.set_event(IkeEvent::MalformedData);
                 -1
             },
             Err(_) => {
-                SCLogDebug!("Error while parsing IKEV2 data");
-                self.set_event(IKEV2Event::MalformedData);
+                SCLogDebug!("Error while parsing IKE data");
+                self.set_event(IkeEvent::MalformedData);
                 -1
             },
         }
@@ -236,12 +236,12 @@ impl IKEV2State {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> IKEV2Transaction {
+    fn new_tx(&mut self) -> IKETransaction {
         self.tx_id += 1;
-        IKEV2Transaction::new(self.tx_id)
+        IKETransaction::new(self.tx_id)
     }
 
-    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&IKEV2Transaction> {
+    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&IKETransaction> {
         self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
     }
 
@@ -254,7 +254,7 @@ impl IKEV2State {
     }
 
     /// Set an event. The event is set on the most recent transaction.
-    fn set_event(&mut self, event: IKEV2Event) {
+    fn set_event(&mut self, event: IkeEvent) {
         if let Some(tx) = self.transactions.last_mut() {
             let ev = event as u8;
             core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
@@ -283,7 +283,7 @@ impl IKEV2State {
                             IkeTransformEncType::ENCR_NULL => {
                                 SCLogDebug!("Weak Encryption: {:?}", enc);
                                 // XXX send event only if direction == STREAM_TOCLIENT ?
-                                self.set_event(IKEV2Event::WeakCryptoEnc);
+                                self.set_event(IkeEvent::WeakCryptoEnc);
                             },
                             _ => (),
                         }
@@ -292,12 +292,12 @@ impl IKEV2State {
                         match *prf {
                             IkeTransformPRFType::PRF_NULL => {
                                 SCLogDebug!("'Null' PRF transform proposed");
-                                self.set_event(IKEV2Event::InvalidProposal);
+                                self.set_event(IkeEvent::InvalidProposal);
                             },
                             IkeTransformPRFType::PRF_HMAC_MD5 |
                             IkeTransformPRFType::PRF_HMAC_SHA1 => {
                                 SCLogDebug!("Weak PRF: {:?}", prf);
-                                self.set_event(IKEV2Event::WeakCryptoPRF);
+                                self.set_event(IkeEvent::WeakCryptoPRF);
                             },
                             _ => (),
                         }
@@ -317,7 +317,7 @@ impl IKEV2State {
                             IkeTransformAuthType::AUTH_HMAC_MD5_128 |
                             IkeTransformAuthType::AUTH_HMAC_SHA1_160 => {
                                 SCLogDebug!("Weak auth: {:?}", auth);
-                                self.set_event(IKEV2Event::WeakCryptoAuth);
+                                self.set_event(IkeEvent::WeakCryptoAuth);
                             },
                             _ => (),
                         }
@@ -326,21 +326,21 @@ impl IKEV2State {
                         match *dh {
                             IkeTransformDHType::None => {
                                 SCLogDebug!("'None' DH transform proposed");
-                                self.set_event(IKEV2Event::InvalidProposal);
+                                self.set_event(IkeEvent::InvalidProposal);
                             },
                             IkeTransformDHType::Modp768 |
                             IkeTransformDHType::Modp1024 |
                             IkeTransformDHType::Modp1024s160 |
                             IkeTransformDHType::Modp1536 => {
                                 SCLogDebug!("Weak DH: {:?}", dh);
-                                self.set_event(IKEV2Event::WeakCryptoDH);
+                                self.set_event(IkeEvent::WeakCryptoDH);
                             },
                             _ => (),
                         }
                     },
                     IkeV2Transform::Unknown(tx_type,tx_id) => {
                         SCLogDebug!("Unknown proposal: type={:?}, id={}", tx_type, tx_id);
-                        self.set_event(IKEV2Event::UnknownProposal);
+                        self.set_event(IkeEvent::UnknownProposal);
                     },
                     _ => (),
                 }
@@ -354,12 +354,12 @@ impl IKEV2State {
             })
             {
                 SCLogDebug!("No DH transform found");
-                self.set_event(IKEV2Event::WeakCryptoNoDH);
+                self.set_event(IkeEvent::WeakCryptoNoDH);
             }
             // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
             if p.protocol_id == ProtocolID::AH {
                 SCLogDebug!("Proposal uses protocol AH - no confidentiality");
-                self.set_event(IKEV2Event::NoEncryption);
+                self.set_event(IkeEvent::NoEncryption);
             }
             // Rule 4: lack of integrity is accepted only if using an AEAD proposal
             // Look if no auth was proposed, including if proposal is Auth::None
@@ -378,7 +378,7 @@ impl IKEV2State {
                     }
                 }) {
                     SCLogDebug!("No integrity transform found");
-                    self.set_event(IKEV2Event::WeakCryptoNoAuth);
+                    self.set_event(IkeEvent::WeakCryptoNoAuth);
                 }
             }
             // Finally
@@ -402,9 +402,9 @@ impl IKEV2State {
     }
 }
 
-impl IKEV2Transaction {
-    pub fn new(id: u64) -> IKEV2Transaction {
-        IKEV2Transaction {
+impl IKETransaction {
+    pub fn new(id: u64) -> IKETransaction {
+        IKETransaction {
             xid: 0,
             hdr: IkeV2Header {
                 init_spi: 0,
@@ -437,31 +437,31 @@ impl IKEV2Transaction {
     }
 }
 
-impl Drop for IKEV2Transaction {
+impl Drop for IKETransaction {
     fn drop(&mut self) {
         self.free();
     }
 }
 
-/// Returns *mut IKEV2State
+/// Returns *mut IKEState
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = IKEV2State::new();
+pub extern "C" fn rs_ike_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+    let state = IKEState::new();
     let boxed = Box::new(state);
     return unsafe{std::mem::transmute(boxed)};
 }
 
 /// Params:
-/// - state: *mut IKEV2State as void pointer
+/// - state: *mut IKEState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_free(state: *mut std::os::raw::c_void) {
+pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let mut ikev2_state: Box<IKEV2State> = unsafe{std::mem::transmute(state)};
-    ikev2_state.free();
+    let mut ike_state: Box<IKEState> = unsafe{std::mem::transmute(state)};
+    ike_state.free();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
+pub extern "C" fn rs_ike_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -469,7 +469,7 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     if state.parse(buf, STREAM_TOSERVER) < 0 {
         return AppLayerResult::err();
     }
@@ -477,7 +477,7 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
+pub extern "C" fn rs_ike_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -485,9 +485,9 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        _data: *const std::os::raw::c_void,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     let res = state.parse(buf, STREAM_TOCLIENT);
-    if state.connection_state == IKEV2ConnectionState::ParsingDone {
+    if state.connection_state == IKEConnectionState::ParsingDone {
         unsafe{
             AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
                                        APP_LAYER_PARSER_NO_REASSEMBLY |
@@ -501,11 +501,11 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
+pub extern "C" fn rs_ike_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => unsafe{std::mem::transmute(tx)},
         None     => std::ptr::null_mut(),
@@ -513,23 +513,23 @@ pub extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     state.tx_id
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_tx_free(state: *mut std::os::raw::c_void,
+pub extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
-    let state = cast_pointer!(state,IKEV2State);
+    let state = cast_pointer!(state,IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_progress_completion_status(
+pub extern "C" fn rs_ike_state_progress_completion_status(
     _direction: u8)
     -> std::os::raw::c_int
 {
@@ -537,7 +537,7 @@ pub extern "C" fn rs_ikev2_state_progress_completion_status(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
+pub extern "C" fn rs_ike_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
 {
@@ -545,21 +545,21 @@ pub extern "C" fn rs_ikev2_tx_get_alstate_progress(_tx: *mut std::os::raw::c_voi
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_set_tx_detect_state(
+pub extern "C" fn rs_ike_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
-    let tx = cast_pointer!(tx,IKEV2Transaction);
+    let tx = cast_pointer!(tx,IKETransaction);
     tx.de_state = Some(de_state);
     0
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
+pub extern "C" fn rs_ike_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
-    let tx = cast_pointer!(tx,IKEV2Transaction);
+    let tx = cast_pointer!(tx,IKETransaction);
     match tx.de_state {
         Some(ds) => ds,
         None => std::ptr::null_mut(),
@@ -568,31 +568,31 @@ pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
 
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
+pub extern "C" fn rs_ike_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
-    let tx = cast_pointer!(tx, IKEV2Transaction);
+    let tx = cast_pointer!(tx, IKETransaction);
     return tx.events;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+pub extern "C" fn rs_ike_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                                       event_name: *mut *const std::os::raw::c_char,
                                                       event_type: *mut core::AppLayerEventType)
                                                       -> i8
 {
-    if let Some(e) = IKEV2Event::from_i32(event_id as i32) {
+    if let Some(e) = IkeEvent::from_i32(event_id as i32) {
         let estr = match e {
-            IKEV2Event::MalformedData    => { "malformed_data\0" },
-            IKEV2Event::NoEncryption     => { "no_encryption\0" },
-            IKEV2Event::WeakCryptoEnc    => { "weak_crypto_enc\0" },
-            IKEV2Event::WeakCryptoPRF    => { "weak_crypto_prf\0" },
-            IKEV2Event::WeakCryptoDH     => { "weak_crypto_dh\0" },
-            IKEV2Event::WeakCryptoAuth   => { "weak_crypto_auth\0" },
-            IKEV2Event::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
-            IKEV2Event::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
-            IKEV2Event::InvalidProposal  => { "invalid_proposal\0" },
-            IKEV2Event::UnknownProposal  => { "unknown_proposal\0" },
+            IkeEvent::MalformedData    => { "malformed_data\0" },
+            IkeEvent::NoEncryption     => { "no_encryption\0" },
+            IkeEvent::WeakCryptoEnc    => { "weak_crypto_enc\0" },
+            IkeEvent::WeakCryptoPRF    => { "weak_crypto_prf\0" },
+            IkeEvent::WeakCryptoDH     => { "weak_crypto_dh\0" },
+            IkeEvent::WeakCryptoAuth   => { "weak_crypto_auth\0" },
+            IkeEvent::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
+            IkeEvent::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
+            IkeEvent::InvalidProposal  => { "invalid_proposal\0" },
+            IkeEvent::UnknownProposal  => { "unknown_proposal\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -605,7 +605,7 @@ pub extern "C" fn rs_ikev2_state_get_event_info_by_id(event_id: std::os::raw::c_
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw::c_char,
+pub extern "C" fn rs_ike_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut core::AppLayerEventType)
                                               -> std::os::raw::c_int
@@ -615,16 +615,16 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw:
     let event = match c_event_name.to_str() {
         Ok(s) => {
             match s {
-                "malformed_data"     => IKEV2Event::MalformedData as i32,
-                "no_encryption"      => IKEV2Event::NoEncryption as i32,
-                "weak_crypto_enc"    => IKEV2Event::WeakCryptoEnc as i32,
-                "weak_crypto_prf"    => IKEV2Event::WeakCryptoPRF as i32,
-                "weak_crypto_auth"   => IKEV2Event::WeakCryptoAuth as i32,
-                "weak_crypto_dh"     => IKEV2Event::WeakCryptoDH as i32,
-                "weak_crypto_nodh"   => IKEV2Event::WeakCryptoNoDH as i32,
-                "weak_crypto_noauth" => IKEV2Event::WeakCryptoNoAuth as i32,
-                "invalid_proposal"   => IKEV2Event::InvalidProposal as i32,
-                "unknown_proposal"   => IKEV2Event::UnknownProposal as i32,
+                "malformed_data"     => IkeEvent::MalformedData as i32,
+                "no_encryption"      => IkeEvent::NoEncryption as i32,
+                "weak_crypto_enc"    => IkeEvent::WeakCryptoEnc as i32,
+                "weak_crypto_prf"    => IkeEvent::WeakCryptoPRF as i32,
+                "weak_crypto_auth"   => IkeEvent::WeakCryptoAuth as i32,
+                "weak_crypto_dh"     => IkeEvent::WeakCryptoDH as i32,
+                "weak_crypto_nodh"   => IkeEvent::WeakCryptoNoDH as i32,
+                "weak_crypto_noauth" => IkeEvent::WeakCryptoNoAuth as i32,
+                "invalid_proposal"   => IkeEvent::InvalidProposal as i32,
+                "unknown_proposal"   => IkeEvent::UnknownProposal as i32,
                 _                    => -1, // unknown event
             }
         },
@@ -638,16 +638,16 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw:
 }
 
 
-static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
+pub extern "C" fn rs_ike_probing_parser(_flow: *const Flow,
         _direction: u8,
         input:*const u8, input_len: u32,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_IKEV2 };
+    let alproto = unsafe{ ALPROTO_IKE };
     match parse_ikev2_header(slice) {
         Ok((_, ref hdr)) => {
             if hdr.maj_ver != 2 || hdr.min_ver != 0 {
@@ -675,40 +675,40 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
     }
 }
 
-export_tx_data_get!(rs_ikev2_get_tx_data, IKEV2Transaction);
+export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 
-const PARSER_NAME : &'static [u8] = b"ikev2\0";
+const PARSER_NAME : &'static [u8] = b"ike\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_ikev2_parser() {
+pub unsafe extern "C" fn rs_register_ike_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
         name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port       : default_port.as_ptr(),
         ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(rs_ikev2_probing_parser),
-        probe_tc           : Some(rs_ikev2_probing_parser),
+        probe_ts           : Some(rs_ike_probing_parser),
+        probe_tc           : Some(rs_ike_probing_parser),
         min_depth          : 0,
         max_depth          : 16,
-        state_new          : rs_ikev2_state_new,
-        state_free         : rs_ikev2_state_free,
-        tx_free            : rs_ikev2_state_tx_free,
-        parse_ts           : rs_ikev2_parse_request,
-        parse_tc           : rs_ikev2_parse_response,
-        get_tx_count       : rs_ikev2_state_get_tx_count,
-        get_tx             : rs_ikev2_state_get_tx,
-        tx_get_comp_st     : rs_ikev2_state_progress_completion_status,
-        tx_get_progress    : rs_ikev2_tx_get_alstate_progress,
-        get_de_state       : rs_ikev2_state_get_tx_detect_state,
-        set_de_state       : rs_ikev2_state_set_tx_detect_state,
-        get_events         : Some(rs_ikev2_state_get_events),
-        get_eventinfo      : Some(rs_ikev2_state_get_event_info),
-        get_eventinfo_byid : Some(rs_ikev2_state_get_event_info_by_id),
+        state_new          : rs_ike_state_new,
+        state_free         : rs_ike_state_free,
+        tx_free            : rs_ike_state_tx_free,
+        parse_ts           : rs_ike_parse_request,
+        parse_tc           : rs_ike_parse_response,
+        get_tx_count       : rs_ike_state_get_tx_count,
+        get_tx             : rs_ike_state_get_tx,
+        tx_get_comp_st     : rs_ike_state_progress_completion_status,
+        tx_get_progress    : rs_ike_tx_get_alstate_progress,
+        get_de_state       : rs_ike_state_get_tx_detect_state,
+        set_de_state       : rs_ike_state_set_tx_detect_state,
+        get_events         : Some(rs_ike_state_get_events),
+        get_eventinfo      : Some(rs_ike_state_get_event_info),
+        get_eventinfo_byid : Some(rs_ike_state_get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
         get_tx_iterator    : None,
-        get_tx_data        : rs_ikev2_get_tx_data,
+        get_tx_data        : rs_ike_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
@@ -718,23 +718,23 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
-        ALPROTO_IKEV2 = alproto;
+        ALPROTO_IKE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detector and parser disabled for IKEV2.");
+        SCLogDebug!("Protocol detector and parser disabled for IKE.");
     }
 }
 
 
 #[cfg(test)]
 mod tests {
-    use super::IKEV2State;
+    use super::IKEState;
 
     #[test]
-    fn test_ikev2_parse_request_valid() {
-        // A UDP IKEV2 v4 request, in client mode
+    fn test_ike_parse_request_valid() {
+        // A UDP IKE v4 request, in client mode
         const REQ : &[u8] = &[
             0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -744,7 +744,7 @@ mod tests {
             0x18, 0x57, 0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe
         ];
 
-        let mut state = IKEV2State::new();
+        let mut state = IKEState::new();
         assert_eq!(1, state.parse(REQ, 0));
     }
 }

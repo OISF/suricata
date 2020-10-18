@@ -89,7 +89,7 @@ you can pick from. These are:
 * dnp3 (disabled by default)
 * enip (disabled by default)
 * nfs
-* ikev2
+* ike
 * krb5
 * ntp
 * dhcp

@@ -19,15 +19,23 @@
  * \file
  *
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ *
+ * Parser for IKE application layer running on UDP port 500.
  */
 
-#ifndef __APP_LAYER_IKEV2_H__
-#define __APP_LAYER_IKEV2_H__
+#include "suricata-common.h"
+#include "stream.h"
+#include "conf.h"
 
-void RegisterIKEV2Parsers(void);
+#include "util-unittest.h"
 
-/** Opaque Rust types. */
-typedef struct IKEV2State_ IKEV2State;
-typedef struct IKEV2Transaction_ IKEV2Transaction;
+#include "app-layer-detect-proto.h"
+#include "app-layer-parser.h"
 
-#endif /* __APP_LAYER_IKEV2_H__ */
+#include "app-layer-ike.h"
+#include "rust.h"
+
+void RegisterIKEParsers(void)
+{
+    rs_register_ike_parser();
+}
