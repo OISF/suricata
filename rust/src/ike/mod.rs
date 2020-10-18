@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2017-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,15 +15,10 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Pierre Chifflier <chifflier@wzdftpd.net>
- */
+// written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-#ifndef __OUTPUT_JSON_IKEV2_H__
-#define __OUTPUT_JSON_IKEV2_H__
+extern crate ipsec_parser;
 
-void JsonIKEv2LogRegister(void);
-
-#endif /* __OUTPUT_JSON_IKEV2_H__ */
+pub mod ike;
+pub mod state;
+pub mod log;
