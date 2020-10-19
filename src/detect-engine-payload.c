@@ -314,10 +314,9 @@ static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, co
  *
  *  Returns "can't match" if depth is reached.
  */
-int DetectEngineInspectStream(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+int DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     Packet *p = det_ctx->p; /* TODO: get rid of this HACK */
 
@@ -337,7 +336,7 @@ int DetectEngineInspectStream(ThreadVars *tv,
             det_ctx->raw_stream_progress,
             (s->flags & SIG_FLAG_FLUSH)?"true":"false");
     uint64_t unused;
-    struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
+    struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, engine->smd, f };
     int match = StreamReassembleRaw(f->protoctx, p,
             StreamContentInspectEngineFunc, &inspect_data,
             &unused, ((s->flags & SIG_FLAG_FLUSH) != 0));

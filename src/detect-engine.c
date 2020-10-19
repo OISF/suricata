@@ -436,7 +436,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
-    new_engine->Callback = DetectEngineInspectStream;
+    new_engine->v2.Callback = DetectEngineInspectStream;
     new_engine->progress = 0;
 
     /* append */
