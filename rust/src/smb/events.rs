@@ -18,47 +18,16 @@
 use crate::core::*;
 use crate::smb::smb::*;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum SMBEvent {
-    InternalError = 0,
-    MalformedData = 1,
-    RecordOverflow = 2,
-    MalformedNtlmsspRequest = 3,
-    MalformedNtlmsspResponse = 4,
-    DuplicateNegotiate = 5,
-    NegotiateMalformedDialects = 6,
-    FileOverlap = 7,
-}
-
-impl SMBEvent {
-    pub fn from_i32(value: i32) -> Option<SMBEvent> {
-        match value {
-            0 => Some(SMBEvent::InternalError),
-            1 => Some(SMBEvent::MalformedData),
-            2 => Some(SMBEvent::RecordOverflow),
-            3 => Some(SMBEvent::MalformedNtlmsspRequest),
-            4 => Some(SMBEvent::MalformedNtlmsspResponse),
-            5 => Some(SMBEvent::DuplicateNegotiate),
-            6 => Some(SMBEvent::NegotiateMalformedDialects),
-            7 => Some(SMBEvent::FileOverlap),
-            _ => None,
-        }
-    }
-}
-
-pub fn smb_str_to_event(instr: &str) -> i32 {
-    SCLogDebug!("checking {}", instr);
-    match instr {
-        "internal_error"                => SMBEvent::InternalError as i32,
-        "malformed_data"                => SMBEvent::MalformedData as i32,
-        "record_overflow"               => SMBEvent::RecordOverflow as i32,
-        "malformed_ntlmssp_request"     => SMBEvent::MalformedNtlmsspRequest as i32,
-        "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
-        "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
-        "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
-        "file_overlap"                  => SMBEvent::FileOverlap as i32,
-        _ => -1,
-    }
+    InternalError,
+    MalformedData,
+    RecordOverflow,
+    MalformedNtlmsspRequest,
+    MalformedNtlmsspResponse,
+    DuplicateNegotiate,
+    NegotiateMalformedDialects,
+    FileOverlap,
 }
 
 impl SMBTransaction {

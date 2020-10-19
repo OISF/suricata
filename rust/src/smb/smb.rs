@@ -27,7 +27,7 @@
 
 use std;
 use std::str;
-use std::ffi::{self, CStr, CString};
+use std::ffi::{self, CString};
 
 use std::collections::HashMap;
 
@@ -38,6 +38,7 @@ use crate::applayer;
 use crate::applayer::*;
 use crate::conf::*;
 use crate::filecontainer::*;
+use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -2137,52 +2138,21 @@ pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                              event_name: *mut *const std::os::raw::c_char,
-                                              event_type: *mut AppLayerEventType)
-                                              -> i8
-{
-    if let Some(e) = SMBEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            SMBEvent::InternalError => { "internal_error\0" },
-            SMBEvent::MalformedData => { "malformed_data\0" },
-            SMBEvent::RecordOverflow => { "record_overflow\0" },
-            SMBEvent::MalformedNtlmsspRequest => { "malformed_ntlmssp_request\0" },
-            SMBEvent::MalformedNtlmsspResponse => { "malformed_ntlmssp_response\0" },
-            SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
-            SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
-            SMBEvent::FileOverlap => { "file_overlap\0" },
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
+pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut AppLayerEventType,
+) -> i8 {
+    SMBEvent::get_event_info_by_id(event_id, event_name, event_type)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut AppLayerEventType)
-                                              -> i32
-{
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            smb_str_to_event(s)
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    if event == -1 {
-        return -1;
-    }
-    0
+pub unsafe extern "C" fn rs_smb_state_get_event_info(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut AppLayerEventType,
+) -> std::os::raw::c_int {
+    SMBEvent::get_event_info(event_name, event_id, event_type)
 }
 
 pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
