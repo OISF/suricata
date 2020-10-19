@@ -137,24 +137,6 @@ pub enum DNSEvent {
     ZFlagSet,
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dns_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    get_event_info_by_id::<DNSEvent>(event_id, event_name, event_type)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    get_event_info::<DNSEvent>(event_name, event_id, event_type)
-}
-
 #[derive(Debug,PartialEq)]
 #[repr(C)]
 pub struct DNSHeader {
@@ -1017,8 +999,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         tx_get_comp_st: rs_dns_state_progress_completion_status,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
-        get_eventinfo: Some(rs_dns_state_get_event_info),
-        get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
+        get_eventinfo: Some(DNSEvent::get_event_info),
+        get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
@@ -1062,8 +1044,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         tx_get_comp_st: rs_dns_state_progress_completion_status,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
-        get_eventinfo: Some(rs_dns_state_get_event_info),
-        get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
+        get_eventinfo: Some(DNSEvent::get_event_info),
+        get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
