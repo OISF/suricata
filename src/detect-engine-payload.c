@@ -324,9 +324,8 @@ int DetectEngineInspectStream(ThreadVars *tv,
     /* in certain sigs, e.g. 'alert dns', which apply to both tcp and udp
      * we can get called for UDP. Then we simply inspect the packet payload */
     if (p->proto == IPPROTO_UDP) {
-        return DetectEngineInspectStreamUDPPayload(de_ctx,
-                det_ctx, s, smd, f, p);
-    /* for other non-TCP protocols we assume match */
+        return DetectEngineInspectStreamUDPPayload(de_ctx, det_ctx, s, engine->smd, f, p);
+        /* for other non-TCP protocols we assume match */
     } else if (p->proto != IPPROTO_TCP)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
