@@ -418,6 +418,16 @@ pub trait AppLayerEvent {
 
     /// Return the ID value of the enum variant.
     fn as_i32(&self) -> i32;
+    extern "C" fn get_event_info(
+        event_name: *const std::os::raw::c_char,
+        event_id: *mut std::os::raw::c_int,
+        event_type: *mut core::AppLayerEventType,
+    ) -> std::os::raw::c_int;
+    extern "C" fn get_event_info_by_id(
+        event_id: std::os::raw::c_int,
+        event_name: *mut *const std::os::raw::c_char,
+        event_type: *mut core::AppLayerEventType,
+    ) -> i8;
 }
 
 /// Generic `get_info_info` implementation for enums implementing
