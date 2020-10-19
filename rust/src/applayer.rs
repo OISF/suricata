@@ -431,6 +431,18 @@ pub trait AppLayerEvent {
 
     /// Return the ID value of the enum variant.
     fn as_i32(&self) -> i32;
+
+    unsafe extern "C" fn get_event_info(
+        event_name: *const std::os::raw::c_char,
+        event_id: *mut std::os::raw::c_int,
+        event_type: *mut core::AppLayerEventType,
+    ) -> std::os::raw::c_int;
+
+    unsafe extern "C" fn get_event_info_by_id(
+        event_id: std::os::raw::c_int,
+        event_name: *mut *const std::os::raw::c_char,
+        event_type: *mut core::AppLayerEventType,
+    ) -> i8;
 }
 
 /// Generic `get_info_info` implementation for enums implementing
@@ -447,7 +459,7 @@ pub trait AppLayerEvent {
 ///
 /// get_event_info::<AppEvent>(...)
 #[inline(always)]
-pub fn get_event_info<T: AppLayerEvent>(
+pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_name: *const std::os::raw::c_char,
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
@@ -456,30 +468,26 @@ pub fn get_event_info<T: AppLayerEvent>(
         return -1;
     }
 
-    unsafe {
-        let event = match CStr::from_ptr(event_name).to_str().map(T::from_string) {
-            Ok(Some(event)) => event.as_i32(),
-            _ => -1,
-        };
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-        return 0;
-    }
+    let event = match CStr::from_ptr(event_name).to_str().map(T::from_string) {
+        Ok(Some(event)) => event.as_i32(),
+        _ => -1,
+    };
+    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_id = event as std::os::raw::c_int;
+    return 0;
 }
 
 /// Generic `get_info_info_by_id` implementation for enums implementing
 /// AppLayerEvent.
 #[inline(always)]
-pub fn get_event_info_by_id<T: AppLayerEvent>(
+pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
     if let Some(e) = T::from_id(event_id as i32) {
-        unsafe {
-            *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        }
+        *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
     return -1;
