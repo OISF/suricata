@@ -141,9 +141,6 @@ int DetectEngineInspectPktBufferGeneric(
  * \param progress Minimal progress value for inspect engine to run
  * \param Callback The engine callback.
  */
-void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback);
 void DetectAppLayerInspectEngineRegister2(const char *name,
         AppProto alproto, uint32_t dir, int progress,
         InspectEngineFuncPtr2 Callback2,
