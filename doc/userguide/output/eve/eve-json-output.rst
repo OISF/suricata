@@ -14,6 +14,9 @@ where all these logs go into a single file.
 Each alert, http log, etc will go into this one file: 'eve.json'. This file
 can then be processed by 3rd party tools like Logstash (ELK) or jq.
 
+If ``ethernet`` is set to yes, then ethernet headers will be added to events
+if available.
+
 Output types
 ~~~~~~~~~~~~
 
@@ -24,12 +27,16 @@ Output types::
 
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # Enable for multi-threaded eve.json output; output files are suffixed
+      # with an identifier, e.g., eve.json.9.. Default: off
+      #threaded: off
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #ethernet: no # log ethernet header in events when available
       #redis:
       #  server: 127.0.0.1
       #  port: 6379
@@ -298,6 +305,25 @@ modifiers.
 
 .. _output_eve_rotate:
 
+Threaded file output
+~~~~~~~~~~~~~~~~~~~~
+
+By default, all output is written to the named filename in the outputs section. The ``threaded`` option enables
+each output thread to write to individual files prefixed with the configured ``filenmae``.
+
+::
+
+   outputs:
+     - eve-log:
+         filename: eve.json
+         threaded: on
+
+This example will cause each Suricata thread to write to its own "eve.json" file. Filenames are constructed
+by adding a suffix with the thread id. For example, the thread with id 7 would write to `eve.json.7`.
+
+With ``threaded`` enabled, the output will be split among many files -- each having the same prefix and a unique suffix -- and
+the aggregate of each file's contents must be treated together.
+
 Rotate log file
 ~~~~~~~~~~~~~~~
 
@@ -326,6 +352,8 @@ relative value. One example is to rotate the log file each X seconds.
 The example above rotates eve-log each 30 seconds. This could be replaced with
 ``30m`` to rotate every 30 minutes, ``30h`` to rotate every 30 hours, ``30d``
 to rotate every 30 days, or ``30w`` to rotate every 30 weeks.
+
+.. _multiple-eve-instances:
 
 Multiple Logger Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~

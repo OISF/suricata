@@ -1376,7 +1376,9 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
 {
     SCEnter();
 
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL &&
+            ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
+             (direction == 1 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -1430,7 +1432,7 @@ static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))
@@ -1713,18 +1715,6 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static void SMTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
-{
-    SMTPTransaction *tx = vtx;
-    tx->logged = logged;
-}
-
-static LoggerId SMTPStateGetTxLogged(void *state, void *vtx)
-{
-    SMTPTransaction *tx = vtx;
-    return tx->logged;
-}
-
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
     return 1;
 }
@@ -1780,24 +1770,10 @@ static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static uint64_t SMTPGetTxDetectFlags(void *vtx, uint8_t dir)
+static AppLayerTxData *SMTPGetTxData(void *vtx)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
-}
-
-static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        tx->detect_flags_ts = flags;
-    } else {
-        tx->detect_flags_tc = flags;
-    }
+    return &tx->tx_data;
 }
 
 /**
@@ -1830,9 +1806,6 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
-                                               SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);
-
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
@@ -1842,8 +1815,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxLogged,
-                                          SMTPStateSetTxLogged);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
@@ -5182,7 +5154,7 @@ static int SMTPProcessDataChunkTest02(void){
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
@@ -5213,7 +5185,7 @@ static int SMTPProcessDataChunkTest03(void){
     Flow f;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret;
@@ -5269,7 +5241,7 @@ static int SMTPProcessDataChunkTest04(void){
     Flow f;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret = MIME_DEC_OK;
@@ -5309,7 +5281,7 @@ static int SMTPProcessDataChunkTest05(void){
     int ret;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF(f.alstate == NULL);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;

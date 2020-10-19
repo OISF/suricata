@@ -57,14 +57,12 @@ void DetectFlowvarRegister (void)
     sigmatch_table[DETECT_FLOWVAR].Match = DetectFlowvarMatch;
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
     sigmatch_table[DETECT_FLOWVAR].Free  = DetectFlowvarDataFree;
-    sigmatch_table[DETECT_FLOWVAR].RegisterTests  = NULL;
 
     /* post-match for flowvar storage */
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].name = "__flowvar__postmatch__";
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Match = DetectFlowvarPostMatch;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Setup = NULL;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = DetectFlowvarDataFree;
-    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].RegisterTests  = NULL;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }

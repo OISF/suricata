@@ -75,14 +75,12 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTlsSubjectRegisterTests(void);
 static void DetectTlsSubjectFree(DetectEngineCtx *, void *);
 
 static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTlsIssuerDNRegisterTests(void);
 static void DetectTlsIssuerDNFree(DetectEngineCtx *, void *);
 
 static int DetectTlsFingerprintMatch (DetectEngineThreadCtx *,
@@ -118,7 +116,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerTxMatch = DetectTlsSubjectMatch;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].alternative = DETECT_AL_TLS_CERT_SUBJECT;
 
@@ -128,7 +125,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerTxMatch = DetectTlsIssuerDNMatch;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].RegisterTests = DetectTlsIssuerDNRegisterTests;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].alternative = DETECT_AL_TLS_CERT_ISSUER;
 
@@ -138,7 +134,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerTxMatch = DetectTlsFingerprintMatch;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].alternative = DETECT_AL_TLS_CERT_FINGERPRINT;
 
@@ -148,8 +143,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].url = "/rules/tls-keywords.html#tls-store";
     sigmatch_table[DETECT_AL_TLS_STORE].Match = DetectTlsStorePostMatch;
     sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
-    sigmatch_table[DETECT_AL_TLS_STORE].Free  = NULL;
-    sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &subject_parse_regex);
@@ -352,13 +345,6 @@ static void DetectTlsSubjectFree(DetectEngineCtx *de_ctx, void *ptr)
     if (id_d->subject != NULL)
         SCFree(id_d->subject);
     SCFree(id_d);
-}
-
-/**
- * \brief this function registers unit tests for DetectTlsSubject
- */
-static void DetectTlsSubjectRegisterTests(void)
-{
 }
 
 /**
@@ -786,12 +772,4 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
 
     ssl_state->server_connp.cert_log_flag |= SSL_TLS_LOG_PEM;
     SCReturnInt(1);
-}
-
-
-/**
- * \brief this function registers unit tests for DetectTlsIssuerDN
- */
-static void DetectTlsIssuerDNRegisterTests(void)
-{
 }

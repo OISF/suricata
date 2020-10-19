@@ -50,12 +50,6 @@ typedef struct DetectFlagsData_ {
 
 void DetectFlagsRegister (void);
 
-/**
- * This function registers unit tests for Flags
- */
-
-void FlagsRegisterTests(void);
-
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s);
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s);
 

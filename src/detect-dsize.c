@@ -52,7 +52,9 @@ static DetectParseRegex parse_regex;
 static int DetectDsizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, const char *str);
+#ifdef UNITTESTS
 static void DsizeRegisterTests(void);
+#endif
 static void DetectDsizeFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -69,8 +71,9 @@ void DetectDsizeRegister (void)
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;
     sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DSIZE].RegisterTests = DsizeRegisterTests;
-
+#endif
     sigmatch_table[DETECT_DSIZE].SupportsPrefilter = PrefilterDsizeIsPrefilterable;
     sigmatch_table[DETECT_DSIZE].SetupPrefilter = PrefilterSetupDsize;
 
@@ -954,14 +957,12 @@ end:
     return result;
 
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for dsize
  */
 static void DsizeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01);
     UtRegisterTest("DsizeTestParse02", DsizeTestParse02);
     UtRegisterTest("DsizeTestParse03", DsizeTestParse03);
@@ -984,6 +985,5 @@ static void DsizeRegisterTests(void)
     UtRegisterTest("DsizeTestParse20", DsizeTestParse20);
 
     UtRegisterTest("DetectDsizeIcmpv6Test01", DetectDsizeIcmpv6Test01);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

@@ -41,7 +41,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectClasstypeRegisterTests(void);
+#endif
 
 /**
  * \brief Registers the handler functions for the "Classtype" keyword.
@@ -52,8 +54,9 @@ void DetectClasstypeRegister(void)
     sigmatch_table[DETECT_CLASSTYPE].desc = "information about the classification of rules and alerts";
     sigmatch_table[DETECT_CLASSTYPE].url = "/rules/meta.html#classtype";
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_CLASSTYPE].RegisterTests = DetectClasstypeRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -297,16 +300,13 @@ static int DetectClasstypeTest03(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief This function registers unit tests for Classification Config API.
  */
 static void DetectClasstypeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01);
     UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02);
     UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

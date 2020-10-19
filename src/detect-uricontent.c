@@ -57,7 +57,9 @@
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectUricontentRegisterTests(void);
+#endif
 static void DetectUricontentFree(DetectEngineCtx *de_ctx, void *);
 
 static int g_http_uri_buffer_id = 0;
@@ -73,7 +75,9 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_URICONTENT].RegisterTests = DetectUricontentRegisterTests;
+#endif
     sigmatch_table[DETECT_URICONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
     sigmatch_table[DETECT_URICONTENT].alternative = DETECT_HTTP_URI;
 
@@ -1746,11 +1750,8 @@ static int DetectUricontentIsdataatParseTest(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 static void DetectUricontentRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("HTTPUriTest01", HTTPUriTest01);
     UtRegisterTest("HTTPUriTest02", HTTPUriTest02);
     UtRegisterTest("HTTPUriTest03", HTTPUriTest03);
@@ -1784,5 +1785,5 @@ static void DetectUricontentRegisterTests(void)
 
     UtRegisterTest("DetectUricontentIsdataatParseTest",
             DetectUricontentIsdataatParseTest);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

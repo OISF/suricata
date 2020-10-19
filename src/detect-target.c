@@ -40,7 +40,9 @@ static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectTargetRegister below */
 static int DetectTargetSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTargetRegisterTests (void);
+#endif
 
 /**
  * \brief Registration function for target keyword
@@ -62,8 +64,9 @@ void DetectTargetRegister(void) {
      * shutdown, but also during rule reloads. */
     sigmatch_table[DETECT_TARGET].Free = NULL;
     /* registers unittests into the system */
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TARGET].RegisterTests = DetectTargetRegisterTests;
-
+#endif
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -151,14 +154,12 @@ static int DetectTargetSignatureTest01(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectTarget
  */
-void DetectTargetRegisterTests(void) {
-#ifdef UNITTESTS
+static void DetectTargetRegisterTests(void)
+{
     UtRegisterTest("DetectTargetSignatureTest01",
                    DetectTargetSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

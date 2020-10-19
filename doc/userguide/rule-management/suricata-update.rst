@@ -2,10 +2,10 @@ Rule Management with Suricata-Update
 ====================================
 
 While it is possible to download and install rules manually, it is
-recommended to use a management tool for this. Suricata-Update is the
+recommended to use a management tool for this. ``suricata-update`` is the
 official way to update and manage rules for Suricata.
 
-Suricata-update is bundled with Suricata and is normally installed
+``suricata-update`` is bundled with Suricata and is normally installed
 with it. For instructions on installing manually, see http://suricata-update.readthedocs.io/en/latest/quickstart.html#install-suricata-update
 
 .. note:: ``suricata-update`` is bundled with Suricata version 4.1 and
@@ -18,7 +18,7 @@ To download the Emerging Threats Open ruleset, it is enough to simply run:
 
   sudo suricata-update
 
-This will download the ruleset into /var/lib/suricata/rules/
+This will download the ruleset into `/var/lib/suricata/rules/`
 
 Suricata's configuration will have to be updated to have a rules config like
 this:
@@ -39,7 +39,7 @@ To update the rules, simply run
 
 ::
 
-  sudo suricata-update
+    sudo suricata-update
 
 It is recommended to update your rules frequently.
 
@@ -82,23 +82,23 @@ To see which rulesets are currently active, use "list-enabled-sources".
 Controlling which rules are used
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default suricata-update will merge all rules into a single file
+By default ``suricata-update`` will merge all rules into a single file
 "/var/lib/suricata/rules/suricata.rules".
 
-To enable rules that are disabled by default, use '/etc/suricata/enable.conf'
+To enable rules that are disabled by default, use `/etc/suricata/enable.conf`
 
 ::
 
-    2019401                   # enable this sid
+    2019401                   # enable signature with this sid
     group:emerging-icmp.rules # enable this rulefile
     re:trojan                 # enable all rules with this string
 
 
-Similarly, to disable rules use /etc/suricata/disable.conf:
+Similarly, to disable rules use `/etc/suricata/disable.conf`:
 
 ::
 
-    2019401                   # enable this sid
+    2019401                   # disable signature with this sid
     group:emerging-info.rules # disable this rulefile
     re:heartbleed             # disable all rules with this string
 

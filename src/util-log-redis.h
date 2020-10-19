@@ -41,7 +41,7 @@ typedef struct RedisSetup_ {
     const char *command;
     const char *key;
     const char *server;
-    int  port;
+    uint16_t  port;
     int is_async;
     int  batch_size;
 } RedisSetup;
@@ -55,6 +55,7 @@ typedef struct SCLogRedisContext_ {
 #endif /* HAVE_LIBEVENT */
     time_t tried;
     int  batch_count;
+    time_t last_push;
 } SCLogRedisContext;
 
 void SCLogRedisInit(void);

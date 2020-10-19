@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,7 +54,7 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
 
     AppLayerProtoDetectRegisterProtocol(alproto, p->name);
 
-    if (p->ProbeTS == NULL || p->ProbeTC == NULL) {
+    if (p->ProbeTS == NULL && p->ProbeTC == NULL) {
         return alproto;
     }
 
@@ -136,11 +136,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     AppLayerParserRegisterGetTx(p->ip_proto, alproto,
         p->StateGetTx);
 
-    if (p->StateGetTxLogged && p->StateSetTxLogged) {
-        AppLayerParserRegisterLoggerFuncs(p->ip_proto, alproto,
-                p->StateGetTxLogged, p->StateSetTxLogged);
-    }
-
     /* What is this being registered for? */
     AppLayerParserRegisterDetectStateFuncs(p->ip_proto, alproto,
         p->GetTxDetectState, p->SetTxDetectState);
@@ -161,10 +156,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterLocalStorageFunc(p->ip_proto, alproto,
                 p->LocalStorageAlloc, p->LocalStorageFree);
     }
-    if (p->GetTxMpmIDs && p->SetTxMpmIDs) {
-        AppLayerParserRegisterMpmIDsFuncs(p->ip_proto, alproto,
-                p->GetTxMpmIDs, p->SetTxMpmIDs);
-    }
     if (p->StateGetFiles) {
         AppLayerParserRegisterGetFilesFunc(p->ip_proto, alproto,
                 p->StateGetFiles);
@@ -175,9 +166,20 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->GetTxIterator);
     }
 
-    if (p->SetTxDetectFlags && p->GetTxDetectFlags) {
-        AppLayerParserRegisterDetectFlagsFuncs(p->ip_proto, alproto,
-                p->GetTxDetectFlags, p->SetTxDetectFlags);
+    if (p->GetTxData) {
+        AppLayerParserRegisterTxDataFunc(p->ip_proto, alproto,
+                p->GetTxData);
+    }
+
+    if (p->ApplyTxConfig) {
+        AppLayerParserRegisterApplyTxConfigFunc(p->ip_proto, alproto,
+                p->ApplyTxConfig);
+    }
+
+    if (p->flags) {
+        AppLayerParserRegisterOptionFlags(p->ip_proto, alproto,
+                p->flags);
+
     }
 
     return 0;

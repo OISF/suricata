@@ -688,6 +688,26 @@ static void PacketToDataProtoHTTP(const Packet *p, const PacketAlert *pa, idmef_
 }
 
 /**
+ * \brief Handle ALPROTO_HTTP2 JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoHTTP2(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    void *http2_state = FlowGetAppState(f);
+    if (http2_state) {
+        void *tx_ptr = rs_http2_state_get_tx(http2_state, pa->tx_id);
+        json_t *js = rs_http2_log_json(tx_ptr);
+        if (unlikely(js == NULL))
+            return;
+        JsonToAdditionalData(NULL, js, alert);
+        json_decref(js);
+    }
+}
+
+/**
  * \brief Handle ALPROTO_TLS JSON information
  * \param p Packet where to extract data
  * \param pa Packet alert information
@@ -724,16 +744,16 @@ static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_a
 static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js, *s_js;
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+    void *ssh_state = FlowGetAppState(p->flow);
 
     if (ssh_state == NULL)
         return;
 
-    js = json_object();
-    if (js == NULL)
+    void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
+    BUG_ON(tx_ptr == NULL);
+    js = rs_ssh_log_json(tx_ptr);
+    if (unlikely(js == NULL))
         return;
-
-    JsonSshLogJSON(js, ssh_state);
 
     s_js = json_object_get(js, "server");
     if (s_js != NULL) {
@@ -809,6 +829,9 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
         uint16_t proto = FlowGetAppProtocol(p->flow);
         switch (proto) {
             case ALPROTO_HTTP:
+                PacketToDataProtoHTTP(p, pa, alert);
+                break;
+            case ALPROTO_HTTP2:
                 PacketToDataProtoHTTP(p, pa, alert);
                 break;
             case ALPROTO_TLS:

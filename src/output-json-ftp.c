@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,6 @@
 #include "util-buffer.h"
 #include "util-debug.h"
 #include "util-mem.h"
-#include "util-byte.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -55,47 +54,36 @@ typedef struct LogFTPFileCtx_ {
 } LogFTPFileCtx;
 
 typedef struct LogFTPLogThread_ {
+    LogFileCtx *file_ctx;
     LogFTPFileCtx *ftplog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogFTPLogThread;
 
-static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
+static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
 {
-    json_t *cjs = json_object();
-    if (!cjs) {
-        return cjs;
-    }
-
     /* Preallocate array objects to simplify failure case */
-    json_t *js_resplist = NULL;
-    json_t *js_respcode_list = NULL;
+    JsonBuilder *js_resplist = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {
-        js_resplist = json_array();
-        js_respcode_list = json_array();
+        js_resplist = jb_new_array();
 
-        if (unlikely(js_resplist == NULL || js_respcode_list == NULL)) {
-            if (js_resplist) {
-                json_decref(js_resplist);
-            } else {
-                json_decref(js_respcode_list);
-            }
-            return cjs;
+        if (unlikely(js_resplist == NULL)) {
+            return;
         }
     }
-
-    json_object_set_new(cjs, "command", json_string(tx->command_descriptor->command_name));
+    jb_set_string(jb, "command", tx->command_descriptor->command_name);
     uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
     if (tx->request_length > min_length) {
-        json_object_set_new(cjs, "command_data",
-                            JsonAddStringN((const char *)tx->request + min_length,
-                                           tx->request_length - min_length));
-    } else {
-        json_object_set_new(cjs, "command_data", json_string(NULL));
+        jb_set_string_from_bytes(jb,
+                "command_data",
+                (const uint8_t *)tx->request + min_length,
+                tx->request_length - min_length - 1);
     }
 
     if (!TAILQ_EMPTY(&tx->response_list)) {
+        int resp_code_cnt = 0;
+        int resp_cnt = 0;
         FTPString *response;
+        bool is_cc_array_open = false;
         TAILQ_FOREACH(response, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
             uint8_t *where = response->str;
@@ -107,15 +95,19 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
                 if (pos >= 3)  {
                     /* Gather the completion code if present */
                     if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
-                        json_array_append_new(js_respcode_list,
-                                              JsonAddStringN((const char *)where, 3));
+                        if (!is_cc_array_open) {
+                            jb_open_array(jb, "completion_code");
+                            is_cc_array_open = true;
+                        }
+                        jb_append_string_from_bytes(jb, (const uint8_t *)where, 3);
+                        resp_code_cnt++;
                         offset = 4;
                     }
                 }
                 /* move past 3 character completion code */
                 if (pos >= offset) {
-                    json_array_append_new(js_resplist,
-                                          JsonAddStringN((const char *)where + offset, pos - offset));
+                    jb_append_string_from_bytes(js_resplist, (const uint8_t *)where + offset, pos - offset);
+                    resp_cnt++;
                 }
 
                 where += pos;
@@ -123,24 +115,34 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
             }
         }
 
-        json_object_set_new(cjs, "reply", js_resplist);
-        json_object_set_new(cjs, "completion_code", js_respcode_list);
+        if (is_cc_array_open) {
+            jb_close(jb);
+        }
+        if (resp_cnt) {
+            jb_close(js_resplist);
+            jb_set_object(jb, "reply", js_resplist);
+        }
+        jb_free(js_resplist);
     }
 
     if (tx->dyn_port) {
-        json_object_set_new(cjs, "dynamic_port", json_integer(tx->dyn_port));
+        jb_set_uint(jb, "dynamic_port", tx->dyn_port);
     }
 
     if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
         tx->command_descriptor->command == FTP_COMMAND_EPRT) {
-        json_object_set_new(cjs, "mode",
-                json_string((char *)(tx->active ? "active" : "passive")));
+        if (tx->active) {
+            JB_SET_STRING(jb, "mode", "active");
+        } else {
+            JB_SET_STRING(jb, "mode", "passive");
+        }
     }
 
-    json_object_set_new(cjs, "reply_received",
-            json_string((char *)(tx->done ? "yes" : "no")));
-
-    return cjs;
+    if (tx->done) {
+        JB_SET_STRING(jb, "reply_received", "yes");
+    } else {
+        JB_SET_STRING(jb, "reply_received", "no");
+    }
 }
 
 
@@ -159,27 +161,30 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     LogFTPLogThread *thread = thread_data;
     LogFTPFileCtx *ftp_ctx = thread->ftplog_ctx;
 
-    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, event_type, tx_id);
-    if (likely(js)) {
-        JsonAddCommonOptions(&ftp_ctx->cfg, p, f, js);
-        json_t *cjs = NULL;
+    JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id);
+    if (likely(jb)) {
+        EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb);
+        jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
-            cjs = JsonFTPDataAddMetadata(f);
+            EveFTPDataAddMetadata(f, jb);
         } else {
-            cjs = JsonFTPLogCommand(f, tx);
+            EveFTPLogCommand(f, tx, jb);
         }
 
-        if (cjs) {
-            json_object_set_new(js, event_type, cjs);
+        if (!jb_close(jb)) {
+            goto fail;
         }
 
         MemBufferReset(thread->buffer);
-        OutputJSONBuffer(js, thread->ftplog_ctx->file_ctx, &thread->buffer);
+        OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
-        json_object_clear(js);
-        json_decref(js);
+        jb_free(jb);
     }
     return TM_ECODE_OK;
+
+fail:
+    jb_free(jb);
+    return TM_ECODE_FAILED;
 }
 
 static void OutputFTPLogDeInitCtxSub(OutputCtx *output_ctx)
@@ -230,20 +235,30 @@ static TmEcode JsonFTPLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogFTP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->ftplog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->ftplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonFTPLogThreadDeinit(ThreadVars *t, void *data)

@@ -54,7 +54,9 @@
 static int DetectFileextMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFileextRegisterTests(void);
+#endif
 static void DetectFileextFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 
@@ -69,7 +71,9 @@ void DetectFileextRegister(void)
     sigmatch_table[DETECT_FILEEXT].FileMatch = DetectFileextMatch;
     sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILEEXT].RegisterTests = DetectFileextRegisterTests;
+#endif
     sigmatch_table[DETECT_FILEEXT].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILEEXT].alternative = DETECT_FILE_NAME;
 
@@ -293,16 +297,13 @@ static int DetectFileextTestParse03 (void)
     return 0;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFileext
  */
 void DetectFileextRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFileextTestParse01", DetectFileextTestParse01);
     UtRegisterTest("DetectFileextTestParse02", DetectFileextTestParse02);
     UtRegisterTest("DetectFileextTestParse03", DetectFileextTestParse03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

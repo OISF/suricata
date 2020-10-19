@@ -67,6 +67,43 @@ int PathIsRelative(const char *path)
 }
 
 /**
+ * \brief Wrapper to join a directory and filename and resolve using realpath
+ *   _fullpath is used for WIN32
+ *
+ * \param out_buf output buffer.  Up to PATH_MAX will be written.  Unchanged on exit failure.
+ * \param buf_len length of output buffer
+ * \param dir the directory
+ * \param fname the filename
+ *
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on failure
+ */
+TmEcode PathJoin (char *out_buf, uint16_t buf_len, const char *const dir, const char *const fname)
+{
+    SCEnter();
+#ifdef OS_WIN32
+#define DIRECTORY_SEPARATOR '\\'
+#else
+#define DIRECTORY_SEPARATOR '/'
+#endif
+    uint16_t max_path_len = MAX(buf_len, PATH_MAX);
+    int bytes_written = snprintf(out_buf, max_path_len, "%s%c%s", dir, DIRECTORY_SEPARATOR, fname);
+    if (bytes_written <= 0) {
+        SCLogError(SC_ERR_SPRINTF, "Could not join filename to path");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    char *tmp_buf = SCRealPath(out_buf, NULL);
+    if (tmp_buf == NULL) {
+        SCLogError(SC_ERR_SPRINTF, "Error resolving path: %s", strerror(errno));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    memset(out_buf, 0, buf_len);
+    strlcpy(out_buf, tmp_buf, max_path_len);
+    free(tmp_buf);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+/**
  * \brief Wrapper around SCMkDir with default mode arguments.
  */
 int SCDefaultMkDir(const char *path)
@@ -136,4 +173,55 @@ bool SCPathExists(const char *path)
         return true;
     }
     return false;
+}
+
+/**
+ * \brief OS independent wrapper for directory check
+ *
+ * \param dir_entry object to check
+ *
+ * \retval True if the object is a regular directory, otherwise false.  This directory
+ *          and parent directory will return false.
+ */
+bool SCIsRegularDirectory(const struct dirent *const dir_entry)
+{
+#ifndef OS_WIN32
+    if ((dir_entry->d_type == DT_DIR) &&
+        (strcmp(dir_entry->d_name, ".") != 0) &&
+        (strcmp(dir_entry->d_name, "..") != 0)) {
+        return true;
+    }
+#endif
+    return false;
+}
+/**
+ * \brief OS independent to check for regular file
+ *
+ * \param dir_entry object to check
+ *
+ * \retval True if the object is a regular file.  Otherwise false.
+ */
+bool SCIsRegularFile(const struct dirent *const dir_entry)
+{
+#ifndef OS_WIN32
+    return dir_entry->d_type == DT_REG;
+#endif
+    return false;
+}
+
+/**
+ * \brief OS independent wrapper for realpath
+ *
+ * \param path the path to resolve
+ * \param resolved_path the resolved path; if null, a buffer will be allocated
+ *
+ * \retval the resolved_path; or a pointer to a new resolved_path buffer
+ */
+char *SCRealPath(const char *path, char *resolved_path)
+{
+#ifdef OS_WIN32
+    return _fullpath(resolved_path, path, PATH_MAX);
+#else
+    return realpath(path, resolved_path);
+#endif
 }

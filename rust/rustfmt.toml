@@ -1,2 +1,4 @@
 # Rust format configuration file. If empty, then this is a message that
 # we expect the default formatting rules to be used.
+
+fn_args_layout = "compressed"

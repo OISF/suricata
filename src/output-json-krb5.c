@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,6 +55,7 @@ typedef struct LogKRB5FileCtx_ {
 } LogKRB5FileCtx;
 
 typedef struct LogKRB5LogThread_ {
+    LogFileCtx *file_ctx;
     LogKRB5FileCtx *krb5log_ctx;
     MemBuffer          *buffer;
 } LogKRB5LogThread;
@@ -64,29 +65,28 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
 {
     KRB5Transaction *krb5tx = tx;
     LogKRB5LogThread *thread = thread_data;
-    json_t *js, *krb5js;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "krb5");
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "krb5", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, jb);
 
-    krb5js = rs_krb5_log_json_response(state, krb5tx);
-    if (unlikely(krb5js == NULL)) {
+    jb_open_object(jb, "krb5");
+    if (!rs_krb5_log_json_response(jb, state, krb5tx)) {
         goto error;
     }
-    json_object_set_new(js, "krb5", krb5js);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->krb5log_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
@@ -137,20 +137,29 @@ static TmEcode JsonKRB5LogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogKRB5.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->krb5log_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->krb5log_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonKRB5LogThreadDeinit(ThreadVars *t, void *data)

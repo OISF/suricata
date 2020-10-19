@@ -573,7 +573,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     PreRunInit(RUNMODE_PCAP_FILE);
     PreRunPostPrivsDropInit(RUNMODE_PCAP_FILE);
-    RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
+    RunModeDispatch(RUNMODE_PCAP_FILE, NULL, NULL, NULL);
 
     /* Un-pause all the paused threads */
     TmThreadWaitOnThreadInit();

@@ -71,7 +71,12 @@ documentation_style = "doxy"
 # found but otherwise don't appear to be used by the public API.
 #
 # default: []
-include = ["AppLayerGetTxIterTuple"]
+include = [
+    "AppLayerGetTxIterTuple",
+    "RdpState",
+    "SIPState",
+    "CMark",
+]
 
 # A list of items to not include in the generated bindings
 # default: []
@@ -94,7 +99,8 @@ exclude = [
     "SuricataContext",
     "SuricataFileContext",
     "TFTPState",
-    "TFTPTransaction"
+    "TFTPTransaction",
+    "free",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
@@ -110,7 +116,7 @@ exclude = [
 # * "functions":
 #
 # default: []
-item_types = ["structs","opaque","functions"]
+item_types = ["enums","structs","opaque","functions"]
 
 # Whether applying rules in export.rename prevents export.prefix from applying.
 #

@@ -258,8 +258,8 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     }
     ctx->array = SCMallocAligned(ctx->config.hash_size * sizeof(THashHashRow), CLS);
     if (unlikely(ctx->array == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in THashInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in THashInitConfig. Exiting...");
     }
     memset(ctx->array, 0, ctx->config.hash_size * sizeof(THashHashRow));
 
@@ -290,11 +290,9 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     return;
 }
 
-THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
-    int (*DataSet)(void *, void *),
-     void (*DataFree)(void *),
-     uint32_t (*DataHash)(void *),
-     bool (*DataCompare)(void *, void *))
+THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
+        int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(void *),
+        bool (*DataCompare)(void *, void *), bool reset_memcap, uint64_t memcap, uint32_t hashsize)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
@@ -307,8 +305,14 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
 
     /* set defaults */
     ctx->config.hash_rand = (uint32_t)RandomGet();
-    ctx->config.hash_size = THASH_DEFAULT_HASHSIZE;
-    ctx->config.memcap = THASH_DEFAULT_MEMCAP;
+    ctx->config.hash_size = hashsize > 0 ? hashsize : THASH_DEFAULT_HASHSIZE;
+    /* Reset memcap in case of loading from file to the highest possible value
+     unless defined by the rule keyword */
+    if (memcap > 0) {
+        ctx->config.memcap = memcap;
+    } else {
+        ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
+    }
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
     SC_ATOMIC_INIT(ctx->counter);
@@ -318,6 +322,14 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
 
     THashInitConfig(ctx, cnf_prefix);
     return ctx;
+}
+
+/* \brief Set memcap to current memuse
+ * */
+void THashConsolidateMemcap(THashTableContext *ctx)
+{
+    ctx->config.memcap = MAX(SC_ATOMIC_GET(ctx->memuse), THASH_DEFAULT_MEMCAP);
+    SCLogDebug("memcap after load set to: %lu", ctx->config.memcap);
 }
 
 /** \brief shutdown the flow engine
@@ -471,6 +483,10 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
             h = THashGetUsed(ctx);
             if (h == NULL) {
                 return NULL;
+            }
+
+            if (!SC_ATOMIC_GET(ctx->memcap_reached)) {
+                SC_ATOMIC_SET(ctx->memcap_reached, true);
             }
 
             /* freed data, but it's unlocked */
@@ -731,6 +747,9 @@ static THashData *THashGetUsed(THashTableContext *ctx)
         h->prev = NULL;
         HRLOCK_UNLOCK(hb);
 
+        if (h->data != NULL) {
+            ctx->config.DataFree(h->data);
+        }
         SCMutexUnlock(&h->m);
 
         (void) SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));

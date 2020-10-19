@@ -236,8 +236,8 @@ void DefragInitConfig(char quiet)
     }
     defragtracker_hash = SCCalloc(defrag_config.hash_size, sizeof(DefragTrackerHashRow));
     if (unlikely(defragtracker_hash == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in DefragTrackerInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in DefragTrackerInitConfig. Exiting...");
     }
     memset(defragtracker_hash, 0, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
 

@@ -44,12 +44,12 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
+#include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-anomaly.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
 #include "log-cf-common.h"
-#include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
 #include "output-json-http.h"
@@ -62,7 +62,6 @@
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
-#include "log-filestore.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
 #include "output-json.h"
@@ -76,12 +75,15 @@
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
+#include "output-json-mqtt.h"
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
+#include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
+#include "output-json-dcerpc.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -157,8 +159,8 @@ void OutputRegisterModule(const char *name, const char *conf_name,
     return;
 
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL,
+               "Fatal error encountered in OutputRegisterModule. Exiting...");
 }
 
 /**
@@ -198,8 +200,7 @@ void OutputRegisterPacketModule(LoggerId id, const char *name,
     SCLogDebug("Packet logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -240,8 +241,7 @@ void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Packet logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -285,8 +285,7 @@ static void OutputRegisterTxModuleWrapper(LoggerId id, const char *name,
     SCLogDebug("Tx logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name,
@@ -323,8 +322,7 @@ static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_nam
     SCLogDebug("Tx logger for alproto %d \"%s\" registered.", alproto, name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -454,8 +452,7 @@ void OutputRegisterFileModule(LoggerId id, const char *name,
     SCLogDebug("File logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -495,8 +492,7 @@ void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("File logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -535,8 +531,7 @@ void OutputRegisterFiledataModule(LoggerId id, const char *name,
     SCLogDebug("Filedata logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -576,47 +571,7 @@ void OutputRegisterFiledataSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Filedata logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
-}
-
-/**
- * \brief Register a flow output module.
- *
- * This function will register an output module so it can be
- * configured with the configuration file.
- *
- * \retval Returns 0 on success, -1 on failure.
- */
-void OutputRegisterFlowModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, FlowLogger FlowLogFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
-{
-    if (unlikely(FlowLogFunc == NULL)) {
-        goto error;
-    }
-
-    OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (unlikely(module == NULL)) {
-        goto error;
-    }
-
-    module->logger_id = id;
-    module->name = name;
-    module->conf_name = conf_name;
-    module->InitFunc = InitFunc;
-    module->FlowLogFunc = FlowLogFunc;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
-    TAILQ_INSERT_TAIL(&output_modules, module, entries);
-
-    SCLogDebug("Flow logger \"%s\" registered.", name);
-    return;
-error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -656,8 +611,7 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Flow logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -698,8 +652,7 @@ void OutputRegisterStreamingModule(LoggerId id, const char *name,
     SCLogDebug("Streaming logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -740,8 +693,7 @@ void OutputRegisterStreamingSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Streaming logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -779,8 +731,7 @@ void OutputRegisterStatsModule(LoggerId id, const char *name,
     SCLogDebug("Stats logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -820,8 +771,7 @@ void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name,
     SCLogDebug("Stats logger \"%s\" registered.", name);
     return;
 error:
-    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
 }
 
 /**
@@ -1099,8 +1049,6 @@ void OutputRegisterLoggers(void)
     AlertPreludeRegister();
     /* syslog log */
     AlertSyslogRegister();
-    /* drop log */
-    LogDropLogRegister();
     JsonDropLogRegister();
     /* json log */
     OutputJsonRegister();
@@ -1109,6 +1057,7 @@ void OutputRegisterLoggers(void)
     /* http log */
     LogHttpLogRegister();
     JsonHttpLogRegister();
+    JsonHttp2LogRegister();
     /* tls log */
     LogTlsLogRegister();
     JsonTlsLogRegister();
@@ -1119,7 +1068,6 @@ void OutputRegisterLoggers(void)
     PcapLogRegister();
     /* file log */
     JsonFileLogRegister();
-    LogFilestoreRegister();
     OutputFilestoreRegister();
     /* dns */
     JsonDnsLogRegister();
@@ -1160,10 +1108,14 @@ void OutputRegisterLoggers(void)
     JsonSIPLogRegister();
     /* RFB JSON logger. */
     JsonRFBLogRegister();
+    /* MQTT JSON logger. */
+    JsonMQTTLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* Template Rust JSON logger. */
     JsonTemplateRustLogRegister();
     /* RDP JSON logger. */
     JsonRdpLogRegister();
+    /* DCERPC JSON logger. */
+    JsonDCERPCLogRegister();
 }

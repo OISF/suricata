@@ -59,7 +59,6 @@ void DetectGeoipRegister(void)
     sigmatch_table[DETECT_GEOIP].url = "/rules/header-keywords.html#geoip";
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetupNoSupport;
     sigmatch_table[DETECT_GEOIP].Free = NULL;
-    sigmatch_table[DETECT_GEOIP].RegisterTests = NULL;
 }
 
 #else /* HAVE_GEOIP */
@@ -69,7 +68,9 @@ void DetectGeoipRegister(void)
 static int DetectGeoipMatch(DetectEngineThreadCtx *, Packet *,
                             const Signature *, const SigMatchCtx *);
 static int DetectGeoipSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectGeoipRegisterTests(void);
+#endif
 static void DetectGeoipDataFree(DetectEngineCtx *, void *);
 
 /**
@@ -84,7 +85,9 @@ void DetectGeoipRegister(void)
     sigmatch_table[DETECT_GEOIP].Match = DetectGeoipMatch;
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetup;
     sigmatch_table[DETECT_GEOIP].Free = DetectGeoipDataFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_GEOIP].RegisterTests = DetectGeoipRegisterTests;
+#endif
 }
 
 /**
@@ -533,17 +536,12 @@ static int GeoipParseTest07(void)
                                 GEOIP_MATCH_BOTH_FLAG | GEOIP_MATCH_NEGATED);
 }
 
-
-
-#endif /* UNITTESTS */
-
 /**
  * \internal
  * \brief This function registers unit tests for DetectGeoip
  */
 static void DetectGeoipRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("GeoipParseTest01", GeoipParseTest01);
     UtRegisterTest("GeoipParseTest02", GeoipParseTest02);
     UtRegisterTest("GeoipParseTest03", GeoipParseTest03);
@@ -551,8 +549,6 @@ static void DetectGeoipRegisterTests(void)
     UtRegisterTest("GeoipParseTest05", GeoipParseTest05);
     UtRegisterTest("GeoipParseTest06", GeoipParseTest06);
     UtRegisterTest("GeoipParseTest07", GeoipParseTest07);
-
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */
 #endif /* HAVE_GEOIP */

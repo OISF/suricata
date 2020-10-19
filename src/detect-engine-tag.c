@@ -54,13 +54,11 @@ void TagInitCtx(void)
 
     host_tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
     if (host_tag_id == -1) {
-        SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for tag");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Can't initiate host storage for tag");
     }
     flow_tag_id = FlowStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
     if (flow_tag_id == -1) {
-        SCLogError(SC_ERR_FLOW_INIT, "Can't initiate flow storage for tag");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Can't initiate flow storage for tag");
     }
 }
 
@@ -1055,6 +1053,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1201,6 +1200,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1343,6 +1343,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();
@@ -1486,6 +1487,7 @@ cleanup:
     uint8_t proto_map = FlowGetProtoMapping(f->proto);
     FlowClearMemory(f, proto_map);
     FLOW_DESTROY(f);
+    FlowFree(f);
 end:
     FlowShutdown();
     HostShutdown();

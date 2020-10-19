@@ -48,7 +48,9 @@ static DetectParseRegex parse_regex;
 static int DetectITypeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectITypeRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectITypeRegisterTests(void);
+#endif
 void DetectITypeFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -65,8 +67,9 @@ void DetectITypeRegister (void)
     sigmatch_table[DETECT_ITYPE].Match = DetectITypeMatch;
     sigmatch_table[DETECT_ITYPE].Setup = DetectITypeSetup;
     sigmatch_table[DETECT_ITYPE].Free = DetectITypeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ITYPE].RegisterTests = DetectITypeRegisterTests;
-
+#endif
     sigmatch_table[DETECT_ITYPE].SupportsPrefilter = PrefilterITypeIsPrefilterable;
     sigmatch_table[DETECT_ITYPE].SetupPrefilter = PrefilterSetupIType;
 
@@ -577,15 +580,11 @@ end:
     return result;
 }
 
-
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectIType
  */
 void DetectITypeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectITypeParseTest01", DetectITypeParseTest01);
     UtRegisterTest("DetectITypeParseTest02", DetectITypeParseTest02);
     UtRegisterTest("DetectITypeParseTest03", DetectITypeParseTest03);
@@ -595,5 +594,5 @@ void DetectITypeRegisterTests(void)
     UtRegisterTest("DetectITypeParseTest07", DetectITypeParseTest07);
     UtRegisterTest("DetectITypeParseTest08", DetectITypeParseTest08);
     UtRegisterTest("DetectITypeMatchTest01", DetectITypeMatchTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

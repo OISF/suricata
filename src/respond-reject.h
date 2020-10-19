@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,8 +26,10 @@
 
 #include "tm-threads.h"
 
-#define REJECT_DIR_SRC 0
-#define REJECT_DIR_DST 1
+enum RejectDirection {
+    REJECT_DIR_SRC = 0,
+    REJECT_DIR_DST = 1,
+};
 
 void TmModuleRespondRejectRegister (void);
 

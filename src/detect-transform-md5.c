@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,8 +36,10 @@
 
 static int DetectTransformToMd5Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
+#ifdef UNITTESTS
 static void DetectTransformToMd5RegisterTests(void);
-static void TransformToMd5(InspectionBuffer *buffer);
+#endif
+static void TransformToMd5(InspectionBuffer *buffer, void *options);
 #endif
 
 void DetectTransformMd5Register(void)
@@ -52,8 +54,10 @@ void DetectTransformMd5Register(void)
 #ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_MD5].Transform =
         TransformToMd5;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_MD5].RegisterTests =
         DetectTransformToMd5RegisterTests;
+#endif
 #endif
     sigmatch_table[DETECT_TRANSFORM_MD5].flags |= SIGMATCH_NOOPT;
 }
@@ -78,11 +82,11 @@ static int DetectTransformToMd5Setup (DetectEngineCtx *de_ctx, Signature *s, con
 static int DetectTransformToMd5Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_MD5);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_MD5, NULL);
     SCReturnInt(r);
 }
 
-static void TransformToMd5(InspectionBuffer *buffer)
+static void TransformToMd5(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -112,19 +116,16 @@ static int DetectTransformToMd5Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToMd5(&buffer);
+    TransformToMd5(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
 }
 
-#endif
-
 static void DetectTransformToMd5RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformToMd5Test01",
             DetectTransformToMd5Test01);
-#endif
 }
+#endif
 #endif

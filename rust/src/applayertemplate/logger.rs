@@ -16,25 +16,21 @@
  */
 
 use std;
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use super::template::TemplateTransaction;
 
-fn log_template(tx: &TemplateTransaction) -> Option<Json> {
-    let js = Json::object();
+fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     if let Some(ref request) = tx.request {
-        js.set_string("request", request);
+        js.set_string("request", request)?;
     }
     if let Some(ref response) = tx.response {
-        js.set_string("response", response);
+        js.set_string("response", response)?;
     }
-    return Some(js);
+    Ok(())
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_logger_log(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub extern "C" fn rs_template_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);
-    match log_template(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
-    }
+    log_template(tx, js).is_ok()
 }

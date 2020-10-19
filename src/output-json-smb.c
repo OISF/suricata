@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,44 +47,43 @@
 
 #include "rust.h"
 
-json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id)
+bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
 {
     SMBState *state = FlowGetAppState(f);
     if (state) {
         SMBTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SMB, state, tx_id);
         if (tx) {
-            return rs_smb_log_json_response(state, tx);
+            return rs_smb_log_json_response(jb, state, tx);
         }
     }
-
-    return NULL;
+    return false;
 }
 
 static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
-    json_t *js, *smbjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_FLOW, "smb");
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "smb", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    smbjs = rs_smb_log_json_response(state, tx);
-    if (unlikely(smbjs == NULL)) {
+    jb_open_object(jb, "smb");
+    if (!rs_smb_log_json_response(jb, state, tx)) {
         goto error;
     }
-    json_object_set_new(js, "smb", smbjs);
+    jb_close(jb);
 
+    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 

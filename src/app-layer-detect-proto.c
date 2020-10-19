@@ -869,6 +869,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                     else if (pp_pe->alproto == ALPROTO_RFB)
                         printf("            alproto: ALPROTO_RFB\n");
+                    else if (pp_pe->alproto == ALPROTO_MQTT)
+                        printf("            alproto: ALPROTO_MQTT\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -944,6 +946,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                 else if (pp_pe->alproto == ALPROTO_RFB)
                     printf("            alproto: ALPROTO_RFB\n");
+                else if (pp_pe->alproto == ALPROTO_MQTT)
+                    printf("            alproto: ALPROTO_MQTT\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -1661,11 +1665,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".detection-ports");
     if (r < 0) {
-        SCLogError(SC_ERR_FATAL, "snprintf failure.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
     }
     node = ConfGetNode(param);
     if (node == NULL) {
@@ -1673,11 +1675,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto_name, ".", ipproto_name, ".detection-ports");
         if (r < 0) {
-            SCLogError(SC_ERR_FATAL, "snprintf failure.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
         }
         node = ConfGetNode(param);
         if (node == NULL)
@@ -1775,8 +1775,7 @@ int AppLayerProtoDetectSetup(void)
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
-        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
     }
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
@@ -1869,7 +1868,6 @@ void AppLayerRequestProtocolTLSUpgrade(Flow *f)
 
 void AppLayerProtoDetectReset(Flow *f)
 {
-    FlowUnsetChangeProtoFlag(f);
     FLOW_RESET_PM_DONE(f, STREAM_TOSERVER);
     FLOW_RESET_PM_DONE(f, STREAM_TOCLIENT);
     FLOW_RESET_PP_DONE(f, STREAM_TOSERVER);
@@ -1879,8 +1877,8 @@ void AppLayerProtoDetectReset(Flow *f)
     f->probing_parser_toserver_alproto_masks = 0;
     f->probing_parser_toclient_alproto_masks = 0;
 
-    AppLayerParserStateCleanup(f, f->alstate, f->alparser);
-    f->alstate = NULL;
+    // Does not free the structures for the parser
+    // keeps f->alstate for new state creation
     f->alparser = NULL;
     f->alproto    = ALPROTO_UNKNOWN;
     f->alproto_ts = ALPROTO_UNKNOWN;
@@ -1905,11 +1903,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto, ".enabled");
     if (r < 0) {
-        SCLogError(SC_ERR_FATAL, "snprintf failure.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "snprintf failure.");
     } else if (r > (int)sizeof(param)) {
-        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
     }
 
     node = ConfGetNode(param);
@@ -1918,11 +1914,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
                      alproto, ".", ipproto, ".enabled");
         if (r < 0) {
-            SCLogError(SC_ERR_FATAL, "snprintf failure.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "snprintf failure.");
         } else if (r > (int)sizeof(param)) {
-            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "buffer not big enough to write param.");
         }
 
         node = ConfGetNode(param);

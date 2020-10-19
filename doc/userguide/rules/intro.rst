@@ -44,6 +44,18 @@ Action
 
     :example-rule-emphasis:`drop` tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
+Valid actions are:
+
+* alert - generate an alert
+* pass - stop further inspection of the packet
+* drop - drop packet and generate alert
+* reject - send RST/ICMP unreach error to the sender of the matching packet.
+* rejectsrc - same as just `reject`
+* rejectdst - send RST/ICMP error packet to receiver of the matching packet.
+* rejectboth - send RST/ICMP error packets to both sides of the conversation.
+
+.. note:: In IPS mode, using any of the `reject` actions also enables `drop`.
+
 For more information see :ref:`suricata-yaml-action-order`.
 
 
@@ -76,11 +88,17 @@ you can pick from. These are:
 * modbus (disabled by default)
 * dnp3 (disabled by default)
 * enip (disabled by default)
-* nfs (depends on rust availability)
-* ikev2 (depends on rust availability)
-* krb5 (depends on rust availability)
-* ntp (depends on rust availability)
-* dhcp (depends on rust availability)
+* nfs
+* ikev2
+* krb5
+* ntp
+* dhcp
+* rfb
+* rdp
+* snmp
+* tftp
+* sip
+* http2
 
 The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
 

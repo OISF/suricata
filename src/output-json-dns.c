@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -266,31 +266,42 @@ typedef struct LogDnsFileCtx_ {
 typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t dns_cnt;
-
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
 {
-    json_t *queryjs = json_array();
-    if (queryjs == NULL)
+    JsonBuilder *queryjb = jb_new_array();
+    if (queryjb == NULL) {
         return NULL;
-
-    for (uint16_t i = 0; i < UINT16_MAX; i++) {
-        json_t *dns = rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES);
-        if (unlikely(dns == NULL)) {
-            break;
-        }
-        json_array_append_new(queryjs, dns);
     }
 
-    return queryjs;
+    for (uint16_t i = 0; i < UINT16_MAX; i++) {
+        JsonBuilder *js = jb_new_object();
+        if (!rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
+            jb_free(js);
+            break;
+        }
+        jb_close(js);
+        jb_append_object(queryjb, js);
+        jb_free(js);
+    }
+
+    jb_close(queryjb);
+    return queryjb;
 }
 
-json_t *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
 {
-    return rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES);
+    if (!rs_dns_do_log_answer(txptr, LOG_ALL_RRTYPES)) {
+        return NULL;
+    } else {
+        JsonBuilder *js = jb_new_object();
+        rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES, js);
+        jb_close(js);
+        return js;
+    }
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
@@ -300,28 +311,28 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    json_t *js;
 
     if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
         return TM_ECODE_OK;
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns");
-        if (unlikely(js == NULL)) {
+        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+        if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
-        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
-        json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
-        if (unlikely(dns == NULL)) {
-            json_decref(js);
+        jb_open_object(jb, "dns");
+        if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
+            jb_free(jb);
             break;
         }
-        json_object_set_new(js, "dns", dns);
+        jb_close(jb);
+
         MemBufferReset(td->buffer);
-        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-        json_decref(js);
+        OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+        jb_free(jb);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -339,77 +350,100 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
-
     if (td->dnslog_ctx->version == DNS_VERSION_2) {
-        json_t *answer = rs_dns_log_json_answer(txptr,
-                td->dnslog_ctx->flags);
-        if (answer != NULL) {
-            json_object_set_new(js, "dns", answer);
+        if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            jb_open_object(jb, "dns");
+            rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
+            jb_close(jb);
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            jb_free(jb);
         }
     } else {
         /* Log answers. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_answer_v1(txptr, i,
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            JsonBuilder *answer = rs_dns_log_json_answer_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
+                jb_free(jb);
                 break;
             }
-            json_object_set_new(js, "dns", answer);
+            jb_set_object(jb, "dns", answer);
+
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-            json_object_del(js, "dns");
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            jb_free(jb);
         }
         /* Log authorities. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_authority_v1(txptr, i,
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            JsonBuilder *answer = rs_dns_log_json_authority_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
+                jb_free(jb);
                 break;
             }
-            json_object_set_new(js, "dns", answer);
+            jb_set_object(jb, "dns", answer);
+
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-            json_object_del(js, "dns");
+            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            jb_free(jb);
         }
     }
-
-    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
+    LogDnsLogThread *aft = SCCalloc(1, sizeof(LogDnsLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogDnsLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogDNS.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
+    aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
@@ -425,14 +459,6 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(aft);
     return TM_ECODE_OK;
-}
-
-static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
-    LogFileFreeCtx(dnslog_ctx->file_ctx);
-    SCFree(dnslog_ctx);
-    SCFree(output_ctx);
 }
 
 static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
@@ -615,79 +641,10 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     return result;
 }
 
-#define DEFAULT_LOG_FILENAME "dns.json"
-/** \brief Create a new dns log LogFileCtx.
- *  \param conf Pointer to ConfNode containing this loggers configuration.
- *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
- * */
-static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
-    if (enabled != NULL && !ConfValIsTrue(enabled)) {
-        return result;
-    }
-
-    DnsVersion version = JsonDnsParseVersion(conf);
-
-    LogFileCtx *file_ctx = LogFileNewCtx();
-
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
-    if (unlikely(dnslog_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
-
-    dnslog_ctx->file_ctx = file_ctx;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(dnslog_ctx);
-        return result;
-    }
-
-    output_ctx->data = dnslog_ctx;
-    output_ctx->DeInit = LogDnsLogDeInitCtx;
-
-    dnslog_ctx->version = version;
-    JsonDnsLogInitFilters(dnslog_ctx, conf);
-
-    SCLogDebug("DNS log output initialized");
-
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
 
 #define MODULE_NAME "JsonDnsLog"
 void JsonDnsLogRegister (void)
 {
-    /* Logger for requests. */
-    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS_TS, MODULE_NAME,
-        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer,
-        0, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
-
-    /* Logger for replies. */
-    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS_TC, MODULE_NAME,
-        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient,
-        1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
-
     /* Sub-logger for requests. */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS_TS, "eve-log",
         MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,

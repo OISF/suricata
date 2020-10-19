@@ -45,6 +45,9 @@ static int DetectMarkSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx);
 void DetectMarkDataFree(DetectEngineCtx *, void *ptr);
+#if defined UNITTESTS && defined NFQ
+static void MarkRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for nfq_set_mark: keyword
@@ -56,8 +59,9 @@ void DetectMarkRegister (void)
     sigmatch_table[DETECT_MARK].Match = DetectMarkPacket;
     sigmatch_table[DETECT_MARK].Setup = DetectMarkSetup;
     sigmatch_table[DETECT_MARK].Free  = DetectMarkDataFree;
+#if defined UNITTESTS && defined NFQ
     sigmatch_table[DETECT_MARK].RegisterTests = MarkRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -326,19 +330,14 @@ static int MarkTestParse04 (void)
     return 0;
 }
 
-
-
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for Mark
  */
-void MarkRegisterTests(void)
+static void MarkRegisterTests(void)
 {
-#if defined UNITTESTS && defined NFQ
     UtRegisterTest("MarkTestParse01", MarkTestParse01);
     UtRegisterTest("MarkTestParse02", MarkTestParse02);
     UtRegisterTest("MarkTestParse03", MarkTestParse03);
     UtRegisterTest("MarkTestParse04", MarkTestParse04);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

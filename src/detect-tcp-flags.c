@@ -64,6 +64,9 @@ static void DetectFlagsFree(DetectEngineCtx *, void *);
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
+#ifdef UNITTESTS
+static void FlagsRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for flags: keyword
@@ -78,8 +81,9 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
     sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
 
@@ -1395,14 +1399,11 @@ error:
     return 0;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for Flags
  */
-void FlagsRegisterTests(void)
+static void FlagsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("FlagsTestParse01", FlagsTestParse01);
     UtRegisterTest("FlagsTestParse02", FlagsTestParse02);
     UtRegisterTest("FlagsTestParse03", FlagsTestParse03);
@@ -1420,5 +1421,5 @@ void FlagsRegisterTests(void)
     UtRegisterTest("FlagsTestParse15", FlagsTestParse15);
     UtRegisterTest("FlagsTestParse16", FlagsTestParse16);
     UtRegisterTest("FlagsTestParse17", FlagsTestParse17);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

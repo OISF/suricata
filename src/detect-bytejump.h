@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,19 +31,20 @@
 #define DETECT_BYTEJUMP_BASE_HEX   16 /**< "hex" type value string */
 
 /** Bytejump Flags */
-#define DETECT_BYTEJUMP_BEGIN    0x01 /**< "from_beginning" jump */
-#define DETECT_BYTEJUMP_LITTLE   0x02 /**< "little" endian value */
-#define DETECT_BYTEJUMP_BIG      0x04 /**< "big" endian value */
-#define DETECT_BYTEJUMP_STRING   0x08 /**< "string" value */
-#define DETECT_BYTEJUMP_RELATIVE 0x10 /**< "relative" offset */
-#define DETECT_BYTEJUMP_ALIGN    0x20 /**< "align" offset */
-#define DETECT_BYTEJUMP_DCE      0x40 /**< "dce" enabled */
-#define DETECT_BYTEJUMP_OFFSET_BE 0x80 /**< "byte extract" enabled */
+#define DETECT_BYTEJUMP_BEGIN     BIT_U16(0) /**< "from_beginning" jump */
+#define DETECT_BYTEJUMP_LITTLE    BIT_U16(1) /**< "little" endian value */
+#define DETECT_BYTEJUMP_BIG       BIT_U16(2) /**< "big" endian value */
+#define DETECT_BYTEJUMP_STRING    BIT_U16(3) /**< "string" value */
+#define DETECT_BYTEJUMP_RELATIVE  BIT_U16(4) /**< "relative" offset */
+#define DETECT_BYTEJUMP_ALIGN     BIT_U16(5) /**< "align" offset */
+#define DETECT_BYTEJUMP_DCE       BIT_U16(6) /**< "dce" enabled */
+#define DETECT_BYTEJUMP_OFFSET_BE BIT_U16(7) /**< "byte extract" enabled */
+#define DETECT_BYTEJUMP_END       BIT_U16(8) /**< "from_end" jump */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
     uint8_t base;                     /**< String value base (oct|dec|hex) */
-    uint8_t flags;                    /**< Flags (big|little|relative|string) */
+    uint16_t flags;                   /**< Flags (big|little|relative|string) */
     uint32_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
     int32_t offset;                   /**< Offset in payload to extract value */
     int32_t post_offset;              /**< Offset to adjust post-jump */
@@ -76,7 +77,7 @@ void DetectBytejumpRegister (void);
  *       error as a match.
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
-                          const uint8_t *, uint32_t, uint8_t, int32_t);
+                          const uint8_t *, uint32_t, uint16_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 

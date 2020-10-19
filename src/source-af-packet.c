@@ -33,7 +33,6 @@
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
-#include "config.h"
 #include "suricata.h"
 #include "decode.h"
 #include "packet-queue.h"
@@ -129,7 +128,6 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].Func = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEAFP].cap_flags = 0;
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -144,7 +142,6 @@ void TmModuleDecodeAFPRegister (void)
     tmm_modules[TMM_DECODEAFP].Func = NULL;
     tmm_modules[TMM_DECODEAFP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODEAFP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
     tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
@@ -174,11 +171,11 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #ifndef TP_STATUS_USER_BUSY
 /* for new use latest bit available in tp_status */
-#define TP_STATUS_USER_BUSY (1 << 31)
+#define TP_STATUS_USER_BUSY     BIT_U32(31)
 #endif
 
 #ifndef TP_STATUS_VLAN_VALID
-#define TP_STATUS_VLAN_VALID (1 << 4)
+#define TP_STATUS_VLAN_VALID    BIT_U32(4)
 #endif
 
 enum {
@@ -332,7 +329,6 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadExitPrintStats = ReceiveAFPThreadExitStats;
     tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = ReceiveAFPThreadDeinit;
-    tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEAFP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
 
@@ -550,7 +546,6 @@ void TmModuleDecodeAFPRegister (void)
     tmm_modules[TMM_DECODEAFP].Func = DecodeAFP;
     tmm_modules[TMM_DECODEAFP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = DecodeAFPThreadDeinit;
-    tmm_modules[TMM_DECODEAFP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
     tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
@@ -677,12 +672,10 @@ static int AFPRead(AFPThreadVars *ptv)
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ptv->livedev->ignore_checksum) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeCheck(ptv->pkts,
+        if (ChecksumAutoModeCheck(ptv->pkts,
                                           SC_ATOMIC_GET(ptv->livedev->pkts),
                                           SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-            ptv->livedev->ignore_checksum = 1;
+            ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
@@ -994,12 +987,10 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
             p->flags |= PKT_IGNORE_CHECKSUM;
         } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-            if (ptv->livedev->ignore_checksum) {
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            } else if (ChecksumAutoModeCheck(ptv->pkts,
+            if (ChecksumAutoModeCheck(ptv->pkts,
                         SC_ATOMIC_GET(ptv->livedev->pkts),
                         SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-                ptv->livedev->ignore_checksum = 1;
+                ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
         } else {
@@ -1107,12 +1098,10 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ptv->livedev->ignore_checksum) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeCheck(ptv->pkts,
+        if (ChecksumAutoModeCheck(ptv->pkts,
                     SC_ATOMIC_GET(ptv->livedev->pkts),
                     SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-            ptv->livedev->ignore_checksum = 1;
+            ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
@@ -1995,7 +1984,7 @@ int AFPIsFanoutSupported(int cluster_id)
     if (fd < 0)
         return 0;
 
-    uint16_t mode = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
+    uint32_t mode = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
     uint16_t id = 1;
     uint32_t option = (mode << 16) | (id & 0xffff);
     int r = setsockopt(fd, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
@@ -2164,7 +2153,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
     if (ptv->threads > 1) {
-        uint16_t mode = ptv->cluster_type;
+        uint32_t mode = ptv->cluster_type;
         uint16_t id = ptv->cluster_id;
         uint32_t option = (mode << 16) | (id & 0xffff);
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));

@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "util-unittest.h"
+#include "util-byte.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -154,9 +155,14 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
     if (unlikely(templated == NULL))
         return NULL;
 
-    templated->arg1 = (uint8_t)atoi(arg1);
-    templated->arg2 = (uint8_t)atoi(arg2);
-
+    if (ByteExtractStringUint8(&templated->arg1, 10, 0, (const char *)arg1) < 0) {
+        SCFree(templated);
+        return NULL;
+    }
+    if (ByteExtractStringUint8(&templated->arg2, 10, 0, (const char *)arg2) < 0) {
+        SCFree(templated);
+        return NULL;
+    }
     return templated;
 }
 

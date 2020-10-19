@@ -37,7 +37,7 @@
 #define __USE_GNU
 
 #if HAVE_CONFIG_H
-#include <config.h>
+#include <autoconf.h>
 #endif
 
 #ifndef CLS
@@ -464,8 +464,11 @@ typedef enum {
     LOGGER_JSON_SIP,
     LOGGER_JSON_TEMPLATE_RUST,
     LOGGER_JSON_RFB,
+    LOGGER_JSON_MQTT,
     LOGGER_JSON_TEMPLATE,
     LOGGER_JSON_RDP,
+    LOGGER_JSON_DCERPC,
+    LOGGER_JSON_HTTP2,
 
     LOGGER_ALERT_DEBUG,
     LOGGER_ALERT_FAST,
@@ -489,13 +492,17 @@ typedef enum {
 } LoggerId;
 
 #include "util-optimize.h"
+#ifndef SURICATA_PLUGIN
 #include <htp/htp.h>
+#endif
 #include "threads.h"
 #include "tm-threads-common.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-mem.h"
+#ifndef SURICATA_PLUGIN
 #include "detect-engine-alert.h"
+#endif
 #include "util-path.h"
 #include "util-conf.h"
 
@@ -519,6 +526,17 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 char *strptime(const char * __restrict, const char * __restrict, struct tm * __restrict);
 #endif
 
+#ifndef HAVE_FWRITE_UNLOCKED
+#define SCFwriteUnlocked    fwrite
+#define SCFflushUnlocked    fflush
+#define SCClearErrUnlocked  clearerr
+#define SCFerrorUnlocked    ferror
+#else
+#define SCFwriteUnlocked    fwrite_unlocked
+#define SCFflushUnlocked    fflush_unlocked
+#define SCClearErrUnlocked  clearerr_unlocked
+#define SCFerrorUnlocked    ferror_unlocked
+#endif
 extern int coverage_unittests;
 extern int g_ut_modules;
 extern int g_ut_covered;

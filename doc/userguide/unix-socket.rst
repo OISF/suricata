@@ -5,31 +5,23 @@ Introduction
 ------------
 
 Suricata can listen to a unix socket and accept commands from the user. The
-exchange protocol is JSON-based and the format of the message has been done
-to be generic.
+exchange protocol is JSON-based and the format of the message is generic.
 
-An example script called suricatasc is provided in the source and installed
+An example script called ``suricatasc`` is provided in the source and installed
 automatically when installing/updating Suricata.
 
-The unix socket is enabled by default if libjansson is available.
+The unix socket is always enabled by default.
 
-You need to have libjansson installed:
+You'll need to have JSON support in Python:
   
-* libjansson4 - C library for encoding, decoding and manipulating JSON data
-* libjansson-dev - C library for encoding, decoding and manipulating JSON data (dev)
 * python-simplejson - simple, fast, extensible JSON encoder/decoder for Python
   
 Debian/Ubuntu::
   
-   apt-get install libjansson4 libjansson-dev python-simplejson
-
-If libjansson is present on the system , unix socket will be compiled
-in automatically.
+   apt-get install python-simplejson
 
 The creation of the socket is managed by setting enabled to 'yes' or 'auto'
-under unix-command in Suricata YAML configuration file:
-  
-::
+under unix-command in Suricata YAML configuration file: ::
   
   unix-command:
     enabled: yes
@@ -39,10 +31,10 @@ The ``filename`` variable can be used to set an alternate socket
 filename. The filename is always relative to the local state base
 directory.
 
-Clients are implemented for some language and can be used as code
+Clients are implemented for some programming languages and can be used as code
 example to write custom scripts:
 
-* Python: https://github.com/inliniac/suricata/blob/master/scripts/suricatasc/suricatasc.in (provided with suricata and used in this document)
+* Python: https://github.com/inliniac/suricata/blob/master/scripts/suricatasc/suricatasc.in (provided with Suricata and used in this document)
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
 * C: https://github.com/regit/SuricataC (a Unix socket mode client in C without interactive mode)
 
@@ -50,7 +42,7 @@ example to write custom scripts:
 
 Commands in standard running mode
 ---------------------------------
-You may need to install suricatasc if you have not done so, running the following command from python/suricatasc
+You may need to install ``suricatasc`` if you have not done so, running the following command from python/suricatasc
 
 ::
 
@@ -59,9 +51,9 @@ You may need to install suricatasc if you have not done so, running the followin
 The set of existing commands is the following:
 
 * command-list: list available commands
-* shutdown: this shutdown Suricata
+* shutdown: shutdown Suricata
 * iface-list: list interfaces where Suricata is sniffing packets
-* iface-stat: list statistic for an interface
+* iface-stat: list statistics for an interface
 * help: alias of command-list
 * version: display Suricata's version
 * uptime: display Suricata's uptime
@@ -75,8 +67,8 @@ The set of existing commands is the following:
 * ruleset-reload-time: return time of last reload
 * ruleset-stats: display the number of rules loaded and failed
 * ruleset-failed-rules: display the list of failed rules
-* memcap-set: update memcap value of an item specified
-* memcap-show: show memcap value of an item specified
+* memcap-set: update memcap value of the specified item
+* memcap-show: show memcap value of the specified item
 * memcap-list: list all memcap values available
 * reload-rules: alias of ruleset-reload-rules
 * register-tenant-handler: register a tenant handler with the specified mapping
@@ -88,9 +80,9 @@ The set of existing commands is the following:
 * remove-hostbit: remove hostbit on a host IP with specified bit name
 * list-hostbit: list hostbit for a particular host IP
 
-You can access to these commands with the provided example script which
-is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
-  
+You can access these commands with the provided example ``suricatasc`` script.
+A typical session with ``suricatasc`` looks like:
+
 ::
   
   # suricatasc
@@ -106,13 +98,12 @@ is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
 Commands on the cmd prompt
 --------------------------
 
-You can use suricatasc directly on the command prompt:
-  
+You can use ``suricatasc`` directly on the command prompt:
+
 ::
 
-  
   root@debian64:~# suricatasc -c version
-  {'message': '2.1beta2 RELEASE', 'return': 'OK'}
+  {'message': '5.0.3 RELEASE', 'return': 'OK'}
   root@debian64:~# 
   root@debian64:~# suricatasc -c uptime
   {'message': 35264, 'return': 'OK'}
@@ -120,51 +111,40 @@ You can use suricatasc directly on the command prompt:
 
 
 **NOTE:**
-You need to quote commands involving more than one argument:
-  
+You need to quote commands with more than one argument:
+
 ::
 
-  
   root@debian64:~# suricatasc -c "iface-stat eth0"
   {'message': {'pkts': 5110429, 'drop': 0, 'invalid-checksums': 0}, 'return': 'OK'}
   root@debian64:~#
 
 
-Pcap processing mode
+PCAP processing mode
 --------------------
 
-This mode is one of main motivation behind this code. The idea is to
-be able to ask to Suricata to treat different pcap files without
-having to restart Suricata between the files. This provides you a huge
-gain in time as you don't need to wait for the signature engine to
-initialize.
+This mode is one of main motivations behind this code. The idea is to
+be able to provide different pcap files to Suricata without
+having to restart Suricata for each file. This saves time since
+you don't need to wait for the signature engine to initialize.
 
-To use this mode, start suricata with your preferred YAML file and
-provide the option ``--unix-socket`` as argument:
-  
-::
+To use this mode, start Suricata with your preferred configuration YAML file and
+provide the option ``--unix-socket`` as argument::
   
   suricata -c /etc/suricata-full-sigs.yaml --unix-socket
 
-It is also possible to specify the socket filename as argument:
-  
-::
+It is also possible to specify the socket filename as an argument::
   
   suricata --unix-socket=custom.socket
 
 In this last case, you will need to provide the complete path to the
 socket to ``suricatasc``. To do so, you need to pass the filename as
-first argument of ``suricatasc``:
-  
-::
-  
+first argument of ``suricatasc``: ::
+
   suricatasc custom.socket
 
-Once Suricata is started, you can use the provided script
-``suricatasc`` to connect to the command socket and ask for pcap
-treatment:
-  
-::
+Once Suricata is started, you can use ``suricatasc`` to connect to the
+command socket and provide different pcap files: ::
   
   root@tiger:~# suricatasc
   >>> pcap-file /home/benches/file1.pcap /tmp/file1
@@ -174,33 +154,27 @@ treatment:
   >>> pcap-file-continuous /home/pcaps /tmp/dirout
   Success: Successfully added file to list
 
-You can add multiple files without waiting the result: they will be
+You can add multiple files without waiting for each to be processed; they will be
 sequentially processed and the generated log/alert files will be put
-into the directory specified as second arguments of the pcap-file
-command. You need to provide absolute path to the files and directory
+into the directory specified as second argument of the pcap-file
+command. You need to provide an absolute path to the files and directory
 as Suricata doesn't know from where the script has been run. If you pass
 a directory instead of a file, all files in the directory will be processed. If
 using ``pcap-file-continuous`` and passing in a directory, the directory will
 be monitored for new files being added until you use ``pcap-interrupt`` or
 delete/move the directory.
 
-To know how many files are waiting to get processed, you can do:
-  
-::
+To display  how many files are waiting to get processed, you can do: ::
   
   >>> pcap-file-number
   Success: 3
 
-To get the list of queued files, do:
-  
-::
+To display the list of queued files, do: ::
   
   >>> pcap-file-list
   Success: {'count': 2, 'files': ['/home/benches/file1.pcap', '/home/benches/file2.pcap']}
 
-To get current processed file:
-  
-::
+To display current processed file: ::
   
   >>> pcap-current
   Success:
@@ -228,18 +202,14 @@ Build your own client
 The protocol is documented in the following page
 https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Unix_Socket#Protocol
 
-The following session show what is send (SND) and received (RCV) by
-the server. Initial negotiation is the following:
-  
-::
+The following session show what is sent (SND) and received (RCV) by
+the server. Initial negotiation is the following: ::
   
   # suricatasc
   SND: {"version": "0.1"}
   RCV: {"return": "OK"}
 
-Once this is done, command can be issued:
-  
-::
+Once this is done, commands can be issued: ::
   
   >>> iface-list
   SND: {"command": "iface-list"}
@@ -250,9 +220,7 @@ Once this is done, command can be issued:
   RCV: {"message": {"pkts": 41508, "drop": 0, "invalid-checksums": 0}, "return": "OK"}
   Success: {'pkts': 41508, 'drop': 0, 'invalid-checksums': 0}
 
-In pcap-file mode, this gives:
-  
-::
+In pcap-file mode, this gives: ::
   
   >>> pcap-file /home/eric/git/oisf/benches/sandnet.pcap /tmp/bench
   SND: {"command": "pcap-file", "arguments": {"output-dir": "/tmp/bench", "filename": "/home/eric/git/oisf/benches/sandnet.pcap"}}

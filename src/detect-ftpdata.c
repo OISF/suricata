@@ -46,7 +46,9 @@ static int DetectFtpdataMatch(DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 static int DetectFtpdataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFtpdataFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectFtpdataRegisterTests (void);
+#endif
 static int DetectEngineInspectFtpdataGeneric(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
@@ -73,8 +75,9 @@ void DetectFtpdataRegister(void) {
      * shutdown, but also during rule reloads. */
     sigmatch_table[DETECT_FTPDATA].Free = DetectFtpdataFree;
     /* registers unittests into the system */
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FTPDATA].RegisterTests = DetectFtpdataRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("ftpdata_command",
             ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFtpdataGeneric);
@@ -251,15 +254,13 @@ static int DetectFtpdataSignatureTest01(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFtpdata
  */
-void DetectFtpdataRegisterTests(void) {
-#ifdef UNITTESTS
+static void DetectFtpdataRegisterTests(void)
+{
     UtRegisterTest("DetectFtpdataParseTest01", DetectFtpdataParseTest01);
     UtRegisterTest("DetectFtpdataSignatureTest01",
                    DetectFtpdataSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

@@ -31,6 +31,7 @@
 #include "flow-worker.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
+#include "datasets.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -730,7 +731,10 @@ static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
-static DetectEngineTransforms no_transforms = { .transforms = { 0 }, .cnt = 0, };
+static DetectEngineTransforms no_transforms = {
+    .transforms[0] = {0, NULL},
+    .cnt = 0,
+};
 
 int DetectBufferTypeMaxId(void)
 {
@@ -763,9 +767,25 @@ static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
 static void DetectBufferTypeFreeFunc(void *data)
 {
     DetectBufferType *map = (DetectBufferType *)data;
-    if (map != NULL) {
-        SCFree(map);
+
+    if (map == NULL) {
+        return;
     }
+
+    /* Release transformation option memory, if any */
+    for (int i = 0; i < map->transforms.cnt; i++) {
+        if (map->transforms.transforms[i].options == NULL)
+            continue;
+        if (sigmatch_table[map->transforms.transforms[i].transform].Free == NULL) {
+            SCLogError(SC_ERR_UNIMPLEMENTED,
+                       "%s allocates transform option memory but has no free routine",
+                       sigmatch_table[map->transforms.transforms[i].transform].name);
+            continue;
+        }
+        sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
+    }
+
+    SCFree(map);
 }
 
 static int DetectBufferTypeInit(void)
@@ -973,7 +993,7 @@ int DetectBufferSetActiveList(Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
 
-    if (s->init_data->list && s->init_data->transform_cnt) {
+    if (s->init_data->list && s->init_data->transforms.cnt) {
         return -1;
     }
     s->init_data->list = list;
@@ -986,19 +1006,19 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
 {
     BUG_ON(s->init_data == NULL);
 
-    if (s->init_data->transform_cnt) {
+    if (s->init_data->list && s->init_data->transforms.cnt) {
         if (s->init_data->list == DETECT_SM_LIST_NOTSET ||
             s->init_data->list < DETECT_SM_LIST_DYNAMIC_START) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed "
                     "(list: %u, transform_cnt %u)", s->init_data->list,
-                    s->init_data->transform_cnt);
+                    s->init_data->transforms.cnt);
             SCReturnInt(-1);
         }
 
         SCLogDebug("buffer %d has transform(s) registered: %d",
-                s->init_data->list, s->init_data->transforms[0]);
+                s->init_data->list, s->init_data->transforms.cnt);
         int new_list = DetectBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
-                s->init_data->transforms, s->init_data->transform_cnt);
+                s->init_data->transforms.transforms, s->init_data->transforms.cnt);
         if (new_list == -1) {
             SCReturnInt(-1);
         }
@@ -1006,7 +1026,7 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->list = new_list;
         s->init_data->list_set = false;
         // reset transforms now that we've set up the list
-        s->init_data->transform_cnt = 0;
+        s->init_data->transforms.cnt = 0;
     }
 
     SCReturnInt(0);
@@ -1145,16 +1165,59 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
     }
 }
 
+/** \brief Check content byte array compatibility with transforms
+ *
+ *  The "content" array is presented to the transforms so that each
+ *  transform may validate that it's compatible with the transform.
+ *
+ *  When a transform indicates the byte array is incompatible, none of the
+ *  subsequent transforms, if any, are invoked. This means the first positive
+ *  validation result terminates the loop.
+ *
+ *  \param de_ctx Detection engine context.
+ *  \param sm_list The SM list id.
+ *  \param content The byte array being validated
+ *  \param namestr returns the name of the transform that is incompatible with
+ *  content.
+ *
+ *  \retval true (false) If any of the transforms indicate the byte array is
+ *  (is not) compatible.
+ **/
+bool DetectBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
+        const uint8_t *content, uint16_t content_len, const char **namestr)
+{
+    const DetectBufferType *dbt = DetectBufferTypeGetById(de_ctx, sm_list);
+    BUG_ON(dbt == NULL);
+
+    for (int i = 0; i < dbt->transforms.cnt; i++) {
+        const TransformData *t = &dbt->transforms.transforms[i];
+        if (!sigmatch_table[t->transform].TransformValidate)
+            continue;
+
+        if (sigmatch_table[t->transform].TransformValidate(content, content_len, t->options)) {
+            continue;
+        }
+
+        if (namestr) {
+            *namestr = sigmatch_table[t->transform].name;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms)
 {
     if (transforms) {
         for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
-            const int id = transforms->transforms[i];
+            const int id = transforms->transforms[i].transform;
             if (id == 0)
                 break;
             BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer);
+            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
             SCLogDebug("applied transform %s", sigmatch_table[id].name);
         }
     }
@@ -1242,7 +1305,7 @@ void DetectBufferTypeCloseRegistration(void)
 }
 
 int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
-        int *transforms, int transform_cnt)
+        TransformData *transforms, int transform_cnt)
 {
     const DetectBufferType *base_map = DetectBufferTypeGetById(de_ctx, id);
     if (!base_map) {
@@ -2662,9 +2725,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
 
     /* byte_extract storage */
-    det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) *
+    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) *
                                   (de_ctx->byte_extract_max_local_id + 1));
-    if (det_ctx->bj_values == NULL) {
+    if (det_ctx->byte_values == NULL) {
         return TM_ECODE_FAILED;
     }
 
@@ -2892,8 +2955,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     RuleMatchCandidateTxArrayFree(det_ctx);
 
-    if (det_ctx->bj_values != NULL)
-        SCFree(det_ctx->bj_values);
+    if (det_ctx->byte_values != NULL)
+        SCFree(det_ctx->byte_values);
 
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {
@@ -4031,6 +4094,7 @@ int DetectEngineReload(const SCInstance *suri)
     if (old_de_ctx == NULL)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
+    DatasetReload();
 
     /* only reload a regular 'normal' and 'delayed detect stub' detect engines */
     if (!(old_de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
@@ -4071,6 +4135,8 @@ int DetectEngineReload(const SCInstance *suri)
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
+
+    DatasetPostReloadCleanup();
 
     DetectEngineBumpVersion();
 

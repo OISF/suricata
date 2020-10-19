@@ -57,8 +57,7 @@ int RunModeErfFileSingle(void)
     SCEnter();
 
     if (ConfGet("erf-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed to get erf-file.file from config.");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed to get erf-file.file from config.");
     }
 
     RunModeInitialize();
@@ -92,8 +91,7 @@ int RunModeErfFileSingle(void)
 
     tm_module = TmModuleGetByName("FlowWorker");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "TmModuleGetByName for FlowWorker failed");
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
@@ -120,9 +118,8 @@ int RunModeErfFileAutoFp(void)
 
     const char *file = NULL;
     if (ConfGet("erf-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE,
-            "Failed retrieving erf-file.file from config");
-        exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "Failed retrieving erf-file.file from config");
     }
 
     TimeModeSetOffline();
@@ -146,8 +143,8 @@ int RunModeErfFileAutoFp(void)
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "RunmodeAutoFpCreatePickupQueuesString failed");
     }
 
     /* create the threads */
@@ -207,8 +204,8 @@ int RunModeErfFileAutoFp(void)
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 

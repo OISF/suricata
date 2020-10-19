@@ -84,7 +84,7 @@ pub type AppLayerDecoderEventsSetEventRawFunc =
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
-pub struct SuricataStreamingBufferConfig;
+pub enum SuricataStreamingBufferConfig {}
 
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
@@ -145,15 +145,25 @@ pub struct SuricataFileContext {
     pub files_sbcfg: &'static SuricataStreamingBufferConfig,
 }
 
+extern {
+    pub fn SCGetContext() -> &'static mut SuricataContext;
+    pub fn SCLogGetLogLevel() -> i32;
+}
+
 pub static mut SC: Option<&'static SuricataContext> = None;
 
-#[no_mangle]
-pub extern "C" fn rs_init(context: &'static mut SuricataContext)
+pub fn init_ffi(context: &'static mut SuricataContext)
 {
     unsafe {
         SC = Some(context);
         ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_init(context: &'static mut SuricataContext)
+{
+    init_ffi(context);
 }
 
 /// DetectEngineStateFree wrapper.

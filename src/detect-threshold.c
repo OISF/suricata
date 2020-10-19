@@ -67,6 +67,9 @@ static int DetectThresholdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectThresholdFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
+static void ThresholdRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for threshold: keyword
@@ -80,7 +83,9 @@ void DetectThresholdRegister(void)
     sigmatch_table[DETECT_THRESHOLD].Match = DetectThresholdMatch;
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;
     sigmatch_table[DETECT_THRESHOLD].Free  = DetectThresholdFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_THRESHOLD].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -1673,11 +1678,8 @@ static int DetectThresholdTestSig14(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
-void ThresholdRegisterTests(void)
+static void ThresholdRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01);
     UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02);
     UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03);
@@ -1700,8 +1702,8 @@ void ThresholdRegisterTests(void)
     UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12);
     UtRegisterTest("DetectThresholdTestSig13", DetectThresholdTestSig13);
     UtRegisterTest("DetectThresholdTestSig14", DetectThresholdTestSig14);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */
 
 /**
  * @}

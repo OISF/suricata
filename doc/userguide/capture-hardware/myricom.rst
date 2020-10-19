@@ -3,7 +3,7 @@ Myricom
 
 From: https://blog.inliniac.net/2012/07/10/suricata-on-myricom-capture-cards/
 
-In this guide I'll describe using the Myricom libpcap support. I'm going to assume you installed the card properly, installed the Sniffer driver and made sure that all works. Make sure that in your dmesg you see that the card is in sniffer mode:
+In this guide I'll describe using the Myricom libpcap support. I'm going to assume you installed the card properly, installed the Sniffer driver and made sure that all works. Make sure ``dmesg`` shows that the card is in sniffer mode:
 
 ::
 
@@ -11,10 +11,9 @@ In this guide I'll describe using the Myricom libpcap support. I'm going to assu
   [ 2102.860241] myri_snf INFO: eth4: Link0 is UP
   [ 2101.341965] myri_snf INFO: eth5: Link0 is UP
 
-I have installed the Myricom runtime and libraries in /opt/snf
+I have installed the Myricom runtime and libraries in ``/opt/snf``
 
 Compile Suricata against Myricom's libpcap:
-
 
 ::
 
@@ -35,7 +34,7 @@ Next, configure the amount of ringbuffers. I'm going to work with 8 here, as my 
       buffer-size: 512kb
       checksum-checks: no
 
-The 8 threads setting makes Suricata create 8 reader threads for eth5. The Myricom driver makes sure each of those is attached to its own ringbuffer.
+The 8 threads setting causes Suricata to create 8 reader threads for eth5. The Myricom driver makes sure each of those is attached to its own ringbuffer.
 
 Then start Suricata as follows:
 
@@ -44,17 +43,16 @@ Then start Suricata as follows:
 
   SNF_NUM_RINGS=8 SNF_FLAGS=0x1 suricata -c suricata.yaml -i eth5 --runmode=workers
 
-If you want 16 ringbuffers, update the "threads" variable in your yaml to 16 and start Suricata:
+If you want 16 ringbuffers, update the "threads" variable in the Suricata configuration file to `16` and start Suricata:
 
 ::
 
 
   SNF_NUM_RINGS=16 SNF_FLAGS=0x1 suricata -c suricata.yaml -i eth5 --runmode=workers
 
-Note that the pcap.buffer-size yaml setting shown above is currently ignored when using Myricom cards. The value is passed through to the pcap_set_buffer_size libpcap API within the Suricata source code. From Myricom support:
+Note that the ``pcap.buffer-size`` configuration setting shown above is currently ignored when using Myricom cards. The value is passed through to the ``pcap_set_buffer_size`` libpcap API within the Suricata source code. From Myricom support:
 
 ::
-
 
   "The libpcap interface to Sniffer10G ignores the pcap_set_buffer_size() value.  The call to snf_open() uses zero as the dataring_size which informs the Sniffer library to use a default value or the value from the SNF_DATARING_SIZE environment variable."
 
@@ -95,4 +93,4 @@ Additional Info
 
 * http://www.40gbe.net/index_files/be59da7f2ab5bf0a299ab99ef441bb2e-28.html
 
-* http://o-www.emulex.com/blogs/implementers/2012/07/23/black-hat-usa-2012-emulex-faststack-sniffer10g-product-demo-emulex-booth/
+* https://www.broadcom.com/support/knowledgebase/1211161394432/how-to-use-emulex-oneconnect-oce12000-d-adapters-with-faststack-

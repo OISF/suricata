@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2016-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,8 +45,16 @@
 #include "util-validate.h"
 
 #include "flow-util.h"
+#include "flow-manager.h"
+#include "flow-timeout.h"
+#include "flow-spare-pool.h"
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
+
+typedef struct FlowTimeoutCounters {
+    uint32_t flows_aside_needs_work;
+    uint32_t flows_aside_pkt_inject;
+} FlowTimeoutCounters;
 
 typedef struct FlowWorkerThreadData_ {
     DecodeThreadVars *dtv;
@@ -59,6 +67,7 @@ typedef struct FlowWorkerThreadData_ {
     SC_ATOMIC_DECLARE(DetectEngineThreadCtxPtr, detect_thread);
 
     void *output_thread; /* Output thread data. */
+    void *output_thread_flow; /* Output thread data. */
 
     uint16_t local_bypass_pkts;
     uint16_t local_bypass_bytes;
@@ -66,8 +75,139 @@ typedef struct FlowWorkerThreadData_ {
     uint16_t both_bypass_bytes;
 
     PacketQueueNoLock pq;
+    FlowLookupStruct fls;
+
+    struct {
+        uint16_t flows_injected;
+        uint16_t flows_removed;
+        uint16_t flows_aside_needs_work;
+        uint16_t flows_aside_pkt_inject;
+    } cnt;
 
 } FlowWorkerThreadData;
+
+static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, void *detect_thread);
+Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, TcpSession *ssn);
+
+/**
+ * \internal
+ * \brief Forces reassembly for flow if it needs it.
+ *
+ *        The function requires flow to be locked beforehand.
+ *
+ * \param f Pointer to the flow.
+ *
+ * \retval cnt number of packets injected
+ */
+static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *detect_thread)
+{
+    Packet *p1 = NULL, *p2 = NULL;
+    const int server = f->ffr_tc;
+    const int client = f->ffr_ts;
+
+    /* Get the tcp session for the flow */
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+
+    /* The packets we use are based on what segments in what direction are
+     * unprocessed.
+     * p1 if we have client segments for reassembly purpose only.  If we
+     * have no server segments p2 can be a toserver packet with dummy
+     * seq/ack, and if we have server segments p2 has to carry out reassembly
+     * for server segment as well, in which case we will also need a p3 in the
+     * toclient which is now dummy since all we need it for is detection */
+
+    /* insert a pseudo packet in the toserver direction */
+    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn);
+        if (p1 == NULL) {
+            return 0;
+        }
+        PKT_SET_SRC(p1, PKT_SRC_FFR);
+
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn);
+            if (p2 == NULL) {
+                FlowDeReference(&p1->flow);
+                TmqhOutputPacketpool(NULL, p1);
+                return 0;
+            }
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
+            p2->flowflags |= FLOW_PKT_LAST_PSEUDO;
+        } else {
+            p1->flowflags |= FLOW_PKT_LAST_PSEUDO;
+        }
+    } else {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+            p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn);
+            if (p1 == NULL) {
+                return 0;
+            }
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
+            p1->flowflags |= FLOW_PKT_LAST_PSEUDO;
+        } else {
+            /* impossible */
+            BUG_ON(1);
+        }
+    }
+    f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
+
+    FlowWorkerFlowTimeout(tv, p1, fw, detect_thread);
+    PacketPoolReturnPacket(p1);
+    if (p2) {
+        FlowWorkerFlowTimeout(tv, p2, fw, detect_thread);
+        PacketPoolReturnPacket(p2);
+        return 2;
+    }
+    return 1;
+}
+
+static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
+        void *detect_thread, // TODO proper type?
+        FlowTimeoutCounters *counters,
+        FlowQueuePrivate *fq)
+{
+    Flow *f;
+    while ((f = FlowQueuePrivateGetFromTop(fq)) != NULL) {
+        f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
+
+        const FlowStateType state = f->flow_state;
+        if (f->proto == IPPROTO_TCP) {
+            if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
+#ifdef CAPTURE_OFFLOAD
+                    state != FLOW_STATE_CAPTURE_BYPASSED &&
+#endif
+                    state != FLOW_STATE_LOCAL_BYPASSED &&
+                    FlowForceReassemblyNeedReassembly(f) == 1 &&
+                    f->ffr != 0)
+            {
+                int cnt = FlowFinish(tv, f, fw, detect_thread);
+                counters->flows_aside_pkt_inject += cnt;
+                counters->flows_aside_needs_work++;
+            }
+        }
+#if 0
+// 20200501 this *is* possible if the flow timeout handling triggers a proto upgrade (e.g. http->https)
+#ifdef DEBUG
+        /* this should not be possible */
+        BUG_ON(f->use_cnt > 0);
+#endif
+#endif
+        /* no one is referring to this flow, use_cnt 0, removed from hash
+         * so we can unlock it and pass it to the flow recycler */
+
+        if (fw->output_thread_flow != NULL)
+            (void)OutputFlowLog(tv, fw->output_thread_flow, f);
+
+        FlowClearMemory (f, f->protomap);
+        FLOWLOCK_UNLOCK(f);
+        if (fw->fls.spare_queue.len >= 200) { // TODO match to API? 200 = 2 * block size
+            FlowSparePoolReturnFlow(f);
+        } else {
+            FlowQueuePrivatePrependFlow(&fw->fls.spare_queue, f);
+        }
+// TODO 20200503 we can get here with use_cnt > 0. How does it work wrt timeout? Should we not queue it? But what then?
+    }
+}
 
 /** \brief handle flow for packet
  *
@@ -75,9 +215,9 @@ typedef struct FlowWorkerThreadData_ {
  */
 static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p)
 {
-    FlowHandlePacketUpdate(p->flow, p);
+    FlowHandlePacketUpdate(p->flow, p, tv, fw->dtv);
 
-    int state = SC_ATOMIC_GET(p->flow->flow_state);
+    int state = p->flow->flow_state;
     switch (state) {
 #ifdef CAPTURE_OFFLOAD
         case FLOW_STATE_CAPTURE_BYPASSED:
@@ -110,7 +250,12 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
     fw->both_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_capture_pkts", tv);
     fw->both_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_capture_bytes", tv);
 
-    fw->dtv = DecodeThreadVarsAlloc(tv);
+    fw->cnt.flows_aside_needs_work = StatsRegisterCounter("flow.wrk.flows_evicted_needs_work", tv);
+    fw->cnt.flows_aside_pkt_inject = StatsRegisterCounter("flow.wrk.flows_evicted_pkt_inject", tv);
+    fw->cnt.flows_removed = StatsRegisterCounter("flow.wrk.flows_evicted", tv);
+    fw->cnt.flows_injected = StatsRegisterCounter("flow.wrk.flows_injected", tv);
+
+    fw->fls.dtv = fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {
         FlowWorkerThreadDeinit(tv, fw);
         return TM_ECODE_FAILED;
@@ -137,13 +282,17 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
         FlowWorkerThreadDeinit(tv, fw);
         return TM_ECODE_FAILED;
     }
+    if (OutputFlowLogThreadInit(tv, NULL, &fw->output_thread_flow) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+        FlowWorkerThreadDeinit(tv, fw);
+        return TM_ECODE_FAILED;
+    }
 
     DecodeRegisterPerfCounters(fw->dtv, tv);
     AppLayerRegisterThreadCounters(tv);
 
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueueNoLock));
-
     *data = fw;
     return TM_ECODE_OK;
 }
@@ -166,12 +315,34 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
 
     /* Free output. */
     OutputLoggerThreadDeinit(tv, fw->output_thread);
+    OutputFlowLogThreadDeinit(tv, fw->output_thread_flow);
 
     /* free pq */
     BUG_ON(fw->pq.len);
 
+    Flow *f;
+    while ((f = FlowQueuePrivateGetFromTop(&fw->fls.spare_queue)) != NULL) {
+        FlowFree(f);
+    }
+
     SCFree(fw);
     return TM_ECODE_OK;
+}
+
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
+TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *pq);
+
+static inline void UpdateCounters(ThreadVars *tv,
+        FlowWorkerThreadData *fw, const FlowTimeoutCounters *counters)
+{
+    if (counters->flows_aside_needs_work) {
+        StatsAddUI64(tv, fw->cnt.flows_aside_needs_work,
+                (uint64_t)counters->flows_aside_needs_work);
+    }
+    if (counters->flows_aside_pkt_inject) {
+        StatsAddUI64(tv, fw->cnt.flows_aside_pkt_inject,
+                (uint64_t)counters->flows_aside_pkt_inject);
+    }
 }
 
 static void FlowPruneFiles(Packet *p)
@@ -186,10 +357,123 @@ static void FlowPruneFiles(Packet *p)
     }
 }
 
+static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw,
+        Packet *p, void *detect_thread)
+{
+    FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
+    StreamTcp(tv, p, fw->stream_thread, &fw->pq);
+    FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
+
+    if (FlowChangeProto(p->flow)) {
+        StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
+        AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TS);
+        AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TC);
+    }
+
+    /* Packets here can safely access p->flow as it's locked */
+    SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
+    Packet *x;
+    while ((x = PacketDequeueNoLock(&fw->pq))) {
+        SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
+
+        if (detect_thread != NULL) {
+            FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
+            Detect(tv, x, detect_thread);
+            FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
+        }
+
+        OutputLoggerLog(tv, x, fw->output_thread);
+
+        /* put these packets in the preq queue so that they are
+         * by the other thread modules before packet 'p'. */
+        PacketEnqueueNoLock(&tv->decode_pq, x);
+    }
+}
+
+static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw,
+        void *detect_thread)
+{
+    SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
+    DEBUG_VALIDATE_BUG_ON(!(p->flow && PKT_IS_TCP(p)));
+    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+
+    /* handle TCP and app layer */
+    FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread);
+
+    PacketUpdateEngineEventCounters(tv, fw->dtv, p);
+
+    /* handle Detect */
+    SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
+    if (detect_thread != NULL) {
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
+        Detect(tv, p, detect_thread);
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
+    }
+
+    // Outputs.
+    OutputLoggerLog(tv, p, fw->output_thread);
+
+    /* Prune any stored files. */
+    FlowPruneFiles(p);
+
+    /*  Release tcp segments. Done here after alerting can use them. */
+    FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
+    StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
+            STREAM_TOSERVER : STREAM_TOCLIENT);
+    FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
+
+    /* run tx cleanup last */
+    AppLayerParserTransactionsCleanup(p->flow);
+
+    FlowDeReference(&p->flow);
+    /* flow is unlocked later in FlowFinish() */
+}
+
+/** \internal
+ *  \brief process flows injected into our queue by other threads
+ */
+static inline void FlowWorkerProcessInjectedFlows(ThreadVars *tv,
+        FlowWorkerThreadData *fw, Packet *p, void *detect_thread)
+{
+    /* take injected flows and append to our work queue */
+    FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_INJECTED);
+    FlowQueuePrivate injected = { NULL, NULL, 0 };
+    if (SC_ATOMIC_GET(tv->flow_queue->non_empty) == true)
+        injected = FlowQueueExtractPrivate(tv->flow_queue);
+    if (injected.len > 0) {
+        StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);
+
+        FlowTimeoutCounters counters = { 0, 0, };
+        CheckWorkQueue(tv, fw, detect_thread, &counters, &injected);
+        UpdateCounters(tv, fw, &counters);
+    }
+    FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW_INJECTED);
+}
+
+/** \internal
+ *  \brief process flows set aside locally during flow lookup
+ */
+static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv,
+        FlowWorkerThreadData *fw, Packet *p, void *detect_thread)
+{
+    FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
+    if (fw->fls.work_queue.len) {
+        StatsAddUI64(tv, fw->cnt.flows_removed, (uint64_t)fw->fls.work_queue.len);
+
+        FlowTimeoutCounters counters = { 0, 0, };
+        CheckWorkQueue(tv, fw, detect_thread, &counters, &fw->fls.work_queue);
+        UpdateCounters(tv, fw, &counters);
+    }
+    FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
+}
+
 static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
     FlowWorkerThreadData *fw = data;
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
+
+    DEBUG_VALIDATE_BUG_ON(p == NULL);
+    DEBUG_VALIDATE_BUG_ON(tv->flow_queue == NULL);
 
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
@@ -202,7 +486,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     if (p->flags & PKT_WANTS_FLOW) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
 
-        FlowHandlePacket(tv, fw->dtv, p);
+        FlowHandlePacket(tv, &fw->fls, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
@@ -218,6 +502,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
      * pseudo packet created by the flow manager. */
     } else if (p->flags & PKT_HAS_FLOW) {
         FLOWLOCK_WRLOCK(p->flow);
+        DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
     }
 
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
@@ -236,35 +521,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             DisableDetectFlowFileFlags(p->flow);
         }
 
-        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
-        StreamTcp(tv, p, fw->stream_thread, &fw->pq);
-        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
-
-        if (FlowChangeProto(p->flow)) {
-            StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
-        }
-
-        /* Packets here can safely access p->flow as it's locked */
-        SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
-        Packet *x;
-        while ((x = PacketDequeueNoLock(&fw->pq))) {
-            SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
-
-            // TODO do we need to call StreamTcp on these pseudo packets or not?
-            //StreamTcp(tv, x, fw->stream_thread, &fw->pq, NULL);
-            if (detect_thread != NULL) {
-                FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
-                Detect(tv, x, detect_thread);
-                FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
-            }
-
-            //  Outputs
-            OutputLoggerLog(tv, x, fw->output_thread);
-
-            /* put these packets in the preq queue so that they are
-             * by the other thread modules before packet 'p'. */
-            PacketEnqueueNoLock(&tv->decode_pq, x);
-        }
+        FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread);
 
     /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && p->proto == IPPROTO_UDP) {
@@ -278,7 +535,6 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     /* handle Detect */
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
-
     if (detect_thread != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, detect_thread);
@@ -292,20 +548,29 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     FlowPruneFiles(p);
 
     /*  Release tcp segments. Done here after alerting can use them. */
-    if (p->flow != NULL && p->proto == IPPROTO_TCP) {
-        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
-        StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
-                STREAM_TOSERVER : STREAM_TOCLIENT);
-        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
-    }
-
-    if (p->flow) {
+    if (p->flow != NULL) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+
+        if (p->proto == IPPROTO_TCP) {
+            FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
+            StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
+                    STREAM_TOSERVER : STREAM_TOCLIENT);
+            FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
+        }
 
         /* run tx cleanup last */
         AppLayerParserTransactionsCleanup(p->flow);
-        FLOWLOCK_UNLOCK(p->flow);
+
+        Flow *f = p->flow;
+        FlowDeReference(&p->flow);
+        FLOWLOCK_UNLOCK(f);
     }
+
+    /* take injected flows and process them */
+    FlowWorkerProcessInjectedFlows(tv, fw, p, detect_thread);
+
+    /* process local work queue */
+    FlowWorkerProcessLocalFlows(tv, fw, p, detect_thread);
 
     return TM_ECODE_OK;
 }
@@ -337,6 +602,10 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
             return "detect";
         case PROFILE_FLOWWORKER_TCPPRUNE:
             return "tcp-prune";
+        case PROFILE_FLOWWORKER_FLOW_INJECTED:
+            return "flow-inject";
+        case PROFILE_FLOWWORKER_FLOW_EVICTED:
+            return "flow-evict";
         case PROFILE_FLOWWORKER_SIZE:
             return "size";
     }

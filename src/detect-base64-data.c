@@ -25,7 +25,9 @@
 #include "util-unittest.h"
 
 static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectBase64DataRegisterTests(void);
+#endif
 
 void DetectBase64DataRegister(void)
 {
@@ -35,9 +37,10 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].url =
         "/rules/base64-keywords.html#base64-data";
     sigmatch_table[DETECT_BASE64_DATA].Setup = DetectBase64DataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_BASE64_DATA].RegisterTests =
         DetectBase64DataRegisterTests;
-
+#endif
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
@@ -247,16 +250,13 @@ end:
     return retval;
 }
 
-#endif
-
 static void DetectBase64DataRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 
     UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
     UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02);
     UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03);
     UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

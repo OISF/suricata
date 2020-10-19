@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -220,8 +220,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
 
 void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
 {
-    int16_t qid = 0;
-
+    uint32_t qid;
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
     if (p->flags & PKT_WANTS_FLOW) {
@@ -251,24 +250,19 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
  */
 void TmqhOutputFlowIPPair(ThreadVars *tv, Packet *p)
 {
-    int16_t qid = 0;
     uint32_t addr_hash = 0;
-    int i;
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
     if (p->src.family == AF_INET6) {
-        for (i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             addr_hash += p->src.addr_data32[i] + p->dst.addr_data32[i];
         }
     } else {
         addr_hash = p->src.addr_data32[0] + p->dst.addr_data32[0];
     }
 
-    /* we don't have to worry about possible overflow, since
-     * ctx->size will be lesser than 2 ** 31 for sure */
-    qid = addr_hash % ctx->size;
-
+    uint32_t qid = addr_hash % ctx->size;
     PacketQueue *q = ctx->queues[qid].q;
     SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);

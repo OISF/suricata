@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,6 +47,7 @@
 #include "output-json.h"
 #include "output-json-flow.h"
 
+#include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
 
@@ -59,18 +60,20 @@ typedef struct LogJsonFileCtx_ {
 typedef struct JsonFlowLogThread_ {
     LogJsonFileCtx *flowlog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
-static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
+static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
 
-    json_t *js = json_object();
-    if (unlikely(js == NULL))
+    JsonBuilder *jb = jb_new_object();
+    if (unlikely(jb == NULL)) {
         return NULL;
+    }
 
     struct timeval tv;
     memset(&tv, 0x00, sizeof(tv));
@@ -100,17 +103,10 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
         dp = f->sp;
     }
 
-    char proto[16];
-    if (SCProtoNameValid(f->proto) == TRUE) {
-        strlcpy(proto, known_proto[f->proto], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, f->proto);
-    }
-
     /* time */
-    json_object_set_new(js, "timestamp", json_string(timebuf));
+    jb_set_string(jb, "timestamp", timebuf);
 
-    CreateJSONFlowId(js, (const Flow *)f);
+    CreateEveFlowId(jb, (const Flow *)f);
 
 #if 0 // TODO
     /* sensor id */
@@ -120,143 +116,131 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 
     /* input interface */
     if (f->livedev) {
-        json_object_set_new(js, "in_iface", json_string(f->livedev->dev));
+        jb_set_string(jb, "in_iface", f->livedev->dev);
     }
 
-    if (event_type) {
-        json_object_set_new(js, "event_type", json_string(event_type));
-    }
+    JB_SET_STRING(jb, "event_type", "flow");
 
     /* vlan */
     if (f->vlan_idx > 0) {
-        json_t *js_vlan = json_array();
-        json_array_append_new(js_vlan, json_integer(f->vlan_id[0]));
+        jb_open_array(jb, "vlan");
+        jb_append_uint(jb, f->vlan_id[0]);
         if (f->vlan_idx > 1) {
-            json_array_append_new(js_vlan, json_integer(f->vlan_id[1]));
+            jb_append_uint(jb, f->vlan_id[1]);
         }
-        json_object_set_new(js, "vlan", js_vlan);
+        jb_close(jb);
     }
 
     /* tuple */
-    json_object_set_new(js, "src_ip", json_string(srcip));
+    jb_set_string(jb, "src_ip", srcip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "src_port", json_integer(sp));
+            jb_set_uint(jb, "src_port", sp);
             break;
     }
-    json_object_set_new(js, "dest_ip", json_string(dstip));
+    jb_set_string(jb, "dest_ip", dstip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "dest_port", json_integer(dp));
+            jb_set_uint(jb, "dest_port", dp);
             break;
     }
-    json_object_set_new(js, "proto", json_string(proto));
+
+    if (SCProtoNameValid(f->proto)) {
+        jb_set_string(jb, "proto", known_proto[f->proto]);
+    } else {
+        char proto[4];
+        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        jb_set_string(jb, "proto", proto);
+    }
+
     switch (f->proto) {
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6:
-            json_object_set_new(js, "icmp_type",
-                    json_integer(f->icmp_s.type));
-            json_object_set_new(js, "icmp_code",
-                    json_integer(f->icmp_s.code));
+            jb_set_uint(jb, "icmp_type", f->icmp_s.type);
+            jb_set_uint(jb, "icmp_code", f->icmp_s.code);
             if (f->tosrcpktcnt) {
-                json_object_set_new(js, "response_icmp_type",
-                        json_integer(f->icmp_d.type));
-                json_object_set_new(js, "response_icmp_code",
-                        json_integer(f->icmp_d.code));
+                jb_set_uint(jb, "response_icmp_type", f->icmp_d.type);
+                jb_set_uint(jb, "response_icmp_code", f->icmp_d.code);
             }
             break;
     }
-    return js;
+    return jb;
 }
 
-void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
+void EveAddAppProto(Flow *f, JsonBuilder *js)
 {
-    json_object_set_new(js, "app_proto",
-            json_string(AppProtoToString(f->alproto)));
-    if (f->alproto_ts != f->alproto) {
-        json_object_set_new(js, "app_proto_ts",
-                json_string(AppProtoToString(f->alproto_ts)));
+    if (f->alproto) {
+        jb_set_string(js, "app_proto", AppProtoToString(f->alproto));
     }
-    if (f->alproto_tc != f->alproto) {
-        json_object_set_new(js, "app_proto_tc",
-                json_string(AppProtoToString(f->alproto_tc)));
+    if (f->alproto_ts && f->alproto_ts != f->alproto) {
+        jb_set_string(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
+    }
+    if (f->alproto_tc && f->alproto_tc != f->alproto) {
+        jb_set_string(js, "app_proto_tc", AppProtoToString(f->alproto_tc));
     }
     if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
-        json_object_set_new(js, "app_proto_orig",
-                json_string(AppProtoToString(f->alproto_orig)));
+        jb_set_string(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
     }
     if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
-        json_object_set_new(js, "app_proto_expected",
-                json_string(AppProtoToString(f->alproto_expect)));
+        jb_set_string(js, "app_proto_expected",
+                AppProtoToString(f->alproto_expect));
     }
 
+}
+
+void EveAddFlow(Flow *f, JsonBuilder *js)
+{
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc) {
-        json_object_set_new(hjs, "pkts_toserver",
-                json_integer(f->todstpktcnt + fc->todstpktcnt));
-        json_object_set_new(hjs, "pkts_toclient",
-                json_integer(f->tosrcpktcnt + fc->tosrcpktcnt));
-        json_object_set_new(hjs, "bytes_toserver",
-                json_integer(f->todstbytecnt + fc->todstbytecnt));
-        json_object_set_new(hjs, "bytes_toclient",
-                json_integer(f->tosrcbytecnt + fc->tosrcbytecnt));
-        json_t *bhjs = json_object();
-        if (bhjs != NULL) {
-            json_object_set_new(bhjs, "pkts_toserver",
-                    json_integer(fc->todstpktcnt));
-            json_object_set_new(bhjs, "pkts_toclient",
-                    json_integer(fc->tosrcpktcnt));
-            json_object_set_new(bhjs, "bytes_toserver",
-                    json_integer(fc->todstbytecnt));
-            json_object_set_new(bhjs, "bytes_toclient",
-                    json_integer(fc->tosrcbytecnt));
-            json_object_set_new(hjs, "bypassed", bhjs);
-        }
+        jb_set_uint(js, "pkts_toserver", f->todstpktcnt + fc->todstpktcnt);
+        jb_set_uint(js, "pkts_toclient", f->tosrcpktcnt + fc->tosrcpktcnt);
+        jb_set_uint(js, "bytes_toserver", f->todstbytecnt + fc->todstbytecnt);
+        jb_set_uint(js, "bytes_toclient", f->tosrcbytecnt + fc->tosrcbytecnt);
+
+        jb_open_object(js, "bypassed");
+        jb_set_uint(js, "pkts_toserver", fc->todstpktcnt);
+        jb_set_uint(js, "pkts_toclient", fc->tosrcpktcnt);
+        jb_set_uint(js, "bytes_toserver", fc->todstbytecnt);
+        jb_set_uint(js, "bytes_toclient", fc->tosrcbytecnt);
+        jb_close(js);
     } else {
-        json_object_set_new(hjs, "pkts_toserver",
-                json_integer(f->todstpktcnt));
-        json_object_set_new(hjs, "pkts_toclient",
-                json_integer(f->tosrcpktcnt));
-        json_object_set_new(hjs, "bytes_toserver",
-                json_integer(f->todstbytecnt));
-        json_object_set_new(hjs, "bytes_toclient",
-                json_integer(f->tosrcbytecnt));
+        jb_set_uint(js, "pkts_toserver", f->todstpktcnt);
+        jb_set_uint(js, "pkts_toclient", f->tosrcpktcnt);
+        jb_set_uint(js, "bytes_toserver", f->todstbytecnt);
+        jb_set_uint(js, "bytes_toclient", f->tosrcbytecnt);
     }
 
     char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    json_object_set_new(hjs, "start", json_string(timebuf1));
+    jb_set_string(js, "start", timebuf1);
 }
 
-/* JSON format logging */
-static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
+/* Eve format logging */
+static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
 {
     LogJsonFileCtx *flow_ctx = aft->flowlog_ctx;
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
 
-    JsonAddFlow(f, js, hjs);
+    EveAddAppProto(f, jb);
+    jb_open_object(jb, "flow");
+    EveAddFlow(f, jb);
 
     char timebuf2[64];
     CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
-    json_object_set_new(hjs, "end", json_string(timebuf2));
+    jb_set_string(jb, "end", timebuf2);
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
-    json_object_set_new(hjs, "age",
-            json_integer(age));
+    jb_set_uint(jb, "age", age);
 
     if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)
-        json_object_set_new(hjs, "emergency", json_true());
+        JB_SET_TRUE(jb, "emergency");
     const char *state = NULL;
     if (f->flow_end_flags & FLOW_END_FLAG_STATE_NEW)
         state = "new";
@@ -266,16 +250,14 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         state = "closed";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
         state = "bypassed";
-        int flow_state = SC_ATOMIC_GET(f->flow_state);
+        int flow_state = f->flow_state;
         switch (flow_state) {
             case FLOW_STATE_LOCAL_BYPASSED:
-                json_object_set_new(hjs, "bypass",
-                        json_string("local"));
+                JB_SET_STRING(jb, "bypass", "local");
                 break;
 #ifdef CAPTURE_OFFLOAD
             case FLOW_STATE_CAPTURE_BYPASSED:
-                json_object_set_new(hjs, "bypass",
-                        json_string("capture"));
+                JB_SET_STRING(jb, "bypass", "capture");
                 break;
 #endif
             default:
@@ -285,100 +267,62 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         }
     }
 
-    json_object_set_new(hjs, "state",
-            json_string(state));
+    jb_set_string(jb, "state", state);
 
     const char *reason = NULL;
-    if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
-        reason = "timeout";
-    else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
+    if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
         reason = "forced";
     else if (f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN)
         reason = "shutdown";
+    else if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
+        reason = "timeout";
+    else
+        reason = "unknown";
 
-    json_object_set_new(hjs, "reason",
-            json_string(reason));
+    jb_set_string(jb, "reason", reason);
 
-    json_object_set_new(hjs, "alerted", json_boolean(FlowHasAlerts(f)));
+    jb_set_bool(jb, "alerted", FlowHasAlerts(f));
     if (f->flags & FLOW_WRONG_THREAD)
-        json_object_set_new(hjs, "wrong_thread", json_true());
+        JB_SET_TRUE(jb, "wrong_thread");
 
-    json_object_set_new(js, "flow", hjs);
+    /* Close flow. */
+    jb_close(jb);
 
-    JsonAddCommonOptions(&flow_ctx->cfg, NULL, f, js);
+    EveAddCommonOptions(&flow_ctx->cfg, NULL, f, jb);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
-        json_t *tjs = json_object();
-        if (tjs == NULL) {
-            return;
-        }
+        jb_open_object(jb, "tcp");
 
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->tcp_packet_flags : 0);
-        json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
+        jb_set_string(jb, "tcp_flags", hexflags);
 
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->client.tcp_flags : 0);
-        json_object_set_new(tjs, "tcp_flags_ts", json_string(hexflags));
+        jb_set_string(jb, "tcp_flags_ts", hexflags);
 
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->server.tcp_flags : 0);
-        json_object_set_new(tjs, "tcp_flags_tc", json_string(hexflags));
+        jb_set_string(jb, "tcp_flags_tc", hexflags);
 
-        JsonTcpFlags(ssn ? ssn->tcp_packet_flags : 0, tjs);
+        EveTcpFlags(ssn ? ssn->tcp_packet_flags : 0, jb);
 
         if (ssn) {
-            const char *tcp_state = NULL;
-            switch (ssn->state) {
-                case TCP_NONE:
-                    tcp_state = "none";
-                    break;
-                case TCP_LISTEN:
-                    tcp_state = "listen";
-                    break;
-                case TCP_SYN_SENT:
-                    tcp_state = "syn_sent";
-                    break;
-                case TCP_SYN_RECV:
-                    tcp_state = "syn_recv";
-                    break;
-                case TCP_ESTABLISHED:
-                    tcp_state = "established";
-                    break;
-                case TCP_FIN_WAIT1:
-                    tcp_state = "fin_wait1";
-                    break;
-                case TCP_FIN_WAIT2:
-                    tcp_state = "fin_wait2";
-                    break;
-                case TCP_TIME_WAIT:
-                    tcp_state = "time_wait";
-                    break;
-                case TCP_LAST_ACK:
-                    tcp_state = "last_ack";
-                    break;
-                case TCP_CLOSE_WAIT:
-                    tcp_state = "close_wait";
-                    break;
-                case TCP_CLOSING:
-                    tcp_state = "closing";
-                    break;
-                case TCP_CLOSED:
-                    tcp_state = "closed";
-                    break;
-            }
-            json_object_set_new(tjs, "state", json_string(tcp_state));
+            const char *tcp_state = StreamTcpStateAsString(ssn->state);
+            if (tcp_state != NULL)
+                jb_set_string(jb, "state", tcp_state);
             if (ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP)
-                json_object_set_new(tjs, "gap_ts", json_true());
+                JB_SET_TRUE(jb, "gap_ts");
             if (ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
-                json_object_set_new(tjs, "gap_tc", json_true());
+                JB_SET_TRUE(jb, "gap_tc");
         }
 
-        json_object_set_new(js, "tcp", tjs);
+        /* Close tcp. */
+        jb_close(jb);
     }
 }
 
@@ -390,65 +334,17 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    json_t *js = CreateJSONHeaderFromFlow(f, "flow");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    JsonBuilder *jb = CreateEveHeaderFromFlow(f);
+    if (unlikely(jb == NULL)) {
+        SCReturnInt(TM_ECODE_OK);
+    }
 
-    JsonFlowLogJSON(jhl, js, f);
+    EveFlowLogJSON(jhl, jb, f);
 
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "http");
-
-    json_object_clear(js);
-    json_decref(js);
+    OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
+    jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
-}
-
-static void OutputFlowLogDeinit(OutputCtx *output_ctx)
-{
-    LogJsonFileCtx *flow_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = flow_ctx->file_ctx;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(flow_ctx);
-    SCFree(output_ctx);
-}
-
-#define DEFAULT_LOG_FILENAME "flow.json"
-static OutputInitResult OutputFlowLogInit(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
-    if (unlikely(flow_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(flow_ctx);
-        return result;
-    }
-
-    flow_ctx->file_ctx = file_ctx;
-    output_ctx->data = flow_ctx;
-    output_ctx->DeInit = OutputFlowLogDeinit;
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
 }
 
 static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
@@ -486,29 +382,38 @@ static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_c
 
 static TmEcode JsonFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonFlowLogThread *aft = SCMalloc(sizeof(JsonFlowLogThread));
+    JsonFlowLogThread *aft = SCCalloc(1, sizeof(JsonFlowLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonFlowLogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogFlow.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Outptut Context (file pointer and mutex) */
     aft->flowlog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
+    }
+
+    aft->file_ctx = LogFileEnsureExists(aft->flowlog_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
@@ -528,12 +433,7 @@ static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonFlowLogRegister (void)
 {
-    /* register as separate module */
-    OutputRegisterFlowModule(LOGGER_JSON_FLOW, "JsonFlowLog", "flow-json-log",
-        OutputFlowLogInit, JsonFlowLogger, JsonFlowLogThreadInit,
-        JsonFlowLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog",
         "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
         JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);

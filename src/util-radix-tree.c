@@ -30,6 +30,7 @@
 #include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-byte.h"
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -86,8 +87,7 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
     SCRadixUserData *prev = NULL;
 
     if (new == NULL || list == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "new or list supplied as NULL");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "new or list supplied as NULL");
     }
 
     /* add to the list in descending order.  The reason we do this is for
@@ -186,8 +186,7 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
                                               void *user)
 {
     if (prefix == NULL || user == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "prefix or user NULL");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "prefix or user NULL");
     }
 
     SCRadixAppendToSCRadixUserDataList(SCRadixAllocSCRadixUserData(netmask, user),
@@ -210,8 +209,7 @@ static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
     SCRadixUserData *temp = NULL, *prev = NULL;
 
     if (prefix == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "prefix NULL");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "prefix NULL");
     }
 
     prev = temp = prefix->user_data;
@@ -428,8 +426,8 @@ SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*
     SCRadixTree *tree = NULL;
 
     if ( (tree = SCMalloc(sizeof(SCRadixTree))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
     }
     memset(tree, 0, sizeof(SCRadixTree));
 
@@ -799,8 +797,8 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                                                         sizeof(uint8_t)))) == NULL) {
             SCFree(node->netmasks);
             node->netmasks = NULL;
-            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "Fatal error encountered in SCRadixAddKey. Exiting...");
         }
         node->netmasks = ptmp;
 
@@ -947,7 +945,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
 
     /* Does it have a mask? */
     if (NULL != (mask_str = strchr(ip_str, '/'))) {
-        int cidr;
+        uint8_t cidr;
         *(mask_str++) = '\0';
 
         /* Dotted type netmask not supported (yet) */
@@ -956,10 +954,10 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 32)) {
+        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 32) < 0) {
             return NULL;
         }
+
         netmask = (uint8_t)cidr;
     }
 
@@ -995,7 +993,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
     /* Does it have a mask? */
     if (NULL != (mask_str = strchr(ip_str, '/'))) {
-        int cidr;
+        uint8_t cidr;
         *(mask_str++) = '\0';
 
         /* Dotted type netmask not supported (yet) */
@@ -1004,10 +1002,10 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 128)) {
+        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) < 0) {
             return NULL;
         }
+
         netmask = (uint8_t)cidr;
     }
 

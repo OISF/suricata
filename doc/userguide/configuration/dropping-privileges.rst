@@ -1,7 +1,7 @@
 Dropping Privileges After Startup
 =================================
 
-Currently, libcap-ng is needed for dropping privileges on Suricata
+Currently, ``libcap-ng`` is needed for dropping privileges on Suricata
 after startup. For libcap, see status of feature request number #276
 -- Libcap support for dropping privileges.
 
@@ -38,7 +38,7 @@ e.g. (this assumes a 'suri' user and group):
   suricata -D -i eth0 --user=suri --group=suri
 
 You will also want to make sure your user/group permissions are set so
-suricata can still write to its log files which are usually located in
+Suricata can still write to its log files which are usually located in
 /var/log/suricata.
 
 ::

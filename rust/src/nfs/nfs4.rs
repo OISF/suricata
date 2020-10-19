@@ -21,8 +21,6 @@ use nom;
 use nom::number::streaming::be_u32;
 
 use crate::core::*;
-use crate::log::*;
-
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;

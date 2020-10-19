@@ -47,8 +47,9 @@
 #include "util-debug.h"
 
 static int DetectL3ProtoSetup(DetectEngineCtx *, Signature *, const char *);
-
-void DetectL3protoRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectL3protoRegisterTests(void);
+#endif
 
 void DetectL3ProtoRegister(void)
 {
@@ -56,9 +57,9 @@ void DetectL3ProtoRegister(void)
     sigmatch_table[DETECT_L3PROTO].Match = NULL;
     sigmatch_table[DETECT_L3PROTO].Setup = DetectL3ProtoSetup;
     sigmatch_table[DETECT_L3PROTO].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_L3PROTO].RegisterTests = DetectL3protoRegisterTests;
-
-    return;
+#endif
 }
 /**
  * \internal
@@ -359,17 +360,13 @@ end:
     return result;
 }
 
-
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectL3proto
  */
-void DetectL3protoRegisterTests(void)
+static void DetectL3protoRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectL3protoTestSig1", DetectL3protoTestSig1);
     UtRegisterTest("DetectL3protoTestSig2", DetectL3protoTestSig2);
     UtRegisterTest("DetectL3protoTestSig3", DetectL3protoTestSig3);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

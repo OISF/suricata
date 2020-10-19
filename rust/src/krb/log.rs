@@ -17,20 +17,18 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::krb::krb5::{KRB5State,KRB5Transaction,test_weak_encryption};
 
-#[no_mangle]
-pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB5Transaction) -> *mut JsonT
+fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<(), JsonError>
 {
-    let js = Json::object();
     match tx.error_code {
         Some(c) => {
-            js.set_string("msg_type", "KRB_ERROR");
-            js.set_string("failed_request", &format!("{:?}", tx.msg_type));
-            js.set_string("error_code", &format!("{:?}", c));
+            jsb.set_string("msg_type", "KRB_ERROR")?;
+            jsb.set_string("failed_request", &format!("{:?}", tx.msg_type))?;
+            jsb.set_string("error_code", &format!("{:?}", c))?;
         },
-        None    => { js.set_string("msg_type", &format!("{:?}", tx.msg_type)); },
+        None    => { jsb.set_string("msg_type", &format!("{:?}", tx.msg_type))?; },
     }
     let cname = match tx.cname {
         Some(ref x) => format!("{}", x),
@@ -48,11 +46,17 @@ pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB
         Some(ref x) => format!("{:?}", x),
         None        => "<none>".to_owned(),
     };
-    js.set_string("cname", &cname);
-    js.set_string("realm", &realm);
-    js.set_string("sname", &sname);
-    js.set_string("encryption", &encryption);
-    js.set_boolean("weak_encryption", tx.etype.map_or(false,test_weak_encryption));
-    return js.unwrap();
+    jsb.set_string("cname", &cname)?;
+    jsb.set_string("realm", &realm)?;
+    jsb.set_string("sname", &sname)?;
+    jsb.set_string("encryption", &encryption)?;
+    jsb.set_bool("weak_encryption", tx.etype.map_or(false,test_weak_encryption))?;
+
+    return Ok(());
 }
 
+#[no_mangle]
+pub extern "C" fn rs_krb5_log_json_response(jsb: &mut JsonBuilder, _state: &mut KRB5State, tx: &mut KRB5Transaction) -> bool
+{
+    krb5_log_response(jsb, tx).is_ok()
+}

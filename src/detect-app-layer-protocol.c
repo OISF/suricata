@@ -33,7 +33,9 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
 static void DetectAppLayerProtocolRegisterTests(void);
+#endif
 
 static int DetectAppLayerProtocolPacketMatch(
         DetectEngineThreadCtx *det_ctx,
@@ -266,8 +268,10 @@ void DetectAppLayerProtocolRegister(void)
         DetectAppLayerProtocolSetup;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Free =
         DetectAppLayerProtocolFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].RegisterTests =
         DetectAppLayerProtocolRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
@@ -544,11 +548,9 @@ static int DetectAppLayerProtocolTest14(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
 
 static void DetectAppLayerProtocolRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectAppLayerProtocolTest01",
                    DetectAppLayerProtocolTest01);
     UtRegisterTest("DetectAppLayerProtocolTest02",
@@ -577,7 +579,5 @@ static void DetectAppLayerProtocolRegisterTests(void)
                    DetectAppLayerProtocolTest13);
     UtRegisterTest("DetectAppLayerProtocolTest14",
                    DetectAppLayerProtocolTest14);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

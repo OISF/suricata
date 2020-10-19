@@ -7,9 +7,7 @@ Steps:
 
 Configure with DAG support:
 
-
 ::
-
 
   ./configure --enable-dag --prefix=/usr --sysconfdir=/etc --localstatedir=/var
   make
@@ -19,7 +17,6 @@ Results in:
 
 ::
 
-
   Suricata Configuration:
     AF_PACKET support:                       no
     PF_RING support:                         no
@@ -28,16 +25,15 @@ Results in:
     DAG enabled:                             yes
     Napatech enabled:                        no
 
-Start with:
 
+Start with:
 
 ::
 
-
   suricata -c suricata.yaml --dag 0:0
 
-Started up!
 
+Started up!
 
 ::
 

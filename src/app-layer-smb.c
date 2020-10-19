@@ -149,16 +149,6 @@ static AppLayerGetTxIterTuple SMBGetTxIterator(
 }
 
 
-static void SMBSetTxLogged(void *alstate, void *tx, uint32_t logger)
-{
-    rs_smb_tx_set_logged(alstate, tx, logger);
-}
-
-static LoggerId SMBGetTxLogged(void *alstate, void *tx)
-{
-    return rs_smb_tx_get_logged(alstate, tx);
-}
-
 static void SMBStateTransactionFree(void *state, uint64_t tx_id)
 {
     rs_smb_state_tx_free(state, tx_id);
@@ -195,16 +185,6 @@ static int SMBGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
     return rs_smb_state_get_event_info(event_name, event_id, event_type);
-}
-
-static void SMBSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
-{
-    rs_smb_tx_set_detect_flags(tx, dir, flags);
-}
-
-static uint64_t SMBGetDetectFlags(void *tx, uint8_t dir)
-{
-    return rs_smb_tx_get_detect_flags(tx, dir);
 }
 
 static void SMBStateTruncate(void *state, uint8_t direction)
@@ -310,17 +290,15 @@ void RegisterSMBParsers(void)
         AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_SMB, SMBGetTxIterator);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMB,
                 SMBGetTxCnt);
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SMB,
-                SMBGetTxLogged, SMBSetTxLogged);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMB,
                 SMBGetAlstateProgress);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMB,
                 rs_smb_state_progress_completion_status);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMB,
-                                               SMBGetDetectFlags, SMBSetDetectFlags);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMB,
                                           SMBStateTruncate);
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMB, SMBGetFiles);
+
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMB, rs_smb_get_tx_data);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_SMB,

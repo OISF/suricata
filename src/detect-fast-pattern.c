@@ -33,6 +33,7 @@
 #include "detect-fast-pattern.h"
 
 #include "util-error.h"
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -42,7 +43,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectFastPatternRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectFastPatternRegisterTests(void);
+#endif
 
 /* holds the list of sm match lists that need to be searched for a keyword
  * that has fp support */
@@ -169,8 +172,9 @@ void DetectFastPatternRegister(void)
     sigmatch_table[DETECT_FAST_PATTERN].Match = NULL;
     sigmatch_table[DETECT_FAST_PATTERN].Setup = DetectFastPatternSetup;
     sigmatch_table[DETECT_FAST_PATTERN].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FAST_PATTERN].RegisterTests = DetectFastPatternRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -283,10 +287,11 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                        "for fast_pattern offset");
             goto error;
         }
-        int offset = atoi(arg_substr);
-        if (offset > 65535) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern offset exceeds "
-                       "limit");
+        uint16_t offset;
+        if (StringParseUint16(&offset, 10, 0,
+                              (const char *)arg_substr) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid fast pattern offset:"
+                       " \"%s\"", arg_substr);
             goto error;
         }
 
@@ -297,14 +302,16 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                        "for fast_pattern offset");
             goto error;
         }
-        int length = atoi(arg_substr);
-        if (length > 65535) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern length exceeds "
-                       "limit");
+        uint16_t length;
+        if (StringParseUint16(&length, 10, 0,
+                              (const char *)arg_substr) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for fast "
+                       "pattern: \"%s\"", arg_substr);
             goto error;
         }
 
-        if (offset + length > 65535) {
+        // Avoiding integer overflow
+        if (offset > (65535 - length)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern (length + offset) "
                        "exceeds limit pattern length limit");
             goto error;
@@ -18860,11 +18867,8 @@ static int DetectFastPatternTest671(void)
     PASS;
 }
 
-#endif
-
-void DetectFastPatternRegisterTests(void)
+static void DetectFastPatternRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_http_method_buffer_id = DetectBufferTypeGetByName("http_method");
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
@@ -19580,7 +19584,5 @@ void DetectFastPatternRegisterTests(void)
      * - if 2 duplicate patterns, with no chop set get unique ids.
      */
     UtRegisterTest("DetectFastPatternTest671", DetectFastPatternTest671);
-#endif
-
-    return;
 }
+#endif

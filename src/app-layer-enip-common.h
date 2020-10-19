@@ -29,8 +29,6 @@
 #include "flow.h"
 #include "queue.h"
 
-#define MAX_ENIP_CMD    65535
-
 // EtherNet/IP commands
 #define NOP                0x0000
 #define LIST_SERVICES      0x0004
@@ -58,6 +56,8 @@
 #define INVALID_SESSION       0x0064
 #define INVALID_LENGTH        0x0065
 #define UNSUPPORTED_PROT_REV  0x0069
+//Found in wireshark
+#define ENCAP_HEADER_ERROR    0x006A
 
 #define MAX_CIP_SERVICE     127
 #define MAX_CIP_CLASS       65535
@@ -210,8 +210,7 @@ typedef struct ENIPTransaction_
 
     TAILQ_ENTRY(ENIPTransaction_) next;
     DetectEngineState *de_state;
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
+    AppLayerTxData tx_data;
 } ENIPTransaction;
 
 /** \brief Per flow ENIP state container */

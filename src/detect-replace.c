@@ -60,8 +60,9 @@ extern int run_mode;
 #include "util-profiling.h"
 
 static int DetectReplaceSetup(DetectEngineCtx *, Signature *, const char *);
-void DetectReplaceRegisterTests(void);
-
+#ifdef UNITTESTS
+static void DetectReplaceRegisterTests(void);
+#endif
 static int DetectReplacePostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 
@@ -72,8 +73,9 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].url = "/rules/payload-keywords.html#replace";
     sigmatch_table[DETECT_REPLACE].Match = DetectReplacePostMatch;
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
-    sigmatch_table[DETECT_REPLACE].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
+#endif
     sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
@@ -830,16 +832,11 @@ static int DetectReplaceParseTest07(void)
     return result;
 }
 
-
-
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectContent
  */
 void DetectReplaceRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
 /* matching */
     UtRegisterTest("DetectReplaceMatchTest01", DetectReplaceMatchTest01);
     UtRegisterTest("DetectReplaceMatchTest02", DetectReplaceMatchTest02);
@@ -864,5 +861,5 @@ void DetectReplaceRegisterTests(void)
     UtRegisterTest("DetectReplaceParseTest05", DetectReplaceParseTest05);
     UtRegisterTest("DetectReplaceParseTest06", DetectReplaceParseTest06);
     UtRegisterTest("DetectReplaceParseTest07", DetectReplaceParseTest07);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

@@ -33,9 +33,13 @@
 #include "detect-metadata.h"
 #include "util-hash-string.h"
 #include "util-unittest.h"
+#include "rust.h"
+#include "util-validate.h"
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectMetadataRegisterTests(void);
+#endif
 
 void DetectMetadataRegister (void)
 {
@@ -45,7 +49,9 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
+#endif
 }
 
 /**
@@ -97,8 +103,82 @@ static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *st
     return NULL;
 }
 
+static int SortHelper(const void *a, const void *b)
+{
+    const DetectMetadata *ma = *(const DetectMetadata **)a;
+    const DetectMetadata *mb = *(const DetectMetadata **)b;
+    return strcasecmp(ma->key, mb->key);
+}
+
+static char *CraftPreformattedJSON(const DetectMetadata *head)
+{
+    int cnt = 0;
+    for (const DetectMetadata *m = head; m != NULL; m = m->next) {
+        cnt++;
+    }
+    if (cnt == 0)
+        return NULL;
+
+    const DetectMetadata *array[cnt];
+    int i = 0;
+    for (const DetectMetadata *m = head; m != NULL; m = m->next) {
+        array[i++] = m;
+    }
+    BUG_ON(i != cnt);
+    qsort(array, cnt, sizeof(DetectMetadata *), SortHelper);
+
+    JsonBuilder *js = jb_new_object();
+    if (js == NULL)
+        return NULL;
+
+    /* array is sorted by key, so we can create a jsonbuilder object
+     * with each key appearing just once with one or more values */
+    bool array_open = false;
+    for (int j = 0; j < cnt; j++) {
+        const DetectMetadata *m = array[j];
+        const DetectMetadata *nm = j + 1 < cnt ? array[j + 1] : NULL;
+        DEBUG_VALIDATE_BUG_ON(m == NULL); // for scan-build
+
+        if (nm && strcasecmp(m->key, nm->key) == 0) {
+            if (!array_open) {
+                jb_open_array(js, m->key);
+                array_open = true;
+            }
+            jb_append_string(js, m->value);
+        } else {
+            if (!array_open) {
+                jb_open_array(js, m->key);
+            }
+            jb_append_string(js, m->value);
+            jb_close(js);
+            array_open = false;
+        }
+    }
+    jb_close(js);
+    /* we have a complete json builder. Now store it as a C string */
+    const size_t len = jb_len(js);
+#define MD_STR "\"metadata\":"
+#define MD_STR_LEN (sizeof(MD_STR) - 1)
+    char *str = SCMalloc(len + MD_STR_LEN + 1);
+    if (str == NULL) {
+        jb_free(js);
+        return NULL;
+    }
+    char *ptr = str;
+    memcpy(ptr, MD_STR, MD_STR_LEN);
+    ptr += MD_STR_LEN;
+    memcpy(ptr, jb_ptr(js), len);
+    ptr += len;
+    *ptr = '\0';
+#undef MD_STR
+#undef MD_STR_LEN
+    jb_free(js);
+    return str;
+}
+
 static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char *metadatastr)
 {
+    DetectMetadata *head = s->metadata ? s->metadata->list : NULL;
     char copy[strlen(metadatastr)+1];
     strlcpy(copy, metadatastr, sizeof(copy));
     char *xsaveptr = NULL;
@@ -143,13 +223,28 @@ static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char
         }
         dkv->key = hkey;
         dkv->value = hval;
-        dkv->next = s->metadata;
-        s->metadata = dkv;
+        dkv->next = head;
+        head = dkv;
 
     next:
         key = strtok_r(NULL, ",", &xsaveptr);
     }
-
+    if (head != NULL) {
+        if (s->metadata == NULL) {
+            s->metadata = SCCalloc(1, sizeof(*s->metadata));
+            if (s->metadata == NULL) {
+                for (DetectMetadata *m = head; m != NULL; ) {
+                    DetectMetadata *next_m = m->next;
+                    DetectMetadataFree(m);
+                    m = next_m;
+                }
+                return -1;
+            }
+        }
+        s->metadata->list = head;
+        SCFree(s->metadata->json_str);
+        s->metadata->json_str = CraftPreformattedJSON(head);
+    }
     return 0;
 }
 
@@ -183,10 +278,7 @@ static int DetectMetadataParseTest01(void)
 static int DetectMetadataParseTest02(void)
 {
     DetectEngineSetParseMetadata();
-    DetectEngineCtx *de_ctx = NULL;
-    DetectMetadata *dm;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     Signature *sig = DetectEngineAppendSig(de_ctx,
                                            "alert tcp any any -> any any "
@@ -195,30 +287,28 @@ static int DetectMetadataParseTest02(void)
                                            "sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NULL(sig->metadata); 
-    FAIL_IF_NULL(sig->metadata->key); 
-    FAIL_IF(strcmp("jaivu", sig->metadata->key));
-    FAIL_IF(strcmp("gros_minet", sig->metadata->value));
-    FAIL_IF_NULL(sig->metadata->next); 
-    dm = sig->metadata->next;
+    FAIL_IF_NULL(sig->metadata->list); 
+    FAIL_IF_NULL(sig->metadata->list->key); 
+    FAIL_IF(strcmp("jaivu", sig->metadata->list->key));
+    FAIL_IF(strcmp("gros_minet", sig->metadata->list->value));
+    FAIL_IF_NULL(sig->metadata->list->next); 
+    DetectMetadata *dm = sig->metadata->list->next;
     FAIL_IF(strcmp("titi", dm->key));
     dm = dm->next;
     FAIL_IF_NULL(dm);
     FAIL_IF(strcmp("toto", dm->key));
-
+    FAIL_IF_NOT(strcmp(sig->metadata->json_str,
+        "\"metadata\":{\"jaivu\":[\"gros_minet\"],\"titi\":[\"2\"],\"toto\":[\"1\"]}") == 0);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectCipService
  */
 static void DetectMetadataRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectMetadataParseTest01", DetectMetadataParseTest01);
     UtRegisterTest("DetectMetadataParseTest02", DetectMetadataParseTest02);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

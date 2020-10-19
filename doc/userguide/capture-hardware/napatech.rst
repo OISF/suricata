@@ -58,7 +58,7 @@ Debian Based Distros::
  $ apt-get install linux-headers-$(uname .r) gcc make
 	$ ./package_install_3gd.sh
 
-To complete installation for all distros ntservice::
+To complete installation for all distros ``ntservice``::
 
 	$ /opt/napatech3/bin/ntstart.sh -m
 
@@ -124,14 +124,14 @@ Below are the options to set::
         ports: [all]
         hashmode: hash5tuplesorted
 
-Now modify ntservice.ini. You also need make sure that you have allocated enough
-host buffers in ntservice.ini for the streams. It's a good idea to also set the
-TimeSyncReferencePriority. To do this make the following changes to ntservice.ini:
+Now modify ``ntservice.ini``. You also need make sure that you have allocated enough
+host buffers in ``ntservice.ini`` for the streams. It's a good idea to also set the
+``TimeSyncReferencePriority``. To do this make the following changes to ntservice.ini:
 
     HostBuffersRx = [4,16,-1] # [number of host buffers, Size(MB), NUMA node]
     TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
 
-Stop and restart ntservice after making changes to ntservice::
+Stop and restart ``ntservice`` after making changes to ntservice::
 
 	$ /opt/napatech3/bin/ntstop.sh
 	$ /opt/napatech3/bin/ntstart.sh
@@ -144,7 +144,7 @@ Example Configuration - Auto-config with cpu-affinity:
 ------------------------------------------------------
 
 This option will create a single worker-thread and stream for each CPU defined in the
-worker-cpu-set. To use this option make the following changes to suricata.yaml:
+``worker-cpu-set``. To use this option make the following changes to suricata.yaml:
 
 1. Turn on cpu-affinity
 2. Specify the worker-cpu-set
@@ -183,7 +183,7 @@ To do this make the following changes to ntservice.ini::
     TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
     HostBuffersRx = [16,16,0],[16,16,1] # [number of host buffers, Size(MB), NUMA node]
 
-Stop and restart ntservice after making changes to ntservice::
+Stop and restart ``ntservice`` after making changes to ntservice::
 
 	$ /opt/napatech3/bin/ntstop.sh -m
 	$ /opt/napatech3/bin/ntstart.sh -m
@@ -198,7 +198,7 @@ Example Configuration - Manual Configuration
 For Manual Configuration the Napatech streams are created by running NTPL
 commands prior to running Suricata.
 
-Note that this option is provided primarily for legacy configuations as previously
+Note that this option is provided primarily for legacy configurations as previously
 this was the only way to configure Napatech products. Newer capabilities such as
 flow-awareness and inline processing cannot be configured manually.
 
@@ -233,7 +233,7 @@ commands to complete the setup. Create a file will the following commands::
 	Delete=All				# Delete any existing filters
 	Assign[streamid=(0..3)]= all	# Assign all physical ports to stream ID 0
 
-Next execute those command using the ntpl tool::
+Next execute those command using the ``ntpl`` tool::
 
 	$ /opt/napatech3/bin/ntpl -f <my_ntpl_file>
 
@@ -247,7 +247,7 @@ creating the appropriate NTPL file and attaching Suricata to the streams.
 Bypassing Flows
 ---------------
 
-On flow-aware Napatech products traffic from individual flows can be automatically
+On flow-aware Napatech products, traffic from individual flows can be automatically
 dropped or, in the case of inline configurations, forwarded by the hardware after
 an inspection of the initial packet(s) of the flow by Suricata. This will save
 CPU cycles since Suricata does not process packets for a flow that has already been
@@ -268,15 +268,15 @@ upstream and downstream traffic E.g.::
 Note that these "port-pairings" are also required for IDS configurations as the hardware
 needs to know on which port(s) two sides of the connection will arrive.
 
-For configuations relying on optical taps the two sides of the pairing will typically
+For configurations relying on optical taps the two sides of the pairing will typically
 be different ports. For SPAN port configurations where both upstream and downstream traffic
 are delivered to a single port both sides of the "port-pair" will reference the same port.
 
-For example tap configuations have a form similar to this::
+For example tap configurations have a form similar to this::
 
       ports[0-1,2-3]
 
-Whereas SPAN port configuations it would look similar to this::
+Whereas SPAN port configurations it would look similar to this::
 
       ports[0-0,1-1,2-2,3-3]
 
@@ -326,7 +326,7 @@ pass traffic matching a given signature. For example, given the rule::
 
     pass tcp any 443 <> any any (msg: "SURICATA Test rule";  bypass; sid:1000001; rev:2;)
 
-Suricata will evaluate the inital packet(s) of the flow and program the flow
+Suricata will evaluate the initial packet(s) of the flow and program the flow
 into the hardware. Subsequent packets from the flow will be automatically be
 shunted from one port to it's peer.
 
@@ -358,7 +358,7 @@ On flow-aware products the following counters are also available:
 - napa_dispatch_drop.pkts, napa_dispatch_drop.byte:
 
   The total number of packets/bytes that were dropped at the hardware as
-  a result of a Suricata "drop" bypass rule or other ajudication by
+  a result of a Suricata "drop" bypass rule or other adjudication by
   Suricata that the flow packets should be dropped. These packets are not
   delivered to the application.
 
@@ -371,7 +371,7 @@ On flow-aware products the following counters are also available:
 
 - napa_bypass.active_flows:
 
-  The number of flows actively programmed on the hardware to be forwared or dropped.
+  The number of flows actively programmed on the hardware to be forwarded or dropped.
 
 - napa_bypass.total_flows:
 
@@ -519,7 +519,7 @@ This insures that, should Suricata get behind in its packet processing, the othe
 of the packets. If this is enabled without another application sharing the stream it will result in sub-optimal packet
 buffering.*
 
-Make sure that there are enough host-buffers declared in ntservice.ini to
+Make sure that there are enough host-buffers declared in ``ntservice.ini`` to
 accommodate the number of cores/streams being used.
 
 Support

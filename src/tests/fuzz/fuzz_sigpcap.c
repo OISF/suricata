@@ -18,7 +18,6 @@
 #include "host-bit.h"
 #include "ippair-bit.h"
 #include "app-layer-htp.h"
-#include "util-decode-asn1.h"
 #include "detect-fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
@@ -32,7 +31,7 @@ ThreadVars tv;
 DecodeThreadVars *dtv;
 //FlowWorkerThreadData
 void *fwd;
-SCInstance suricata;
+SCInstance surifuzz;
 
 const char configNoChecksum[] = "\
 %YAML 1.1\n\
@@ -128,6 +127,13 @@ app-layer:\n\
         sp: 44818\n\
     sip:\n\
       enabled: yes\n\
+    ssh:\n\
+      enabled: yes\n\
+      hassh: yes\n\
+    mqtt:\n\
+      enabled: yes\n\
+    http2:\n\
+      enabled: yes\n\
 ";
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -147,6 +153,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         InitGlobal();
 
+        GlobalsInitPreConfig();
         run_mode = RUNMODE_PCAP_FILE;
         //redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
@@ -154,21 +161,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
-        suricata.sig_file = strdup("/tmp/fuzz.rules");
-        suricata.sig_file_exclusive = 1;
+        surifuzz.sig_file = strdup("/tmp/fuzz.rules");
+        surifuzz.sig_file_exclusive = 1;
         //loads rules after init
-        suricata.delayed_detect = 1;
+        surifuzz.delayed_detect = 1;
 
-        SupportFastPatternForSigMatchTypes();
-        PostConfLoadedSetup(&suricata);
+        PostConfLoadedSetup(&surifuzz);
         PreRunPostPrivsDropInit(run_mode);
-
-        //dummy init before DetectEngineReload
-        DetectEngineCtx * de_ctx = DetectEngineCtxInit();
-        de_ctx->flags |= DE_QUIET;
-        DetectEngineAddToMaster(de_ctx);
+        PostConfLoadedDetectSetup(&surifuzz);
 
         memset(&tv, 0, sizeof(tv));
+        tv.flow_queue = FlowQueueNew();
+        if (tv.flow_queue == NULL)
+            abort();
         dtv = DecodeThreadVarsAlloc(&tv);
         DecodeRegisterPerfCounters(dtv, &tv);
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
@@ -201,16 +206,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (pos > 0 && pos < size) {
         // dump signatures to a file so as to reuse SigLoadSignatures
-        if (TestHelperBufferToFile(suricata.sig_file, data, pos-1) < 0) {
+        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos-1) < 0) {
             return 0;
         }
     } else {
-        if (TestHelperBufferToFile(suricata.sig_file, data, pos) < 0) {
+        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos) < 0) {
             return 0;
         }
     }
 
-    if (DetectEngineReload(&suricata) < 0) {
+    if (DetectEngineReload(&surifuzz) < 0) {
         return 0;
     }
     if (pos < size) {

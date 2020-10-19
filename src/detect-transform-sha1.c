@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,8 +36,10 @@
 
 static int DetectTransformToSha1Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
+#ifdef UNITTESTS
 static void DetectTransformToSha1RegisterTests(void);
-static void TransformToSha1(InspectionBuffer *buffer);
+#endif
+static void TransformToSha1(InspectionBuffer *buffer, void *options);
 #endif
 
 void DetectTransformSha1Register(void)
@@ -52,8 +54,10 @@ void DetectTransformSha1Register(void)
 #ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_SHA1].Transform =
         TransformToSha1;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests =
         DetectTransformToSha1RegisterTests;
+#endif
 #endif
     sigmatch_table[DETECT_TRANSFORM_SHA1].flags |= SIGMATCH_NOOPT;
 }
@@ -78,11 +82,11 @@ static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, co
 static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA1);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA1, NULL);
     SCReturnInt(r);
 }
 
-static void TransformToSha1(InspectionBuffer *buffer)
+static void TransformToSha1(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -112,19 +116,16 @@ static int DetectTransformToSha1Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToSha1(&buffer);
+    TransformToSha1(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
 }
 
-#endif
-
 static void DetectTransformToSha1RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformToSha1Test01",
             DetectTransformToSha1Test01);
-#endif
 }
+#endif
 #endif

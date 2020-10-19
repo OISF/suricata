@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,32 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
-
-#include "util-unittest.h"
-
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-
 #include "app-layer-sip.h"
 #include "rust.h"
 
 void RegisterSIPParsers(void)
 {
     rs_sip_register_parser();
-
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SIP,
-        SIPParserRegisterTests);
-#endif
-}
-
-#ifdef UNITTESTS
-#endif
-
-void SIPParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
 }

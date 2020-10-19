@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "util-ip.h"
+#include "util-byte.h"
 
 /** \brief determine if a string is a valid ipv4 address
  *  \retval bool is addr valid?
@@ -65,9 +66,9 @@ bool IPv4AddressStringIsValid(const char *str)
 
     addr[dots][alen] = '\0';
     for (int x = 0; x < 4; x++) {
-        int a = atoi(addr[x]);
-        if (a < 0 || a >= 256) {
-            SCLogDebug("out of range");
+        uint8_t a;
+        if (StringParseUint8(&a, 10, 0, (const char *)addr[x]) < 0) {
+            SCLogDebug("invalid value for address byte: %s", addr[x]);
             return false;
         }
     }
@@ -133,8 +134,8 @@ struct in_addr *ValidateIPV4Address(const char *addr_str)
         return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in ValidateIPV4Address. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in ValidateIPV4Address. Exiting...");
     }
 
     if (inet_pton(AF_INET, addr_str, addr) <= 0) {
@@ -163,8 +164,8 @@ struct in6_addr *ValidateIPV6Address(const char *addr_str)
         return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in ValidateIPV6Address. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in ValidateIPV6Address. Exiting...");
     }
 
     if (inet_pton(AF_INET6, addr_str, addr) <= 0) {

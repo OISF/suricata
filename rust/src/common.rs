@@ -14,6 +14,39 @@ macro_rules! take_until_and_consume (
   );
 );
 
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {};
+);
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {
+    if $item {
+        panic!("Condition check failed");
+    }
+  };
+);
+
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {};
+);
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {
+    // Wrap in a conditional to prevent unreachable code warning in caller.
+    if true {
+      panic!($msg);
+    }
+  };
+);
+
 /// Convert a String to C-compatible string
 ///
 /// This function will consume the provided data and use the underlying bytes to construct a new

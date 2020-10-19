@@ -27,7 +27,7 @@
 #include "app-layer-htp-xff.h"
 
 void JsonFileLogRegister(void);
-json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
+JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg);
 
 #endif /* __OUTPUT_JSON_FILE_H__ */

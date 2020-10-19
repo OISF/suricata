@@ -36,10 +36,4 @@
 
 void DetectGidRegister (void);
 
-/**
- * This function registers unit tests for Gid
- */
-
-void GidRegisterTests(void);
-
 #endif /*__DETECT_GID_H__ */

@@ -15,34 +15,11 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
- */
-
 #ifndef __DETECT_DCE_IFACE_H__
 #define __DETECT_DCE_IFACE_H__
 
-#include "app-layer-dcerpc.h"
-
-typedef enum DetectDceIfaceOperators_ {
-    DETECT_DCE_IFACE_OP_NONE = 0,
-    DETECT_DCE_IFACE_OP_LT,
-    DETECT_DCE_IFACE_OP_GT,
-    DETECT_DCE_IFACE_OP_EQ,
-    DETECT_DCE_IFACE_OP_NE,
-} DetectDceIfaceOperators;
-
-typedef struct DetectDceIfaceData_ {
-    uint8_t uuid[16];
-    uint8_t op;
-    uint16_t version;
-    uint8_t any_frag;
-} DetectDceIfaceData;
+#include "app-layer-dcerpc-common.h"
 
 void DetectDceIfaceRegister(void);
-
-DCERPCState *DetectDceGetState(AppProto alproto, void *alstate);
 
 #endif /* __DETECT_DCE_IFACE_H__ */

@@ -46,10 +46,7 @@ static int DetectFileSha1SetupNoSupport (DetectEngineCtx *a, Signature *b, const
 void DetectFileSha1Register(void)
 {
     sigmatch_table[DETECT_FILESHA1].name = "filesha1";
-    sigmatch_table[DETECT_FILESHA1].FileMatch = NULL;
     sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1SetupNoSupport;
-    sigmatch_table[DETECT_FILESHA1].Free  = NULL;
-    sigmatch_table[DETECT_FILESHA1].RegisterTests = NULL;
     sigmatch_table[DETECT_FILESHA1].flags = SIGMATCH_NOT_BUILT;
 
     SCLogDebug("registering filesha1 rule option");
@@ -59,7 +56,9 @@ void DetectFileSha1Register(void)
 #else /* HAVE_NSS */
 
 static int DetectFileSha1Setup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFileSha1RegisterTests(void);
+#endif
 static int g_file_match_list_id = 0;
 
 /**
@@ -73,8 +72,9 @@ void DetectFileSha1Register(void)
     sigmatch_table[DETECT_FILESHA1].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1Setup;
     sigmatch_table[DETECT_FILESHA1].Free  = DetectFileHashFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILESHA1].RegisterTests = DetectFileSha1RegisterTests;
-
+#endif
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filesha1 rule option");
@@ -153,13 +153,10 @@ static int SHA1MatchTest01(void)
     ROHashFree(hash);
     return 1;
 }
-#endif
 
-void DetectFileSha1RegisterTests(void)
+static void DetectFileSha1RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("SHA1MatchTest01", SHA1MatchTest01);
-#endif
 }
-
+#endif
 #endif /* HAVE_NSS */

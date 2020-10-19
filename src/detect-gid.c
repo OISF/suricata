@@ -37,6 +37,9 @@
 #include "util-debug.h"
 
 static int DetectGidSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
+static void GidRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for gid: keyword
@@ -50,7 +53,9 @@ void DetectGidRegister (void)
     sigmatch_table[DETECT_GID].Match = NULL;
     sigmatch_table[DETECT_GID].Setup = DetectGidSetup;
     sigmatch_table[DETECT_GID].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_GID].RegisterTests = GidRegisterTests;
+#endif
 }
 
 /**
@@ -166,16 +171,14 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for Gid
  */
-void GidRegisterTests(void)
+static void GidRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("GidTestParse01", GidTestParse01);
     UtRegisterTest("GidTestParse02", GidTestParse02);
     UtRegisterTest("GidTestParse03", GidTestParse03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

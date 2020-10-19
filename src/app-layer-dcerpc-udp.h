@@ -1,31 +1,23 @@
-/*
- * Copyright (c) 2009,2010 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
- * \author Kirby Kuehl <kkuehl@gmail.com>
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
  */
 
-#ifndef __APP_LAYER_DCERPC_UDP_H__
-#define __APP_LAYER_DCERPC_UDP_H__
-
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
-#include "app-layer-dcerpc-common.h"
-#include "flow.h"
-#include "queue.h"
-#include "util-byte.h"
-
-typedef struct DCERPCUDPState_ {
-    DCERPCUDP dcerpc;
-    uint16_t bytesprocessed;
-    uint16_t fraglenleft;
-    uint8_t *frag_data;
-    DCERPCUuidEntry *uuid_entry;
-    TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
-    DetectEngineState *de_state;
-} DCERPCUDPState;
+#ifndef __APP_LAYER_DCERPC_UDP_RUST_H__
+#define __APP_LAYER_DCERPC_UDP_RUST_H__
 
 void RegisterDCERPCUDPParsers(void);
-void DCERPCUDPParserTests(void);
-void DCERPCUDPParserRegisterTests(void);
 
-#endif /* __APP_LAYER_DCERPC_UDP_H__ */
+#endif /* !__APP_LAYER_DCERPC_UDP_RUST_H__ */

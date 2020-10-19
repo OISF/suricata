@@ -49,10 +49,4 @@ typedef struct DetectFragBitsData_ {
 
 void DetectFragBitsRegister (void);
 
-/**
- * This function registers unit tests for FragBits
- */
-
-void FragBitsRegisterTests(void);
-
 #endif /*__DETECT_FRAGBITS_H__ */

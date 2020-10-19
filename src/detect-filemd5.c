@@ -45,10 +45,7 @@ static int DetectFileMd5SetupNoSupport (DetectEngineCtx *a, Signature *b, const 
 void DetectFileMd5Register(void)
 {
     sigmatch_table[DETECT_FILEMD5].name = "filemd5";
-    sigmatch_table[DETECT_FILEMD5].FileMatch = NULL;
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5SetupNoSupport;
-    sigmatch_table[DETECT_FILEMD5].Free  = NULL;
-    sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
     sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
 
     SCLogDebug("registering filemd5 rule option");
@@ -60,7 +57,9 @@ void DetectFileMd5Register(void)
 static int g_file_match_list_id = 0;
 
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFileMd5RegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for keyword: filemd5
@@ -73,8 +72,9 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileHashFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
-
+#endif
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filemd5 rule option");
@@ -153,14 +153,12 @@ static int MD5MatchTest01(void)
     ROHashFree(hash);
     return 1;
 }
-#endif
 
 void DetectFileMd5RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("MD5MatchTest01", MD5MatchTest01);
-#endif
 }
+#endif
 
 #endif /* HAVE_NSS */
 

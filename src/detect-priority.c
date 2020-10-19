@@ -39,7 +39,9 @@
 static DetectParseRegex parse_regex;
 
 static int DetectPrioritySetup (DetectEngineCtx *, Signature *, const char *);
-void SCPriorityRegisterTests(void);
+#ifdef UNITTESTS
+static void PriorityRegisterTests(void);
+#endif
 
 /**
  * \brief Registers the handler functions for the "priority" keyword
@@ -50,8 +52,9 @@ void DetectPriorityRegister (void)
     sigmatch_table[DETECT_PRIORITY].desc = "rules with a higher priority will be examined first";
     sigmatch_table[DETECT_PRIORITY].url = "/rules/meta.html#priority";
     sigmatch_table[DETECT_PRIORITY].Setup = DetectPrioritySetup;
-    sigmatch_table[DETECT_PRIORITY].RegisterTests = SCPriorityRegisterTests;
-
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_PRIORITY].RegisterTests = PriorityRegisterTests;
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -163,15 +166,13 @@ static int DetectPriorityTest02(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief This function registers unit tests for Classification Config API.
  */
-void SCPriorityRegisterTests(void)
+static void PriorityRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectPriorityTest01", DetectPriorityTest01);
     UtRegisterTest("DetectPriorityTest02", DetectPriorityTest02);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

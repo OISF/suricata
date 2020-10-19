@@ -50,7 +50,9 @@
 #include "util-profiling.h"
 #include "detect-dsize.h"
 
+#ifdef UNITTESTS
 static void DetectContentRegisterTests(void);
+#endif
 
 void DetectContentRegister (void)
 {
@@ -60,7 +62,9 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
+#endif
     sigmatch_table[DETECT_CONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
@@ -335,6 +339,17 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     int sm_list = s->init_data->list;
     if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
+    } else if (sm_list > DETECT_SM_LIST_MAX &&
+            0 == (cd->flags & DETECT_CONTENT_NEGATED)) {
+        /* Check transform compatibility */
+        const char *tstr;
+        if (!DetectBufferTypeValidateTransform(de_ctx, sm_list, cd->content,
+                    cd->content_len, &tstr)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "content string \"%s\" incompatible with %s transform",
+                    contentstr, tstr);
+            goto error;
+        }
     }
 
     sm = SigMatchAlloc();
@@ -484,7 +499,11 @@ void DetectContentPropagateLimits(Signature *s)
                     SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth, offset_plus_pat);
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                        offset = cd->offset = offset_plus_pat + cd->distance;
+                        if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
+                            offset = cd->offset = offset_plus_pat + cd->distance;
+                        } else {
+                            SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
+                        }
                         SCLogDebug("updated content to have offset %u", cd->offset);
                     }
                     if (have_anchor && !last_reset && offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
@@ -534,7 +553,11 @@ void DetectContentPropagateLimits(Signature *s)
                             (cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE)) {
                         if (cd->distance >= 0) {
                             // only distance
-                            offset = cd->offset = offset_plus_pat + cd->distance;
+                            if ((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX) {
+                                offset = cd->offset = offset_plus_pat + cd->distance;
+                            } else {
+                                SCLogDebug("not updated content offset as it would overflow : %u + %d", offset_plus_pat, cd->distance);
+                            }
                             offset_plus_pat = offset + cd->content_len;
                             SCLogDebug("offset %u offset_plus_pat %u", offset, offset_plus_pat);
                         }
@@ -698,6 +721,8 @@ static int DetectContentDepthTest01(void)
     // low end: offset 4 + patlen 1 = 5. So 5 + distance 55 = 60.
     // hi end: depth '13' (4+9) + distance 55 = 68 + within 2 = 70
     TEST_RUN("content:\"=\"; offset:4; depth:9; content:\"=&\"; distance:55; within:2;", 60, 70);
+
+    TEST_RUN("content:\"0123456789\"; content:\"abcdef\"; distance:2147483647;", 10, 0);
 
     TEST_DONE;
 }
@@ -2981,14 +3006,11 @@ static int DetectLongContentTest3(void)
     return !DetectLongContentTestCommon(sig, 1);
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectContent
  */
 static void DetectContentRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
@@ -3102,5 +3124,5 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectLongContentTest1", DetectLongContentTest1);
     UtRegisterTest("DetectLongContentTest2", DetectLongContentTest2);
     UtRegisterTest("DetectLongContentTest3", DetectLongContentTest3);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

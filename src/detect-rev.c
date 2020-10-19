@@ -36,10 +36,7 @@ void DetectRevRegister (void)
     sigmatch_table[DETECT_REV].name = "rev";
     sigmatch_table[DETECT_REV].desc = "set version of the rule";
     sigmatch_table[DETECT_REV].url = "/rules/meta.html#rev-revision";
-    sigmatch_table[DETECT_REV].Match = NULL;
     sigmatch_table[DETECT_REV].Setup = DetectRevSetup;
-    sigmatch_table[DETECT_REV].Free  = NULL;
-    sigmatch_table[DETECT_REV].RegisterTests = NULL;
 }
 
 static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
@@ -72,4 +69,3 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
  error:
     return -1;
 }
-

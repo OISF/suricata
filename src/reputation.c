@@ -80,8 +80,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int v
 {
     SReputation *user_data = NULL;
     if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
     }
     memset(user_data, 0x00, sizeof(SReputation));
 

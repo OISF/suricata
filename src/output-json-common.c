@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,13 +85,25 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->ctx = ((OutputCtx *)initdata)->data;
+    LogFileEnsureExists(thread->ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data)

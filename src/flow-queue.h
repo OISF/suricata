@@ -37,15 +37,18 @@
     #endif
 #endif
 
-/* Define a queue for storing flows */
-typedef struct FlowQueue_
+typedef struct FlowQueuePrivate_
 {
     Flow *top;
     Flow *bot;
     uint32_t len;
-#ifdef DBG_PERF
-    uint32_t dbg_maxlen;
-#endif /* DBG_PERF */
+} FlowQueuePrivate;
+
+/* Define a queue for storing flows */
+typedef struct FlowQueue_
+{
+    FlowQueuePrivate priv;
+    SC_ATOMIC_DECLARE(bool,non_empty);
 #ifdef FQLOCK_MUTEX
     SCMutex m;
 #elif defined FQLOCK_SPIN
@@ -54,6 +57,9 @@ typedef struct FlowQueue_
     #error Enable FQLOCK_SPIN or FQLOCK_MUTEX
 #endif
 } FlowQueue;
+#define qtop priv.top
+#define qbot priv.bot
+#define qlen priv.len
 
 #ifdef FQLOCK_SPIN
     #define FQLOCK_INIT(q) SCSpinInit(&(q)->s, 0)
@@ -78,8 +84,16 @@ void FlowQueueDestroy (FlowQueue *);
 
 void FlowEnqueue (FlowQueue *, Flow *);
 Flow *FlowDequeue (FlowQueue *);
+void FlowQueueRemove(FlowQueue *fq, Flow *f);
+void FlowQueueRemoveLock(FlowQueue *fq, Flow *f);
 
-void FlowMoveToSpare(Flow *);
+void FlowQueuePrivateAppendFlow(FlowQueuePrivate *fqc, Flow *f);
+void FlowQueuePrivatePrependFlow(FlowQueuePrivate *fqc, Flow *f);
+
+void FlowQueueAppendPrivate(FlowQueue *fq, FlowQueuePrivate *fqp);
+void FlowQueuePrivateAppendPrivate(FlowQueuePrivate *dest, FlowQueuePrivate *src);
+FlowQueuePrivate FlowQueueExtractPrivate(FlowQueue *fq);
+Flow *FlowQueuePrivateGetFromTop(FlowQueuePrivate *fqp);
 
 #endif /* __FLOW_QUEUE_H__ */
 

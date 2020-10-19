@@ -30,6 +30,7 @@
 
 #include "flow-private.h"
 #include "flow-util.h"
+#include "flow-spare-pool.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -525,7 +526,7 @@ Flow *UTHBuildFlow(int family, const char *src, const char *dst, Port sp, Port d
 void UTHFreeFlow(Flow *flow)
 {
     if (flow != NULL) {
-        FlowFree(flow);
+        SCFree(flow);//FlowFree(flow);
     }
 }
 
@@ -929,6 +930,9 @@ end:
 
 uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
 {
+    FlowLookupStruct fls;
+    memset(&fls, 0, sizeof(fls));
+
     uint32_t i = start;
     uint8_t payload[] = "Payload";
     for (; i < end; i++) {
@@ -940,14 +944,22 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             p->src.addr_data32[0] = i + 1;
             p->dst.addr_data32[0] = i;
         }
-        FlowHandlePacket(NULL, NULL, p);
+        FlowHandlePacket(NULL, &fls, p);
         if (p->flow != NULL) {
-            SC_ATOMIC_RESET(p->flow->use_cnt);
+            p->flow->use_cnt = 0;
             FLOWLOCK_UNLOCK(p->flow);
         }
 
         /* Now the queues shoul be updated */
         UTHFreePacket(p);
+    }
+
+    Flow *f;
+    while ((f = FlowQueuePrivateGetFromTop(&fls.spare_queue))) {
+        FlowFree(f);
+    }
+    while ((f = FlowQueuePrivateGetFromTop(&fls.work_queue))) {
+        FlowFree(f);
     }
 
     return i;
@@ -1103,11 +1115,11 @@ static int UTHBuildPacketOfFlowsTest01(void)
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
-    uint32_t flow_spare_q_len = flow_spare_q.len;
+    uint32_t flow_spare_q_len = FlowSpareGetPoolSize();
 
     UTHBuildPacketOfFlows(0, 100, 0);
 
-    if (flow_spare_q.len != flow_spare_q_len - 100)
+    if (FlowSpareGetPoolSize() != flow_spare_q_len - 100)
         result = 0;
     else
         result = 1;

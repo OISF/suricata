@@ -35,9 +35,8 @@ use std::collections::HashMap;
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 use crate::applayer;
-use crate::applayer::{LoggerFlags, AppLayerResult};
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -561,12 +560,9 @@ pub struct SMBTransaction {
     /// Command specific data
     pub type_data: Option<SMBTransactionTypeData>,
 
-    /// detection engine flags for use by detection engine
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
-    pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
+    pub tx_data: AppLayerTxData,
 }
 
 impl SMBTransaction {
@@ -578,11 +574,9 @@ impl SMBTransaction {
             request_done: false,
             response_done: false,
             type_data: None,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -783,6 +777,7 @@ pub struct SMBState<> {
     /// true as long as we have file txs that are in a post-gap
     /// state. It means we'll do extra house keeping for those.
     check_post_gap_file_txs: bool,
+    post_gap_files_checked: bool,
 
     /// transactions list
     pub transactions: Vec<SMBTransaction>,
@@ -827,6 +822,7 @@ impl SMBState {
             ts_trunc: false,
             tc_trunc: false,
             check_post_gap_file_txs: false,
+            post_gap_files_checked: false,
             transactions: Vec::new(),
             tx_id:0,
             dialect:0,
@@ -922,6 +918,13 @@ impl SMBState {
         }
         SCLogDebug!("Failed to find SMB TX with ID {}", tx_id);
         return None;
+    }
+
+    fn update_ts(&mut self, ts: u64) {
+        if ts != self.ts {
+            self.ts = ts;
+            self.post_gap_files_checked = false;
+        }
     }
 
     /* generic TX has no type_data and is only used to
@@ -1151,11 +1154,13 @@ impl SMBState {
     {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
-            if let Some(SMBTransactionTypeData::FILE(ref f)) = tx.type_data {
+            if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                 if f.post_gap_ts > 0 {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
+                        let (files, flags) = self.files.get(f.direction);
+                        f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
                     }
@@ -1502,8 +1507,9 @@ impl SMBState {
         };
 
         self.post_gap_housekeeping(STREAM_TOSERVER);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
         AppLayerResult::ok()
     }
@@ -1742,8 +1748,9 @@ impl SMBState {
             }
         };
         self.post_gap_housekeeping(STREAM_TOCLIENT);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
         self._debug_tx_stats();
         AppLayerResult::ok()
@@ -1817,7 +1824,7 @@ impl SMBState {
 
 /// Returns *mut SMBState
 #[no_mangle]
-pub extern "C" fn rs_smb_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1853,7 +1860,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
         state.ts_gap = true;
     }
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_ts(buf)
 }
 
@@ -1885,7 +1892,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
         state.tc_gap = true;
     }
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_tc(buf)
 }
 
@@ -2058,45 +2065,12 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_set_logged(_state: &mut SMBState,
-                                       tx: &mut SMBTransaction,
-                                       bits: u32)
+pub extern "C" fn rs_smb_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
 {
-    tx.logged.set(bits);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_get_logged(_state: &mut SMBState,
-                                       tx: &mut SMBTransaction)
-                                       -> u32
-{
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_set_detect_flags(
-                                       tx: &mut SMBTransaction,
-                                       direction: u8,
-                                       flags: u64)
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        tx.detect_flags_ts = flags as u64;
-    } else {
-        tx.detect_flags_tc = flags as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_get_detect_flags(
-                                       tx: &mut SMBTransaction,
-                                       direction: u8)
-                                       -> u64
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        return tx.detect_flags_ts as u64;
-    } else {
-        return tx.detect_flags_tc as u64;
-    }
+    let tx = cast_pointer!(tx, SMBTransaction);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]

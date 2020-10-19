@@ -126,10 +126,12 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
 
     char proto[16] = "";
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    char *protoptr;
+    if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
+        protoptr = known_proto[IP_GET_IPPROTO(p)];
     } else {
         snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
+        protoptr = proto;
     }
     uint16_t src_port_or_icmp = p->sp;
     uint16_t dst_port_or_icmp = p->dp;
@@ -158,7 +160,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
                             " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
                             pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                            proto, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+                            protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
         } else {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32

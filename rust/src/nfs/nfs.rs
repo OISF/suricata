@@ -25,9 +25,8 @@ use std::ffi::CStr;
 
 use nom;
 
-use crate::log::*;
 use crate::applayer;
-use crate::applayer::{LoggerFlags, AppLayerResult};
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
@@ -179,12 +178,10 @@ pub struct NFSTransaction {
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
-
-    pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
+
+    pub tx_data: AppLayerTxData,
 }
 
 impl NFSTransaction {
@@ -209,11 +206,9 @@ impl NFSTransaction {
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -342,6 +337,7 @@ pub struct NFSState {
     /// true as long as we have file txs that are in a post-gap
     /// state. It means we'll do extra house keeping for those.
     check_post_gap_file_txs: bool,
+    post_gap_files_checked: bool,
 
     pub nfs_version: u16,
 
@@ -374,12 +370,21 @@ impl NFSState {
             tc_gap:false,
             is_udp:false,
             check_post_gap_file_txs:false,
+            post_gap_files_checked:false,
             nfs_version:0,
             events:0,
             tx_id:0,
             ts: 0,
         }
     }
+
+    fn update_ts(&mut self, ts: u64) {
+        if ts != self.ts {
+            self.ts = ts;
+            self.post_gap_files_checked = false;
+        }
+    }
+
     pub fn free(&mut self) {
         self.files.free();
     }
@@ -496,11 +501,13 @@ impl NFSState {
     {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
-            if let Some(NFSTransactionTypeData::FILE(ref f)) = tx.type_data {
+            if let Some(NFSTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                 if f.post_gap_ts > 0 {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
+                        let (files, flags) = self.files.get(tx.file_tx_direction);
+                        f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
                     }
@@ -1176,8 +1183,9 @@ impl NFSState {
         };
 
         self.post_gap_housekeeping(STREAM_TOSERVER);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
 
         AppLayerResult::ok()
@@ -1326,8 +1334,9 @@ impl NFSState {
             }
         };
         self.post_gap_housekeeping(STREAM_TOCLIENT);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
         AppLayerResult::ok()
     }
@@ -1399,7 +1408,7 @@ impl NFSState {
 
 /// Returns *mut NFSState
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1429,7 +1438,7 @@ pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_ts(buf)
 }
 
@@ -1454,7 +1463,7 @@ pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_tc(buf)
 }
 
@@ -1572,19 +1581,12 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_set_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction,
-                                       logged: u32)
+pub extern "C" fn rs_nfs_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
 {
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction)
-                                       -> u32
-{
-    return tx.logged.get();
+    let tx = cast_pointer!(tx, NFSTransaction);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]
@@ -1609,32 +1611,6 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
             SCLogDebug!("{}: getting de_state: have none", tx.id);
             return std::ptr::null_mut();
         }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_set_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: u8,
-                                       flags: u64)
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        tx.detect_flags_ts = flags as u64;
-    } else {
-        tx.detect_flags_tc = flags as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: u8)
-                                       -> u64
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        return tx.detect_flags_ts as u64;
-    } else {
-        return tx.detect_flags_tc as u64;
     }
 }
 

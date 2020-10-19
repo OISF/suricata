@@ -143,6 +143,10 @@ void PrintRawDataFp(FILE *fp, const uint8_t *buf, uint32_t buflen)
     int ch = 0;
     uint32_t u = 0;
 
+    if (buf == NULL) {
+        fprintf(fp, " (null)\n");
+        return;
+    }
     for (u = 0; u < buflen; u+=16) {
         fprintf(fp ," %04X  ", u);
         for (ch = 0; (u+ch) < buflen && ch < 16; ch++) {

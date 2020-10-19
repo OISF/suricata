@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 
+#include "stream-tcp.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
@@ -169,11 +170,17 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
             WARN_ONCE(SC_ERR_SPRINTF,
                 "Failed to write file info record. Output filename truncated.");
         } else {
-            json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
+            JsonBuilder *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
                     ctx->xff_cfg);
             if (likely(js_fileinfo != NULL)) {
-                json_dump_file(js_fileinfo, js_metadata_filename, 0);
-                json_decref(js_fileinfo);
+                jb_close(js_fileinfo);
+                FILE *out = fopen(js_metadata_filename, "w");
+                if (out != NULL) {
+                    size_t js_len = jb_len(js_fileinfo);
+                    fwrite(jb_ptr(js_fileinfo), js_len, 1, out);
+                    fclose(out);
+                }
+                jb_free(js_fileinfo);
             }
         }
     }
@@ -403,7 +410,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     intmax_t version = 0;
     if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
-        result.ok = true;
+        SCLogWarning(SC_WARN_DEPRECATED,
+            "File-store v1 been removed. Please update to file-store v2.");
         return result;
     }
 
@@ -486,8 +494,16 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
                        "from conf file - %s.  Killing engine",
                        stream_depth_str);
             exit(EXIT_FAILURE);
-        } else {
-            FileReassemblyDepthEnable(stream_depth);
+        }
+        if (stream_depth) {
+            if (stream_depth <= stream_config.reassembly_depth) {
+                SCLogWarning(SC_WARN_FILESTORE_CONFIG,
+                           "file-store.stream-depth value %" PRIu32 " has "
+                           "no effect since it's less than stream.reassembly.depth "
+                           "value.", stream_depth);
+            } else {
+                FileReassemblyDepthEnable(stream_depth);
+            }
         }
     }
 
@@ -500,7 +516,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
-                       stream_depth_str);
+                       file_count_str);
             exit(EXIT_FAILURE);
         } else {
             if (file_count != 0) {

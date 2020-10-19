@@ -28,6 +28,7 @@
 #include "util-decode-mime.h"
 #include "queue.h"
 #include "util-streaming-buffer.h"
+#include "rust.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,
@@ -68,12 +69,9 @@ typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
 
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
+    AppLayerTxData tx_data;
 
     int done;
-    /** indicates loggers done logging */
-    uint32_t logged;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
@@ -176,7 +174,7 @@ typedef struct SMTPState_ {
 extern SMTPConfig smtp_config;
 
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state);
-void *SMTPStateAlloc(void);
+void *SMTPStateAlloc(void *orig_state, AppProto proto_orig);
 void RegisterSMTPParsers(void);
 void SMTPParserCleanup(void);
 void SMTPParserRegisterTests(void);

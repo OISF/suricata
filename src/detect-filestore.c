@@ -67,7 +67,9 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilestoreFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectFilestoreRegisterTests(void);
+#endif
 static int g_file_match_list_id = 0;
 
 /**
@@ -81,7 +83,9 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].FileMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
     sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILESTORE].RegisterTests = DetectFilestoreRegisterTests;
+#endif
     sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
     sigmatch_table[DETECT_FILESTORE_POSTMATCH].name = "__filestore__postmatch__";
@@ -508,11 +512,9 @@ static int DetectFilestoreTest01(void)
 
     return result;
 }
-#endif /* UNITTESTS */
 
 void DetectFilestoreRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFilestoreTest01", DetectFilestoreTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

@@ -81,13 +81,13 @@ void ThresholdInit(void)
 {
     host_threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (host_threshold_id == -1) {
-        SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for thresholding");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Can't initiate host storage for thresholding");
     }
     ippair_threshold_id = IPPairStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (ippair_threshold_id == -1) {
-        SCLogError(SC_ERR_HOST_INIT, "Can't initiate IP pair storage for thresholding");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Can't initiate IP pair storage for thresholding");
     }
 }
 
@@ -652,9 +652,8 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 void ThresholdHashInit(DetectEngineCtx *de_ctx)
 {
     if (SCMutexInit(&de_ctx->ths_ctx.threshold_table_lock, NULL) != 0) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                "Threshold: Failed to initialize hash table mutex.");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Threshold: Failed to initialize hash table mutex.");
     }
 }
 

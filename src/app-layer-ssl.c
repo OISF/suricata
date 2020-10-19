@@ -276,22 +276,6 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static void SSLSetTxLogged(void *state, void *tx, LoggerId logged)
-{
-    SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state)
-        ssl_state->logged = logged;
-}
-
-static LoggerId SSLGetTxLogged(void *state, void *tx)
-{
-    SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state)
-        return (ssl_state->logged);
-
-    return 0;
-}
-
 static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return TLS_STATE_FINISHED;
@@ -323,24 +307,10 @@ static int SSLGetAlstateProgress(void *tx, uint8_t direction)
     return TLS_STATE_IN_PROGRESS;
 }
 
-static uint64_t SSLGetTxDetectFlags(void *vtx, uint8_t dir)
+static AppLayerTxData *SSLGetTxData(void *vtx)
 {
     SSLState *ssl_state = (SSLState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return ssl_state->detect_flags_ts;
-    } else {
-        return ssl_state->detect_flags_tc;
-    }
-}
-
-static void SSLSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    SSLState *ssl_state = (SSLState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        ssl_state->detect_flags_ts = flags;
-    } else {
-        ssl_state->detect_flags_tc = flags;
-    }
+    return &ssl_state->tx_data;
 }
 
 void SSLVersionToString(uint16_t version, char *buffer)
@@ -2531,7 +2501,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
     ssl_state->f = f;
 
     if (input == NULL &&
-            AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+            ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
+             (direction == 1 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
         SCReturnStruct(APP_LAYER_OK);
@@ -2636,7 +2607,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
     }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
         SCLogDebug("SSL_AL_FLAG_STATE_FINISHED");
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
     }
@@ -2662,7 +2634,7 @@ static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParse
  * \internal
  * \brief Function to allocate the SSL state memory.
  */
-static void *SSLStateAlloc(void)
+static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SSLState *ssl_state = SCMalloc(sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
@@ -3005,14 +2977,11 @@ void RegisterSSLParsers(void)
                                                SSLGetTxDetectState, SSLSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TLS, SSLGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxData);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxCnt);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
-
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxLogged, SSLSetTxLogged);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_TLS,
-                SSLGetTxDetectFlags, SSLSetTxDetectFlags);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
                                                                SSLGetAlstateProgressCompletionStatus);

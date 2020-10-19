@@ -83,12 +83,12 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 
-int DetectSignatureAddTransform(Signature *s, int transform);
+int DetectSignatureAddTransform(Signature *s, int transform, void *options);
 int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
-void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
+bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
 void DetectParseFreeRegexes(void);

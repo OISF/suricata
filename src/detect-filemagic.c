@@ -81,7 +81,9 @@ void DetectFilemagicRegister(void)
 static int DetectFilemagicMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFilemagicRegisterTests(void);
+#endif
 static void DetectFilemagicFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 
@@ -110,7 +112,9 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].FileMatch = DetectFilemagicMatch;
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].Free  = DetectFilemagicFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILEMAGIC].RegisterTests = DetectFilemagicRegisterTests;
+#endif
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILEMAGIC].alternative = DETECT_FILE_MAGIC;
 
@@ -123,9 +127,9 @@ void DetectFilemagicRegister(void)
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     AppProto protos_ts[] = {
-        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, 0 };
+        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
     AppProto protos_tc[] = {
-        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, 0 };
+        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],
@@ -164,38 +168,7 @@ void DetectFilemagicRegister(void)
  *  \retval -1 error
  *  \retval 0 ok
  */
-int FilemagicGlobalLookup(File *file)
-{
-    if (file == NULL || FileDataSize(file) == 0) {
-        SCReturnInt(-1);
-    }
-
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-    uint64_t offset = 0;
-
-    StreamingBufferGetData(file->sb,
-                           &data, &data_len, &offset);
-    if (offset == 0) {
-        if (FileDataSize(file) >= FILEMAGIC_MIN_SIZE) {
-            file->magic = MagicGlobalLookup(data, data_len);
-        } else if (file->state >= FILE_STATE_CLOSED) {
-            file->magic = MagicGlobalLookup(data, data_len);
-        }
-    }
-
-    SCReturnInt(0);
-}
-
-/**
- *  \brief run the magic check
- *
- *  \param file the file
- *
- *  \retval -1 error
- *  \retval 0 ok
- */
-static int FilemagicThreadLookup(magic_t *ctx, File *file)
+int FilemagicThreadLookup(magic_t *ctx, File *file)
 {
     if (ctx == NULL || file == NULL || FileDataSize(file) == 0) {
         SCReturnInt(-1);
@@ -340,43 +313,15 @@ error:
 
 static void *DetectFilemagicThreadInit(void *data /*@unused@*/)
 {
-    const char *filename = NULL;
-    FILE *fd = NULL;
-
     DetectFilemagicThreadData *t = SCCalloc(1, sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "couldn't alloc ctx memory");
         return NULL;
     }
 
-    t->ctx = magic_open(0);
-    if (t->ctx == NULL) {
-        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s", magic_error(t->ctx));
+    t->ctx = MagicInitContext();
+    if (t->ctx == NULL)
         goto error;
-    }
-
-    (void)ConfGet("magic-file", &filename);
-    if (filename != NULL) {
-        if (strlen(filename) == 0) {
-            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
-            SCLogInfo("using system default magic-file");
-            filename = NULL;
-        }
-        else {
-            SCLogInfo("using magic-file %s", filename);
-
-            if ( (fd = fopen(filename, "r")) == NULL) {
-                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-                goto error;
-            }
-            fclose(fd);
-        }
-    }
-
-    if (magic_load(t->ctx, filename) != 0) {
-        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(t->ctx));
-        goto error;
-    }
 
     return (void *)t;
 
@@ -691,19 +636,15 @@ static int DetectFilemagicTestParse03 (void)
     return 0;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFilemagic
  */
 void DetectFilemagicRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01);
     UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02);
     UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */
 #endif /* HAVE_MAGIC */
 

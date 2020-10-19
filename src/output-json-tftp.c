@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,11 +53,12 @@
 typedef struct LogTFTPFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogTFTPFileCtx;
 
 typedef struct LogTFTPLogThread_ {
+    LogFileCtx *file_ctx;
     LogTFTPFileCtx *tftplog_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogTFTPLogThread;
 
@@ -66,26 +67,26 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
 {
     LogTFTPLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "tftp");
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "tftp", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    json_t *tftpjs = rs_tftp_log_json_request(tx);
-    if (unlikely(tftpjs == NULL)) {
+    jb_open_object(jb, "tftp");
+    if (unlikely(!rs_tftp_log_json_request(tx, jb))) {
         goto error;
     }
+    jb_close(jb);
 
-    json_object_set_new(js, "tftp", tftpjs);
-
+    EveAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, jb);
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->tftplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
@@ -107,6 +108,7 @@ static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf,
         return result;
     }
     tftplog_ctx->file_ctx = ajt->file_ctx;
+    tftplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -134,20 +136,29 @@ static TmEcode JsonTFTPLogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogTFTP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->tftplog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->tftplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonTFTPLogThreadDeinit(ThreadVars *t, void *data)

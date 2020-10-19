@@ -32,6 +32,7 @@
 #include "detect-filemagic.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-magic.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -42,6 +43,9 @@ typedef struct OutputLoggerThreadStore_ {
  *  data for the packet loggers. */
 typedef struct OutputLoggerThreadData_ {
     OutputLoggerThreadStore *store;
+#ifdef HAVE_MAGIC
+    magic_t magic_ctx;
+#endif
 } OutputLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
@@ -118,7 +122,7 @@ static void OutputFileLogFfc(ThreadVars *tv,
                 bool file_logged = false;
 #ifdef HAVE_MAGIC
                 if (FileForceMagic() && ff->magic == NULL) {
-                    FilemagicGlobalLookup(ff);
+                    FilemagicThreadLookup(&op_thread_data->magic_ctx, ff);
                 }
 #endif
                 const OutputFileLogger *logger = list;
@@ -191,6 +195,14 @@ static TmEcode OutputFileLogThreadInit(ThreadVars *tv, const void *initdata, voi
 
     *data = (void *)td;
 
+#ifdef HAVE_MAGIC
+    td->magic_ctx = MagicInitContext();
+    if (td->magic_ctx == NULL) {
+        SCFree(td);
+        return TM_ECODE_FAILED;
+    }
+#endif
+
     SCLogDebug("OutputFileLogThreadInit happy (*data %p)", *data);
 
     OutputFileLogger *logger = list;
@@ -240,6 +252,10 @@ static TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, void *thread_data)
         store = next_store;
         logger = logger->next;
     }
+
+#ifdef HAVE_MAGIC
+    MagicDeinitContext(op_thread_data->magic_ctx);
+#endif
 
     SCFree(op_thread_data);
     return TM_ECODE_OK;

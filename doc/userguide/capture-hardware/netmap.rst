@@ -26,7 +26,7 @@ Follow the instructions on installation included in the NETMAP repository.
 
 When NETMAP is installed, add ``--enable-netmap`` to the configure line.
 If the includes are not added to a standard location, the location can
-be specified on the Suricata configure commandline.
+be specified when configuring Suricata.
 
 Example::
 
@@ -52,15 +52,15 @@ Suricata can be started in 2 ways to use netmap:
     suricata --netmap=<interface>
     suricata --netmap=igb0
 
-In the above example Suricata will start reading from igb0. The number of
-threads created depends on the number of RSS queues available on the NIC.
+In the above example Suricata will start reading from the `igb0` network interface.
+The number of threads created depends on the number of RSS queues available on the NIC.
 
 ::
 
     suricata --netmap
 
-In the above example Suricata will take the ``netmap`` block from the yaml
-and open each of the interfaces listed.
+In the above example Suricata will take the ``netmap`` block from the Suricata
+configuration and open each of the interfaces listed.
 
 ::
 
@@ -70,8 +70,8 @@ and open each of the interfaces listed.
       - interface: igb1
         threads: 4
 
-For the above configuration, both igb0 and igb1 would be opened. With 2
-threads for igb0 and 4 capture threads for igb1.
+For the above configuration, both ``igb0`` and ``igb1`` would be opened. With 2
+threads for ``igb0`` and 4 capture threads for ``igb1``.
 
 .. warning:: This multi threaded setup only works correctly if the NIC
              has symmetric RSS hashing. If this is not the case, consider
@@ -207,7 +207,7 @@ Inline IDS
 ----------
 
 The inline IDS is almost the same as the IPS setup above, but it will not
-enfore ``drop`` policies.
+enforce ``drop`` policies.
 
 ::
 

@@ -401,11 +401,30 @@ Outline of fields seen in the different kinds of DNS events:
 * "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
-* "rdata": Resource Data (ex. IP that domain name resolves to)
+* "rdata": Resource Data (ex: IP that domain name resolves to)
 * "ttl": Time-To-Live for this resource record
 
+More complex DNS record types may log additional fields for resource data:
 
-One can also control which RR types are logged explicitly from additional custom field enabled in the suricata.yaml file. If custom field is not specified, all RR types are logged. More than 50 values can be specified with the custom field and can be used as following:
+* "soa": Section containing fields for the SOA (start of authority) record type
+
+  * "mname": Primary name server for this zone
+  * "rname": Authority's mailbox
+  * "serial": Serial version number
+  * "refresh": Refresh interval (seconds)
+  * "retry": Retry interval (seconds)
+  * "expire": Upper time limit until zone is no longer authoritative (seconds)
+  * "minimum": Minimum ttl for records in this zone (seconds)
+
+* "sshfp": section containing fields for the SSHFP (ssh fingerprint) record type
+
+  * "fingerprint": Hex format of the fingerprint (ex: ``12:34:56:78:9a:bc:de:...``)
+  * "algo": Algorithm number (ex: 1 for RSA, 2 for DSS)
+  * "type": Fingerprint type (ex: 1 for SHA-1)
+
+One can control which RR types are logged by using the "types" field in the
+suricata.yaml file. If this field is not specified, all RR types are logged.
+More than 50 values can be specified with this field as shown below:
 
 
 ::
@@ -423,14 +442,16 @@ One can also control which RR types are logged explicitly from additional custom
         types:
           - alert
           - dns:
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-            custom: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
+            # Control logging of requests and responses:
+            # - requests: enable logging of DNS queries
+            # - responses: enable logging of DNS answers
+            # By default both requests and responses are logged.
+            requests: yes
+            responses: yes
+            # DNS record types to log, based on the query type.
+            # Default: all.
+            #types: [a, aaaa, cname, mx, ns, ptr, txt]
+            types: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
             wks, ptr, hinfo, minfo, mx, txt, rp, afsdb, x25, isdn,
             rt, nsap, nsapptr, sig, key, px, gpos, aaaa, loc, nxt,
             srv, atma, naptr, kx, cert, a6, dname, opt, apl, ds,
@@ -980,6 +1001,10 @@ Fields
 
 * "proto_version": The protocol version transported with the ssh protocol (1.x, 2.x)
 * "software_version": The software version used by end user
+* "hassh.hash": MD5 of hassh algorithms of client or server
+* "hassh.string": hassh algorithms of client or server
+
+Hassh must be enabled in the Suricata config file (set 'app-layer.protocols.ssh.hassh' to 'yes').
 
 Example of SSH logging:
 
@@ -989,10 +1014,18 @@ Example of SSH logging:
     "client": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
+        "hassh": {
+            "hash": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+            "string": "curve25519-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,ext-info-c",
+        }
      },
     "server": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
+        "hassh": {
+            "hash": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+            "string": "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256",
+        }
      }
   }
 
@@ -1287,3 +1320,487 @@ Example of RFB logging, with full VNC style authentication parameters:
         "blue_shift": 0
       }
     }
+
+Event type: MQTT
+----------------
+
+EVE-JSON output for MQTT consists of one object per MQTT transaction, with some common and various type-specific fields.
+
+Transactions
+~~~~~~~~~~~~
+
+A single MQTT communication can consist of multiple messages that need to be exchanged between broker and client.
+For example, some actions at higher QoS levels (> 0) usually involve a combination of requests and acknowledgement
+messages that are linked by a common identifier:
+
+   * ``CONNECT`` followed by ``CONNACK``
+   * ``PUBLISH`` followed by ``PUBACK`` (QoS 1) or ``PUBREC``/``PUBREL``/``PUBCOMP`` (QoS 2)
+   * ``SUBSCRIBE`` followed by ``SUBACK``
+   * ``UNSUBSCRIBE`` followed by ``UNSUBACK``
+
+The MQTT parser merges individual messages into one EVE output item if they belong to one transaction. In such cases,
+the source and destination information (IP/port) reflect the direction of the initial request, but contain messages
+from both sides.
+
+Example for a PUBLISH at QoS 2:
+
+::
+
+  {
+    "timestamp": "2020-05-19T18:00:39.016985+0200",
+    "flow_id": 1454127794305760,
+    "pcap_cnt": 65,
+    "event_type": "mqtt",
+    "src_ip": "0000:0000:0000:0000:0000:0000:0000:0001",
+    "src_port": 60105,
+    "dest_ip": "0000:0000:0000:0000:0000:0000:0000:0001",
+    "dest_port": 1883,
+    "proto": "TCP",
+    "mqtt": {
+      "publish": {
+        "qos": 2,
+        "retain": false,
+        "dup": false,
+        "topic": "house/bulbs/bulb1",
+        "message_id": 3,
+        "message": "OFF"
+      },
+      "pubrec": {
+        "qos": 0,
+        "retain": false,
+        "dup": false,
+        "message_id": 3
+      },
+      "pubrel": {
+        "qos": 1,
+        "retain": false,
+        "dup": false,
+        "message_id": 3
+      },
+      "pubcomp": {
+        "qos": 0,
+        "retain": false,
+        "dup": false,
+        "message_id": 3
+      }
+    }
+  }
+
+Note that some message types (aka control packet types), such as ``PINGREQ`` and ``PINGRESP``, have no type-specific
+data, nor do they have information that facilitate grouping into transactions. These will be logged as single items
+and only contain the common fields listed below.
+
+
+Common fields
+~~~~~~~~~~~~~
+
+Common fields from the MQTT fixed header:
+
+* "\*.qos": Quality of service level for the message, integer between 0 and 2.
+* "\*.retain": Boolean value of the MQTT 'retain' flag.
+* "\*.dup": Boolean value of the MQTT 'dup' (duplicate) flag.
+
+
+MQTT CONNECT fields
+~~~~~~~~~~~~~~~~~~~
+
+* "connect.protocol_string": Protocol string as defined in the spec, e.g. ``MQTT`` (MQTT 3.1.1 and later) or ``MQIsdp`` (MQTT 3.1).
+* "connect.protocol_version": Protocol version as defined in the specification:
+
+   * protocol version ``3``: MQTT 3.1
+   * protocol version ``4``: MQTT 3.1.1
+   * protocol version ``5``: MQTT 5.0
+
+* "connect.flags.username", "connect.flags.password":  Set to `true` if credentials are submitted with the connect request.
+* "connect.flags.will": Set to `true` if a will is set.
+* "connect.flags.will_retain": Set to `true` if the will is to be retained on the broker.
+* "connect.will.clean_session": Set to `true` if the connection is to made with a clean session.
+* "connect.client_id": Client ID string submitted my the connecting client.
+* "connect.username", "connect.password":  User/password authentication credentials submitted with the connect request. Passwords are only logged when the corresponding configuration setting is enabled (``mqtt.passwords: yes``).
+* "connect.will.topic": Topic to publish the will message to.
+* "connect.will.message": Message to be published on connection loss.
+* "connect.will.properties": (Optional, MQTT 5.0) Will properties set on this request. See `3.1.3.2 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901060>`_ for more information on will properties.
+* "connect.properties": (Optional, MQTT 5.0) CONNECT properties set on this request. See `3.1.2.11 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901046>`_ for more information on CONNECT properties.
+
+Example of MQTT CONNECT logging:
+
+::
+
+  "connect": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "protocol_string": "MQTT",
+    "protocol_version": 5,
+    "flags": {
+      "username": true,
+      "password": true,
+      "will_retain": false,
+      "will": true,
+      "clean_session": true
+    },
+    "client_id": "client",
+    "username": "user",
+    "password": "pass",
+    "will": {
+      "topic": "willtopic",
+      "message": "willmessage",
+      "properties": {
+        "content_type": "mywilltype",
+        "correlation_data": "3c32aa4313b3e",
+        "message_expiry_interval": 133,
+        "payload_format_indicator": 144,
+        "response_topic": "response_topic1",
+        "userprop": "uservalue",
+        "will_delay_interval": 200
+      }
+    },
+    "properties": {
+      "maximum_packet_size": 11111,
+      "receive_maximum": 222,
+      "session_expiry_interval": 555,
+      "topic_alias_maximum": 666,
+      "userprop1": "userval1",
+      "userprop2": "userval2"
+    }
+  }
+
+MQTT CONNACK fields
+~~~~~~~~~~~~~~~~~~~
+
+* "connack.session_present": Set to `true` if a session is continued on connection.
+* "connack.return_code": Return code/reason code for this reply. See `3.2.2.2 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901079>`_ for more information on these codes.
+* "connect.properties": (Optional, MQTT 5.0) CONNACK properties set on this request. See `3.2.2.3 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901080>`_ for more information on CONNACK properties.
+
+Example of MQTT CONNACK logging:
+
+::
+
+  "connack": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "session_present": false,
+    "return_code": 0,
+    "properties": {
+      "topic_alias_maximum": 10
+    }
+  }
+
+MQTT PUBLISH fields
+~~~~~~~~~~~~~~~~~~~
+
+* "publish.topic": Topic this message is published to.
+* "publish.message_id": (Only present if QOS level > 0) Message ID for this publication.
+* "publish.message": Message to be published.
+* "publish.properties": (Optional, MQTT 5.0) PUBLISH properties set on this request. See `3.3.2.3 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901109>`_ for more information on PUBLISH properties.
+
+Example of MQTT PUBLISH logging:
+
+::
+
+  "publish": {
+    "qos": 1,
+    "retain": false,
+    "dup": false,
+    "topic": "topic",
+    "message_id": 1,
+    "message": "baa baa sheep",
+    "properties": {
+      "content_type": "mytype",
+      "correlation_data": "3c32aa4313b3e",
+      "message_expiry_interval": 77,
+      "payload_format_indicator": 88,
+      "response_topic": "response_topic1",
+      "topic_alias": 5,
+      "userprop": "userval"
+    }
+  }
+
+MQTT PUBACK/PUBREL/PUBREC/PUBCOMP fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* "[puback|pubrel|pubrec|pubcomp].message_id": Original message ID this message refers to.
+* "[puback|pubrel|pubrec|pubcomp].reason_code": Return code/reason code for this reply. See the spec for more information on these codes.
+* "[puback|pubrel|pubrec|pubcomp].properties": (Optional, MQTT 5.0) Properties set on this request. See the spec for more information on these properties.
+
+Example of MQTT PUBACK/PUBREL/PUBREC/PUBCOMP logging:
+
+::
+
+  "puback": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "message_id": 1,
+    "reason_code": 16
+  }
+
+MQTT SUBSCRIBE fields
+~~~~~~~~~~~~~~~~~~~~~
+
+* "subscribe.message_id": (Only present if QOS level > 0) Message ID for this subscription.
+* "subscribe.topics": Array of pairs describing the subscribed topics:
+
+  * "subscribe.topics[].topic": Topic to subscribe to.
+  * "subscribe.topics[].qos": QOS level to apply for when subscribing.
+
+* "subscribe.properties": (Optional, MQTT 5.0) SUBSCRIBE properties set on this request. See `3.8.2.1 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901164>`_ for more information on SUBSCRIBE properties.
+
+Example of MQTT SUBSCRIBE logging:
+
+::
+
+  "subscribe": {
+    "qos": 1,
+    "retain": false,
+    "dup": false,
+    "message_id": 1,
+    "topics": [
+      {
+        "topic": "topicX",
+        "qos": 0
+      },
+      {
+        "topic": "topicY",
+        "qos": 0
+      }
+    ]
+  }
+
+MQTT SUBACK fields
+~~~~~~~~~~~~~~~~~~
+
+* "suback.message_id": Original message ID this message refers to.
+* "suback.qos_granted": Array of QOS levels granted for the subscribed topics, in the order of the original request.
+* "suback.properties": (Optional, MQTT 5.0) SUBACK properties set on this request. See `3.9.2.1 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901174>`_ for more information on SUBACK properties.
+
+Example of MQTT SUBACK logging:
+
+::
+
+  "suback": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "message_id": 1,
+    "qos_granted": [
+      0,
+      0
+    ]
+  }
+
+MQTT UNSUBSCRIBE fields
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* "unsubscribe.message_id": (Only present if QOS level > 0) Message ID for this unsubscribe action.
+* "unsubscribe.topics": Array of topics to be unsubscribed from.
+* "unsubscribe.properties": (Optional, MQTT 5.0) UNSUBSCRIBE properties set on this request. See `3.10.2.1 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901182>`_ for more information on UNSUBSCRIBE properties.
+
+Example of MQTT UNSUBSCRIBE logging:
+
+::
+
+  "unsubscribe": {
+    "qos": 1,
+    "retain": false,
+    "dup": false,
+    "message_id": 1,
+    "topics": [
+      "topicX",
+      "topicY"
+    ]
+  }
+
+MQTT UNSUBACK fields
+~~~~~~~~~~~~~~~~~~~~
+
+* "unsuback.message_id": Original message ID this message refers to.
+
+Example of MQTT UNSUBACK logging:
+
+::
+
+  "unsuback": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "message_id": 1
+  }
+
+MQTT AUTH fields (MQTT 5.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* "auth.reason_code": Return code/reason code for this message. See `3.15.2.1 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901220>`_ for more information on these codes.
+* "auth.properties": (Optional, MQTT 5.0) Properties set on this request. See `3.15.2.2 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901221>`_ for more information on these properties.
+
+Example of MQTT AUTH logging:
+
+::
+
+  "auth": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "reason_code": 16
+  }
+
+MQTT DISCONNECT fields
+~~~~~~~~~~~~~~~~~~~~~~
+
+* "auth.reason_code": (Optional) Return code/reason code for this message. See `3.14.2.1 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901208>`_ for more information on these codes.
+* "auth.properties": (Optional, MQTT 5.0) Properties set on this request. See `3.14.2.2 in the spec <https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901209>`_ for more information on DISCONNECT properties.
+
+Example of MQTT DISCONNECT logging:
+
+::
+
+  "disconnect": {
+    "qos": 0,
+    "retain": false,
+    "dup": false,
+    "reason_code": 4,
+    "properties": {
+      "session_expiry_interval": 122,
+    }
+  }
+
+Truncated MQTT data
+~~~~~~~~~~~~~~~~~~~
+
+Messages exceeding the maximum message length limit (config setting ``app-layer.protocols.mqtt.max-msg-length``)
+will not be parsed entirely to reduce the danger of denial of service issues. In such cases, only reduced
+metadata will be included in the EVE-JSON output. Furthermore, since no message ID is parsed, such messages
+can not be placed into transactions, hence, they will always appear as a single transaction.
+
+These truncated events will -- besides basic communication metadata -- only contain the following
+fields:
+
+* "truncated": Set to `true` if the entry is truncated.
+* "skipped_length": Size of the original message.
+
+Example of a truncated MQTT PUBLISH message (with 10000 being the maximum length):
+
+::
+
+  {
+    "timestamp": "2020-06-23T16:25:48.729785+0200",
+    "flow_id": 1872904524326406,
+    "pcap_cnt": 107,
+    "event_type": "mqtt",
+    "src_ip": "0000:0000:0000:0000:0000:0000:0000:0001",
+    "src_port": 53335,
+    "dest_ip": "0000:0000:0000:0000:0000:0000:0000:0001",
+    "dest_port": 1883,
+    "proto": "TCP",
+    "mqtt": {
+      "publish": {
+        "qos": 0,
+        "retain": false,
+        "dup": false,
+        "truncated": true,
+        "skipped_length": 100011
+      }
+
+Event type: HTTP2
+-----------------
+
+Fields
+~~~~~~
+
+There are the two fields "request" and "response" which can each contain the same set of fields :
+* "settings": a list of settings with "name" and "value"
+* "headers": a list of headers with either "name" and "value", or "table_size_update", or "error" if any
+* "error_code": the error code from GOAWAY or RST_STREAM, which can be "NO_ERROR"
+* "priority": the stream priority.
+
+
+Examples
+~~~~~~~~
+
+Example of HTTP2 logging, of a settings frame:
+
+::
+
+  "http2": {
+    "request": {
+      "settings": [
+        {
+          "settings_id": "SETTINGSMAXCONCURRENTSTREAMS",
+          "settings_value": 100
+        },
+        {
+          "settings_id": "SETTINGSINITIALWINDOWSIZE",
+          "settings_value": 65535
+        }
+      ]
+    },
+    "response": {}
+  }
+
+Example of HTTP2 logging, of a request and response:
+
+::
+
+  "http2": {
+    "request": {
+      "headers": [
+        {
+          "name": ":authority",
+          "value": "localhost:3000"
+        },
+        {
+          "name": ":method",
+          "value": "GET"
+        },
+        {
+          "name": ":path",
+          "value": "/doc/manual/html/index.html"
+        },
+        {
+          "name": ":scheme",
+          "value": "http"
+        },
+        {
+          "name": "accept",
+          "value": "*/*"
+        },
+        {
+          "name": "accept-encoding",
+          "value": "gzip, deflate"
+        },
+        {
+          "name": "user-agent",
+          "value": "nghttp2/0.5.2-DEV"
+        }
+      ]
+    },
+    "response": {
+      "headers": [
+        {
+          "name": ":status",
+          "value": "200"
+        },
+        {
+          "name": "server",
+          "value": "nghttpd nghttp2/0.5.2-DEV"
+        },
+        {
+          "name": "content-length",
+          "value": "22617"
+        },
+        {
+          "name": "cache-control",
+          "value": "max-age=3600"
+        },
+        {
+          "name": "date",
+          "value": "Sat, 02 Aug 2014 10:50:25 GMT"
+        },
+        {
+          "name": "last-modified",
+          "value": "Sat, 02 Aug 2014 07:58:59 GMT"
+        }
+      ]
+    }
+  }

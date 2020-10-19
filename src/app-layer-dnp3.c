@@ -175,6 +175,9 @@ static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
  */
 static int DNP3CheckCRC(const uint8_t *block, uint32_t len)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    return 1;
+#endif
     uint32_t crc_offset;
     uint16_t crc;
 
@@ -295,6 +298,11 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
     }
 
 end:
+    // Test compatibility between direction and dnp3.ctl.direction
+    if ((DNP3_LINK_DIR(hdr->control) != 0) ^
+        ((direction & STREAM_TOCLIENT) != 0)) {
+        *rdir = 1;
+    }
     SCLogDebug("Detected DNP3.");
     return ALPROTO_DNP3;
 }
@@ -424,7 +432,7 @@ static int DNP3ReassembleApplicationLayer(const uint8_t *input,
  *
  * The DNP3 state object represents a single DNP3 TCP session.
  */
-static void *DNP3StateAlloc(void)
+static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCEnter();
     DNP3State *dnp3;
@@ -551,9 +559,9 @@ static int DNP3IsUserData(const DNP3LinkHeader *header)
  *
  * \retval 1 if user data exists, otherwise 0.
  */
-static int DNP3HasUserData(const DNP3LinkHeader *header)
+static int DNP3HasUserData(const DNP3LinkHeader *header, uint8_t direction)
 {
-    if (DNP3_LINK_DIR(header->control)) {
+    if (direction == STREAM_TOSERVER) {
         return header->len >= DNP3_LINK_HDR_LEN + sizeof(DNP3TransportHeader) +
             sizeof(DNP3ApplicationHeader);
     }
@@ -1076,7 +1084,7 @@ static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
 
         /* Make sure the header length is large enough for transport and
          * application headers. */
-        if (!DNP3HasUserData(header)) {
+        if (!DNP3HasUserData(header, STREAM_TOSERVER)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
@@ -1215,7 +1223,7 @@ static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
 
         /* Make sure the header length is large enough for transport and
          * application headers. */
-        if (!DNP3HasUserData(header)) {
+        if (!DNP3HasUserData(header, STREAM_TOCLIENT)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
         }
@@ -1256,6 +1264,7 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
     const uint8_t flags)
 {
     SCEnter();
+
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->response_buffer;
     int processed;
@@ -1542,16 +1551,10 @@ static int DNP3SetTxDetectState(void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static void DNP3SetTxLogged(void *alstate, void *vtx, LoggerId logged)
+static AppLayerTxData *DNP3GetTxData(void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    tx->logged = logged;
-}
-
-static LoggerId DNP3GetTxLogged(void *alstate, void *vtx)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    return tx->logged;
+    return &tx->tx_data;
 }
 
 /**
@@ -1570,27 +1573,6 @@ int DNP3PrefixIsSize(uint8_t prefix_code)
         default:
             return 0;
     }
-}
-
-static uint64_t DNP3GetTxDetectFlags(void *vtx, uint8_t dir)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
-}
-
-static void DNP3SetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        tx->detect_flags_ts = detect_flags;
-    } else {
-        tx->detect_flags_tc = detect_flags;
-    }
-    return;
 }
 
 /**
@@ -1641,8 +1623,6 @@ void RegisterDNP3Parsers(void)
             DNP3GetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxDetectState, DNP3SetTxDetectState);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxDetectFlags, DNP3SetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);
@@ -1659,8 +1639,8 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateGetEventInfoById);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxLogged, DNP3SetTxLogged);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
+            DNP3GetTxData);
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
@@ -1730,6 +1710,7 @@ static int DNP3ParserTestCheckCRC(void)
     FAIL_IF(!DNP3CheckCRC(request + sizeof(DNP3LinkHeader),
             DNP3_BLOCK_SIZE + DNP3_CRC_LEN));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Change a byte in link header, should fail now. */
     request[2]++;
     FAIL_IF(DNP3CheckCRC(request, sizeof(DNP3LinkHeader)));
@@ -1739,6 +1720,7 @@ static int DNP3ParserTestCheckCRC(void)
     request[sizeof(DNP3LinkHeader) + 3]++;
     FAIL_IF(DNP3CheckCRC(request + sizeof(DNP3LinkHeader),
             DNP3_BLOCK_SIZE + DNP3_CRC_LEN));
+#endif
 
     PASS;
 }
@@ -1798,6 +1780,7 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x01, /* Invalid byte. */
         0xff, 0xff, /* CRC. */
     };
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     FAIL_IF(DNP3CheckUserDataCRCs(data_invalid, sizeof(data_invalid)));
 
     /* 1 byte - need at least 3. */
@@ -1807,6 +1790,7 @@ static int DNP3CheckUserDataCRCsTest(void)
     /* 2 bytes - need at least 3. */
     uint8_t two_byte_nocrc[] = { 0x01, 0x02 };
     FAIL_IF(DNP3CheckUserDataCRCs(two_byte_nocrc, sizeof(two_byte_nocrc)));
+#endif
 
     /* 3 bytes, valid CRC. */
     uint8_t three_bytes_good_crc[] = { 0x00, 0x00, 0x00 };
@@ -1902,9 +1886,11 @@ static int DNP3ParserCheckLinkHeaderCRC(void)
     DNP3LinkHeader *header = (DNP3LinkHeader *)request;
     FAIL_IF(!DNP3CheckLinkHeaderCRC(header));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Alter a byte in the header. */
     request[4] = 0;
     FAIL_IF(DNP3CheckLinkHeaderCRC(header));
+#endif
 
     PASS;
 }
@@ -2530,7 +2516,7 @@ static int DNP3ParserTestParsePDU01(void)
         0xe1, 0xc8, 0x01, 0x01, 0x00, 0x06, 0x77, 0x6e
     };
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     int pdus = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(pdus < 1);
     DNP3Transaction *dnp3tx = DNP3GetTx(dnp3state, 0);
@@ -2569,7 +2555,7 @@ static int DNP3ParserDecodeG70V3Test(void)
         0xc4, 0x8b
     };
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
@@ -2630,12 +2616,43 @@ static int DNP3ParserUnknownEventAlertTest(void)
 
     DNP3FixCrc(pkt + 10, sizeof(pkt) - 10);
 
-    DNP3State *dnp3state = DNP3StateAlloc();
+    DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
 
     DNP3StateFree(dnp3state);
+    PASS;
+}
+
+/**
+* \brief Test that an alert is raised on incorrect data.
+*/
+static int DNP3ParserIncorrectUserData(void)
+{
+    uint8_t packet_bytes[] = {
+        0x05, 0x64, 0x08, 0xc4, 0x03, 0x00, 0x04, 0x00,
+        0xbf, 0xe9, 0xc1, 0xc1, 0x82, 0xc5, 0xee
+    };
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow flow;
+    TcpSession ssn;
+    memset(&flow, 0, sizeof(flow));
+    memset(&ssn, 0, sizeof(ssn));
+    flow.protoctx = (void *)&ssn;
+    flow.proto = IPPROTO_TCP;
+    flow.alproto = ALPROTO_DNP3;
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
+                                STREAM_TOCLIENT, packet_bytes, sizeof(packet_bytes));
+
+    FAIL_IF(r == 0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&flow);
     PASS;
 }
 
@@ -2665,5 +2682,6 @@ void DNP3ParserRegisterTests(void)
     UtRegisterTest("DNP3ParserDecodeG70V3Test", DNP3ParserDecodeG70V3Test);
     UtRegisterTest("DNP3ParserUnknownEventAlertTest",
         DNP3ParserUnknownEventAlertTest);
+    UtRegisterTest("DNP3ParserIncorrectUserData", DNP3ParserIncorrectUserData);
 #endif
 }

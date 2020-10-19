@@ -46,7 +46,9 @@ static DetectParseRegex parse_regex;
 static int DetectFragOffsetMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 void DetectFragOffsetRegisterTests(void);
+#endif
 void DetectFragOffsetFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -63,8 +65,9 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].Match = DetectFragOffsetMatch;
     sigmatch_table[DETECT_FRAGOFFSET].Setup = DetectFragOffsetSetup;
     sigmatch_table[DETECT_FRAGOFFSET].Free = DetectFragOffsetFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FRAGOFFSET].RegisterTests = DetectFragOffsetRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FRAGOFFSET].SupportsPrefilter = PrefilterFragOffsetIsPrefilterable;
     sigmatch_table[DETECT_FRAGOFFSET].SetupPrefilter = PrefilterSetupFragOffset;
 
@@ -446,15 +449,12 @@ end:
     return result;
 
 }
-#endif /* UNITTESTS */
 
 void DetectFragOffsetRegisterTests (void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFragOffsetParseTest01", DetectFragOffsetParseTest01);
     UtRegisterTest("DetectFragOffsetParseTest02", DetectFragOffsetParseTest02);
     UtRegisterTest("DetectFragOffsetParseTest03", DetectFragOffsetParseTest03);
     UtRegisterTest("DetectFragOffsetMatchTest01", DetectFragOffsetMatchTest01);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

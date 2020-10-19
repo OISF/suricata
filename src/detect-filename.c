@@ -58,7 +58,9 @@ static int DetectFilenameMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
+#ifdef UNITTESTS
 static void DetectFilenameRegisterTests(void);
+#endif
 static void DetectFilenameFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 static int g_file_name_buffer_id = 0;
@@ -83,7 +85,9 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].FileMatch = DetectFilenameMatch;
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
+#endif
     sigmatch_table[DETECT_FILENAME].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILENAME].alternative = DETECT_FILE_NAME;
 
@@ -555,18 +559,16 @@ static int DetectFilenameTestParse03 (void)
     return 0;
 }
 
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectFilename
  */
 void DetectFilenameRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFilenameSignatureParseTest01", DetectFilenameSignatureParseTest01);
 
     UtRegisterTest("DetectFilenameTestParse01", DetectFilenameTestParse01);
     UtRegisterTest("DetectFilenameTestParse02", DetectFilenameTestParse02);
     UtRegisterTest("DetectFilenameTestParse03", DetectFilenameTestParse03);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

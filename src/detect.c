@@ -349,11 +349,14 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
+/** \internal
+ *  \brief build non-prefilter list based on the rule group list we've set.
+ */
 static inline void
-DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask, uint8_t alproto)
+DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx,
+        const SignatureMask mask, const uint8_t alproto)
 {
-    uint32_t x = 0;
-    for (x = 0; x < det_ctx->non_pf_store_cnt; x++) {
+    for (uint32_t x = 0; x < det_ctx->non_pf_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
@@ -1230,12 +1233,18 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
         const uint8_t flow_flags)
 {
-    const uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx_ptr, flow_flags);
+    uint64_t detect_flags;
+    AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
+    if (likely(txd != NULL)) {
+        detect_flags = (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
+    } else {
+        detect_flags = 0;
+    }
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
                 detect_flags);
-        DetectTransaction no_tx = { NULL, 0, NULL, 0, 0, 0, 0, 0, };
+        DetectTransaction no_tx = { NULL, 0, NULL, NULL, 0, 0, 0, 0, 0, };
         return no_tx;
     }
 
@@ -1248,6 +1257,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     DetectTransaction tx = {
                             .tx_ptr = tx_ptr,
                             .tx_id = tx_id,
+                            .tx_data_ptr = (struct AppLayerTxData *)txd,
                             .de_state = tx_dir_state,
                             .detect_flags = detect_flags,
                             .prefilter_flags = prefilter_flags,
@@ -1256,6 +1266,19 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
                             .tx_end_state = tx_end_state,
                            };
     return tx;
+}
+
+static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_flags,
+        const uint8_t ipproto, const AppProto alproto, const uint64_t detect_flags)
+{
+    AppLayerTxData *txd = (AppLayerTxData *)tx->tx_data_ptr;
+    if (likely(txd != NULL)) {
+        if (flow_flags & STREAM_TOSERVER) {
+            txd->detect_flags_ts = detect_flags;
+        } else {
+            txd->detect_flags_tc = detect_flags;
+        }
+    }
 }
 
 static void DetectRunTx(ThreadVars *tv,
@@ -1498,8 +1521,8 @@ static void DetectRunTx(ThreadVars *tv,
             new_detect_flags |= tx.detect_flags;
             SCLogDebug("%p/%"PRIu64" Storing new flags %016"PRIx64" (was %016"PRIx64")",
                     tx.tx_ptr, tx.tx_id, new_detect_flags, tx.detect_flags);
-            AppLayerParserSetTxDetectFlags(ipproto, alproto, tx.tx_ptr,
-                    flow_flags, new_detect_flags);
+
+            StoreDetectFlags(&tx, flow_flags, ipproto, alproto, new_detect_flags);
         }
 next:
         InspectionBufferClean(det_ctx);

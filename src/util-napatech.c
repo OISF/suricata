@@ -46,7 +46,6 @@ typedef struct FlowStatsCounters_
     uint16_t total_bypass_flows;
 } FlowStatsCounters;
 
-static NtFlowStream_t hFlowStream[MAX_ADAPTERS];
 
 static int bypass_supported;
 int NapatechIsBypassSupported(void)
@@ -59,45 +58,48 @@ int NapatechIsBypassSupported(void)
  *
  * \return count of the Napatech adapters present in the system.
  */
-static int GetNumAdapters(void)
+int NapatechGetNumAdapters(void)
 {
     NtInfoStream_t hInfo;
     NtInfo_t hInfoSys;
     int status;
+    static int num_adapters = -1;
 
-    if ((status = NT_InfoOpen(&hInfo, "InfoStream")) != NT_SUCCESS) {
-        NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
-        exit(EXIT_FAILURE);
+    if (num_adapters == -1) {
+        if ((status = NT_InfoOpen(&hInfo, "InfoStream")) != NT_SUCCESS) {
+            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            exit(EXIT_FAILURE);
+        }
+
+        hInfoSys.cmd = NT_INFO_CMD_READ_SYSTEM;
+        if ((status = NT_InfoRead(hInfo, &hInfoSys)) != NT_SUCCESS) {
+            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            exit(EXIT_FAILURE);
+        }
+
+        num_adapters = hInfoSys.u.system.data.numAdapters;
+
+        NT_InfoClose(hInfo);
     }
 
-    hInfoSys.cmd = NT_INFO_CMD_READ_SYSTEM;
-    if ((status = NT_InfoRead(hInfo, &hInfoSys)) != NT_SUCCESS) {
-        NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
-        exit(EXIT_FAILURE);
-    }
-
-    int num_adapters = hInfoSys.u.system.data.numAdapters;
-
-    NT_InfoClose(hInfo);
     return num_adapters;
 }
 
 /**
- * \brief  Initializes the FlowStreams used to program flow data.
+ * \brief  Verifies that the Napatech adapters support bypass.
  *
- * Opens a FlowStream on each adapter present in the system.  This
- * FlowStream is subsequently used to program the adapter with
- * flows to bypass.
+ * Attempts to opens a FlowStream on each adapter present in the system.
+ * If successful then bypass is supported
  *
  * \return 1 if Bypass functionality is supported; zero otherwise.
  */
-int NapatechInitFlowStreams(void)
+int NapatechVerifyBypassSupport(void)
 {
     int status;
     int adapter = 0;
-    int num_adapters = GetNumAdapters();
-    SCLogInfo("Found %d Napatech adapters.\n", num_adapters);
-    memset(&hFlowStream, 0, sizeof(hFlowStream));
+    int num_adapters = NapatechGetNumAdapters();
+    SCLogInfo("Found %d Napatech adapters.", num_adapters);
+    NtFlowStream_t hFlowStream;
 
     if (!NapatechUseHWBypass()) {
         /* HW Bypass is disabled in the conf file */
@@ -113,48 +115,16 @@ int NapatechInitFlowStreams(void)
 
         snprintf(flow_name, sizeof(flow_name), "Flow stream %d", adapter );
         SCLogInfo("Opening flow programming stream:  %s\n", flow_name);
-        if ((status = NT_FlowOpen_Attr(&hFlowStream[adapter], flow_name, &attr)) != NT_SUCCESS) {
+        if ((status = NT_FlowOpen_Attr(&hFlowStream, flow_name, &attr)) != NT_SUCCESS) {
             SCLogWarning(SC_WARN_COMPATIBILITY, "Napatech bypass functionality not supported by the FPGA version on adapter %d - disabling support.", adapter);
             bypass_supported = 0;
             return 0;
         }
+        NT_FlowClose(hFlowStream);
     }
 
     bypass_supported = 1;
     return bypass_supported;
-}
-
-/**
- * \brief  Returns a pointer to the FlowStream associated with this adapter.
- *
- * \return count of the Napatech adapters present in the system.
- */
-NtFlowStream_t *NapatechGetFlowStreamPtr(int device)
-{
-    return &hFlowStream[device];
-}
-
-/**
- * \brief Closes all open FlowStreams
- *
- * \return Success of the operation.
- */
-int NapatechCloseFlowStreams(void)
-{
-    int status = 0;
-    int adapter = 0;
-    int num_adapters = GetNumAdapters();
-
-    for (adapter = 0; adapter < num_adapters; ++adapter) {
-        if (hFlowStream[adapter]) {
-            SCLogInfo("Closing Napatech Flow Stream on adapter %d.", adapter);
-            if ((status = NT_FlowClose(hFlowStream[adapter])) != NT_SUCCESS) {
-                NAPATECH_ERROR(SC_ERR_SHUTDOWN, status);
-            }
-            hFlowStream[adapter] = NULL;
-        }
-    }
-    return (status == NT_SUCCESS);
 }
 
 
@@ -183,7 +153,7 @@ static void UpdateFlowStats(
     uint64_t removed = 0;
     int adapter = 0;
 
-    for (adapter = 0; adapter < GetNumAdapters(); ++adapter) {
+    for (adapter = 0; adapter < NapatechGetNumAdapters(); ++adapter) {
         hStat.cmd = NT_STATISTICS_READ_CMD_FLOW_V0;
         hStat.u.flowData_v0.clear = clear_stats;
         hStat.u.flowData_v0.adapterNo = adapter;
@@ -309,8 +279,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
         int is_inline,
         int enable_stream_stats,
         PacketCounters stream_counters[]
-        )
-{
+        ) {
     static uint64_t rxPktsStart[MAX_STREAMS] = {0};
     static uint64_t rxByteStart[MAX_STREAMS] = {0};
     static uint64_t dropPktStart[MAX_STREAMS] = {0};
@@ -383,7 +352,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
             current_stats[stream_id].current_bytes = rx_byte_total - rxByteStart[stream_id];
             current_stats[stream_id].current_drop_packets = drop_pkts_total - dropPktStart[stream_id];
             current_stats[stream_id].current_drop_bytes = drop_byte_total - dropByteStart[stream_id];
-       }
+        }
 
         if (enable_stream_stats) {
             StatsSetUI64(tv, stream_counters[inst_id].pkts, current_stats[stream_id].current_packets);
@@ -420,7 +389,6 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
     total_stats.current_drop_packets = 0;
     total_stats.current_drop_bytes = 0;
 
-
     /* Read usage data for the chosen stream ID */
     memset(&hStat, 0, sizeof (NtStatistics_t));
 
@@ -453,7 +421,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
     uint64_t total_dispatch_fwd_pkts = 0;
     uint64_t total_dispatch_fwd_byte = 0;
 
-    for (adapter = 0; adapter < GetNumAdapters();  ++adapter) {
+    for (adapter = 0; adapter < NapatechGetNumAdapters();  ++adapter) {
         total_dispatch_host_pkts += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].pkts;
         total_dispatch_host_byte += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].octets;
 
@@ -468,9 +436,9 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[4].octets;
 
         total_stats.current_packets += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[2].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[3].pkts;
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].pkts
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[2].pkts
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[3].pkts;
 
         total_stats.current_bytes = hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].octets
                                   + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].octets
@@ -587,9 +555,8 @@ static void *NapatechStatsLoop(void *arg)
         for (int i = 0; i < stream_cnt; ++i) {
             char *pkts_buf = SCCalloc(1, 32);
             if (unlikely(pkts_buf == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Failed to allocate memory for NAPATECH stream counter.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Failed to allocate memory for NAPATECH stream counter.");
             }
 
             snprintf(pkts_buf, 32, "napa%d.pkts", stream_config[i].stream_id);
@@ -597,27 +564,24 @@ static void *NapatechStatsLoop(void *arg)
 
             char *byte_buf = SCCalloc(1, 32);
             if (unlikely(byte_buf == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Failed to allocate memory for NAPATECH stream counter.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Failed to allocate memory for NAPATECH stream counter.");
             }
             snprintf(byte_buf, 32, "napa%d.bytes", stream_config[i].stream_id);
             stream_counters[i].byte = StatsRegisterCounter(byte_buf, tv);
 
             char *drop_pkts_buf = SCCalloc(1, 32);
             if (unlikely(drop_pkts_buf == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Failed to allocate memory for NAPATECH stream counter.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Failed to allocate memory for NAPATECH stream counter.");
             }
             snprintf(drop_pkts_buf, 32, "napa%d.drop_pkts", stream_config[i].stream_id);
             stream_counters[i].drop_pkts = StatsRegisterCounter(drop_pkts_buf, tv);
 
             char *drop_byte_buf = SCCalloc(1, 32);
             if (unlikely(drop_byte_buf == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Failed to allocate memory for NAPATECH stream counter.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Failed to allocate memory for NAPATECH stream counter.");
             }
             snprintf(drop_byte_buf, 32, "napa%d.drop_byte", stream_config[i].stream_id);
             stream_counters[i].drop_byte = StatsRegisterCounter(drop_byte_buf, tv);
@@ -780,38 +744,43 @@ static uint32_t CountWorkerThreads(void)
                 TAILQ_FOREACH(lnode, &node->head, next)
                 {
                     uint8_t start, end;
+                    char *end_str;
                     if (strncmp(lnode->val, "all", 4) == 0) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                    "Only one Napatech port specifier type allowed.");
-                            exit(EXIT_FAILURE);
+                                    FatalError(SC_ERR_FATAL,
+                                               "Only one Napatech port specifier type allowed.");
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
                         worker_count = UtilCpuGetNumProcessorsConfigured();
-                    } else if (strchr(lnode->val, '-')) {
+                    } else if ((end_str = strchr(lnode->val, '-'))) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                    "Only one Napatech port specifier type allowed.");
-                            exit(EXIT_FAILURE);
+                                    FatalError(SC_ERR_FATAL,
+                                               "Only one Napatech port specifier type allowed.");
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
 
-                        char copystr[16];
-                        strlcpy(copystr, lnode->val, 16);
 
-                        ByteExtractStringUint8(&start, 10,  0, copystr);
-                        ByteExtractStringUint8(&end, 10,  0, strchr(copystr, '-') + 1);
-
+                        if (StringParseUint8(&start, 10, end_str - lnode->val, (const char *)lnode->val) < 0) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range start: '%s'", lnode->val);
+                        }
+                        if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
+                        }
+                        if (end < start) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range start: '%d' is greater than end: '%d'", start, end);
+                        }
                         worker_count = end - start + 1;
 
                     } else {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec == CONFIG_SPECIFIER_RANGE) {
-                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                    "Napatech port range specifiers cannot be combined with individual stream specifiers.");
-                            exit(EXIT_FAILURE);
+                                    FatalError(SC_ERR_FATAL,
+                                               "Napatech port range specifiers cannot be combined with individual stream specifiers.");
                         }
                         cpu_spec = CONFIG_SPECIFIER_INDIVIDUAL;
                         ++worker_count;
@@ -845,8 +814,8 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
     int set_cpu_affinity = 0;
     ConfNode *ntstreams;
     uint16_t stream_id = 0;
-    uint16_t start = 0;
-    uint16_t end = 0;
+    uint8_t start = 0;
+    uint8_t end = 0;
 
     for (uint16_t i = 0; i < MAX_STREAMS; ++i) {
         stream_config[i].stream_id = 0;
@@ -938,7 +907,8 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     return -1;
                 }
 
-                if (strchr(stream->val, '-')) {
+                char *end_str = strchr(stream->val, '-');
+                if (end_str) {
                     if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
                         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
                                 "Only one Napatech stream range specifier allowed.");
@@ -946,18 +916,26 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     }
                     stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                    char copystr[16];
-                    strlcpy(copystr, stream->val, 16);
-                    ByteExtractStringUint16(&start, 10,  0, copystr);
-                    ByteExtractStringUint16(&end, 10,  0, strchr(copystr, '-') + 1);
+                    if (StringParseUint8(&start, 10, end_str - stream->val,
+                                (const char *)stream->val) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream id start: '%s'", stream->val);
+                    }
+                    if (StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream id end: '%s'", (end_str != NULL) ? (const char *)(end_str + 1) : "Null");
+                    }
                 } else {
                     if (stream_spec == CONFIG_SPECIFIER_RANGE) {
-                        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                "Napatech range and individual specifiers cannot be combined.");
-                        exit(EXIT_FAILURE);
+                                FatalError(SC_ERR_FATAL,
+                                           "Napatech range and individual specifiers cannot be combined.");
                     }
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
-                    ByteExtractStringUint16(&stream_config[instance_cnt].stream_id, 10,  0, stream->val);
+                    if (StringParseUint8(&stream_config[instance_cnt].stream_id,
+                                          10, 0, (const char *)stream->val) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream id: '%s'", stream->val);
+                    }
                     start = stream_config[instance_cnt].stream_id;
                     end = stream_config[instance_cnt].stream_id;
                 }
@@ -1212,15 +1190,13 @@ void NapatechStartStats(void)
             "custom", NapatechStatsLoop, 0);
 
     if (stats_tv == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE,
-                "Error creating a thread for NapatechStats - Killing engine.");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Error creating a thread for NapatechStats - Killing engine.");
     }
 
     if (TmThreadSpawn(stats_tv) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN,
-                "Failed to spawn thread for NapatechStats - Killing engine.");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Failed to spawn thread for NapatechStats - Killing engine.");
     }
 
 #ifdef NAPATECH_ENABLE_BYPASS
@@ -1235,15 +1211,13 @@ void NapatechStartStats(void)
             "custom", NapatechBufMonitorLoop, 0);
 
     if (buf_monitor_tv == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE,
-                "Error creating a thread for NapatechBufMonitor - Killing engine.");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Error creating a thread for NapatechBufMonitor - Killing engine.");
     }
 
     if (TmThreadSpawn(buf_monitor_tv) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN,
-                "Failed to spawn thread for NapatechBufMonitor - Killing engine.");
-        exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Failed to spawn thread for NapatechBufMonitor - Killing engine.");
     }
 
 
@@ -1407,7 +1381,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     NtConfigStream_t hconfig;
     char ntpl_cmd[512];
     int is_inline = 0;
+#ifdef NAPATECH_ENABLE_BYPASS
     int is_span_port[MAX_PORTS] = { 0 };
+#endif
 
     char span_ports[128];
     memset(span_ports, 0, sizeof(span_ports));
@@ -1449,8 +1425,8 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     }
 
     if (is_inline) {
-         SCLogError(SC_ERR_RUNMODE, "Napatech inline mode not supported.  (Only available when Hardware Bypass support is enabled.)");
-         exit(EXIT_FAILURE);
+         FatalError(SC_ERR_FATAL,
+                    "Napatech inline mode not supported.  (Only available when Hardware Bypass support is enabled.)");
     }
 #endif
 
@@ -1465,8 +1441,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
      * the array of streams from the conf
      */
     if ((ntports = ConfGetNode("napatech.ports")) == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving napatech.ports from Conf");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Failed retrieving napatech.ports from Conf");
     }
 
     /* Loop through all ports in the array */
@@ -1480,9 +1455,8 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     TAILQ_FOREACH(port, &ntports->head, next)
     {
         if (port == NULL) {
-            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
-                    "Couldn't Parse Port Configuration");
-            exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Couldn't Parse Port Configuration");
         }
 
         if (NapatechUseHWBypass()) {
@@ -1490,16 +1464,13 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             if (strchr(port->val, '-')) {
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                char copystr[16];
-                strlcpy(copystr, port->val, sizeof(copystr));
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, copystr);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10,  0, strchr(copystr, '-')+1);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1);
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
-                        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                "Error with napatec.ports in conf file.  When running in inline mode the two ports specifying a segment must be different.");
-                        exit(EXIT_FAILURE);
+                                FatalError(SC_ERR_FATAL,
+                                           "Error with napatec.ports in conf file.  When running in inline mode the two ports specifying a segment must be different.");
                     } else {
                         /* SPAN port configuration */
                         is_span_port[ports_spec.first[iteration]] = 1;
@@ -1551,18 +1522,16 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                     strlcat(ports_spec.str, temp, sizeof(ports_spec.str));
                 }
             } else {
-                SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                        "When using hardware flow bypass ports must be specified as segments. E.g. ports: [0-1, 0-2]");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "When using hardware flow bypass ports must be specified as segments. E.g. ports: [0-1, 0-2]");
             }
 #endif
         } else { // !NapatechUseHWBypass()
             if (strncmp(port->val, "all", 3) == 0) {
                 /* check that the sting in the config file is correctly specified */
                 if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                    SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                            "Only one Napatech port specifier type is allowed.");
-                    exit(EXIT_FAILURE);
+                            FatalError(SC_ERR_FATAL,
+                                       "Only one Napatech port specifier type is allowed.");
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
@@ -1571,27 +1540,23 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             } else if (strchr(port->val, '-')) {
                 /* check that the sting in the config file is correctly specified */
                 if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                    SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                            "Only one Napatech port specifier is allowed when hardware bypass is disabled. (E.g. ports: [0-4], NOT ports: [0-1,2-3])");
-                    exit(EXIT_FAILURE);
+                            FatalError(SC_ERR_FATAL,
+                                       "Only one Napatech port specifier is allowed when hardware bypass is disabled. (E.g. ports: [0-4], NOT ports: [0-1,2-3])");
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                char copystr[16];
-                strlcpy(copystr, port->val, sizeof (copystr));
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, copystr);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10,  0, strchr(copystr, '-') + 1);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-') + 1);
                 snprintf(ports_spec.str, sizeof (ports_spec.str), "(%d..%d)", ports_spec.first[iteration], ports_spec.second[iteration]);
             } else {
                 /* check that the sting in the config file is correctly specified */
                 if (stream_spec == CONFIG_SPECIFIER_RANGE) {
-                    SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                            "Napatech port range specifiers cannot be combined with individual stream specifiers.");
-                    exit(EXIT_FAILURE);
+                            FatalError(SC_ERR_FATAL,
+                                       "Napatech port range specifiers cannot be combined with individual stream specifiers.");
                 }
                 stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10,  0, port->val);
+                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
 
                 /* Determine the ports to use on the NTPL assign statement*/
                 if (iteration == 0) {
@@ -1837,9 +1802,8 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
         }
     } else {
         if (is_inline) {
-            SCLogError(SC_WARN_COMPATIBILITY,
-                    "Napatech Inline operation not supported by this FPGA version.");
-            exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL,
+                               "Napatech Inline operation not supported by this FPGA version.");
         }
 
         if (NapatechIsAutoConfigEnabled()){

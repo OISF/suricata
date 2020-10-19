@@ -42,6 +42,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-byte.h"
 
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
@@ -70,7 +71,9 @@ typedef struct DetectNfsVersionData_ {
 static DetectNfsVersionData *DetectNfsVersionParse (const char *);
 static int DetectNfsVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *);
+#ifdef UNITTESTS
 static void DetectNfsVersionRegisterTests(void);
+#endif
 static int g_nfs_request_buffer_id = 0;
 
 static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
@@ -95,8 +98,9 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_AL_NFS_VERSION].AppLayerTxMatch = DetectNfsVersionMatch;
     sigmatch_table[DETECT_AL_NFS_VERSION].Setup = DetectNfsVersionSetup;
     sigmatch_table[DETECT_AL_NFS_VERSION].Free = DetectNfsVersionFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_NFS_VERSION].RegisterTests = DetectNfsVersionRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("nfs_request",
@@ -278,8 +282,10 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
     }
 
     /* set the first value */
-    dd->lo = atoi(value1); //TODO
-
+    if (StringParseUint32(&dd->lo, 10, 0, (const char *)value1) < 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid first value: \"%s\"", value1);
+        goto error;
+    }
     /* set the second value if specified */
     if (strlen(value2) > 0) {
         if (!(dd->mode == PROCEDURE_RA)) {
@@ -288,9 +294,10 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
             goto error;
         }
 
-        //
-        dd->hi = atoi(value2); // TODO
-
+        if (StringParseUint32(&dd->hi, 10, 0, (const char *)value2) < 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid second value: \"%s\"", value2);
+            goto error;
+        }
         if (dd->hi <= dd->lo) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Second value in range must not be smaller than the first");
@@ -591,14 +598,11 @@ static int ValidityTestParse15 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief Register unit tests for nfs_procedure.
  */
 void DetectNfsVersionRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("ValidityTestParse01", ValidityTestParse01);
     UtRegisterTest("ValidityTestParse02", ValidityTestParse02);
     UtRegisterTest("ValidityTestParse03", ValidityTestParse03);
@@ -614,5 +618,5 @@ void DetectNfsVersionRegisterTests(void)
     UtRegisterTest("ValidityTestParse13", ValidityTestParse13);
     UtRegisterTest("ValidityTestParse14", ValidityTestParse14);
     UtRegisterTest("ValidityTestParse15", ValidityTestParse15);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */
