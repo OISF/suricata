@@ -707,24 +707,6 @@ pub extern "C" fn rs_mqtt_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    get_event_info_by_id::<MQTTEvent>(event_id, event_name, event_type)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    get_event_info::<MQTTEvent>(event_name, event_id, event_type)
-}
-
-#[no_mangle]
 pub extern "C" fn rs_mqtt_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
@@ -776,8 +758,8 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_de_state: rs_mqtt_tx_get_detect_state,
         set_de_state: rs_mqtt_tx_set_detect_state,
         get_events: Some(rs_mqtt_state_get_events),
-        get_eventinfo: Some(rs_mqtt_state_get_event_info),
-        get_eventinfo_byid: Some(rs_mqtt_state_get_event_info_by_id),
+        get_eventinfo: Some(MQTTEvent::get_event_info),
+        get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
