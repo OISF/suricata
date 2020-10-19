@@ -402,3 +402,19 @@ macro_rules!export_tx_set_detect_state {
         }
     )
 }
+
+/// AppLayerEvent trait that will be implemented on enums that
+/// derive AppLayerEvent.
+pub trait AppLayerEvent {
+    /// Return the enum variant of the given ID.
+    fn from_id(id: i32) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Convert the enum variant to a C-style string (suffixed with \0).
+    fn to_cstring(&self) -> &str;
+
+    /// Return the enum variant for the given name (as a CStr).
+    fn from_cstring(s: &std::ffi::CStr) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return the ID value of the enum variant.
+    fn as_i32(&self) -> i32;
+}
