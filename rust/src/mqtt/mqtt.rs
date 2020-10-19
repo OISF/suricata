@@ -24,7 +24,7 @@ use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom;
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::CString;
 use std::mem::transmute;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
@@ -707,40 +707,21 @@ pub extern "C" fn rs_mqtt_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                      event_name: *mut *const std::os::raw::c_char,
-                                                      event_type: *mut core::AppLayerEventType)
-                                                      -> i8
-{
-    if let Some(e) = MQTTEvent::from_id(event_id as i32) {
-        let estr = e.to_cstring();
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
+pub extern "C" fn rs_mqtt_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
+    get_event_info_by_id::<MQTTEvent>(event_id, event_name, event_type)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match MQTTEvent::from_cstring(c_event_name) {
-        Some(e) => e.as_i32() as i32,
-        None => -1,
-    };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
+pub extern "C" fn rs_mqtt_state_get_event_info(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    get_event_info::<MQTTEvent>(event_name, event_id, event_type)
 }
 
 #[no_mangle]
