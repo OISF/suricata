@@ -17,3 +17,4 @@ alert ikev2 any any -> any any (msg:"SURICATA IKEv2 invalid proposal"; flow:to_s
 alert ikev2 any any -> any any (msg:"SURICATA IKEv2 invalid proposal selected"; flow:to_client; app-layer-event:ikev2.invalid_proposal; classtype:protocol-command-decode; sid:2224010; rev:1;)
 alert ikev2 any any -> any any (msg:"SURICATA IKEv2 unknown proposal"; flow:to_server; app-layer-event:ikev2.unknown_proposal; classtype:protocol-command-decode; sid:2224011; rev:1;)
 alert ikev2 any any -> any any (msg:"SURICATA IKEv2 unknown proposal selected"; flow:to_client; app-layer-event:ikev2.unknown_proposal; classtype:protocol-command-decode; sid:2224012; rev:1;)
+alert ike any any -> any any (msg:"SURICATA IKEv1 unread payload data"; app-layer-event:ike.payload_extra_data; classtype:protocol-command-decode; sid:2224013; rev:1;)

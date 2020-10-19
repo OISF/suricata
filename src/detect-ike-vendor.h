@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,13 +15,15 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ * \file
+ *
+ * \author Frank Honza <frank.honza@dcso.de>
+ */
 
-extern crate ipsec_parser;
+#ifndef __DETECT_IKE_VENDOR_H__
+#define __DETECT_IKE_VENDOR_H__
 
-pub mod ike;
-pub mod logger;
-mod parser;
-mod detect;
-mod ikev1;
-mod ikev2;
+void DetectIkeVendorRegister(void);
+
+#endif /* __DETECT_IKE_VENDOR_H__ */
