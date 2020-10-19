@@ -1529,12 +1529,9 @@ int DetectEngineReloadIsIdle(void)
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectGenericList(ThreadVars *tv,
-                                   const DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, const SigMatchData *smd,
-                                   Flow *f, const uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id)
+int DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Flow *f, const uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {

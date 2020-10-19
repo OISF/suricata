@@ -105,7 +105,7 @@ static int InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
-            NULL, de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

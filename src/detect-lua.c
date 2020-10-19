@@ -139,7 +139,7 @@ static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(
-            NULL, de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 #define DATATYPE_PACKET                     (1<<0)
