@@ -1133,14 +1133,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                if (engine->Callback) {
-                    match = engine->Callback(tv, de_ctx, det_ctx,
-                            s, engine->smd, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
-                } else {
-                    BUG_ON(engine->v2.Callback == NULL);
-                    match = engine->v2.Callback(de_ctx, det_ctx, engine,
-                            s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
-                }
+                DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
+                match = engine->v2.Callback(
+                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
