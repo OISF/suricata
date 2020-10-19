@@ -114,11 +114,8 @@ int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
 int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
 
-int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
-                                   DetectEngineThreadCtx *,
-                                   const Signature *, const SigMatchData *,
-                                   Flow *, const uint8_t, void *, void *,
-                                   uint64_t);
+int DetectEngineInspectGenericList(const DetectEngineCtx *, DetectEngineThreadCtx *,
+        const Signature *, const SigMatchData *, Flow *, const uint8_t, void *, void *, uint64_t);
 
 int DetectEngineInspectBufferGeneric(
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
