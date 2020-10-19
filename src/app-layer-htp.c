@@ -831,14 +831,13 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                 break;
             case HTP_STREAM_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
-                if (tx != NULL && tx->response_status_number == 101) {
-                    htp_header_t *h =
-                            (htp_header_t *)htp_table_get_c(tx->response_headers, "Upgrade");
+                if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
+                    const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
                     if (h != NULL) {
-                        if (bstr_cmp_c(h->value, "h2c") == 0) {
+                        if (bstr_cmp_c(htp_header_value(h), "h2c") == 0) {
                             uint16_t dp = 0;
-                            if (tx->request_port_number != -1) {
-                                dp = (uint16_t)tx->request_port_number;
+                            if (htp_tx_request_port_number(tx) != -1) {
+                                dp = (uint16_t)htp_tx_request_port_number(tx);
                             }
                             consumed = htp_connp_res_data_consumed(hstate->connp);
                             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
@@ -1060,10 +1059,9 @@ static int HTTPParseContentTypeHeader(const uint8_t *name, const size_t name_len
  */
 static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = htp_tx_request_header(
-            htp_tx_data_tx(d), "Content-Type");
+    const htp_header_t *h = htp_tx_request_header(tx, "Content-Type");
     if (h != NULL && htp_header_value_len(h) > 0) {
-        uint8_t *boundary = NULL;
+        const uint8_t *boundary = NULL;
         size_t boundary_len = 0;
 
         int r = HTTPParseContentTypeHeader((uint8_t *)"boundary=", 9,
@@ -1712,7 +1710,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         if (htp_tx_request_method_number(tx) == HTP_M_POST) {
             SCLogDebug("POST");
-            int r = HtpRequestBodySetupMultipart(d->tx, tx_ud);
+            int r = HtpRequestBodySetupMultipart(tx, tx_ud);
             if (r == 1) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
@@ -1970,7 +1968,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                 hstate->cfg->request.inspect_min_size);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1996,7 +1994,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT,
                 hstate->cfg->response.inspect_min_size);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -2840,7 +2838,7 @@ void *HtpGetTxForH2(void *alstate)
     if (http_state != NULL && http_state->conn != NULL) {
         size_t txid = htp_conn_tx_size(http_state->conn);
         if (txid > 0) {
-            return htp_conn_tx(http_state->conn, tx_id - 1)
+            return htp_conn_tx(http_state->conn, txid - 1);
         }
     }
     return NULL;
