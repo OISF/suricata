@@ -563,9 +563,8 @@ void DetectModbusRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX_FUNCTION, &function_parse_regex);
     DetectSetupParseRegexes(PARSE_REGEX_ACCESS, &access_parse_regex);
 
-    DetectAppLayerInspectEngineRegister("modbus",
-            ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectModbus);
+    DetectAppLayerInspectEngineRegister2(
+            "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectModbus, NULL);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");
 }
