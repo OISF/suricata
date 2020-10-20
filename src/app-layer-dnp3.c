@@ -471,7 +471,7 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
     }
     else {
         SCLogWarning(SC_ERR_ALPARSER,
-            "Fail set set event, state or txn was NULL.");
+            "Failed to set event, state or tx pointer was NULL.");
     }
 }
 
