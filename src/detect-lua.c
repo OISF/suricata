@@ -103,11 +103,9 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
-static int InspectSmtpGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for keyword: lua
@@ -127,25 +125,21 @@ void DetectLuaRegister(void)
 #endif
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
-    DetectAppLayerInspectEngineRegister("smtp_generic",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            InspectSmtpGeneric);
-    DetectAppLayerInspectEngineRegister("smtp_generic",
-            ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0,
-            InspectSmtpGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, InspectSmtpGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0, InspectSmtpGeneric, NULL);
 
-	SCLogDebug("registering lua rule option");
+    SCLogDebug("registering lua rule option");
     return;
 }
 
-static int InspectSmtpGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            NULL, de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 #define DATATYPE_PACKET                     (1<<0)
