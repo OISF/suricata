@@ -2260,7 +2260,7 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
 
     /* don't convert + to space by default */
-    htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
+    htp_config_set_plusspace_decode(cfg_prec->cfg, 0);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
     // disable by default
     htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
