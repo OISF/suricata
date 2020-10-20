@@ -23,15 +23,13 @@
 #ifndef __DETECT_ENGINE_ENIP_H__
 #define __DETECT_ENGINE_ENIP_H__
 
-int DetectEngineInspectCIP(ThreadVars *,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const Signature *, const SigMatchData *smd,
-        Flow *, uint8_t, void *, void *, uint64_t);
+int DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
+        const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
+        void *, uint64_t);
 
-int DetectEngineInspectENIP(ThreadVars *,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const Signature *, const SigMatchData *smd,
-        Flow *, uint8_t, void *, void *, uint64_t);
+int DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
+        const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
+        void *, uint64_t);
 
 void DetectEngineInspectENIPRegisterTests(void);
 #endif /* __DETECT_ENGINE_ENIP_H__ */
