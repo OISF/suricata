@@ -1090,12 +1090,18 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     const uint8_t *mydata;
     uint32_t mydata_len;
     bool gap_ahead = false;
+    bool last_was_gap = false;
 
     while (1) {
         const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         bool check_for_gap_ahead = ((*stream)->data_required > 0);
         gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
                 app_progress, check_for_gap_ahead);
+        if (last_was_gap && mydata_len == 0) {
+            break;
+        }
+        last_was_gap = false;
+
         /* make sure to only deal with ACK'd data */
         mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
@@ -1127,6 +1133,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 return 0;
             if (no_progress_update)
                 break;
+            last_was_gap = true;
             continue;
 
         } else if (flags & STREAM_DEPTH) {
