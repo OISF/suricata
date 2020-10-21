@@ -1058,9 +1058,10 @@ static inline uint32_t AdjustToAcked(const Packet *p,
                 /* get max absolute offset */
                 last_ack_abs += delta;
             }
+            DEBUG_VALIDATE_BUG_ON(app_progress > last_ack_abs);
 
             /* see if the buffer contains unack'd data as well */
-            if (app_progress + data_len > last_ack_abs) {
+            if (app_progress <= last_ack_abs && app_progress + data_len > last_ack_abs) {
                 uint32_t check = data_len;
                 adjusted = last_ack_abs - app_progress;
                 BUG_ON(adjusted > check);
