@@ -1043,11 +1043,10 @@ static inline uint32_t AdjustToAcked(const Packet *p,
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == FALSE) {
         SCLogDebug("ssn->state %s", StreamTcpStateAsString(ssn->state));
-        if ((ssn->state < TCP_CLOSED ||
-                    (ssn->state == TCP_CLOSED &&
-                     (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
-                (p->flags & PKT_PSEUDO_STREAM_END))
-        {
+        if (data_len == 0 || ((ssn->state < TCP_CLOSED ||
+                                      (ssn->state == TCP_CLOSED &&
+                                              (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
+                                     (p->flags & PKT_PSEUDO_STREAM_END))) {
             // fall through, we use all available data
         } else {
             uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
