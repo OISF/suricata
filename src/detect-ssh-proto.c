@@ -100,6 +100,13 @@ void DetectSshProtocolRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].Setup = DetectSshProtocolSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
+    sigmatch_table[DETECT_SSH_PROTOCOL].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_SSH_PROTOCOL].alternative = DETECT_AL_SSH_PROTOCOL;
+    sigmatch_table[DETECT_SSH_PROTOCOL].desc = "legacy match for ssh protocol version";
+    sigmatch_table[DETECT_SSH_PROTOCOL].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SSH_PROTOCOL].Setup = DetectSshProtocolSetup;
+    sigmatch_table[DETECT_SSH_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSshData, ALPROTO_SSH, SshStateBannerDone),
             DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,

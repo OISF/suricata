@@ -50,7 +50,7 @@
 #define KEYWORD_NAME        "ssh.software"
 #define KEYWORD_NAME_LEGACY "ssh_software"
 #define KEYWORD_DOC         "ssh-keywords.html#ssh-software"
-#define BUFFER_NAME         "ssh_software"
+#define BUFFER_NAME         "ssh.software"
 #define BUFFER_DESC         "ssh software field"
 static int g_buffer_id = 0;
 
@@ -99,6 +99,13 @@ void DetectSshSoftwareRegister(void)
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].Setup = DetectSshSoftwareSetup;
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_SSH_SOFTWARE].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_SSH_SOFTWARE].alternative = DETECT_AL_SSH_SOFTWARE;
+    sigmatch_table[DETECT_SSH_SOFTWARE].desc = "legacy match for ssh software string";
+    sigmatch_table[DETECT_SSH_SOFTWARE].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SSH_SOFTWARE].Setup = DetectSshSoftwareSetup;
+    sigmatch_table[DETECT_SSH_SOFTWARE].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSshData, ALPROTO_SSH, SshStateBannerDone),
