@@ -36,10 +36,12 @@
 #include "detect-smb-share.h"
 #include "rust.h"
 
-#define BUFFER_NAME         "smb_named_pipe"
-#define KEYWORD_NAME        "smb.named_pipe"
-#define KEYWORD_NAME_LEGACY BUFFER_NAME
+#define BUFFER_NAME         "smb.named_pipe"
+#define BUFFER_NAME_LEGACY  "smb_named_pipe"
+#define KEYWORD_NAME        BUFFER_NAME
+#define KEYWORD_NAME_LEGACY BUFFER_NAME_LEGACY
 #define KEYWORD_ID          DETECT_SMB_NAMED_PIPE
+#define KEYWORD_ID_LEGACY   DETECT_SMB_NAMED_PIPE_LEGACY
 
 static int g_smb_named_pipe_buffer_id = 0;
 
@@ -82,6 +84,12 @@ void DetectSmbNamedPipeRegister(void)
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB named pipe in tree connect";
 
+    sigmatch_table[KEYWORD_ID_LEGACY].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[KEYWORD_ID_LEGACY].alternative = KEYWORD_ID;
+    sigmatch_table[KEYWORD_ID_LEGACY].Setup = DetectSmbNamedPipeSetup;
+    sigmatch_table[KEYWORD_ID_LEGACY].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[KEYWORD_ID_LEGACY].desc = "legacy match on SMB named pipe in tree connect";
+
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetNamedPipeData, ALPROTO_SMB, 1);
 
@@ -92,14 +100,18 @@ void DetectSmbNamedPipeRegister(void)
 }
 
 #undef BUFFER_NAME
+#undef BUFFER_NAME_LEGACY
 #undef KEYWORD_NAME
 #undef KEYWORD_NAME_LEGACY
 #undef KEYWORD_ID
+#undef KEYWORD_ID_LEGACY
 
-#define BUFFER_NAME         "smb_share"
-#define KEYWORD_NAME        "smb.share"
-#define KEYWORD_NAME_LEGACY BUFFER_NAME
+#define BUFFER_NAME         "smb.share"
+#define BUFFER_NAME_LEGACY  "smb_share"
+#define KEYWORD_NAME        BUFFER_NAME
+#define KEYWORD_NAME_LEGACY BUFFER_NAME_LEGACY
 #define KEYWORD_ID          DETECT_SMB_SHARE
+#define KEYWORD_ID_LEGACY   DETECT_SMB_SHARE_LEGACY
 
 static int g_smb_share_buffer_id = 0;
 
@@ -141,6 +153,12 @@ void DetectSmbShareRegister(void)
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbShareSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB share name in tree connect";
+
+    sigmatch_table[KEYWORD_ID_LEGACY].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[KEYWORD_ID_LEGACY].alternative = KEYWORD_ID;
+    sigmatch_table[KEYWORD_ID_LEGACY].Setup = DetectSmbNamedPipeSetup;
+    sigmatch_table[KEYWORD_ID_LEGACY].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[KEYWORD_ID_LEGACY].desc = "legacy match on SMB share name in tree connect";
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetShareData, ALPROTO_SMB, 1);
