@@ -175,7 +175,6 @@ void PacketFreeOrRelease(Packet *p)
  */
 void PacketReinit(Packet *p)
 {
-
 }
 
 /**
