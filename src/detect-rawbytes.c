@@ -43,6 +43,9 @@ static int DetectRawbytesSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectRawbytesRegister(void)
 {
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
+    sigmatch_table[DETECT_RAWBYTES].desc =
+            "dummy keyword to be compatible with snort signatures without effect";
+    sigmatch_table[DETECT_RAWBYTES].url = "/rules/payload-keywords.html#rawbytes";
     sigmatch_table[DETECT_RAWBYTES].Setup = DetectRawbytesSetup;
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
 }
