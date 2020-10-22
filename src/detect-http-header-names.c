@@ -97,12 +97,12 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <=
-                HTP_REQUEST_HEADERS)
+                HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
         headers = htp_tx_request_headers(tx);
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <=
-                HTP_RESPONSE_HEADERS)
+                HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
         headers = htp_tx_response_headers(tx);
     }
@@ -224,7 +224,7 @@ static int PrefilterTxHttpRequestHeaderNamesRegister(DetectEngineCtx *de_ctx,
     pectx->transforms = &mpm_reg->transforms;
 
     int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeaderNames,
-            mpm_reg->app_v2.alproto, HTP_REQUEST_HEADERS,
+            mpm_reg->app_v2.alproto, HTP_REQUEST_PROGRESS_HEADERS,
             pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
@@ -297,7 +297,7 @@ static int PrefilterTxHttpResponseHeaderNamesRegister(DetectEngineCtx *de_ctx,
     pectx->transforms = &mpm_reg->transforms;
 
     int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeaderNames,
-            mpm_reg->app_v2.alproto, HTP_RESPONSE_HEADERS,
+            mpm_reg->app_v2.alproto, HTP_RESPONSE_PROGRESS_HEADERS,
             pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
@@ -352,10 +352,10 @@ static int InspectEngineHttpHeaderNames(
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_PROGRESS_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_PROGRESS_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -400,16 +400,16 @@ void DetectHttpHeaderNamesRegister(void)
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeaderNamesRegister, NULL, ALPROTO_HTTP,
-            HTP_REQUEST_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS);
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseHeaderNamesRegister, NULL, ALPROTO_HTTP,
-            HTP_RESPONSE_HEADERS);
+            HTP_RESPONSE_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
             InspectEngineHttpHeaderNames, NULL);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_HEADERS,
             InspectEngineHttpHeaderNames, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

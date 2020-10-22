@@ -103,18 +103,18 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
             DetectEngineInspectBufferGeneric, GetRequestData);
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_REQUEST_HEADERS,
+            SIG_FLAG_TOCLIENT, HTP_REQUEST_PROGRESS_HEADERS,
             DetectEngineInspectBufferGeneric, GetResponseData);
 
     DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetRequestData, ALPROTO_HTTP,
-            HTP_REQUEST_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS);
     DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetResponseData, ALPROTO_HTTP,
-            HTP_REQUEST_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");

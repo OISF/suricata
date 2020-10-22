@@ -147,21 +147,21 @@ static void DetectHttpHeadersRegisterStub(void)
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetRequestData,
-            ALPROTO_HTTP, HTP_REQUEST_HEADERS);
+            ALPROTO_HTTP, HTP_REQUEST_PROGRESS_HEADERS);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetResponseData,
-            ALPROTO_HTTP, HTP_RESPONSE_HEADERS);
+            ALPROTO_HTTP, HTP_RESPONSE_PROGRESS_HEADERS);
 #endif
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
             DetectEngineInspectBufferGeneric, GetRequestData);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_HEADERS,
             DetectEngineInspectBufferGeneric, GetResponseData);
 #endif
 

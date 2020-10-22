@@ -94,10 +94,10 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_BODY,
             DetectFileInspectGeneric);
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_BODY,
             DetectFileInspectGeneric);
 
     DetectAppLayerInspectEngineRegister("files",

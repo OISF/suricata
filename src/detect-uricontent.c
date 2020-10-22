@@ -238,8 +238,8 @@ static int HTTPUriTest01(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
-        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         goto end;
     }
@@ -309,8 +309,8 @@ static int HTTPUriTest02(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
-        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         goto end;
     }
@@ -380,8 +380,8 @@ static int HTTPUriTest03(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
-        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         goto end;
     }
@@ -452,8 +452,8 @@ static int HTTPUriTest04(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
-    if (htp_tx_request_method_number(tx) != HTP_M_GET ||
-        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_GET ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         goto end;
     }

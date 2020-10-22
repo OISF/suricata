@@ -99,13 +99,13 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_BODY,
             DetectEngineInspectBufferGeneric,
             HttpClientBodyGetDataCallback);
 
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, HttpClientBodyGetDataCallback,
-            ALPROTO_HTTP, HTP_REQUEST_BODY);
+            ALPROTO_HTTP, HTP_REQUEST_PROGRESS_BODY);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
@@ -213,7 +213,7 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *de
               htp_state->cfg->request.body_limit, body->content_len_so_far,
               htp_state->cfg->request.inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
-               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) ? "true" : "false");
+               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_PROGRESS_BODY) ? "true" : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
@@ -221,7 +221,7 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *de
         if ((htp_state->cfg->request.body_limit == 0 ||
              body->content_len_so_far < htp_state->cfg->request.body_limit) &&
             body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_PROGRESS_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire request body.  "
                        "Let's defer body inspection till we see the "

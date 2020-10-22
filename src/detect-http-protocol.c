@@ -130,15 +130,15 @@ void DetectHttpProtocolRegister(void)
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_LINE);
+            HTP_REQUEST_PROGRESS_LINE);
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_RESPONSE_LINE);
+            HTP_RESPONSE_PROGRESS_LINE);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_LINE,
             DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_LINE,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

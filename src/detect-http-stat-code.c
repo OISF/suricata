@@ -97,12 +97,12 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_LINE,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_RESPONSE_LINE);
+            HTP_RESPONSE_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");
