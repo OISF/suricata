@@ -87,6 +87,26 @@ impl DCERPCUDPState {
         tx
     }
 
+    pub fn free_tx(&mut self, tx_id: u64) {
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        let len = self.transactions.len();
+        let mut found = false;
+        let mut index = 0;
+        for i in 0..len {
+            let tx = &self.transactions[i];
+            if tx.id as u64 == tx_id { //+ 1 {
+                found = true;
+                index = i;
+                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
+                break;
+            }
+        }
+        if found {
+            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.transactions.remove(index);
+        }
+    }
 
     fn evaluate_serial_no(&mut self) -> u16 {
         let mut serial_no: u16;
@@ -316,9 +336,11 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw:
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
-    _state: *mut std::os::raw::c_void, _tx_id: u64,
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
-    // do nothing
+    let dce_state = cast_pointer!(state, DCERPCUDPState);
+    SCLogDebug!("freeing tx {}", tx_id as u64);
+    dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
