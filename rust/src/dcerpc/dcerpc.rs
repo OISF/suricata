@@ -1142,14 +1142,18 @@ pub extern "C" fn rs_dcerpc_parse_request(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
-    SCLogDebug!("Handling request");
+    SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
+            input, input_len, flags, flags & core::STREAM_EOF != 0);
+    if flags & core::STREAM_EOF != 0 && input_len == 0 {
+        return AppLayerResult::ok();
+    }
     /* START with MIDSTREAM set: record might be starting the middle. */
     if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
         state.ts_gap = true;
     }
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
-        return state.handle_input_data(buf, flags);
+        return state.handle_input_data(buf, core::STREAM_TOSERVER);
     }
     AppLayerResult::err()
 }
@@ -1159,6 +1163,9 @@ pub extern "C" fn rs_dcerpc_parse_response(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    if flags & core::STREAM_EOF != 0 && input_len == 0 {
+        return AppLayerResult::ok();
+    }
     /* START with MIDSTREAM set: record might be starting the middle. */
     if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
         state.tc_gap = true;
@@ -1166,7 +1173,7 @@ pub extern "C" fn rs_dcerpc_parse_response(
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = build_slice!(input, input_len as usize);
-            return state.handle_input_data(buf, flags);
+            return state.handle_input_data(buf, core::STREAM_TOCLIENT);
         }
     }
     AppLayerResult::err()
