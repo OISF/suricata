@@ -1033,7 +1033,7 @@ impl DCERPCState {
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
-                    let tx = if let Some(mut tx) = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT) {
+                    let tx = if let Some(tx) = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT) {
                         tx.resp_cmd = x;
                         tx
                     } else {
@@ -1058,7 +1058,7 @@ impl DCERPCState {
                 DCERPC_TYPE_RESPONSE => {
                     let transaction = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT);
                     match transaction {
-                        Some(mut tx) => {
+                        Some(tx) => {
                             tx.resp_cmd = x;
                         }
                         None => {
