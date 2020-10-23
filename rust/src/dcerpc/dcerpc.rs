@@ -17,7 +17,7 @@
 
 use std::mem::transmute;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
-use crate::core;
+use crate::core::{self, sc_detect_engine_state_free};
 use crate::dcerpc::parser;
 use nom::error::ErrorKind;
 use nom::number::Endianness;
@@ -184,6 +184,15 @@ impl DCERPCTransaction {
         };
     }
 
+    pub fn free(&mut self) {
+        match self.de_state {
+            Some(state) => {
+                sc_detect_engine_state_free(state);
+            }
+            _ => {}
+        }
+    }
+
     pub fn get_req_ctxid(&self) -> u16 {
         self.ctxid
     }
@@ -198,6 +207,12 @@ impl DCERPCTransaction {
 
     pub fn get_endianness(&self) -> u8 {
         self.endianness
+    }
+}
+
+impl Drop for DCERPCTransaction {
+    fn drop(&mut self) {
+        self.free();
     }
 }
 
