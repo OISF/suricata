@@ -55,8 +55,8 @@ static AppLayerResult DCERPCParseRequest(Flow *f, void *dcerpc_state,
         SCLogDebug("DCERPC request GAP of %u bytes, retval %d", input_len, res.status);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_dcerpc_parse_request(f, dcerpc_state, pstate, input, input_len,
-                                                     local_data, 0x04);
+        AppLayerResult res = rs_dcerpc_parse_request(
+                f, dcerpc_state, pstate, input, input_len, local_data, flags);
         SCLogDebug("DCERPC request%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
         SCReturnStruct(res);
@@ -73,8 +73,8 @@ static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
         SCLogDebug("DCERPC response GAP of %u bytes, retval %d", input_len, res.status);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_dcerpc_parse_response(f, dcerpc_state, pstate, input, input_len,
-                                                      local_data, 0x08);
+        AppLayerResult res = rs_dcerpc_parse_response(
+                f, dcerpc_state, pstate, input, input_len, local_data, flags);
         SCLogDebug("DCERPC response%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
         SCReturnStruct(res);
