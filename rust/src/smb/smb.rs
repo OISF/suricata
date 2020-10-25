@@ -755,7 +755,8 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    pub files: SMBFiles,
+    // replacing SMBFiles with Files
+    pub files: Files,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -808,7 +809,7 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: SMBFiles::new(),
+            files: Files::new(), // replacing SMBFiles with Files
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
