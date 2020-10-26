@@ -164,6 +164,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->app_v2.tx_min_progress = t->app_v2.tx_min_progress;
             am->priority = t->priority;
             am->sgh_mpm_context = t->sgh_mpm_context;
+            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list);
             am->next = t->next;
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
@@ -247,7 +248,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
             if (!(de_ctx->flags & DE_QUIET)) {
                 SCLogPerf("using shared mpm ctx' for %s", n->name);
             }
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name);
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
         list = list->next;
@@ -415,7 +416,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
             if (!(de_ctx->flags & DE_QUIET)) {
                 SCLogPerf("using shared mpm ctx' for %s", n->name);
             }
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name);
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
         list = list->next;
@@ -469,7 +470,7 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
         ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         SCLogPerf("using unique mpm ctx' for %s", name);
     } else {
-        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name);
+        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name, DETECT_SM_LIST_PMATCH);
         SCLogPerf("using shared mpm ctx' for %s", name);
     }
     return ctx;

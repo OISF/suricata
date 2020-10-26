@@ -52,10 +52,12 @@ int mpm_default_matcher;
  * \brief Register a new Mpm Context.
  *
  * \param name A new profile to be registered to store this MpmCtx.
+ * \param sm_list sm_list for this name (might be variable with xforms)
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
-int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name)
+int32_t MpmFactoryRegisterMpmCtxProfile(
+        DetectEngineCtx *de_ctx, const char *name, const int sm_list)
 {
     void *ptmp;
     /* the very first entry */
@@ -74,6 +76,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         }
 
         item[0].name = name;
+        item[0].sm_list = sm_list;
 
         /* toserver */
         item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -107,7 +110,8 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         int i;
         MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
         for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (items[i].name != NULL && strcmp(items[i].name, name) == 0) {
+            if (items[i].sm_list == sm_list && items[i].name != NULL &&
+                    strcmp(items[i].name, name) == 0) {
                 /* looks like we have this mpm_ctx freed */
                 if (items[i].mpm_ctx_ts == NULL) {
                     items[i].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -146,6 +150,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
 
         MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
         new_item[0].name = name;
+        new_item[0].sm_list = sm_list;
 
         /* toserver */
         new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
