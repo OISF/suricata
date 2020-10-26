@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,13 +15,14 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ *
+ * \author Frank Honza <frank.honza@dcso.de>
+ */
 
-extern crate ipsec_parser;
+#ifndef __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__
+#define __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__
 
-mod detect;
-pub mod ike;
-mod ikev1;
-mod ikev2;
-pub mod logger;
-mod parser;
+void DetectIkeKeyExchangePayloadLengthRegister(void);
+
+#endif /* __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__ */
