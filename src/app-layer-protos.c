@@ -25,7 +25,9 @@
 #include "suricata-common.h"
 #include "app-layer-protos.h"
 
-#define CASE_CODE(E)  case E: return #E
+#define CASE_CODE(E)                                                                               \
+    case E:                                                                                        \
+        return #E
 
 const char *AppProtoToString(AppProto alproto)
 {
@@ -104,7 +106,7 @@ const char *AppProtoToString(AppProto alproto)
             break;
         case ALPROTO_RFB:
             proto_name = "rfb";
-	    break;
+            break;
         case ALPROTO_MQTT:
             proto_name = "mqtt";
             break;
@@ -139,7 +141,8 @@ const char *AppProtoToString(AppProto alproto)
 
 AppProto StringToAppProto(const char *proto_name)
 {
-    if (proto_name == NULL) return ALPROTO_UNKNOWN;
+    if (proto_name == NULL)
+        return ALPROTO_UNKNOWN;
 
     if (strcmp(proto_name, "http") == 0)
         return ALPROTO_HTTP;
@@ -162,7 +165,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"dnp3")==0) return ALPROTO_DNP3;
     if (strcmp(proto_name,"nfs")==0) return ALPROTO_NFS;
     if (strcmp(proto_name,"ntp")==0) return ALPROTO_NTP;
-    if (strcmp(proto_name,"ike")==0) return ALPROTO_IKE;
+    if (strcmp(proto_name, "ike") == 0)
+        return ALPROTO_IKE;
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
