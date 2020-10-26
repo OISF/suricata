@@ -826,7 +826,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toserver_groups;
 
     /* specify the configuration for mpm context factory */
-    uint8_t sgh_mpm_context;
+    uint8_t sgh_mpm_ctx_cnf;
 
     /* max flowbit id that is used */
     uint32_t max_fb_id;
