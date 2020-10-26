@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ * \author Frank Honza <frank.honza@dcso.de>
  *
  * Implement JSON/eve logging app-layer IKE.
  */
@@ -46,12 +47,14 @@
 
 #include "app-layer-ike.h"
 #include "output-json-ike.h"
-
 #include "rust.h"
+
+#define LOG_IKE_DEFAULT  0
+#define LOG_IKE_EXTENDED (1 << 0)
 
 typedef struct LogIKEFileCtx_ {
     LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
+    uint32_t flags;
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
@@ -60,33 +63,41 @@ typedef struct LogIKELogThread_ {
     MemBuffer *buffer;
 } LogIKELogThread;
 
+bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+{
+    IKEState *state = FlowGetAppState(f);
+    if (state) {
+        IKETransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
+        if (tx) {
+            return rs_ike_logger_log(state, tx, LOG_IKE_EXTENDED, js);
+        }
+    }
+
+    return false;
+}
+
 static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *tx, uint64_t tx_id)
 {
-    IKETransaction *iketx = tx;
     LogIKELogThread *thread = thread_data;
-
-    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL);
-    if (unlikely(jb == NULL)) {
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "ike", NULL);
+    if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->ikelog_ctx->cfg, p, f, jb);
-
-    jb_open_object(jb, "ike");
-    if (unlikely(!rs_ike_log_json_response(state, iketx, jb))) {
+    LogIKEFileCtx *ike_ctx = thread->ikelog_ctx;
+    if (!rs_ike_logger_log(state, tx, ike_ctx->flags, js)) {
         goto error;
     }
-    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    jb_free(js);
 
-    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    jb_free(jb);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 
@@ -107,17 +118,23 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
         return result;
     }
     ikelog_ctx->file_ctx = ajt->file_ctx;
-    ikelog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(ikelog_ctx);
         return result;
     }
+
+    ikelog_ctx->flags = LOG_IKE_DEFAULT;
+    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    if (extended) {
+        if (ConfValIsTrue(extended)) {
+            ikelog_ctx->flags = LOG_IKE_EXTENDED;
+        }
+    }
+
     output_ctx->data = ikelog_ctx;
     output_ctx->DeInit = OutputIKELogDeInitCtxSub;
-
-    SCLogDebug("IKE log sub-module initialized.");
 
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKE);
 
@@ -135,12 +152,14 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogIKE.  \"initdata\" is NULL.");
-        goto error_exit;
+        SCFree(thread);
+        return TM_ECODE_FAILED;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
+        SCFree(thread);
+        return TM_ECODE_FAILED;
     }
 
     thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
@@ -150,6 +169,7 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
     }
 
     *data = (void *)thread;
+
     return TM_ECODE_OK;
 
 error_exit:
@@ -179,6 +199,4 @@ void JsonIKELogRegister(void)
     OutputRegisterTxSubModule(LOGGER_JSON_IKE, "eve-log", "JsonIKELog", "eve-log.ike",
             OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELogThreadInit,
             JsonIKELogThreadDeinit, NULL);
-
-    SCLogDebug("IKE JSON logger registered.");
 }

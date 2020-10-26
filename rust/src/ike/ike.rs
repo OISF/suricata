@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,17 +15,24 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+// Author: Frank Honza <frank.honza@dcso.de>
 
-use crate::ike::ipsec_parser::*;
-use crate::ike::state::IKEConnectionState;
-use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
-use crate::applayer::{self, *};
+extern crate ipsec_parser;
+use self::ipsec_parser::*;
+
 use std;
-use std::ffi::{CStr,CString};
-
+use crate::core::{self, ALPROTO_UNKNOWN, ALPROTO_FAILED, AppProto, Flow, STREAM_TOSERVER, STREAM_TOCLIENT};
+use std::mem::transmute;
+use crate::applayer;
+use crate::applayer::*;
+use std::ffi::{CString, CStr};
 use nom;
+use crate::ike::parser::*;
+use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
+use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
+use std::collections::HashSet;
+
+static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 #[repr(u32)]
 pub enum IkeEvent {
@@ -39,10 +46,11 @@ pub enum IkeEvent {
     WeakCryptoNoAuth,
     InvalidProposal,
     UnknownProposal,
+    PayloadExtraData,
 }
 
 impl IkeEvent {
-    fn from_i32(value: i32) -> Option<IkeEvent> {
+    pub fn from_i32(value: i32) -> Option<IkeEvent> {
         match value {
             0 => Some(IkeEvent::MalformedData),
             1 => Some(IkeEvent::NoEncryption),
@@ -54,359 +62,38 @@ impl IkeEvent {
             7 => Some(IkeEvent::WeakCryptoNoAuth),
             8 => Some(IkeEvent::InvalidProposal),
             9 => Some(IkeEvent::UnknownProposal),
+            10 => Some(IkeEvent::PayloadExtraData),
             _ => None,
         }
     }
 }
 
-pub struct IKEState {
-    /// List of transactions for this session
-    transactions: Vec<IKETransaction>,
-
-    /// tx counter for assigning incrementing id's to tx's
-    tx_id: u64,
-
-    /// The connection state
-    connection_state: IKEConnectionState,
-
-    /// The transforms proposed by the initiator
-    pub client_transforms : Vec<Vec<IkeV2Transform>>,
-
-    /// The transforms selected by the responder
-    pub server_transforms : Vec<Vec<IkeV2Transform>>,
-
-    /// The encryption algorithm selected by the responder
-    pub alg_enc:  IkeTransformEncType,
-    /// The authentication algorithm selected by the responder
-    pub alg_auth: IkeTransformAuthType,
-    /// The PRF algorithm selected by the responder
-    pub alg_prf:  IkeTransformPRFType,
-    /// The Diffie-Hellman algorithm selected by the responder
-    pub alg_dh:   IkeTransformDHType,
-    /// The extended sequence numbers parameter selected by the responder
-    pub alg_esn:  IkeTransformESNType,
-
-    /// The Diffie-Hellman group from the server KE message, if present.
-    pub dh_group: IkeTransformDHType,
-
+pub struct IkeHeaderWrapper {
+    pub spi_initiator: String,
+    pub spi_responder: String,
+    pub maj_ver: u8,
+    pub min_ver: u8,
+    pub msg_id: u32,
+    pub flags: u8,
+    pub ikev1_transforms: Vec<Vec<SaAttribute>>,
+    pub ikev2_transforms: Vec<Vec<IkeV2Transform>>,
+    pub ikev1_header: IkeV1Header,
+    pub ikev2_header: IkeV2Header,
 }
 
-#[derive(Debug)]
-pub struct IKETransaction {
-    /// The IKE reference ID
-    pub xid: u64,
-
-    pub hdr: IkeV2Header,
-
-    pub payload_types: Vec<IkePayloadType>,
-    pub notify_types: Vec<NotifyType>,
-
-    /// IKEv2 errors seen during exchange
-    pub errors: u32,
-
-    /// The internal transaction id
-    id: u64,
-
-    /// The detection engine state, if present
-    de_state: Option<*mut core::DetectEngineState>,
-
-    /// The events associated with this transaction
-    events: *mut core::AppLayerDecoderEvents,
-
-    tx_data: applayer::AppLayerTxData,
-}
-
-
-
-impl IKEState {
-    pub fn new() -> IKEState {
-        IKEState{
-            transactions: Vec::new(),
-            tx_id: 0,
-            connection_state: IKEConnectionState::Init,
-            dh_group: IkeTransformDHType::None,
-            client_transforms: Vec::new(),
-            server_transforms: Vec::new(),
-            alg_enc: IkeTransformEncType::ENCR_NULL,
-            alg_auth: IkeTransformAuthType::NONE,
-            alg_prf: IkeTransformPRFType::PRF_NULL,
-            alg_dh: IkeTransformDHType::None,
-            alg_esn: IkeTransformESNType::NoESN,
-        }
-    }
-}
-
-impl IKEState {
-    /// Parse an IKE request message
-    ///
-    /// Returns The number of messages parsed, or -1 on error
-    fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
-        match parse_ikev2_header(i) {
-            Ok((rem,ref hdr)) => {
-                if rem.len() == 0 && hdr.length == 28 {
-                    return 1;
-                }
-                // Rule 0: check version
-                if hdr.maj_ver != 2 || hdr.min_ver != 0 {
-                    self.set_event(IkeEvent::MalformedData);
-                    return -1;
-                }
-                if hdr.init_spi == 0 {
-                    self.set_event(IkeEvent::MalformedData);
-                    return -1;
-                }
-                // only analyse IKE_SA, other payloads are encrypted
-                if hdr.exch_type != IkeExchangeType::IKE_SA_INIT {
-                    return 0;
-                }
-                let mut tx = self.new_tx();
-                // use init_spi as transaction identifier
-                tx.xid = hdr.init_spi;
-                tx.hdr = (*hdr).clone();
-                self.transactions.push(tx);
-                let mut payload_types = Vec::new();
-                let mut errors = 0;
-                let mut notify_types = Vec::new();
-                match parse_ikev2_payload_list(rem,hdr.next_payload) {
-                    Ok((_,Ok(ref p))) => {
-                        for payload in p {
-                            payload_types.push(payload.hdr.next_payload_type);
-                            match payload.content {
-                                IkeV2PayloadContent::Dummy => (),
-                                IkeV2PayloadContent::SA(ref prop) => {
-                                    // if hdr.flags & IKE_FLAG_INITIATOR != 0 {
-                                        self.add_proposals(prop, direction);
-                                    // }
-                                },
-                                IkeV2PayloadContent::KE(ref kex) => {
-                                    SCLogDebug!("KEX {:?}", kex.dh_group);
-                                    if direction == STREAM_TOCLIENT {
-                                        self.dh_group = kex.dh_group;
-                                    }
-                                },
-                                IkeV2PayloadContent::Nonce(ref n) => {
-                                    SCLogDebug!("Nonce: {:?}", n);
-                                },
-                                IkeV2PayloadContent::Notify(ref n) => {
-                                    SCLogDebug!("Notify: {:?}", n);
-                                    if n.notify_type.is_error() {
-                                        errors += 1;
-                                    }
-                                    notify_types.push(n.notify_type);
-                                },
-                                // XXX CertificateRequest
-                                // XXX Certificate
-                                // XXX Authentication
-                                // XXX TSi
-                                // XXX TSr
-                                // XXX IDr
-                                _ => {
-                                    SCLogDebug!("Unknown payload content {:?}", payload.content);
-                                },
-                            }
-                            self.connection_state = self.connection_state.advance(payload);
-                            if let Some(tx) = self.transactions.last_mut() {
-                                // borrow back tx to update it
-                                tx.payload_types.append(&mut payload_types);
-                                tx.errors = errors;
-                                tx.notify_types.append(&mut notify_types);
-                            }
-                        };
-                    },
-                    e => { SCLogDebug!("parse_ike_payload_with_type: {:?}",e); () },
-                }
-                1
-            },
-            Err(nom::Err::Incomplete(_)) => {
-                SCLogDebug!("Insufficient data while parsing IKE data");
-                self.set_event(IkeEvent::MalformedData);
-                -1
-            },
-            Err(_) => {
-                SCLogDebug!("Error while parsing IKE data");
-                self.set_event(IkeEvent::MalformedData);
-                -1
-            },
-        }
-    }
-
-    fn free(&mut self) {
-        // All transactions are freed when the `transactions` object is freed.
-        // But let's be explicit
-        self.transactions.clear();
-    }
-
-    fn new_tx(&mut self) -> IKETransaction {
-        self.tx_id += 1;
-        IKETransaction::new(self.tx_id)
-    }
-
-    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&IKETransaction> {
-        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
-    }
-
-    fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
-        debug_assert!(tx != None);
-        if let Some(idx) = tx {
-            let _ = self.transactions.remove(idx);
-        }
-    }
-
-    /// Set an event. The event is set on the most recent transaction.
-    fn set_event(&mut self, event: IkeEvent) {
-        if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
-        } else {
-            SCLogDebug!("IKEv2: trying to set event {} on non-existing transaction", event as u32);
-        }
-    }
-
-    fn add_proposals(&mut self, prop: &Vec<IkeV2Proposal>, direction: u8) {
-        for ref p in prop {
-            let transforms : Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
-            // Rule 1: warn on weak or unknown transforms
-            for xform in &transforms {
-                match *xform {
-                    IkeV2Transform::Encryption(ref enc) => {
-                        match *enc {
-                            IkeTransformEncType::ENCR_DES_IV64 |
-                            IkeTransformEncType::ENCR_DES |
-                            IkeTransformEncType::ENCR_3DES |
-                            IkeTransformEncType::ENCR_RC5 |
-                            IkeTransformEncType::ENCR_IDEA |
-                            IkeTransformEncType::ENCR_CAST |
-                            IkeTransformEncType::ENCR_BLOWFISH |
-                            IkeTransformEncType::ENCR_3IDEA |
-                            IkeTransformEncType::ENCR_DES_IV32 |
-                            IkeTransformEncType::ENCR_NULL => {
-                                SCLogDebug!("Weak Encryption: {:?}", enc);
-                                // XXX send event only if direction == STREAM_TOCLIENT ?
-                                self.set_event(IkeEvent::WeakCryptoEnc);
-                            },
-                            _ => (),
-                        }
-                    },
-                    IkeV2Transform::PRF(ref prf) => {
-                        match *prf {
-                            IkeTransformPRFType::PRF_NULL => {
-                                SCLogDebug!("'Null' PRF transform proposed");
-                                self.set_event(IkeEvent::InvalidProposal);
-                            },
-                            IkeTransformPRFType::PRF_HMAC_MD5 |
-                            IkeTransformPRFType::PRF_HMAC_SHA1 => {
-                                SCLogDebug!("Weak PRF: {:?}", prf);
-                                self.set_event(IkeEvent::WeakCryptoPRF);
-                            },
-                            _ => (),
-                        }
-                    },
-                    IkeV2Transform::Auth(ref auth) => {
-                        match *auth {
-                            IkeTransformAuthType::NONE => {
-                                // Note: this could be expected with an AEAD encription alg.
-                                // See rule 4
-                                ()
-                            },
-                            IkeTransformAuthType::AUTH_HMAC_MD5_96 |
-                            IkeTransformAuthType::AUTH_HMAC_SHA1_96 |
-                            IkeTransformAuthType::AUTH_DES_MAC |
-                            IkeTransformAuthType::AUTH_KPDK_MD5 |
-                            IkeTransformAuthType::AUTH_AES_XCBC_96 |
-                            IkeTransformAuthType::AUTH_HMAC_MD5_128 |
-                            IkeTransformAuthType::AUTH_HMAC_SHA1_160 => {
-                                SCLogDebug!("Weak auth: {:?}", auth);
-                                self.set_event(IkeEvent::WeakCryptoAuth);
-                            },
-                            _ => (),
-                        }
-                    },
-                    IkeV2Transform::DH(ref dh) => {
-                        match *dh {
-                            IkeTransformDHType::None => {
-                                SCLogDebug!("'None' DH transform proposed");
-                                self.set_event(IkeEvent::InvalidProposal);
-                            },
-                            IkeTransformDHType::Modp768 |
-                            IkeTransformDHType::Modp1024 |
-                            IkeTransformDHType::Modp1024s160 |
-                            IkeTransformDHType::Modp1536 => {
-                                SCLogDebug!("Weak DH: {:?}", dh);
-                                self.set_event(IkeEvent::WeakCryptoDH);
-                            },
-                            _ => (),
-                        }
-                    },
-                    IkeV2Transform::Unknown(tx_type,tx_id) => {
-                        SCLogDebug!("Unknown proposal: type={:?}, id={}", tx_type, tx_id);
-                        self.set_event(IkeEvent::UnknownProposal);
-                    },
-                    _ => (),
-                }
-            }
-            // Rule 2: check if no DH was proposed
-            if ! transforms.iter().any(|x| {
-                match *x {
-                    IkeV2Transform::DH(_) => true,
-                    _                     => false
-                }
-            })
-            {
-                SCLogDebug!("No DH transform found");
-                self.set_event(IkeEvent::WeakCryptoNoDH);
-            }
-            // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
-            if p.protocol_id == ProtocolID::AH {
-                SCLogDebug!("Proposal uses protocol AH - no confidentiality");
-                self.set_event(IkeEvent::NoEncryption);
-            }
-            // Rule 4: lack of integrity is accepted only if using an AEAD proposal
-            // Look if no auth was proposed, including if proposal is Auth::None
-            if ! transforms.iter().any(|x| {
-                match *x {
-                    IkeV2Transform::Auth(IkeTransformAuthType::NONE) => false,
-                    IkeV2Transform::Auth(_)                          => true,
-                    _                                                => false,
-                }
-            })
-            {
-                if ! transforms.iter().any(|x| {
-                    match *x {
-                        IkeV2Transform::Encryption(ref enc) => enc.is_aead(),
-                        _                                   => false
-                    }
-                }) {
-                    SCLogDebug!("No integrity transform found");
-                    self.set_event(IkeEvent::WeakCryptoNoAuth);
-                }
-            }
-            // Finally
-            if direction == STREAM_TOCLIENT {
-                transforms.iter().for_each(|t|
-                                           match *t {
-                                               IkeV2Transform::Encryption(ref e) => self.alg_enc = *e,
-                                               IkeV2Transform::Auth(ref a) => self.alg_auth = *a,
-                                               IkeV2Transform::PRF(ref p) => self.alg_prf = *p,
-                                               IkeV2Transform::DH(ref dh) => self.alg_dh = *dh,
-                                               IkeV2Transform::ESN(ref e) => self.alg_esn = *e,
-                                               _ => (),
-                                           });
-                SCLogDebug!("Selected transforms: {:?}", transforms);
-                self.server_transforms.push(transforms);
-            } else {
-                SCLogDebug!("Proposed transforms: {:?}", transforms);
-                self.client_transforms.push(transforms);
-            }
-        }
-    }
-}
-
-impl IKETransaction {
-    pub fn new(id: u64) -> IKETransaction {
-        IKETransaction {
-            xid: 0,
-            hdr: IkeV2Header {
+impl IkeHeaderWrapper {
+    pub fn new() -> IkeHeaderWrapper {
+        IkeHeaderWrapper {
+            spi_initiator: String::new(),
+            spi_responder: String::new(),
+            maj_ver: 0,
+            min_ver: 0,
+            msg_id: 0,
+            flags: 0,
+            ikev1_transforms: Vec::new(),
+            ikev2_transforms: Vec::new(),
+            ikev1_header: IkeV1Header::default(),
+            ikev2_header: IkeV2Header {
                 init_spi: 0,
                 resp_spi: 0,
                 next_payload: IkePayloadType::NoNextPayload,
@@ -415,19 +102,52 @@ impl IKETransaction {
                 exch_type: IkeExchangeType(0),
                 flags: 0,
                 msg_id: 0,
-                length: 0,
-            },
-            payload_types: Vec::new(),
-            notify_types: Vec::new(),
-            errors: 0,
-            id: id,
+                length: 0
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct IkePayloadWrapper {
+    pub ikev1_payload_types: Option<HashSet<u8>>,
+    pub ikev2_payload_types: Vec<IkePayloadType>,
+}
+
+pub struct IKETransaction {
+    tx_id: u64,
+
+    pub ike_version: u8,
+    pub hdr: IkeHeaderWrapper,
+    pub payload_types: IkePayloadWrapper,
+    pub notify_types: Vec<NotifyType>,
+
+    /// errors seen during exchange
+    pub errors: u32,
+
+    logged: LoggerFlags,
+    de_state: Option<*mut core::DetectEngineState>,
+    events: *mut core::AppLayerDecoderEvents,
+    tx_data: applayer::AppLayerTxData,
+}
+
+impl IKETransaction {
+    pub fn new() -> IKETransaction {
+        IKETransaction {
+            tx_id: 0,
+            ike_version: 0,
+            hdr: IkeHeaderWrapper::new(),
+            payload_types: Default::default(),
+            notify_types: vec![],
+            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
+            errors: 0
         }
     }
 
-    fn free(&mut self) {
+    pub fn free(&mut self) {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
@@ -443,133 +163,297 @@ impl Drop for IKETransaction {
     }
 }
 
-/// Returns *mut IKEState
-#[no_mangle]
-pub extern "C" fn rs_ike_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
-    let state = IKEState::new();
-    let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+#[derive(Default)]
+pub struct IKEState {
+    tx_id: u64,
+    pub transactions: Vec<IKETransaction>,
+
+    pub ikev1_container: Ikev1Container,
+    pub ikev2_container: Ikev2Container
 }
 
-/// Params:
-/// - state: *mut IKEState as void pointer
+impl IKEState{
+    // Free a transaction by ID.
+    fn free_tx(&mut self, tx_id: u64) {
+        let tx = self.transactions.iter().position(|ref tx| tx.tx_id == tx_id + 1);
+        debug_assert!(tx != None);
+        if let Some(idx) = tx {
+            let _ = self.transactions.remove(idx);
+        }
+    }
+
+    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
+        for tx in &mut self.transactions {
+            if tx.tx_id == tx_id + 1 {
+                return Some(tx);
+            }
+        }
+        return None;
+    }
+
+    pub fn new_tx(&mut self) -> IKETransaction {
+        let mut tx = IKETransaction::new();
+        self.tx_id += 1;
+        tx.tx_id = self.tx_id;
+        return tx;
+    }
+
+    /// Set an event. The event is set on the most recent transaction.
+    pub fn set_event(&mut self, event: IkeEvent) {
+        if let Some(tx) = self.transactions.last_mut() {
+            let ev = event as u8;
+            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+        } else {
+            SCLogDebug!("IKE: trying to set event {} on non-existing transaction", event as u32);
+        }
+    }
+
+    fn handle_input(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
+        // We're not interested in empty requests.
+        if input.len() == 0 {
+            return AppLayerResult::ok();
+        }
+
+        let mut current = input;
+        match parse_isakmp_header(current) {
+            Ok((rem, isakmp_header)) => {
+                current = rem;
+
+                if isakmp_header.maj_ver != 1 && isakmp_header.maj_ver != 2 {
+                    SCLogDebug!("Unsupported ISAKMP major_version");
+                    return AppLayerResult::err();
+                }
+
+                if isakmp_header.maj_ver == 1 {
+                    handle_ikev1(self, current, isakmp_header, direction);
+                } else if isakmp_header.maj_ver == 2 {
+                    handle_ikev2(self, current, isakmp_header, direction);
+                } else {
+                    return AppLayerResult::err();
+                }
+                return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                SCLogDebug!("Insufficient data while parsing IKE");
+                return AppLayerResult::err();
+            }
+            Err(_) => {
+                SCLogDebug!("Error while parsing IKE packet");
+                return AppLayerResult::err();
+            }
+        }
+    }
+
+    fn tx_iterator(
+        &mut self,
+        min_tx_id: u64,
+        state: &mut u64,
+    ) -> Option<(&IKETransaction, u64, bool)> {
+        let mut index = *state as usize;
+        let len = self.transactions.len();
+
+        while index < len {
+            let tx = &self.transactions[index];
+            if tx.tx_id < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+
+            return Some((tx, tx.tx_id - 1, (len - index) > 1));
+        }
+
+        return None;
+    }
+}
+
+/// Probe to see if this input looks like a request or response.
+fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
+    match parse_isakmp_header(input) {
+        Ok((_, isakmp_header)) => {
+            if isakmp_header.maj_ver == 1 {
+                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                    unsafe {*rdir = STREAM_TOSERVER;}
+                }
+                return true
+            } else if isakmp_header.maj_ver == 2 {
+                if isakmp_header.min_ver != 0 {
+                    SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
+                            isakmp_header.maj_ver, isakmp_header.min_ver);
+                    return false
+                }
+                if isakmp_header.exch_type < 34 || isakmp_header.exch_type > 37 {
+                    SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid exchange type {}",
+                           isakmp_header.exch_type);
+                    return false
+                }
+                if isakmp_header.length as usize != input.len() {
+                    SCLogDebug!("ipsec_probe: could be ipsec, but length does not match");
+                    return false
+                }
+
+                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                    unsafe {*rdir = STREAM_TOSERVER;}
+                }
+                return true
+            }
+
+            return false
+        },
+        Err(_) => {
+            return false
+        },
+    }
+}
+
+// C exports.
+export_tx_get_detect_state!(
+    rs_ike_tx_get_detect_state,
+    IKETransaction
+);
+export_tx_set_detect_state!(
+    rs_ike_tx_set_detect_state,
+    IKETransaction
+);
+
+/// C entry point for a probing parser.
+#[no_mangle]
+pub extern "C" fn rs_ike_probing_parser(
+    _flow: *const Flow,
+    direction: u8,
+    input: *const u8,
+    input_len: u32,
+    rdir: *mut u8
+) -> AppProto {
+    if input_len < 28 {
+        // at least the ISAKMP_HEADER must be there, not ALPROTO_UNKNOWN because over UDP
+        return unsafe { ALPROTO_FAILED };
+    }
+
+    if input_len > 1 && input != std::ptr::null_mut() {
+        let slice = build_slice!(input, input_len as usize);
+        if probe(slice, direction, rdir) {
+            return unsafe { ALPROTO_IKE };
+        }
+    }
+    return unsafe { ALPROTO_FAILED };
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ike_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+    let state = IKEState::default();
+    let boxed = Box::new(state);
+    return unsafe { transmute(boxed) };
+}
+
 #[no_mangle]
 pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let mut ike_state: Box<IKEState> = unsafe{std::mem::transmute(state)};
-    ike_state.free();
+    let _drop: Box<IKEState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_parse_request(_flow: *const core::Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEState);
-    if state.parse(buf, STREAM_TOSERVER) < 0 {
-        return AppLayerResult::err();
-    }
-    return AppLayerResult::ok();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_parse_response(_flow: *const core::Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,IKEState);
-    let res = state.parse(buf, STREAM_TOCLIENT);
-    if state.connection_state == IKEConnectionState::ParsingDone {
-        unsafe{
-            AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
-                                       APP_LAYER_PARSER_NO_REASSEMBLY |
-                                       APP_LAYER_PARSER_BYPASS_READY)
-        };
-    }
-    if res < 0 {
-        return AppLayerResult::err();
-    }
-    return AppLayerResult::ok();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state,IKEState);
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
-        None     => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state,IKEState);
-    state.tx_id
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state,IKEState);
+pub extern "C" fn rs_ike_state_tx_free(
+    state: *mut std::os::raw::c_void,
+    tx_id: u64,
+) {
+    let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
+pub extern "C" fn rs_ike_parse_request(
+    _flow: *const Flow,
+    state: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
+    input: *const u8,
+    input_len: u32,
+    _data: *const std::os::raw::c_void,
+    _flags: u8,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, IKEState);
+    let buf = build_slice!(input, input_len as usize);
+
+    return state.handle_input(buf, STREAM_TOSERVER);
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ike_parse_response(
+    _flow: *const Flow,
+    state: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
+    input: *const u8,
+    input_len: u32,
+    _data: *const std::os::raw::c_void,
+    _flags: u8,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, IKEState);
+    let buf = build_slice!(input, input_len as usize);
+    return state.handle_input(buf, STREAM_TOCLIENT);
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ike_state_get_tx(
+    state: *mut std::os::raw::c_void,
+    tx_id: u64,
+) -> *mut std::os::raw::c_void {
+    let state = cast_pointer!(state, IKEState);
+    match state.get_tx(tx_id) {
+        Some(tx) => {
+            return unsafe { transmute(tx) };
+        }
+        None => {
+            return std::ptr::null_mut();
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ike_state_get_tx_count(
+    state: *mut std::os::raw::c_void,
+) -> u64 {
+    let state = cast_pointer!(state, IKEState);
+    return state.tx_id;
+}
+
+#[no_mangle]
 pub extern "C" fn rs_ike_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
+    _direction: u8,
+) -> std::os::raw::c_int {
+    // This parser uses 1 to signal transaction completion status.
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                 _direction: u8)
-                                                 -> std::os::raw::c_int
-{
-    1
+pub extern "C" fn rs_ike_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void,
+    _direction: u8,
+) -> std::os::raw::c_int {
+    return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_set_tx_detect_state(
+pub extern "C" fn rs_ike_tx_get_logged(
+    _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,IKETransaction);
-    tx.de_state = Some(de_state);
-    0
+) -> u32 {
+    let tx = cast_pointer!(tx, IKETransaction);
+    return tx.logged.get();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,IKETransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
+pub extern "C" fn rs_ike_tx_set_logged(
+    _state: *mut std::os::raw::c_void,
+    tx: *mut std::os::raw::c_void,
+    logged: u32,
+) {
+    let tx = cast_pointer!(tx, IKETransaction);
+    tx.logged.set(logged);
 }
-
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
+                                            -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, IKETransaction);
     return tx.events;
@@ -593,6 +477,7 @@ pub extern "C" fn rs_ike_state_get_event_info_by_id(event_id: std::os::raw::c_in
             IkeEvent::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
             IkeEvent::InvalidProposal  => { "invalid_proposal\0" },
             IkeEvent::UnknownProposal  => { "unknown_proposal\0" },
+            IkeEvent::PayloadExtraData => { "payload_extra_data\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -606,9 +491,9 @@ pub extern "C" fn rs_ike_state_get_event_info_by_id(event_id: std::os::raw::c_in
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
+                                                event_id: *mut std::os::raw::c_int,
+                                                event_type: *mut core::AppLayerEventType)
+                                                -> std::os::raw::c_int
 {
     if event_name == std::ptr::null() { return -1; }
     let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
@@ -625,6 +510,7 @@ pub extern "C" fn rs_ike_state_get_event_info(event_name: *const std::os::raw::c
                 "weak_crypto_noauth" => IkeEvent::WeakCryptoNoAuth as i32,
                 "invalid_proposal"   => IkeEvent::InvalidProposal as i32,
                 "unknown_proposal"   => IkeEvent::UnknownProposal as i32,
+                "payload_extra_data" => IkeEvent::PayloadExtraData as i32,
                 _                    => -1, // unknown event
             }
         },
@@ -637,114 +523,95 @@ pub extern "C" fn rs_ike_state_get_event_info(event_name: *const std::os::raw::c
     0
 }
 
-
-static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
-
 #[no_mangle]
-pub extern "C" fn rs_ike_probing_parser(_flow: *const Flow,
-        _direction: u8,
-        input:*const u8, input_len: u32,
-        _rdir: *mut u8) -> AppProto
-{
-    let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_IKE };
-    match parse_ikev2_header(slice) {
-        Ok((_, ref hdr)) => {
-            if hdr.maj_ver != 2 || hdr.min_ver != 0 {
-                SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
-                        hdr.maj_ver, hdr.min_ver);
-                return unsafe{ALPROTO_FAILED};
-            }
-            if hdr.exch_type.0 < 34 || hdr.exch_type.0 > 37 {
-                SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid exchange type {}",
-                       hdr.exch_type.0);
-                return unsafe{ALPROTO_FAILED};
-            }
-            if hdr.length as usize != slice.len() {
-                SCLogDebug!("ipsec_probe: could be ipsec, but length does not match");
-                return unsafe{ALPROTO_FAILED};
-            }
-            return alproto;
-        },
-        Err(nom::Err::Incomplete(_)) => {
-            return ALPROTO_UNKNOWN;
-        },
-        Err(_) => {
-            return unsafe{ALPROTO_FAILED};
-        },
+pub extern "C" fn rs_ike_state_get_tx_iterator(
+    _ipproto: u8,
+    _alproto: AppProto,
+    state: *mut std::os::raw::c_void,
+    min_tx_id: u64,
+    _max_tx_id: u64,
+    istate: &mut u64,
+) -> applayer::AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, IKEState);
+    match state.tx_iterator(min_tx_id, istate) {
+        Some((tx, out_tx_id, has_next)) => {
+            let c_tx = unsafe { transmute(tx) };
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(
+                c_tx,
+                out_tx_id,
+                has_next,
+            );
+            return ires;
+        }
+        None => {
+            return applayer::AppLayerGetTxIterTuple::not_found();
+        }
     }
 }
+
+// Parser name as a C style string.
+const PARSER_NAME: &'static [u8] = b"ike\0";
+const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 
-const PARSER_NAME : &'static [u8] = b"ike\0";
-
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_ike_parser() {
+pub unsafe extern "C" fn rs_ike_register_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
-        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : default_port.as_ptr(),
-        ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(rs_ike_probing_parser),
-        probe_tc           : Some(rs_ike_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : rs_ike_state_new,
-        state_free         : rs_ike_state_free,
-        tx_free            : rs_ike_state_tx_free,
-        parse_ts           : rs_ike_parse_request,
-        parse_tc           : rs_ike_parse_response,
-        get_tx_count       : rs_ike_state_get_tx_count,
-        get_tx             : rs_ike_state_get_tx,
-        tx_get_comp_st     : rs_ike_state_progress_completion_status,
-        tx_get_progress    : rs_ike_tx_get_alstate_progress,
-        get_de_state       : rs_ike_state_get_tx_detect_state,
-        set_de_state       : rs_ike_state_set_tx_detect_state,
-        get_events         : Some(rs_ike_state_get_events),
-        get_eventinfo      : Some(rs_ike_state_get_event_info),
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: Some(rs_ike_probing_parser),
+        probe_tc: Some(rs_ike_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_ike_state_new,
+        state_free: rs_ike_state_free,
+        tx_free: rs_ike_state_tx_free,
+        parse_ts: rs_ike_parse_request,
+        parse_tc: rs_ike_parse_response,
+        get_tx_count: rs_ike_state_get_tx_count,
+        get_tx: rs_ike_state_get_tx,
+        tx_get_comp_st: rs_ike_state_progress_completion_status,
+        tx_get_progress: rs_ike_tx_get_alstate_progress,
+        get_de_state: rs_ike_tx_get_detect_state,
+        set_de_state: rs_ike_tx_set_detect_state,
+        get_events: Some(rs_ike_state_get_events),
+        get_eventinfo: Some(rs_ike_state_get_event_info),
         get_eventinfo_byid : Some(rs_ike_state_get_event_info_by_id),
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_files          : None,
-        get_tx_iterator    : None,
-        get_tx_data        : rs_ike_get_tx_data,
-        apply_tx_config    : None,
-        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
-        truncate           : None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: Some(rs_ike_state_get_tx_iterator),
+        get_tx_data: rs_ike_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        // store the allocated ID for the probe function
         ALPROTO_IKE = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+
+        AppLayerRegisterParserAlias(PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+                                    PARSER_ALIAS.as_ptr() as *const std::os::raw::c_char
+        );
+        SCLogDebug!("Rust IKE parser registered.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for IKE.");
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::IKEState;
-
-    #[test]
-    fn test_ike_parse_request_valid() {
-        // A UDP IKE v4 request, in client mode
-        const REQ : &[u8] = &[
-            0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x20, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x18, 0x57, 0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe
-        ];
-
-        let mut state = IKEState::new();
-        assert_eq!(1, state.parse(REQ, 0));
     }
 }
