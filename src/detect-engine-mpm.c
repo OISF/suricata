@@ -226,7 +226,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         }
 
         /* default to whatever the global setting is */
-        int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+        int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
         /* see if we use a unique or shared mpm ctx for this type */
         int confshared = 0;
@@ -393,7 +393,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
         }
 
         /* default to whatever the global setting is */
-        int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+        int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
         /* see if we use a unique or shared mpm ctx for this type */
         int confshared = 0;
@@ -451,7 +451,7 @@ int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx)
 static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
 {
     /* default to whatever the global setting is */
-    int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+    int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
     /* see if we use a unique or shared mpm ctx for this type */
     int confshared = 0;
