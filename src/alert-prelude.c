@@ -676,15 +676,20 @@ static int JsonToAdditionalData(const char * key, json_t * value, idmef_alert_t 
 static void PacketToDataProtoHTTP(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js;
+    json_error_t error;
+    JsonBuilder *jsb;
 
-    js = JsonHttpAddMetadata(p->flow, pa->tx_id);
-    if (js == NULL)
+    jsb = jb_new_object();
+    EveHttpAddMetadata(p->flow, pa->tx_id, jsb);
+    jb_close(jsb);
+    js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+    jb_free(jsb);
+    if (unlikely(js == NULL))
         return;
 
     JsonToAdditionalData(NULL, js, alert);
 
     json_decref(js);
-
 }
 
 /**
@@ -696,12 +701,21 @@ static void PacketToDataProtoHTTP(const Packet *p, const PacketAlert *pa, idmef_
  */
 static void PacketToDataProtoHTTP2(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
-    void *http2_state = FlowGetAppState(f);
+    void *http2_state = FlowGetAppState(p->flow);
+    json_error_t error;
+    JsonBuilder *jsb;
+
     if (http2_state) {
         void *tx_ptr = rs_http2_state_get_tx(http2_state, pa->tx_id);
-        json_t *js = rs_http2_log_json(tx_ptr);
+        jsb = jb_new_object();
+        rs_http2_log_json(tx_ptr, jsb);
+        jb_close(jsb);
+
+        json_t *js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+        jb_free(jsb);
         if (unlikely(js == NULL))
             return;
+
         JsonToAdditionalData(NULL, js, alert);
         json_decref(js);
     }
@@ -717,21 +731,26 @@ static void PacketToDataProtoHTTP2(const Packet *p, const PacketAlert *pa, idmef
 static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js;
+    json_error_t error;
+    JsonBuilder *jsb;
     SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
 
     if (ssl_state == NULL)
         return;
 
-    js = json_object();
-    if (js == NULL)
+    jsb = jb_new_object();
+    JsonTlsLogJSONBasic(jsb, ssl_state);
+    JsonTlsLogJSONExtended(jsb, ssl_state);
+    jb_close(jsb);
+
+    js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+    jb_free(jsb);
+    if (unlikely(js == NULL))
         return;
 
-    JsonTlsLogJSONBasic(js, ssl_state);
-    JsonTlsLogJSONExtended(js, ssl_state);
     JsonToAdditionalData(NULL, js, alert);
 
     json_decref(js);
-
 }
 
 /**
@@ -744,14 +763,23 @@ static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_a
 static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js, *s_js;
+    json_error_t error;
+    JsonBuilder *jsb;
+
     void *ssh_state = FlowGetAppState(p->flow);
 
     if (ssh_state == NULL)
         return;
 
+    jsb = jb_new_object();
+
     void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
     BUG_ON(tx_ptr == NULL);
-    js = rs_ssh_log_json(tx_ptr);
+    rs_ssh_log_json(tx_ptr, jsb);
+    jb_close(jsb);
+
+    js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+    jb_free(jsb);
     if (unlikely(js == NULL))
         return;
 
@@ -766,7 +794,6 @@ static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_a
     }
 
     json_decref(js);
-
 }
 
 /**
@@ -779,15 +806,21 @@ static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_a
 static void PacketToDataProtoSMTP(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js;
+    json_error_t error;
+    JsonBuilder *jsb;
 
-    js = JsonSMTPAddMetadata(p->flow, pa->tx_id);
+    jsb = jb_new_object();
+    EveSMTPAddMetadata(p->flow, pa->tx_id, jsb);
+    jb_close(jsb);
+
+    js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+    jb_free(jsb);
     if (js == NULL)
         return;
 
     JsonToAdditionalData(NULL, js, alert);
 
     json_decref(js);
-
 }
 
 /**
@@ -800,15 +833,21 @@ static void PacketToDataProtoSMTP(const Packet *p, const PacketAlert *pa, idmef_
 static void PacketToDataProtoEmail(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js;
+    json_error_t error;
+    JsonBuilder *jsb;
 
-    js = JsonEmailAddMetadata(p->flow, pa->tx_id);
+    jsb = jb_new_object();
+    EveEmailAddMetadata(p->flow, pa->tx_id, jsb);
+    jb_close(jsb);
+
+    js = json_loadb((char *)jb_ptr(jsb), jb_len(jsb), 0, &error);
+    jb_free(jsb);
     if (js == NULL)
         return;
 
     JsonToAdditionalData(NULL, js, alert);
 
     json_decref(js);
-
 }
 
 /**
@@ -832,7 +871,7 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
                 PacketToDataProtoHTTP(p, pa, alert);
                 break;
             case ALPROTO_HTTP2:
-                PacketToDataProtoHTTP(p, pa, alert);
+                PacketToDataProtoHTTP2(p, pa, alert);
                 break;
             case ALPROTO_TLS:
                 PacketToDataProtoTLS(p, pa, alert);
