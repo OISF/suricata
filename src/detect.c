@@ -1433,6 +1433,12 @@ static void DetectRunTx(ThreadVars *tv,
              * here. We select the stored state one. */
             if ((i + 1) < array_idx) {
                 if (det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i+1].s) {
+#ifdef DEBUG_VALIDATION
+                    if ((i + 2) < array_idx) {
+                        DEBUG_VALIDATE_BUG_ON(
+                                det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i + 2].s);
+                    }
+#endif
                     if (det_ctx->tx_candidates[i].flags != NULL) {
                         i++;
                         SCLogDebug("%p/%"PRIu64" inspecting SKIP NEXT: sid %u (%u), flags %08x",
