@@ -3,7 +3,7 @@ Public Data Sets
 
 Collections of pcaps for testing and profiling.
 
-DARPA sets: http://www.ll.mit.edu/mission/communications/cyber/CSTcorpora/ideval/data/
+DARPA sets: https://www.ll.mit.edu/r-d/datasets?author=All&rdarea=All&rdgroup=All&keywords=cyber&tag=All&items_per_page=10
 
 MAWI sets (pkt headers only, no payloads): http://mawi.wide.ad.jp/mawi/samplepoint-F/2012/
 
