@@ -53,7 +53,7 @@ noinst_HEADERS = \
 	app-layer-template.h \
 	app-layer-template-rust.h \
 	app-layer-tftp.h \
-	autoconf.h \
+	config.h \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \

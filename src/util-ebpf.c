@@ -54,7 +54,7 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include <net/if.h>
-#include "autoconf.h"
+#include "config.h"
 
 #define BPF_MAP_MAX_COUNT 16
 

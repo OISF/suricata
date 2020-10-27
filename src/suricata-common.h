@@ -37,7 +37,7 @@
 #define __USE_GNU
 
 #if HAVE_CONFIG_H
-#include <autoconf.h>
+#include <config.h>
 #endif
 
 #ifndef CLS

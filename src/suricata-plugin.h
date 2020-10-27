@@ -18,7 +18,7 @@
 #ifndef __SURICATA_PLUGIN_H__
 #define __SURICATA_PLUGIN_H__
 
-#include "autoconf.h"
+#include "config.h"
 
 #include <stdint.h>
 #include <stdbool.h>
