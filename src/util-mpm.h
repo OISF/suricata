@@ -123,6 +123,7 @@ typedef struct MpmCtxFactoryItem_ {
 typedef struct MpmCtxFactoryContainer_ {
     MpmCtxFactoryItem *items;
     int32_t no_of_items;
+    int32_t max_id;
 } MpmCtxFactoryContainer;
 
 /** pattern is case insensitive */
