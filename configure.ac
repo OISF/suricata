@@ -1192,7 +1192,7 @@
     CFLAGS="${CFLAGS} -Wno-error=unused-result"
 
     AS_IF([test "x$enable_prelude" = "xyes"], [
-        AM_PATH_LIBPRELUDE(0.9.9, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
+        AM_LIBPRELUDE(4.0.0, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
         if test "x${LIBPRELUDE_CFLAGS}" != "x"; then
             CPPFLAGS="${CPPFLAGS} ${LIBPRELUDE_CFLAGS}"
         fi
