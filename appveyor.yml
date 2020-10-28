@@ -41,6 +41,8 @@ environment:
 
 before_build:
   - set Path=%MINGW_DIR%\bin;%Path%
+  - c:\msys64\usr\bin\pacman --noconfirm -Syuu  # Core update (in case any core packages are outdated)
+  - c:\msys64\usr\bin\pacman --noconfirm -Syuu  # Normal update
   - c:\msys64\usr\bin\pacman -Su --noconfirm libyaml-devel pcre-devel jansson-devel
   - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-libyaml
   - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-pcre
