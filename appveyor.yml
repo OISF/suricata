@@ -41,6 +41,10 @@ environment:
 
 before_build:
   - set Path=%MINGW_DIR%\bin;%Path%
+  - appveyor DownloadFile http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz
+  - appveyor DownloadFile http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig
+  - c:\msys64\usr\bin\pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig
+  - c:\msys64\usr\bin\pacman -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz
   - c:\msys64\usr\bin\pacman --noconfirm -Syuu  # Core update (in case any core packages are outdated)
   - c:\msys64\usr\bin\pacman --noconfirm -Syuu  # Normal update
   - c:\msys64\usr\bin\pacman -Su --noconfirm libyaml-devel pcre-devel jansson-devel
