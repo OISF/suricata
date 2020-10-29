@@ -1,0 +1,52 @@
+name: Windows
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson mingw-w64-x86_64-nss mingw-w64-x86_64-nspr unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
+      # hack: install our own cbindgen system wide as we can't get the
+      # preinstalled one to be picked up by configure
+      - name: cbindgen
+        run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
+      - name: Npcap DLL
+        run: |
+          curl -s -O https://nmap.org/npcap/dist/npcap-1.00.exe
+          7z -y x -o/npcap-bin npcap-1.00.exe
+          # hack: place dlls in cwd
+          cp /npcap-bin/*.dll .
+      - name: Npcap SDK
+        run: |
+          curl -s -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
+          unzip npcap-sdk-1.06.zip -d /npcap
+          cp /npcap/Lib/x64/* /usr/lib/
+      - name: libhtp
+        run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Suricata-Update
+        run: |
+          mv suricata-update suricata-update.old
+          git clone https://github.com/OISF/suricata-update
+          # make sure to place the makefiles back
+          cp suricata-update.old/* suricata-update/
+      - name: Suricata-Verify
+        run: git clone https://github.com/OISF/suricata-verify
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          make -j3
+      - name: Run
+        run: |
+          ./src/suricata --build-info
+          ./src/suricata -u -l /tmp/
+          # need cwd in path due to npcap dlls (see above)
+          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py
