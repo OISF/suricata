@@ -313,6 +313,34 @@ fn dns_parse_rdata_mx<'a>(input: &'a [u8], message: &'a [u8])
     )
 }
 
+fn dns_parse_rdata_ns<'a>(input: &'a [u8], message: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message).map(|(input, name)|
+            (input, DNSRData::NS(name)))
+}
+
+fn dns_parse_rdata_null<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+    rest(input).map(|(input, data)| (input, DNSRData::NULL(data.to_vec())))
+}
+
+fn dns_parse_rdata_srv<'a>(input: &'a [u8], message: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        priority: be_u16 >>
+        weight: be_u16 >>
+        port: be_u16 >>
+        target: call!(dns_parse_name, message) >>
+            (DNSRData::SRV(DNSRDataSRV{
+                priority,
+                weight,
+                port,
+                target,
+                raw: input.to_vec()
+            }))
+    )
+}
+
 fn dns_parse_rdata_txt<'a>(input: &'a [u8])
                            -> IResult<&'a [u8], DNSRData> {
     do_parse!(
@@ -353,6 +381,9 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
         DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message),
         DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
         DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message),
+        DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message),
+        DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
+        DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message),
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
         _ => dns_parse_rdata_unknown(input),

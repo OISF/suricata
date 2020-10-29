@@ -259,6 +259,20 @@ pub struct DNSRDataSSHFP {
     pub fingerprint: Vec<u8>,
 }
 
+#[derive(Debug,PartialEq)]
+pub struct DNSRDataSRV {
+    /// Priority
+    pub priority: u16,
+    /// Weight
+    pub weight: u16,
+    /// Port
+    pub port: u16,
+    /// Target
+    pub target: Vec<u8>,
+    /// Raw value (for tunneling detection etc.)
+    pub raw: Vec<u8>,
+}
+
 /// Represents RData of various formats
 #[derive(Debug,PartialEq)]
 pub enum DNSRData {
@@ -269,10 +283,14 @@ pub enum DNSRData {
     CNAME(Vec<u8>),
     PTR(Vec<u8>),
     MX(Vec<u8>),
+    NS(Vec<u8>),
+    // "Anything at all" (RFC1035)
+    NULL(Vec<u8>),
     // RData is text
     TXT(Vec<u8>),
     // RData has several fields
     SOA(DNSRDataSOA),
+    SRV(DNSRDataSRV),
     SSHFP(DNSRDataSSHFP),
     // RData for remaining types is sometimes ignored
     Unknown(Vec<u8>),
