@@ -101,12 +101,6 @@ pub extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) ->
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_tx_get_progress_complete(_direction: u8) -> std::os::raw::c_int {
-    // a parser can implement a multi-step tx completion by using an arbitrary `n`
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_rdp_tx_get_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
@@ -481,7 +475,8 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         parse_tc: rs_rdp_parse_tc,
         get_tx_count: rs_rdp_state_get_tx_count,
         get_tx: rs_rdp_state_get_tx,
-        tx_get_comp_st: rs_rdp_tx_get_progress_complete,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_rdp_tx_get_progress,
         get_de_state: rs_rdp_tx_get_detect_state,
         set_de_state: rs_rdp_tx_set_detect_state,

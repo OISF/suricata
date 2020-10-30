@@ -45,7 +45,8 @@ typedef struct AppLayerParser {
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     void (*StateTransactionFree)(void *, uint64_t);
 
-    int (*StateGetProgressCompletionStatus)(uint8_t direction);
+    const int complete_ts;
+    const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
     DetectEngineState *(*GetTxDetectState)(void *tx);

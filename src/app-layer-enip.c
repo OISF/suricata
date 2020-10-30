@@ -66,15 +66,6 @@ static int ENIPGetAlstateProgress(void *tx, uint8_t direction)
     return 1;
 }
 
-/** \brief get value for 'complete' status in ENIP
- *
- *  For ENIP we use a simple bool.
- */
-static int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return 1;
-}
-
 static DetectEngineState *ENIPGetTxDetectState(void *vtx)
 {
     ENIPTransaction *tx = (ENIPTransaction *)vtx;
@@ -486,7 +477,7 @@ void RegisterENIPUDPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_ENIP, 1, 1);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateGetEventInfoById);
@@ -566,7 +557,7 @@ void RegisterENIPTCPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_ENIP, 1, 1);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateGetEventInfo);
 

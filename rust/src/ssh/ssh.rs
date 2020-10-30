@@ -489,11 +489,6 @@ pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return SSHConnectionState::SshStateFinished as i32;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_ssh_tx_get_flags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
@@ -552,7 +547,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         parse_tc: rs_ssh_parse_response,
         get_tx_count: rs_ssh_state_get_tx_count,
         get_tx: rs_ssh_state_get_tx,
-        tx_get_comp_st: rs_ssh_state_progress_completion_status,
+        tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
+        tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
         get_de_state: rs_ssh_tx_get_detect_state,
         set_de_state: rs_ssh_tx_set_detect_state,

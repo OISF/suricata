@@ -1291,11 +1291,6 @@ pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: &mut DCERPCTransaction, dir
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_alstate_progress_completion_status(_direction: u8) -> u8 {
-    1
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dcerpc_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData

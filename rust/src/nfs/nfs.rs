@@ -1556,14 +1556,6 @@ pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
                                                   direction: u8)
                                                   -> u8

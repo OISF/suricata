@@ -211,7 +211,6 @@ SCEnumCharMap http_decoder_event_table[ ] = {
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
-static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
 #ifdef UNITTESTS
 static void HTPParserRegisterTests(void);
 #endif
@@ -2980,11 +2979,6 @@ void *HtpGetTxForH2(void *alstate)
     return NULL;
 }
 
-static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return (direction & STREAM_TOSERVER) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
-}
-
 static int HTPStateGetEventInfo(const char *event_name,
                          int *event_id, AppLayerEventType *event_type)
 {
@@ -3129,8 +3123,9 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTx);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_HTTP,
-                                                               HTPStateGetAlstateProgressCompletionStatus);
+
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_HTTP, HTP_REQUEST_COMPLETE, HTP_RESPONSE_COMPLETE);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfoById);
