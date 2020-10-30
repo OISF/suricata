@@ -739,6 +739,23 @@ mod tests {
 
     #[test]
     fn test_dns_parse_rdata_srv() {
+    /*  ; <<>> DiG 9.11.5-P4-5.1+deb10u2-Debian <<>> _sip._udp.sip.voice.google.com SRV
+        ;; global options: +cmd
+        ;; Got answer:
+        ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1524
+        ;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 3
+
+        [...]
+
+        ;; ANSWER SECTION:
+        _sip._udp.sip.voice.google.com.	300 IN	SRV	10 1 5060 sip-anycast-1.voice.google.com.
+        _sip._udp.sip.voice.google.com.	300 IN	SRV	20 1 5060 sip-anycast-2.voice.google.com.
+
+        [...]
+
+        ;; Query time: 72 msec
+        ;; MSG SIZE  rcvd: 191   */
+
         let pkt: &[u8] = &[
             0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00,
             0x00, 0x01, 0x04, 0x5f, 0x73, 0x69, 0x70, 0x04, 0x5f, 0x75,
