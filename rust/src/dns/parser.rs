@@ -801,4 +801,82 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_dns_parse_rdata_srv() {
+    /*  ; <<>> DiG 9.11.5-P4-5.1+deb10u2-Debian <<>> _sip._udp.sip.voice.google.com SRV
+        ;; global options: +cmd
+        ;; Got answer:
+        ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1524
+        ;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 3
+
+        [...]
+
+        ;; ANSWER SECTION:
+        _sip._udp.sip.voice.google.com.	300 IN	SRV	10 1 5060 sip-anycast-1.voice.google.com.
+        _sip._udp.sip.voice.google.com.	300 IN	SRV	20 1 5060 sip-anycast-2.voice.google.com.
+
+        [...]
+
+        ;; Query time: 72 msec
+        ;; MSG SIZE  rcvd: 191   */
+
+        let pkt: &[u8] = &[
+            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00,
+            0x00, 0x01, 0x04, 0x5f, 0x73, 0x69, 0x70, 0x04, 0x5f, 0x75,
+            0x64, 0x70, 0x03, 0x73, 0x69, 0x70, 0x05, 0x76, 0x6f, 0x69,
+            0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x21, 0x00, 0x01, 0xc0, 0x0c,
+            0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x13, 0x00, 0x26,
+            0x00, 0x14, 0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70,
+            0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61, 0x73, 0x74, 0x2d, 0x32,
+            0x05, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f,
+            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0xc0, 0x0c,
+            0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x13, 0x00, 0x26,
+            0x00, 0x0a, 0x00, 0x01, 0x13, 0xc4, 0x0d, 0x73, 0x69, 0x70,
+            0x2d, 0x61, 0x6e, 0x79, 0x63, 0x61, 0x73, 0x74, 0x2d, 0x31,
+            0x05, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f,
+            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00
+        ];
+
+        let res = dns_parse_response(pkt);
+        match res {
+            Ok((rem, response)) => {
+
+                // The data should be fully parsed.
+                assert_eq!(rem.len(), 0);
+
+                assert_eq!(response.answers.len(), 2);
+
+                let answer1 = &response.answers[0];
+                match &answer1.data {
+                    DNSRData::SRV(srv) => {
+                        assert_eq!(srv.priority, 20);
+                        assert_eq!(srv.weight, 1);
+                        assert_eq!(srv.port, 5060);
+                        assert_eq!(srv.target,
+                            "sip-anycast-2.voice.google.com".as_bytes().to_vec());
+                    }
+                    _ => {
+                        assert!(false);
+                    }
+                }
+                let answer2 = &response.answers[1];
+                match &answer2.data {
+                    DNSRData::SRV(srv) => {
+                        assert_eq!(srv.priority, 10);
+                        assert_eq!(srv.weight, 1);
+                        assert_eq!(srv.port, 5060);
+                        assert_eq!(srv.target,
+                            "sip-anycast-1.voice.google.com".as_bytes().to_vec());
+                    }
+                    _ => {
+                        assert!(false);
+                    }
+                }
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+    }
 }
