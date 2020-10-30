@@ -116,11 +116,6 @@ static uint64_t DCERPCGetTxCnt(void *state)
     return rs_dcerpc_get_tx_cnt(state);
 }
 
-static int DCERPCGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return rs_dcerpc_get_alstate_progress_completion_status(direction);
-}
-
 static int DCERPCGetAlstateProgress(void *tx, uint8_t direction)
 {
     return rs_dcerpc_get_alstate_progress(tx, direction);
@@ -178,8 +173,8 @@ void RegisterDCERPCParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
-                                                               DCERPCGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DCERPC, 1, 1);
+
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DCERPC, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
 

@@ -1012,11 +1012,6 @@ pub extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return HTTP2TransactionState::HTTP2StateClosed as i32;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
@@ -1147,7 +1142,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         parse_tc: rs_http2_parse_tc,
         get_tx_count: rs_http2_state_get_tx_count,
         get_tx: rs_http2_state_get_tx,
-        tx_get_comp_st: rs_http2_state_progress_completion_status,
+        tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
+        tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
         get_de_state: rs_http2_tx_get_detect_state,
         set_de_state: rs_http2_tx_set_detect_state,

@@ -2039,14 +2039,6 @@ pub extern "C" fn rs_smb_state_tx_free(state: &mut SMBState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: &mut SMBTransaction,
                                                   direction: u8)
                                                   -> u8
