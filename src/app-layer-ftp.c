@@ -984,11 +984,6 @@ static uint64_t FTPGetTxCnt(void *state)
     return cnt;
 }
 
-static int FTPGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return FTP_STATE_FINISHED;
-}
-
 static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
 {
     SCLogDebug("tx %p", vtx);
@@ -1232,11 +1227,6 @@ static uint64_t FTPDataGetTxCnt(void *state)
     return 1;
 }
 
-static int FTPDataGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return FTPDATA_STATE_FINISHED;
-}
-
 static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)tx;
@@ -1323,9 +1313,8 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_FTP,
-                                                               FTPGetAlstateProgressCompletionStatus);
-
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_FTP, FTP_STATE_FINISHED, FTP_STATE_FINISHED);
 
         AppLayerRegisterExpectationProto(IPPROTO_TCP, ALPROTO_FTPDATA);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_FTPDATA, STREAM_TOSERVER,
@@ -1347,8 +1336,8 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_FTPDATA,
-                FTPDataGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_FTPDATA, FTPDATA_STATE_FINISHED, FTPDATA_STATE_FINISHED);
 
         sbcfg.buf_size = 4096;
         sbcfg.Malloc = FTPMalloc;

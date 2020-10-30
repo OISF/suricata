@@ -179,15 +179,6 @@ static AppLayerGetTxIterTuple RustNFSGetTxIterator(
 }
 
 /**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int NFSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs_state_progress_completion_status(direction);
-}
-
-/**
  * \brief Return the state of a transaction in a given direction.
  *
  * In the case of the echo protocol, the existence of a transaction
@@ -302,8 +293,7 @@ void RegisterNFSUDPParsers(void)
             NFSGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_NFS,
-            NFSGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_NFS, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP,
             ALPROTO_NFS, NFSGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_NFS,

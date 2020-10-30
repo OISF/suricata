@@ -292,8 +292,7 @@ void RegisterSMBParsers(void)
                 SMBGetTxCnt);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMB,
                 SMBGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMB,
-                rs_smb_state_progress_completion_status);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMB, 1, 1);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMB,
                                           SMBStateTruncate);
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMB, SMBGetFiles);

@@ -276,11 +276,6 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return TLS_STATE_FINISHED;
-}
-
 static int SSLGetAlstateProgress(void *tx, uint8_t direction)
 {
     SSLState *ssl_state = (SSLState *)tx;
@@ -2983,8 +2978,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
-                                                               SSLGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_TLS, TLS_STATE_FINISHED, TLS_STATE_FINISHED);
 
         ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {

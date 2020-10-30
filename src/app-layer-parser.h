@@ -170,8 +170,8 @@ void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
                       void *(StateGetTx)(void *alstate, uint64_t tx_id));
 void AppLayerParserRegisterGetTxIterator(uint8_t ipproto, AppProto alproto,
                       AppLayerGetTxIteratorFunc Func);
-void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
-    int (*StateGetStateProgressCompletionStatus)(uint8_t direction));
+void AppLayerParserRegisterStateProgressCompletionStatus(
+        AppProto alproto, const int ts, const int tc);
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type));
