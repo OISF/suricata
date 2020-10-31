@@ -1767,6 +1767,7 @@ static int DNP3CheckUserDataCRCsTest(void)
     };
     FAIL_IF(!DNP3CheckUserDataCRCs(data_valid, sizeof(data_valid)));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Multi-block data with one non-crc byte altered. */
     uint8_t data_invalid[] = {
         0xff, 0xc9, 0x05, 0x0c,
@@ -1791,7 +1792,6 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x01, /* Invalid byte. */
         0xff, 0xff, /* CRC. */
     };
-#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     FAIL_IF(DNP3CheckUserDataCRCs(data_invalid, sizeof(data_invalid)));
 
     /* 1 byte - need at least 3. */
