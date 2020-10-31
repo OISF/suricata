@@ -560,8 +560,7 @@ typedef struct RuleAnalyzer {
     JsonBuilder *js_notes;
 } RuleAnalyzer;
 
-static void __attribute__ ((format (printf, 2, 3)))
-AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
+static void ATTR_FMT_PRINTF(2, 3) AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
 {
     va_list ap;
     char str[1024];
@@ -576,8 +575,7 @@ AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
         jb_append_string(ctx->js_notes, str);
 }
 
-static void __attribute__ ((format (printf, 2, 3)))
-AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
+static void ATTR_FMT_PRINTF(2, 3) AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
 {
     va_list ap;
     char str[1024];
