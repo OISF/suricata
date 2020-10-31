@@ -51,13 +51,6 @@
 #include "stream-tcp.h"
 #include "app-layer-ssl.h"
 
-/**
- * \brief Regex for parsing "id" option, matching number or "number"
- */
-#define PARSE_REGEX  "^\\s*(!?[A-z0-9.]+)\\s*,?\\s*(!?[A-z0-9.]+)?\\s*\\,?\\s*" \
-        "(!?[A-z0-9.]+)?\\s*,?\\s*(!?[A-z0-9.]+)?\\s*,?\\s*(!?[A-z0-9.]+)?\\s*$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectSslVersionMatch(DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -83,7 +76,6 @@ void DetectSslVersionRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSL_VERSION].RegisterTests = DetectSslVersionRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 }
@@ -182,6 +174,21 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret ^ ((ssl->data[sig_ver].flags & DETECT_SSL_VERSION_NEGATED) ? 1 : 0));
 }
 
+struct SSLVersionKeywords {
+    const char *word;
+    int index;
+    int value;
+};
+
+struct SSLVersionKeywords ssl_version_keywords[TLS_SIZE] = {
+    { "sslv2", SSLv2, SSL_VERSION_2 },
+    { "sslv3", SSLv3, SSL_VERSION_3 },
+    { "tls1.0", TLS10, TLS_VERSION_10 },
+    { "tls1.1", TLS11, TLS_VERSION_11 },
+    { "tls1.2", TLS12, TLS_VERSION_12 },
+    { "tls1.3", TLS13, TLS_VERSION_13 },
+};
+
 /**
  * \brief This function is used to parse ssl_version data passed via
  *        keyword: "ssl_version"
@@ -195,84 +202,69 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
 static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, const char *str)
 {
     DetectSslVersionData *ssl = NULL;
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    const char *tmp_str = str;
+    size_t tmp_len = 0;
+    uint8_t found = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 1 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid ssl_version option");
+    /* We have a correct ssl_version options */
+    ssl = SCCalloc(1, sizeof(DetectSslVersionData));
+    if (unlikely(ssl == NULL))
+        goto error;
+
+    // skip leading space
+    while (tmp_str[0] != 0 && isspace(tmp_str[0])) {
+        tmp_str++;
+    }
+    if (tmp_str[0] == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid empty value");
         goto error;
     }
+    // iterate every version separated by comma
+    while (tmp_str[0] != 0) {
+        uint8_t neg = 0;
+        if (tmp_str[0] == '!') {
+            neg = 1;
+            tmp_str++;
+        }
+        // counts word length
+        tmp_len = 0;
+        while (tmp_str[tmp_len] != 0 && !isspace(tmp_str[tmp_len]) && tmp_str[tmp_len] != ',') {
+            tmp_len++;
+        }
 
-    if (ret > 1) {
-        uint8_t found = 0, neg = 0;
-        char *tmp_str;
-
-        /* We have a correct ssl_version options */
-        ssl = SCCalloc(1, sizeof (DetectSslVersionData));
-        if (unlikely(ssl == NULL))
+        bool is_keyword = false;
+        for (size_t i = 0; i < TLS_SIZE; i++) {
+            if (tmp_len == strlen(ssl_version_keywords[i].word) &&
+                    strncasecmp(ssl_version_keywords[i].word, tmp_str, tmp_len) == 0) {
+                if (ssl->data[ssl_version_keywords[i].index].ver != 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid duplicate value");
+                    goto error;
+                }
+                ssl->data[ssl_version_keywords[i].index].ver = ssl_version_keywords[i].value;
+                if (neg == 1)
+                    ssl->data[ssl_version_keywords[i].index].flags |= DETECT_SSL_VERSION_NEGATED;
+                is_keyword = true;
+                break;
+            }
+        }
+        if (!is_keyword) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Invalid unknown value");
             goto error;
+        }
 
-        int i;
-        for (i = 1; i < ret; i++) {
-            char ver_ptr[64];
-            res = pcre_copy_substring((char *) str, ov, MAX_SUBSTRINGS, i, ver_ptr, sizeof(ver_ptr));
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                if (found == 0)
-                    goto error;
-                break;
-            }
+        /* check consistency between negative and positive values :
+         * if there is a negative value, it overrides positive values
+         */
+        if (found == 0) {
+            found |= 1 << neg;
+        } else if (found != 1 << neg) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value mixing negative and positive forms");
+            goto error;
+        }
 
-            tmp_str = ver_ptr;
-
-            /* Let's see if we need to scape "'s */
-            if (tmp_str[0] == '"') {
-                tmp_str[strlen(tmp_str) - 1] = '\0';
-                tmp_str += 1;
-            }
-
-
-            if (tmp_str[0] == '!') {
-                neg = 1;
-                tmp_str++;
-            }
-
-            if (strcasecmp("sslv2", tmp_str) == 0) {
-                ssl->data[SSLv2].ver = SSL_VERSION_2;
-                if (neg == 1)
-                    ssl->data[SSLv2].flags |= DETECT_SSL_VERSION_NEGATED;
-            } else if (strcasecmp("sslv3", tmp_str) == 0) {
-                ssl->data[SSLv3].ver = SSL_VERSION_3;
-                if (neg == 1)
-                    ssl->data[SSLv3].flags |= DETECT_SSL_VERSION_NEGATED;
-            } else if (strcasecmp("tls1.0", tmp_str) == 0) {
-                ssl->data[TLS10].ver = TLS_VERSION_10;
-                if (neg == 1)
-                    ssl->data[TLS10].flags |= DETECT_SSL_VERSION_NEGATED;
-            } else if (strcasecmp("tls1.1", tmp_str) == 0) {
-                ssl->data[TLS11].ver = TLS_VERSION_11;
-                if (neg == 1)
-                    ssl->data[TLS11].flags |= DETECT_SSL_VERSION_NEGATED;
-            } else if (strcasecmp("tls1.2", tmp_str) == 0) {
-                ssl->data[TLS12].ver = TLS_VERSION_12;
-                if (neg == 1)
-                    ssl->data[TLS12].flags |= DETECT_SSL_VERSION_NEGATED;
-            } else if (strcasecmp("tls1.3", tmp_str) == 0) {
-                ssl->data[TLS13].ver = TLS_VERSION_13;
-                if (neg == 1)
-                    ssl->data[TLS13].flags |= DETECT_SSL_VERSION_NEGATED;
-            }  else if (strcmp(tmp_str, "") == 0) {
-                if (found == 0)
-                    goto error;
-                break;
-            } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
-                goto error;
-            }
-
-            found = 1;
-            neg = 0;
+        tmp_str += tmp_len;
+        while (isspace(tmp_str[0]) || tmp_str[0] == ',') {
+            tmp_str++;
         }
     }
 
