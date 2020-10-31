@@ -388,7 +388,9 @@ typedef unsigned char u_char
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
-#if defined(__GNUC__)
+#if defined(__MINGW32__)
+#define ATTR_FMT_PRINTF(x, y) __attribute__((format(__MINGW_PRINTF_FORMAT, (x), (y))))
+#elif defined(__GNUC__)
 #define ATTR_FMT_PRINTF(x, y) __attribute__((format(printf, (x), (y))))
 #else
 #define ATTR_FMT_PRINTF(x, y)
