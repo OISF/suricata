@@ -69,7 +69,7 @@ TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
 void AlertFastLogRegisterTests(void);
 static void AlertFastLogDeInitCtx(OutputCtx *);
 
-int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
+int AlertFastLogCondition(ThreadVars *tv, void *thread_data, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
 void AlertFastLogRegister(void)
@@ -85,7 +85,7 @@ typedef struct AlertFastLogThread_ {
     LogFileCtx* file_ctx;
 } AlertFastLogThread;
 
-int AlertFastLogCondition(ThreadVars *tv, const Packet *p)
+int AlertFastLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     return (p->alerts.cnt ? TRUE : FALSE);
 }
