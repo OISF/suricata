@@ -402,6 +402,8 @@ outputs:
       #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
       use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
       honor-pass-rules: no # If set to "yes", flows in which a pass rule matched will stop being logged.
+      # Use "all" to log all packets or use "alerts" to log only alerted packets and flows
+      #conditional: all
 
   # a full alert log containing much information for signature writers
   # or for investigating suspected false positives.
