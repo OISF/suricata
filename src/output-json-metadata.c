@@ -88,7 +88,7 @@ static int JsonMetadataLogger(ThreadVars *tv, void *thread_data, const Packet *p
     return MetadataJson(tv, aft, p);
 }
 
-static int JsonMetadataLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonMetadataLogCondition(ThreadVars *tv, void *data, const Packet *p)
 {
     if (p->pktvar) {
         return TRUE;
