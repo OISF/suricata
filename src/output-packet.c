@@ -106,7 +106,7 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
     while (logger && store) {
         DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
 
-        if ((logger->ConditionFunc(tv, (const Packet *)p)) == TRUE) {
+        if ((logger->ConditionFunc(tv, store->thread_data, (const Packet *)p)) == TRUE) {
             PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
             logger->LogFunc(tv, store->thread_data, (const Packet *)p);
             PACKET_PROFILING_LOGGER_END(p, logger->logger_id);

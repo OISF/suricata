@@ -75,6 +75,11 @@
 #define LOGMODE_SGUIL                   1
 #define LOGMODE_MULTI                   2
 
+typedef enum LogModeConditionalType_ {
+    LOGMODE_COND_ALL,
+    LOGMODE_COND_ALERTS
+} LogModeConditionalType;
+
 #define RING_BUFFER_MODE_DISABLED       0
 #define RING_BUFFER_MODE_ENABLED        1
 
@@ -155,6 +160,8 @@ typedef struct PcapLogData_ {
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
     uint32_t file_cnt;          /**< count of pcap files we currently have */
     uint32_t max_files;         /**< maximum files to use in ring buffer mode */
+    LogModeConditionalType
+            conditional; /**< log all packets or just packets and flows with alerts */
 
     PcapLogProfileData profile_lock;
     PcapLogProfileData profile_write;
@@ -200,7 +207,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 static OutputInitResult PcapLogInitCtx(ConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
-static int PcapLogCondition(ThreadVars *, const Packet *);
+static int PcapLogCondition(ThreadVars *, void *, const Packet *);
 
 void PcapLogRegister(void)
 {
@@ -220,13 +227,23 @@ void PcapLogRegister(void)
     (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
     (prof).cnt++
 
-static int PcapLogCondition(ThreadVars *tv, const Packet *p)
+static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
+    PcapLogThreadData *ptd = (PcapLogThreadData *)thread_data;
+
     if (p->flags & PKT_PSEUDO_STREAM_END) {
         return FALSE;
     }
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
         return FALSE;
+    }
+    /* Log alerted flow */
+    if (ptd->pcap_log->conditional == LOGMODE_COND_ALERTS) {
+        if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
     }
     return TRUE;
 }
@@ -630,6 +647,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
     copy->timestamp_format = pl->timestamp_format;
     copy->use_stream_depth = pl->use_stream_depth;
     copy->size_limit = pl->size_limit;
+    copy->conditional = pl->conditional;
 
     const PcapLogCompressionData *comp = &pl->compression;
     PcapLogCompressionData *copy_comp = &copy->compression;
@@ -1194,6 +1212,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     pl->timestamp_format = TS_FORMAT_SEC;
     pl->use_stream_depth = USE_STREAM_DEPTH_DISABLED;
     pl->honor_pass_rules = HONOR_PASS_RULES_DISABLED;
+    pl->conditional = LOGMODE_COND_ALL;
 
     TAILQ_INIT(&pl->pcap_file_list);
 
@@ -1416,6 +1435,21 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
         SCLogInfo("Selected pcap-log compression method: %s",
                 compression_str ? compression_str : "none");
+
+        const char *s_conditional = ConfNodeLookupChildValue(conf, "conditional");
+        if (s_conditional != NULL) {
+            if (strcasecmp(s_conditional, "alerts") == 0) {
+                pl->conditional = LOGMODE_COND_ALERTS;
+            } else if (strcasecmp(s_conditional, "all") != 0) {
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
+                        "or \"alerts\" mode ",
+                        s_conditional);
+            }
+        }
+
+        SCLogInfo(
+                "Selected pcap-log conditional logging: %s", s_conditional ? s_conditional : "all");
     }
 
     if (ParseFilename(pl, filename) != 0)

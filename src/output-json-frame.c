@@ -368,7 +368,7 @@ static int JsonFrameLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return FrameJson(tv, aft, p);
 }
 
-static int JsonFrameLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     if (p->flow == NULL || p->flow->alproto == ALPROTO_UNKNOWN)
         return FALSE;

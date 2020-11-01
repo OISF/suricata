@@ -836,7 +836,7 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return 0;
 }
 
-static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
         return TRUE;
