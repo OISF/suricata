@@ -1178,7 +1178,7 @@ static OutputInitResult AlertPreludeInitCtx(ConfNode *conf)
     SCReturnCT(result, "OutputInitResult");
 }
 
-static int AlertPreludeCondition(ThreadVars *tv, const Packet *p)
+static int AlertPreludeCondition(ThreadVars *tv, void* thread_data, const Packet *p)
 {
     if (p->alerts.cnt == 0)
         return FALSE;
