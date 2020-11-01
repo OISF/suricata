@@ -230,7 +230,7 @@ not_supported:
     SCReturnInt(0);
 }
 
-static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
+static int LuaPacketConditionAlerts(ThreadVars *tv, void *data, const Packet *p)
 {
     if (p->alerts.cnt > 0)
         return TRUE;
@@ -280,7 +280,7 @@ not_supported:
     SCReturnInt(0);
 }
 
-static int LuaPacketCondition(ThreadVars *tv, const Packet *p)
+static int LuaPacketCondition(ThreadVars *tv, void *data, const Packet *p)
 {
     return TRUE;
 }
