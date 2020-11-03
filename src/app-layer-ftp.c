@@ -129,7 +129,7 @@ uint64_t ftp_config_memcap = 0;
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
-static FTPTransaction *FTPGetOldestTx(FtpState *);
+static FTPTransaction *FTPGetOldestTx(FtpState *, FTPTransaction *);
 
 static void FTPParseMemcap(void)
 {
@@ -746,14 +746,16 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     /* toclient stream */
     state->direction = 1;
 
+    FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     while (FTPGetLine(state) >= 0) {
-        FTPTransaction *tx = FTPGetOldestTx(state);
+        FTPTransaction *tx = FTPGetOldestTx(state, lasttx);
         if (tx == NULL) {
             tx = FTPTransactionCreate(state);
         }
         if (unlikely(tx == NULL)) {
             SCReturnStruct(APP_LAYER_ERROR);
         }
+        lasttx = tx;
         if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
             /* unknown */
             tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
@@ -893,18 +895,19 @@ static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
  * \brief This function returns the oldest open transaction; if none
  * are open, then the oldest transaction is returned
  * \param ftp_state the ftp state structure for the parser
+ * \param starttx the ftp transaction where to start looking
  *
  * \retval transaction pointer when a transaction was found; NULL otherwise.
  */
-static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state)
+static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state, FTPTransaction *starttx)
 {
     if (unlikely(!ftp_state)) {
         SCLogDebug("NULL state object; no transactions available");
         return NULL;
     }
-    FTPTransaction *tx = NULL;
+    FTPTransaction *tx = starttx;
     FTPTransaction *lasttx = NULL;
-    TAILQ_FOREACH(tx, &ftp_state->tx_list, next) {
+    while(tx != NULL) {
         /* Return oldest open tx */
         if (!tx->done) {
             SCLogDebug("Returning tx %p id %"PRIu64, tx, tx->tx_id);
@@ -912,6 +915,7 @@ static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state)
         }
         /* save for the end */
         lasttx = tx;
+        tx = TAILQ_NEXT(tx, next);
     }
     /* All tx are closed; return last element */
     if (lasttx)
