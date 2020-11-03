@@ -347,13 +347,9 @@ fn dns_parse_rdata_txt<'a>(input: &'a [u8])
     )
 }
 
-fn dns_parse_rdata_null<'a>(input: &'a [u8])
-                            -> IResult<&'a [u8], DNSRData> {
-    do_parse!(
-        input,
-        data: take!(input.len()) >>
-            (DNSRData::NULL(data.to_vec()))
-    )
+
+fn dns_parse_rdata_null<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+    rest(input).map(|(input, data)| (input, DNSRData::NULL(data.to_vec())))
 }
 
 fn dns_parse_rdata_sshfp<'a>(input: &'a [u8])
