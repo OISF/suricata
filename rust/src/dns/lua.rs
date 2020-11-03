@@ -199,6 +199,11 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                     lua.pushstring(&String::from_utf8_lossy(&sshfp.fingerprint));
                     lua.settable(-3);
                 },
+                DNSRData::SRV(ref srv) => {
+                    lua.pushstring("addr");
+                    lua.pushstring(&String::from_utf8_lossy(&srv.target));
+                    lua.settable(-3);
+                },
             }
             lua.settable(-3);
         }
