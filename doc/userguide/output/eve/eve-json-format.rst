@@ -422,6 +422,14 @@ More complex DNS record types may log additional fields for resource data:
   * "algo": Algorithm number (ex: 1 for RSA, 2 for DSS)
   * "type": Fingerprint type (ex: 1 for SHA-1)
 
+* "srv": section containing fields for the SRV (location of services) record type
+
+  * "target": Domain name of the target host (ex: ``foo.bar.baz``)
+  * "priority": Target priority (ex: 20)
+  * "weight": Weight for target selection (ex: 1)
+  * "port": Port on this target host of this service (ex: 5060)
+  * "raw": Raw resource data bytes (e.g. for DNS tunneling detection)
+
 One can control which RR types are logged by using the "types" field in the
 suricata.yaml file. If this field is not specified, all RR types are logged.
 More than 50 values can be specified with this field as shown below:
