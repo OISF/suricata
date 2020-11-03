@@ -319,6 +319,24 @@ fn dns_parse_rdata_mx<'a>(input: &'a [u8], message: &'a [u8])
     )
 }
 
+fn dns_parse_rdata_srv<'a>(input: &'a [u8], message: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        priority: be_u16 >>
+        weight: be_u16 >>
+        port: be_u16 >>
+        target: call!(dns_parse_name, message) >>
+            (DNSRData::SRV(DNSRDataSRV{
+                priority,
+                weight,
+                port,
+                target,
+                raw: input.to_vec()
+            }))
+    )
+}
+
 fn dns_parse_rdata_txt<'a>(input: &'a [u8])
                            -> IResult<&'a [u8], DNSRData> {
     do_parse!(
@@ -372,6 +390,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
         DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
+        DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message),
         _ => dns_parse_rdata_unknown(input),
     }
 }
