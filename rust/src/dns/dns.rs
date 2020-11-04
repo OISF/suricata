@@ -17,101 +17,100 @@
 
 extern crate nom;
 
-use std::ffi::CString;
-use std::mem::transmute;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::ffi::CString;
+use std::mem::transmute;
 
 use crate::applayer::*;
-use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
+use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
 use crate::dns::parser;
 
-use nom::IResult;
 use nom::number::streaming::be_u16;
+use nom::IResult;
 
 /// DNS record types.
-pub const DNS_RECORD_TYPE_A           : u16 = 1;
-pub const DNS_RECORD_TYPE_NS          : u16 = 2;
-pub const DNS_RECORD_TYPE_MD          : u16 = 3;   // Obsolete
-pub const DNS_RECORD_TYPE_MF          : u16 = 4;   // Obsolete
-pub const DNS_RECORD_TYPE_CNAME       : u16 = 5;
-pub const DNS_RECORD_TYPE_SOA         : u16 = 6;
-pub const DNS_RECORD_TYPE_MB          : u16 = 7;   // Experimental
-pub const DNS_RECORD_TYPE_MG          : u16 = 8;   // Experimental
-pub const DNS_RECORD_TYPE_MR          : u16 = 9;   // Experimental
-pub const DNS_RECORD_TYPE_NULL        : u16 = 10;  // Experimental
-pub const DNS_RECORD_TYPE_WKS         : u16 = 11;
-pub const DNS_RECORD_TYPE_PTR         : u16 = 12;
-pub const DNS_RECORD_TYPE_HINFO       : u16 = 13;
-pub const DNS_RECORD_TYPE_MINFO       : u16 = 14;
-pub const DNS_RECORD_TYPE_MX          : u16 = 15;
-pub const DNS_RECORD_TYPE_TXT         : u16 = 16;
-pub const DNS_RECORD_TYPE_RP          : u16 = 17;
-pub const DNS_RECORD_TYPE_AFSDB       : u16 = 18;
-pub const DNS_RECORD_TYPE_X25         : u16 = 19;
-pub const DNS_RECORD_TYPE_ISDN        : u16 = 20;
-pub const DNS_RECORD_TYPE_RT          : u16 = 21;
-pub const DNS_RECORD_TYPE_NSAP        : u16 = 22;
-pub const DNS_RECORD_TYPE_NSAPPTR     : u16 = 23;
-pub const DNS_RECORD_TYPE_SIG         : u16 = 24;
-pub const DNS_RECORD_TYPE_KEY         : u16 = 25;
-pub const DNS_RECORD_TYPE_PX          : u16 = 26;
-pub const DNS_RECORD_TYPE_GPOS        : u16 = 27;
-pub const DNS_RECORD_TYPE_AAAA        : u16 = 28;
-pub const DNS_RECORD_TYPE_LOC         : u16 = 29;
-pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obsolete
-pub const DNS_RECORD_TYPE_SRV         : u16 = 33;
-pub const DNS_RECORD_TYPE_ATMA        : u16 = 34;
-pub const DNS_RECORD_TYPE_NAPTR       : u16 = 35;
-pub const DNS_RECORD_TYPE_KX          : u16 = 36;
-pub const DNS_RECORD_TYPE_CERT        : u16 = 37;
-pub const DNS_RECORD_TYPE_A6          : u16 = 38;  // Obsolete
-pub const DNS_RECORD_TYPE_DNAME       : u16 = 39;
-pub const DNS_RECORD_TYPE_OPT         : u16 = 41;
-pub const DNS_RECORD_TYPE_APL         : u16 = 42;
-pub const DNS_RECORD_TYPE_DS          : u16 = 43;
-pub const DNS_RECORD_TYPE_SSHFP       : u16 = 44;
-pub const DNS_RECORD_TYPE_IPSECKEY    : u16 = 45;
-pub const DNS_RECORD_TYPE_RRSIG       : u16 = 46;
-pub const DNS_RECORD_TYPE_NSEC        : u16 = 47;
-pub const DNS_RECORD_TYPE_DNSKEY      : u16 = 48;
-pub const DNS_RECORD_TYPE_DHCID       : u16 = 49;
-pub const DNS_RECORD_TYPE_NSEC3       : u16 = 50;
-pub const DNS_RECORD_TYPE_NSEC3PARAM  : u16 = 51;
-pub const DNS_RECORD_TYPE_TLSA        : u16 = 52;
-pub const DNS_RECORD_TYPE_HIP         : u16 = 55;
-pub const DNS_RECORD_TYPE_CDS         : u16 = 59;
-pub const DNS_RECORD_TYPE_CDNSKEY     : u16 = 60;
-pub const DNS_RECORD_TYPE_SPF         : u16 = 99;  // Obsolete
-pub const DNS_RECORD_TYPE_TKEY        : u16 = 249;
-pub const DNS_RECORD_TYPE_TSIG        : u16 = 250;
-pub const DNS_RECORD_TYPE_MAILA       : u16 = 254; // Obsolete
-pub const DNS_RECORD_TYPE_ANY         : u16 = 255;
-pub const DNS_RECORD_TYPE_URI         : u16 = 256;
+pub const DNS_RECORD_TYPE_A: u16 = 1;
+pub const DNS_RECORD_TYPE_NS: u16 = 2;
+pub const DNS_RECORD_TYPE_MD: u16 = 3; // Obsolete
+pub const DNS_RECORD_TYPE_MF: u16 = 4; // Obsolete
+pub const DNS_RECORD_TYPE_CNAME: u16 = 5;
+pub const DNS_RECORD_TYPE_SOA: u16 = 6;
+pub const DNS_RECORD_TYPE_MB: u16 = 7; // Experimental
+pub const DNS_RECORD_TYPE_MG: u16 = 8; // Experimental
+pub const DNS_RECORD_TYPE_MR: u16 = 9; // Experimental
+pub const DNS_RECORD_TYPE_NULL: u16 = 10; // Experimental
+pub const DNS_RECORD_TYPE_WKS: u16 = 11;
+pub const DNS_RECORD_TYPE_PTR: u16 = 12;
+pub const DNS_RECORD_TYPE_HINFO: u16 = 13;
+pub const DNS_RECORD_TYPE_MINFO: u16 = 14;
+pub const DNS_RECORD_TYPE_MX: u16 = 15;
+pub const DNS_RECORD_TYPE_TXT: u16 = 16;
+pub const DNS_RECORD_TYPE_RP: u16 = 17;
+pub const DNS_RECORD_TYPE_AFSDB: u16 = 18;
+pub const DNS_RECORD_TYPE_X25: u16 = 19;
+pub const DNS_RECORD_TYPE_ISDN: u16 = 20;
+pub const DNS_RECORD_TYPE_RT: u16 = 21;
+pub const DNS_RECORD_TYPE_NSAP: u16 = 22;
+pub const DNS_RECORD_TYPE_NSAPPTR: u16 = 23;
+pub const DNS_RECORD_TYPE_SIG: u16 = 24;
+pub const DNS_RECORD_TYPE_KEY: u16 = 25;
+pub const DNS_RECORD_TYPE_PX: u16 = 26;
+pub const DNS_RECORD_TYPE_GPOS: u16 = 27;
+pub const DNS_RECORD_TYPE_AAAA: u16 = 28;
+pub const DNS_RECORD_TYPE_LOC: u16 = 29;
+pub const DNS_RECORD_TYPE_NXT: u16 = 30; // Obsolete
+pub const DNS_RECORD_TYPE_SRV: u16 = 33;
+pub const DNS_RECORD_TYPE_ATMA: u16 = 34;
+pub const DNS_RECORD_TYPE_NAPTR: u16 = 35;
+pub const DNS_RECORD_TYPE_KX: u16 = 36;
+pub const DNS_RECORD_TYPE_CERT: u16 = 37;
+pub const DNS_RECORD_TYPE_A6: u16 = 38; // Obsolete
+pub const DNS_RECORD_TYPE_DNAME: u16 = 39;
+pub const DNS_RECORD_TYPE_OPT: u16 = 41;
+pub const DNS_RECORD_TYPE_APL: u16 = 42;
+pub const DNS_RECORD_TYPE_DS: u16 = 43;
+pub const DNS_RECORD_TYPE_SSHFP: u16 = 44;
+pub const DNS_RECORD_TYPE_IPSECKEY: u16 = 45;
+pub const DNS_RECORD_TYPE_RRSIG: u16 = 46;
+pub const DNS_RECORD_TYPE_NSEC: u16 = 47;
+pub const DNS_RECORD_TYPE_DNSKEY: u16 = 48;
+pub const DNS_RECORD_TYPE_DHCID: u16 = 49;
+pub const DNS_RECORD_TYPE_NSEC3: u16 = 50;
+pub const DNS_RECORD_TYPE_NSEC3PARAM: u16 = 51;
+pub const DNS_RECORD_TYPE_TLSA: u16 = 52;
+pub const DNS_RECORD_TYPE_HIP: u16 = 55;
+pub const DNS_RECORD_TYPE_CDS: u16 = 59;
+pub const DNS_RECORD_TYPE_CDNSKEY: u16 = 60;
+pub const DNS_RECORD_TYPE_SPF: u16 = 99; // Obsolete
+pub const DNS_RECORD_TYPE_TKEY: u16 = 249;
+pub const DNS_RECORD_TYPE_TSIG: u16 = 250;
+pub const DNS_RECORD_TYPE_MAILA: u16 = 254; // Obsolete
+pub const DNS_RECORD_TYPE_ANY: u16 = 255;
+pub const DNS_RECORD_TYPE_URI: u16 = 256;
 
 /// DNS error codes.
-pub const DNS_RCODE_NOERROR:  u16 = 0;
-pub const DNS_RCODE_FORMERR:  u16 = 1;
+pub const DNS_RCODE_NOERROR: u16 = 0;
+pub const DNS_RCODE_FORMERR: u16 = 1;
 pub const DNS_RCODE_SERVFAIL: u16 = 2;
 pub const DNS_RCODE_NXDOMAIN: u16 = 3;
-pub const DNS_RCODE_NOTIMP:   u16 = 4;
-pub const DNS_RCODE_REFUSED:  u16 = 5;
+pub const DNS_RCODE_NOTIMP: u16 = 4;
+pub const DNS_RCODE_REFUSED: u16 = 5;
 pub const DNS_RCODE_YXDOMAIN: u16 = 6;
-pub const DNS_RCODE_YXRRSET:  u16 = 7;
-pub const DNS_RCODE_NXRRSET:  u16 = 8;
-pub const DNS_RCODE_NOTAUTH:  u16 = 9;
-pub const DNS_RCODE_NOTZONE:  u16 = 10;
+pub const DNS_RCODE_YXRRSET: u16 = 7;
+pub const DNS_RCODE_NXRRSET: u16 = 8;
+pub const DNS_RCODE_NOTAUTH: u16 = 9;
+pub const DNS_RCODE_NOTZONE: u16 = 10;
 // Support for OPT RR from RFC6891 will be needed to
 // parse RCODE values over 15
-pub const DNS_RCODE_BADVERS:  u16 = 16;
-pub const DNS_RCODE_BADSIG:   u16 = 16;
-pub const DNS_RCODE_BADKEY:   u16 = 17;
-pub const DNS_RCODE_BADTIME:  u16 = 18;
-pub const DNS_RCODE_BADMODE:  u16 = 19;
-pub const DNS_RCODE_BADNAME:  u16 = 20;
-pub const DNS_RCODE_BADALG:   u16 = 21;
+pub const DNS_RCODE_BADVERS: u16 = 16;
+pub const DNS_RCODE_BADSIG: u16 = 16;
+pub const DNS_RCODE_BADKEY: u16 = 17;
+pub const DNS_RCODE_BADTIME: u16 = 18;
+pub const DNS_RCODE_BADMODE: u16 = 19;
+pub const DNS_RCODE_BADNAME: u16 = 20;
+pub const DNS_RCODE_BADALG: u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
-
 
 /// The maximum number of transactions to keep in the queue pending
 /// processing before they are aggressively purged. Due to the
@@ -162,15 +161,14 @@ impl DNSEvent {
             "not_a_request" => Some(DNSEvent::NotRequest),
             "not_a_response" => Some(DNSEvent::NotRequest),
             "z_flag_set" => Some(DNSEvent::ZFlagSet),
-            _ => None
+            _ => None,
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
+    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
     if let Some(e) = DNSEvent::from_id(event_id as u32) {
@@ -185,9 +183,8 @@ pub extern "C" fn rs_dns_state_get_event_info_by_id(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType
+    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     if event_name.is_null() {
         return -1;
@@ -212,7 +209,7 @@ pub extern "C" fn rs_dns_state_get_event_info(
     return 0;
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct DNSHeader {
     pub tx_id: u16,
@@ -230,7 +227,7 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
     pub mname: Vec<u8>,
@@ -248,7 +245,7 @@ pub struct DNSRDataSOA {
     pub minimum: u32,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSRDataSSHFP {
     /// Algorithm number
     pub algo: u8,
@@ -258,7 +255,7 @@ pub struct DNSRDataSSHFP {
     pub fingerprint: Vec<u8>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSRDataSRV {
     /// Priority
     pub priority: u16,
@@ -273,7 +270,7 @@ pub struct DNSRDataSRV {
 }
 
 /// Represents RData of various formats
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum DNSRData {
     // RData is an address
     A(Vec<u8>),
@@ -294,7 +291,7 @@ pub enum DNSRData {
     Unknown(Vec<u8>),
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
@@ -328,16 +325,15 @@ pub struct DNSTransaction {
 }
 
 impl DNSTransaction {
-
     pub fn new() -> DNSTransaction {
-        return DNSTransaction{
+        return DNSTransaction {
             id: 0,
             request: None,
             response: None,
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
+        };
     }
 
     pub fn free(&mut self) {
@@ -370,7 +366,6 @@ impl DNSTransaction {
         }
         return 0;
     }
-
 }
 
 impl Drop for DNSTransaction {
@@ -424,9 +419,8 @@ pub struct DNSState {
 }
 
 impl DNSState {
-
     pub fn new() -> DNSState {
-        return DNSState{
+        return DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
@@ -436,7 +430,7 @@ impl DNSState {
     }
 
     pub fn new_tcp() -> DNSState {
-        return DNSState{
+        return DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
@@ -507,8 +501,7 @@ impl DNSState {
         }
 
         let tx = &mut self.transactions[len - 1];
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
-                                                        event as u8);
+        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
         self.events += 1;
     }
 
@@ -550,7 +543,6 @@ impl DNSState {
     pub fn parse_response(&mut self, input: &[u8]) -> bool {
         match parser::dns_parse_response(input) {
             Ok((_, response)) => {
-
                 SCLogDebug!("Response header flags: {}", response.header.flags);
 
                 if response.header.flags & 0x8000 == 0 {
@@ -609,17 +601,20 @@ impl DNSState {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
-            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+            let size = match be_u16(&cur_i) as IResult<&[u8], u16> {
                 Ok((_, len)) => len,
-                _ => 0
+                _ => 0,
             } as usize;
-            SCLogDebug!("[request] Have {} bytes, need {} to parse",
-                        cur_i.len(), size + 2);
+            SCLogDebug!(
+                "[request] Have {} bytes, need {} to parse",
+                cur_i.len(),
+                size + 2
+            );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[0..(size + 2)];
                 if self.parse_request(&msg[2..]) {
                     cur_i = &cur_i[(size + 2)..];
-                    consumed += size  + 2;
+                    consumed += size + 2;
                 } else {
                     return AppLayerResult::err();
                 }
@@ -627,10 +622,12 @@ impl DNSState {
                 cur_i = &cur_i[2..];
                 consumed += 2;
             } else {
-                SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
-                            consumed as u32, (size + 2) as u32);
-                return AppLayerResult::incomplete(consumed as u32,
-                    (size  + 2) as u32);
+                SCLogDebug!(
+                    "[request]Not enough DNS traffic to parse. Returning {}/{}",
+                    consumed as u32,
+                    (size + 2) as u32
+                );
+                return AppLayerResult::incomplete(consumed as u32, (size + 2) as u32);
             }
         }
         AppLayerResult::ok()
@@ -656,12 +653,15 @@ impl DNSState {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
-            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+            let size = match be_u16(&cur_i) as IResult<&[u8], u16> {
                 Ok((_, len)) => len,
-                _ => 0
+                _ => 0,
             } as usize;
-            SCLogDebug!("[response] Have {} bytes, need {} to parse",
-                        cur_i.len(), size + 2);
+            SCLogDebug!(
+                "[response] Have {} bytes, need {} to parse",
+                cur_i.len(),
+                size + 2
+            );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[0..(size + 2)];
                 if self.parse_response(&msg[2..]) {
@@ -673,11 +673,13 @@ impl DNSState {
             } else if size == 0 {
                 cur_i = &cur_i[2..];
                 consumed += 2;
-            } else  {
-                SCLogDebug!("[response]Not enough DNS traffic to parse. Returning {}/{}",
-                    consumed as u32, (cur_i.len() - consumed) as u32);
-                return AppLayerResult::incomplete(consumed as u32,
-                    (size + 2) as u32);
+            } else {
+                SCLogDebug!(
+                    "[response]Not enough DNS traffic to parse. Returning {}/{}",
+                    consumed as u32,
+                    (cur_i.len() - consumed) as u32
+                );
+                return AppLayerResult::incomplete(consumed as u32, (size + 2) as u32);
             }
         }
         AppLayerResult::ok()
@@ -705,18 +707,18 @@ fn probe(input: &[u8]) -> (bool, bool) {
         Ok((_, request)) => {
             let is_request = request.header.flags & 0x8000 == 0;
             return (true, is_request);
-        },
+        }
         Err(_) => (false, false),
     }
 }
 
 /// Probe TCP input to see if it looks like DNS.
 pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
-    match be_u16(input) as IResult<&[u8],_> {
+    match be_u16(input) as IResult<&[u8], _> {
         Ok((rem, _)) => {
             let r = probe(rem);
             return (r.0, r.1, false);
-        },
+        }
         Err(nom::Err::Incomplete(_)) => {
             return (false, false, true);
         }
@@ -727,10 +729,12 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 
 /// Returns *mut DNSState
 #[no_mangle]
-pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dns_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 /// Returns *mut DNSState
@@ -738,7 +742,7 @@ pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
     let state = DNSState::new_tcp();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 /// Params:
@@ -746,29 +750,23 @@ pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
 #[no_mangle]
 pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<DNSState> = unsafe{transmute(state)};
+    let _drop: Box<DNSState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
+pub extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, DNSState);
     state.free_tx(tx_id);
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
-                                        state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       _data: *const std::os::raw::c_void,
-                                       _flags: u8)
-                                       -> AppLayerResult {
+pub extern "C" fn rs_dns_parse_request(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     if state.parse_request(buf) {
         AppLayerResult::ok()
     } else {
@@ -777,16 +775,12 @@ pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
-                                        state: *mut std::os::raw::c_void,
-                                        _pstate: *mut std::os::raw::c_void,
-                                        input: *const u8,
-                                        input_len: u32,
-                                        _data: *const std::os::raw::c_void,
-                                        _flags: u8)
-                                        -> AppLayerResult {
+pub extern "C" fn rs_dns_parse_response(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     if state.parse_response(buf) {
         AppLayerResult::ok()
     } else {
@@ -796,19 +790,14 @@ pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
-                                           state: *mut std::os::raw::c_void,
-                                           _pstate: *mut std::os::raw::c_void,
-                                           input: *const u8,
-                                           input_len: u32,
-                                           _data: *const std::os::raw::c_void,
-                                           _flags: u8)
-                                           -> AppLayerResult {
+pub extern "C" fn rs_dns_parse_request_tcp(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if !input.is_null() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
             return state.parse_request_tcp(buf);
         }
         state.request_gap(input_len);
@@ -817,19 +806,14 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
-                                            state: *mut std::os::raw::c_void,
-                                            _pstate: *mut std::os::raw::c_void,
-                                            input: *const u8,
-                                            input_len: u32,
-                                            _data: *const std::os::raw::c_void,
-                                            _flags: u8)
-                                            -> AppLayerResult {
+pub extern "C" fn rs_dns_parse_response_tcp(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if !input.is_null() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
             return state.parse_response_tcp(buf);
         }
         state.response_gap(input_len);
@@ -838,19 +822,15 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
+pub extern "C" fn rs_dns_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     SCLogDebug!("rs_dns_state_progress_completion_status");
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                 _direction: u8)
-                                                 -> std::os::raw::c_int
-{
+pub extern "C" fn rs_dns_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void, _direction: u8,
+) -> std::os::raw::c_int {
     // This is a stateless parser, just the existence of a transaction
     // means its complete.
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
@@ -858,23 +838,20 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
+pub extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DNSState);
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
+pub extern "C" fn rs_dns_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DNSState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return unsafe { transmute(tx) };
         }
         None => {
             return std::ptr::null_mut();
@@ -884,9 +861,8 @@ pub extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
+    tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DNSTransaction);
     tx.de_state = Some(de_state);
     return 0;
@@ -894,14 +870,13 @@ pub extern "C" fn rs_dns_state_set_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::DetectEngineState {
     let tx = cast_pointer!(tx, DNSTransaction);
     match tx.de_state {
         Some(ds) => {
             return ds;
-        },
+        }
         None => {
             return std::ptr::null_mut();
         }
@@ -909,29 +884,23 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
+pub extern "C" fn rs_dns_state_get_events(
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, DNSTransaction);
     return tx.events;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_data(
-    tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
-{
+pub extern "C" fn rs_dns_state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
     return &mut tx.tx_data;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
-                                       i: u16,
-                                       buf: *mut *const u8,
-                                       len: *mut u32)
-                                       -> u8
-{
+pub extern "C" fn rs_dns_tx_get_query_name(
+    tx: &mut DNSTransaction, i: u16, buf: *mut *const u8, len: *mut u32,
+) -> u8 {
     if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
@@ -951,27 +920,22 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
 //
 /// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16
-{
-    return tx.tx_id()
+pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16 {
+    return tx.tx_id();
 }
 
 /// Get the DNS response flags for a transaction.
 ///
 /// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
-                                           -> u16
-{
+pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
-                                         i: u16,
-                                         rrtype: *mut u16)
-                                         -> u8
-{
+pub extern "C" fn rs_dns_tx_get_query_rrtype(
+    tx: &mut DNSTransaction, i: u16, rrtype: *mut u16,
+) -> u8 {
     if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
@@ -988,18 +952,12 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_probe(
-    _flow: *const core::Flow,
-    _dir: u8,
-    input: *const u8,
-    len: u32,
-    rdir: *mut u8,
+    _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     let (is_dns, is_request) = probe(slice);
     if is_dns {
         let dir = if is_request {
@@ -1017,18 +975,12 @@ pub extern "C" fn rs_dns_probe(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_probe_tcp(
-    _flow: *const core::Flow,
-    direction: u8,
-    input: *const u8,
-    len: u32,
-    rdir: *mut u8
+    _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     //is_incomplete is checked by caller
     let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
@@ -1037,7 +989,7 @@ pub extern "C" fn rs_dns_probe_tcp(
         } else {
             core::STREAM_TOCLIENT
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
+        if direction & (core::STREAM_TOSERVER | core::STREAM_TOCLIENT) != dir {
             unsafe { *rdir = dir };
         }
         return unsafe { ALPROTO_DNS };
@@ -1047,8 +999,8 @@ pub extern "C" fn rs_dns_probe_tcp(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_apply_tx_config(
-    _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void,
-    _mode: std::os::raw::c_int, config: AppLayerTxConfig
+    _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void, _mode: std::os::raw::c_int,
+    config: AppLayerTxConfig,
 ) {
     let tx = cast_pointer!(_tx, DNSTransaction);
     let state = cast_pointer!(_state, DNSState);
@@ -1070,7 +1022,7 @@ pub unsafe extern "C" fn rs_dns_init(proto: AppProto) {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
-    let parser = RustParser{
+    let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_UDP,
@@ -1115,7 +1067,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
     let default_port = std::ffi::CString::new("53").unwrap();
-    let parser = RustParser{
+    let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
@@ -1166,6 +1118,7 @@ mod tests {
     fn test_dns_parse_request_tcp_valid() {
         // A UDP DNS request with the DNS payload starting at byte 42.
         // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0x00, 0x15, 0x17, 0x0d, 0x06, 0xf7, 0xd8, 0xcb, /* ........ */
             0x8a, 0xed, 0xa1, 0x46, 0x08, 0x00, 0x45, 0x00, /* ...F..E. */
@@ -1191,16 +1144,14 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(
-            AppLayerResult::ok(),
-            state.parse_request_tcp(&request)
-        );
+        assert_eq!(AppLayerResult::ok(), state.parse_request_tcp(&request));
     }
 
     #[test]
     fn test_dns_parse_request_tcp_short_payload() {
         // A UDP DNS request with the DNS payload starting at byte 42.
         // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0x00, 0x15, 0x17, 0x0d, 0x06, 0xf7, 0xd8, 0xcb, /* ........ */
             0x8a, 0xed, 0xa1, 0x46, 0x08, 0x00, 0x45, 0x00, /* ...F..E. */
@@ -1237,6 +1188,7 @@ mod tests {
     fn test_dns_parse_response_tcp_valid() {
         // A UDP DNS response with the DNS payload starting at byte 42.
         // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* .....F.. */
             0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* ......E. */
@@ -1268,10 +1220,7 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(
-            AppLayerResult::ok(),
-            state.parse_response_tcp(&request)
-        );
+        assert_eq!(AppLayerResult::ok(), state.parse_response_tcp(&request));
     }
 
     // Test that a TCP DNS payload won't be parsed if there is not
@@ -1280,6 +1229,7 @@ mod tests {
     fn test_dns_parse_response_tcp_short_payload() {
         // A UDP DNS response with the DNS payload starting at byte 42.
         // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* .....F.. */
             0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* ......E. */
@@ -1326,17 +1276,12 @@ mod tests {
          * serial 20130422 refresh 28800 retry 7200 exp 604800 min ttl 86400
          * ns, hostmaster */
         let buf: &[u8] = &[
-            0x00, 0x3c, 0x85, 0x00, 0x00, 0x01, 0x00, 0x00,
-            0x00, 0x01, 0x00, 0x00, 0x0b, 0x61, 0x62, 0x63,
-            0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b,
-            0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x0f, 0x00,
-            0x01, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01,
-            0x51, 0x80, 0x00, 0x25, 0x02, 0x6e, 0x73, 0x00,
-            0x0a, 0x68, 0x6f, 0x73, 0x74, 0x6d, 0x61, 0x73,
-            0x74, 0x65, 0x72, 0xc0, 0x2f, 0x01, 0x33, 0x2a,
-            0x76, 0x00, 0x00, 0x70, 0x80, 0x00, 0x00, 0x1c,
-            0x20, 0x00, 0x09, 0x3a, 0x80, 0x00, 0x01, 0x51,
-            0x80,
+            0x00, 0x3c, 0x85, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0b, 0x61,
+            0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x03, 0x63, 0x6f, 0x6d,
+            0x00, 0x00, 0x0f, 0x00, 0x01, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01, 0x51, 0x80,
+            0x00, 0x25, 0x02, 0x6e, 0x73, 0x00, 0x0a, 0x68, 0x6f, 0x73, 0x74, 0x6d, 0x61, 0x73,
+            0x74, 0x65, 0x72, 0xc0, 0x2f, 0x01, 0x33, 0x2a, 0x76, 0x00, 0x00, 0x70, 0x80, 0x00,
+            0x00, 0x1c, 0x20, 0x00, 0x09, 0x3a, 0x80, 0x00, 0x01, 0x51, 0x80,
         ];
         let mut state = DNSState::new();
         assert!(state.parse_response(buf));
@@ -1346,16 +1291,18 @@ mod tests {
     #[test]
     fn test_dns_udp_parser_test_02() {
         let buf: &[u8] = &[
-            0x6D,0x08,0x84,0x80,0x00,0x01,0x00,0x08,0x00,0x00,0x00,0x01,0x03,0x57,0x57,0x57,
-            0x04,0x54,0x54,0x54,0x54,0x03,0x56,0x56,0x56,0x03,0x63,0x6F,0x6D,0x02,0x79,0x79,
-            0x00,0x00,0x01,0x00,0x01,0xC0,0x0C,0x00,0x05,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,
-            0x02,0xC0,0x0C,0xC0,0x31,0x00,0x05,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x02,0xC0,
-            0x31,0xC0,0x3F,0x00,0x05,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x02,0xC0,0x3F,0xC0,
-            0x4D,0x00,0x05,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x02,0xC0,0x4D,0xC0,0x5B,0x00,
-            0x05,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x02,0xC0,0x5B,0xC0,0x69,0x00,0x05,0x00,
-            0x01,0x00,0x00,0x0E,0x10,0x00,0x02,0xC0,0x69,0xC0,0x77,0x00,0x05,0x00,0x01,0x00,
-            0x00,0x0E,0x10,0x00,0x02,0xC0,0x77,0xC0,0x85,0x00,0x05,0x00,0x01,0x00,0x00,0x0E,
-            0x10,0x00,0x02,0xC0,0x85,0x00,0x00,0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+            0x6D, 0x08, 0x84, 0x80, 0x00, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x03, 0x57,
+            0x57, 0x57, 0x04, 0x54, 0x54, 0x54, 0x54, 0x03, 0x56, 0x56, 0x56, 0x03, 0x63, 0x6F,
+            0x6D, 0x02, 0x79, 0x79, 0x00, 0x00, 0x01, 0x00, 0x01, 0xC0, 0x0C, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x0C, 0xC0, 0x31, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x31, 0xC0, 0x3F, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x3F, 0xC0, 0x4D, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x4D, 0xC0, 0x5B, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x5B, 0xC0, 0x69, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x69, 0xC0, 0x77, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x77, 0xC0, 0x85, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x85, 0x00, 0x00, 0x29, 0x05, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
         let mut state = DNSState::new();
         assert!(state.parse_response(buf));
@@ -1365,16 +1312,17 @@ mod tests {
     #[test]
     fn test_dns_udp_parser_test_03() {
         let buf: &[u8] = &[
-            0x6F,0xB4,0x84,0x80,0x00,0x01,0x00,0x02,0x00,0x02,0x00,0x03,0x03,0x57,0x57,0x77,
-            0x0B,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x03,0x55,0x55,0x55,
-            0x02,0x79,0x79,0x00,0x00,0x01,0x00,0x01,0xC0,0x0C,0x00,0x05,0x00,0x01,0x00,0x00,
-            0x0E,0x10,0x00,0x02,0xC0,0x10,0xC0,0x34,0x00,0x01,0x00,0x01,0x00,0x00,0x0E,0x10,
-            0x00,0x04,0xC3,0xEA,0x04,0x19,0xC0,0x34,0x00,0x02,0x00,0x01,0x00,0x00,0x0E,0x10,
-            0x00,0x0A,0x03,0x6E,0x73,0x31,0x03,0x61,0x67,0x62,0xC0,0x20,0xC0,0x46,0x00,0x02,
-            0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x06,0x03,0x6E,0x73,0x32,0xC0,0x56,0xC0,0x52,
-            0x00,0x01,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x04,0xC3,0xEA,0x04,0x0A,0xC0,0x68,
-            0x00,0x01,0x00,0x01,0x00,0x00,0x0E,0x10,0x00,0x04,0xC3,0xEA,0x05,0x14,0x00,0x00,
-            0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+            0x6F, 0xB4, 0x84, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x02, 0x00, 0x03, 0x03, 0x57,
+            0x57, 0x77, 0x0B, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56,
+            0x03, 0x55, 0x55, 0x55, 0x02, 0x79, 0x79, 0x00, 0x00, 0x01, 0x00, 0x01, 0xC0, 0x0C,
+            0x00, 0x05, 0x00, 0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x02, 0xC0, 0x10, 0xC0, 0x34,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x04, 0xC3, 0xEA, 0x04, 0x19,
+            0xC0, 0x34, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x0A, 0x03, 0x6E,
+            0x73, 0x31, 0x03, 0x61, 0x67, 0x62, 0xC0, 0x20, 0xC0, 0x46, 0x00, 0x02, 0x00, 0x01,
+            0x00, 0x00, 0x0E, 0x10, 0x00, 0x06, 0x03, 0x6E, 0x73, 0x32, 0xC0, 0x56, 0xC0, 0x52,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x04, 0xC3, 0xEA, 0x04, 0x0A,
+            0xC0, 0x68, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x0E, 0x10, 0x00, 0x04, 0xC3, 0xEA,
+            0x05, 0x14, 0x00, 0x00, 0x29, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
         let mut state = DNSState::new();
         assert!(state.parse_response(buf));
@@ -1385,6 +1333,7 @@ mod tests {
     // Test the TXT records in an answer.
     #[test]
     fn test_dns_udp_parser_test_04() {
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
             0x41,0x41,0x4f,0x31,0x6b,0x51,0x41,0x05,0x3d,0x61,0x75,0x74,0x68,0x03,0x73,0x72,
@@ -1408,6 +1357,7 @@ mod tests {
     // Test TXT records in answer with a bad length.
     #[test]
     fn test_dns_udp_parser_test_05() {
+        #[rustfmt_skip]
         let buf: &[u8] = &[
             0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
             0x41,0x41,0x4f,0x31,0x6b,0x51,0x41,0x05,0x3d,0x61,0x75,0x74,0x68,0x03,0x73,0x72,
@@ -1430,104 +1380,68 @@ mod tests {
     #[test]
     fn test_dns_tcp_parser_multi_record() {
         let buf: &[u8] = &[
-            0x00, 0x1e, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x30,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x31,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x02, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x32,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x03, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x33,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x04, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x34,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x35,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x06, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x36,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x07, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x37,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x08, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x38,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1e, 0x00, 0x09, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x39,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1f, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31,
-            0x30, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
-            0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
-            0x01, 0x00, 0x1f, 0x00, 0x0b, 0x01, 0x00, 0x00,
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-            0x31, 0x31, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
-            0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
-            0x00, 0x01, 0x00, 0x1f, 0x00, 0x0c, 0x01, 0x00,
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x02, 0x31, 0x32, 0x06, 0x67, 0x6f, 0x6f, 0x67,
-            0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00,
-            0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0d, 0x01,
-            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x02, 0x31, 0x33, 0x06, 0x67, 0x6f, 0x6f,
-            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
-            0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0e,
-            0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x02, 0x31, 0x34, 0x06, 0x67, 0x6f,
-            0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d,
-            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00,
-            0x0f, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x02, 0x31, 0x35, 0x06, 0x67,
-            0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
-            0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f,
-            0x00, 0x10, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x36, 0x06,
-            0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63,
-            0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
-            0x1f, 0x00, 0x11, 0x01, 0x00, 0x00, 0x01, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x37,
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
-            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-            0x00, 0x1f, 0x00, 0x12, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31,
-            0x38, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
-            0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
-            0x01, 0x00, 0x1f, 0x00, 0x13, 0x01, 0x00, 0x00,
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-            0x31, 0x39, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
-            0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
-            0x00, 0x01
+            0x00, 0x1e, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x01, 0x30, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x31, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x02, 0x01, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x32, 0x06, 0x67, 0x6f, 0x6f,
+            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1e,
+            0x00, 0x03, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x33,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
+            0x00, 0x01, 0x00, 0x1e, 0x00, 0x04, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x34, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
+            0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x35, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+            0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x06,
+            0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x36, 0x06, 0x67,
+            0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x00, 0x1e, 0x00, 0x07, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x01, 0x37, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x08, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x38, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1e, 0x00, 0x09, 0x01, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x39, 0x06, 0x67, 0x6f, 0x6f,
+            0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f,
+            0x00, 0x0a, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31,
+            0x30, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00,
+            0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0b, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x02, 0x31, 0x31, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0c, 0x01, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x32, 0x06, 0x67, 0x6f,
+            0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+            0x1f, 0x00, 0x0d, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+            0x31, 0x33, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0e, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x34, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
+            0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0f, 0x01,
+            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x35, 0x06, 0x67,
+            0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x00, 0x1f, 0x00, 0x10, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x02, 0x31, 0x36, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d,
+            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x11, 0x01, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x37, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+            0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x12,
+            0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x38, 0x06,
+            0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
+            0x01, 0x00, 0x1f, 0x00, 0x13, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x02, 0x31, 0x39, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
+            0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
         ];
         let mut state = DNSState::new();
-        assert_eq!(
-            AppLayerResult::ok(),
-            state.parse_request_tcp(buf)
-        );
+        assert_eq!(AppLayerResult::ok(), state.parse_request_tcp(buf));
     }
 
     #[test]
     fn test_dns_tcp_parser_split_payload() {
         /* incomplete payload */
+        #[rustfmt_skip]
         let buf1: &[u8] = &[
             0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ];
         /* complete payload plus the start of a new payload */
+        #[rustfmt_skip]
         let buf2: &[u8] = &[
             0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1540,6 +1454,7 @@ mod tests {
         ];
 
         /* and the complete payload again with no trailing data. */
+        #[rustfmt_skip]
         let buf3: &[u8] = &[
             0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1556,9 +1471,6 @@ mod tests {
             AppLayerResult::incomplete(30, 30),
             state.parse_request_tcp(buf2)
         );
-        assert_eq!(
-            AppLayerResult::ok(),
-            state.parse_request_tcp(buf3)
-        );
+        assert_eq!(AppLayerResult::ok(), state.parse_request_tcp(buf3));
     }
 }

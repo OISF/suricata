@@ -15,79 +15,78 @@
  * 02110-1301, USA.
  */
 
-use std::string::String;
 use std::collections::HashMap;
+use std::string::String;
 
-use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::dns::dns::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-pub const LOG_QUERIES    : u64 = BIT_U64!(0);
-pub const LOG_ANSWER     : u64 = BIT_U64!(1);
+pub const LOG_QUERIES: u64 = BIT_U64!(0);
+pub const LOG_ANSWER: u64 = BIT_U64!(1);
 
-pub const LOG_A          : u64 = BIT_U64!(2);
-pub const LOG_NS         : u64 = BIT_U64!(3);
-pub const LOG_MD         : u64 = BIT_U64!(4);
-pub const LOG_MF         : u64 = BIT_U64!(5);
-pub const LOG_CNAME      : u64 = BIT_U64!(6);
-pub const LOG_SOA        : u64 = BIT_U64!(7);
-pub const LOG_MB         : u64 = BIT_U64!(8);
-pub const LOG_MG         : u64 = BIT_U64!(9);
-pub const LOG_MR         : u64 = BIT_U64!(10);
-pub const LOG_NULL       : u64 = BIT_U64!(11);
-pub const LOG_WKS        : u64 = BIT_U64!(12);
-pub const LOG_PTR        : u64 = BIT_U64!(13);
-pub const LOG_HINFO      : u64 = BIT_U64!(14);
-pub const LOG_MINFO      : u64 = BIT_U64!(15);
-pub const LOG_MX         : u64 = BIT_U64!(16);
-pub const LOG_TXT        : u64 = BIT_U64!(17);
-pub const LOG_RP         : u64 = BIT_U64!(18);
-pub const LOG_AFSDB      : u64 = BIT_U64!(19);
-pub const LOG_X25        : u64 = BIT_U64!(20);
-pub const LOG_ISDN       : u64 = BIT_U64!(21);
-pub const LOG_RT         : u64 = BIT_U64!(22);
-pub const LOG_NSAP       : u64 = BIT_U64!(23);
-pub const LOG_NSAPPTR    : u64 = BIT_U64!(24);
-pub const LOG_SIG        : u64 = BIT_U64!(25);
-pub const LOG_KEY        : u64 = BIT_U64!(26);
-pub const LOG_PX         : u64 = BIT_U64!(27);
-pub const LOG_GPOS       : u64 = BIT_U64!(28);
-pub const LOG_AAAA       : u64 = BIT_U64!(29);
-pub const LOG_LOC        : u64 = BIT_U64!(30);
-pub const LOG_NXT        : u64 = BIT_U64!(31);
-pub const LOG_SRV        : u64 = BIT_U64!(32);
-pub const LOG_ATMA       : u64 = BIT_U64!(33);
-pub const LOG_NAPTR      : u64 = BIT_U64!(34);
-pub const LOG_KX         : u64 = BIT_U64!(35);
-pub const LOG_CERT       : u64 = BIT_U64!(36);
-pub const LOG_A6         : u64 = BIT_U64!(37);
-pub const LOG_DNAME      : u64 = BIT_U64!(38);
-pub const LOG_OPT        : u64 = BIT_U64!(39);
-pub const LOG_APL        : u64 = BIT_U64!(40);
-pub const LOG_DS         : u64 = BIT_U64!(41);
-pub const LOG_SSHFP      : u64 = BIT_U64!(42);
-pub const LOG_IPSECKEY   : u64 = BIT_U64!(43);
-pub const LOG_RRSIG      : u64 = BIT_U64!(44);
-pub const LOG_NSEC       : u64 = BIT_U64!(45);
-pub const LOG_DNSKEY     : u64 = BIT_U64!(46);
-pub const LOG_DHCID      : u64 = BIT_U64!(47);
-pub const LOG_NSEC3      : u64 = BIT_U64!(48);
-pub const LOG_NSEC3PARAM : u64 = BIT_U64!(49);
-pub const LOG_TLSA       : u64 = BIT_U64!(50);
-pub const LOG_HIP        : u64 = BIT_U64!(51);
-pub const LOG_CDS        : u64 = BIT_U64!(52);
-pub const LOG_CDNSKEY    : u64 = BIT_U64!(53);
-pub const LOG_SPF        : u64 = BIT_U64!(54);
-pub const LOG_TKEY       : u64 = BIT_U64!(55);
-pub const LOG_TSIG       : u64 = BIT_U64!(56);
-pub const LOG_MAILA      : u64 = BIT_U64!(57);
-pub const LOG_ANY        : u64 = BIT_U64!(58);
-pub const LOG_URI        : u64 = BIT_U64!(59);
+pub const LOG_A: u64 = BIT_U64!(2);
+pub const LOG_NS: u64 = BIT_U64!(3);
+pub const LOG_MD: u64 = BIT_U64!(4);
+pub const LOG_MF: u64 = BIT_U64!(5);
+pub const LOG_CNAME: u64 = BIT_U64!(6);
+pub const LOG_SOA: u64 = BIT_U64!(7);
+pub const LOG_MB: u64 = BIT_U64!(8);
+pub const LOG_MG: u64 = BIT_U64!(9);
+pub const LOG_MR: u64 = BIT_U64!(10);
+pub const LOG_NULL: u64 = BIT_U64!(11);
+pub const LOG_WKS: u64 = BIT_U64!(12);
+pub const LOG_PTR: u64 = BIT_U64!(13);
+pub const LOG_HINFO: u64 = BIT_U64!(14);
+pub const LOG_MINFO: u64 = BIT_U64!(15);
+pub const LOG_MX: u64 = BIT_U64!(16);
+pub const LOG_TXT: u64 = BIT_U64!(17);
+pub const LOG_RP: u64 = BIT_U64!(18);
+pub const LOG_AFSDB: u64 = BIT_U64!(19);
+pub const LOG_X25: u64 = BIT_U64!(20);
+pub const LOG_ISDN: u64 = BIT_U64!(21);
+pub const LOG_RT: u64 = BIT_U64!(22);
+pub const LOG_NSAP: u64 = BIT_U64!(23);
+pub const LOG_NSAPPTR: u64 = BIT_U64!(24);
+pub const LOG_SIG: u64 = BIT_U64!(25);
+pub const LOG_KEY: u64 = BIT_U64!(26);
+pub const LOG_PX: u64 = BIT_U64!(27);
+pub const LOG_GPOS: u64 = BIT_U64!(28);
+pub const LOG_AAAA: u64 = BIT_U64!(29);
+pub const LOG_LOC: u64 = BIT_U64!(30);
+pub const LOG_NXT: u64 = BIT_U64!(31);
+pub const LOG_SRV: u64 = BIT_U64!(32);
+pub const LOG_ATMA: u64 = BIT_U64!(33);
+pub const LOG_NAPTR: u64 = BIT_U64!(34);
+pub const LOG_KX: u64 = BIT_U64!(35);
+pub const LOG_CERT: u64 = BIT_U64!(36);
+pub const LOG_A6: u64 = BIT_U64!(37);
+pub const LOG_DNAME: u64 = BIT_U64!(38);
+pub const LOG_OPT: u64 = BIT_U64!(39);
+pub const LOG_APL: u64 = BIT_U64!(40);
+pub const LOG_DS: u64 = BIT_U64!(41);
+pub const LOG_SSHFP: u64 = BIT_U64!(42);
+pub const LOG_IPSECKEY: u64 = BIT_U64!(43);
+pub const LOG_RRSIG: u64 = BIT_U64!(44);
+pub const LOG_NSEC: u64 = BIT_U64!(45);
+pub const LOG_DNSKEY: u64 = BIT_U64!(46);
+pub const LOG_DHCID: u64 = BIT_U64!(47);
+pub const LOG_NSEC3: u64 = BIT_U64!(48);
+pub const LOG_NSEC3PARAM: u64 = BIT_U64!(49);
+pub const LOG_TLSA: u64 = BIT_U64!(50);
+pub const LOG_HIP: u64 = BIT_U64!(51);
+pub const LOG_CDS: u64 = BIT_U64!(52);
+pub const LOG_CDNSKEY: u64 = BIT_U64!(53);
+pub const LOG_SPF: u64 = BIT_U64!(54);
+pub const LOG_TKEY: u64 = BIT_U64!(55);
+pub const LOG_TSIG: u64 = BIT_U64!(56);
+pub const LOG_MAILA: u64 = BIT_U64!(57);
+pub const LOG_ANY: u64 = BIT_U64!(58);
+pub const LOG_URI: u64 = BIT_U64!(59);
 
-pub const LOG_FORMAT_GROUPED  : u64 = BIT_U64!(60);
-pub const LOG_FORMAT_DETAILED : u64 = BIT_U64!(61);
+pub const LOG_FORMAT_GROUPED: u64 = BIT_U64!(60);
+pub const LOG_FORMAT_DETAILED: u64 = BIT_U64!(61);
 
-fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
-{
+fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
     if flags == !0 {
         return true;
     }
@@ -231,9 +230,7 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
         DNS_RECORD_TYPE_DHCID => {
             return flags & LOG_DHCID != 0;
         }
-        DNS_RECORD_TYPE_NSEC3 => {
-            return flags & LOG_NSEC3 != 0
-        }
+        DNS_RECORD_TYPE_NSEC3 => return flags & LOG_NSEC3 != 0,
         DNS_RECORD_TYPE_NSEC3PARAM => {
             return flags & LOG_NSEC3PARAM != 0;
         }
@@ -336,7 +333,8 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
         _ => {
             return rrtype.to_string();
         }
-    }.to_string()
+    }
+    .to_string()
 }
 
 pub fn dns_rcode_string(flags: u16) -> String {
@@ -362,15 +360,15 @@ pub fn dns_rcode_string(flags: u16) -> String {
         _ => {
             return (flags & 0x000f).to_string();
         }
-    }.to_string()
+    }
+    .to_string()
 }
 
 /// Format bytes as an IP address string.
 pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
     if addr.len() == 4 {
         return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
-    }
-    else if addr.len() == 16 {
+    } else if addr.len() == 16 {
         return format!("{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}",
                        addr[0],
                        addr[1],
@@ -388,8 +386,7 @@ pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
                        addr[13],
                        addr[14],
                        addr[15]);
-    }
-    else {
+    } else {
         return "".to_string();
     }
 }
@@ -411,8 +408,7 @@ fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
 }
 
 /// Log SSHFP section fields.
-fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError>
-{
+fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
 
     let mut hex = Vec::new();
@@ -429,8 +425,7 @@ fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError>
 }
 
 /// Log SRV section fields.
-fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError>
-{
+fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
 
     js.set_uint("priority", srv.priority as u64)?;
@@ -443,8 +438,7 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError>
     return Ok(js);
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError>
-{
+fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
     let mut jsa = JsonBuilder::new_object();
 
     jsa.set_string_from_bytes("rrname", &answer.name)?;
@@ -455,12 +449,12 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         DNSRData::A(addr) | DNSRData::AAAA(addr) => {
             jsa.set_string("rdata", &dns_print_addr(&addr))?;
         }
-        DNSRData::CNAME(bytes) |
-        DNSRData::MX(bytes) |
-        DNSRData::NS(bytes) |
-        DNSRData::TXT(bytes) |
-        DNSRData::NULL(bytes) |
-        DNSRData::PTR(bytes) => {
+        DNSRData::CNAME(bytes)
+        | DNSRData::MX(bytes)
+        | DNSRData::NS(bytes)
+        | DNSRData::TXT(bytes)
+        | DNSRData::NULL(bytes)
+        | DNSRData::PTR(bytes) => {
             jsa.set_string_from_bytes("rdata", &bytes)?;
         }
         DNSRData::SOA(soa) => {
@@ -479,9 +473,9 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
     return Ok(jsa);
 }
 
-fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
-                       -> Result<(), JsonError>
-{
+fn dns_log_json_answer(
+    js: &mut JsonBuilder, response: &DNSResponse, flags: u64,
+) -> Result<(), JsonError> {
     let header = &response.header;
 
     js.set_uint("version", 2)?;
@@ -518,60 +512,54 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
         let mut answer_types = HashMap::new();
 
         for answer in &response.answers {
-
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
                 match &answer.data {
                     DNSRData::A(addr) | DNSRData::AAAA(addr) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_string(&dns_print_addr(&addr))?;
                         }
                     }
-                    DNSRData::CNAME(bytes) |
-                    DNSRData::MX(bytes) |
-                    DNSRData::NS(bytes) |
-                    DNSRData::TXT(bytes) |
-                    DNSRData::NULL(bytes) |
-                    DNSRData::PTR(bytes) => {
+                    DNSRData::CNAME(bytes)
+                    | DNSRData::MX(bytes)
+                    | DNSRData::NS(bytes)
+                    | DNSRData::TXT(bytes)
+                    | DNSRData::NULL(bytes)
+                    | DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_string_from_bytes(&bytes)?;
                         }
-                    },
+                    }
                     DNSRData::SOA(soa) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_soa(&soa)?)?;
                         }
-                    },
+                    }
                     DNSRData::SSHFP(sshfp) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_sshfp(&sshfp)?)?;
                         }
-                    },
+                    }
                     DNSRData::SRV(srv) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_srv(&srv)?)?;
                         }
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -595,7 +583,6 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
             }
             js.close()?;
         }
-
     }
 
     if response.authorities.len() > 0 {
@@ -610,12 +597,9 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
     Ok(())
 }
 
-fn dns_log_query(tx: &mut DNSTransaction,
-                 i: u16,
-                 flags: u64,
-                 jb: &mut JsonBuilder)
-                 -> Result<bool, JsonError>
-{
+fn dns_log_query(
+    tx: &mut DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
+) -> Result<bool, JsonError> {
     let index = i as usize;
     if let Some(request) = &tx.request {
         if index < request.queries.len() {
@@ -635,12 +619,9 @@ fn dns_log_query(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
-                                        i: u16,
-                                        flags: u64,
-                                        jb: &mut JsonBuilder)
-                                        -> bool
-{
+pub extern "C" fn rs_dns_log_json_query(
+    tx: &mut DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
+) -> bool {
     match dns_log_query(tx, i, flags, jb) {
         Ok(false) | Err(_) => {
             return false;
@@ -652,10 +633,9 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
-                                         flags: u64, mut js: &mut JsonBuilder)
-                                         -> bool
-{
+pub extern "C" fn rs_dns_log_json_answer(
+    tx: &mut DNSTransaction, flags: u64, mut js: &mut JsonBuilder,
+) -> bool {
     if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -667,9 +647,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction,
-                                       flags: u64) -> bool
-{
+pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction, flags: u64) -> bool {
     if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -682,9 +660,9 @@ pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction,
 
 // Version 1 logging support.
 
-fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
-                          -> Result<JsonBuilder, JsonError>
-{
+fn dns_log_json_answer_v1(
+    header: &DNSHeader, answer: &DNSAnswerEntry,
+) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
 
     js.set_string("type", "answer")?;
@@ -714,12 +692,12 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNSRData::A(addr) | DNSRData::AAAA(addr) => {
             js.set_string("rdata", &dns_print_addr(&addr))?;
         }
-        DNSRData::CNAME(bytes) |
-        DNSRData::MX(bytes) |
-        DNSRData::NS(bytes) |
-        DNSRData::TXT(bytes) |
-        DNSRData::NULL(bytes) |
-        DNSRData::PTR(bytes) => {
+        DNSRData::CNAME(bytes)
+        | DNSRData::MX(bytes)
+        | DNSRData::NS(bytes)
+        | DNSRData::TXT(bytes)
+        | DNSRData::NULL(bytes)
+        | DNSRData::PTR(bytes) => {
             js.set_string_from_bytes("rdata", &bytes)?;
         }
         DNSRData::SOA(soa) => {
@@ -736,8 +714,9 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
     return Ok(js);
 }
 
-fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
-                                 -> Result<Option<JsonBuilder>, JsonError> {
+fn dns_log_json_failure_v1(
+    r: &DNSResponse, index: usize, flags: u64,
+) -> Result<Option<JsonBuilder>, JsonError> {
     if index >= r.queries.len() {
         return Ok(None);
     }
@@ -761,11 +740,9 @@ fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
-                                         i: u16,
-                                         flags: u64)
-                                         -> *mut JsonBuilder
-{
+pub extern "C" fn rs_dns_log_json_answer_v1(
+    tx: &mut DNSTransaction, i: u16, flags: u64,
+) -> *mut JsonBuilder {
     let index = i as usize;
     // Note for loop over Option for easier break out to default
     // return value.
@@ -793,11 +770,9 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
-                                            i: u16,
-                                            flags: u64)
-                                            -> *mut JsonBuilder
-{
+pub extern "C" fn rs_dns_log_json_authority_v1(
+    tx: &mut DNSTransaction, i: u16, flags: u64,
+) -> *mut JsonBuilder {
     let index = i as usize;
     if let Some(response) = &tx.response {
         if index < response.authorities.len() {
