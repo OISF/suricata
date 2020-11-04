@@ -643,6 +643,11 @@ Example of icmp_seq in a rule:
 
     alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN Broadscan Smurf Scanner"; dsize:4; icmp_id:0; :example-rule-emphasis:`icmp_seq:0;` itype:8; classtype:attempted-recon; sid:2100478; rev:4;)
 
+icmpv4.hdr
+^^^^^^^^^^
+
+Sitcky buffer to match on the whole ICMPv4 header.
+
 icmpv6.hdr
 ^^^^^^^^^^
 
