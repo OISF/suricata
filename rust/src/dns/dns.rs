@@ -17,7 +17,6 @@
 
 extern crate nom;
 
-use std;
 use std::ffi::CString;
 use std::mem::transmute;
 use std::collections::HashMap;
@@ -190,7 +189,7 @@ pub extern "C" fn rs_dns_state_get_event_info(
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType
 ) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
+    if event_name.is_null() {
         return -1;
     }
 
@@ -342,23 +341,20 @@ impl DNSTransaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
-        match self.de_state {
-            Some(state) => {
-                core::sc_detect_engine_state_free(state);
-            }
-            None => { },
+        if let Some(state) = self.de_state {
+            core::sc_detect_engine_state_free(state);
         }
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
     pub fn tx_id(&self) -> u16 {
-        if let &Some(ref request) = &self.request {
+        if let Some(request) = &self.request {
             return request.header.tx_id;
         }
-        if let &Some(ref response) = &self.response {
+        if let Some(response) = &self.response {
             return response.header.tx_id;
         }
 
@@ -369,7 +365,7 @@ impl DNSTransaction {
     /// Get the reply code of the transaction. Note that this will
     /// also return 0 if there is no reply.
     pub fn rcode(&self) -> u16 {
-        if let &Some(ref response) = &self.response {
+        if let Some(response) = &self.response {
             return response.header.flags & 0x000f;
         }
         return 0;
@@ -810,7 +806,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
-        if input != std::ptr::null_mut() {
+        if !input.is_null() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
             return state.parse_request_tcp(buf);
@@ -831,7 +827,7 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
-        if input != std::ptr::null_mut() {
+        if !input.is_null() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
             return state.parse_response_tcp(buf);
@@ -936,7 +932,7 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        len: *mut u32)
                                        -> u8
 {
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
@@ -976,7 +972,7 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
                                          rrtype: *mut u16)
                                          -> u8
 {
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {

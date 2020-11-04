@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use std;
 use std::string::String;
 use std::collections::HashMap;
 
@@ -367,7 +366,7 @@ pub fn dns_rcode_string(flags: u16) -> String {
 }
 
 /// Format bytes as an IP address string.
-pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
+pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
     if addr.len() == 4 {
         return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
     }
@@ -618,7 +617,7 @@ fn dns_log_query(tx: &mut DNSTransaction,
                  -> Result<bool, JsonError>
 {
     let index = i as usize;
-    if let &Some(ref request) = &tx.request {
+    if let Some(request) = &tx.request {
         if index < request.queries.len() {
             let query = &request.queries[index];
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -657,7 +656,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
                                          flags: u64, mut js: &mut JsonBuilder)
                                          -> bool
 {
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
                 return dns_log_json_answer(&mut js, response, flags as u64).is_ok();
@@ -671,7 +670,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
 pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction,
                                        flags: u64) -> bool
 {
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
                 return true;
@@ -743,7 +742,7 @@ fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
         return Ok(None);
     }
 
-    let ref query = r.queries[index];
+    let query = &r.queries[index];
 
     if !dns_log_rrtype_enabled(query.rrtype, flags) {
         return Ok(None);
@@ -800,7 +799,7 @@ pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
                                             -> *mut JsonBuilder
 {
     let index = i as usize;
-    if let &Some(ref response) = &tx.response {
+    if let Some(response) = &tx.response {
         if index < response.authorities.len() {
             let answer = &response.authorities[index];
             if dns_log_rrtype_enabled(answer.rrtype, flags) {

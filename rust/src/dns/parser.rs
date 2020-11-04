@@ -22,7 +22,6 @@ use nom::combinator::rest;
 use nom::error::ErrorKind;
 use nom::multi::length_data;
 use nom::number::streaming::{be_u8, be_u16, be_u32};
-use nom;
 use crate::dns::dns::*;
 
 // Parse a DNS header.
@@ -52,7 +51,7 @@ named!(pub dns_parse_header<DNSHeader>,
 /// Parameters:
 ///   start: the start of the name
 ///   message: the complete message that start is a part of
-pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
+pub fn dns_parse_name<'b>(start: &'b [u8],
                               message: &'b [u8])
                               -> IResult<&'b [u8], Vec<u8>> {
     let mut pos = start;
@@ -74,7 +73,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
             match length_data(be_u8)(pos) as IResult<&[u8],_> {
                 Ok((rem, label)) => {
                     if name.len() > 0 {
-                        name.push('.' as u8);
+                        name.push(b'.');
                     }
                     name.extend(label);
                     pos = rem;
@@ -213,7 +212,7 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
 
 
 /// Parse a DNS response.
-pub fn dns_parse_response<'a>(slice: &'a [u8])
+pub fn dns_parse_response(slice: &[u8])
                               -> IResult<&[u8], DNSResponse> {
     do_parse!(
         slice,
@@ -392,7 +391,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
 }
 
 /// Parse a DNS request.
-pub fn dns_parse_request<'a>(input: &'a [u8]) -> IResult<&[u8], DNSRequest> {
+pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
     do_parse!(
         input,
         header: dns_parse_header >>
