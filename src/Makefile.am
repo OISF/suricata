@@ -213,6 +213,7 @@ detect-http-uri.c detect-http-uri.h \
 detect-http2.c detect-http2.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
+detect-icmp-hdr.c detect-icmp-hdr.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \
 detect-icmpv6-mtu.c detect-icmpv6-mtu.h \
 detect-icode.c detect-icode.h \
