@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -168,8 +168,6 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     p->proto = IPPROTO_ICMP;
     p->icmp_s.type = p->icmpv4h->type;
     p->icmp_s.code = p->icmpv4h->code;
-    p->payload = (uint8_t *)pkt + ICMPV4_HEADER_LEN;
-    p->payload_len = len - ICMPV4_HEADER_LEN;
 
     int ctype = ICMPv4GetCounterpart(p->icmp_s.type);
     if (ctype != -1) {
@@ -177,6 +175,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     }
 
     ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
+    p->icmpv4vars.hlen = ICMPV4_HEADER_LEN;
 
     switch (p->icmpv4h->type)
     {
@@ -270,6 +269,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             if (p->icmpv4h->code!=0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
+
+            if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
+            }
             break;
 
         case ICMP_TIMESTAMPREPLY:
@@ -277,6 +282,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+            }
+
+            if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
             }
             break;
 
@@ -295,6 +306,18 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
+
+        case ICMP_ROUTERADVERT: {
+            /* pkt points to beginning of icmp message */
+            ICMPV4RtrAdvert *icmpv4_router_advert = (ICMPV4RtrAdvert *)(pkt + sizeof(ICMPV4Hdr));
+            uint32_t advert_len = icmpv4_router_advert->naddr *
+                                  (icmpv4_router_advert->addr_sz * sizeof(uint32_t));
+            if (len < (advert_len + ICMPV4_HEADER_LEN)) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += advert_len;
+            }
+        } break;
 
         case ICMP_ADDRESS:
             p->icmpv4vars.id=icmp4eh->id;
@@ -316,6 +339,9 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
 
     }
+
+    p->payload = (uint8_t *)pkt + p->icmpv4vars.hlen;
+    p->payload_len = len - p->icmpv4vars.hlen;
 
     FlowSetupPacket(p);
     return TM_ECODE_OK;
