@@ -143,6 +143,7 @@
 #include "detect-icode.h"
 #include "detect-icmp-id.h"
 #include "detect-icmp-seq.h"
+#include "detect-icmp-hdr.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -546,6 +547,7 @@ void SigTableSetup(void)
     DetectICodeRegister();
     DetectIcmpIdRegister();
     DetectIcmpSeqRegister();
+    DetectIcmpHdrRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
