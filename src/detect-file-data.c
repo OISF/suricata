@@ -96,7 +96,7 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister,
             HttpServerBodyGetDataCallback,
-            ALPROTO_HTTP, HTP_RESPONSE_BODY);
+            ALPROTO_HTTP, HTP_RESPONSE_PROGRESS_BODY);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
@@ -111,7 +111,7 @@ void DetectFiledataRegister(void)
             ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_BODY,
             DetectEngineInspectBufferGeneric, HttpServerBodyGetDataCallback);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
@@ -272,7 +272,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
               body->content_len_so_far,
               htp_state->cfg->response.inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
-               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
+               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_PROGRESS_BODY) ? "true" : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
@@ -280,7 +280,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
         if ((htp_state->cfg->response.body_limit == 0 ||
              body->content_len_so_far < htp_state->cfg->response.body_limit) &&
             body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_PROGRESS_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "

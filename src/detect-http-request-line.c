@@ -87,13 +87,13 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_request_line",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_LINE,
             DetectEngineInspectBufferGeneric,
             GetData);
 
     DetectAppLayerMpmRegister2("http_request_line", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData,
-            ALPROTO_HTTP, HTP_REQUEST_LINE);
+            ALPROTO_HTTP, HTP_REQUEST_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");

@@ -96,12 +96,12 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_LINE,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_method", SIG_FLAG_TOSERVER, 4,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_LINE);
+            HTP_REQUEST_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");

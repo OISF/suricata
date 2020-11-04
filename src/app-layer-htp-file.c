@@ -156,7 +156,7 @@ end:
  * @param[in] rawvalue
  * @param[out] range
  *
- * @return HTP_OK on success, HTP_ERROR on failure.
+ * @return HTP_STATUS_OK on success, HTP_STATUS_ERROR on failure.
  */
 int HTPParseContentRange(const bstr * rawvalue, HtpContentRange *range)
 {

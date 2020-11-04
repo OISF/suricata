@@ -238,7 +238,7 @@ static inline uint64_t HtpGetActiveResponseTxID(HtpState *s)
 static const char *HTPLookupPersonalityString(int p)
 {
 #define CASE_HTP_PERSONALITY_STRING(p) \
-    case HTP_SERVER_ ## p: return #p
+    case HTP_SERVER_PERSONALITY_ ## p: return #p
 
     switch (p) {
         CASE_HTP_PERSONALITY_STRING(MINIMAL);
@@ -267,7 +267,7 @@ static const char *HTPLookupPersonalityString(int p)
 static int HTPLookupPersonality(const char *str)
 {
 #define IF_HTP_PERSONALITY_NUM(p) \
-    if (strcasecmp(#p, str) == 0) return HTP_SERVER_ ## p
+    if (strcasecmp(#p, str) == 0) return HTP_SERVER_PERSONALITY_ ## p
 
     IF_HTP_PERSONALITY_NUM(MINIMAL);
     IF_HTP_PERSONALITY_NUM(GENERIC);
@@ -289,7 +289,7 @@ static int HTPLookupPersonality(const char *str)
         SCLogWarning(SC_WARN_OPTION_OBSOLETE, "Personality %s no "
                    "longer supported by libhtp, failing back to "
                    "Apache2 personality.", str);
-        return HTP_SERVER_APACHE_2;
+        return HTP_SERVER_PERSONALITY_APACHE_2;
     }
 
     return -1;
@@ -453,11 +453,11 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
          * As htp_tx_destroy_incomplete isn't available in the public API,
          * we hack around it here. */
         if (unlikely(!(
-            htp_tx_request_progress(tx) == HTP_REQUEST_COMPLETE &&
-            htp_tx_response_progress(tx) == HTP_RESPONSE_COMPLETE)))
+            htp_tx_request_progress(tx) == HTP_REQUEST_PROGRESS_COMPLETE &&
+            htp_tx_response_progress(tx) == HTP_RESPONSE_PROGRESS_COMPLETE)))
         {
-            htp_tx_set_request_progress(tx, HTP_REQUEST_COMPLETE);
-            htp_tx_set_response_progress(tx, HTP_RESPONSE_COMPLETE);
+            htp_tx_set_request_progress(tx, HTP_REQUEST_PROGRESS_COMPLETE);
+            htp_tx_set_response_progress(tx, HTP_RESPONSE_PROGRESS_COMPLETE);
         }
         htp_tx_destroy(tx);
     }
@@ -602,7 +602,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
 
         SCLogDebug("message %s", log);
 
-        htp_log_code id = htp_conn_message_code(s->conn, msg);
+        htp_log_code_t id = htp_conn_message_code(s->conn, msg);
         if (id != HTP_LOG_CODE_UNKNOWN && id != HTP_LOG_CODE_ERROR) {
             HTPSetEvent(s, NULL, dir, id);
         }
@@ -644,14 +644,14 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
-    if (htp_tx_request_auth_type(tx) == HTP_AUTH_UNRECOGNIZED) {
+    if (htp_tx_request_auth_type(tx) == HTP_AUTH_TYPE_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTP_LOG_CODE_AUTH_UNRECOGNIZED);
     }
-    if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_M_UNKNOWN &&
+    if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_METHOD_UNKNOWN &&
         (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
          htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_UNKNOWN)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
@@ -761,7 +761,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
     if (input_len > 0) {
         const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
         switch (r) {
-            case HTP_STREAM_ERROR:
+            case HTP_STREAM_STATE_ERROR:
                 ret = -1;
                 break;
             default:
@@ -826,10 +826,10 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
-            case HTP_STREAM_ERROR:
+            case HTP_STREAM_STATE_ERROR:
                 ret = -1;
                 break;
-            case HTP_STREAM_TUNNEL:
+            case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
                     const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
@@ -1256,7 +1256,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
-        if (header_start != NULL || (tx_progress > HTP_REQUEST_BODY)) {
+        if (header_start != NULL || (tx_progress > HTP_REQUEST_PROGRESS_BODY)) {
             SCLogDebug("reached the end of the file");
 
             const uint8_t *filedata = chunks_buffer;
@@ -1276,7 +1276,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             }
             /* body parsing done, we did not get our form end. Use all data
              * we still have and signal to files API we have an issue. */
-            if (tx_progress > HTP_REQUEST_BODY) {
+            if (tx_progress > HTP_REQUEST_PROGRESS_BODY) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
@@ -1672,7 +1672,7 @@ end:
 /**
  * \brief Function callback to append chunks for Requests
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HTP_OK if all goes well
+ * \retval int HTP_STATUS_OK if all goes well
  */
 static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
@@ -1681,10 +1681,10 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     if (htp_tx_data_is_empty(d))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
@@ -1694,7 +1694,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
@@ -1703,12 +1703,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
     }
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
 
-        if (htp_tx_request_method_number(tx) == HTP_M_POST) {
+        if (htp_tx_request_method_number(tx) == HTP_METHOD_POST) {
             SCLogDebug("POST");
             int r = HtpRequestBodySetupMultipart(tx, tx_ud);
             if (r == 1) {
@@ -1717,7 +1717,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 tx_ud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
-        } else if (htp_tx_request_method_number(tx) == HTP_M_PUT) {
+        } else if (htp_tx_request_method_number(tx) == HTP_METHOD_PUT) {
             tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
         }
     }
@@ -1802,13 +1802,13 @@ end:
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, 0);
         }
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
  * \brief Function callback to append chunks for Responses
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HTP_OK if all goes well
+ * \retval int HTP_STATUS_OK if all goes well
  */
 static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
@@ -1817,14 +1817,14 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     if (htp_tx_data_is_empty(d))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
@@ -1833,7 +1833,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_user_data(tx);
     if (tx_ud == NULL) {
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
     }
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
@@ -1892,7 +1892,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, 0);
         }
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
@@ -1941,7 +1941,7 @@ static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
     if (htud != NULL) {
         htud->request_has_trailers = 1;
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
@@ -1950,7 +1950,7 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
     if (htud != NULL) {
         htud->response_has_trailers = 1;
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 /**\internal
@@ -1961,7 +1961,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
 {
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     if (hstate->cfg)
@@ -1972,11 +1972,11 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
+            SCReturnInt(HTP_STATUS_OK);
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**\internal
@@ -1987,7 +1987,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 {
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     if (hstate->cfg)
@@ -1998,11 +1998,11 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
+            SCReturnInt(HTP_STATUS_OK);
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 
@@ -2017,12 +2017,12 @@ static int HTPCallbackRequest(htp_tx_t *tx)
     SCEnter();
 
     if (tx == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     SCLogDebug("transaction_cnt %"PRIu64", list_size %"PRIu64,
@@ -2047,7 +2047,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
@@ -2062,7 +2062,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
 
     HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     /* we have one whole transaction now */
@@ -2082,7 +2082,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
 
     /* handle HTTP CONNECT */
-    if (htp_tx_request_method_number(tx) == HTP_M_CONNECT) {
+    if (htp_tx_request_method_number(tx) == HTP_METHOD_CONNECT) {
         /* any 2XX status response implies that the connection will become
            a tunnel immediately after this packet (RFC 7230, 3.3.3). */
         if ((htp_tx_response_status_number(tx) >= 200) &&
@@ -2094,13 +2094,13 @@ static int HTPCallbackResponse(htp_tx_t *tx)
             }
             // both ALPROTO_HTTP and ALPROTO_TLS are normal options
             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
-            htp_tx_set_request_progress(tx, HTP_REQUEST_COMPLETE);
-            htp_tx_set_response_progress(tx, HTP_RESPONSE_COMPLETE);
+            htp_tx_set_request_progress(tx, HTP_REQUEST_PROGRESS_COMPLETE);
+            htp_tx_set_response_progress(tx, HTP_RESPONSE_PROGRESS_COMPLETE);
         }
     }
 
     hstate->last_response_data_stamp = (uint64_t)htp_conn_out_data_counter(hstate->conn);
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 static int HTPCallbackRequestLine(htp_tx_t *tx)
@@ -2112,7 +2112,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (likely(tx_ud == NULL)) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL)) {
-            return HTP_OK;
+            return HTP_STATUS_OK;
         }
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx, tx_ud);
@@ -2121,37 +2121,37 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (htp_tx_flags(tx)) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 {
     if (part == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     uint64_t flags = 0;
     size_t prevlen = bstr_len(part);
     htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), part, &flags);
     // shorter string means that uri was encoded
-    if (res == HTP_OK && prevlen > bstr_len(part)) {
+    if (res == HTP_STATUS_OK && prevlen > bstr_len(part)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
-            return HTP_OK;
+            return HTP_STATUS_OK;
         HtpState *s = htp_connp_user_data(htp_tx_connp(tx));
 
         if (s == NULL)
-            return HTP_OK;
+            return HTP_STATUS_OK;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTP_LOG_CODE_DOUBLE_ENCODED_URI);
     }
 
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
 {
     if (htp_tx_parsed_uri(tx) == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     return HTPCallbackDoubleDecodeUriPart(tx, (bstr *) htp_uri_query(htp_tx_parsed_uri(tx)));
 }
@@ -2159,7 +2159,7 @@ static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
 static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 {
     if (htp_tx_parsed_uri(tx) == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     return HTPCallbackDoubleDecodeUriPart(tx, (bstr *) htp_uri_path(htp_tx_parsed_uri(tx)));
 }
@@ -2169,17 +2169,17 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
     void *ptmp;
     htp_tx_t *tx = htp_tx_data_tx(tx_data);
     if (htp_tx_data_is_empty(tx_data) || tx == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     ptmp = HTPRealloc(tx_ud->request_headers_raw,
                      tx_ud->request_headers_raw_len,
                      tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     tx_ud->request_headers_raw = ptmp;
 
@@ -2191,7 +2191,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
         HtpState *hstate = htp_connp_user_data(htp_tx_connp(tx));
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
@@ -2199,17 +2199,17 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     void *ptmp;
     htp_tx_t *tx = htp_tx_data_tx(tx_data);
     if (htp_tx_data_is_empty(tx_data) || tx == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     if (tx_ud == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     tx_ud->response_headers_raw = ptmp;
 
@@ -2217,7 +2217,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
            htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
     tx_ud->response_headers_raw_len += htp_tx_data_len(tx_data);
 
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 /*
@@ -2413,7 +2413,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             if (personality >= 0) {
                 SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
                            personality);
-                if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
+                if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_STATUS_ERROR){
                     SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP Failed adding "
                                  "personality \"%s\", ignoring", p->val);
                 } else {
@@ -2531,11 +2531,11 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("path-url-encoding-invalid-handling", p->name) == 0) {
             enum htp_url_encoding_handling_t handling;
             if (strcasecmp(p->val, "preserve_percent") == 0) {
-                handling = HTP_URL_DECODE_PRESERVE_PERCENT;
+                handling = HTP_URL_ENCODING_HANDLING_PRESERVE_PERCENT;
             } else if (strcasecmp(p->val, "remove_percent") == 0) {
-                handling = HTP_URL_DECODE_REMOVE_PERCENT;
+                handling = HTP_URL_ENCODING_HANDLING_REMOVE_PERCENT;
             } else if (strcasecmp(p->val, "decode_invalid") == 0) {
-                handling = HTP_URL_DECODE_PROCESS_INVALID;
+                handling = HTP_URL_ENCODING_HANDLING_PROCESS_INVALID;
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-url-encoding-invalid-handling");
@@ -2846,7 +2846,7 @@ void *HtpGetTxForH2(void *alstate)
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    return (direction & STREAM_TOSERVER) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
+    return (direction & STREAM_TOSERVER) ? HTP_REQUEST_PROGRESS_COMPLETE : HTP_RESPONSE_PROGRESS_COMPLETE;
 }
 
 static int HTPStateGetEventInfo(const char *event_name,
@@ -3094,8 +3094,8 @@ static int HTPParserTest01(void)
     FAIL_IF_NULL(h);
 
     FAIL_IF(bstr_cmp_c(htp_header_value(h), "Victor/1.0"));
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3139,8 +3139,8 @@ static int HTPParserTest01b(void)
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3195,8 +3195,8 @@ static int HTPParserTest01c(void)
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_POST);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
@@ -3261,8 +3261,8 @@ static int HTPParserTest01a(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     if (strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0")
-        || htp_tx_request_method_number(tx) != HTP_M_POST ||
-        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
+        || htp_tx_request_method_number(tx) != HTP_METHOD_POST ||
+        htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0)
     {
         printf("expected header value: Victor/1.0 and got %s: and expected"
                 " method: POST and got %s, expected protocol number HTTP/1.0"
@@ -3393,8 +3393,8 @@ static int HTPParserTest03(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
-    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
-        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_0)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN ||
+        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
                 "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
@@ -3453,8 +3453,8 @@ static int HTPParserTest04(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
-    if (htp_tx_request_method_number(tx) != HTP_M_UNKNOWN ||
-        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_0_9)
+    if (htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN ||
+        h != NULL || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V0_9)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
                 "NULL and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
@@ -3533,8 +3533,8 @@ static int HTPParserTest05(void)
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NOT(htp_tx_request_method_number(tx) == HTP_M_POST);
-    FAIL_IF_NOT(htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_1_0);
+    FAIL_IF_NOT(htp_tx_request_method_number(tx) == HTP_METHOD_POST);
+    FAIL_IF_NOT(htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_V1_0);
 
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
@@ -3623,11 +3623,11 @@ static int HTPParserTest06(void)
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != 200);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
@@ -6084,8 +6084,8 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
@@ -6196,7 +6196,7 @@ libhtp:\n\
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_M_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_METHOD_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(htp_tx_request_method(tx)),
@@ -6279,7 +6279,7 @@ static int HTPParserTest16(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_M_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1)
+    if (tx == NULL || htp_tx_request_method_number(tx) != HTP_METHOD_GET || htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", tx ? bstr_util_strdup_to_c(htp_tx_request_method(tx)) : "tx null",
@@ -6369,8 +6369,8 @@ static int HTPParserTest20(void)
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != 0);
     FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
@@ -6431,8 +6431,8 @@ static int HTPParserTest21(void)
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != 0);
     FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
@@ -6487,8 +6487,8 @@ static int HTPParserTest22(void)
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != -0);
     FAIL_IF(htp_tx_response_protocol_number(tx) != -1);
@@ -6543,8 +6543,8 @@ static int HTPParserTest23(void)
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != -1);
     FAIL_IF(htp_tx_response_protocol_number(tx) != -2);
@@ -6599,11 +6599,11 @@ static int HTPParserTest24(void)
     const htp_header_t *h =  htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(htp_tx_request_method_number(tx) != HTP_M_GET);
-    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_1_1);
+    FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
+    FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
     FAIL_IF(htp_tx_response_status_number(tx) != -1);
-    FAIL_IF(htp_tx_response_protocol_number(tx) != HTP_PROTOCOL_1_0);
+    FAIL_IF(htp_tx_response_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);

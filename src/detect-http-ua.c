@@ -96,12 +96,12 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_user_agent", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
