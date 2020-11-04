@@ -24,6 +24,16 @@
 #![allow(clippy::redundant_field_names)]
 #![allow(clippy::len_zero)]
 
+// Suppress warnings about function that should be marked unsafe for now.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
+// Suppress warnings about no default impl.
+#![allow(clippy::new_without_default)]
+
+// Allow modules to contain a module with the same name as its containing module
+// as this is a pattern we've adopted.
+#![allow(clippy::module_inception)]
+
 #[macro_use]
 extern crate nom;
 
