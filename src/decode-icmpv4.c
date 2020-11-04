@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -177,6 +177,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     }
 
     ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
+    p->icmpv4vars.hlen = ICMPV4_HEADER_LEN;
 
     switch (p->icmpv4h->type)
     {
@@ -270,6 +271,14 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             if (p->icmpv4h->code!=0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
+
+            if (p->payload_len < sizeof(ICMPV4Timestamp)) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
+                p->payload += sizeof(ICMPV4Timestamp);
+                p->payload_len -= sizeof(ICMPV4Timestamp);
+            }
             break;
 
         case ICMP_TIMESTAMPREPLY:
@@ -277,6 +286,14 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+            }
+
+            if (p->payload_len < sizeof(ICMPV4Timestamp)) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
+                p->payload += sizeof(ICMPV4Timestamp);
+                p->payload_len -= sizeof(ICMPV4Timestamp);
             }
             break;
 
@@ -295,6 +312,20 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
+
+        case ICMP_ROUTERADVERT: {
+            /* packet points to beginning of icmp header */
+            ICMPV4RtrAdvert *icmpv4_router_advert = (ICMPV4RtrAdvert *)(pkt + sizeof(ICMPV4Hdr));
+            int header_len = icmpv4_router_advert->naddr *
+                             (icmpv4_router_advert->addr_sz * sizeof(uint32_t));
+            if (header_len > p->payload_len) {
+                ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+            } else {
+                p->icmpv4vars.hlen += header_len;
+                p->payload += header_len;
+                p->payload_len -= header_len;
+            }
+        } break;
 
         case ICMP_ADDRESS:
             p->icmpv4vars.id=icmp4eh->id;
