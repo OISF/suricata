@@ -37,6 +37,7 @@ use nom;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::filecontainer::*;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -755,7 +756,7 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    pub files: SMBFiles,
+    pub files: Files,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -808,7 +809,7 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: SMBFiles::new(),
+            files: Files::new(),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,

@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use super::files::*;
 use super::parser;
 use crate::applayer::{self, *};
 use crate::core::{
@@ -299,7 +298,7 @@ pub struct HTTP2State {
     dynamic_headers_tc: HTTP2DynTable,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
-    pub files: HTTP2Files,
+    pub files: Files,
 }
 
 impl HTTP2State {
@@ -315,7 +314,7 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
-            files: HTTP2Files::new(),
+            files: Files::new(),
         }
     }
 

@@ -259,38 +259,6 @@ impl NFSRequestXidMap {
     }
 }
 
-#[derive(Debug)]
-pub struct NFSFiles {
-    pub files_ts: FileContainer,
-    pub files_tc: FileContainer,
-    pub flags_ts: u16,
-    pub flags_tc: u16,
-}
-
-impl NFSFiles {
-    pub fn new() -> NFSFiles {
-        NFSFiles {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
-        if direction == STREAM_TOSERVER {
-            (&mut self.files_ts, self.flags_ts)
-        } else {
-            (&mut self.files_tc, self.flags_tc)
-        }
-    }
-}
-
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
@@ -315,7 +283,7 @@ pub struct NFSState {
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
 
-    pub files: NFSFiles,
+    pub files: Files,
 
     /// partial record tracking
     pub ts_chunk_xid: u32,
@@ -358,7 +326,7 @@ impl NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
-            files:NFSFiles::new(),
+            files:Files::new(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
             ts_chunk_left:0,
