@@ -186,6 +186,9 @@ typedef struct ICMPV4Vars_
     uint16_t  id;
     uint16_t  seq;
 
+    /** Actual header length **/
+    uint32_t hlen;
+
     /** Pointers to the embedded packet headers */
     IPV4Hdr *emb_ipv4h;
     TCPHdr *emb_tcph;
@@ -202,6 +205,23 @@ typedef struct ICMPV4Vars_
     uint16_t emb_sport;
     uint16_t emb_dport;
 } ICMPV4Vars;
+
+/* ICMPV4 Router Advertisement - fixed components */
+/* actual size determined by address count and size */
+typedef struct ICMPV4RtrAdvert_ {
+    /** Number of advertised addresses **/
+    uint8_t naddr;
+
+    /** Size of each advertised address **/
+    uint8_t addr_sz;
+} __attribute__((__packed__)) ICMPV4RtrAdvert;
+
+/* ICMPV4 TImestamp messages */
+typedef struct ICMPV4Timestamp_ {
+    uint32_t orig_ts;
+    uint32_t rx_ts;
+    uint32_t tx_ts;
+} __attribute__((__packed__)) ICMPV4Timestamp;
 
 #define CLEAR_ICMPV4_PACKET(p) do { \
     (p)->level4_comp_csum = -1;     \
@@ -238,6 +258,8 @@ typedef struct ICMPV4Vars_
 #define ICMPV4_GET_EMB_UDP(p)      (p)->icmpv4vars.emb_udph
 /** macro for icmpv4 embedded "icmpv4h" header access */
 #define ICMPV4_GET_EMB_ICMPV4H(p)  (p)->icmpv4vars.emb_icmpv4h
+/** macro for icmpv4 header length */
+#define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->icmpv4vars.hlen
 
 /** macro for checking if a ICMP DEST UNREACH packet is valid for use
  *  in other parts of the engine, such as the flow engine. 
