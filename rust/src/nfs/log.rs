@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,7 +16,7 @@
  */
 
 use std::string::String;
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::nfs::types::*;
 use crate::nfs::nfs::*;
 use crc::crc32;
@@ -35,11 +35,11 @@ pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
     return 0;
 }
 
-fn nfs_rename_object(tx: &NFSTransaction) -> Json
+fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
 {
-    let js = Json::object();
     let from_str = String::from_utf8_lossy(&tx.file_name);
-    js.set_string("from", &from_str);
+    js.set_string("from", &from_str)?;
 
     let to_vec = match tx.type_data {
         Some(NFSTransactionTypeData::RENAME(ref x)) => { x.to_vec() },
@@ -47,31 +47,31 @@ fn nfs_rename_object(tx: &NFSTransaction) -> Json
     };
 
     let to_str = String::from_utf8_lossy(&to_vec);
-    js.set_string("to", &to_str);
-    return js;
+    js.set_string("to", &to_str)?;
+    Ok(())
 }
 
-fn nfs_creds_object(tx: &NFSTransaction) -> Json
+fn nfs_creds_object(tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
 {
-    let js = Json::object();
     let mach_name = String::from_utf8_lossy(&tx.request_machine_name);
-    js.set_string("machine_name", &mach_name);
-    js.set_integer("uid", tx.request_uid as u64);
-    js.set_integer("gid", tx.request_gid as u64);
-    return js;
+    js.set_string("machine_name", &mach_name)?;
+    js.set_uint("uid", tx.request_uid as u64)?;
+    js.set_uint("gid", tx.request_gid as u64)?;
+    Ok(())
 }
 
-fn nfs_file_object(tx: &NFSTransaction) -> Json
+fn nfs_file_object(tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
 {
-    let js = Json::object();
-    js.set_boolean("first", tx.is_first);
-    js.set_boolean("last", tx.is_last);
+    js.set_bool("first", tx.is_first)?;
+    js.set_bool("last", tx.is_last)?;
 
     if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
-        js.set_integer("last_xid", tdf.file_last_xid as u64);
-        js.set_integer("chunks", tdf.chunk_count as u64);
+        js.set_uint("last_xid", tdf.file_last_xid as u64)?;
+        js.set_uint("chunks", tdf.chunk_count as u64)?;
     }
-    return js;
+    Ok(())
 }
 /*
 fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
@@ -86,74 +86,95 @@ fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
     c
 }
 
-fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
+fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
 {
-    let js = Json::object();
-    js.set_integer("version", state.nfs_version as u64);
+    js.set_uint("version", state.nfs_version as u64)?;
     let proc_string = if state.nfs_version < 4 {
         nfs3_procedure_string(tx.procedure)
     } else {
         nfs4_procedure_string(tx.procedure)
     };
-    js.set_string("procedure", &proc_string);
+    js.set_string("procedure", &proc_string)?;
     let file_name = String::from_utf8_lossy(&tx.file_name);
-    js.set_string("filename", &file_name);
+    js.set_string("filename", &file_name)?;
 
     if tx.file_handle.len() > 0 {
         //js.set_string("handle", &nfs_handle2hex(&tx.file_handle));
         let c = nfs_handle2crc(&tx.file_handle);
         let s = format!("{:x}", c);
-        js.set_string("hhash", &s);
+        js.set_string("hhash", &s)?;
     }
-    js.set_integer("id", tx.id as u64);
-    js.set_boolean("file_tx", tx.is_file_tx);
-    return js;
+    js.set_uint("id", tx.id as u64)?;
+    js.set_bool("file_tx", tx.is_file_tx)?;
+    Ok(())
+}
+
+fn nfs_log_request(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
+{
+    nfs_common_header(state, tx, js)?;
+    js.set_string("type", "request")?;
+    Ok(())
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
+pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &mut NFSTransaction,
+        js: &mut JsonBuilder) -> bool
 {
-    let js = nfs_common_header(state, tx);
-    js.set_string("type", "request");
-    return js.unwrap();
+    nfs_log_request(state, tx, js).is_ok()
 }
 
-#[no_mangle]
-pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
+fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
 {
-    let js = nfs_common_header(state, tx);
-    js.set_string("type", "response");
+    nfs_common_header(state, tx, js)?;
+    js.set_string("type", "response")?;
 
-    js.set_string("status", &nfs3_status_string(tx.nfs_response_status));
+    js.set_string("status", &nfs3_status_string(tx.nfs_response_status))?;
 
     if state.nfs_version <= 3 {
         if tx.procedure == NFSPROC3_READ {
-            let read_js = nfs_file_object(tx);
-            js.set("read", read_js);
+            js.open_object("read")?;
+            nfs_file_object(tx, js)?;
+            js.close()?;
         } else if tx.procedure == NFSPROC3_WRITE {
-            let write_js = nfs_file_object(tx);
-            js.set("write", write_js);
+            js.open_object("write")?;
+            nfs_file_object(tx, js)?;
+            js.close()?;
         } else if tx.procedure == NFSPROC3_RENAME {
-            let rename_js = nfs_rename_object(tx);
-            js.set("rename", rename_js);
+            js.open_object("rename")?;
+            nfs_rename_object(tx, js)?;
+            js.close()?;
         }
     }
-
-    return js.unwrap();
+    Ok(())
 }
 
+#[no_mangle]
+pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTransaction,
+        js: &mut JsonBuilder) -> bool
+{
+    nfs_log_response(state, tx, js).is_ok()
+}
+
+fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder)
+    -> Result<(), JsonError>
+{
+    js.set_uint("xid", tx.xid as u64)?;
+    js.set_string("status", &rpc_status_string(tx.rpc_response_status))?;
+    js.set_string("auth_type", &rpc_auth_type_string(tx.auth_type))?;
+    if tx.auth_type == RPCAUTH_UNIX {
+        js.open_object("creds")?;
+        nfs_creds_object(tx, js)?;
+        js.close()?;
+    }
+    Ok(())
+}
 
 #[no_mangle]
-pub extern "C" fn rs_rpc_log_json_response(tx: &mut NFSTransaction) -> *mut JsonT
+pub extern "C" fn rs_rpc_log_json_response(tx: &mut NFSTransaction,
+        js: &mut JsonBuilder) -> bool
 {
-    let js = Json::object();
-    js.set_integer("xid", tx.xid as u64);
-    js.set_string("status", &rpc_status_string(tx.rpc_response_status));
-    js.set_string("auth_type", &rpc_auth_type_string(tx.auth_type));
-    if tx.auth_type == RPCAUTH_UNIX {
-        let creds_js = nfs_creds_object(tx);
-        js.set("creds", creds_js);
-    }
-
-    return js.unwrap();
+    rpc_log_response(tx, js).is_ok()
 }

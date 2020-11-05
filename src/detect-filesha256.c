@@ -46,10 +46,7 @@ static int DetectFileSha256SetupNoSupport (DetectEngineCtx *a, Signature *b, con
 void DetectFileSha256Register(void)
 {
     sigmatch_table[DETECT_FILESHA256].name = "filesha256";
-    sigmatch_table[DETECT_FILESHA256].FileMatch = NULL;
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256SetupNoSupport;
-    sigmatch_table[DETECT_FILESHA256].Free  = NULL;
-    sigmatch_table[DETECT_FILESHA256].RegisterTests = NULL;
     sigmatch_table[DETECT_FILESHA256].flags = SIGMATCH_NOT_BUILT;
 
     SCLogDebug("registering filesha256 rule option");
@@ -59,7 +56,9 @@ void DetectFileSha256Register(void)
 #else /* HAVE_NSS */
 
 static int DetectFileSha256Setup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFileSha256RegisterTests(void);
+#endif
 static int g_file_match_list_id = 0;
 
 /**
@@ -73,7 +72,9 @@ void DetectFileSha256Register(void)
     sigmatch_table[DETECT_FILESHA256].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256Setup;
     sigmatch_table[DETECT_FILESHA256].Free  = DetectFileHashFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILESHA256].RegisterTests = DetectFileSha256RegisterTests;
+#endif
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
@@ -153,13 +154,10 @@ static int SHA256MatchTest01(void)
     ROHashFree(hash);
     return 1;
 }
-#endif
 
 void DetectFileSha256RegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("SHA256MatchTest01", SHA256MatchTest01);
-#endif
 }
-
+#endif
 #endif /* HAVE_NSS */

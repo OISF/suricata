@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,11 +46,12 @@
 typedef struct LogRdpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogRdpFileCtx;
 
 typedef struct LogRdpLogThread_ {
     LogRdpFileCtx *rdplog_ctx;
-    uint32_t         count;
+    LogFileCtx *file_ctx;
     MemBuffer       *buffer;
 } LogRdpLogThread;
 
@@ -59,26 +60,20 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
 {
     LogRdpLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "rdp");
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "rdp", NULL);
     if (unlikely(js == NULL)) {
+        return TM_ECODE_OK;
+    }
+    EveAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js);
+    if (!rs_rdp_to_json(tx, js)) {
+        jb_free(js);
         return TM_ECODE_FAILED;
     }
-
-    json_t *rdp_js = rs_rdp_to_json(tx);
-    if (unlikely(rdp_js == NULL)) {
-        goto error;
-    }
-    json_object_set_new(js, "rdp", rdp_js);
-
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->rdplog_ctx->file_ctx, &thread->buffer);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
 
+    jb_free(js);
     return TM_ECODE_OK;
-
-error:
-    json_decref(js);
-    return TM_ECODE_FAILED;
 }
 
 static void OutputRdpLogDeInitCtxSub(OutputCtx *output_ctx)
@@ -99,6 +94,7 @@ static OutputInitResult OutputRdpLogInitSub(ConfNode *conf,
         return result;
     }
     rdplog_ctx->file_ctx = ajt->file_ctx;
+    rdplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -131,14 +127,24 @@ static TmEcode JsonRdpLogThreadInit(ThreadVars *t, const void *initdata, void **
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->rdplog_ctx = ((OutputCtx *)initdata)->data;
-    *data = (void *)thread;
+    thread->file_ctx = LogFileEnsureExists(thread->rdplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
 
+    *data = (void *)thread;
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonRdpLogThreadDeinit(ThreadVars *t, void *data)
@@ -156,9 +162,6 @@ static TmEcode JsonRdpLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonRdpLogRegister(void)
 {
-    if (ConfGetNode("app-layer.protocols.rdp") == NULL) {
-        return;
-    }
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(
         LOGGER_JSON_RDP,

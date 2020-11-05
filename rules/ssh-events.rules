@@ -1,0 +1,10 @@
+# SSH app layer event rules
+#
+# SID's fall in the 2228000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+
+alert ssh any any -> any any (msg:"SURICATA SSH invalid banner"; flow:established; app-layer-event:ssh.invalid_banner; classtype:protocol-command-decode; sid:2228000; rev:1;)
+alert ssh any any -> any any (msg:"SURICATA SSH too long banner"; flow:established; app-layer-event:ssh.long_banner; classtype:protocol-command-decode; sid:2228001; rev:1;)
+alert ssh any any -> any any (msg:"SURICATA SSH invalid record"; flow:established; app-layer-event:ssh.invalid_record; classtype:protocol-command-decode; sid:2228002; rev:1;)

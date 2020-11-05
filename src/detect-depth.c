@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-depth.h"
 
@@ -52,7 +53,6 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_DEPTH].Match = NULL;
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
     sigmatch_table[DETECT_DEPTH].Free  = NULL;
-    sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
 
     sigmatch_table[DETECT_STARTS_WITH].name = "startswith";
     sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";
@@ -105,14 +105,14 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s);
-        if (bed_sm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(str, s, &index)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
                        "seen in depth - %s.", str);
             goto end;
         }
-        cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_DEPTH_BE;
+        cd->depth = index;
+        cd->flags |= DETECT_CONTENT_DEPTH_VAR;
     } else {
         if (StringParseUint16(&cd->depth, 0, 0, str) < 0)
         {

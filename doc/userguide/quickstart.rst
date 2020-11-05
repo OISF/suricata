@@ -2,7 +2,7 @@ Quickstart guide
 ================
 
 This guide will give you a quick start to run Suricata and will focus only on
-the basics. For more details read through the different more specific chapters.
+the basics. For more details, read through the more specific chapters.
 
 Installation
 ------------
@@ -16,14 +16,14 @@ Installation steps::
     sudo apt update
     sudo apt install suricata jq
 
-The dedicated PPA repository is added and after updating the index Suricata can
-be installed. It's recommended to install the tool ``jq`` as well to work with
-the EVE Json output which is used later in this guide.
+The dedicated PPA repository is added, and after updating the index, Suricata can
+be installed. We recommend installing the ``jq`` tool at this time as it will help
+with displaying information from Suricata's EVE JSON output (described later in this guide).
 
 For the installation on other systems or to use specific compile options see
 :ref:`installation`.
 
-When the installation is done you can check what version of Suricata you have
+After installing Suricata, you can check what version of Suricata you have
 running and with what options as well as the service state::
 
     sudo suricata --build-info
@@ -32,10 +32,10 @@ running and with what options as well as the service state::
 Basic setup
 -----------
 
-You should check on which interface Suricata should be running and also the
-IP(s) of the interface::
+First, determine the interface(s) and IP address(es) on which Suricata should be inspecting network
+packets::
 
-    ip a
+    $ ip addr
 
     2: enp1s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
     link/ether 00:11:22:33:44:55 brd ff:ff:ff:ff:ff:ff
@@ -45,16 +45,16 @@ Use that information to configure Suricata::
 
     sudo vim /etc/suricata/suricata.yaml
 
-There will be a lot of possible configuration options, we focus on the setup of
+There are many possible configuration options, we focus on the setup of
 the ``HOME_NET`` variable and the network interface configuration. The
-``HOME_NET`` variable should include, in most scenarios, the IP you have
-configured on the interface you use to monitor and all the local networks in
+``HOME_NET`` variable should include, in most scenarios, the IP address of
+the monitored interface and all the local networks in
 use. The default already includes the RFC 1918 networks. In this example
 ``10.0.0.23`` is already included within ``10.0.0.0/8``. If no other networks
-are used the other predefined can be removed.
+are used the other predefined values can be removed.
 
-In this example the interface name is ``enp1s0`` so at the ``af-packet``
-section the interface name needs to match. An example interface config might
+In this example the interface name is ``enp1s0`` so the interface name in the
+``af-packet`` section needs to match. An example interface config might
 look like this:
 
 Capture settings::
@@ -68,17 +68,17 @@ Capture settings::
           tpacket-v3: yes
 
 This configuration uses the most recent recommended settings for the IDS
-runmode for basic setups. There are a lot of possible configuration options
+runmode for basic setups. There are many of possible configuration options
 which are described in dedicated chapters and are especially relevant for high
 performance setups.
 
 Signatures
 ----------
 
-As Suricata uses Signatures to trigger alerts it's necessary to install those
+Suricata uses Signatures to trigger alerts so it's necessary to install those
 and keep them updated. Signatures are also called rules, thus the name
-rule-files. With the tool ``suricata-update`` rules can be fetched, updated and
-managed to be provided for suricata.
+`rule-files`. With the tool ``suricata-update`` rules can be fetched, updated and
+managed to be provided for Suricata.
 
 In this guide we just run the default mode which fetches the ET Open ruleset::
 
@@ -98,24 +98,25 @@ To make sure Suricata is running check the Suricata log::
 
     sudo tail /var/log/suricata/suricata.log
 
-The last line should look like this::
+The last line will be similar to this::
 
     <Notice> - all 4 packet processing threads, 4 management threads initialized, engine started.
 
-The amount of threads depends on the system and the configuration.
+The actual thread count will depend on the system and the configuration.
 
-To see statistics the ``stats.log`` can be checked::
+To see statistics, check the ``stats.log`` file::
 
     sudo tail -f /var/log/suricata/stats.log
 
-Every 20 seconds by default it will show updated informations about the current
+By default, it is updated every 8 seconds to show updated values with the current
 state, like how many packets have been processed and what type of traffic was
 decoded.
 
 Alerting
 --------
 
-To test the IDS functionality of Suricata it's best to test with a signature. The signature with ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
+To test the IDS functionality of Suricata it's best to test with a signature. The signature with
+ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
 
 2100498::
 
@@ -123,10 +124,10 @@ To test the IDS functionality of Suricata it's best to test with a signature. Th
 
 The syntax and logic behind those signatures is covered in other chapters. This
 will alert on any IP traffic that has the content within its payload. This rule
-can be triggered quite easy. Before we trigger it, we will tail on the
-``fast.log`` so we see the result.
+can be triggered quite easy. Before we trigger it, start ``tail`` to see updates to
+``fast.log``.
 
-Ruletrigger::
+Rule trigger::
 
     sudo tail -f /var/log/suricata/fast.log
     curl http://testmyids.com/
@@ -140,19 +141,20 @@ This should include the timestamp and the IP of your system.
 EVE Json
 --------
 
-The more advanced output is the EVE Json output which is explained in detail in
+The more advanced output is the EVE JSON output which is explained in detail in
 :ref:`Eve JSON Output <eve-json-output>`. To see what this looks like it's
 recommended to use ``jq`` to parse the JSON output.
 
-Alert::
+Alerts::
 
     sudo tail -f /var/log/suricata/eve.json | jq 'select(.event_type=="alert")'
 
-This will also show much more details and meta-data that are related to the
-triggered alert.
+This will display more detail about each alert, including meta-data.
 
 Stats::
 
     sudo tail -f /var/log/suricata/eve.json | jq 'select(.event_type=="stats")|.stats.capture.kernel_packets'
+    sudo tail -f /var/log/suricata/eve.json | jq 'select(.event_type=="stats")'
 
-This will only show the amount of packets processed.
+The first example displays the number of packets captured by the kernel; the second
+examples shows all of the statistics.

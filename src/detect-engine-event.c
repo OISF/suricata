@@ -52,8 +52,9 @@ static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, const char *)
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectEngineEventFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 void EngineEventRegisterTests(void);
-
+#endif
 
 /**
  * \brief Registration function for decode-event: keyword
@@ -64,7 +65,9 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
     sigmatch_table[DETECT_ENGINE_EVENT].Free  = DetectEngineEventFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
+#endif
 
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
@@ -378,19 +381,17 @@ error:
     SCFree(p);
     return 0;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for EngineEvent
  */
 void EngineEventRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01);
     UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02);
     UtRegisterTest("EngineEventTestParse03", EngineEventTestParse03);
     UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04);
     UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05);
     UtRegisterTest("EngineEventTestParse06", EngineEventTestParse06);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

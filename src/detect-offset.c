@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-offset.h"
 
@@ -47,10 +48,7 @@ void DetectOffsetRegister (void)
     sigmatch_table[DETECT_OFFSET].name = "offset";
     sigmatch_table[DETECT_OFFSET].desc = "designate from which byte in the payload will be checked to find a match";
     sigmatch_table[DETECT_OFFSET].url = "/rules/payload-keywords.html#offset";
-    sigmatch_table[DETECT_OFFSET].Match = NULL;
     sigmatch_table[DETECT_OFFSET].Setup = DetectOffsetSetup;
-    sigmatch_table[DETECT_OFFSET].Free  = NULL;
-    sigmatch_table[DETECT_OFFSET].RegisterTests = NULL;
 }
 
 int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)
@@ -96,15 +94,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm =
-            DetectByteExtractRetrieveSMVar(str, s);
-        if (bed_sm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(str, s, &index)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
                        "seen in offset - %s.", str);
             goto end;
         }
-        cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_OFFSET_BE;
+        cd->offset = index;
+        cd->flags |= DETECT_CONTENT_OFFSET_VAR;
     } else {
         if (StringParseUint16(&cd->offset, 0, 0, str) < 0)
         {

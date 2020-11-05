@@ -97,8 +97,8 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     }
 
     if ( (temp = SCMalloc(sizeof(SCSigOrderFunc))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
     }
     memset(temp, 0, sizeof(SCSigOrderFunc));
 
@@ -682,7 +682,12 @@ static int SCSigOrderByIPPairbitsCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
                                        SCSigSignatureWrapper *sw2)
 {
-    return sw2->sig->prio - sw1->sig->prio;
+    if (sw1->sig->prio > sw2->sig->prio) {
+        return -1;
+    } else if (sw1->sig->prio < sw2->sig->prio) {
+        return 1;
+    }
+    return 0;
 }
 
 /**

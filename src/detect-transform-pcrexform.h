@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,14 +18,13 @@
 /**
  * \file
  *
- * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
- *
+ * \author Jeff Lucovsky <jeff@lucovsky.org
  */
 
+#ifndef __DETECT_TRANSFORM_PCREXFORM_H__
+#define __DETECT_TRANSFORM_PCREXFORM_H__
 
-#ifndef ALERT_DROPLOG_H
-#define	ALERT_DROPLOG_H
+/* prototypes */
+void DetectTransformPcrexformRegister (void);
 
-void LogDropLogRegister(void);
-
-#endif	/* ALERT_DROPLOG_H */
+#endif /* __DETECT_TRANSFORM_PCREXFORM_H__ */

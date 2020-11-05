@@ -16,7 +16,7 @@
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static int initialized = 0;
-SCInstance suricata;
+SCInstance surifuzz;
 
 const char configNoChecksum[] = "\
 %YAML 1.1\n\
@@ -48,7 +48,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             abort();
         }
 
-        PostConfLoadedSetup(&suricata);
+        PostConfLoadedSetup(&surifuzz);
 
         RunModeInitialize();
         TimeModeSetOffline();

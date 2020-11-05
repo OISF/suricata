@@ -111,7 +111,7 @@ There are several advanced steps and corner cases when it comes to a deep dive
 into the traffic.
 
 If VLAN QinQ (IEEE 802.1ad) is used be very cautious if you use **cluster_qm**
-in combinatin with Intel drivers and AF_PACKET runmode. While the RFC expects
+in combination with Intel drivers and AF_PACKET runmode. While the RFC expects
 ethertype 0x8100 and 0x88A8 in this case (see
 https://en.wikipedia.org/wiki/IEEE_802.1ad) most implementations only add
 0x8100 on each layer. If the first seen layer has the same VLAN tag but the

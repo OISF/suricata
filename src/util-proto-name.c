@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "util-proto-name.h"
+#include "util-byte.h"
 
 /** Lookup array to hold the information related to known protocol
  *  in /etc/protocols */
@@ -60,8 +61,8 @@ void SCProtoNameInit()
             if (proto_ch == NULL)
                 continue;
 
-            int proto = atoi(proto_ch);
-            if (proto >= 255)
+            uint8_t proto;
+            if (StringParseUint8(&proto, 10, 0, (const char *)proto_ch) < 0)
                 continue;
 
             char *cname = strtok_r(NULL, " \t", &ptr);
@@ -92,17 +93,11 @@ void SCProtoNameInit()
  *          we have corresponding name entry for this number or not.
  *
  * \param proto Protocol number to be validated
- * \retval ret On success returns TRUE otherwise FALSE
+ * \retval ret On success returns true otherwise false
  */
-uint8_t SCProtoNameValid(uint16_t proto)
+bool SCProtoNameValid(uint16_t proto)
 {
-    uint8_t ret = FALSE;
-
-    if (proto <= 255 && known_proto[proto] != NULL) {
-        ret = TRUE;
-    }
-
-    return ret;
+    return (proto <= 255 && known_proto[proto] != NULL);
 }
 
 /**

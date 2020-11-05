@@ -92,17 +92,15 @@ ConfYamlSetConfDirname(const char *filename)
     if (ep == NULL) {
         conf_dirname = SCStrdup(".");
         if (conf_dirname == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-               "ERROR: Failed to allocate memory while loading configuration.");
-            exit(EXIT_FAILURE);
+               FatalError(SC_ERR_FATAL,
+                          "ERROR: Failed to allocate memory while loading configuration.");
         }
     }
     else {
         conf_dirname = SCStrdup(filename);
         if (conf_dirname == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-               "ERROR: Failed to allocate memory while loading configuration.");
-            exit(EXIT_FAILURE);
+               FatalError(SC_ERR_FATAL,
+                          "ERROR: Failed to allocate memory while loading configuration.");
         }
         conf_dirname[ep - filename] = '\0';
     }

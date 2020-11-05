@@ -23,13 +23,12 @@ use nom;
 use nom::IResult;
 use nom::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
+use der_parser::ber::BerClass;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
-
-use crate::log::*;
 
 #[repr(u32)]
 pub enum KRB5Event {
@@ -88,8 +87,7 @@ pub struct KRB5Transaction {
     /// The events associated with this transaction
     events: *mut core::AppLayerDecoderEvents,
 
-    logged: applayer::LoggerFlags,
-    detect_flags: applayer::TxDetectFlags,
+    tx_data: applayer::AppLayerTxData,
 }
 
 pub fn to_hex_string(bytes: &[u8]) -> String {
@@ -120,7 +118,7 @@ impl KRB5State {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
-                if hdr.class != 0b01 { return 0; }
+                if hdr.class != BerClass::Application { return 0; }
                 match hdr.tag.0 {
                     10 => {
                         self.req_id = 10;
@@ -240,8 +238,7 @@ impl KRB5Transaction {
             id: id,
             de_state: None,
             events: std::ptr::null_mut(),
-            logged: applayer::LoggerFlags::new(),
-            detect_flags: applayer::TxDetectFlags::default(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 }
@@ -276,7 +273,7 @@ pub fn test_weak_encryption(alg:EncryptionType) -> bool {
 
 /// Returns *mut KRB5State
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_krb5_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = KRB5State::new();
     let boxed = Box::new(state);
     return unsafe{std::mem::transmute(boxed)};
@@ -334,25 +331,6 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 {
     1
 }
-
-#[no_mangle]
-pub extern "C" fn rs_krb5_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void,
-                                       logged: u32)
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_krb5_tx_get_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void)
-                                       -> u32
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    return tx.logged.get();
-}
-
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_set_tx_detect_state(
@@ -443,7 +421,7 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != 0b01 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.class != BerClass::Application { return unsafe{ALPROTO_FAILED}; }
             // Tag number should be <= 30
             if hdr.tag.0 >= 30 { return unsafe{ALPROTO_FAILED}; }
             // Kerberos messages contain sequences
@@ -643,8 +621,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
     AppLayerResult::ok()
 }
 
-export_tx_detect_flags_set!(rs_krb5_tx_detect_flags_set, KRB5Transaction);
-export_tx_detect_flags_get!(rs_krb5_tx_detect_flags_get, KRB5Transaction);
+export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
 
 const PARSER_NAME : &'static [u8] = b"krb5\0";
 
@@ -668,8 +645,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx             : rs_krb5_state_get_tx,
         tx_get_comp_st     : rs_krb5_state_progress_completion_status,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
-        get_tx_logged      : Some(rs_krb5_tx_get_logged),
-        set_tx_logged      : Some(rs_krb5_tx_set_logged),
         get_de_state       : rs_krb5_state_get_tx_detect_state,
         set_de_state       : rs_krb5_state_set_tx_detect_state,
         get_events         : Some(rs_krb5_state_get_events),
@@ -677,12 +652,11 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_eventinfo_byid : Some(rs_krb5_state_get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
-        get_tx_mpm_id      : None,
-        set_tx_mpm_id      : None,
         get_files          : None,
         get_tx_iterator    : None,
-        get_tx_detect_flags: Some(rs_krb5_tx_detect_flags_get),
-        set_tx_detect_flags: Some(rs_krb5_tx_detect_flags_set),
+        get_tx_data        : rs_krb5_get_tx_data,
+        apply_tx_config    : None,
+        flags              : 0,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();

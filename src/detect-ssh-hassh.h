@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,13 +18,13 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Malakhatko Vadym <v.malakhatko@sirinsoftware.com>
  */
 
-#ifndef __LOG_FILESTORE_H__
-#define __LOG_FILESTORE_H__
+#ifndef __DETECT_SSH_HASSH_H__
+#define __DETECT_SSH_HASSH_H__
 
-void LogFilestoreRegister(void);
-void LogFilestoreInitConfig(void);
+/* prototypes */
+void DetectSshHasshRegister (void);
 
-#endif /* __LOG_FILELOG_H__ */
+#endif /* __DETECT_SSH_HASSH_H__ */

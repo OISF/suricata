@@ -22,6 +22,7 @@ use std::path::Path;
 use crate::core::*;
 
 #[derive(Debug)]
+#[repr(C)]
 pub enum Level {
     NotSet = -1,
     None = 0,
@@ -43,6 +44,17 @@ pub fn get_log_level() -> i32 {
     unsafe {
         LEVEL
     }
+}
+
+pub fn log_set_level(level: i32) {
+    unsafe {
+        LEVEL = level;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_log_set_level(level: i32) {
+    log_set_level(level);
 }
 
 fn basename(filename: &str) -> &str {
@@ -67,9 +79,29 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
                    message);
 }
 
-/// Return the function name, but for now just return <rust> as Rust
-/// has no macro to return the function name, but may in the future,
-/// see: https://github.com/rust-lang/rfcs/pull/1719
+// This macro returns the function name.
+//
+// This macro has been borrowed from https://github.com/popzxc/stdext-rs, which
+// is released under the MIT license as there is currently no macro in Rust
+// to provide the function name.
+#[cfg(feature = "function-macro")]
+#[macro_export(local_inner_macros)]
+macro_rules!function {
+    () => {{
+         // Okay, this is ugly, I get it. However, this is the best we can get on a stable rust.
+         fn __f() {}
+         fn type_name_of<T>(_: T) -> &'static str {
+             std::any::type_name::<T>()
+         }
+         let name = type_name_of(__f);
+         &name[..name.len() - 5]
+    }}
+}
+
+// Rust versions less than 1.38 can not use the above macro, so keep the old
+// macro around for a while.
+#[cfg(not(feature = "function-macro"))]
+#[macro_export(local_inner_macros)]
 macro_rules!function {
     () => {{ "<rust>" }}
 }
@@ -78,8 +110,8 @@ macro_rules!function {
 macro_rules!do_log {
     ($level:expr, $file:expr, $line:expr, $function:expr, $code:expr,
      $($arg:tt)*) => {
-        if get_log_level() >= $level as i32 {
-            sclog($level, $file, $line, $function, $code,
+        if $crate::log::get_log_level() >= $level as i32 {
+            $crate::log::sclog($level, $file, $line, $function, $code,
                   &(format!($($arg)*)));
         }
     }
@@ -88,28 +120,35 @@ macro_rules!do_log {
 #[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
-        do_log!(Level::Notice, file!(), line!(), function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Notice, file!(), line!(), $crate::function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogInfo {
     ($($arg:tt)*) => {
-        do_log!(Level::Info, file!(), line!(), function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Info, file!(), line!(), $crate::function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogPerf {
     ($($arg:tt)*) => {
-        do_log!(Level::Perf, file!(), line!(), function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Perf, file!(), line!(), $crate::function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
-        do_log!(Level::Config, file!(), line!(), function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Config, file!(), line!(), $crate::function!(), 0, $($arg)*);
+    }
+}
+
+#[macro_export]
+macro_rules!SCLogError {
+    ($($arg:tt)*) => {
+        $crate::do_log!($crate::log::Level::Error, file!(), line!(), $crate::function!(), 0, $($arg)*);
     }
 }
 
@@ -118,7 +157,7 @@ macro_rules!SCLogConfig {
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
-        do_log!(Level::Debug, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!($crate::log::Level::Debug, file!(), line!(), $crate::function!(), 0, $($arg)*);
     }
 }
 
@@ -127,19 +166,8 @@ macro_rules!SCLogDebug {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules!SCLogDebug {
-    ($last:expr) => { let _ = &$last; let _ = Level::Debug; };
+    ($last:expr) => { let _ = &$last; let _ = $crate::log::Level::Debug; };
     ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
-}
-
-#[no_mangle]
-pub extern "C" fn rs_log_set_level(level: i32) {
-    unsafe {
-        LEVEL = level;
-    }
-}
-
-pub fn log_set_level(level: Level) {
-    rs_log_set_level(level as i32);
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered

@@ -70,8 +70,7 @@ static void WaitForChild (pid_t pid)
         if (waitpid(pid, &status, WNOHANG)) {
             /* Check if the child is still there, otherwise the parent should exit */
             if (WIFEXITED(status) || WIFSIGNALED(status)) {
-                SCLogError(SC_ERR_DAEMON, "Child died unexpectedly");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "Child died unexpectedly");
             }
         }
         /* sigsuspend(); */
@@ -115,22 +114,20 @@ void Daemonize (void)
 
     if (pid < 0) {
         /* Fork error */
-        SCLogError(SC_ERR_DAEMON, "Error forking the process");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error forking the process");
     } else if (pid == 0) {
         /* Child continues here */
         const char *daemondir;
 
         sid = setsid();
         if (sid < 0) {
-            SCLogError(SC_ERR_DAEMON, "Error creating new session");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Error creating new session");
         }
 
         if (ConfGet("daemon-directory", &daemondir) == 1) {
             if ((chdir(daemondir)) < 0) {
-                SCLogError(SC_ERR_DAEMON, "Error changing to working directory");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL,
+                           "Error changing to working directory");
             }
         }
 #ifndef OS_WIN32

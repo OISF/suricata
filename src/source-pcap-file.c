@@ -118,7 +118,6 @@ void TmModuleReceivePcapFileRegister (void)
     tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = ReceivePcapFileThreadDeinit;
-    tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -130,7 +129,6 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].Func = DecodePcapFile;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = DecodePcapFileThreadDeinit;
-    tmm_modules[TMM_DECODEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
@@ -292,11 +290,26 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
+        pv->cur_dir_depth = 0;
+
+        int should_recurse;
+        pv->should_recurse = false;
+        if (ConfGetBool("pcap-file.recursive", &should_recurse) == 1) {
+            pv->should_recurse = (should_recurse == 1);
+        }
 
         int should_loop = 0;
         pv->should_loop = false;
         if (ConfGetBool("pcap-file.continuous", &should_loop) == 1) {
-            pv->should_loop = should_loop == 1;
+            pv->should_loop = (should_loop == 1);
+        }
+
+        if (pv->should_recurse == true && pv->should_loop == true) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous and --pcap-file-recursive "
+                                                "cannot be used together.");
+            CleanupPcapFileDirectoryVars(pv);
+            CleanupPcapFileThreadVars(ptv);
+            SCReturnInt(TM_ECODE_FAILED);
         }
 
         pv->delay = 30;
@@ -402,7 +415,9 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
     double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
     if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {
         prev_signaled_ts = curr_ts;
+#if 0
         FlowWakeupFlowManagerThread();
+#endif
     }
 
     DecoderFunc decoder;

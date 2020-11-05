@@ -34,6 +34,7 @@
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
 #include "util-debug.h"
+#include "util-byte.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -47,7 +48,9 @@ static int DetectStreamSizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectStreamSizeFree(DetectEngineCtx *de_ctx, void *);
-void DetectStreamSizeRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectStreamSizeRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for stream_size: keyword
@@ -61,8 +64,9 @@ void DetectStreamSizeRegister(void)
     sigmatch_table[DETECT_STREAM_SIZE].Match = DetectStreamSizeMatch;
     sigmatch_table[DETECT_STREAM_SIZE].Setup = DetectStreamSizeSetup;
     sigmatch_table[DETECT_STREAM_SIZE].Free = DetectStreamSizeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_STREAM_SIZE].RegisterTests = DetectStreamSizeRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
@@ -180,22 +184,20 @@ static int DetectStreamSizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  */
 static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, const char *streamstr)
 {
-
     DetectStreamSizeData *sd = NULL;
     char *arg = NULL;
     char *value = NULL;
     char *mode = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, streamstr);
         goto error;
     }
 
     const char *str_ptr;
-
     res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -219,7 +221,7 @@ static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, con
 
     sd = SCMalloc(sizeof(DetectStreamSizeData));
     if (unlikely(sd == NULL))
-    goto error;
+        goto error;
     sd->ssize = 0;
     sd->flags = 0;
 
@@ -244,8 +246,10 @@ static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, con
     }
 
     /* set the value */
-    sd->ssize = (uint32_t)atoi(value);
-
+    if (StringParseUint32(&sd->ssize, 10, 0, (const char *)value) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for stream size: %s", value);
+        goto error;
+    }
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
         sd->flags |= STREAM_SIZE_SERVER;
@@ -273,7 +277,6 @@ error:
         SCFree(value);
     if (sd != NULL)
         DetectStreamSizeFree(de_ctx, sd);
-
     return NULL;
 }
 
@@ -289,29 +292,21 @@ error:
  */
 static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *streamstr)
 {
-
-    DetectStreamSizeData *sd = NULL;
-    SigMatch *sm = NULL;
-
-    sd = DetectStreamSizeParse(de_ctx, streamstr);
+    DetectStreamSizeData *sd = DetectStreamSizeParse(de_ctx, streamstr);
     if (sd == NULL)
-        goto error;
+        return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectStreamSizeFree(de_ctx, sd);
+        return -1;
+    }
 
     sm->type = DETECT_STREAM_SIZE;
     sm->ctx = (SigMatchCtx *)sd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
     return 0;
-
-error:
-    if (sd != NULL) DetectStreamSizeFree(de_ctx, sd);
-    if (sm != NULL) SCFree(sm);
-    return -1;
 }
 
 /**
@@ -497,18 +492,15 @@ static int DetectStreamSizeParseTest04 (void)
     SCFree(p);
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectStreamSize
  */
 void DetectStreamSizeRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01);
     UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02);
     UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03);
     UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */

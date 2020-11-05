@@ -20,7 +20,6 @@ use crate::core;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
-use crate::log::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;
@@ -91,9 +90,9 @@ impl DHCPEvent {
 pub struct DHCPTransaction {
     tx_id: u64,
     pub message: DHCPMessage,
-    logged: applayer::LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
+    tx_data: applayer::AppLayerTxData,
 }
 
 impl DHCPTransaction {
@@ -101,9 +100,9 @@ impl DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
             message: message,
-            logged: applayer::LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 
@@ -307,7 +306,7 @@ pub extern "C" fn rs_dhcp_state_tx_free(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DHCPState::new();
     let boxed = Box::new(state);
     return unsafe {
@@ -319,20 +318,6 @@ pub extern "C" fn rs_dhcp_state_new() -> *mut std::os::raw::c_void {
 pub extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     let _drop: Box<DHCPState> = unsafe { transmute(state) };
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dhcp_tx_get_logged(_state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void) -> u32 {
-    let tx = cast_pointer!(tx, DHCPTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dhcp_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                        tx: *mut std::os::raw::c_void,
-                                        logged: u32) {
-    let tx = cast_pointer!(tx, DHCPTransaction);
-    tx.logged.set(logged);
 }
 
 #[no_mangle]
@@ -415,6 +400,8 @@ pub extern "C" fn rs_dhcp_state_get_tx_iterator(
     }
 }
 
+export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
+
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
@@ -438,8 +425,6 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_tx             : rs_dhcp_state_get_tx,
         tx_get_comp_st     : rs_dhcp_state_progress_completion_status,
         tx_get_progress    : rs_dhcp_tx_get_alstate_progress,
-        get_tx_logged      : Some(rs_dhcp_tx_get_logged),
-        set_tx_logged      : Some(rs_dhcp_tx_set_logged),
         get_de_state       : rs_dhcp_tx_get_detect_state,
         set_de_state       : rs_dhcp_tx_set_detect_state,
         get_events         : Some(rs_dhcp_state_get_events),
@@ -447,12 +432,11 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_eventinfo_byid : None,
         localstorage_new   : None,
         localstorage_free  : None,
-        get_tx_mpm_id      : None,
-        set_tx_mpm_id      : None,
         get_files          : None,
         get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
-        set_tx_detect_flags: None,
-        get_tx_detect_flags: None,
+        get_tx_data        : rs_dhcp_get_tx_data,
+        apply_tx_config    : None,
+        flags              : 0,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

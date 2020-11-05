@@ -24,6 +24,8 @@
 #ifndef __DETECT_DCE_STUB_DATA_H__
 #define __DETECT_DCE_STUB_DATA_H__
 
+#include "app-layer-dcerpc-common.h"
+
 void DetectDceStubDataRegister(void);
 
 #endif /* __DETECT_DCE_STUB_DATA_H__ */

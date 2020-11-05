@@ -37,7 +37,6 @@
 #include "tmqh-packetpool.h"
 
 #include "conf.h"
-#include "config.h"
 #include "conf-yaml-loader.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
@@ -63,7 +62,6 @@ void TmModuleReceiveNFQRegister (void)
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENFQ].cap_flags = SC_CAP_NET_ADMIN;
     tmm_modules[TMM_RECEIVENFQ].flags = TM_FLAG_RECEIVE_TM;
 }
@@ -74,7 +72,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
     tmm_modules[TMM_VERDICTNFQ].cap_flags = SC_CAP_NET_ADMIN;
 }
 
@@ -84,7 +81,6 @@ void TmModuleDecodeNFQRegister (void)
     tmm_modules[TMM_DECODENFQ].ThreadInit = NoNFQSupportExit;
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
     tmm_modules[TMM_DECODENFQ].cap_flags = 0;
     tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
@@ -189,7 +185,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = VerdictNFQThreadDeinit;
-    tmm_modules[TMM_VERDICTNFQ].RegisterTests = NULL;
 }
 
 void TmModuleDecodeNFQRegister (void)
@@ -226,8 +221,7 @@ void NFQInitConfig(char quiet)
         }  else if (!strcmp("route", nfq_mode)) {
             nfq_config.mode = NFQ_ROUTE_MODE;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Unknown nfq.mode");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Unknown nfq.mode");
         }
     }
 
@@ -381,7 +375,7 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
     if (active_runmode && !strcmp("workers", active_runmode)) {
         nq->use_mutex = 0;
         runmode_workers = 1;
-        SCLogInfo("NFQ running in 'workers' runmode, will not use mutex.");
+        SCLogDebug("NFQ running in 'workers' runmode, will not use mutex.");
     } else {
         nq->use_mutex = 1;
         runmode_workers = 0;
@@ -591,24 +585,20 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
         if (nfq_unbind_pf(q->h, AF_INET) < 0) {
-            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_unbind_pf() for AF_INET failed");
         }
         if (nfq_unbind_pf(q->h, AF_INET6) < 0) {
-            SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_unbind_pf() for AF_INET6 failed");
         }
         nfq_g.unbind = 1;
 
         SCLogDebug("binding nfnetlink_queue as nf_queue handler for AF_INET and AF_INET6");
 
         if (nfq_bind_pf(q->h, AF_INET) < 0) {
-            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_bind_pf() for AF_INET failed");
         }
         if (nfq_bind_pf(q->h, AF_INET6) < 0) {
-            SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "nfq_bind_pf() for AF_INET6 failed");
         }
     }
 

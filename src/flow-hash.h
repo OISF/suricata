@@ -39,8 +39,11 @@
  * the same hashkey (the hash is a chained hash). When doing modifications
  * to the list, the entire bucket is locked. */
 typedef struct FlowBucket_ {
+    /** head of the list of active flows for this row. */
     Flow *head;
-    Flow *tail;
+    /** head of the list of evicted flows for this row. Waiting to be
+     *  collected by the Flow Manager. */
+    Flow *evicted;
 #ifdef FBLOCK_MUTEX
     SCMutex m;
 #elif defined FBLOCK_SPIN
@@ -74,13 +77,28 @@ typedef struct FlowBucket_ {
 
 /* prototypes */
 
-Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *, Flow **);
+Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *tctx,
+        const Packet *, Flow **);
 
 Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash);
 Flow *FlowGetExistingFlowFromHash(FlowKey * key, uint32_t hash);
 uint32_t FlowKeyGetHash(FlowKey *flow_key);
 
-void FlowDisableTcpReuseHandling(void);
+/** \note f->fb must be locked */
+static inline void RemoveFromHash(Flow *f, Flow *prev_f)
+{
+    FlowBucket *fb = f->fb;
+
+    /* remove from the hash */
+    if (prev_f != NULL) {
+        prev_f->next = f->next;
+    } else {
+        fb->head = f->next;
+    }
+
+    f->next = NULL;
+    f->fb = NULL;
+}
 
 #endif /* __FLOW_HASH_H__ */
 

@@ -40,7 +40,9 @@
 static int DetectSameipMatch(DetectEngineThreadCtx *, Packet *,
                              const Signature *, const SigMatchCtx *);
 static int DetectSameipSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectSameipRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for sameip: keyword
@@ -53,8 +55,9 @@ void DetectSameipRegister(void)
     sigmatch_table[DETECT_SAMEIP].url = "/rules/header-keywords.html#sameip";
     sigmatch_table[DETECT_SAMEIP].Match = DetectSameipMatch;
     sigmatch_table[DETECT_SAMEIP].Setup = DetectSameipSetup;
-    sigmatch_table[DETECT_SAMEIP].Free = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_SAMEIP].RegisterTests = DetectSameipRegisterTests;
+#endif
     sigmatch_table[DETECT_SAMEIP].flags = SIGMATCH_NOOPT;
 }
 
@@ -181,15 +184,12 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \internal
  * \brief This function registers unit tests for DetectSameip
  */
 static void DetectSameipRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectSameipSigTest01", DetectSameipSigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

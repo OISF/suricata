@@ -29,7 +29,7 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
  * destination port (uint16_t) */
 
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
-SCInstance suricata;
+SCInstance surifuzz;
 uint64_t forceLayer = 0;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -59,7 +59,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
 
-        PostConfLoadedSetup(&suricata);
+        PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
         const char* forceLayerStr = getenv("FUZZ_APPLAYER");
         if (forceLayerStr) {
@@ -125,7 +125,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
             free(isolatedBuffer);
             flags &= ~(STREAM_START);
-            if (f->alparser && AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)) {
+            if (f->alparser &&
+                   (((flags & STREAM_TOSERVER) != 0 &&
+                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS)) ||
+                    ((flags & STREAM_TOCLIENT) != 0 &&
+                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
+                //no final chunk
+                alsize = 0;
                 break;
             }
         }
@@ -137,6 +143,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         alnext = memmem(albuffer, alsize, separator, 4);
     }
     if (alsize > 0 ) {
+        if (flip) {
+            flags |= STREAM_TOCLIENT;
+            flags &= ~(STREAM_TOSERVER);
+            flip = 0;
+        } else {
+            flags |= STREAM_TOSERVER;
+            flags &= ~(STREAM_TOCLIENT);
+            flip = 1;
+        }
         flags |= STREAM_EOF;
         isolatedBuffer = malloc(alsize);
         if (isolatedBuffer == NULL) {

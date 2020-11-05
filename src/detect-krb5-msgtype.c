@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "util-unittest.h"
+#include "util-byte.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -44,7 +45,9 @@ static int DetectKrb5MsgTypeMatch (DetectEngineThreadCtx *, Flow *,
                                    const SigMatchCtx *);
 static int DetectKrb5MsgTypeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectKrb5MsgTypeFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectKrb5MsgTypeRegisterTests (void);
+#endif
 
 static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -59,7 +62,8 @@ static int g_krb5_msg_type_list_id = 0;
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectKrb5MsgTypeRegister(void) {
+void DetectKrb5MsgTypeRegister(void)
+{
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].name = "krb5_msg_type";
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].desc = "match Kerberos 5 message type";
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].url = "/rules/kerberos-keywords.html#krb5-msg-type";
@@ -67,8 +71,9 @@ void DetectKrb5MsgTypeRegister(void) {
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].AppLayerTxMatch = DetectKrb5MsgTypeMatch;
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Setup = DetectKrb5MsgTypeSetup;
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Free = DetectKrb5MsgTypeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("krb5_msg_type",
             ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectKRB5Generic);
@@ -153,8 +158,10 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
     krb5d = SCMalloc(sizeof (DetectKrb5MsgTypeData));
     if (unlikely(krb5d == NULL))
         goto error;
-    krb5d->msg_type = (uint8_t)atoi(arg1);
-
+    if (StringParseUint8(&krb5d->msg_type, 10, 0,
+                         (const char *)arg1) < 0) {
+        goto error;
+    }
     return krb5d;
 
 error:
@@ -243,15 +250,13 @@ static int DetectKrb5MsgTypeSignatureTest01 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectKrb5MsgType
  */
-static void DetectKrb5MsgTypeRegisterTests(void) {
-#ifdef UNITTESTS
+static void DetectKrb5MsgTypeRegisterTests(void)
+{
     UtRegisterTest("DetectKrb5MsgTypeParseTest01", DetectKrb5MsgTypeParseTest01);
     UtRegisterTest("DetectKrb5MsgTypeSignatureTest01",
                    DetectKrb5MsgTypeSignatureTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

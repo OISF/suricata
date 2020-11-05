@@ -74,6 +74,9 @@ static void DetectFragBitsFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterFragBitsIsPrefilterable(const Signature *s);
+#ifdef UNITTESTS
+static void FragBitsRegisterTests(void);
+#endif
 
 /**
  * \brief Registration function for fragbits: keyword
@@ -87,8 +90,9 @@ void DetectFragBitsRegister (void)
     sigmatch_table[DETECT_FRAGBITS].Match = DetectFragBitsMatch;
     sigmatch_table[DETECT_FRAGBITS].Setup = DetectFragBitsSetup;
     sigmatch_table[DETECT_FRAGBITS].Free  = DetectFragBitsFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FRAGBITS].RegisterTests = FragBitsRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FRAGBITS].SetupPrefilter = PrefilterSetupFragBits;
     sigmatch_table[DETECT_FRAGBITS].SupportsPrefilter = PrefilterFragBitsIsPrefilterable;
 
@@ -593,17 +597,15 @@ static int FragBitsTestParse04 (void)
     SCFree(p);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for FragBits
  */
-void FragBitsRegisterTests(void)
+static void FragBitsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("FragBitsTestParse01", FragBitsTestParse01);
     UtRegisterTest("FragBitsTestParse02", FragBitsTestParse02);
     UtRegisterTest("FragBitsTestParse03", FragBitsTestParse03);
     UtRegisterTest("FragBitsTestParse04", FragBitsTestParse04);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

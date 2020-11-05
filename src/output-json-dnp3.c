@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,68 +51,43 @@ typedef struct LogDNP3FileCtx_ {
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
+    LogFileCtx *file_ctx;
     LogDNP3FileCtx *dnp3log_ctx;
     MemBuffer      *buffer;
 } LogDNP3LogThread;
 
-static json_t *JsonDNP3LogLinkControl(uint8_t lc)
+static void JsonDNP3LogLinkControl(JsonBuilder *js, uint8_t lc)
 {
-    json_t *lcjs = json_object();
-    if (unlikely(lcjs == NULL)) {
-        return NULL;
-    }
-
-    json_object_set_new(lcjs, "dir", json_boolean(DNP3_LINK_DIR(lc)));
-    json_object_set_new(lcjs, "pri", json_boolean(DNP3_LINK_PRI(lc)));
-    json_object_set_new(lcjs, "fcb", json_boolean(DNP3_LINK_FCB(lc)));
-    json_object_set_new(lcjs, "fcv", json_boolean(DNP3_LINK_FCV(lc)));
-    json_object_set_new(lcjs, "function_code", json_integer(DNP3_LINK_FC(lc)));
-
-    return lcjs;
+    jb_set_bool(js, "dir", DNP3_LINK_DIR(lc));
+    jb_set_bool(js, "pri", DNP3_LINK_PRI(lc));
+    jb_set_bool(js, "fcb", DNP3_LINK_FCB(lc));
+    jb_set_bool(js, "fcv", DNP3_LINK_FCV(lc));
+    jb_set_uint(js, "function_code", DNP3_LINK_FC(lc));
 }
 
-static json_t *JsonDNP3LogIin(uint16_t iin)
+static void JsonDNP3LogIin(JsonBuilder *js, uint16_t iin)
 {
-    json_t *iinjs = json_object();
-    if (unlikely(iinjs == NULL)) {
-        return NULL;
-    }
-
-    json_t *indicators = json_array();
-    if (unlikely(indicators == NULL)) {
-        json_decref(iinjs);
-        return NULL;
-    }
+    jb_open_array(js, "indicators");
 
     if (iin) {
         int mapping = 0;
         do {
             if (iin & DNP3IndicatorsMap[mapping].value) {
-                json_array_append_new(indicators,
-                    json_string(DNP3IndicatorsMap[mapping].name));
+                jb_append_string(js, DNP3IndicatorsMap[mapping].name);
             }
             mapping++;
         } while (DNP3IndicatorsMap[mapping].name != NULL);
     }
-    json_object_set_new(iinjs, "indicators", indicators);
-
-    return iinjs;
+    jb_close(js);
 }
 
-static json_t *JsonDNP3LogApplicationControl(uint8_t ac)
+static void JsonDNP3LogApplicationControl(JsonBuilder *js, uint8_t ac)
 {
-    json_t *acjs = json_object();
-    if (unlikely(acjs == NULL)) {
-        return NULL;
-    }
-
-    json_object_set_new(acjs, "fir", json_boolean(DNP3_APP_FIR(ac)));
-    json_object_set_new(acjs, "fin", json_boolean(DNP3_APP_FIN(ac)));
-    json_object_set_new(acjs, "con", json_boolean(DNP3_APP_CON(ac)));
-    json_object_set_new(acjs, "uns", json_boolean(DNP3_APP_UNS(ac)));
-    json_object_set_new(acjs, "sequence", json_integer(DNP3_APP_SEQ(ac)));
-
-    return acjs;
+    jb_set_bool(js, "fir", DNP3_APP_FIR(ac));
+    jb_set_bool(js, "fin", DNP3_APP_FIN(ac));
+    jb_set_bool(js, "con", DNP3_APP_CON(ac));
+    jb_set_bool(js, "uns", DNP3_APP_UNS(ac));
+    jb_set_uint(js, "sequence", DNP3_APP_SEQ(ac));
 }
 
 /**
@@ -120,182 +95,120 @@ static json_t *JsonDNP3LogApplicationControl(uint8_t ac)
  *
  * TODO: Autogenerate this function based on object definitions.
  */
-static json_t *JsonDNP3LogObjectItems(DNP3Object *object)
+static void JsonDNP3LogObjectItems(JsonBuilder *js, DNP3Object *object)
 {
     DNP3Point *item;
-    json_t *jsitems;
-
-    if (unlikely((jsitems = json_array()) == NULL)) {
-        return NULL;
-    }
 
     TAILQ_FOREACH(item, object->points, next) {
-        json_t *js = json_object();
-        if (unlikely(js == NULL)) {
-            break;
-        }
+        jb_start_object(js);
 
-        json_object_set_new(js, "prefix", json_integer(item->prefix));
-        json_object_set_new(js, "index", json_integer(item->index));
+        jb_set_uint(js, "prefix", item->prefix);
+        jb_set_uint(js, "index", item->index);
         if (DNP3PrefixIsSize(object->prefix_code)) {
-            json_object_set_new(js, "size", json_integer(item->size));
+            jb_set_uint(js, "size", item->size);
         }
 
         OutputJsonDNP3SetItem(js, object, item);
-        json_array_append_new(jsitems, js);
+        jb_close(js);
     }
-
-    return jsitems;
 }
 
 /**
  * \brief Log the application layer objects.
  *
  * \param objects A list of DNP3 objects.
- *
- * \retval a json_t pointer containing the logged DNP3 objects.
+ * \param jb A JsonBuilder instance with an open array.
  */
-static json_t *JsonDNP3LogObjects(DNP3ObjectList *objects)
+static void JsonDNP3LogObjects(JsonBuilder *js, DNP3ObjectList *objects)
 {
     DNP3Object *object;
-    json_t *js = json_array();
-    if (unlikely(js == NULL)) {
-        return NULL;
-    }
 
     TAILQ_FOREACH(object, objects, next) {
-        json_t *objs = json_object();
-        if (unlikely(objs == NULL)) {
-            goto error;
-        }
-        json_object_set_new(objs, "group", json_integer(object->group));
-        json_object_set_new(objs, "variation",
-            json_integer(object->variation));
-        json_object_set_new(objs, "qualifier", json_integer(object->qualifier));
-        json_object_set_new(objs, "prefix_code",
-            json_integer(object->prefix_code));
-        json_object_set_new(objs, "range_code",
-            json_integer(object->range_code));
-        json_object_set_new(objs, "start", json_integer(object->start));
-        json_object_set_new(objs, "stop", json_integer(object->stop));
-        json_object_set_new(objs, "count", json_integer(object->count));
+        jb_start_object(js);
+        jb_set_uint(js, "group", object->group);
+        jb_set_uint(js, "variation", object->variation);
+        jb_set_uint(js, "qualifier", object->qualifier);
+        jb_set_uint(js, "prefix_code", object->prefix_code);
+        jb_set_uint(js, "range_code",  object->range_code);
+        jb_set_uint(js, "start", object->start);
+        jb_set_uint(js, "stop", object->stop);
+        jb_set_uint(js, "count", object->count);
 
         if (object->points != NULL && !TAILQ_EMPTY(object->points)) {
-            json_t *points = JsonDNP3LogObjectItems(object);
-            if (points != NULL) {
-                json_object_set_new(objs, "points", points);
-            }
+            jb_open_array(js, "points");
+            JsonDNP3LogObjectItems(js, object);
+            jb_close(js);
         }
 
-        json_array_append_new(js, objs);
+        jb_close(js);
     }
-
-    return js;
-error:
-    json_decref(js);
-    return NULL;
 }
 
-json_t *JsonDNP3LogRequest(DNP3Transaction *dnp3tx)
+void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
 {
-    json_t *dnp3js = json_object();
-    if (dnp3js == NULL) {
-        return NULL;;
-    }
-    json_object_set_new(dnp3js, "type", json_string("request"));
+    JB_SET_STRING(js, "type", "request");
 
-    json_t *lcjs = JsonDNP3LogLinkControl(dnp3tx->request_lh.control);
-    if (lcjs != NULL) {
-        json_object_set_new(dnp3js, "control", lcjs);
-    }
+    jb_open_object(js, "control");
+    JsonDNP3LogLinkControl(js, dnp3tx->request_lh.control);
+    jb_close(js);
 
-    json_object_set_new(dnp3js, "src", json_integer(dnp3tx->request_lh.src));
-    json_object_set_new(dnp3js, "dst", json_integer(dnp3tx->request_lh.dst));
+    jb_set_uint(js, "src", dnp3tx->request_lh.src);
+    jb_set_uint(js, "dst", dnp3tx->request_lh.dst);
 
-    /* DNP3 application layer. */
-    json_t *al = json_object();
-    if (al == NULL) {
-        goto error;
-    }
-    json_object_set_new(dnp3js, "application", al);
+    jb_open_object(js, "application");
 
-    json_t *acjs = JsonDNP3LogApplicationControl(dnp3tx->request_ah.control);
-    if (acjs != NULL) {
-        json_object_set_new(al, "control", acjs);
-    }
+    jb_open_object(js, "control");
+    JsonDNP3LogApplicationControl(js, dnp3tx->request_ah.control);
+    jb_close(js);
 
-    json_object_set_new(al, "function_code",
-        json_integer(dnp3tx->request_ah.function_code));
+    jb_set_uint(js, "function_code", dnp3tx->request_ah.function_code);
 
-    json_t *objects = JsonDNP3LogObjects(&dnp3tx->request_objects);
-    if (objects != NULL) {
-        json_object_set_new(al, "objects", objects);
-    }
-    json_object_set_new(al, "complete",
-        json_boolean(dnp3tx->request_complete));
+    jb_open_array(js, "objects");
+    JsonDNP3LogObjects(js, &dnp3tx->request_objects);
+    jb_close(js);
 
-    return dnp3js;
+    jb_set_bool(js, "complete", dnp3tx->request_complete);
 
-error:
-    json_decref(dnp3js);
-    return NULL;
+    /* Close application. */
+    jb_close(js);
 }
 
-json_t *JsonDNP3LogResponse(DNP3Transaction *dnp3tx)
+void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
 {
-    json_t *dnp3js = json_object();
-    if (dnp3js == NULL) {
-        return NULL;
-    }
     if (dnp3tx->response_ah.function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
-        json_object_set_new(dnp3js, "type",
-            json_string("unsolicited_response"));
+        JB_SET_STRING(js, "type", "unsolicited_response");
     }
     else {
-        json_object_set_new(dnp3js, "type", json_string("response"));
+        JB_SET_STRING(js, "type", "response");
     }
 
-    json_t *lcjs = JsonDNP3LogLinkControl(dnp3tx->response_lh.control);
-    if (lcjs != NULL) {
-        json_object_set_new(dnp3js, "control", lcjs);
-    }
+    jb_open_object(js, "control");
+    JsonDNP3LogLinkControl(js, dnp3tx->response_lh.control);
+    jb_close(js);
 
-    json_object_set_new(dnp3js, "src", json_integer(dnp3tx->response_lh.src));
-    json_object_set_new(dnp3js, "dst", json_integer(dnp3tx->response_lh.dst));
+    jb_set_uint(js, "src", dnp3tx->response_lh.src);
+    jb_set_uint(js, "dst", dnp3tx->response_lh.dst);
 
-    /* DNP3 application layer. */
-    json_t *al = json_object();
-    if (al == NULL) {
-        goto error;
-    }
-    json_object_set_new(dnp3js, "application", al);
+    jb_open_object(js, "application");
 
-    json_t *acjs = JsonDNP3LogApplicationControl(dnp3tx->response_ah.control);
-    if (acjs != NULL) {
-        json_object_set_new(al, "control", acjs);
-    }
+    jb_open_object(js, "control");
+    JsonDNP3LogApplicationControl(js, dnp3tx->response_ah.control);
+    jb_close(js);
 
-    json_object_set_new(al, "function_code",
-        json_integer(dnp3tx->response_ah.function_code));
+    jb_set_uint(js, "function_code", dnp3tx->response_ah.function_code);
 
-    json_t *iinjs = JsonDNP3LogIin(dnp3tx->response_iin.iin1 << 8 |
-        dnp3tx->response_iin.iin2);
-    if (iinjs != NULL) {
-        json_object_set_new(dnp3js, "iin", iinjs);
-    }
+    jb_open_array(js, "objects");
+    JsonDNP3LogObjects(js, &dnp3tx->response_objects);
+    jb_close(js);
 
-    json_t *objects = JsonDNP3LogObjects(&dnp3tx->response_objects);
-    if (objects != NULL) {
-        json_object_set_new(al, "objects", objects);
-    }
-    json_object_set_new(al, "complete",
-        json_boolean(dnp3tx->response_complete));
+    jb_set_bool(js, "complete", dnp3tx->response_complete);
 
-    return dnp3js;
+    /* Close application. */
+    jb_close(js);
 
-error:
-    json_decref(dnp3js);
-    return NULL;
+    jb_open_object(js, "iin");
+    JsonDNP3LogIin(js, dnp3tx->response_iin.iin1 << 8 | dnp3tx->response_iin.iin2);
+    jb_close(js);
 }
 
 static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
@@ -309,19 +222,18 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
-        json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dnp3");
+        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
 
-        json_t *dnp3js = JsonDNP3LogRequest(tx);
-        if (dnp3js != NULL) {
-            json_object_set_new(js, "dnp3", dnp3js);
-            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
-        }
-        json_decref(js);
+        jb_open_object(js, "dnp3");
+        JsonDNP3LogRequest(js, tx);
+        jb_close(js);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        jb_free(js);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -338,19 +250,17 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
-        json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dnp3");
+        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
-
-        json_t *dnp3js = JsonDNP3LogResponse(tx);
-        if (dnp3js != NULL) {
-            json_object_set_new(js, "dnp3", dnp3js);
-            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
-        }
-        json_decref(js);
+        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        jb_open_object(js, "dnp3");
+        JsonDNP3LogResponse(js, tx);
+        jb_close(js);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        jb_free(js);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -405,20 +315,30 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for DNP3.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->dnp3log_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->dnp3log_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)

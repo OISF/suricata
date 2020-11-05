@@ -3,7 +3,7 @@ identifier i;
 position p1;
 @@
 
-\(strtok@i\|sprintf@i\|strcat@i\|strcpy@i\|strncpy@i\|strncat@i\|strchrnul@i\|rand@i\|rand_r@i\|index@i\|rindex@i\|bzero@i\)(...)@p1
+\(strtok@i\|sprintf@i\|strcat@i\|strcpy@i\|strncpy@i\|strncat@i\|strchrnul@i\|atoi@i\|rand@i\|rand_r@i\|index@i\|rindex@i\|bzero@i\)(...)@p1
 
 @script:python@
 p1 << banned.p1;

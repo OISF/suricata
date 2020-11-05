@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -44,7 +44,7 @@
  * be the size of a header. */
 #define TFTP_MIN_FRAME_LEN 4
 
-static void *TFTPStateAlloc(void)
+static void *TFTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     return rs_tftp_state_alloc();
 }
@@ -104,7 +104,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state,
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
         SCReturnStruct(APP_LAYER_OK);
     }
 
@@ -139,16 +139,6 @@ static uint64_t TFTPGetTxCnt(void *state)
 static void *TFTPGetTx(void *state, uint64_t tx_id)
 {
     return rs_tftp_get_tx(state, tx_id);
-}
-
-static void TFTPSetTxLogged(void *state, void *vtx, uint32_t logger)
-{
-    rs_tftp_set_tx_logged(state, vtx, logger);
-}
-
-static LoggerId TFTPGetTxLogged(void *state, void *vtx)
-{
-    return rs_tftp_get_tx_logged(state, vtx);
 }
 
 /**
@@ -249,9 +239,6 @@ void RegisterTFTPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                          TFTPStateTxFree);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                          TFTPGetTxLogged, TFTPSetTxLogged);
-
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TFTP,
                                        TFTPGetTxCnt);
@@ -274,6 +261,9 @@ void RegisterTFTPParsers(void)
                                            TFTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                             TFTPGetEvents);
+
+        AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP,
+                                         rs_tftp_get_tx_data);
     }
     else {
         SCLogDebug("TFTP protocol parsing disabled.");

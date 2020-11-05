@@ -43,7 +43,9 @@
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectSeqMatch(DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
+#ifdef UNITTESTS
 static void DetectSeqRegisterTests(void);
+#endif
 static void DetectSeqFree(DetectEngineCtx *, void *);
 static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTcpSeqIsPrefilterable(const Signature *s);
@@ -57,8 +59,9 @@ void DetectSeqRegister(void)
     sigmatch_table[DETECT_SEQ].Match = DetectSeqMatch;
     sigmatch_table[DETECT_SEQ].Setup = DetectSeqSetup;
     sigmatch_table[DETECT_SEQ].Free = DetectSeqFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_SEQ].RegisterTests = DetectSeqRegisterTests;
-
+#endif
     sigmatch_table[DETECT_SEQ].SupportsPrefilter = PrefilterTcpSeqIsPrefilterable;
     sigmatch_table[DETECT_SEQ].SetupPrefilter = PrefilterSetupTcpSeq;
 }
@@ -287,16 +290,13 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \internal
  * \brief This function registers unit tests for DetectSeq
  */
 static void DetectSeqRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectSeqSigTest01", DetectSeqSigTest01);
     UtRegisterTest("DetectSeqSigTest02", DetectSeqSigTest02);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

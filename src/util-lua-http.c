@@ -162,7 +162,7 @@ static int HttpGetHeader(lua_State *luastate, int dir)
     } else {
         h = htp_tx_response_header(tx, name);
     }
-        
+
     if (h == NULL || htp_header_value_len(h) == 0)
         return LuaCallbackError(luastate, "header not found");
 

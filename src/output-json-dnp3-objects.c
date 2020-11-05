@@ -31,2146 +31,1336 @@
 #include "output-json-dnp3-objects.h"
 #include "output-json.h"
 
-void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
+void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {
             DNP3ObjectG1V1 *data = point->data;
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(1, 2): {
             DNP3ObjectG1V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "reserved",
-                json_integer(data->reserved));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "reserved", data->reserved);
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(2, 1): {
             DNP3ObjectG2V1 *data = point->data;
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(2, 2): {
             DNP3ObjectG2V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "reserved",
-                json_integer(data->reserved));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "reserved", data->reserved);
+            jb_set_uint(js, "state", data->state);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(2, 3): {
             DNP3ObjectG2V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "reserved",
-                json_integer(data->reserved));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "reserved", data->reserved);
+            jb_set_uint(js, "state", data->state);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(3, 1): {
             DNP3ObjectG3V1 *data = point->data;
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(3, 2): {
             DNP3ObjectG3V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(4, 1): {
             DNP3ObjectG4V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(4, 2): {
             DNP3ObjectG4V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "state", data->state);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(4, 3): {
             DNP3ObjectG4V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "chatter_filter",
-                json_integer(data->chatter_filter));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
-            json_object_set_new(js, "relative_time_ms",
-                json_integer(data->relative_time_ms));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "chatter_filter", data->chatter_filter);
+            jb_set_uint(js, "state", data->state);
+            jb_set_uint(js, "relative_time_ms", data->relative_time_ms);
             break;
         }
         case DNP3_OBJECT_CODE(10, 1): {
             DNP3ObjectG10V1 *data = point->data;
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(10, 2): {
             DNP3ObjectG10V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(11, 1): {
             DNP3ObjectG11V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(11, 2): {
             DNP3ObjectG11V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "state",
-                json_integer(data->state));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "state", data->state);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(12, 1): {
             DNP3ObjectG12V1 *data = point->data;
-            json_object_set_new(js, "op_type",
-                json_integer(data->op_type));
-            json_object_set_new(js, "qu",
-                json_integer(data->qu));
-            json_object_set_new(js, "cr",
-                json_integer(data->cr));
-            json_object_set_new(js, "tcc",
-                json_integer(data->tcc));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "ontime",
-                json_integer(data->ontime));
-            json_object_set_new(js, "offtime",
-                json_integer(data->offtime));
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved",
-                json_integer(data->reserved));
+            jb_set_uint(js, "op_type", data->op_type);
+            jb_set_uint(js, "qu", data->qu);
+            jb_set_uint(js, "cr", data->cr);
+            jb_set_uint(js, "tcc", data->tcc);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "ontime", data->ontime);
+            jb_set_uint(js, "offtime", data->offtime);
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved", data->reserved);
             break;
         }
         case DNP3_OBJECT_CODE(12, 2): {
             DNP3ObjectG12V2 *data = point->data;
-            json_object_set_new(js, "op_type",
-                json_integer(data->op_type));
-            json_object_set_new(js, "qu",
-                json_integer(data->qu));
-            json_object_set_new(js, "cr",
-                json_integer(data->cr));
-            json_object_set_new(js, "tcc",
-                json_integer(data->tcc));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "ontime",
-                json_integer(data->ontime));
-            json_object_set_new(js, "offtime",
-                json_integer(data->offtime));
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved",
-                json_integer(data->reserved));
+            jb_set_uint(js, "op_type", data->op_type);
+            jb_set_uint(js, "qu", data->qu);
+            jb_set_uint(js, "cr", data->cr);
+            jb_set_uint(js, "tcc", data->tcc);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "ontime", data->ontime);
+            jb_set_uint(js, "offtime", data->offtime);
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved", data->reserved);
             break;
         }
         case DNP3_OBJECT_CODE(12, 3): {
             DNP3ObjectG12V3 *data = point->data;
-            json_object_set_new(js, "point",
-                json_integer(data->point));
+            jb_set_uint(js, "point", data->point);
             break;
         }
         case DNP3_OBJECT_CODE(13, 1): {
             DNP3ObjectG13V1 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "commanded_state",
-                json_integer(data->commanded_state));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "commanded_state", data->commanded_state);
             break;
         }
         case DNP3_OBJECT_CODE(13, 2): {
             DNP3ObjectG13V2 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "commanded_state",
-                json_integer(data->commanded_state));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "commanded_state", data->commanded_state);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(20, 1): {
             DNP3ObjectG20V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 2): {
             DNP3ObjectG20V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 3): {
             DNP3ObjectG20V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 4): {
             DNP3ObjectG20V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 5): {
             DNP3ObjectG20V5 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 6): {
             DNP3ObjectG20V6 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 7): {
             DNP3ObjectG20V7 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 8): {
             DNP3ObjectG20V8 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 1): {
             DNP3ObjectG21V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 2): {
             DNP3ObjectG21V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 3): {
             DNP3ObjectG21V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 4): {
             DNP3ObjectG21V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 5): {
             DNP3ObjectG21V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 6): {
             DNP3ObjectG21V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 7): {
             DNP3ObjectG21V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 8): {
             DNP3ObjectG21V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 9): {
             DNP3ObjectG21V9 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 10): {
             DNP3ObjectG21V10 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 11): {
             DNP3ObjectG21V11 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 12): {
             DNP3ObjectG21V12 *data = point->data;
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 1): {
             DNP3ObjectG22V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 2): {
             DNP3ObjectG22V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 3): {
             DNP3ObjectG22V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 4): {
             DNP3ObjectG22V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 5): {
             DNP3ObjectG22V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 6): {
             DNP3ObjectG22V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 7): {
             DNP3ObjectG22V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 8): {
             DNP3ObjectG22V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 1): {
             DNP3ObjectG23V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 2): {
             DNP3ObjectG23V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 3): {
             DNP3ObjectG23V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 4): {
             DNP3ObjectG23V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 5): {
             DNP3ObjectG23V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 6): {
             DNP3ObjectG23V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 7): {
             DNP3ObjectG23V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 8): {
             DNP3ObjectG23V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "rollover",
-                json_integer(data->rollover));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "count",
-                json_integer(data->count));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "rollover", data->rollover);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "count", data->count);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(30, 1): {
             DNP3ObjectG30V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 2): {
             DNP3ObjectG30V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 3): {
             DNP3ObjectG30V3 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 4): {
             DNP3ObjectG30V4 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 5): {
             DNP3ObjectG30V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 6): {
             DNP3ObjectG30V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 1): {
             DNP3ObjectG31V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 2): {
             DNP3ObjectG31V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 3): {
             DNP3ObjectG31V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(31, 4): {
             DNP3ObjectG31V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(31, 5): {
             DNP3ObjectG31V5 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 6): {
             DNP3ObjectG31V6 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 7): {
             DNP3ObjectG31V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 8): {
             DNP3ObjectG31V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 1): {
             DNP3ObjectG32V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 2): {
             DNP3ObjectG32V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 3): {
             DNP3ObjectG32V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 4): {
             DNP3ObjectG32V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 5): {
             DNP3ObjectG32V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 6): {
             DNP3ObjectG32V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 7): {
             DNP3ObjectG32V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 8): {
             DNP3ObjectG32V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 1): {
             DNP3ObjectG33V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 2): {
             DNP3ObjectG33V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 3): {
             DNP3ObjectG33V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 4): {
             DNP3ObjectG33V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 5): {
             DNP3ObjectG33V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 6): {
             DNP3ObjectG33V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 7): {
             DNP3ObjectG33V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 8): {
             DNP3ObjectG33V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(34, 1): {
             DNP3ObjectG34V1 *data = point->data;
-            json_object_set_new(js, "deadband_value",
-                json_integer(data->deadband_value));
+            jb_set_uint(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(34, 2): {
             DNP3ObjectG34V2 *data = point->data;
-            json_object_set_new(js, "deadband_value",
-                json_integer(data->deadband_value));
+            jb_set_uint(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(34, 3): {
             DNP3ObjectG34V3 *data = point->data;
-            json_object_set_new(js, "deadband_value",
-                json_real(data->deadband_value));
+            jb_set_float(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 1): {
             DNP3ObjectG40V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 2): {
             DNP3ObjectG40V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 3): {
             DNP3ObjectG40V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 4): {
             DNP3ObjectG40V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(41, 1): {
             DNP3ObjectG41V1 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "control_status",
-                json_integer(data->control_status));
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 2): {
             DNP3ObjectG41V2 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "control_status",
-                json_integer(data->control_status));
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 3): {
             DNP3ObjectG41V3 *data = point->data;
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "control_status",
-                json_integer(data->control_status));
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 4): {
             DNP3ObjectG41V4 *data = point->data;
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "control_status",
-                json_integer(data->control_status));
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(42, 1): {
             DNP3ObjectG42V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 2): {
             DNP3ObjectG42V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 3): {
             DNP3ObjectG42V3 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 4): {
             DNP3ObjectG42V4 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_integer(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 5): {
             DNP3ObjectG42V5 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 6): {
             DNP3ObjectG42V6 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 7): {
             DNP3ObjectG42V7 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 8): {
             DNP3ObjectG42V8 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "over_range",
-                json_integer(data->over_range));
-            json_object_set_new(js, "reference_err",
-                json_integer(data->reference_err));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "value",
-                json_real(data->value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "over_range", data->over_range);
+            jb_set_uint(js, "reference_err", data->reference_err);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "value", data->value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 1): {
             DNP3ObjectG43V1 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_integer(data->commanded_value));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 2): {
             DNP3ObjectG43V2 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_integer(data->commanded_value));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 3): {
             DNP3ObjectG43V3 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_integer(data->commanded_value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "commanded_value", data->commanded_value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 4): {
             DNP3ObjectG43V4 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_integer(data->commanded_value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "commanded_value", data->commanded_value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 5): {
             DNP3ObjectG43V5 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_real(data->commanded_value));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 6): {
             DNP3ObjectG43V6 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_real(data->commanded_value));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 7): {
             DNP3ObjectG43V7 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_real(data->commanded_value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "commanded_value", data->commanded_value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 8): {
             DNP3ObjectG43V8 *data = point->data;
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "commanded_value",
-                json_real(data->commanded_value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "status_code", data->status_code);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_float(js, "commanded_value", data->commanded_value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 1): {
             DNP3ObjectG50V1 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 2): {
             DNP3ObjectG50V2 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
-            json_object_set_new(js, "interval",
-                json_integer(data->interval));
+            jb_set_uint(js, "timestamp", data->timestamp);
+            jb_set_uint(js, "interval", data->interval);
             break;
         }
         case DNP3_OBJECT_CODE(50, 3): {
             DNP3ObjectG50V3 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 4): {
             DNP3ObjectG50V4 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
-            json_object_set_new(js, "interval_count",
-                json_integer(data->interval_count));
-            json_object_set_new(js, "interval_units",
-                json_integer(data->interval_units));
+            jb_set_uint(js, "timestamp", data->timestamp);
+            jb_set_uint(js, "interval_count", data->interval_count);
+            jb_set_uint(js, "interval_units", data->interval_units);
             break;
         }
         case DNP3_OBJECT_CODE(51, 1): {
             DNP3ObjectG51V1 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(51, 2): {
             DNP3ObjectG51V2 *data = point->data;
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(52, 1): {
             DNP3ObjectG52V1 *data = point->data;
-            json_object_set_new(js, "delay_secs",
-                json_integer(data->delay_secs));
+            jb_set_uint(js, "delay_secs", data->delay_secs);
             break;
         }
         case DNP3_OBJECT_CODE(52, 2): {
             DNP3ObjectG52V2 *data = point->data;
-            json_object_set_new(js, "delay_ms",
-                json_integer(data->delay_ms));
+            jb_set_uint(js, "delay_ms", data->delay_ms);
             break;
         }
         case DNP3_OBJECT_CODE(70, 1): {
             DNP3ObjectG70V1 *data = point->data;
-            json_object_set_new(js, "filename_size",
-                json_integer(data->filename_size));
-            json_object_set_new(js, "filetype_code",
-                json_integer(data->filetype_code));
-            json_object_set_new(js, "attribute_code",
-                json_integer(data->attribute_code));
-            json_object_set_new(js, "start_record",
-                json_integer(data->start_record));
-            json_object_set_new(js, "end_record",
-                json_integer(data->end_record));
-            json_object_set_new(js, "file_size",
-                json_integer(data->file_size));
-            json_object_set_new(js, "created_timestamp",
-                json_integer(data->created_timestamp));
-            json_object_set_new(js, "permission",
-                json_integer(data->permission));
-            json_object_set_new(js, "file_id",
-                json_integer(data->file_id));
-            json_object_set_new(js, "owner_id",
-                json_integer(data->owner_id));
-            json_object_set_new(js, "group_id",
-                json_integer(data->group_id));
-            json_object_set_new(js, "file_function_code",
-                json_integer(data->file_function_code));
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
+            jb_set_uint(js, "filename_size", data->filename_size);
+            jb_set_uint(js, "filetype_code", data->filetype_code);
+            jb_set_uint(js, "attribute_code", data->attribute_code);
+            jb_set_uint(js, "start_record", data->start_record);
+            jb_set_uint(js, "end_record", data->end_record);
+            jb_set_uint(js, "file_size", data->file_size);
+            jb_set_uint(js, "created_timestamp", data->created_timestamp);
+            jb_set_uint(js, "permission", data->permission);
+            jb_set_uint(js, "file_id", data->file_id);
+            jb_set_uint(js, "owner_id", data->owner_id);
+            jb_set_uint(js, "group_id", data->group_id);
+            jb_set_uint(js, "file_function_code", data->file_function_code);
+            jb_set_uint(js, "status_code", data->status_code);
             if (data->filename_size > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->filename_size + 1];
                 memcpy(tmpbuf, data->filename, data->filename_size);
                 tmpbuf[data->filename_size] = '\0';
-                json_object_set_new(js, "filename", SCJsonString(tmpbuf));
+                jb_set_string(js, "filename", tmpbuf);
             } else {
-                json_object_set_new(js, "filename", json_string(""));
+                jb_set_string(js, "filename", "");
             }
-            json_object_set_new(js, "data_size",
-                json_integer(data->data_size));
+            jb_set_uint(js, "data_size", data->data_size);
             if (data->data_size > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->data_size + 1];
                 memcpy(tmpbuf, data->data, data->data_size);
                 tmpbuf[data->data_size] = '\0';
-                json_object_set_new(js, "data", SCJsonString(tmpbuf));
+                jb_set_string(js, "data", tmpbuf);
             } else {
-                json_object_set_new(js, "data", json_string(""));
+                jb_set_string(js, "data", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 2): {
             DNP3ObjectG70V2 *data = point->data;
-            json_object_set_new(js, "username_offset",
-                json_integer(data->username_offset));
-            json_object_set_new(js, "username_size",
-                json_integer(data->username_size));
-            json_object_set_new(js, "password_offset",
-                json_integer(data->password_offset));
-            json_object_set_new(js, "password_size",
-                json_integer(data->password_size));
-            json_object_set_new(js, "authentication_key",
-                json_integer(data->authentication_key));
+            jb_set_uint(js, "username_offset", data->username_offset);
+            jb_set_uint(js, "username_size", data->username_size);
+            jb_set_uint(js, "password_offset", data->password_offset);
+            jb_set_uint(js, "password_size", data->password_size);
+            jb_set_uint(js, "authentication_key", data->authentication_key);
             if (data->username_size > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->username_size + 1];
                 memcpy(tmpbuf, data->username, data->username_size);
                 tmpbuf[data->username_size] = '\0';
-                json_object_set_new(js, "username", SCJsonString(tmpbuf));
+                jb_set_string(js, "username", tmpbuf);
             } else {
-                json_object_set_new(js, "username", json_string(""));
+                jb_set_string(js, "username", "");
             }
             if (data->password_size > 0) {
                 /* First create a null terminated string as not all versions
@@ -2178,131 +1368,105 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 char tmpbuf[data->password_size + 1];
                 memcpy(tmpbuf, data->password, data->password_size);
                 tmpbuf[data->password_size] = '\0';
-                json_object_set_new(js, "password", SCJsonString(tmpbuf));
+                jb_set_string(js, "password", tmpbuf);
             } else {
-                json_object_set_new(js, "password", json_string(""));
+                jb_set_string(js, "password", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 3): {
             DNP3ObjectG70V3 *data = point->data;
-            json_object_set_new(js, "filename_offset",
-                json_integer(data->filename_offset));
-            json_object_set_new(js, "filename_size",
-                json_integer(data->filename_size));
-            json_object_set_new(js, "created",
-                json_integer(data->created));
-            json_object_set_new(js, "permissions",
-                json_integer(data->permissions));
-            json_object_set_new(js, "authentication_key",
-                json_integer(data->authentication_key));
-            json_object_set_new(js, "file_size",
-                json_integer(data->file_size));
-            json_object_set_new(js, "operational_mode",
-                json_integer(data->operational_mode));
-            json_object_set_new(js, "maximum_block_size",
-                json_integer(data->maximum_block_size));
-            json_object_set_new(js, "request_id",
-                json_integer(data->request_id));
+            jb_set_uint(js, "filename_offset", data->filename_offset);
+            jb_set_uint(js, "filename_size", data->filename_size);
+            jb_set_uint(js, "created", data->created);
+            jb_set_uint(js, "permissions", data->permissions);
+            jb_set_uint(js, "authentication_key", data->authentication_key);
+            jb_set_uint(js, "file_size", data->file_size);
+            jb_set_uint(js, "operational_mode", data->operational_mode);
+            jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
+            jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->filename_size + 1];
                 memcpy(tmpbuf, data->filename, data->filename_size);
                 tmpbuf[data->filename_size] = '\0';
-                json_object_set_new(js, "filename", SCJsonString(tmpbuf));
+                jb_set_string(js, "filename", tmpbuf);
             } else {
-                json_object_set_new(js, "filename", json_string(""));
+                jb_set_string(js, "filename", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 4): {
             DNP3ObjectG70V4 *data = point->data;
-            json_object_set_new(js, "file_handle",
-                json_integer(data->file_handle));
-            json_object_set_new(js, "file_size",
-                json_integer(data->file_size));
-            json_object_set_new(js, "maximum_block_size",
-                json_integer(data->maximum_block_size));
-            json_object_set_new(js, "request_id",
-                json_integer(data->request_id));
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
+            jb_set_uint(js, "file_handle", data->file_handle);
+            jb_set_uint(js, "file_size", data->file_size);
+            jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
+            jb_set_uint(js, "request_id", data->request_id);
+            jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->optional_text_len + 1];
                 memcpy(tmpbuf, data->optional_text, data->optional_text_len);
                 tmpbuf[data->optional_text_len] = '\0';
-                json_object_set_new(js, "optional_text", SCJsonString(tmpbuf));
+                jb_set_string(js, "optional_text", tmpbuf);
             } else {
-                json_object_set_new(js, "optional_text", json_string(""));
+                jb_set_string(js, "optional_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 5): {
             DNP3ObjectG70V5 *data = point->data;
-            json_object_set_new(js, "file_handle",
-                json_integer(data->file_handle));
-            json_object_set_new(js, "block_number",
-                json_integer(data->block_number));
+            jb_set_uint(js, "file_handle", data->file_handle);
+            jb_set_uint(js, "block_number", data->block_number);
             if (data->file_data_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->file_data_len + 1];
                 memcpy(tmpbuf, data->file_data, data->file_data_len);
                 tmpbuf[data->file_data_len] = '\0';
-                json_object_set_new(js, "file_data", SCJsonString(tmpbuf));
+                jb_set_string(js, "file_data", tmpbuf);
             } else {
-                json_object_set_new(js, "file_data", json_string(""));
+                jb_set_string(js, "file_data", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 6): {
             DNP3ObjectG70V6 *data = point->data;
-            json_object_set_new(js, "file_handle",
-                json_integer(data->file_handle));
-            json_object_set_new(js, "block_number",
-                json_integer(data->block_number));
-            json_object_set_new(js, "status_code",
-                json_integer(data->status_code));
+            jb_set_uint(js, "file_handle", data->file_handle);
+            jb_set_uint(js, "block_number", data->block_number);
+            jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->optional_text_len + 1];
                 memcpy(tmpbuf, data->optional_text, data->optional_text_len);
                 tmpbuf[data->optional_text_len] = '\0';
-                json_object_set_new(js, "optional_text", SCJsonString(tmpbuf));
+                jb_set_string(js, "optional_text", tmpbuf);
             } else {
-                json_object_set_new(js, "optional_text", json_string(""));
+                jb_set_string(js, "optional_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 7): {
             DNP3ObjectG70V7 *data = point->data;
-            json_object_set_new(js, "filename_offset",
-                json_integer(data->filename_offset));
-            json_object_set_new(js, "filename_size",
-                json_integer(data->filename_size));
-            json_object_set_new(js, "file_type",
-                json_integer(data->file_type));
-            json_object_set_new(js, "file_size",
-                json_integer(data->file_size));
-            json_object_set_new(js, "created_timestamp",
-                json_integer(data->created_timestamp));
-            json_object_set_new(js, "permissions",
-                json_integer(data->permissions));
-            json_object_set_new(js, "request_id",
-                json_integer(data->request_id));
+            jb_set_uint(js, "filename_offset", data->filename_offset);
+            jb_set_uint(js, "filename_size", data->filename_size);
+            jb_set_uint(js, "file_type", data->file_type);
+            jb_set_uint(js, "file_size", data->file_size);
+            jb_set_uint(js, "created_timestamp", data->created_timestamp);
+            jb_set_uint(js, "permissions", data->permissions);
+            jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->filename_size + 1];
                 memcpy(tmpbuf, data->filename, data->filename_size);
                 tmpbuf[data->filename_size] = '\0';
-                json_object_set_new(js, "filename", SCJsonString(tmpbuf));
+                jb_set_string(js, "filename", tmpbuf);
             } else {
-                json_object_set_new(js, "filename", json_string(""));
+                jb_set_string(js, "filename", "");
             }
             break;
         }
@@ -2314,195 +1478,148 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 char tmpbuf[data->file_specification_len + 1];
                 memcpy(tmpbuf, data->file_specification, data->file_specification_len);
                 tmpbuf[data->file_specification_len] = '\0';
-                json_object_set_new(js, "file_specification", SCJsonString(tmpbuf));
+                jb_set_string(js, "file_specification", tmpbuf);
             } else {
-                json_object_set_new(js, "file_specification", json_string(""));
+                jb_set_string(js, "file_specification", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(80, 1): {
             DNP3ObjectG80V1 *data = point->data;
-            json_object_set_new(js, "state",
-                json_integer(data->state));
+            jb_set_uint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(81, 1): {
             DNP3ObjectG81V1 *data = point->data;
-            json_object_set_new(js, "fill_percentage",
-                json_integer(data->fill_percentage));
-            json_object_set_new(js, "overflow_state",
-                json_integer(data->overflow_state));
-            json_object_set_new(js, "group",
-                json_integer(data->group));
-            json_object_set_new(js, "variation",
-                json_integer(data->variation));
+            jb_set_uint(js, "fill_percentage", data->fill_percentage);
+            jb_set_uint(js, "overflow_state", data->overflow_state);
+            jb_set_uint(js, "group", data->group);
+            jb_set_uint(js, "variation", data->variation);
             break;
         }
         case DNP3_OBJECT_CODE(83, 1): {
             DNP3ObjectG83V1 *data = point->data;
-            json_object_set_new(js, "data->vendor_code", SCJsonString(data->vendor_code));
-            json_object_set_new(js, "object_id",
-                json_integer(data->object_id));
-            json_object_set_new(js, "length",
-                json_integer(data->length));
+            jb_set_string(js, "data->vendor_code", data->vendor_code);
+            jb_set_uint(js, "object_id", data->object_id);
+            jb_set_uint(js, "length", data->length);
             unsigned long data_objects_b64_len = data->length * 2;
             uint8_t data_objects_b64[data_objects_b64_len];
             Base64Encode(data->data_objects, data->length,
                 data_objects_b64, &data_objects_b64_len);
-            json_object_set_new(js, "data->data_objects",
-                json_string((char *)data_objects_b64));
+            jb_set_string(js, "data->data_objects", (char *)data_objects_b64);
             break;
         }
         case DNP3_OBJECT_CODE(86, 2): {
             DNP3ObjectG86V2 *data = point->data;
-            json_object_set_new(js, "rd",
-                json_integer(data->rd));
-            json_object_set_new(js, "wr",
-                json_integer(data->wr));
-            json_object_set_new(js, "st",
-                json_integer(data->st));
-            json_object_set_new(js, "ev",
-                json_integer(data->ev));
-            json_object_set_new(js, "df",
-                json_integer(data->df));
-            json_object_set_new(js, "padding0",
-                json_integer(data->padding0));
-            json_object_set_new(js, "padding1",
-                json_integer(data->padding1));
-            json_object_set_new(js, "padding2",
-                json_integer(data->padding2));
+            jb_set_uint(js, "rd", data->rd);
+            jb_set_uint(js, "wr", data->wr);
+            jb_set_uint(js, "st", data->st);
+            jb_set_uint(js, "ev", data->ev);
+            jb_set_uint(js, "df", data->df);
+            jb_set_uint(js, "padding0", data->padding0);
+            jb_set_uint(js, "padding1", data->padding1);
+            jb_set_uint(js, "padding2", data->padding2);
             break;
         }
         case DNP3_OBJECT_CODE(102, 1): {
             DNP3ObjectG102V1 *data = point->data;
-            json_object_set_new(js, "value",
-                json_integer(data->value));
+            jb_set_uint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(120, 1): {
             DNP3ObjectG120V1 *data = point->data;
-            json_object_set_new(js, "csq",
-                json_integer(data->csq));
-            json_object_set_new(js, "usr",
-                json_integer(data->usr));
-            json_object_set_new(js, "mal",
-                json_integer(data->mal));
-            json_object_set_new(js, "reason",
-                json_integer(data->reason));
+            jb_set_uint(js, "csq", data->csq);
+            jb_set_uint(js, "usr", data->usr);
+            jb_set_uint(js, "mal", data->mal);
+            jb_set_uint(js, "reason", data->reason);
             unsigned long challenge_data_b64_len = data->challenge_data_len * 2;
             uint8_t challenge_data_b64[challenge_data_b64_len];
             Base64Encode(data->challenge_data, data->challenge_data_len,
                 challenge_data_b64, &challenge_data_b64_len);
-            json_object_set_new(js, "data->challenge_data",
-                json_string((char *)challenge_data_b64));
+            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
             DNP3ObjectG120V2 *data = point->data;
-            json_object_set_new(js, "csq",
-                json_integer(data->csq));
-            json_object_set_new(js, "usr",
-                json_integer(data->usr));
+            jb_set_uint(js, "csq", data->csq);
+            jb_set_uint(js, "usr", data->usr);
             unsigned long mac_value_b64_len = data->mac_value_len * 2;
             uint8_t mac_value_b64[mac_value_b64_len];
             Base64Encode(data->mac_value, data->mac_value_len,
                 mac_value_b64, &mac_value_b64_len);
-            json_object_set_new(js, "data->mac_value",
-                json_string((char *)mac_value_b64));
+            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 3): {
             DNP3ObjectG120V3 *data = point->data;
-            json_object_set_new(js, "csq",
-                json_integer(data->csq));
-            json_object_set_new(js, "user_number",
-                json_integer(data->user_number));
+            jb_set_uint(js, "csq", data->csq);
+            jb_set_uint(js, "user_number", data->user_number);
             break;
         }
         case DNP3_OBJECT_CODE(120, 4): {
             DNP3ObjectG120V4 *data = point->data;
-            json_object_set_new(js, "user_number",
-                json_integer(data->user_number));
+            jb_set_uint(js, "user_number", data->user_number);
             break;
         }
         case DNP3_OBJECT_CODE(120, 5): {
             DNP3ObjectG120V5 *data = point->data;
-            json_object_set_new(js, "ksq",
-                json_integer(data->ksq));
-            json_object_set_new(js, "user_number",
-                json_integer(data->user_number));
-            json_object_set_new(js, "key_wrap_alg",
-                json_integer(data->key_wrap_alg));
-            json_object_set_new(js, "key_status",
-                json_integer(data->key_status));
-            json_object_set_new(js, "mal",
-                json_integer(data->mal));
-            json_object_set_new(js, "challenge_data_len",
-                json_integer(data->challenge_data_len));
+            jb_set_uint(js, "ksq", data->ksq);
+            jb_set_uint(js, "user_number", data->user_number);
+            jb_set_uint(js, "key_wrap_alg", data->key_wrap_alg);
+            jb_set_uint(js, "key_status", data->key_status);
+            jb_set_uint(js, "mal", data->mal);
+            jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
             unsigned long challenge_data_b64_len = data->challenge_data_len * 2;
             uint8_t challenge_data_b64[challenge_data_b64_len];
             Base64Encode(data->challenge_data, data->challenge_data_len,
                 challenge_data_b64, &challenge_data_b64_len);
-            json_object_set_new(js, "data->challenge_data",
-                json_string((char *)challenge_data_b64));
+            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
             unsigned long mac_value_b64_len = data->mac_value_len * 2;
             uint8_t mac_value_b64[mac_value_b64_len];
             Base64Encode(data->mac_value, data->mac_value_len,
                 mac_value_b64, &mac_value_b64_len);
-            json_object_set_new(js, "data->mac_value",
-                json_string((char *)mac_value_b64));
+            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
             DNP3ObjectG120V6 *data = point->data;
-            json_object_set_new(js, "ksq",
-                json_integer(data->ksq));
-            json_object_set_new(js, "usr",
-                json_integer(data->usr));
+            jb_set_uint(js, "ksq", data->ksq);
+            jb_set_uint(js, "usr", data->usr);
             unsigned long wrapped_key_data_b64_len = data->wrapped_key_data_len * 2;
             uint8_t wrapped_key_data_b64[wrapped_key_data_b64_len];
             Base64Encode(data->wrapped_key_data, data->wrapped_key_data_len,
                 wrapped_key_data_b64, &wrapped_key_data_b64_len);
-            json_object_set_new(js, "data->wrapped_key_data",
-                json_string((char *)wrapped_key_data_b64));
+            jb_set_string(js, "data->wrapped_key_data", (char *)wrapped_key_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 7): {
             DNP3ObjectG120V7 *data = point->data;
-            json_object_set_new(js, "sequence_number",
-                json_integer(data->sequence_number));
-            json_object_set_new(js, "usr",
-                json_integer(data->usr));
-            json_object_set_new(js, "association_id",
-                json_integer(data->association_id));
-            json_object_set_new(js, "error_code",
-                json_integer(data->error_code));
-            json_object_set_new(js, "time_of_error",
-                json_integer(data->time_of_error));
+            jb_set_uint(js, "sequence_number", data->sequence_number);
+            jb_set_uint(js, "usr", data->usr);
+            jb_set_uint(js, "association_id", data->association_id);
+            jb_set_uint(js, "error_code", data->error_code);
+            jb_set_uint(js, "time_of_error", data->time_of_error);
             if (data->error_text_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->error_text_len + 1];
                 memcpy(tmpbuf, data->error_text, data->error_text_len);
                 tmpbuf[data->error_text_len] = '\0';
-                json_object_set_new(js, "error_text", SCJsonString(tmpbuf));
+                jb_set_string(js, "error_text", tmpbuf);
             } else {
-                json_object_set_new(js, "error_text", json_string(""));
+                jb_set_string(js, "error_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 8): {
             DNP3ObjectG120V8 *data = point->data;
-            json_object_set_new(js, "key_change_method",
-                json_integer(data->key_change_method));
-            json_object_set_new(js, "certificate_type",
-                json_integer(data->certificate_type));
+            jb_set_uint(js, "key_change_method", data->key_change_method);
+            jb_set_uint(js, "certificate_type", data->certificate_type);
             unsigned long certificate_b64_len = data->certificate_len * 2;
             uint8_t certificate_b64[certificate_b64_len];
             Base64Encode(data->certificate, data->certificate_len,
                 certificate_b64, &certificate_b64_len);
-            json_object_set_new(js, "data->certificate",
-                json_string((char *)certificate_b64));
+            jb_set_string(js, "data->certificate", (char *)certificate_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
@@ -2511,108 +1628,85 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
             uint8_t mac_value_b64[mac_value_b64_len];
             Base64Encode(data->mac_value, data->mac_value_len,
                 mac_value_b64, &mac_value_b64_len);
-            json_object_set_new(js, "data->mac_value",
-                json_string((char *)mac_value_b64));
+            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
             DNP3ObjectG120V10 *data = point->data;
-            json_object_set_new(js, "key_change_method",
-                json_integer(data->key_change_method));
-            json_object_set_new(js, "operation",
-                json_integer(data->operation));
-            json_object_set_new(js, "scs",
-                json_integer(data->scs));
-            json_object_set_new(js, "user_role",
-                json_integer(data->user_role));
-            json_object_set_new(js, "user_role_expiry_interval",
-                json_integer(data->user_role_expiry_interval));
-            json_object_set_new(js, "username_len",
-                json_integer(data->username_len));
-            json_object_set_new(js, "user_public_key_len",
-                json_integer(data->user_public_key_len));
-            json_object_set_new(js, "certification_data_len",
-                json_integer(data->certification_data_len));
+            jb_set_uint(js, "key_change_method", data->key_change_method);
+            jb_set_uint(js, "operation", data->operation);
+            jb_set_uint(js, "scs", data->scs);
+            jb_set_uint(js, "user_role", data->user_role);
+            jb_set_uint(js, "user_role_expiry_interval", data->user_role_expiry_interval);
+            jb_set_uint(js, "username_len", data->username_len);
+            jb_set_uint(js, "user_public_key_len", data->user_public_key_len);
+            jb_set_uint(js, "certification_data_len", data->certification_data_len);
             if (data->username_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->username_len + 1];
                 memcpy(tmpbuf, data->username, data->username_len);
                 tmpbuf[data->username_len] = '\0';
-                json_object_set_new(js, "username", SCJsonString(tmpbuf));
+                jb_set_string(js, "username", tmpbuf);
             } else {
-                json_object_set_new(js, "username", json_string(""));
+                jb_set_string(js, "username", "");
             }
             unsigned long user_public_key_b64_len = data->user_public_key_len * 2;
             uint8_t user_public_key_b64[user_public_key_b64_len];
             Base64Encode(data->user_public_key, data->user_public_key_len,
                 user_public_key_b64, &user_public_key_b64_len);
-            json_object_set_new(js, "data->user_public_key",
-                json_string((char *)user_public_key_b64));
+            jb_set_string(js, "data->user_public_key", (char *)user_public_key_b64);
             unsigned long certification_data_b64_len = data->certification_data_len * 2;
             uint8_t certification_data_b64[certification_data_b64_len];
             Base64Encode(data->certification_data, data->certification_data_len,
                 certification_data_b64, &certification_data_b64_len);
-            json_object_set_new(js, "data->certification_data",
-                json_string((char *)certification_data_b64));
+            jb_set_string(js, "data->certification_data", (char *)certification_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
             DNP3ObjectG120V11 *data = point->data;
-            json_object_set_new(js, "key_change_method",
-                json_integer(data->key_change_method));
-            json_object_set_new(js, "username_len",
-                json_integer(data->username_len));
-            json_object_set_new(js, "master_challenge_data_len",
-                json_integer(data->master_challenge_data_len));
+            jb_set_uint(js, "key_change_method", data->key_change_method);
+            jb_set_uint(js, "username_len", data->username_len);
+            jb_set_uint(js, "master_challenge_data_len", data->master_challenge_data_len);
             if (data->username_len > 0) {
                 /* First create a null terminated string as not all versions
                  * of jansson have json_stringn. */
                 char tmpbuf[data->username_len + 1];
                 memcpy(tmpbuf, data->username, data->username_len);
                 tmpbuf[data->username_len] = '\0';
-                json_object_set_new(js, "username", SCJsonString(tmpbuf));
+                jb_set_string(js, "username", tmpbuf);
             } else {
-                json_object_set_new(js, "username", json_string(""));
+                jb_set_string(js, "username", "");
             }
             unsigned long master_challenge_data_b64_len = data->master_challenge_data_len * 2;
             uint8_t master_challenge_data_b64[master_challenge_data_b64_len];
             Base64Encode(data->master_challenge_data, data->master_challenge_data_len,
                 master_challenge_data_b64, &master_challenge_data_b64_len);
-            json_object_set_new(js, "data->master_challenge_data",
-                json_string((char *)master_challenge_data_b64));
+            jb_set_string(js, "data->master_challenge_data", (char *)master_challenge_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
             DNP3ObjectG120V12 *data = point->data;
-            json_object_set_new(js, "ksq",
-                json_integer(data->ksq));
-            json_object_set_new(js, "user_number",
-                json_integer(data->user_number));
-            json_object_set_new(js, "challenge_data_len",
-                json_integer(data->challenge_data_len));
+            jb_set_uint(js, "ksq", data->ksq);
+            jb_set_uint(js, "user_number", data->user_number);
+            jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
             unsigned long challenge_data_b64_len = data->challenge_data_len * 2;
             uint8_t challenge_data_b64[challenge_data_b64_len];
             Base64Encode(data->challenge_data, data->challenge_data_len,
                 challenge_data_b64, &challenge_data_b64_len);
-            json_object_set_new(js, "data->challenge_data",
-                json_string((char *)challenge_data_b64));
+            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
             DNP3ObjectG120V13 *data = point->data;
-            json_object_set_new(js, "ksq",
-                json_integer(data->ksq));
-            json_object_set_new(js, "user_number",
-                json_integer(data->user_number));
-            json_object_set_new(js, "encrypted_update_key_len",
-                json_integer(data->encrypted_update_key_len));
+            jb_set_uint(js, "ksq", data->ksq);
+            jb_set_uint(js, "user_number", data->user_number);
+            jb_set_uint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
             unsigned long encrypted_update_key_data_b64_len = data->encrypted_update_key_len * 2;
             uint8_t encrypted_update_key_data_b64[encrypted_update_key_data_b64_len];
             Base64Encode(data->encrypted_update_key_data, data->encrypted_update_key_len,
                 encrypted_update_key_data_b64, &encrypted_update_key_data_b64_len);
-            json_object_set_new(js, "data->encrypted_update_key_data",
-                json_string((char *)encrypted_update_key_data_b64));
+            jb_set_string(js, "data->encrypted_update_key_data", (char *)encrypted_update_key_data_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
@@ -2621,8 +1715,7 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
             uint8_t digital_signature_b64[digital_signature_b64_len];
             Base64Encode(data->digital_signature, data->digital_signature_len,
                 digital_signature_b64, &digital_signature_b64_len);
-            json_object_set_new(js, "data->digital_signature",
-                json_string((char *)digital_signature_b64));
+            jb_set_string(js, "data->digital_signature", (char *)digital_signature_b64);
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
@@ -2631,82 +1724,50 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
             uint8_t mac_b64[mac_b64_len];
             Base64Encode(data->mac, data->mac_len,
                 mac_b64, &mac_b64_len);
-            json_object_set_new(js, "data->mac",
-                json_string((char *)mac_b64));
+            jb_set_string(js, "data->mac", (char *)mac_b64);
             break;
         }
         case DNP3_OBJECT_CODE(121, 1): {
             DNP3ObjectG121V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "association_id",
-                json_integer(data->association_id));
-            json_object_set_new(js, "count_value",
-                json_integer(data->count_value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "association_id", data->association_id);
+            jb_set_uint(js, "count_value", data->count_value);
             break;
         }
         case DNP3_OBJECT_CODE(122, 1): {
             DNP3ObjectG122V1 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "association_id",
-                json_integer(data->association_id));
-            json_object_set_new(js, "count_value",
-                json_integer(data->count_value));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "association_id", data->association_id);
+            jb_set_uint(js, "count_value", data->count_value);
             break;
         }
         case DNP3_OBJECT_CODE(122, 2): {
             DNP3ObjectG122V2 *data = point->data;
-            json_object_set_new(js, "online",
-                json_integer(data->online));
-            json_object_set_new(js, "restart",
-                json_integer(data->restart));
-            json_object_set_new(js, "comm_lost",
-                json_integer(data->comm_lost));
-            json_object_set_new(js, "remote_forced",
-                json_integer(data->remote_forced));
-            json_object_set_new(js, "local_forced",
-                json_integer(data->local_forced));
-            json_object_set_new(js, "reserved0",
-                json_integer(data->reserved0));
-            json_object_set_new(js, "discontinuity",
-                json_integer(data->discontinuity));
-            json_object_set_new(js, "reserved1",
-                json_integer(data->reserved1));
-            json_object_set_new(js, "association_id",
-                json_integer(data->association_id));
-            json_object_set_new(js, "count_value",
-                json_integer(data->count_value));
-            json_object_set_new(js, "timestamp",
-                json_integer(data->timestamp));
+            jb_set_uint(js, "online", data->online);
+            jb_set_uint(js, "restart", data->restart);
+            jb_set_uint(js, "comm_lost", data->comm_lost);
+            jb_set_uint(js, "remote_forced", data->remote_forced);
+            jb_set_uint(js, "local_forced", data->local_forced);
+            jb_set_uint(js, "reserved0", data->reserved0);
+            jb_set_uint(js, "discontinuity", data->discontinuity);
+            jb_set_uint(js, "reserved1", data->reserved1);
+            jb_set_uint(js, "association_id", data->association_id);
+            jb_set_uint(js, "count_value", data->count_value);
+            jb_set_uint(js, "timestamp", data->timestamp);
             break;
         }
         default:

@@ -29,6 +29,7 @@
 #include "util-debug.h"
 #include "util-ip.h"
 #include "util-radix-tree.h"
+#include "util-byte.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
@@ -77,8 +78,7 @@ static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
     int *user_data = NULL;
 
     if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory. Exiting");
     }
 
     /* the host os flavour that has to be sent as user data */
@@ -156,8 +156,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     }
 
     if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
     }
 
     /* check if we have more addresses in the host_os_ip_range */
@@ -186,8 +185,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            netmask_value = atoi(netmask_str);
-            if (netmask_value < 0 || netmask_value > 32) {
+            if (StringParseI32RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 32) < 0) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv4_addr);
@@ -212,8 +210,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            netmask_value = atoi(netmask_str);
-            if (netmask_value < 0 || netmask_value > 128) {
+            if (StringParseI32RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 128) < 0) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv6_addr);

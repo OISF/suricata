@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,41 +17,51 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::ikev2::ikev2::{IKEV2State,IKEV2Transaction};
 
 use crate::ikev2::ipsec_parser::IKEV2_FLAG_INITIATOR;
 
-#[no_mangle]
-pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State, tx: &mut IKEV2Transaction) -> *mut JsonT
+fn ikev2_log_response(state: &mut IKEV2State,
+                      tx: &mut IKEV2Transaction,
+                      jb: &mut JsonBuilder)
+                      -> Result<(), JsonError>
 {
-    let js = Json::object();
-    js.set_integer("version_major", tx.hdr.maj_ver as u64);
-    js.set_integer("version_minor", tx.hdr.min_ver as u64);
-    js.set_integer("exchange_type", tx.hdr.exch_type.0 as u64);
-    js.set_integer("message_id", tx.hdr.msg_id as u64);
-    js.set_string("init_spi", &format!("{:016x}", tx.hdr.init_spi));
-    js.set_string("resp_spi", &format!("{:016x}", tx.hdr.resp_spi));
+    jb.set_uint("version_major", tx.hdr.maj_ver as u64)?;
+    jb.set_uint("version_minor", tx.hdr.min_ver as u64)?;
+    jb.set_uint("exchange_type", tx.hdr.exch_type.0 as u64)?;
+    jb.set_uint("message_id", tx.hdr.msg_id as u64)?;
+    jb.set_string("init_spi", &format!("{:016x}", tx.hdr.init_spi))?;
+    jb.set_string("resp_spi", &format!("{:016x}", tx.hdr.resp_spi))?;
     if tx.hdr.flags & IKEV2_FLAG_INITIATOR != 0 {
-        js.set_string("role", &"initiator");
+        jb.set_string("role", &"initiator")?;
     } else {
-        js.set_string("role", &"responder");
-        js.set_string("alg_enc", &format!("{:?}", state.alg_enc));
-        js.set_string("alg_auth", &format!("{:?}", state.alg_auth));
-        js.set_string("alg_prf", &format!("{:?}", state.alg_prf));
-        js.set_string("alg_dh", &format!("{:?}", state.alg_dh));
-        js.set_string("alg_esn", &format!("{:?}", state.alg_esn));
+        jb.set_string("role", &"responder")?;
+        jb.set_string("alg_enc", &format!("{:?}", state.alg_enc))?;
+        jb.set_string("alg_auth", &format!("{:?}", state.alg_auth))?;
+        jb.set_string("alg_prf", &format!("{:?}", state.alg_prf))?;
+        jb.set_string("alg_dh", &format!("{:?}", state.alg_dh))?;
+        jb.set_string("alg_esn", &format!("{:?}", state.alg_esn))?;
     }
-    js.set_integer("errors", tx.errors as u64);
-    let jsa = Json::array();
+    jb.set_uint("errors", tx.errors as u64)?;
+    jb.open_array("payload")?;
     for payload in tx.payload_types.iter() {
-        jsa.array_append_string(&format!("{:?}", payload));
+        jb.append_string(&format!("{:?}", payload))?;
     }
-    js.set("payload", jsa);
-    let jsa = Json::array();
+    jb.close()?;
+    jb.open_array("notify")?;
     for notify in tx.notify_types.iter() {
-        jsa.array_append_string(&format!("{:?}", notify));
+        jb.append_string(&format!("{:?}", notify))?;
     }
-    js.set("notify", jsa);
-    return js.unwrap();
+    jb.close()?;
+    Ok(())
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State,
+                                             tx: &mut IKEV2Transaction,
+                                             jb: &mut JsonBuilder)
+                                             -> bool
+{
+    ikev2_log_response(state, tx, jb).is_ok()
 }

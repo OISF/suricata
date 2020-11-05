@@ -156,6 +156,14 @@ matrix:
         - *default-cflags
         - ARGS="--enable-debug"
         - ENABLE_DEBUG="yes"
+    # Linux, gcc, debug-validate.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,debug-validate"
+        - *default-cflags
+        - ARGS="--enable-debug-validation"
+        - NO_UNITTESTS="yes"
     # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc

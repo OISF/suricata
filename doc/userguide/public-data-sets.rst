@@ -1,7 +1,7 @@
 Public Data Sets
 ================
 
-Collections of pcaps for testing, profiling.
+Collections of pcaps for testing and profiling.
 
 DARPA sets: http://www.ll.mit.edu/mission/communications/cyber/CSTcorpora/ideval/data/
 
@@ -13,6 +13,6 @@ Netresec: http://www.netresec.com/?page=PcapFiles
 
 Wireshark: https://wiki.wireshark.org/SampleCaptures
 
-Security Onion collection: https://github.com/security-onion-solutions/security-onion/wiki/Pcaps
+Security Onion collection: https://securityonion.net/docs/Pcaps
 
 Stratosphere IPS. Malware Capture Facility Project: https://stratosphereips.org/category/dataset.html

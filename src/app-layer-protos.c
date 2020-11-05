@@ -104,6 +104,9 @@ const char *AppProtoToString(AppProto alproto)
             break;
         case ALPROTO_RFB:
             proto_name = "rfb";
+	    break;
+        case ALPROTO_MQTT:
+            proto_name = "mqtt";
             break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
@@ -113,6 +116,9 @@ const char *AppProtoToString(AppProto alproto)
             break;
         case ALPROTO_RDP:
             proto_name = "rdp";
+            break;
+        case ALPROTO_HTTP2:
+            proto_name = "http2";
             break;
         case ALPROTO_FAILED:
             proto_name = "failed";
@@ -154,9 +160,11 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
     if (strcmp(proto_name,"sip")==0) return ALPROTO_SIP;
     if (strcmp(proto_name,"rfb")==0) return ALPROTO_RFB;
+    if (strcmp(proto_name,"mqtt")==0) return ALPROTO_MQTT;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;
+    if (strcmp(proto_name,"http2")==0) return ALPROTO_HTTP2;
     if (strcmp(proto_name,"failed")==0) return ALPROTO_FAILED;
 
     return ALPROTO_UNKNOWN;

@@ -44,8 +44,7 @@
 #include "util-debug.h"
 #include "util-byte.h"
 #include "detect-pcre.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
+#include "detect-byte.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -55,7 +54,9 @@
 static DetectParseRegex parse_regex;
 
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectIsdataatRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectIsdataatRegisterTests(void);
+#endif
 void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
@@ -72,8 +73,9 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
     sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
-
+#endif
     sigmatch_table[DETECT_ENDS_WITH].name = "endswith";
     sigmatch_table[DETECT_ENDS_WITH].desc = "make sure the previous content matches exactly at the end of the buffer";
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
@@ -227,7 +229,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         prev_pm = DetectGetLastSMFromLists(s,
             DETECT_CONTENT, DETECT_PCRE,
             DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-            DETECT_ISDATAAT, -1);
+            DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
         else {
@@ -240,14 +242,14 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in isdataat - %s\n", offset);
             goto end;
         }
-        idad->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        idad->flags |= ISDATAAT_OFFSET_BE;
+        idad->dataat = index;
+        idad->flags |= ISDATAAT_OFFSET_VAR;
         SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
         offset = NULL;
@@ -668,14 +670,12 @@ static int DetectIsdataatTestPacket03 (void)
 end:
     return result;
 }
-#endif
 
 /**
  * \brief this function registers unit tests for DetectIsdataat
  */
 void DetectIsdataatRegisterTests(void)
 {
-#ifdef UNITTESTS
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
     UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01);
@@ -688,5 +688,5 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
     UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03);
-#endif
 }
+#endif

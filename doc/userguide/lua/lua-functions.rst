@@ -31,7 +31,7 @@ Get packets timestamp as 2 numbers: seconds & microseconds elapsed since
 SCPacketTimeString
 ~~~~~~~~~~~~~~~~~~
 
-Add SCPacketTimeString to get the packets time string in the format:
+Use ``SCPacketTimeString`` to get the packet's time string in the format:
 11/24/2009-18:57:25.179869
 
 ::
@@ -92,7 +92,7 @@ SCFlowTuple
 SCFlowAppLayerProto
 ~~~~~~~~~~~~~~~~~~~
 
-Get alprotos as string from the flow. If a alproto is not (yet) known, it
+Get alproto as a string from the flow. If a alproto is not (yet) known, it
 returns "unknown".
 
 Example:
@@ -175,7 +175,7 @@ HttpGetRequestBody and HttpGetResponseBody.
 Make normalized body data available to the script through
 HttpGetRequestBody and HttpGetResponseBody.
 
-There no guarantees that all of the body will be availble.
+There no guarantees that all of the body will be available.
 
 Example:
 
@@ -672,6 +672,72 @@ Example:
       end
   end
 
+
+HasshGet
+~~~~~~~~
+
+Get MD5 of hassh algorithms used by the client through HasshGet.
+
+Example:
+
+::
+
+  function log (args)
+      hassh = HasshGet()
+      if hassh == nil then
+          return 0
+      end
+  end
+
+HasshGetString
+~~~~~~~~~~~~~~
+
+Get hassh algorithms used by the client through HasshGetString.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshGetString()
+      if hassh == nil then
+          return 0
+      end
+  end
+  
+HasshServerGet
+~~~~~~~~~~~~~~
+
+Get MD5 of hassh algorithms used by the server through HasshServerGet.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshServerGet()
+      if hassh == nil then
+          return 0
+      end
+  end
+  
+HasshServerGetString
+~~~~~~~~~~~~~~~~~~~~
+
+Get hassh algorithms used by the server through HasshServerGetString.
+
+Example:
+
+::
+
+  function log (args)
+      hassh_string = HasshServerGetString()
+      if hassh == nil then
+          return 0
+      end
+  end
+
+
 Files
 -----
 
@@ -798,7 +864,7 @@ init function:
  end
 
 Here we define a `tls-cnt` Flowint that can now be used in output or in a
-signature via dedicted functions. The access to the Flow variable is done by
+signature via dedicated functions. The access to the Flow variable is done by
 index so in our case we need to use 0.
 
 ::

@@ -42,10 +42,10 @@
 #define DETECT_CONTENT_ENDS_WITH         BIT_U32(10)
 
 /* BE - byte extract */
-#define DETECT_CONTENT_OFFSET_BE         BIT_U32(11)
-#define DETECT_CONTENT_DEPTH_BE          BIT_U32(12)
-#define DETECT_CONTENT_DISTANCE_BE       BIT_U32(13)
-#define DETECT_CONTENT_WITHIN_BE         BIT_U32(14)
+#define DETECT_CONTENT_OFFSET_VAR        BIT_U32(11)
+#define DETECT_CONTENT_DEPTH_VAR         BIT_U32(12)
+#define DETECT_CONTENT_DISTANCE_VAR      BIT_U32(13)
+#define DETECT_CONTENT_WITHIN_VAR        BIT_U32(14)
 
 /* replace data */
 #define DETECT_CONTENT_REPLACE           BIT_U32(15)
@@ -71,7 +71,7 @@
 
 /* if a pattern has no depth/offset limits, no relative specifiers and isn't
  * chopped for the mpm, we can take the mpm and consider this pattern a match
- * w/o futher inspection. Warning: this may still mean other patterns depend
+ * w/o further inspection. Warning: this may still mean other patterns depend
  * on this pattern that force match validation anyway. */
 #define DETECT_CONTENT_MPM_IS_CONCLUSIVE(c) \
                                     !( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
@@ -93,7 +93,7 @@ typedef struct DetectContentData_ {
     uint16_t fp_chop_offset;
     /* would want to move PatIntId here and flags down to remove the padding
      * gap, but I think the first four members was used as a template for
-     * casting.  \todo check this and fix it if posssible */
+     * casting.  \todo check this and fix it if possible */
     uint32_t flags;
     PatIntId id;
     uint16_t depth;

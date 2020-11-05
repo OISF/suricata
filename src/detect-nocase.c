@@ -40,11 +40,7 @@ void DetectNocaseRegister(void)
     sigmatch_table[DETECT_NOCASE].name = "nocase";
     sigmatch_table[DETECT_NOCASE].desc = "modify content match to be case insensitive";
     sigmatch_table[DETECT_NOCASE].url = "/rules/payload-keywords.html#nocase";
-    sigmatch_table[DETECT_NOCASE].Match = NULL;
     sigmatch_table[DETECT_NOCASE].Setup = DetectNocaseSetup;
-    sigmatch_table[DETECT_NOCASE].Free  = NULL;
-    sigmatch_table[DETECT_NOCASE].RegisterTests = NULL;
-
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_NOOPT;
 }
 

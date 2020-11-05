@@ -25,6 +25,6 @@
 #define __OUTPUT_JSON_SMTP_H__
 
 void JsonSmtpLogRegister(void);
-json_t *JsonSMTPAddMetadata(const Flow *f, uint64_t tx_id);
+bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_SMTP_H__ */

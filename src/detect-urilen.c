@@ -51,9 +51,10 @@ static DetectParseRegex parse_regex;
 
 /*prototypes*/
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectUrilenFree (DetectEngineCtx *, void *);
-void DetectUrilenRegisterTests (void);
-
+static void DetectUrilenFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
+static void DetectUrilenRegisterTests (void);
+#endif
 static int g_http_uri_buffer_id = 0;
 static int g_http_raw_uri_buffer_id = 0;
 
@@ -69,8 +70,9 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].Match = NULL;
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
@@ -88,7 +90,6 @@ void DetectUrilenRegister(void)
 
 static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 {
-
     DetectUrilenData *urilend = NULL;
     char *arg1 = NULL;
     char *arg2 = NULL;
@@ -274,7 +275,7 @@ error:
  *
  * \param ptr pointer to DetectUrilenData
  */
-void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -726,14 +727,11 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectUrilen
  */
 void DetectUrilenRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectUrilenParseTest01", DetectUrilenParseTest01);
     UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02);
     UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03);
@@ -746,5 +744,5 @@ void DetectUrilenRegisterTests(void)
     UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10);
     UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01);
     UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

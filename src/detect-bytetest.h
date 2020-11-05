@@ -46,8 +46,8 @@
 #define DETECT_BYTETEST_RELATIVE  BIT_U8(3) /**< "relative" offset */
 #define DETECT_BYTETEST_DCE       BIT_U8(4) /**< dce enabled */
 #define DETECT_BYTETEST_BITMASK   BIT_U8(5) /**< bitmask supplied*/
-#define DETECT_BYTETEST_VALUE_BE  BIT_U8(6) /**< byte extract value enabled */
-#define DETECT_BYTETEST_OFFSET_BE BIT_U8(7) /**< byte extract value enabled */
+#define DETECT_BYTETEST_VALUE_VAR  BIT_U8(6) /**< byte extract value enabled */
+#define DETECT_BYTETEST_OFFSET_VAR BIT_U8(7) /**< byte extract value enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */

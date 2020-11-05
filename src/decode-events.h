@@ -28,100 +28,100 @@
 /* packet decoder events */
 enum {
     /* IPV4 EVENTS */
-    IPV4_PKT_TOO_SMALL = 0,         /**< ipv4 pkt smaller than minimum header size */
-    IPV4_HLEN_TOO_SMALL,            /**< ipv4 header smaller than minimum size */
-    IPV4_IPLEN_SMALLER_THAN_HLEN,   /**< ipv4 pkt len smaller than ip header size */
-    IPV4_TRUNC_PKT,                 /**< truncated ipv4 packet */
+    IPV4_PKT_TOO_SMALL = 0,       /**< ipv4 pkt smaller than minimum header size */
+    IPV4_HLEN_TOO_SMALL,          /**< ipv4 header smaller than minimum size */
+    IPV4_IPLEN_SMALLER_THAN_HLEN, /**< ipv4 pkt len smaller than ip header size */
+    IPV4_TRUNC_PKT,               /**< truncated ipv4 packet */
 
     /* IPV4 OPTIONS */
-    IPV4_OPT_INVALID,               /**< invalid ip options */
-    IPV4_OPT_INVALID_LEN,           /**< ip options with invalid len */
-    IPV4_OPT_MALFORMED,             /**< malformed ip options */
-    IPV4_OPT_PAD_REQUIRED,          /**< pad bytes are needed in ip options */
-    IPV4_OPT_EOL_REQUIRED,          /**< "end of list" needed in ip options */
-    IPV4_OPT_DUPLICATE,             /**< duplicated ip option */
-    IPV4_OPT_UNKNOWN,               /**< unknown ip option */
-    IPV4_WRONG_IP_VER,              /**< wrong ip version in ip options */
-    IPV4_WITH_ICMPV6,               /**< IPv4 packet with ICMPv6 header */
+    IPV4_OPT_INVALID,      /**< invalid ip options */
+    IPV4_OPT_INVALID_LEN,  /**< ip options with invalid len */
+    IPV4_OPT_MALFORMED,    /**< malformed ip options */
+    IPV4_OPT_PAD_REQUIRED, /**< pad bytes are needed in ip options */
+    IPV4_OPT_EOL_REQUIRED, /**< "end of list" needed in ip options */
+    IPV4_OPT_DUPLICATE,    /**< duplicated ip option */
+    IPV4_OPT_UNKNOWN,      /**< unknown ip option */
+    IPV4_WRONG_IP_VER,     /**< wrong ip version in ip options */
+    IPV4_WITH_ICMPV6,      /**< IPv4 packet with ICMPv6 header */
 
     /* ICMP EVENTS */
-    ICMPV4_PKT_TOO_SMALL,           /**< icmpv4 packet smaller than minimum size */
-    ICMPV4_UNKNOWN_TYPE,            /**< icmpv4 unknown type */
-    ICMPV4_UNKNOWN_CODE,            /**< icmpv4 unknown code */
-    ICMPV4_IPV4_TRUNC_PKT,          /**< truncated icmpv4 packet */
-    ICMPV4_IPV4_UNKNOWN_VER,        /**< unknown version in icmpv4 packet*/
+    ICMPV4_PKT_TOO_SMALL,    /**< icmpv4 packet smaller than minimum size */
+    ICMPV4_UNKNOWN_TYPE,     /**< icmpv4 unknown type */
+    ICMPV4_UNKNOWN_CODE,     /**< icmpv4 unknown code */
+    ICMPV4_IPV4_TRUNC_PKT,   /**< truncated icmpv4 packet */
+    ICMPV4_IPV4_UNKNOWN_VER, /**< unknown version in icmpv4 packet*/
 
     /* ICMPv6 EVENTS */
-    ICMPV6_UNKNOWN_TYPE,            /**< icmpv6 unknown type */
-    ICMPV6_UNKNOWN_CODE,            /**< icmpv6 unknown code */
-    ICMPV6_PKT_TOO_SMALL,           /**< icmpv6 smaller than minimum size */
-    ICMPV6_IPV6_UNKNOWN_VER,        /**< unknown version in icmpv6 packet */
-    ICMPV6_IPV6_TRUNC_PKT,          /**< truncated icmpv6 packet */
+    ICMPV6_UNKNOWN_TYPE,                /**< icmpv6 unknown type */
+    ICMPV6_UNKNOWN_CODE,                /**< icmpv6 unknown code */
+    ICMPV6_PKT_TOO_SMALL,               /**< icmpv6 smaller than minimum size */
+    ICMPV6_IPV6_UNKNOWN_VER,            /**< unknown version in icmpv6 packet */
+    ICMPV6_IPV6_TRUNC_PKT,              /**< truncated icmpv6 packet */
     ICMPV6_MLD_MESSAGE_WITH_INVALID_HL, /**< invalid MLD that doesn't have HL 1 */
-    ICMPV6_UNASSIGNED_TYPE,         /**< unsassigned ICMPv6 type */
-    ICMPV6_EXPERIMENTATION_TYPE,    /**< uprivate experimentation ICMPv6 type */
+    ICMPV6_UNASSIGNED_TYPE,             /**< unsassigned ICMPv6 type */
+    ICMPV6_EXPERIMENTATION_TYPE,        /**< uprivate experimentation ICMPv6 type */
 
     /* IPV6 EVENTS */
-    IPV6_PKT_TOO_SMALL,             /**< ipv6 packet smaller than minimum size */
-    IPV6_TRUNC_PKT,                 /**< truncated ipv6 packet */
-    IPV6_TRUNC_EXTHDR,              /**< truncated ipv6 extension header */
-    IPV6_EXTHDR_DUPL_FH,            /**< duplicated "fragment" header in ipv6 extension headers */
-    IPV6_EXTHDR_USELESS_FH,         /**< useless FH: offset 0 + no more fragments */
-    IPV6_EXTHDR_DUPL_RH,            /**< duplicated "routing" header in ipv6 extension headers */
-    IPV6_EXTHDR_DUPL_HH,            /**< duplicated "hop-by-hop" header in ipv6 extension headers */
-    IPV6_EXTHDR_DUPL_DH,            /**< duplicated "destination" header in ipv6 extension headers */
-    IPV6_EXTHDR_DUPL_AH,            /**< duplicated "authentication" header in ipv6 extension headers */
-    IPV6_EXTHDR_DUPL_EH,            /**< duplicated "ESP" header in ipv6 extension headers */
+    IPV6_PKT_TOO_SMALL,     /**< ipv6 packet smaller than minimum size */
+    IPV6_TRUNC_PKT,         /**< truncated ipv6 packet */
+    IPV6_TRUNC_EXTHDR,      /**< truncated ipv6 extension header */
+    IPV6_EXTHDR_DUPL_FH,    /**< duplicated "fragment" header in ipv6 extension headers */
+    IPV6_EXTHDR_USELESS_FH, /**< useless FH: offset 0 + no more fragments */
+    IPV6_EXTHDR_DUPL_RH,    /**< duplicated "routing" header in ipv6 extension headers */
+    IPV6_EXTHDR_DUPL_HH,    /**< duplicated "hop-by-hop" header in ipv6 extension headers */
+    IPV6_EXTHDR_DUPL_DH,    /**< duplicated "destination" header in ipv6 extension headers */
+    IPV6_EXTHDR_DUPL_AH,    /**< duplicated "authentication" header in ipv6 extension headers */
+    IPV6_EXTHDR_DUPL_EH,    /**< duplicated "ESP" header in ipv6 extension headers */
 
-    IPV6_EXTHDR_INVALID_OPTLEN,     /**< the opt len in an hop or dst hdr is invalid. */
-    IPV6_WRONG_IP_VER,              /**< wrong version in ipv6 */
-    IPV6_EXTHDR_AH_RES_NOT_NULL,    /**< AH hdr reserved fields not null (rfc 4302) */
+    IPV6_EXTHDR_INVALID_OPTLEN,  /**< the opt len in an hop or dst hdr is invalid. */
+    IPV6_WRONG_IP_VER,           /**< wrong version in ipv6 */
+    IPV6_EXTHDR_AH_RES_NOT_NULL, /**< AH hdr reserved fields not null (rfc 4302) */
 
-    IPV6_HOPOPTS_UNKNOWN_OPT,       /**< unknown HOP opt */
-    IPV6_HOPOPTS_ONLY_PADDING,      /**< all options in HOP opts are padding */
-    IPV6_DSTOPTS_UNKNOWN_OPT,       /**< unknown DST opt */
-    IPV6_DSTOPTS_ONLY_PADDING,      /**< all options in DST opts are padding */
+    IPV6_HOPOPTS_UNKNOWN_OPT,  /**< unknown HOP opt */
+    IPV6_HOPOPTS_ONLY_PADDING, /**< all options in HOP opts are padding */
+    IPV6_DSTOPTS_UNKNOWN_OPT,  /**< unknown DST opt */
+    IPV6_DSTOPTS_ONLY_PADDING, /**< all options in DST opts are padding */
 
-    IPV6_EXTHDR_RH_TYPE_0,          /**< RH 0 is deprecated as per rfc5095 */
-    IPV6_EXTHDR_ZERO_LEN_PADN,      /**< padN w/o data (0 len) */
-    IPV6_FH_NON_ZERO_RES_FIELD,     /**< reserved field not zero */
-    IPV6_DATA_AFTER_NONE_HEADER,    /**< data after 'none' (59) header */
+    IPV6_EXTHDR_RH_TYPE_0,       /**< RH 0 is deprecated as per rfc5095 */
+    IPV6_EXTHDR_ZERO_LEN_PADN,   /**< padN w/o data (0 len) */
+    IPV6_FH_NON_ZERO_RES_FIELD,  /**< reserved field not zero */
+    IPV6_DATA_AFTER_NONE_HEADER, /**< data after 'none' (59) header */
 
-    IPV6_UNKNOWN_NEXT_HEADER,       /**< unknown/unsupported next header */
-    IPV6_WITH_ICMPV4,               /**< IPv6 packet with ICMPv4 header */
+    IPV6_UNKNOWN_NEXT_HEADER, /**< unknown/unsupported next header */
+    IPV6_WITH_ICMPV4,         /**< IPv6 packet with ICMPv4 header */
 
     /* TCP EVENTS */
-    TCP_PKT_TOO_SMALL,              /**< tcp packet smaller than minimum size */
-    TCP_HLEN_TOO_SMALL,             /**< tcp header smaller than minimum size */
-    TCP_INVALID_OPTLEN,             /**< invalid len in tcp options */
+    TCP_PKT_TOO_SMALL,  /**< tcp packet smaller than minimum size */
+    TCP_HLEN_TOO_SMALL, /**< tcp header smaller than minimum size */
+    TCP_INVALID_OPTLEN, /**< invalid len in tcp options */
 
     /* TCP OPTIONS */
-    TCP_OPT_INVALID_LEN,            /**< tcp option with invalid len */
-    TCP_OPT_DUPLICATE,              /**< duplicated tcp option */
+    TCP_OPT_INVALID_LEN, /**< tcp option with invalid len */
+    TCP_OPT_DUPLICATE,   /**< duplicated tcp option */
 
     /* UDP EVENTS */
-    UDP_PKT_TOO_SMALL,              /**< udp packet smaller than minimum size */
-    UDP_HLEN_TOO_SMALL,             /**< udp header smaller than minimum size */
-    UDP_HLEN_INVALID,               /**< invalid len of upd header */
+    UDP_PKT_TOO_SMALL,  /**< udp packet smaller than minimum size */
+    UDP_HLEN_TOO_SMALL, /**< udp header smaller than minimum size */
+    UDP_HLEN_INVALID,   /**< invalid len of upd header */
 
     /* SLL EVENTS */
-    SLL_PKT_TOO_SMALL,              /**< sll packet smaller than minimum size */
+    SLL_PKT_TOO_SMALL, /**< sll packet smaller than minimum size */
 
     /* ETHERNET EVENTS */
-    ETHERNET_PKT_TOO_SMALL,         /**< ethernet packet smaller than minimum size */
+    ETHERNET_PKT_TOO_SMALL, /**< ethernet packet smaller than minimum size */
 
     /* PPP EVENTS */
-    PPP_PKT_TOO_SMALL,              /**< ppp packet smaller than minimum size */
-    PPPVJU_PKT_TOO_SMALL,           /**< ppp vj uncompressed packet smaller than minimum size */
-    PPPIPV4_PKT_TOO_SMALL,          /**< ppp ipv4 packet smaller than minimum size */
-    PPPIPV6_PKT_TOO_SMALL,          /**< ppp ipv6 packet smaller than minimum size */
-    PPP_WRONG_TYPE,                 /**< wrong type in ppp frame */
-    PPP_UNSUP_PROTO,                /**< protocol not supported for ppp */
+    PPP_PKT_TOO_SMALL,     /**< ppp packet smaller than minimum size */
+    PPPVJU_PKT_TOO_SMALL,  /**< ppp vj uncompressed packet smaller than minimum size */
+    PPPIPV4_PKT_TOO_SMALL, /**< ppp ipv4 packet smaller than minimum size */
+    PPPIPV6_PKT_TOO_SMALL, /**< ppp ipv6 packet smaller than minimum size */
+    PPP_WRONG_TYPE,        /**< wrong type in ppp frame */
+    PPP_UNSUP_PROTO,       /**< protocol not supported for ppp */
 
     /* PPPOE EVENTS */
-    PPPOE_PKT_TOO_SMALL,            /**< pppoe packet smaller than minimum size */
-    PPPOE_WRONG_CODE,               /**< wrong code for pppoe */
-    PPPOE_MALFORMED_TAGS,           /**< malformed tags in pppoe */
+    PPPOE_PKT_TOO_SMALL,  /**< pppoe packet smaller than minimum size */
+    PPPOE_WRONG_CODE,     /**< wrong code for pppoe */
+    PPPOE_MALFORMED_TAGS, /**< malformed tags in pppoe */
 
     /* GRE EVENTS */
     GRE_PKT_TOO_SMALL,              /**< gre packet smaller than minimum size */
@@ -141,18 +141,18 @@ enum {
     GRE_VERSION1_HDR_TOO_BIG,       /**< gre v1 header too big */
 
     /* VLAN EVENTS */
-    VLAN_HEADER_TOO_SMALL,          /**< vlan header smaller than minimum size */
-    VLAN_UNKNOWN_TYPE,              /**< vlan unknown type */
+    VLAN_HEADER_TOO_SMALL, /**< vlan header smaller than minimum size */
+    VLAN_UNKNOWN_TYPE,     /**< vlan unknown type */
     VLAN_HEADER_TOO_MANY_LAYERS,
 
     IEEE8021AH_HEADER_TOO_SMALL,
 
     /* RAW EVENTS */
-    IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
+    IPRAW_INVALID_IPV, /**< invalid ip version in ip raw */
 
     /* LINKTYPE NULL EVENTS */
-    LTNULL_PKT_TOO_SMALL,           /**< pkt too small for lt:null */
-    LTNULL_UNSUPPORTED_TYPE,        /**< pkt has a type that the decoder doesn't support */
+    LTNULL_PKT_TOO_SMALL,    /**< pkt too small for lt:null */
+    LTNULL_UNSUPPORTED_TYPE, /**< pkt has a type that the decoder doesn't support */
 
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
@@ -182,6 +182,12 @@ enum {
     MPLS_BAD_LABEL_IMPLICIT_NULL,
     MPLS_BAD_LABEL_RESERVED,
     MPLS_UNKNOWN_PAYLOAD_TYPE,
+
+    /* VXLAN events */
+    VXLAN_UNKNOWN_PAYLOAD_TYPE,
+
+    /* Geneve events */
+    GENEVE_UNKNOWN_PAYLOAD_TYPE,
 
     /* ERSPAN events */
     ERSPAN_HEADER_TOO_SMALL,

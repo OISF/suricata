@@ -41,9 +41,12 @@
         (f)->dp = 0; \
         (f)->proto = 0; \
         (f)->livedev = NULL; \
+        (f)->timeout_at = 0; \
+        (f)->timeout_policy = 0; \
         (f)->vlan_idx = 0; \
-        SC_ATOMIC_INIT((f)->flow_state); \
-        SC_ATOMIC_INIT((f)->use_cnt); \
+        (f)->next = NULL; \
+        (f)->flow_state = 0; \
+        (f)->use_cnt = 0; \
         (f)->tenant_id = 0; \
         (f)->parent_id = 0; \
         (f)->probing_parser_toserver_alproto_masks = 0; \
@@ -69,16 +72,12 @@
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         (f)->flowvar = NULL; \
-        (f)->hnext = NULL; \
-        (f)->hprev = NULL; \
-        (f)->lnext = NULL; \
-        (f)->lprev = NULL; \
         RESET_COUNTERS((f)); \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
  *
- *  Note that the lnext, lprev, hnext, hprev fields are untouched, those are
+ *  Note that the lnext, lprev, hnext fields are untouched, those are
  *  managed by the queueing code. Same goes for fb (FlowBucket ptr) field.
  */
 #define FLOW_RECYCLE(f) do { \
@@ -88,8 +87,12 @@
         (f)->proto = 0; \
         (f)->livedev = NULL; \
         (f)->vlan_idx = 0; \
-        SC_ATOMIC_RESET((f)->flow_state); \
-        SC_ATOMIC_RESET((f)->use_cnt); \
+        (f)->ffr = 0; \
+        (f)->next = NULL; \
+        (f)->timeout_at = 0; \
+        (f)->timeout_policy = 0; \
+        (f)->flow_state = 0; \
+        (f)->use_cnt = 0; \
         (f)->tenant_id = 0; \
         (f)->parent_id = 0; \
         (f)->probing_parser_toserver_alproto_masks = 0; \
@@ -115,6 +118,12 @@
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
+        if (MacSetFlowStorageEnabled()) { \
+            MacSet *ms = FlowGetStorageById((f), MacSetGetFlowStorageID()); \
+            if (ms != NULL) { \
+                MacSetReset(ms); \
+            } \
+        } \
         RESET_COUNTERS((f)); \
     } while(0)
 

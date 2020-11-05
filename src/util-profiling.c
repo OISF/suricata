@@ -159,9 +159,8 @@ SCProfilingInit(void)
             profiling_packets_enabled = 1;
 
             if (pthread_mutex_init(&packet_profile_lock, NULL) != 0) {
-                SCLogError(SC_ERR_MUTEX,
-                        "Failed to initialize packet profiling mutex.");
-                exit(EXIT_FAILURE);
+                        FatalError(SC_ERR_FATAL,
+                                   "Failed to initialize packet profiling mutex.");
             }
             memset(&packet_profile_data4, 0, sizeof(packet_profile_data4));
             memset(&packet_profile_data6, 0, sizeof(packet_profile_data6));
@@ -208,8 +207,7 @@ SCProfilingInit(void)
 
                 profiling_csv_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_csv_file_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "out of memory");
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL, "out of memory");
                 }
                 snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
@@ -243,8 +241,7 @@ SCProfilingInit(void)
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_locks_file_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL, "can't duplicate file name");
                 }
 
                 snprintf(profiling_locks_file_name, PATH_MAX, "%s/%s", log_dir, filename);
@@ -1321,8 +1318,11 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_SIP);
         CASE_CODE (LOGGER_JSON_TEMPLATE_RUST);
         CASE_CODE (LOGGER_JSON_RFB);
+        CASE_CODE (LOGGER_JSON_MQTT);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
         CASE_CODE (LOGGER_JSON_RDP);
+        CASE_CODE (LOGGER_JSON_DCERPC);
+        CASE_CODE (LOGGER_JSON_HTTP2);
         CASE_CODE (LOGGER_TLS_STORE);
         CASE_CODE (LOGGER_TLS);
         CASE_CODE (LOGGER_FILE_STORE);
@@ -1350,7 +1350,7 @@ ProfilingGenericTicksTest01(void)
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
     void *ptr[TEST_RUNS];
-    int i;
+    unsigned int i;
 
     ticks_start = UtilCpuGetTicks();
     for (i = 0; i < TEST_RUNS; i++) {

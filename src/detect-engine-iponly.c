@@ -531,8 +531,8 @@ static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayNew. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SigNumArrayNew. Exiting...");
     }
     memset(new, 0, sizeof(SigNumArray));
 
@@ -562,8 +562,8 @@ static SigNumArray *SigNumArrayCopy(SigNumArray *orig)
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayCopy. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in SigNumArrayCopy. Exiting...");
     }
 
     memset(new, 0, sizeof(SigNumArray));
@@ -874,8 +874,8 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     io_ctx->sig_init_size = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
 
     if ( (io_ctx->sig_init_array = SCMalloc(io_ctx->sig_init_size)) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in IPOnlyInit. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in IPOnlyInit. Exiting...");
     }
 
     memset(io_ctx->sig_init_array, 0, io_ctx->sig_init_size);

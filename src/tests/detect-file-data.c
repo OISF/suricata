@@ -73,7 +73,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
 
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
@@ -205,7 +205,7 @@ static int DetectEngineSMTPFiledataTest03(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
 
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;

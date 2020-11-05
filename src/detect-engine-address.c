@@ -1264,17 +1264,19 @@ int DetectAddressTestConfVars(void)
 
         if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                        "failed to parse address var \"%s\" with value \"%s\". "
-                        "Please check it's syntax", seq_node->name, seq_node->val);
+                    "failed to parse address var \"%s\" with value \"%s\". "
+                    "Please check its syntax",
+                    seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                       "address var - \"%s\" has the complete IP space negated "
-                       "with it's value \"%s\".  Rule address range is NIL. "
-                       "Probably have a !any or an address range that supplies "
-                       "a NULL address range", seq_node->name, seq_node->val);
+                    "address var - \"%s\" has the complete IP space negated "
+                    "with its value \"%s\".  Rule address range is NIL. "
+                    "Probably have a !any or an address range that supplies "
+                    "a NULL address range",
+                    seq_node->name, seq_node->val);
             goto error;
         }
 

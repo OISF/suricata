@@ -236,8 +236,8 @@ void IPPairInitConfig(char quiet)
     }
     ippair_hash = SCMallocAligned(ippair_config.hash_size * sizeof(IPPairHashRow), CLS);
     if (unlikely(ippair_hash == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in IPPairInitConfig. Exiting...");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL,
+                   "Fatal error encountered in IPPairInitConfig. Exiting...");
     }
     memset(ippair_hash, 0, ippair_config.hash_size * sizeof(IPPairHashRow));
 

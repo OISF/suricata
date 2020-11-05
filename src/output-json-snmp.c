@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2019 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,6 +55,7 @@ typedef struct LogSNMPFileCtx_ {
 } LogSNMPFileCtx;
 
 typedef struct LogSNMPLogThread_ {
+    LogFileCtx *file_ctx;
     LogSNMPFileCtx *snmplog_ctx;
     MemBuffer          *buffer;
 } LogSNMPLogThread;
@@ -64,29 +65,28 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
 {
     SNMPTransaction *snmptx = tx;
     LogSNMPLogThread *thread = thread_data;
-    json_t *js, *snmpjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "snmp");
-    if (unlikely(js == NULL)) {
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "snmp", NULL);
+    if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, jb);
 
-    snmpjs = rs_snmp_log_json_response(state, snmptx);
-    if (unlikely(snmpjs == NULL)) {
+    jb_open_object(jb, "snmp");
+    if (!rs_snmp_log_json_response(jb, state, snmptx)) {
         goto error;
     }
-    json_object_set_new(js, "snmp", snmpjs);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->snmplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(jb);
     return TM_ECODE_FAILED;
 }
 
@@ -136,20 +136,30 @@ static TmEcode JsonSNMPLogThreadInit(ThreadVars *t, const void *initdata, void *
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogSNMP.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     thread->snmplog_ctx = ((OutputCtx *)initdata)->data;
-    *data = (void *)thread;
 
+    thread->file_ctx = LogFileEnsureExists(thread->snmplog_ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error_exit;
+    }
+
+    *data = (void *)thread;
     return TM_ECODE_OK;
+
+error_exit:
+    if (thread->buffer != NULL) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonSNMPLogThreadDeinit(ThreadVars *t, void *data)

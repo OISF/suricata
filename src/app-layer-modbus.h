@@ -37,6 +37,7 @@
 #include "decode.h"
 #include "detect-engine-state.h"
 #include "queue.h"
+#include "rust.h"
 
 /* Modbus Application Data Unit (ADU)
  * and Protocol Data Unit (PDU) messages */
@@ -86,7 +87,6 @@ typedef struct ModbusTransaction_ {
     struct ModbusState_ *modbus;
 
     uint64_t    tx_num;         /**< internal: id */
-    uint32_t    logged;         /**< flags indicating which loggers have logged */
     uint16_t    transactionId;
     uint16_t    length;
     uint8_t     unit_id;
@@ -114,8 +114,7 @@ typedef struct ModbusTransaction_ {
 
     AppLayerDecoderEvents *decoder_events;  /**< per tx events */
     DetectEngineState *de_state;
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
+    AppLayerTxData tx_data;
 
     TAILQ_ENTRY(ModbusTransaction_) next;
 } ModbusTransaction;

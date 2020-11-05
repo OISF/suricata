@@ -259,6 +259,13 @@ field. The tos keyword can be have a value from 0 - 255. This field of the
 IP header has been updated by `rfc2474 <https://tools.ietf.org/html/rfc2474>`_
 to include functionality for
 `Differentiated services <https://en.wikipedia.org/wiki/Differentiated_services>`_.
+Note that the value of the field has been defined with the right-most 2 bits having
+the value 0. When specifying a value for tos, ensure that the value follows this.
+
+E.g, instead of specifying the decimal value 34 (hex 22), right shift twice and use
+decimal 136 (hex 88).
+
+You can specify hexadecimal values as with a leading `x`, e.g, `x88`.
 
 Format of tos::
 

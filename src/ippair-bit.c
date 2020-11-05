@@ -50,8 +50,7 @@ void IPPairBitInitCtx(void)
 {
     ippair_bit_id = IPPairStorageRegister("bit", sizeof(void *), NULL, XBitFreeAll);
     if (ippair_bit_id == -1) {
-        SCLogError(SC_ERR_IPPAIR_INIT, "Can't initiate ippair storage for bits");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_FATAL, "Can't initiate ippair storage for bits");
     }
 }
 

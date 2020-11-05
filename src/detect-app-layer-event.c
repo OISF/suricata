@@ -51,7 +51,9 @@
 static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectAppLayerEventRegisterTests(void);
+#endif
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -72,9 +74,10 @@ void DetectAppLayerEventRegister(void)
         DetectAppLayerEventPktMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetupP1;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
-
+#endif
     DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
             DetectEngineAptEventInspect);
@@ -162,6 +165,16 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     return aled;
 }
 
+static bool OutdatedEvent(const char *raw)
+{
+    if (strcmp(raw, "tls.certificate_missing_element") == 0 ||
+            strcmp(raw, "tls.certificate_unknown_element") == 0 ||
+            strcmp(raw, "tls.certificate_invalid_string") == 0) {
+        return true;
+    }
+    return false;
+}
+
 /** \retval int 0 ok
   * \retval int -1 error
   * \retval int -3 non-fatal error: sig will be rejected w/o raising error
@@ -174,6 +187,18 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     uint8_t ipproto;
     char alproto_name[MAX_ALPROTO_NAME];
     int r = 0;
+
+    if (OutdatedEvent(data->arg)) {
+        if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            return -1;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_SIGNATURE,
+                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            return -3;
+        }
+    }
 
     const char *p_idx = strchr(data->arg, '.');
     if (strlen(data->arg) > MAX_ALPROTO_NAME) {
@@ -806,21 +831,17 @@ static int DetectAppLayerEventTest06(void)
     DetectAppLayerEventFree(NULL, aled);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief This function registers unit tests for "app-layer-event" keyword.
  */
-void DetectAppLayerEventRegisterTests(void)
+static void DetectAppLayerEventRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectAppLayerEventTest01", DetectAppLayerEventTest01);
     UtRegisterTest("DetectAppLayerEventTest02", DetectAppLayerEventTest02);
     UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
     UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
     UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
     UtRegisterTest("DetectAppLayerEventTest06", DetectAppLayerEventTest06);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

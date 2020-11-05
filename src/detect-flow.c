@@ -51,7 +51,9 @@ static DetectParseRegex parse_regex;
 int DetectFlowMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectFlowRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectFlowRegisterTests(void);
+#endif
 void DetectFlowFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -68,8 +70,9 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
-
+#endif
     sigmatch_table[DETECT_FLOW].SupportsPrefilter = PrefilterFlowIsPrefilterable;
     sigmatch_table[DETECT_FLOW].SetupPrefilter = PrefilterSetupFlow;
 
@@ -935,12 +938,12 @@ static int DetectFlowTestParse21 (void)
 
 static int DetectFlowSigTest01(void)
 {
-    ThreadVars th_v;
-    DecodeThreadVars dtv;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
     uint8_t *buf = (uint8_t *)"supernovaduper";
     uint16_t buflen = strlen((char *)buf);
+    ThreadVars th_v;
+    DecodeThreadVars dtv;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
 
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -948,10 +951,7 @@ static int DetectFlowSigTest01(void)
     const char *sig1 = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"nova\"; flow:no_stream; sid:1;)";
 
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(th_v));
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
@@ -959,22 +959,16 @@ static int DetectFlowSigTest01(void)
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1) != 1);
 
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    if (p != NULL)
-        UTHFreePacket(p);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePacket(p);
 
     PASS;
 }
@@ -1061,14 +1055,11 @@ static int DetectFlowTestOnlyFragMatch(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief this function registers unit tests for DetectFlow
  */
-void DetectFlowRegisterTests(void)
+static void DetectFlowRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectFlowTestParse01", DetectFlowTestParse01);
     UtRegisterTest("DetectFlowTestParse02", DetectFlowTestParse02);
     UtRegisterTest("DetectFlowTestParse03", DetectFlowTestParse03);
@@ -1114,5 +1105,5 @@ void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestOnlyFragMatch", DetectFlowTestOnlyFragMatch);
 
     UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

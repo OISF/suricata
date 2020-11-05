@@ -173,7 +173,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
                 for (int i = 0; i < transforms->cnt; i++) {
                     char ttstr[64];
                     (void)snprintf(ttstr,sizeof(ttstr), "%s,",
-                            sigmatch_table[transforms->transforms[i]].name);
+                            sigmatch_table[transforms->transforms[i].transform].name);
                     strlcat(xforms, ttstr, sizeof(xforms));
                 }
                 xforms[strlen(xforms)-1] = '\0';
@@ -619,20 +619,17 @@ uint16_t PatternMatchDefaultMatcher(void)
 
     /* Get the mpm algo defined in config file by the user */
     if ((ConfGet("mpm-algo", &mpm_algo)) == 1) {
-        uint16_t u;
-
         if (mpm_algo != NULL) {
 #if __BYTE_ORDER == __BIG_ENDIAN
             if (strcmp(mpm_algo, "ac-ks") == 0) {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "ac-ks does "
-                        "not work on big endian systems at this time.");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "ac-ks does "
+                           "not work on big endian systems at this time.");
             }
 #endif
             if (strcmp("auto", mpm_algo) == 0) {
                 goto done;
             }
-            for (u = 0; u < MPM_TABLE_SIZE; u++) {
+            for (uint16_t u = 0; u < MPM_TABLE_SIZE; u++) {
                 if (mpm_table[u].name == NULL)
                     continue;
 
@@ -641,11 +638,16 @@ uint16_t PatternMatchDefaultMatcher(void)
                     goto done;
                 }
             }
-        }
 
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid mpm algo supplied "
+#ifndef BUILD_HYPERSCAN
+            if ((strcmp(mpm_algo, "hs") == 0)) {
+                FatalError(SC_ERR_INVALID_VALUE, "Hyperscan (hs) support for mpm-algo is "
+                        "not compiled into Suricata.");
+            }
+#endif
+        }
+        FatalError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid mpm algo supplied "
                 "in the yaml conf file: \"%s\"", mpm_algo);
-        exit(EXIT_FAILURE);
     }
 
  done:
@@ -739,7 +741,7 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx,
     /* We have to effectively "wild card" values that will be coming from
      * byte_extract variables
      */
-    if (cd->flags & (DETECT_CONTENT_DEPTH_BE | DETECT_CONTENT_OFFSET_BE)) {
+    if (cd->flags & (DETECT_CONTENT_DEPTH_VAR | DETECT_CONTENT_OFFSET_VAR)) {
         pat_depth = pat_offset = 0;
     }
 

@@ -35,6 +35,8 @@ void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
+bool DetectBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
+        const uint8_t *content, uint16_t content_len, const char **namestr);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
 InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleForList *fb, uint32_t local_id);
@@ -55,7 +57,7 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
         bool (*ValidateCallback)(const Signature *, const char **sigerror));
 
 int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
-        int *transforms, int transform_cnt);
+        TransformData *transforms, int transform_cnt);
 const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);

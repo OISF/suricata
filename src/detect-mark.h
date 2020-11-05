@@ -52,10 +52,4 @@ typedef struct DetectMarkData_ {
 
 void DetectMarkRegister (void);
 
-/**
- * This function registers unit tests for Mark
- */
-
-void MarkRegisterTests(void);
-
 #endif /*__DETECT_MARK_H__ */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,9 +35,11 @@
 #include "util-print.h"
 
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTransformStripWhitespaceRegisterTests(void);
-
-static void TransformStripWhitespace(InspectionBuffer *buffer);
+#endif
+static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
+static bool TransformStripWhitespaceValidate(const uint8_t *content, uint16_t content_len, void *options);
 
 void DetectTransformStripWhitespaceRegister(void)
 {
@@ -48,11 +50,14 @@ void DetectTransformStripWhitespaceRegister(void)
         "/rules/transforms.html#strip-whitespace";
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Transform =
         TransformStripWhitespace;
+    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].TransformValidate =
+        TransformStripWhitespaceValidate;
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Setup =
         DetectTransformStripWhitespaceSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].RegisterTests =
         DetectTransformStripWhitespaceRegisterTests;
-
+#endif
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].flags |= SIGMATCH_NOOPT;
 }
 
@@ -68,11 +73,32 @@ void DetectTransformStripWhitespaceRegister(void)
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE, NULL);
     SCReturnInt(r);
 }
 
-static void TransformStripWhitespace(InspectionBuffer *buffer)
+/*
+ *  \brief Validate content bytes to see if it's compatible with this transform
+ *  \param content Byte array to check for compatibility
+ *  \param content_len Number of bytes to check
+ *  \param options Ignored
+ *  \retval false If the string contains spaces
+ *  \retval true Otherwise.
+ */
+static bool TransformStripWhitespaceValidate(const uint8_t *content,
+        uint16_t content_len, void *options)
+{
+    if (content) {
+        for (uint32_t i = 0; i < content_len; i++) {
+            if (isspace(*content++)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -124,7 +150,7 @@ static int DetectTransformStripWhitespaceTest01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer);
+    TransformStripWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -143,7 +169,7 @@ static int DetectTransformStripWhitespaceTest02(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer);
+    TransformStripWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -167,16 +193,13 @@ static int DetectTransformStripWhitespaceTest03(void)
     PASS;
 }
 
-#endif
-
 static void DetectTransformStripWhitespaceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectTransformStripWhitespaceTest01",
             DetectTransformStripWhitespaceTest01);
     UtRegisterTest("DetectTransformStripWhitespaceTest02",
             DetectTransformStripWhitespaceTest02);
     UtRegisterTest("DetectTransformStripWhitespaceTest03",
             DetectTransformStripWhitespaceTest03);
-#endif
 }
+#endif

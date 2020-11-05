@@ -28,7 +28,6 @@
  * The tracker does continue to follow the file.
  */
 
-use crate::log::*;
 use crate::core::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -52,7 +51,7 @@ impl FileChunk {
 #[derive(Debug)]
 pub struct FileTransferTracker {
     file_size: u64,
-    tracked: u64,
+    pub tracked: u64,
     cur_ooo: u64,   // how many bytes do we have queued from ooo chunks
     track_id: u32,
     chunk_left: u32,
@@ -184,6 +183,11 @@ impl FileTransferTracker {
 
         if self.chunk_left + self.fill_bytes as u32 == 0 {
             //SCLogDebug!("UPDATE: nothing to do");
+            if self.chunk_is_last == true {
+                SCLogDebug!("last empty chunk, closing");
+                self.close(files, flags);
+                self.chunk_is_last = false;
+            }
             return 0
         } else if self.chunk_left == 0 {
             SCLogDebug!("FILL BYTES {} from prev run", self.fill_bytes);

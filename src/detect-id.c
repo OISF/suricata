@@ -52,7 +52,9 @@ static DetectParseRegex parse_regex;
 static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectIdRegisterTests(void);
+#ifdef UNITTESTS
+static void DetectIdRegisterTests(void);
+#endif
 void DetectIdFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -69,8 +71,9 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].Match = DetectIdMatch;
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
     sigmatch_table[DETECT_ID].Free  = DetectIdFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
-
+#endif
     sigmatch_table[DETECT_ID].SupportsPrefilter = PrefilterIdIsPrefilterable;
     sigmatch_table[DETECT_ID].SetupPrefilter = PrefilterSetupId;
 
@@ -388,19 +391,17 @@ static int DetectIdTestMatch01(void)
 end:
     return result;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectId
  */
 void DetectIdRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01);
     UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02);
     UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03);
     UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04);
     UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01);
 
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

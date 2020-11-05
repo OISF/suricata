@@ -18,129 +18,112 @@
 // Author: Zach Kelly <zach.kelly@lmco.com>
 
 use super::rdp::{RdpTransaction, RdpTransactionItem};
-use crate::json::{Json, JsonT};
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::rdp::parser::*;
 use crate::rdp::windows;
-use std;
 use x509_parser::parse_x509_der;
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_to_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
-    let tx = cast_pointer!(tx, RdpTransaction);
-    match to_json(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
-    }
+pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder) -> bool {
+    log(tx, js).is_ok()
 }
 
 /// populate a json object with transactional information, for logging
-fn to_json(tx: &RdpTransaction) -> Option<Json> {
-    let js = Json::object();
-
-    js.set_integer("tx_id", tx.id);
+fn log(tx: &RdpTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    js.open_object("rdp")?;
+    js.set_uint("tx_id", tx.id)?;
 
     match &tx.item {
-        RdpTransactionItem::X224ConnectionRequest(ref x224) => {
-            x224_req_to_json(&js, x224)
-        }
-        RdpTransactionItem::X224ConnectionConfirm(x224) => {
-            x224_conf_to_json(&js, x224)
-        }
+        RdpTransactionItem::X224ConnectionRequest(ref x224) => x224_req_to_json(x224, js)?,
+        RdpTransactionItem::X224ConnectionConfirm(ref x224) => x224_conf_to_json(x224, js)?,
 
         RdpTransactionItem::McsConnectRequest(ref mcs) => {
-            mcs_req_to_json(&js, mcs);
+            mcs_req_to_json(mcs, js)?;
         }
 
         RdpTransactionItem::McsConnectResponse(_) => {
             // no additional JSON data beyond `event_type`
-            js.set_string("event_type", "connect_response");
+            js.set_string("event_type", "connect_response")?;
         }
 
         RdpTransactionItem::TlsCertificateChain(chain) => {
-            js.set_string("event_type", "tls_handshake");
-            let js_chain = Json::array();
+            js.set_string("event_type", "tls_handshake")?;
+            js.open_array("x509_serials")?;
             for blob in chain {
                 match parse_x509_der(&blob.data) {
                     Ok((_, cert)) => {
-                        js_chain.array_append_string(
-                            &cert.tbs_certificate.serial.to_str_radix(16),
-                        );
+                        js.append_string(&cert.tbs_certificate.serial.to_str_radix(16))?;
                     }
                     _ => {}
                 }
             }
-            js.set("x509_serials", js_chain);
+            js.close()?;
         }
     }
 
-    return Some(js);
+    js.close()?;
+    Ok(())
 }
 
 /// json helper for X224ConnectionRequest
-fn x224_req_to_json(js: &Json, x224: &X224ConnectionRequest) {
+fn x224_req_to_json(x224: &X224ConnectionRequest, js: &mut JsonBuilder) -> Result<(), JsonError> {
     use crate::rdp::parser::NegotiationRequestFlags as Flags;
 
-    js.set_string("event_type", "initial_request");
+    js.set_string("event_type", "initial_request")?;
     if let Some(ref cookie) = x224.cookie {
-        js.set_string("cookie", &cookie.mstshash);
+        js.set_string("cookie", &cookie.mstshash)?;
     }
     if let Some(ref req) = x224.negotiation_request {
         if !req.flags.is_empty() {
-            let flags = Json::array();
+            js.open_array("flags")?;
             if req.flags.contains(Flags::RESTRICTED_ADMIN_MODE_REQUIRED) {
-                flags.array_append_string("restricted_admin_mode_required");
+                js.append_string("restricted_admin_mode_required")?;
             }
             if req
                 .flags
                 .contains(Flags::REDIRECTED_AUTHENTICATION_MODE_REQUIRED)
             {
-                flags.array_append_string(
-                    "redirected_authentication_mode_required",
-                );
+                js.append_string("redirected_authentication_mode_required")?;
             }
             if req.flags.contains(Flags::CORRELATION_INFO_PRESENT) {
-                flags.array_append_string("correlation_info_present");
+                js.append_string("correlation_info_present")?;
             }
-            js.set("flags", flags);
+            js.close()?;
         }
     }
+
+    Ok(())
 }
 
 /// json helper for X224ConnectionConfirm
-fn x224_conf_to_json(js: &Json, x224: &X224ConnectionConfirm) {
+fn x224_conf_to_json(x224: &X224ConnectionConfirm, js: &mut JsonBuilder) -> Result<(), JsonError> {
     use crate::rdp::parser::NegotiationResponseFlags as Flags;
 
-    js.set_string("event_type", "initial_response");
+    js.set_string("event_type", "initial_response")?;
     if let Some(ref from_server) = x224.negotiation_from_server {
         match &from_server {
             NegotiationFromServer::Response(ref resp) => {
                 if !resp.flags.is_empty() {
-                    let flags = Json::array();
-                    if resp
-                        .flags
-                        .contains(Flags::EXTENDED_CLIENT_DATA_SUPPORTED)
-                    {
-                        flags.array_append_string("extended_client_data");
+                    js.open_array("server_supports")?;
+                    if resp.flags.contains(Flags::EXTENDED_CLIENT_DATA_SUPPORTED) {
+                        js.append_string("extended_client_data")?;
                     }
-                    if resp.flags.contains(Flags::DYNVC_GFX_PROTOCOL_SUPPORTED)
-                    {
-                        flags.array_append_string("dynvc_gfx");
+                    if resp.flags.contains(Flags::DYNVC_GFX_PROTOCOL_SUPPORTED) {
+                        js.append_string("dynvc_gfx")?;
                     }
 
                     // NEGRSP_FLAG_RESERVED not logged
 
+                    if resp.flags.contains(Flags::RESTRICTED_ADMIN_MODE_SUPPORTED) {
+                        js.append_string("restricted_admin")?;
+                    }
                     if resp
                         .flags
-                        .contains(Flags::RESTRICTED_ADMIN_MODE_SUPPORTED)
+                        .contains(Flags::REDIRECTED_AUTHENTICATION_MODE_SUPPORTED)
                     {
-                        flags.array_append_string("restricted_admin");
+                        js.append_string("redirected_authentication")?;
                     }
-                    if resp.flags.contains(
-                        Flags::REDIRECTED_AUTHENTICATION_MODE_SUPPORTED,
-                    ) {
-                        flags.array_append_string("redirected_authentication");
-                    }
-                    js.set("server_supports", flags);
+                    js.close()?;
                 }
 
                 let protocol = match resp.protocol {
@@ -150,127 +133,117 @@ fn x224_conf_to_json(js: &Json, x224: &X224ConnectionConfirm) {
                     Protocol::ProtocolRdsTls => "rds_tls",
                     Protocol::ProtocolHybridEx => "hybrid_ex",
                 };
-                js.set_string("protocol", protocol);
+                js.set_string("protocol", protocol)?;
             }
 
             NegotiationFromServer::Failure(ref fail) => match fail.code {
                 NegotiationFailureCode::SslRequiredByServer => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
                         NegotiationFailureCode::SslRequiredByServer as u64,
-                    );
-                    js.set_string("reason", "ssl required by server")
+                    )?;
+                    js.set_string("reason", "ssl required by server")?;
                 }
                 NegotiationFailureCode::SslNotAllowedByServer => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
                         NegotiationFailureCode::SslNotAllowedByServer as u64,
-                    );
-                    js.set_string("reason", "ssl not allowed by server")
+                    )?;
+                    js.set_string("reason", "ssl not allowed by server")?;
                 }
                 NegotiationFailureCode::SslCertNotOnServer => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
                         NegotiationFailureCode::SslCertNotOnServer as u64,
-                    );
-                    js.set_string("reason", "ssl cert not on server")
+                    )?;
+                    js.set_string("reason", "ssl cert not on server")?;
                 }
                 NegotiationFailureCode::InconsistentFlags => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
                         NegotiationFailureCode::InconsistentFlags as u64,
-                    );
-                    js.set_string("reason", "inconsistent flags")
+                    )?;
+                    js.set_string("reason", "inconsistent flags")?;
                 }
                 NegotiationFailureCode::HybridRequiredByServer => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
                         NegotiationFailureCode::HybridRequiredByServer as u64,
-                    );
-                    js.set_string("reason", "hybrid required by server")
+                    )?;
+                    js.set_string("reason", "hybrid required by server")?;
                 }
                 NegotiationFailureCode::SslWithUserAuthRequiredByServer => {
-                    js.set_integer(
+                    js.set_uint(
                         "error_code",
-                        NegotiationFailureCode::SslWithUserAuthRequiredByServer
-                            as u64,
-                    );
-                    js.set_string(
-                        "reason",
-                        "ssl with user auth required by server",
-                    )
+                        NegotiationFailureCode::SslWithUserAuthRequiredByServer as u64,
+                    )?;
+                    js.set_string("reason", "ssl with user auth required by server")?;
                 }
             },
         }
     }
+
+    Ok(())
 }
 
 /// json helper for McsConnectRequest
-fn mcs_req_to_json(js: &Json, mcs: &McsConnectRequest) {
+fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), JsonError> {
     // placeholder string value.  We do not simply omit "unknown" values so that they can
     // help indicate that a given enum may be out of date (new Windows version, etc.)
     let unknown = String::from("unknown");
 
-    js.set_string("event_type", "connect_request");
+    js.set_string("event_type", "connect_request")?;
     for child in &mcs.children {
         match child {
             McsConnectRequestChild::CsClientCore(ref client) => {
-                let js_client = Json::object();
+                js.open_object("client")?;
 
                 match client.version {
-                    Some(ref ver) => js_client
-                        .set_string("version", &version_to_string(ver, "v")),
-                    None => js_client.set_string("version", &unknown),
+                    Some(ref ver) => {
+                        js.set_string("version", &version_to_string(ver, "v"))?;
+                    }
+                    None => {
+                        js.set_string("version", &unknown)?;
+                    }
                 }
 
-                js_client
-                    .set_integer("desktop_width", client.desktop_width as u64);
-                js_client.set_integer(
-                    "desktop_height",
-                    client.desktop_height as u64,
-                );
+                js.set_uint("desktop_width", client.desktop_width as u64)?;
+                js.set_uint("desktop_height", client.desktop_height as u64)?;
 
                 if let Some(depth) = get_color_depth(client) {
-                    js_client.set_integer("color_depth", depth);
+                    js.set_uint("color_depth", depth)?;
                 }
 
                 // sas_sequence not logged
 
-                js_client.set_string(
+                js.set_string(
                     "keyboard_layout",
                     &windows::lcid_to_string(client.keyboard_layout, &unknown),
-                );
+                )?;
 
-                js_client.set_string(
+                js.set_string(
                     "build",
                     &windows::os_to_string(&client.client_build, &unknown),
-                );
+                )?;
 
                 if client.client_name.len() > 0 {
-                    js_client.set_string("client_name", &client.client_name);
+                    js.set_string("client_name", &client.client_name)?;
                 }
 
                 if let Some(ref kb) = client.keyboard_type {
-                    js_client
-                        .set_string("keyboard_type", &keyboard_to_string(kb));
+                    js.set_string("keyboard_type", &keyboard_to_string(kb))?;
                 }
 
                 if client.keyboard_subtype != 0 {
-                    js_client.set_integer(
-                        "keyboard_subtype",
-                        client.keyboard_subtype as u64,
-                    );
+                    js.set_uint("keyboard_subtype", client.keyboard_subtype as u64)?;
                 }
 
                 if client.keyboard_function_key != 0 {
-                    js_client.set_integer(
-                        "function_keys",
-                        client.keyboard_function_key as u64,
-                    );
+                    js.set_uint("function_keys", client.keyboard_function_key as u64)?;
                 }
 
                 if client.ime_file_name.len() > 0 {
-                    js_client.set_string("ime", &client.ime_file_name);
+                    js.set_string("ime", &client.ime_file_name)?;
                 }
 
                 //
@@ -278,155 +251,130 @@ fn mcs_req_to_json(js: &Json, mcs: &McsConnectRequest) {
                 //
 
                 if let Some(id) = client.client_product_id {
-                    js_client.set_integer("product_id", id as u64);
+                    js.set_uint("product_id", id as u64)?;
                 }
 
                 if let Some(serial) = client.serial_number {
                     if serial != 0 {
-                        js_client.set_integer("serial_number", serial as u64);
+                        js.set_uint("serial_number", serial as u64)?;
                     }
                 }
 
                 // supported_color_depth not logged
 
-                if let Some(ref early_capability_flags) =
-                    client.early_capability_flags
-                {
+                if let Some(ref early_capability_flags) = client.early_capability_flags {
                     use crate::rdp::parser::EarlyCapabilityFlags as Flags;
 
                     if !early_capability_flags.is_empty() {
-                        let flags = Json::array();
-                        if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_SUPPORT_ERRINFO_PDF)
-                        {
-                            flags.array_append_string("support_errinfo_pdf");
+                        js.open_array("capabilities")?;
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_SUPPORT_ERRINFO_PDF) {
+                            js.append_string("support_errinfo_pdf")?;
                         }
-                        if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_WANT_32BPP_SESSION)
-                        {
-                            flags.array_append_string("want_32bpp_session");
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_WANT_32BPP_SESSION) {
+                            js.append_string("want_32bpp_session")?;
                         }
-                        if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_SUPPORT_STATUSINFO_PDU)
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_SUPPORT_STATUSINFO_PDU)
                         {
-                            flags.array_append_string("support_statusinfo_pdu");
+                            js.append_string("support_statusinfo_pdu")?;
                         }
-                        if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_STRONG_ASYMMETRIC_KEYS)
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_STRONG_ASYMMETRIC_KEYS)
                         {
-                            flags.array_append_string("strong_asymmetric_keys");
+                            js.append_string("strong_asymmetric_keys")?;
                         }
 
                         // RNS_UD_CS_UNUSED not logged
 
-                        if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_VALID_CONNECTION_TYPE)
-                        {
-                            flags.array_append_string("valid_connection_type");
-                        }
-                        if early_capability_flags.contains(
-                            Flags::RNS_UD_CS_SUPPORT_MONITOR_LAYOUT_PDU,
-                        ) {
-                            flags.array_append_string(
-                                "support_monitor_layout_pdu",
-                            );
-                        }
-                        if early_capability_flags.contains(
-                            Flags::RNS_UD_CS_SUPPORT_NETCHAR_AUTODETECT,
-                        ) {
-                            flags.array_append_string(
-                                "support_netchar_autodetect",
-                            );
-                        }
-                        if early_capability_flags.contains(
-                            Flags::RNS_UD_CS_SUPPORT_DYNVC_GFX_PROTOCOL,
-                        ) {
-                            flags.array_append_string(
-                                "support_dynvc_gfx_protocol",
-                            );
-                        }
-                        if early_capability_flags.contains(
-                            Flags::RNS_UD_CS_SUPPORT_DYNAMIC_TIME_ZONE,
-                        ) {
-                            flags.array_append_string(
-                                "support_dynamic_time_zone",
-                            );
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_VALID_CONNECTION_TYPE) {
+                            js.append_string("valid_connection_type")?;
                         }
                         if early_capability_flags
-                            .contains(Flags::RNS_UD_CS_SUPPORT_HEARTBEAT_PDU)
+                            .contains(Flags::RNS_UD_CS_SUPPORT_MONITOR_LAYOUT_PDU)
                         {
-                            flags.array_append_string("support_heartbeat_pdu");
+                            js.append_string("support_monitor_layout_pdu")?;
                         }
-                        js_client.set("capabilities", flags);
+                        if early_capability_flags
+                            .contains(Flags::RNS_UD_CS_SUPPORT_NETCHAR_AUTODETECT)
+                        {
+                            js.append_string("support_netchar_autodetect")?;
+                        }
+                        if early_capability_flags
+                            .contains(Flags::RNS_UD_CS_SUPPORT_DYNVC_GFX_PROTOCOL)
+                        {
+                            js.append_string("support_dynvc_gfx_protocol")?;
+                        }
+                        if early_capability_flags
+                            .contains(Flags::RNS_UD_CS_SUPPORT_DYNAMIC_TIME_ZONE)
+                        {
+                            js.append_string("support_dynamic_time_zone")?;
+                        }
+                        if early_capability_flags.contains(Flags::RNS_UD_CS_SUPPORT_HEARTBEAT_PDU) {
+                            js.append_string("support_heartbeat_pdu")?;
+                        }
+                        js.close()?;
                     }
                 }
 
                 if let Some(ref id) = client.client_dig_product_id {
                     if id.len() > 0 {
-                        js_client.set_string("id", id);
+                        js.set_string("id", id)?;
                     }
                 }
 
                 if let Some(ref hint) = client.connection_hint {
                     let s = match hint {
                         ConnectionHint::ConnectionHintModem => "modem",
-                        ConnectionHint::ConnectionHintBroadbandLow => {
-                            "low_broadband"
-                        }
+                        ConnectionHint::ConnectionHintBroadbandLow => "low_broadband",
                         ConnectionHint::ConnectionHintSatellite => "satellite",
-                        ConnectionHint::ConnectionHintBroadbandHigh => {
-                            "high_broadband"
-                        }
+                        ConnectionHint::ConnectionHintBroadbandHigh => "high_broadband",
                         ConnectionHint::ConnectionHintWan => "wan",
                         ConnectionHint::ConnectionHintLan => "lan",
-                        ConnectionHint::ConnectionHintAutoDetect => {
-                            "autodetect"
-                        }
+                        ConnectionHint::ConnectionHintAutoDetect => "autodetect",
                         ConnectionHint::ConnectionHintNotProvided => "",
                     };
                     if *hint != ConnectionHint::ConnectionHintNotProvided {
-                        js_client.set_string("connection_hint", s);
+                        js.set_string("connection_hint", s)?;
                     }
                 }
 
                 // server_selected_procotol not logged
 
                 if let Some(width) = client.desktop_physical_width {
-                    js_client.set_integer("physical_width", width as u64);
+                    js.set_uint("physical_width", width as u64)?;
                 }
 
                 if let Some(height) = client.desktop_physical_height {
-                    js_client.set_integer("physical_height", height as u64);
+                    js.set_uint("physical_height", height as u64)?;
                 }
 
                 if let Some(orientation) = client.desktop_orientation {
-                    js_client
-                        .set_integer("desktop_orientation", orientation as u64);
+                    js.set_uint("desktop_orientation", orientation as u64)?;
                 }
 
                 if let Some(scale) = client.desktop_scale_factor {
-                    js_client.set_integer("scale_factor", scale as u64);
+                    js.set_uint("scale_factor", scale as u64)?;
                 }
 
                 if let Some(scale) = client.device_scale_factor {
-                    js_client.set_integer("device_scale_factor", scale as u64);
+                    js.set_uint("device_scale_factor", scale as u64)?;
                 }
-                js.set("client", js_client);
+                js.close()?;
             }
 
             McsConnectRequestChild::CsNet(ref net) => {
                 if net.channels.len() > 0 {
-                    let channels = Json::array();
+                    js.open_array("channels")?;
                     for channel in &net.channels {
-                        channels.array_append_string(&channel);
+                        js.append_string(&channel)?;
                     }
-                    js.set("channels", channels);
+                    js.close()?;
                 }
             }
 
             McsConnectRequestChild::CsUnknown(_) => {}
         }
     }
+
+    Ok(())
 }
 
 /// converts RdpClientVersion to a string, using the provided prefix
@@ -494,7 +442,7 @@ fn keyboard_to_string(kb: &KeyboardType) -> String {
 mod tests {
     use super::*;
 
-    // for now, unsure how to effectively test Json/JsonT
+    // for now, testing of JsonBuilder output is done by suricata-verify
 
     #[test]
     fn test_version_string() {

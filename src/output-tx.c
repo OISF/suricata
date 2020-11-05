@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -120,8 +120,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         while (t->next)
             t = t->next;
         if (t->id * 2 > UINT32_MAX) {
-            SCLogError(SC_ERR_FATAL, "Too many loggers registered.");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "Too many loggers registered.");
         }
         op->id = t->id * 2;
         t->next = op;
@@ -209,13 +208,27 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         void * const tx = ires.tx_ptr;
         tx_id = ires.tx_id;
 
+        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        if (txd == NULL) {
+            /* make sure this tx, which can't be properly logged is skipped */
+            logged = 1;
+            max_id = tx_id;
+            goto next_tx;
+        }
+
         if (list[ALPROTO_UNKNOWN] != 0) {
             OutputTxLogList0(tv, op_thread_data, p, f, tx, tx_id);
             if (list[alproto] == NULL)
                 goto next_tx;
         }
 
-        LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
+        SCLogDebug("tx %p/%"PRIu64" txd %p: log_flags %x", tx, tx_id, txd, txd->config.log_flags);
+        if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
+            SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
+            goto next_tx;
+        }
+
+        LoggerId tx_logged = txd->logged.flags;
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
         if (tx_logged == logger_expectation) {
@@ -247,8 +260,20 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             if ((tx_logged_old & (1<<logger->logger_id)) == 0) {
                 SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
-                if (!(AppLayerParserStateIssetFlag(f->alparser,
-                                                   APP_LAYER_PARSER_EOF))) {
+                const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
+                const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser,
+                        APP_LAYER_PARSER_EOF_TS) != 0;
+                const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser,
+                        APP_LAYER_PARSER_EOF_TC) != 0;
+                SCLogDebug("pcap_cnt %"PRIu64", tx_id %"PRIu64" logger %d. "
+                        "EOFs TS %s TC %s LAST PSEUDO %s",
+                        p->pcap_cnt, tx_id, logger->logger_id,
+                        ts_eof ? "true" : "false", tc_eof ? "true" : "false",
+                        last_pseudo ? "true" : "false");
+
+                if ((ts_eof && tc_eof) || last_pseudo) {
+                    SCLogDebug("EOF, so log now");
+                } else {
                     if (logger->LogCondition) {
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
@@ -287,8 +312,8 @@ next_logger:
         if (tx_logged != tx_logged_old) {
             SCLogDebug("logger: storing %08x (was %08x)",
                 tx_logged, tx_logged_old);
-            AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
-                    tx_logged);
+            DEBUG_VALIDATE_BUG_ON(txd == NULL);
+            txd->logged.flags |= tx_logged;
         }
 
         /* If all loggers logged set a flag and update the last tx_id

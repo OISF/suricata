@@ -71,7 +71,9 @@ static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectHostbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHostbitFree (DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 void HostBitsRegisterTests(void);
+#endif
 
 void DetectHostbitsRegister (void)
 {
@@ -81,7 +83,9 @@ void DetectHostbitsRegister (void)
     sigmatch_table[DETECT_HOSTBITS].Match = DetectHostbitMatch;
     sigmatch_table[DETECT_HOSTBITS].Setup = DetectHostbitSetup;
     sigmatch_table[DETECT_HOSTBITS].Free  = DetectHostbitFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_HOSTBITS].RegisterTests = HostBitsRegisterTests;
+#endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_HOSTBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
@@ -1223,14 +1227,12 @@ static int HostBitsTestSig08(void)
     SCFree(p);
     PASS;
 }
-#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for HostBits
  */
 void HostBitsRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01);
     UtRegisterTest("HostBitsTestSig01", HostBitsTestSig01);
     UtRegisterTest("HostBitsTestSig02", HostBitsTestSig02);
@@ -1244,5 +1246,5 @@ void HostBitsRegisterTests(void)
 #endif
     UtRegisterTest("HostBitsTestSig07", HostBitsTestSig07);
     UtRegisterTest("HostBitsTestSig08", HostBitsTestSig08);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

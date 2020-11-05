@@ -118,10 +118,9 @@ void ConfInit(void)
     }
     root = ConfNodeNew();
     if (root == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "ERROR: Failed to allocate memory for root configuration node, "
-            "aborting.");
-        exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL,
+                       "ERROR: Failed to allocate memory for root configuration node, "
+                       "aborting.");
     }
     SCLogDebug("configuration module initialized");
 }

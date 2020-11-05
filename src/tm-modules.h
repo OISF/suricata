@@ -61,9 +61,9 @@ typedef struct TmModule_ {
     /** global Init/DeInit */
     TmEcode (*Init)(void);
     TmEcode (*DeInit)(void);
-
+#ifdef UNITTESTS
     void (*RegisterTests)(void);
-
+#endif
     uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
                              the given TmModule */
     /* Other flags used by the module */

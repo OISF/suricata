@@ -26,6 +26,7 @@
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
 #include "util-cpu.h"
+#include "util-byte.h"
 #include "conf.h"
 #include "threads.h"
 #include "queue.h"
@@ -210,8 +211,7 @@ void AffinitySetupLoadFromConfig()
         ConfNode *nprio = NULL;
 
         if (taf == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu-affinity type");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_FATAL, "unknown cpu-affinity type");
         } else {
             SCLogConfig("Found affinity definition for \"%s\"", setname);
         }
@@ -258,8 +258,7 @@ void AffinitySetupLoadFromConfig()
                 } else if (!strcmp(node->val, "high")) {
                     taf->prio = PRIO_HIGH;
                 } else {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_FATAL, "unknown cpu_affinity prio");
                 }
                 SCLogConfig("Using default prio '%s' for set '%s'",
                         node->val, setname);
@@ -273,17 +272,18 @@ void AffinitySetupLoadFromConfig()
             } else if (!strcmp(node->val, "balanced")) {
                 taf->mode_flag = BALANCED_AFFINITY;
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity node");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "unknown cpu_affinity node");
             }
         }
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
         if (node != NULL) {
-            taf->nb_threads = atoi(node->val);
+            if (StringParseUint32(&taf->nb_threads, 10, 0, (const char *)node->val) < 0) {
+                FatalError(SC_ERR_INVALID_ARGUMENT, "invalid value for threads "
+                           "count: '%s'", node->val);
+            }
             if (! taf->nb_threads) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "bad value for threads count");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_FATAL, "bad value for threads count");
             }
         }
     }

@@ -43,6 +43,7 @@
 #define FLOW_DEFAULT_BYPASSED_TIMEOUT 100
 #define FLOW_IPPROTO_TCP_NEW_TIMEOUT 30
 #define FLOW_IPPROTO_TCP_EST_TIMEOUT 300
+#define FLOW_IPPROTO_TCP_CLOSED_TIMEOUT 10
 #define FLOW_IPPROTO_TCP_BYPASSED_TIMEOUT 100
 #define FLOW_IPPROTO_UDP_NEW_TIMEOUT 30
 #define FLOW_IPPROTO_UDP_EST_TIMEOUT 300
@@ -57,6 +58,7 @@
 #define FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT 50
 #define FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT 10
 #define FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT 100
+#define FLOW_IPPROTO_TCP_EMERG_CLOSED_TIMEOUT 5
 #define FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT 10
 #define FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT 100
 #define FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT 10
@@ -68,7 +70,6 @@ enum {
     FLOW_PROTO_TCP = 0,
     FLOW_PROTO_UDP,
     FLOW_PROTO_ICMP,
-    FLOW_PROTO_SCTP,
     FLOW_PROTO_DEFAULT,
 
     /* should be last */
@@ -88,7 +89,7 @@ extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
 extern FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
-extern FlowQueue flow_spare_q;
+//extern FlowQueue flow_spare_q;
 
 /** queue to pass flows to cleanup/log thread(s) */
 extern FlowQueue flow_recycle_q;
@@ -99,5 +100,84 @@ extern FlowConfig flow_config;
 /** flow memuse counter (atomic), for enforcing memcap limit */
 SC_ATOMIC_EXTERN(uint64_t, flow_memuse);
 
-#endif /* __FLOW_PRIVATE_H__ */
+typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
+SC_ATOMIC_EXTERN(FlowProtoTimeoutPtr, flow_timeouts);
 
+static inline uint32_t FlowGetFlowTimeoutDirect(
+        const FlowProtoTimeoutPtr flow_timeouts,
+        const enum FlowState state, const uint8_t protomap)
+{
+    uint32_t timeout;
+    switch (state) {
+        default:
+        case FLOW_STATE_NEW:
+            timeout = flow_timeouts[protomap].new_timeout;
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            timeout = flow_timeouts[protomap].est_timeout;
+            break;
+        case FLOW_STATE_CLOSED:
+            timeout = flow_timeouts[protomap].closed_timeout;
+            break;
+#ifdef CAPTURE_OFFLOAD
+        case FLOW_STATE_CAPTURE_BYPASSED:
+            timeout = FLOW_BYPASSED_TIMEOUT;
+            break;
+#endif
+        case FLOW_STATE_LOCAL_BYPASSED:
+            timeout = flow_timeouts[protomap].bypassed_timeout;
+            break;
+    }
+    return timeout;
+}
+
+/** \internal
+ *  \brief get timeout for flow
+ *
+ *  \param f flow
+ *  \param state flow state
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
+{
+    FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
+    return FlowGetFlowTimeoutDirect(flow_timeouts, state, f->protomap);
+}
+
+/** \internal
+ *  \brief get timeout policy for flow
+ *  \note does not take emergency mode into account. Always
+ *        returns the 'normal' policy.
+ *
+ *  \param f flow
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowGetTimeoutPolicy(const Flow *f)
+{
+    uint32_t timeout;
+    FlowProtoTimeoutPtr flow_timeouts = flow_timeouts_normal;
+    switch (f->flow_state) {
+        default:
+        case FLOW_STATE_NEW:
+            timeout = flow_timeouts[f->protomap].new_timeout;
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            timeout = flow_timeouts[f->protomap].est_timeout;
+            break;
+        case FLOW_STATE_CLOSED:
+            timeout = flow_timeouts[f->protomap].closed_timeout;
+            break;
+#ifdef CAPTURE_OFFLOAD
+        case FLOW_STATE_CAPTURE_BYPASSED:
+            timeout = FLOW_BYPASSED_TIMEOUT;
+            break;
+#endif
+        case FLOW_STATE_LOCAL_BYPASSED:
+            timeout = flow_timeouts[f->protomap].bypassed_timeout;
+            break;
+    }
+    return timeout;
+}
+#endif /* __FLOW_PRIVATE_H__ */

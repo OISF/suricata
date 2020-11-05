@@ -23,6 +23,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-byte.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -185,8 +186,11 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_LT;
-                template2d->arg1 = (uint8_t) atoi(arg3);
-
+                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
+                               " \"%s\"", arg3);
+                    goto error;
+                }
                 SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
                 if (strlen(arg1) > 0)
                     goto error;
@@ -197,8 +201,11 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_GT;
-                template2d->arg1 = (uint8_t) atoi(arg3);
-
+                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
+                               " \"%s\"", arg3);
+                    goto error;
+                }
                 SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
                 if (strlen(arg1) > 0)
                     goto error;
@@ -211,9 +218,16 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_RA;
-                template2d->arg1 = (uint8_t) atoi(arg1);
-
-                template2d->arg2 = (uint8_t) atoi(arg3);
+                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
+                               " \"%s\"", arg1);
+                    goto error;
+                }
+                if (StringParseUint8(&template2d->arg2, 10, 0, (const char *)arg3) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid second arg:"
+                               " \"%s\"", arg3);
+                    goto error;
+                }
                 SCLogDebug("template2 is %"PRIu8" to %"PRIu8"",template2d->arg1, template2d->arg2);
                 if (template2d->arg1 >= template2d->arg2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid template2 range. ");
@@ -228,7 +242,11 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     (arg1 == NULL ||strlen(arg1) == 0))
                     goto error;
 
-                template2d->arg1 = (uint8_t) atoi(arg1);
+                if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
+                               " \"%s\"", arg1);
+                    goto error;
+                }
                 break;
         }
     } else {
@@ -238,7 +256,11 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
             (arg1 == NULL ||strlen(arg1) == 0))
             goto error;
 
-        template2d->arg1 = (uint8_t) atoi(arg1);
+        if (StringParseUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg:"
+                       " \"%s\"", arg1);
+            goto error;
+        }
     }
 
     SCFree(arg1);

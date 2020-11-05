@@ -43,6 +43,7 @@
 #include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-print.h"
+#include "util-byte.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -79,7 +80,6 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
     sigmatch_table[DETECT_LUA].Free  = NULL;
-    sigmatch_table[DETECT_LUA].RegisterTests = NULL;
     sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
 
 	SCLogDebug("registering lua rule option");
@@ -97,7 +97,9 @@ static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
                                 void *state, void *txv, const Signature *s,
                                 const SigMatchCtx *ctx);
 static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectLuaRegisterTests(void);
+#endif
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
@@ -120,8 +122,9 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
-
+#endif
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
     DetectAppLayerInspectEngineRegister("smtp_generic",
@@ -280,8 +283,15 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
@@ -428,8 +438,16 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0,
+                                         (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
@@ -530,8 +548,16 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0,
+                                         (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
@@ -2027,18 +2053,14 @@ end:
     return result;
 }
 
-#endif
-
 void DetectLuaRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("LuaMatchTest01", LuaMatchTest01);
     UtRegisterTest("LuaMatchTest02", LuaMatchTest02);
     UtRegisterTest("LuaMatchTest03", LuaMatchTest03);
     UtRegisterTest("LuaMatchTest04", LuaMatchTest04);
     UtRegisterTest("LuaMatchTest05", LuaMatchTest05);
     UtRegisterTest("LuaMatchTest06", LuaMatchTest06);
-#endif
 }
-
+#endif
 #endif /* HAVE_LUAJIT */

@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
 use crate::smb::smb::*;
 use crate::smb::smb2::*;
 use crate::smb::smb2_records::*;

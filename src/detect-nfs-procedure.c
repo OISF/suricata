@@ -42,6 +42,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-byte.h"
 
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
@@ -70,7 +71,9 @@ typedef struct DetectNfsProcedureData_ {
 static DetectNfsProcedureData *DetectNfsProcedureParse (const char *);
 static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
+#ifdef UNITTESTS
 static void DetectNfsProcedureRegisterTests(void);
+#endif
 static int g_nfs_request_buffer_id = 0;
 
 static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
@@ -95,8 +98,9 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Free = DetectNfsProcedureFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
-
+#endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
@@ -287,8 +291,10 @@ static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
     }
 
     /* set the first value */
-    dd->lo = atoi(value1); //TODO
-
+    if (StringParseUint32(&dd->lo, 10, 0, (const char *)value1) < 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid first value: \"%s\"", value1);
+        goto error;
+    }
     /* set the second value if specified */
     if (strlen(value2) > 0) {
         if (!(dd->mode == PROCEDURE_RA)) {
@@ -297,8 +303,10 @@ static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
             goto error;
         }
 
-        //
-        dd->hi = atoi(value2); // TODO
+        if (StringParseUint32(&dd->hi, 10, 0, (const char *)value2) < 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid second value: \"%s\"", value2);
+            goto error;
+        }
 
         if (dd->hi <= dd->lo) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -603,14 +611,11 @@ static int ValidityTestParse15 (void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief Register unit tests for nfs_procedure.
  */
 void DetectNfsProcedureRegisterTests(void)
 {
-#ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("ValidityTestParse01", ValidityTestParse01);
     UtRegisterTest("ValidityTestParse02", ValidityTestParse02);
     UtRegisterTest("ValidityTestParse03", ValidityTestParse03);
@@ -626,5 +631,5 @@ void DetectNfsProcedureRegisterTests(void)
     UtRegisterTest("ValidityTestParse13", ValidityTestParse13);
     UtRegisterTest("ValidityTestParse14", ValidityTestParse14);
     UtRegisterTest("ValidityTestParse15", ValidityTestParse15);
-#endif /* UNITTESTS */
 }
+#endif /* UNITTESTS */

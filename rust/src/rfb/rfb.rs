@@ -21,7 +21,6 @@ use std;
 use std::ffi::CString;
 use std::mem::transmute;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::*;
 use nom;
@@ -46,10 +45,9 @@ pub struct RFBTransaction {
     pub tc_failure_reason: Option<parser::FailureReason>,
     pub tc_server_init: Option<parser::ServerInit>,
 
-    logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
-    detect_flags: applayer::TxDetectFlags,
+    tx_data: applayer::AppLayerTxData,
 }
 
 impl RFBTransaction {
@@ -71,10 +69,9 @@ impl RFBTransaction {
             tc_failure_reason: None,
             tc_server_init: None,
 
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
-            detect_flags: applayer::TxDetectFlags::default(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 
@@ -521,7 +518,7 @@ export_tx_set_detect_state!(
 );
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
     let boxed = Box::new(state);
     return unsafe { transmute(boxed) };
@@ -617,25 +614,6 @@ pub extern "C" fn rs_rfb_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_tx_get_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
-) -> u32 {
-    let tx = cast_pointer!(tx, RFBTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_rfb_tx_set_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
-    logged: u32,
-) {
-    let tx = cast_pointer!(tx, RFBTransaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
 pub extern "C" fn rs_rfb_state_get_events(
     tx: *mut std::os::raw::c_void
 ) -> *mut core::AppLayerDecoderEvents {
@@ -688,8 +666,7 @@ pub extern "C" fn rs_rfb_state_get_tx_iterator(
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"rfb\0";
 
-export_tx_detect_flags_set!(rs_rfb_set_tx_detect_flags, RFBTransaction);
-export_tx_detect_flags_get!(rs_rfb_get_tx_detect_flags, RFBTransaction);
+export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_register_parser() {
@@ -711,8 +688,6 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx: rs_rfb_state_get_tx,
         tx_get_comp_st: rs_rfb_state_progress_completion_status,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_rfb_tx_get_logged),
-        set_tx_logged: Some(rs_rfb_tx_set_logged),
         get_de_state: rs_rfb_tx_get_detect_state,
         set_de_state: rs_rfb_tx_set_detect_state,
         get_events: Some(rs_rfb_state_get_events),
@@ -720,12 +695,11 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_eventinfo_byid : Some(rs_rfb_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_mpm_id: None,
-        set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: Some(rs_rfb_state_get_tx_iterator),
-        get_tx_detect_flags: Some(rs_rfb_get_tx_detect_flags),
-        set_tx_detect_flags: Some(rs_rfb_set_tx_detect_flags),
+        get_tx_data: rs_rfb_get_tx_data,
+        apply_tx_config: None,
+        flags: 0,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

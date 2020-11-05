@@ -60,7 +60,9 @@
 #define KEYWORD_NAME "dce_stub_data"
 
 static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectDceStubDataRegisterTests(void);
+#endif
 static int g_dce_stub_data_buffer_id = 0;
 
 static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
@@ -91,20 +93,14 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
-        uint8_t *data = NULL;
+        const uint8_t *data = NULL;
+        uint8_t endianness;
 
-        DCERPCState *dcerpc_state = txv;
-        if (dcerpc_state == NULL)
+        rs_dcerpc_get_stub_data(txv, &data, &data_len, &endianness, flow_flags);
+        if (data == NULL || data_len == 0)
             return NULL;
 
-        if (flow_flags & STREAM_TOSERVER) {
-            data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-        } else if (flow_flags & STREAM_TOCLIENT) {
-            data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
-        }
-        if (dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) {
+        if (endianness > 0) {
             buffer->flags = DETECT_CI_FLAGS_DCE_LE;
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
@@ -123,7 +119,9 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dcerpc.stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].alias = "dce_stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
+#endif
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
@@ -173,8 +171,15 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
+        s->alproto != ALPROTO_SMB) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        return -1;
+    }
     if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
         return -1;
+
+    s->init_data->init_flags |= SIG_FLAG_INIT_DCERPC;
     return 0;
 }
 
@@ -1550,7 +1555,6 @@ static int DetectDceStubDataTestParse04(void)
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-
     /* request3 */
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
@@ -1900,12 +1904,21 @@ static int DetectDceStubDataTestParse05(void)
     return result;
 }
 
-
-#endif
+// invalid signature because of invalid protocol
+static int DetectDceStubDataTestParse06(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags = DE_QUIET;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any dce_stub_data;content:\"0\";");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
 
 static void DetectDceStubDataRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectDceStubDataTestParse01",
                    DetectDceStubDataTestParse01);
     UtRegisterTest("DetectDceStubDataTestParse02",
@@ -1916,7 +1929,7 @@ static void DetectDceStubDataRegisterTests(void)
                    DetectDceStubDataTestParse04);
     UtRegisterTest("DetectDceStubDataTestParse05",
                    DetectDceStubDataTestParse05);
-#endif
-
-    return;
+    UtRegisterTest("DetectDceStubDataTestParse06",
+                   DetectDceStubDataTestParse06);
 }
+#endif
