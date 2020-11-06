@@ -16,6 +16,7 @@ env:
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
   DEFAULT_SV_BRANCH: master
   DEFAULT_SV_PR:
+  SV_PR:
 
   DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
@@ -41,6 +42,15 @@ jobs:
         run: |
           if test "${PR_HREF}"; then
               body=$(curl -s "${PR_HREF}" | jq -r .body)
+
+              echo "${body}" | while read line; do
+                  case "${line}" in
+                      SV_PR*)
+                          echo "${line}" >> $GITHUB_ENV
+                          ;;
+                  esac
+              done
+
               libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
               libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
               libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
@@ -87,7 +97,7 @@ jobs:
       - name: Fetching suricata-verify
         run: |
           git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
-          if [[ "${sv_pr}" != "" ]]; then
+          if [[ "${SV_PR}" != "" ]]; then
               cd suricata-verify
               git fetch origin pull/${sv_pr}/head:prep
               git checkout prep
