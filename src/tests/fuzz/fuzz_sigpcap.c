@@ -44,6 +44,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     int r;
     Packet *p;
     size_t pos;
+    size_t pcap_cnt = 0;
 
     if (initialized == 0) {
         //Redirects logs to /dev/null
@@ -138,6 +139,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //loop over packets
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
+    p->ts.tv_sec = header->ts.tv_sec;
+    p->ts.tv_usec = header->ts.tv_usec;
     p->datalink = pcap_datalink(pkts);
     while (r > 0) {
         PacketCopyData(p, pkt, header->caplen);
@@ -159,6 +162,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         r = pcap_next_ex(pkts, &header, &pkt);
         PACKET_RECYCLE(p);
+        p->ts.tv_sec = header->ts.tv_sec;
+        p->ts.tv_usec = header->ts.tv_usec;
+        p->datalink = pcap_datalink(pkts);
+        pcap_cnt++;
+        p->pcap_cnt = pcap_cnt;
     }
     //close structure
     pcap_close(pkts);
