@@ -86,8 +86,8 @@ jobs:
           tar zcf suricata-update.tar.gz suricata-update
       - name: Fetching suricata-verify
         run: |
-          #git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
-          git clone ${sv_repo} -b ${sv_branch} suricata-verify
+          git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
+          #git clone ${sv_repo} -b ${sv_branch} suricata-verify
           if [[ "${sv_pr}" != "" ]]; then
               echo "Will use suricata-verify PR ${sv_pr}"
               cd suricata-verify
