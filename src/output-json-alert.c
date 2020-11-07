@@ -167,13 +167,15 @@ static void AlertJsonHttp2(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
     void *h2_state = FlowGetAppState(f);
     if (h2_state) {
         void *tx_ptr = rs_http2_state_get_tx(h2_state, tx_id);
-        JsonBuilderMark mark = { 0, 0, 0 };
-        jb_get_mark(js, &mark);
-        jb_open_object(js, "http");
-        if (rs_http2_log_json(tx_ptr, js)) {
-            jb_close(js);
-        } else {
-            jb_restore_mark(js, &mark);
+        if (tx_ptr) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "http");
+            if (rs_http2_log_json(tx_ptr, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
+            }
         }
     }
 
