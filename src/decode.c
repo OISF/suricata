@@ -507,6 +507,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", tv);
     dtv->counter_vxlan = StatsRegisterCounter("decoder.vxlan", tv);
     dtv->counter_ieee8021ah = StatsRegisterCounter("decoder.ieee8021ah", tv);
+    dtv->counter_ieee8021br = StatsRegisterCounter("decoder.ieee8021br", tv);
     dtv->counter_teredo = StatsRegisterCounter("decoder.teredo", tv);
     dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", tv);
     dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", tv);

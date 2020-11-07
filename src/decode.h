@@ -662,6 +662,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_vlan_qinq;
     uint16_t counter_vxlan;
     uint16_t counter_ieee8021ah;
+    uint16_t counter_ieee8021br;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
     uint16_t counter_mpls;
@@ -1245,6 +1246,9 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         case ETHERNET_TYPE_8021AH:
             DecodeIEEE8021ah(tv, dtv, p, data, len);
+            break;
+        case ETHERNET_TYPE_8021BR:
+            DecodeIEEE8021br(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_ARP:
             break;

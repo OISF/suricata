@@ -146,6 +146,7 @@ enum {
     VLAN_HEADER_TOO_MANY_LAYERS,
 
     IEEE8021AH_HEADER_TOO_SMALL,
+    IEEE8021BR_HEADER_TOO_SMALL,
 
     /* RAW EVENTS */
     IPRAW_INVALID_IPV, /**< invalid ip version in ip raw */
