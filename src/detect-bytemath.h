@@ -52,7 +52,7 @@ typedef struct DetectByteMathData_ {
     /* local id used by other keywords in the sig to reference this */
     uint8_t local_id;
     uint8_t nbytes;
-    uint16_t offset;
+    int32_t offset;
 
     uint32_t rvalue;
 
