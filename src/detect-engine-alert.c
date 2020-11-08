@@ -394,7 +394,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     /* Set flag on flow to indicate that it has alerts */
     if (p->flow != NULL && p->alerts.cnt > 0) {
-        FlowSetHasAlertsFlag(p->flow);
+        if (!FlowHasAlerts(p->flow)) {
+            FlowSetHasAlertsFlag(p->flow);
+            p->flags |= PKT_FIRST_ALERTS;
+        }
     }
 
 }
