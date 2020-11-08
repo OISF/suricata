@@ -75,8 +75,8 @@
 #define LOGMODE_SGUIL                   1
 #define LOGMODE_MULTI                   2
 
-#define LOGMODE_COND_ALL                0
-#define LOGMODE_COND_ALERTS             1
+#define LOGMODE_COND_ALL    0
+#define LOGMODE_COND_ALERTS 1
 
 #define RING_BUFFER_MODE_DISABLED       0
 #define RING_BUFFER_MODE_ENABLED        1
@@ -224,7 +224,6 @@ void PcapLogRegister(void)
     (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
     (prof).cnt++
 
-
 static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     PcapLogThreadData *ptd = (PcapLogThreadData *)thread_data;
@@ -237,9 +236,8 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
     }
     /* Log alerted flow */
     if (ptd->pcap_log->conditional == LOGMODE_COND_ALERTS) {
-        if (p->alerts.cnt ||
-                (p->flow && FlowHasAlerts(p->flow))) {
-            return TRUE; 
+        if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
+            return TRUE;
         } else {
             return FALSE;
         }
@@ -479,6 +477,42 @@ static void PcapLogUnlock(PcapLogData *pl)
     }
 }
 
+static inline int PcapWrite(
+        PcapLogData *pl, PcapLogCompressionData *comp, uint8_t *data, size_t len)
+{
+    pcap_dump((u_char *)pl->pcap_dumper, pl->h, data);
+    if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
+        pl->size_current += len;
+    }
+#ifdef HAVE_LIBLZ4
+    else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
+        pcap_dump_flush(pl->pcap_dumper);
+        uint64_t in_size = (uint64_t)ftell(comp->pcap_buf_wrapper);
+        uint64_t out_size = LZ4F_compressUpdate(
+                comp->lz4f_context, comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
+        if (LZ4F_isError(len)) {
+            SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s", LZ4F_getErrorName(len));
+            return TM_ECODE_FAILED;
+        }
+        if (fseek(pl->compression.pcap_buf_wrapper, 0, SEEK_SET) != 0) {
+            SCLogError(SC_ERR_FSEEK, "fseek failed: %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        if (fwrite(comp->buffer, 1, out_size, comp->file) < out_size) {
+            SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        if (out_size > 0) {
+            pl->size_current += out_size;
+            comp->bytes_in_block = len;
+        } else {
+            comp->bytes_in_block += len;
+        }
+    }
+#endif /* HAVE_LIBLZ4 */
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Pcap logging main function
  *
@@ -573,37 +607,14 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     }
 
     PCAPLOG_PROFILE_START;
-    pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
-    if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
-        pl->size_current += len;
-    }
+
 #ifdef HAVE_LIBLZ4
-    else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
-        pcap_dump_flush(pl->pcap_dumper);
-        uint64_t in_size = (uint64_t)ftell(comp->pcap_buf_wrapper);
-        uint64_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
-                comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
-        if (LZ4F_isError(len)) {
-            SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s",
-                    LZ4F_getErrorName(len));
-            return TM_ECODE_FAILED;
-        }
-        if (fseek(pl->compression.pcap_buf_wrapper, 0, SEEK_SET) != 0) {
-            SCLogError(SC_ERR_FSEEK, "fseek failed: %s", strerror(errno));
-            return TM_ECODE_FAILED;
-        }
-        if (fwrite(comp->buffer, 1, out_size, comp->file) < out_size) {
-            SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
-            return TM_ECODE_FAILED;
-        }
-        if (out_size > 0) {
-            pl->size_current += out_size;
-            comp->bytes_in_block = len;
-        } else {
-            comp->bytes_in_block += len;
-        }
-    }
-#endif /* HAVE_LIBLZ4 */
+    ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
+#else
+    ret = PcapWrite(pl, NULL, GET_PKT_DATA(p), len);
+#endif
+    if (ret != TM_ECODE_OK)
+        return ret;
 
     PCAPLOG_PROFILE_END(pl->profile_write);
     pl->profile_data_size += len;
@@ -1444,15 +1455,15 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                 pl->conditional = LOGMODE_COND_ALERTS;
             } else if (strcasecmp(s_conditional, "all") != 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
-                    "or \"alerts\" mode ", s_conditional);
+                        "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
+                        "or \"alerts\" mode ",
+                        s_conditional);
                 exit(EXIT_FAILURE);
             }
         }
 
-        SCLogInfo("Selected pcap-log conditional logging: %s",
-                s_conditional ? s_conditional : "all");
-
+        SCLogInfo(
+                "Selected pcap-log conditional logging: %s", s_conditional ? s_conditional : "all");
     }
 
     if (filename) {
