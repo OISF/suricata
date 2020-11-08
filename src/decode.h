@@ -1159,6 +1159,8 @@ void DecodeUnregisterCounters(void);
 /** Packet is part of stream in known bad condition (loss, wrong thread),
  *  so flag it for not setting stream events */
 #define PKT_STREAM_NO_EVENTS            (1<<28)
+/** We had no alert on flow before this packet */
+#define PKT_FIRST_ALERTS (1 << 29)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
