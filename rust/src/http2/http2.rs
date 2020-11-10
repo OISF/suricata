@@ -361,20 +361,11 @@ impl HTTP2State {
         return None;
     }
 
-    fn find_tx_index(&mut self, sid: u32, header: &parser::HTTP2FrameHeader) -> usize {
+    fn find_tx_index(&mut self, sid: u32) -> usize {
         for i in 0..self.transactions.len() {
             //reverse order should be faster
             let idx = self.transactions.len() - 1 - i;
             if sid == self.transactions[idx].stream_id {
-                if self.transactions[idx].state == HTTP2TransactionState::HTTP2StateClosed {
-                    //these frames can be received in this state for a short period
-                    if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
-                        && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
-                        && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
-                    {
-                        self.set_event(HTTP2Event::StreamIdReuse);
-                    }
-                }
                 return idx + 1;
             }
         }
@@ -424,8 +415,17 @@ impl HTTP2State {
             }
             _ => header.stream_id,
         };
-        let index = self.find_tx_index(sid, header);
+        let index = self.find_tx_index(sid);
         if index > 0 {
+            if self.transactions[index - 1].state == HTTP2TransactionState::HTTP2StateClosed {
+                //these frames can be received in this state for a short period
+                if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
+                    && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
+                    && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
+                {
+                    self.set_event(HTTP2Event::StreamIdReuse);
+                }
+            }
             return &mut self.transactions[index - 1];
         } else {
             let mut tx = HTTP2Transaction::new();
@@ -701,34 +701,6 @@ impl HTTP2State {
         }
     }
 
-    fn stream_data(&mut self, dir: u8, input: &[u8], over: bool, txid: u64) {
-        match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-            Some(sfcm) => {
-                for tx in &mut self.transactions {
-                    if tx.tx_id == txid {
-                        let xid: u32 = tx.tx_id as u32;
-                        let (files, flags) = self.files.get(dir);
-                        tx.ft.tx_id = tx.tx_id;
-                        tx.ft.new_chunk(
-                            sfcm,
-                            files,
-                            flags,
-                            b"",
-                            input,
-                            tx.ft.tracked, //offset = append
-                            input.len() as u32,
-                            0,
-                            over,
-                            &xid,
-                        );
-                        break;
-                    }
-                }
-            }
-            None => panic!("BUG"),
-        }
-    }
-
     fn parse_frames(&mut self, mut input: &[u8], il: usize, dir: u8) -> AppLayerResult {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
@@ -776,8 +748,8 @@ impl HTTP2State {
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
                     tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
-                    let txid = tx.tx_id;
                     let ftype = head.ftype;
+                    let sid = head.stream_id;
                     if dir == STREAM_TOSERVER {
                         tx.frames_ts.push(HTTP2Frame {
                             header: head,
@@ -790,7 +762,31 @@ impl HTTP2State {
                         });
                     }
                     if ftype == parser::HTTP2FrameType::DATA as u8 {
-                        self.stream_data(dir, &rem[..hlsafe], over, txid);
+                        match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                            Some(sfcm) => {
+                                //borrow checker forbids to reuse directly tx
+                                let index = self.find_tx_index(sid);
+                                if index > 0 {
+                                    let mut tx_same = &mut self.transactions[index - 1];
+                                    let xid: u32 = tx_same.tx_id as u32;
+                                    tx_same.ft.tx_id = tx_same.tx_id - 1;
+                                    let (files, flags) = self.files.get(dir);
+                                    tx_same.ft.new_chunk(
+                                        sfcm,
+                                        files,
+                                        flags,
+                                        b"",
+                                        &rem[..hlsafe],
+                                        tx_same.ft.tracked, //offset = append
+                                        hlsafe as u32,
+                                        0,
+                                        over,
+                                        &xid,
+                                    );
+                                }
+                            }
+                            None => panic!("BUG"),
+                        }
                     }
                     input = &rem[hlsafe..];
                 }
@@ -978,6 +974,7 @@ pub extern "C" fn rs_http2_parse_ts(
     let buf = build_slice!(input, input_len as usize);
 
     state.files.flags_ts = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
     return state.parse_ts(buf);
 }
 
@@ -989,6 +986,7 @@ pub extern "C" fn rs_http2_parse_tc(
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
     state.files.flags_tc = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
     return state.parse_tc(buf);
 }
 
