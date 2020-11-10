@@ -169,8 +169,6 @@ pub struct DCERPCTransaction {
     pub endianness: u8,
     pub stub_data_buffer_ts: Vec<u8>,
     pub stub_data_buffer_tc: Vec<u8>,
-    pub stub_data_buffer_len_ts: u32,
-    pub stub_data_buffer_len_tc: u32,
     pub stub_data_buffer_reset_ts: bool,
     pub stub_data_buffer_reset_tc: bool,
     pub req_done: bool,
@@ -198,8 +196,6 @@ impl DCERPCTransaction {
             endianness: 0,
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
-            stub_data_buffer_len_ts: 0, // TODO maybe retrieve length from buffer and avoid this param
-            stub_data_buffer_len_tc: 0,
             stub_data_buffer_reset_ts: false,
             stub_data_buffer_reset_tc: false,
             req_done: false,
@@ -827,7 +823,6 @@ impl DCERPCState {
                         hdrpfcflags,
                         padleft,
                         &mut tx.stub_data_buffer_ts,
-                        &mut tx.stub_data_buffer_len_ts,
                         &mut tx.stub_data_buffer_reset_ts,
                     );
                     tx.req_done = true;
@@ -840,7 +835,6 @@ impl DCERPCState {
                         hdrpfcflags,
                         padleft,
                         &mut tx.stub_data_buffer_tc,
-                        &mut tx.stub_data_buffer_len_tc,
                         &mut tx.stub_data_buffer_reset_tc,
                     );
                     tx.resp_done = true;
@@ -1132,8 +1126,8 @@ impl DCERPCState {
 }
 
 fn evaluate_stub_params(
-    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
-    stub_data_buffer_len: &mut u32, stub_data_buffer_reset: &mut bool,
+    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16,
+    stub_data_buffer: &mut Vec<u8>,stub_data_buffer_reset: &mut bool,
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
@@ -1147,7 +1141,6 @@ fn evaluate_stub_params(
 
     let input_slice = &input[..stub_len as usize];
     stub_data_buffer.extend_from_slice(&input_slice);
-    *stub_data_buffer_len += stub_len as u32;
 
     stub_len
 }
@@ -1317,12 +1310,12 @@ pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
 ) {
     match dir {
         core::STREAM_TOSERVER => {
-            *len = tx.stub_data_buffer_len_ts;
+            *len = tx.stub_data_buffer_ts.len() as u32;
             *buf = tx.stub_data_buffer_ts.as_ptr();
             SCLogDebug!("DCERPC Request stub buffer: Setting buffer to: {:?}", *buf);
         }
         _ => {
-            *len = tx.stub_data_buffer_len_tc;
+            *len = tx.stub_data_buffer_tc.len() as u32;
             *buf = tx.stub_data_buffer_tc.as_ptr();
             SCLogDebug!("DCERPC Response stub buffer: Setting buffer to: {:?}", *buf);
         }
@@ -1771,7 +1764,7 @@ mod tests {
         assert_eq!(11, tx.ctxid);
         assert_eq!(9, tx.opnum);
         assert_eq!(1, tx.first_request_seen);
-        assert_eq!(1000, tx.stub_data_buffer_len_ts);
+        assert_eq!(1000, tx.stub_data_buffer_ts.len());
         assert_eq!(true, tx.stub_data_buffer_reset_ts);
     }
 
@@ -1901,7 +1894,7 @@ mod tests {
             dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
-        assert_eq!(20, tx.stub_data_buffer_len_ts);
+        assert_eq!(20, tx.stub_data_buffer_ts.len());
     }
 
     #[test]
@@ -1959,7 +1952,7 @@ mod tests {
             dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
-        assert_eq!(12, tx.stub_data_buffer_len_ts);
+        assert_eq!(12, tx.stub_data_buffer_ts.len());
     }
 
     #[test]
@@ -2469,6 +2462,6 @@ mod tests {
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(2, tx.opnum);
         assert_eq!(0, tx.ctxid);
-        assert_eq!(14, tx.stub_data_buffer_len_ts);
+        assert_eq!(14, tx.stub_data_buffer_ts.len());
     }
 }

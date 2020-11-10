@@ -29,7 +29,7 @@ fn log_dcerpc_header(
                 jsb.open_object("req")?;
                 jsb.set_uint("opnum", tx.opnum as u64)?;
                 jsb.set_uint("frag_cnt", tx.frag_cnt_ts as u64)?;
-                jsb.set_uint("stub_data_size", tx.stub_data_buffer_len_ts as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_ts.len() as u64)?;
                 jsb.close()?;
             }
             DCERPC_TYPE_BIND => match &state.bind {
@@ -61,7 +61,7 @@ fn log_dcerpc_header(
             DCERPC_TYPE_RESPONSE => {
                 jsb.open_object("res")?;
                 jsb.set_uint("frag_cnt", tx.frag_cnt_tc as u64)?;
-                jsb.set_uint("stub_data_size", tx.stub_data_buffer_len_tc as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_tc.len() as u64)?;
                 jsb.close()?;
             }
             _ => {} // replicating behavior from smb
