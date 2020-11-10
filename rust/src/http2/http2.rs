@@ -438,6 +438,31 @@ impl HTTP2State {
         }
     }
 
+    fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
+        let (mut update, mut sizeup) = (false, 0);
+        for i in 0..blocks.len() {
+            if blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
+                self.set_event(HTTP2Event::InvalidHeader);
+            } else if blocks[i].error
+                == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+            {
+                update = true;
+                if blocks[i].sizeupdate > sizeup {
+                    sizeup = blocks[i].sizeupdate;
+                }
+            }
+        }
+        if update {
+            //borrow checker forbids to pass directly dyn_headers
+            let dyn_headers = if dir == STREAM_TOCLIENT {
+                &mut self.dynamic_headers_tc
+            } else {
+                &mut self.dynamic_headers_ts
+            };
+            dyn_headers.max_size = sizeup as usize;
+        }
+    }
+
     fn parse_frame_data(
         &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: u8,
     ) -> HTTP2FrameTypeData {
@@ -573,13 +598,7 @@ impl HTTP2State {
                 };
                 match parser::http2_parse_frame_push_promise(input, hflags, dyn_headers) {
                     Ok((_, hs)) => {
-                        for i in 0..hs.blocks.len() {
-                            if hs.blocks[i].error
-                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
-                            {
-                                self.set_event(HTTP2Event::InvalidHeader);
-                            }
-                        }
+                        self.process_headers(&hs.blocks, dir);
                         return HTTP2FrameTypeData::PUSHPROMISE(hs);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -613,13 +632,7 @@ impl HTTP2State {
                 };
                 match parser::http2_parse_frame_continuation(input, dyn_headers) {
                     Ok((_, hs)) => {
-                        for i in 0..hs.blocks.len() {
-                            if hs.blocks[i].error
-                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
-                            {
-                                self.set_event(HTTP2Event::InvalidHeader);
-                            }
-                        }
+                        self.process_headers(&hs.blocks, dir);
                         return HTTP2FrameTypeData::CONTINUATION(hs);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -650,13 +663,7 @@ impl HTTP2State {
                 };
                 match parser::http2_parse_frame_headers(input, hflags, dyn_headers) {
                     Ok((hrem, hs)) => {
-                        for i in 0..hs.blocks.len() {
-                            if hs.blocks[i].error
-                                >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError
-                            {
-                                self.set_event(HTTP2Event::InvalidHeader);
-                            }
-                        }
+                        self.process_headers(&hs.blocks, dir);
                         if hrem.len() > 0 {
                             SCLogDebug!("Remaining data for HTTP2 headers");
                             self.set_event(HTTP2Event::ExtraHeaderData);
