@@ -179,6 +179,8 @@ pub struct DCERPCTransaction {
     pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
+    pub activityuuid: Vec<u8>,
+    pub seqnum: u32,
     pub tx_data: AppLayerTxData,
     pub de_state: Option<*mut core::DetectEngineState>,
 }
@@ -206,6 +208,8 @@ impl DCERPCTransaction {
             resp_lost: false,
             req_cmd: DCERPC_TYPE_REQUEST,
             resp_cmd: DCERPC_TYPE_RESPONSE,
+            activityuuid: Vec::new(),
+            seqnum: 0,
             tx_data: AppLayerTxData::new(),
             de_state: None,
         };
