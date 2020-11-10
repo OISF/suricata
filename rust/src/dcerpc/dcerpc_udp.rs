@@ -52,7 +52,7 @@ pub struct DCERPCHdrUdp {
 
 #[derive(Debug)]
 pub struct DCERPCUDPState {
-    pub tx_id: u32,
+    pub tx_id: u64,
     pub header: Option<DCERPCHdrUdp>,
     pub transactions: Vec<DCERPCTransaction>,
     pub fraglenleft: u16,

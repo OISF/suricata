@@ -159,7 +159,7 @@ pub fn get_req_type_for_resp(t: u8) -> u8 {
 
 #[derive(Debug)]
 pub struct DCERPCTransaction {
-    pub id: u32, // internal transaction ID
+    pub id: u64, // internal transaction ID
     pub ctxid: u16,
     pub opnum: u16,
     pub first_request_seen: u8,
@@ -342,7 +342,7 @@ pub struct DCERPCState {
     pub pad: u8,
     pub padleft: u16,
     pub bytes_consumed: u16,
-    pub tx_id: u32,
+    pub tx_id: u64,
     pub query_completed: bool,
     pub data_needed_for_dir: u8,
     pub prev_dir: u8,
@@ -535,7 +535,7 @@ impl DCERPCState {
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
-    pub fn get_tx(&mut self, tx_id: u32) -> Option<&mut DCERPCTransaction> {
+    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
             let found = tx.id == tx_id;
             if found {
@@ -1269,7 +1269,7 @@ pub extern "C" fn rs_dcerpc_set_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_get_tx(
-    vtx: *mut std::os::raw::c_void, tx_id: u32,
+    vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut DCERPCTransaction {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
@@ -1279,7 +1279,7 @@ pub extern "C" fn rs_dcerpc_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u32 {
+pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
