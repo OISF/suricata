@@ -29,6 +29,8 @@ pub const DCERPC_HDR_LEN: u16 = 16;
 // FIRST flag set on the packet
 pub const DCERPC_UUID_ENTRY_FLAG_FF: u16 = 0x0001;
 
+// Flag bits in connection-oriented PDU header
+
 // Value to indicate first fragment
 pub const PFC_FIRST_FRAG: u8 = 0x01;
 // Value to indicate last fragment
@@ -47,6 +49,31 @@ pub const PFC_MAYBE: u8 = 0x40;
 //  is present in the optional object field. If false, the object field
 // is omitted.
 pub const PFC_OBJECT_UUID: u8 = 0x80;
+
+// Flag bits in first flag field in connectionless PDU header.
+pub const PFCL1_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
+pub const PFCL1_LASTFRAG: u8 = 0x02; // If set, the PDU is the last fragment
+                                     // of a multi-PDU transmission
+pub const PFCL1_FRAG: u8 = 0x04; // If set, the PDU is a fragment
+                                 // of a multi-PDU transmission
+pub const PFCL1_NOFACK: u8 = 0x08; // If set, the receiver is not requested
+                                   // to send a `fack' PDU for the fragment
+pub const PFCL1_MAYBE: u8 = 0x10; // If set, the PDU is for a `maybe' request
+pub const PFCL1_IDEMPOTENT: u8 = 0x20; // If set, the PDU is for
+                                       // an idempotent request
+pub const PFCL1_BROADCAST: u8 = 0x40; // If set, the PDU is for
+                                      // a broadcast request
+pub const PFCL1_RESERVED_80: u8 = 0x80; // Reserved for use by implementations
+
+// Flag bits in second flag field in connectionless PDU header.
+pub const PFCL2_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
+pub const PFCL2_CANCEL_PENDING: u8 = 0x02; // Cancel pending at the call end
+pub const PFCL2_RESERVED_04: u8 = 0x04; // Reserved for future use
+pub const PFCL2_RESERVED_08: u8 = 0x08; // Reserved for future use
+pub const PFCL2_RESERVED_10: u8 = 0x10; // Reserved for future use
+pub const PFCL2_RESERVED_20: u8 = 0x20; // Reserved for future use
+pub const PFCL2_RESERVED_40: u8 = 0x40; // Reserved for future use
+pub const PFCL2_RESERVED_80: u8 = 0x80; // Reserved for future use
 
 pub const REASON_NOT_SPECIFIED: u8 = 0;
 pub const TEMPORARY_CONGESTION: u8 = 1;
