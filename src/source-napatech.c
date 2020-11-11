@@ -447,13 +447,10 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
                       NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
 
             TmqhOutputPacketpool(ntv->tv, p);
-            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
         if (unlikely(TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK)) {
-            TmqhOutputPacketpool(ntv->tv, p);
-            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
