@@ -43,8 +43,7 @@ void RegisterQuicParsers(void)
 
     rs_quic_register_parser();
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_QUIC,
-        QuicParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_QUIC, QuicParserRegisterTests);
 #endif
 }
 

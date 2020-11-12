@@ -159,7 +159,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"ntp")==0) return ALPROTO_NTP;
     if (strcmp(proto_name,"ikev2")==0) return ALPROTO_IKEV2;
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
-    if (strcmp(proto_name,"quic")==0) return ALPROTO_QUIC;
+    if (strcmp(proto_name, "quic") == 0)
+        return ALPROTO_QUIC;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
     if (strcmp(proto_name,"sip")==0) return ALPROTO_SIP;

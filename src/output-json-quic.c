@@ -47,17 +47,17 @@
 
 typedef struct LogQuicFileCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t    flags;
+    uint32_t flags;
 } LogQuicFileCtx;
 
 typedef struct LogQuicLogThread_ {
-    LogQuicFileCtx     *quiclog_ctx;
-    uint32_t            count;
-    MemBuffer          *buffer;
+    LogQuicFileCtx *quiclog_ctx;
+    uint32_t count;
+    MemBuffer *buffer;
 } LogQuicLogThread;
 
-static int JsonQuicLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonQuicLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogQuicLogThread *thread = thread_data;
 
@@ -86,8 +86,7 @@ static void OutputQuicLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputQuicLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputQuicLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -158,8 +157,7 @@ void JsonQuicLogRegister(void)
     }
 
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_QUIC, "eve-log", "JsonQuicLog",
-        "eve-log.quic", OutputQuicLogInitSub, ALPROTO_QUIC,
-        JsonQuicLogger, JsonQuicLogThreadInit,
-        JsonQuicLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_QUIC, "eve-log", "JsonQuicLog", "eve-log.quic",
+            OutputQuicLogInitSub, ALPROTO_QUIC, JsonQuicLogger, JsonQuicLogThreadInit,
+            JsonQuicLogThreadDeinit, NULL);
 }
