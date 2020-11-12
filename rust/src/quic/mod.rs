@@ -16,8 +16,9 @@
  */
 
 mod cyu;
+pub mod detect;
 mod error;
 mod frames;
 mod logger;
 mod parser;
-mod quic;
+pub mod quic;

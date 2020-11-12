@@ -28,10 +28,11 @@ static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 const DEFAULT_DCID_LEN: usize = 16;
 
-pub(crate) struct QuicTransaction {
+pub struct QuicTransaction {
     tx_id: u64,
     header: QuicHeader,
     data: QuicData,
+    pub cyu: Option<Cyu>,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
@@ -40,10 +41,12 @@ pub(crate) struct QuicTransaction {
 
 impl QuicTransaction {
     fn new(header: QuicHeader, data: QuicData) -> QuicTransaction {
+        let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
             header,
             data,
+            cyu,
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -58,10 +61,6 @@ impl QuicTransaction {
             core::sc_detect_engine_state_free(state);
         }
     }
-
-    pub(crate) fn cyu(&self) -> Option<Cyu> {
-        Cyu::generate(&self.header, &self.data.frames)
-    }
 }
 
 impl Drop for QuicTransaction {
@@ -70,7 +69,7 @@ impl Drop for QuicTransaction {
     }
 }
 
-struct QuicState {
+pub struct QuicState {
     tx_id: u64,
     transactions: Vec<QuicTransaction>,
 }

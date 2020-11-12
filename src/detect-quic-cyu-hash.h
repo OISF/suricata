@@ -17,12 +17,12 @@
 
 /**
  * \file
+ *
  */
 
-#ifndef __OUTPUT_JSON_QUIC_H__
-#define __OUTPUT_JSON_QUIC_H__
+#ifndef __DETECT_QUIC_CYU_HASH_H__
+#define __DETECT_QUIC_CYU_HASH_H__
 
-bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
-void JsonQuicLogRegister(void);
+void DetectQuicCyuHashRegister(void);
 
-#endif /* __OUTPUT_JSON_QUIC_H__ */
+#endif /* __DETECT_QUIC_CYU_HASH_H__ */

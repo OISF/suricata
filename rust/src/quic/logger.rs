@@ -19,7 +19,7 @@ use super::quic::QuicTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    if let Some(cyu) = tx.cyu() {
+    if let Some(cyu) = &tx.cyu {
         js.open_object("cyu")?;
         js.set_string("hash", &cyu.hash)?;
         js.set_string("string", &cyu.string)?;

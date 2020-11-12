@@ -56,6 +56,19 @@ typedef struct LogQuicLogThread_ {
     MemBuffer *buffer;
 } LogQuicLogThread;
 
+bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+{
+    QuicState *state = FlowGetAppState(f);
+    if (state) {
+        QuicTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_QUIC, state, tx_id);
+        if (tx) {
+            return rs_quic_logger_log(tx, js);
+        }
+    }
+
+    return false;
+}
+
 static int JsonQuicLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *tx, uint64_t tx_id)
 {

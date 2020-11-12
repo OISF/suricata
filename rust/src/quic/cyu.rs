@@ -4,7 +4,7 @@ use super::{
 };
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Cyu {
+pub struct Cyu {
     pub string: String,
     pub hash: String,
 }

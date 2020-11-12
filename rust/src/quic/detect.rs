@@ -15,14 +15,28 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- */
+use crate::quic::quic::QuicTransaction;
+use std::ptr;
 
-#ifndef __OUTPUT_JSON_QUIC_H__
-#define __OUTPUT_JSON_QUIC_H__
+#[no_mangle]
+pub extern "C" fn rs_quic_tx_get_cyu_hash(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some(cyu) = &tx.cyu {
+        let p = &cyu.hash;
 
-bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
-void JsonQuicLogRegister(void);
+        unsafe {
+            *buffer = p.as_ptr();
+            *buffer_len = p.len() as u32;
+        }
 
-#endif /* __OUTPUT_JSON_QUIC_H__ */
+        return 1;
+    }
+
+    unsafe {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+    }
+
+    return 0;
+}
