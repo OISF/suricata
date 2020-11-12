@@ -328,6 +328,7 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+detect-quic-version.c detect-quic-version.h \
 detect-quic-cyu-hash.c detect-quic-cyu-hash.h \
 detect-quic-cyu-string.c detect-quic-cyu-string.h \
 device-storage.c device-storage.h \

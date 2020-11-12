@@ -15,24 +15,14 @@
  * 02110-1301, USA.
  */
 
-use super::quic::QuicTransaction;
-use crate::jsonbuilder::{JsonBuilder, JsonError};
+/**
+ * \file
+ *
+ */
 
-fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.set_uint("version", u32::from(tx.header.version.clone()).into())?;
+#ifndef __DETECT_QUIC_VERSION_H__
+#define __DETECT_QUIC_VERSION_H__
 
-    if let Some(cyu) = &tx.cyu {
-        js.open_object("cyu")?;
-        js.set_string("hash", &cyu.hash)?;
-        js.set_string("string", &cyu.string)?;
-        js.close()?;
-    }
+void DetectQuicVersionRegister(void);
 
-    Ok(())
-}
-
-#[no_mangle]
-pub extern "C" fn rs_quic_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
-    let tx = cast_pointer!(tx, QuicTransaction);
-    log_template(tx, js).is_ok()
-}
+#endif /* __DETECT_QUIC_VERSION_H__ */

@@ -16,7 +16,7 @@
  */
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum QuicError {
+pub enum QuicError {
     InvalidPacket,
     Parse(String),
 }

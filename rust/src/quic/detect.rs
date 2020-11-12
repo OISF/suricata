@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::quic::quic::QuicTransaction;
+use crate::quic::quic::{QuicState, QuicTransaction};
 use std::ptr;
 
 #[no_mangle]
@@ -62,4 +62,9 @@ pub extern "C" fn rs_quic_tx_get_cyu_string(
     }
 
     return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_quic_tx_get_version(tx: &QuicState) -> u32 {
+    tx.version
 }

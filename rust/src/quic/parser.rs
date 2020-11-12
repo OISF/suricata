@@ -33,8 +33,8 @@ use nom::number::complete::{be_u32, be_u8};
 */
 
 // List of accepted and tested quic versions format
-#[derive(Debug, PartialEq)]
-pub(crate) enum QuicVersion {
+#[derive(Debug, PartialEq, Clone)]
+pub enum QuicVersion {
     Q043,
     Q044,
     Q045,
@@ -77,7 +77,7 @@ impl From<u32> for QuicVersion {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum QuicType {
+pub enum QuicType {
     Initial,
     Retry,
     Handshake,
@@ -87,7 +87,7 @@ pub(crate) enum QuicType {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct PublicFlags {
+pub struct PublicFlags {
     is_long: bool,
 }
 
@@ -101,7 +101,7 @@ impl PublicFlags {
 
 /// A QUIC packet's header.
 #[derive(Debug, PartialEq)]
-pub(crate) struct QuicHeader {
+pub struct QuicHeader {
     pub flags: PublicFlags,
     pub ty: QuicType,
     pub version: QuicVersion,

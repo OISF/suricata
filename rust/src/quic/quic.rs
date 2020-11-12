@@ -28,8 +28,10 @@ static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 const DEFAULT_DCID_LEN: usize = 16;
 
+#[derive(Debug)]
 pub struct QuicTransaction {
     tx_id: u64,
+    pub header: QuicHeader,
     pub cyu: Option<Cyu>,
 
     de_state: Option<*mut core::DetectEngineState>,
@@ -42,6 +44,7 @@ impl QuicTransaction {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
+            header,
             cyu,
             de_state: None,
             events: std::ptr::null_mut(),
@@ -67,6 +70,7 @@ impl Drop for QuicTransaction {
 
 pub struct QuicState {
     tx_id: u64,
+    pub version: u32,
     transactions: Vec<QuicTransaction>,
 }
 
@@ -74,6 +78,7 @@ impl Default for QuicState {
     fn default() -> Self {
         Self {
             tx_id: 0,
+            version: 0,
             transactions: Vec::new(),
         }
     }
@@ -141,6 +146,8 @@ impl QuicState {
         match QuicHeader::from_bytes(input, DEFAULT_DCID_LEN) {
             Ok((rest, header)) => match QuicData::from_bytes(rest) {
                 Ok(data) => {
+                    self.version = header.version.clone().into();
+
                     let transaction = self.new_tx(header, data);
                     self.transactions.push(transaction);
 
