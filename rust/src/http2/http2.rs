@@ -24,10 +24,14 @@ use crate::core::{
 };
 use crate::filecontainer::*;
 use crate::filetracker::*;
+use brotli;
+use flate2::read::GzDecoder;
 use nom;
 use std;
 use std::ffi::{CStr, CString};
 use std::fmt;
+use std::io;
+use std::io::{Cursor, Read, Write};
 use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -58,6 +62,8 @@ const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 5;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
+const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
+
 //TODO make this configurable
 pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
 
@@ -116,6 +122,172 @@ pub struct HTTP2Frame {
     pub data: HTTP2FrameTypeData,
 }
 
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+pub enum HTTP2ContentEncoding {
+    HTTP2ContentEncodingUnknown = 0,
+    HTTP2ContentEncodingGzip = 1,
+    HTTP2ContentEncodingBr = 2,
+    HTTP2ContentEncodingUnrecognized = 3,
+}
+
+//a cursor turning EOF into blocking errors
+pub struct HTTP2cursor {
+    pub cursor: Cursor<Vec<u8>>,
+}
+
+impl HTTP2cursor {
+    pub fn new() -> HTTP2cursor {
+        HTTP2cursor {
+            cursor: Cursor::new(Vec::new()),
+        }
+    }
+
+    pub fn position(&self) -> u64 {
+        return self.cursor.position();
+    }
+
+    pub fn set_position(&mut self, pos: u64) {
+        return self.cursor.set_position(pos);
+    }
+}
+
+impl Read for HTTP2cursor {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        //use the cursor, except it turns eof into blocking error
+        let r = self.cursor.read(buf);
+        match r {
+            Err(ref err) => {
+                if err.kind() == io::ErrorKind::UnexpectedEof {
+                    return Err(io::ErrorKind::WouldBlock.into());
+                }
+            }
+            Ok(0) => {
+                //regular EOF turned into blocking error
+                return Err(io::ErrorKind::WouldBlock.into());
+            }
+            Ok(_n) => {}
+        }
+        return r;
+    }
+}
+
+impl Write for HTTP2cursor {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.cursor.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.cursor.flush()
+    }
+}
+
+pub enum HTTP2Decompresser {
+    UNASSIGNED,
+    GZIP(GzDecoder<HTTP2cursor>),
+    BROTLI(brotli::Decompressor<HTTP2cursor>),
+}
+
+pub struct HTTP2Decoder {
+    encoding: HTTP2ContentEncoding,
+    decoder: HTTP2Decompresser,
+}
+
+pub trait GetMutCursor {
+    fn get_mut(&mut self) -> &mut HTTP2cursor;
+}
+
+impl GetMutCursor for GzDecoder<HTTP2cursor> {
+    fn get_mut(&mut self) -> &mut HTTP2cursor {
+        return self.get_mut();
+    }
+}
+
+impl GetMutCursor for brotli::Decompressor<HTTP2cursor> {
+    fn get_mut(&mut self) -> &mut HTTP2cursor {
+        return self.get_mut();
+    }
+}
+
+fn http2_decompress<'a>(
+    decoder: &mut (impl Read + GetMutCursor), input: &'a [u8], output: &'a mut Vec<u8>,
+) -> io::Result<&'a [u8]> {
+    match decoder.get_mut().write_all(input) {
+        Ok(()) => {}
+        Err(e) => {
+            return Err(e);
+        }
+    }
+    let mut offset = 0;
+    decoder.get_mut().set_position(0);
+    output.resize(HTTP2_DECOMPRESSION_CHUNK_SIZE, 0);
+    loop {
+        match decoder.read(&mut output[offset..]) {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
+                offset += n;
+                if offset == output.len() {
+                    output.resize(output.len() + HTTP2_DECOMPRESSION_CHUNK_SIZE, 0);
+                }
+            }
+            Err(e) => {
+                if e.kind() == io::ErrorKind::WouldBlock {
+                    break;
+                }
+                return Err(e);
+            }
+        }
+    }
+    //checks all input was consumed
+    debug_validate_bug_on!(decoder.get_mut().position() < (input.len() as u64));
+    decoder.get_mut().set_position(0);
+    return Ok(&output[..offset]);
+}
+
+impl HTTP2Decoder {
+    pub fn new() -> HTTP2Decoder {
+        HTTP2Decoder {
+            encoding: HTTP2ContentEncoding::HTTP2ContentEncodingUnknown,
+            decoder: HTTP2Decompresser::UNASSIGNED,
+        }
+    }
+
+    fn http2_encoding_fromvec(&mut self, input: &Vec<u8>) {
+        //use first encoding...
+        if self.encoding == HTTP2ContentEncoding::HTTP2ContentEncodingUnknown {
+            if *input == "gzip".as_bytes().to_vec() {
+                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingGzip;
+                self.decoder = HTTP2Decompresser::GZIP(GzDecoder::new(HTTP2cursor::new()));
+            } else if *input == "br".as_bytes().to_vec() {
+                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingBr;
+                self.decoder = HTTP2Decompresser::BROTLI(brotli::Decompressor::new(
+                    HTTP2cursor::new(),
+                    HTTP2_DECOMPRESSION_CHUNK_SIZE,
+                ));
+            } else {
+                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingUnrecognized;
+            }
+        }
+    }
+
+    fn decompress<'a>(
+        &'a mut self, input: &'a [u8], output: &'a mut Vec<u8>,
+    ) -> io::Result<&'a [u8]> {
+        match self.decoder {
+            HTTP2Decompresser::GZIP(ref mut gzip_decoder) => {
+                return http2_decompress(gzip_decoder, input, output);
+            }
+            HTTP2Decompresser::BROTLI(ref mut br_decoder) => {
+                return http2_decompress(br_decoder, input, output);
+            }
+            _ => {}
+        }
+        return Ok(input);
+    }
+}
+
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,
@@ -124,6 +296,9 @@ pub struct HTTP2Transaction {
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
+
+    decoder_tc: HTTP2Decoder,
+    decoder_ts: HTTP2Decoder,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
@@ -144,6 +319,8 @@ impl HTTP2Transaction {
             state: HTTP2TransactionState::HTTP2StateIdle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            decoder_tc: HTTP2Decoder::new(),
+            decoder_ts: HTTP2Decoder::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -161,6 +338,44 @@ impl HTTP2Transaction {
         }
     }
 
+    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
+        for i in 0..blocks.len() {
+            if blocks[i].name == "content-encoding".as_bytes().to_vec() {
+                if dir == STREAM_TOCLIENT {
+                    self.decoder_tc.http2_encoding_fromvec(&blocks[i].value);
+                } else {
+                    self.decoder_ts.http2_encoding_fromvec(&blocks[i].value);
+                }
+            }
+        }
+    }
+
+    fn decompress<'a>(
+        &'a mut self, input: &'a [u8], dir: u8, sfcm: &'static SuricataFileContext, over: bool,
+        files: &mut FileContainer, flags: u16,
+    ) -> io::Result<()> {
+        let mut output = Vec::with_capacity(HTTP2_DECOMPRESSION_CHUNK_SIZE);
+        let decompressed = if dir == STREAM_TOCLIENT {
+            self.decoder_tc.decompress(input, &mut output)
+        } else {
+            self.decoder_ts.decompress(input, &mut output)
+        }?;
+        let xid: u32 = self.tx_id as u32;
+        self.ft.new_chunk(
+            sfcm,
+            files,
+            flags,
+            b"",
+            decompressed,
+            self.ft.tracked, //offset = append
+            decompressed.len() as u32,
+            0,
+            over,
+            &xid,
+        );
+        return Ok(());
+    }
+
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
     ) {
@@ -174,18 +389,21 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
-            HTTP2FrameTypeData::CONTINUATION(_) => {
+            HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == STREAM_TOCLIENT
                     && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
                 {
                     self.child_stream_id = 0;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
-            HTTP2FrameTypeData::HEADERS(_) => {
+            HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == STREAM_TOCLIENT {
                     self.child_stream_id = 0;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -254,6 +472,7 @@ pub enum HTTP2Event {
     LongFrameData,
     StreamIdReuse,
     InvalidHTTP1Settings,
+    FailedDecompression,
 }
 
 impl HTTP2Event {
@@ -268,6 +487,7 @@ impl HTTP2Event {
             6 => Some(HTTP2Event::LongFrameData),
             7 => Some(HTTP2Event::StreamIdReuse),
             8 => Some(HTTP2Event::InvalidHTTP1Settings),
+            9 => Some(HTTP2Event::FailedDecompression),
             _ => None,
         }
     }
@@ -768,21 +988,21 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let mut tx_same = &mut self.transactions[index - 1];
-                                    let xid: u32 = tx_same.tx_id as u32;
                                     tx_same.ft.tx_id = tx_same.tx_id - 1;
                                     let (files, flags) = self.files.get(dir);
-                                    tx_same.ft.new_chunk(
+                                    match tx_same.decompress(
+                                        &rem[..hlsafe],
+                                        dir,
                                         sfcm,
+                                        over,
                                         files,
                                         flags,
-                                        b"",
-                                        &rem[..hlsafe],
-                                        tx_same.ft.tracked, //offset = append
-                                        hlsafe as u32,
-                                        0,
-                                        over,
-                                        &xid,
-                                    );
+                                    ) {
+                                        Err(_e) => {
+                                            self.set_event(HTTP2Event::FailedDecompression);
+                                        }
+                                        _ => {}
+                                    }
                                 }
                             }
                             None => panic!("BUG"),
@@ -1058,6 +1278,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "long_frame_data" => HTTP2Event::LongFrameData as i32,
                 "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
                 "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
+                "failed_decompression" => HTTP2Event::FailedDecompression as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1086,6 +1307,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::LongFrameData => "long_frame_data\0",
             HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
             HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
+            HTTP2Event::FailedDecompression => "failed_decompression\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
