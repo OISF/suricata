@@ -1423,11 +1423,6 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     } else {
         SCLogInfo("Napatech Hardware Bypass disabled.");
     }
-
-    if (is_inline) {
-         FatalError(SC_ERR_FATAL,
-                    "Napatech inline mode not supported.  (Only available when Hardware Bypass support is enabled.)");
-    }
 #endif
 
     if (is_inline) {
