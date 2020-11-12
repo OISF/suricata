@@ -694,6 +694,8 @@ static void PrintBuildInfo(void)
 #endif
     /* For compatibility, just say we have HAVE_NSS. */
     strlcat(features, "HAVE_NSS ", sizeof(features));
+    /* HTTP2_DECOMPRESSION is not an optional feature in this major version */
+    strlcat(features, "HTTP2_DECOMPRESSION ", sizeof(features));
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #endif
