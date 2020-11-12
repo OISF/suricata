@@ -40,3 +40,26 @@ pub extern "C" fn rs_quic_tx_get_cyu_hash(
 
     return 0;
 }
+
+#[no_mangle]
+pub extern "C" fn rs_quic_tx_get_cyu_string(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some(cyu) = &tx.cyu {
+        let p = &cyu.string;
+
+        unsafe {
+            *buffer = p.as_ptr();
+            *buffer_len = p.len() as u32;
+        }
+
+        return 1;
+    }
+
+    unsafe {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+    }
+
+    return 0;
+}

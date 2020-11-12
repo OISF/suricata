@@ -329,6 +329,7 @@ detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
 detect-quic-cyu-hash.c detect-quic-cyu-hash.h \
+detect-quic-cyu-string.c detect-quic-cyu-string.h \
 device-storage.c device-storage.h \
 feature.c feature.h \
 flow-bit.c flow-bit.h \

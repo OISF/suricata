@@ -217,6 +217,7 @@
 #include "detect-mqtt-subscribe-topic.h"
 #include "detect-mqtt-unsubscribe-topic.h"
 #include "detect-quic-cyu-hash.h"
+#include "detect-quic-cyu-string.h"
 
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
@@ -624,6 +625,7 @@ void SigTableSetup(void)
     DetectMQTTSubscribeTopicRegister();
     DetectMQTTUnsubscribeTopicRegister();
     DetectQuicCyuHashRegister();
+    DetectQuicCyuStringRegister();
 
     DetectTemplateBufferRegister();
     DetectBypassRegister();

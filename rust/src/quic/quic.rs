@@ -30,8 +30,6 @@ const DEFAULT_DCID_LEN: usize = 16;
 
 pub struct QuicTransaction {
     tx_id: u64,
-    header: QuicHeader,
-    data: QuicData,
     pub cyu: Option<Cyu>,
 
     de_state: Option<*mut core::DetectEngineState>,
@@ -44,8 +42,6 @@ impl QuicTransaction {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
-            header,
-            data,
             cyu,
             de_state: None,
             events: std::ptr::null_mut(),
@@ -346,8 +342,8 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        SCLogNotice!("Rust quic parser registered.");
+        SCLogDebug!("Rust quic parser registered.");
     } else {
-        SCLogNotice!("Protocol detector and parser disabled for quic.");
+        SCLogDebug!("Protocol detector and parser disabled for quic.");
     }
 }
