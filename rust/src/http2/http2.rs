@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+#[cfg(feature = "decompression")]
+use super::decompression;
 use super::parser;
 use crate::applayer::{self, *};
 use crate::core::{
@@ -27,6 +29,7 @@ use nom;
 use std;
 use std::ffi::{CStr, CString};
 use std::fmt;
+use std::io;
 use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -124,6 +127,9 @@ pub struct HTTP2Transaction {
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
 
+    #[cfg(feature = "decompression")]
+    decoder: decompression::HTTP2Decoder,
+
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
@@ -143,6 +149,8 @@ impl HTTP2Transaction {
             state: HTTP2TransactionState::HTTP2StateIdle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            #[cfg(feature = "decompression")]
+            decoder: decompression::HTTP2Decoder::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -160,6 +168,46 @@ impl HTTP2Transaction {
         }
     }
 
+    #[cfg(not(feature = "decompression"))]
+    fn handle_headers(&mut self, _blocks: &Vec<parser::HTTP2FrameHeaderBlock>, _dir: u8) {}
+
+    #[cfg(feature = "decompression")]
+    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
+        for i in 0..blocks.len() {
+            if blocks[i].name == "content-encoding".as_bytes().to_vec() {
+                self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
+            }
+        }
+    }
+
+    // dir may be unused without the decompression feature
+    fn decompress<'a>(
+        &'a mut self, input: &'a [u8], _dir: u8, sfcm: &'static SuricataFileContext, over: bool,
+        files: &mut FileContainer, flags: u16,
+    ) -> io::Result<()> {
+        #[cfg(feature = "decompression")]
+        let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
+        #[cfg(feature = "decompression")]
+        let decompressed = self.decoder.decompress(input, &mut output, _dir)?;
+        #[cfg(not(feature = "decompression"))]
+        let decompressed = input;
+
+        let xid: u32 = self.tx_id as u32;
+        self.ft.new_chunk(
+            sfcm,
+            files,
+            flags,
+            b"",
+            decompressed,
+            self.ft.tracked, //offset = append
+            decompressed.len() as u32,
+            0,
+            over,
+            &xid,
+        );
+        return Ok(());
+    }
+
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
     ) {
@@ -173,18 +221,21 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
-            HTTP2FrameTypeData::CONTINUATION(_) => {
+            HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == STREAM_TOCLIENT
                     && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
                 {
                     self.child_stream_id = 0;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
-            HTTP2FrameTypeData::HEADERS(_) => {
+            HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == STREAM_TOCLIENT {
                     self.child_stream_id = 0;
                 }
+                self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -253,6 +304,7 @@ pub enum HTTP2Event {
     LongFrameData,
     StreamIdReuse,
     InvalidHTTP1Settings,
+    FailedDecompression,
 }
 
 impl HTTP2Event {
@@ -267,6 +319,7 @@ impl HTTP2Event {
             6 => Some(HTTP2Event::LongFrameData),
             7 => Some(HTTP2Event::StreamIdReuse),
             8 => Some(HTTP2Event::InvalidHTTP1Settings),
+            9 => Some(HTTP2Event::FailedDecompression),
             _ => None,
         }
     }
@@ -767,21 +820,21 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let mut tx_same = &mut self.transactions[index - 1];
-                                    let xid: u32 = tx_same.tx_id as u32;
                                     tx_same.ft.tx_id = tx_same.tx_id - 1;
                                     let (files, flags) = self.files.get(dir);
-                                    tx_same.ft.new_chunk(
+                                    match tx_same.decompress(
+                                        &rem[..hlsafe],
+                                        dir,
                                         sfcm,
+                                        over,
                                         files,
                                         flags,
-                                        b"",
-                                        &rem[..hlsafe],
-                                        tx_same.ft.tracked, //offset = append
-                                        hlsafe as u32,
-                                        0,
-                                        over,
-                                        &xid,
-                                    );
+                                    ) {
+                                        Err(_e) => {
+                                            self.set_event(HTTP2Event::FailedDecompression);
+                                        }
+                                        _ => {}
+                                    }
                                 }
                             }
                             None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
@@ -1052,6 +1105,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "long_frame_data" => HTTP2Event::LongFrameData as i32,
                 "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
                 "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
+                "failed_decompression" => HTTP2Event::FailedDecompression as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1080,6 +1134,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::LongFrameData => "long_frame_data\0",
             HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
             HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
+            HTTP2Event::FailedDecompression => "failed_decompression\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

@@ -694,6 +694,9 @@ static void PrintBuildInfo(void)
 #endif
     /* For compatibility, just say we have HAVE_NSS. */
     strlcat(features, "HAVE_NSS ", sizeof(features));
+#ifdef HTTP2_DECOMPRESSION
+    strlcat(features, "HTTP2_DECOMPRESSION ", sizeof(features));
+#endif
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #endif
