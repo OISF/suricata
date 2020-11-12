@@ -70,8 +70,15 @@ fn log_dcerpc_header(
         jsb.set_string("response", "UNREPLIED")?;
     }
 
-    jsb.set_uint("call_id", tx.call_id as u64)?;
     if let Some(ref hdr) = state.header {
+        if hdr.rpc_vers != 4 {
+            jsb.set_uint("call_id", tx.call_id as u64)?;
+        } else {
+            let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
+            let activityuuid = activityuuid.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+            jsb.set_string("activityuuid", &activityuuid)?;
+            jsb.set_uint("seqnum", tx.seqnum as u64)?;
+        }
         let vstr = format!("{}.{}", hdr.rpc_vers, hdr.rpc_vers_minor);
         jsb.set_string("rpc_version", &vstr)?;
     }
