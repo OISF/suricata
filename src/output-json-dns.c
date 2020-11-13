@@ -381,6 +381,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
                 break;
             }
             jb_set_object(jb, "dns", answer);
+            jb_free(answer);
 
             MemBufferReset(td->buffer);
             OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
@@ -401,6 +402,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
                 break;
             }
             jb_set_object(jb, "dns", answer);
+            jb_free(answer);
 
             MemBufferReset(td->buffer);
             OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
