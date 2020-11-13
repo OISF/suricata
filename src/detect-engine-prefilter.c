@@ -144,6 +144,35 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     }
 }
 
+/** \brief invoke post-rule match "prefilter" engines
+ *
+ * Invoke prefilter engines that depend on a rule match to run.
+ * e.g. the flowbits:set prefilter that adds sids that depend on
+ * a flowbit "set" to the match array.
+ */
+void PrefilterPostRuleMatch(
+        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p, Flow *f)
+{
+    SCLogDebug("post-rule-match engines %p", sgh->post_rule_match_engines);
+    if (sgh->post_rule_match_engines) {
+        PrefilterEngine *engine = sgh->post_rule_match_engines;
+        do {
+            SCLogDebug("running post-rule-match engine");
+            PREFILTER_PROFILING_START(det_ctx);
+            engine->cb.PrefilterPostRule(det_ctx, engine->pectx, p, f);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
+
+            if (engine->is_last)
+                break;
+            engine++;
+        } while (1);
+
+        if (det_ctx->pmq.rule_id_array_cnt > 1) {
+            QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        }
+    }
+}
+
 void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
         const uint8_t flags, const SignatureMask mask)
 {
@@ -342,6 +371,39 @@ int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return 0;
 }
 
+int PrefilterAppendPostRuleEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        void (*PrefilterPostRuleFunc)(
+                DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f),
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name)
+{
+    if (sgh == NULL || PrefilterPostRuleFunc == NULL || pectx == NULL)
+        return -1;
+
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
+    if (e == NULL)
+        return -1;
+    memset(e, 0x00, sizeof(*e));
+    e->PrefilterPostRule = PrefilterPostRuleFunc;
+    e->pectx = pectx;
+    e->Free = FreeFunc;
+
+    if (sgh->init->post_rule_match_engines == NULL) {
+        sgh->init->post_rule_match_engines = e;
+    } else {
+        PrefilterEngineList *t = sgh->init->post_rule_match_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
+    }
+
+    e->name = name;
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    return 0;
+}
+
 static void PrefilterFreeEngineList(PrefilterEngineList *e)
 {
     if (e->Free && e->pectx) {
@@ -395,6 +457,10 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh->frame_engines) {
         PrefilterFreeEngines(de_ctx, sgh->frame_engines);
         sgh->frame_engines = NULL;
+    }
+    if (sgh->post_rule_match_engines) {
+        PrefilterFreeEngines(de_ctx, sgh->post_rule_match_engines);
+        sgh->post_rule_match_engines = NULL;
     }
 }
 
@@ -588,6 +654,30 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             }
             e++;
         }
+    }
+    if (sgh->init->post_rule_match_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->post_rule_match_engines; el != NULL; el = el->next) {
+            cnt++;
+        }
+        sgh->post_rule_match_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->post_rule_match_engines == NULL) {
+            return;
+        }
+        memset(sgh->post_rule_match_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        uint32_t local_id = 0;
+        PrefilterEngine *e = sgh->post_rule_match_engines;
+        for (el = sgh->init->post_rule_match_engines; el != NULL; el = el->next) {
+            e->local_id = local_id++;
+            e->cb.PrefilterPostRule = el->PrefilterPostRule;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            e->is_last = (el->next == NULL);
+            e++;
+        }
+        SCLogDebug("sgh %p max local_id %u", sgh, local_id);
     }
 }
 

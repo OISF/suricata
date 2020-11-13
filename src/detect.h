@@ -1090,6 +1090,20 @@ typedef struct RuleMatchCandidateTx {
     const Signature *s;     /**< ptr to sig */
 } RuleMatchCandidateTx;
 
+typedef struct PostRuleMatchWorkQueueItem {
+    int sm_type;
+    uint32_t value;
+#ifdef DEBUG
+    SigIntId id;
+#endif
+} PostRuleMatchWorkQueueItem;
+
+typedef struct PostRuleMatchWorkQueue {
+    PostRuleMatchWorkQueueItem *q;
+    uint32_t len;
+    uint32_t size;
+} PostRuleMatchWorkQueue;
+
 /**
   * Detection engine thread data.
   */
@@ -1200,6 +1214,9 @@ typedef struct DetectEngineThreadCtx_ {
     uint32_t non_pf_store_cnt;
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
+    /* work queue for post-rule matching affecting prefilter */
+    PostRuleMatchWorkQueue post_rule_work_queue;
+
     PrefilterRuleStore pmq;
 
     /* string to replace */
@@ -1391,6 +1408,8 @@ typedef struct PrefilterEngineList_ {
     PrefilterPktFn Prefilter;
     PrefilterTxFn PrefilterTx;
     PrefilterFrameFn PrefilterFrame;
+    void (*PrefilterPostRule)(
+            DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f);
 
     struct PrefilterEngineList_ *next;
 
@@ -1424,6 +1443,8 @@ typedef struct PrefilterEngine_ {
         PrefilterPktFn Prefilter;
         PrefilterTxFn PrefilterTx;
         PrefilterFrameFn PrefilterFrame;
+        void (*PrefilterPostRule)(
+                DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f);
     } cb;
 
     /* global id for this prefilter */
@@ -1451,6 +1472,7 @@ typedef struct SigGroupHeadInitData_ {
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
     PrefilterEngineList *frame_engines;
+    PrefilterEngineList *post_rule_match_engines;
 
     /** number of sigs in this group */
     SigIntId sig_cnt;
@@ -1481,6 +1503,7 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
     PrefilterEngine *frame_engines;
+    PrefilterEngine *post_rule_match_engines; /**< engines to run after rules modified a state */
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

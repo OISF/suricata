@@ -2523,6 +2523,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         goto error;
     }
 
+    // TODO test enable flowbits prefilter
+    // de_ctx->sm_types_prefilter[DETECT_FLOWBITS] = true;
+
     SigGroupHeadHashInit(de_ctx);
     MpmStoreInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
@@ -3521,6 +3524,9 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     RuleMatchCandidateTxArrayFree(det_ctx);
 
     AlertQueueFree(det_ctx);
+
+    if (det_ctx->post_rule_work_queue.q)
+        SCFree(det_ctx->post_rule_work_queue.q);
 
     if (det_ctx->byte_values != NULL)
         SCFree(det_ctx->byte_values);

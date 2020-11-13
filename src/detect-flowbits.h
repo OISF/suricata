@@ -36,6 +36,7 @@ typedef struct DetectFlowbitsData_ {
     uint32_t idx;
     uint8_t cmd;
     uint8_t or_list_size;
+    bool prefilter;
     uint32_t *or_list;
 } DetectFlowbitsData;
 
