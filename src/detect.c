@@ -747,6 +747,15 @@ static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
     return false;
 }
 
+static int SortHelper(const void *a, const void *b)
+{
+    const Signature *sa = *(const Signature **)a;
+    const Signature *sb = *(const Signature **)b;
+    if (sa->num == sb->num)
+        return 0;
+    return sa->num > sb->num ? 1 : -1;
+}
+
 static inline void DetectRulePacketRules(
     ThreadVars * const tv,
     DetectEngineCtx * const de_ctx,
@@ -794,7 +803,7 @@ static inline void DetectRulePacketRules(
         }
         const uint8_t s_proto_flags = s->proto.flags;
 
-        SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+        SCLogDebug("packet %" PRIu64 ": inspecting signature id %" PRIu32 "", p->pcap_cnt, s->id);
 
         if (s->app_inspect != NULL) {
             goto next; // handle sig in DetectRunTx
@@ -862,6 +871,51 @@ static inline void DetectRulePacketRules(
             }
         }
         AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
+
+        if (det_ctx->post_rule_work_queue.len > 0) {
+            /* run post match prefilter engines on work queue */
+            PrefilterPostRuleMatch(det_ctx, scratch->sgh, p, pflow);
+
+            if (det_ctx->pmq.rule_id_array_cnt > 0) {
+                /* undo "prefetch" */
+                if (next_s)
+                    match_array--;
+                /* create temporary rule pointer array starting
+                 * at where we are in the current match array */
+                const Signature *replace[de_ctx->sig_array_len]; // TODO heap?
+                SCLogDebug("sig_array_len %u det_ctx->pmq.rule_id_array_cnt %u",
+                        de_ctx->sig_array_len, det_ctx->pmq.rule_id_array_cnt);
+                const Signature **r = replace;
+                for (uint32_t x = 0; x < match_cnt; x++) {
+                    *r++ = match_array[x];
+                    SCLogDebug("appended %u", match_array[x]->id);
+                }
+                /* append the prefilter results, then sort it */
+                for (uint32_t x = 0; x < det_ctx->pmq.rule_id_array_cnt; x++) {
+                    // TODO what happens if a tx engine is added?
+                    SCLogDebug("adding iid %u", det_ctx->pmq.rule_id_array[x]);
+                    Signature *ts = de_ctx->sig_array[det_ctx->pmq.rule_id_array[x]];
+                    SCLogDebug("adding id %u", ts->id);
+                    if (ts->app_inspect == NULL) {
+                        *r++ = ts;
+                        match_cnt++;
+                    }
+                }
+                // TODO if sid 12 is added twice, how do we dedup
+                qsort(replace, match_cnt, sizeof(Signature *), SortHelper);
+                /* rewrite match_array to include the new additions */
+                Signature **m = match_array;
+                for (uint32_t x = 0; x < match_cnt; x++) {
+                    *m++ = (Signature *)replace[x];
+                }
+                /* prefetch next */
+                next_s = *match_array++;
+                next_sflags = next_s->flags;
+                SCLogDebug("%u rules added", det_ctx->pmq.rule_id_array_cnt);
+                det_ctx->post_rule_work_queue.len = 0;
+                PMQ_RESET(&det_ctx->pmq);
+            }
+        }
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
@@ -1660,6 +1714,38 @@ static void DetectRunTx(ThreadVars *tv,
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
+
+            if (det_ctx->post_rule_work_queue.len > 0) {
+                SCLogDebug("%p/%" PRIu64 " post_rule_work_queue len %u", tx.tx_ptr, tx.tx_id,
+                        det_ctx->post_rule_work_queue.len);
+                /* run post match prefilter engines on work queue */
+                PrefilterPostRuleMatch(det_ctx, scratch->sgh, p, f);
+
+                uint32_t prev_array_idx = array_idx;
+                for (uint32_t j = 0; j < det_ctx->pmq.rule_id_array_cnt; j++) {
+                    const Signature *ts = de_ctx->sig_array[det_ctx->pmq.rule_id_array[j]];
+                    if (ts->app_inspect != NULL) {
+                        const SigIntId id = ts->num;
+                        det_ctx->tx_candidates[array_idx].s = ts;
+                        det_ctx->tx_candidates[array_idx].id = id;
+                        det_ctx->tx_candidates[array_idx].flags = NULL;
+                        det_ctx->tx_candidates[array_idx].stream_reset = 0;
+                        array_idx++;
+
+                        SCLogDebug("%p/%" PRIu64 " rule %u (%u) added from 'post match' prefilter",
+                                tx.tx_ptr, tx.tx_id, ts->id, id);
+                    }
+                }
+                SCLogDebug("%p/%" PRIu64 " rules added from 'post match' prefilter: %u", tx.tx_ptr,
+                        tx.tx_id, array_idx - prev_array_idx);
+                if (prev_array_idx != array_idx) {
+                    /* sort, but only part of array we're still going to process */
+                    qsort(det_ctx->tx_candidates + i, array_idx - i, sizeof(RuleMatchCandidateTx),
+                            DetectRunTxSortHelper);
+                }
+                det_ctx->post_rule_work_queue.len = 0;
+                PMQ_RESET(&det_ctx->pmq);
+            }
         }
 
         det_ctx->tx_id = 0;

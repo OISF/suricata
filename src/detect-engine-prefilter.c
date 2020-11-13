@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2021 Open Information Security Foundation
+/* Copyright (C) 2016-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -152,6 +152,35 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
+    }
+}
+
+/** \brief invoke post-rule match "prefilter" engines
+ *
+ * Invoke prefilter engines that depend on a rule match to run.
+ * e.g. the flowbits:set prefilter that adds sids that depend on
+ * a flowbit "set" to the match array.
+ */
+void PrefilterPostRuleMatch(
+        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p, Flow *f)
+{
+    SCLogDebug("post-rule-match engines %p", sgh->post_rule_match_engines);
+    if (sgh->post_rule_match_engines) {
+        PrefilterEngine *engine = sgh->post_rule_match_engines;
+        do {
+            SCLogDebug("running post-rule-match engine");
+            PREFILTER_PROFILING_START(det_ctx);
+            engine->cb.PrefilterPostRule(det_ctx, engine->pectx, p, f);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
+
+            if (engine->is_last)
+                break;
+            engine++;
+        } while (1);
+
+        if (det_ctx->pmq.rule_id_array_cnt > 1) {
+            QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        }
     }
 }
 
@@ -353,6 +382,39 @@ int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return 0;
 }
 
+int PrefilterAppendPostRuleEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        void (*PrefilterPostRuleFunc)(
+                DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f),
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name)
+{
+    if (sgh == NULL || PrefilterPostRuleFunc == NULL || pectx == NULL)
+        return -1;
+
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
+    if (e == NULL)
+        return -1;
+    memset(e, 0x00, sizeof(*e));
+    e->PrefilterPostRule = PrefilterPostRuleFunc;
+    e->pectx = pectx;
+    e->Free = FreeFunc;
+
+    if (sgh->init->post_rule_match_engines == NULL) {
+        sgh->init->post_rule_match_engines = e;
+    } else {
+        PrefilterEngineList *t = sgh->init->post_rule_match_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
+    }
+
+    e->name = name;
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    return 0;
+}
+
 static void PrefilterFreeEngineList(PrefilterEngineList *e)
 {
     if (e->Free && e->pectx) {
@@ -406,6 +468,10 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh->frame_engines) {
         PrefilterFreeEngines(de_ctx, sgh->frame_engines);
         sgh->frame_engines = NULL;
+    }
+    if (sgh->post_rule_match_engines) {
+        PrefilterFreeEngines(de_ctx, sgh->post_rule_match_engines);
+        sgh->post_rule_match_engines = NULL;
     }
 }
 
@@ -599,6 +665,30 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             }
             e++;
         }
+    }
+    if (sgh->init->post_rule_match_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->post_rule_match_engines; el != NULL; el = el->next) {
+            cnt++;
+        }
+        sgh->post_rule_match_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->post_rule_match_engines == NULL) {
+            return;
+        }
+        memset(sgh->post_rule_match_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        uint16_t local_id = 0;
+        PrefilterEngine *e = sgh->post_rule_match_engines;
+        for (el = sgh->init->post_rule_match_engines; el != NULL; el = el->next) {
+            e->local_id = local_id++;
+            e->cb.PrefilterPostRule = el->PrefilterPostRule;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            e->is_last = (el->next == NULL);
+            e++;
+        }
+        SCLogDebug("sgh %p max local_id %u", sgh, local_id);
     }
 }
 
@@ -899,4 +989,31 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, M
         SCFree(pectx);
     }
     return r;
+}
+
+#define QUEUE_STEP 16
+
+void PostRuleMatchWorkQueueAppend(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value)
+{
+    if (det_ctx->post_rule_work_queue.q == NULL) {
+        det_ctx->post_rule_work_queue.q =
+                SCCalloc(1, sizeof(PostRuleMatchWorkQueueItem) * QUEUE_STEP);
+        BUG_ON(det_ctx->post_rule_work_queue.q == NULL);
+        det_ctx->post_rule_work_queue.size = QUEUE_STEP;
+    } else if (det_ctx->post_rule_work_queue.len == det_ctx->post_rule_work_queue.size) {
+        void *ptr = SCRealloc(
+                det_ctx->post_rule_work_queue.q, (det_ctx->post_rule_work_queue.size + QUEUE_STEP) *
+                                                         sizeof(PostRuleMatchWorkQueueItem));
+        BUG_ON(ptr == NULL);
+        det_ctx->post_rule_work_queue.q = ptr;
+        det_ctx->post_rule_work_queue.size += QUEUE_STEP;
+    }
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].sm_type = type;
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].value = value;
+#ifdef DEBUG
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].id = s->num;
+#endif
+    det_ctx->post_rule_work_queue.len++;
+    SCLogDebug("det_ctx->post_rule_work_queue.len %u", det_ctx->post_rule_work_queue.len);
 }
