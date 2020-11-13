@@ -116,7 +116,8 @@ outputs:
             # Default: all
             #answer-types: [a, aaaa, cname, mx, ns, ptr, txt]
         - dns:
-            # Version 1 (deprecated) DNS logger.
+            # Version 1 DNS logger.
+            # Deprecated: Will be removed by May 2022.
             version: 1
 
             enabled: no
