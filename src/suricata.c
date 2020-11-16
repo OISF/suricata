@@ -571,7 +571,7 @@ static void PrintUsage(const char *progname)
     printf("\t--service-remove                     : remove service\n");
     printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
-    printf("\t-k [all|none]                        : force checksum check (all) or disabled it (none)\n");
+    printf("\t-k [all|none]                        : force checksum check (all) or disable it (none)\n");
     printf("\t-V                                   : display Suricata version\n");
     printf("\t-v                                   : be more verbose (use multiple times to increase verbosity)\n");
 #ifdef UNITTESTS
