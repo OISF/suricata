@@ -117,6 +117,13 @@ macro_rules!do_log {
 }
 
 #[macro_export]
+macro_rules!SCLogError {
+    ($($arg:tt)*) => {
+        $crate::do_log!($crate::log::Level::Error, 0, $($arg)*);
+    };
+}
+
+#[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
         $crate::do_log!($crate::log::Level::Notice, 0, $($arg)*);
@@ -142,13 +149,6 @@ macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
         $crate::do_log!($crate::log::Level::Config, 0, $($arg)*);
     }
-}
-
-#[macro_export]
-macro_rules!SCLogError {
-    ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Error, 0, $($arg)*);
-    };
 }
 
 // Debug mode: call C SCLogDebug
