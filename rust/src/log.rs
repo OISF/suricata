@@ -108,10 +108,9 @@ macro_rules!function {
 
 #[macro_export]
 macro_rules!do_log {
-    ($level:expr, $file:expr, $line:expr, $function:expr, $code:expr,
-     $($arg:tt)*) => {
+    ($level:expr, $code:expr, $($arg:tt)*) => {
         if $crate::log::get_log_level() >= $level as i32 {
-            $crate::log::sclog($level, $file, $line, $function, $code,
+            $crate::log::sclog($level, file!(), line!(), $crate::function!(), $code,
                   &(format!($($arg)*)));
         }
     }
@@ -120,36 +119,36 @@ macro_rules!do_log {
 #[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Notice, file!(), line!(), $crate::function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Notice, 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogInfo {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Info, file!(), line!(), $crate::function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Info, 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogPerf {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Perf, file!(), line!(), $crate::function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Perf, 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Config, file!(), line!(), $crate::function!(), 0, $($arg)*);
+        $crate::do_log!($crate::log::Level::Config, 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogError {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::log::Level::Error, file!(), line!(), $crate::function!(), 0, $($arg)*);
-    }
+        $crate::do_log!($crate::log::Level::Error, 0, $($arg)*);
+    };
 }
 
 // Debug mode: call C SCLogDebug
@@ -157,7 +156,7 @@ macro_rules!SCLogError {
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
-        do_log!($crate::log::Level::Debug, file!(), line!(), $crate::function!(), 0, $($arg)*);
+        do_log!($crate::log::Level::Debug, 0, $($arg)*);
     }
 }
 
