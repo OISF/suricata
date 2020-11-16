@@ -2626,7 +2626,7 @@ fi
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
-    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly])
+    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly && echo "$RUSTFLAGS" | grep -v -q coverage])
     AC_PROG_CXX
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
         AS_IF([test "x$CARGO_BUILD_TARGET" = "x" && echo "$rust_compiler_version" | grep -q nightly], [
