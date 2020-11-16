@@ -160,8 +160,10 @@ macro_rules!SCLogDebug {
     }
 }
 
-// Release mode: ignore arguments
-// Use a reference to avoid moving values.
+// SCLogDebug variation to use when not compiled with debug support.
+//
+// This macro will only use the parameters passed to prevent warnings
+// about unused variables, but is otherwise the equivalent to a no-op.
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules!SCLogDebug {
