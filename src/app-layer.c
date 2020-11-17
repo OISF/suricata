@@ -618,6 +618,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 goto failure;
             }
         }
+        if (FlowChangeProto(f)) {
+            FlowUnsetChangeProtoFlag(f);
+            SCLogDebug("Cannot handle gap while changing protocol");
+            goto failure;
+        }
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
