@@ -63,7 +63,7 @@ jobs:
           apt-get install -y clang-format-9
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "::add-path::$HOME/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       # Checking out the branch is not as simple as "checking out".
       #
       # In case master has any new commits since we branched off, github will
