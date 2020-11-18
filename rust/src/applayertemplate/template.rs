@@ -25,6 +25,9 @@ use super::parser;
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
+#[derive(AppLayerEvent)]
+enum TemplateEvent {}
+
 pub struct TemplateTransaction {
     tx_id: u64,
     pub request: Option<String>,
@@ -426,22 +429,6 @@ pub extern "C" fn rs_template_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info(
-    _event_name: *const std::os::raw::c_char,
-    _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    return -1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info_by_id(_event_id: std::os::raw::c_int,
-                                                         _event_name: *mut *const std::os::raw::c_char,
-                                                         _event_type: *mut core::AppLayerEventType
-) -> i8 {
-    return -1;
-}
-#[no_mangle]
 pub extern "C" fn rs_template_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
@@ -540,8 +527,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_de_state: rs_template_tx_get_detect_state,
         set_de_state: rs_template_tx_set_detect_state,
         get_events: Some(rs_template_state_get_events),
-        get_eventinfo: Some(rs_template_state_get_event_info),
-        get_eventinfo_byid : Some(rs_template_state_get_event_info_by_id),
+        get_eventinfo: Some(TemplateEvent::get_event_info),
+        get_eventinfo_byid : Some(TemplateEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
