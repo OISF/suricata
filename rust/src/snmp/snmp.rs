@@ -22,7 +22,7 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::CString;
 
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
@@ -31,21 +31,11 @@ use nom;
 use nom::IResult;
 use nom::error::ErrorKind;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum SNMPEvent {
-    MalformedData = 0,
+    MalformedData,
     UnknownSecurityModel,
     VersionMismatch,
-}
-
-impl SNMPEvent {
-    fn from_i32(value: i32) -> Option<SNMPEvent> {
-        match value {
-            0 => Some(SNMPEvent::MalformedData),
-            1 => Some(SNMPEvent::UnknownSecurityModel),
-            _ => None,
-        }
-    }
 }
 
 pub struct SNMPState<'a> {
@@ -403,50 +393,6 @@ pub unsafe extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                     event_name: *mut *const std::os::raw::c_char,
-                                                     event_type: *mut core::AppLayerEventType)
-                                                     -> i8
-{
-    if let Some(e) = SNMPEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            SNMPEvent::MalformedData         => { "malformed_data\0" },
-            SNMPEvent::UnknownSecurityModel  => { "unknown_security_model\0" },
-            SNMPEvent::VersionMismatch       => { "version_mismatch\0" },
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data"         => SNMPEvent::MalformedData as i32,
-                "unknown_security_model" => SNMPEvent::UnknownSecurityModel as i32,
-                "version_mismatch"       => SNMPEvent::VersionMismatch as i32,
-                _                        => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    0
-}
-
 // for use with the C API call StateGetTxIterator
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_get_tx_iterator(
@@ -563,8 +509,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_de_state       : rs_snmp_state_get_tx_detect_state,
         set_de_state       : rs_snmp_state_set_tx_detect_state,
         get_events         : Some(rs_snmp_state_get_events),
-        get_eventinfo      : Some(rs_snmp_state_get_event_info),
-        get_eventinfo_byid : Some(rs_snmp_state_get_event_info_by_id),
+        get_eventinfo      : Some(SNMPEvent::get_event_info),
+        get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
