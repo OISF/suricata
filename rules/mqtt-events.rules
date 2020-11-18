@@ -4,12 +4,12 @@
 #    http://doc.emergingthreats.net/bin/view/Main/SidAllocation and
 #    https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
 
-alert mqtt any any -> any any (msg:"SURICATA MQTT CONNECT not seen before CONNACK"; app-layer-event:mqtt.missing_connect; classtype:protocol-command-decode; sid:2228000; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT PUBLISH not seen before PUBACK/PUBREL/PUBREC/PUBCOMP"; app-layer-event:mqtt.missing_publish; classtype:protocol-command-decode; sid:2228001; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT SUBSCRIBE not seen before SUBACK"; app-layer-event:mqtt.missing_subscribe; classtype:protocol-command-decode; sid:2228002; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT UNSUBSCRIBE not seen before UNSUBACK"; app-layer-event:mqtt.missing_unsubscribe; classtype:protocol-command-decode; sid:2228003; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT duplicate CONNECT"; app-layer-event:mqtt.double_connect; classtype:protocol-command-decode; sid:2228004; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT message seen before CONNECT/CONNACK completion"; app-layer-event:mqtt.unintroduced_message; classtype:protocol-command-decode; sid:2228005; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT invalid QOS level"; app-layer-event:mqtt.invalid_qos_level; classtype:protocol-command-decode; sid:2228006; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT missing message ID"; app-layer-event:mqtt.missing_msg_id; classtype:protocol-command-decode; sid:2228007; rev:1;)
-alert mqtt any any -> any any (msg:"SURICATA MQTT unassigned message type (0 or >15)"; app-layer-event:mqtt.unassigned_msg_type; classtype:protocol-command-decode; sid:2228008; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT CONNECT not seen before CONNACK"; app-layer-event:mqtt.missing_connect; classtype:protocol-command-decode; sid:2229000; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT PUBLISH not seen before PUBACK/PUBREL/PUBREC/PUBCOMP"; app-layer-event:mqtt.missing_publish; classtype:protocol-command-decode; sid:2229001; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT SUBSCRIBE not seen before SUBACK"; app-layer-event:mqtt.missing_subscribe; classtype:protocol-command-decode; sid:2229002; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT UNSUBSCRIBE not seen before UNSUBACK"; app-layer-event:mqtt.missing_unsubscribe; classtype:protocol-command-decode; sid:2229003; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT duplicate CONNECT"; app-layer-event:mqtt.double_connect; classtype:protocol-command-decode; sid:2229004; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT message seen before CONNECT/CONNACK completion"; app-layer-event:mqtt.unintroduced_message; classtype:protocol-command-decode; sid:2229005; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT invalid QOS level"; app-layer-event:mqtt.invalid_qos_level; classtype:protocol-command-decode; sid:2229006; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT missing message ID"; app-layer-event:mqtt.missing_msg_id; classtype:protocol-command-decode; sid:2229007; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT unassigned message type (0 or >15)"; app-layer-event:mqtt.unassigned_msg_type; classtype:protocol-command-decode; sid:2229008; rev:1;)
