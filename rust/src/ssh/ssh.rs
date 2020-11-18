@@ -19,7 +19,7 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
@@ -29,24 +29,12 @@ fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
 }
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum SSHEvent {
-    InvalidBanner = 0,
+    InvalidBanner,
     LongBanner,
     InvalidRecord,
     LongKexRecord,
-}
-
-impl SSHEvent {
-    fn from_i32(value: i32) -> Option<SSHEvent> {
-        match value {
-            0 => Some(SSHEvent::InvalidBanner),
-            1 => Some(SSHEvent::LongBanner),
-            2 => Some(SSHEvent::InvalidRecord),
-            3 => Some(SSHEvent::LongKexRecord),
-            _ => None,
-        }
-    }
 }
 
 #[repr(u8)]
@@ -377,52 +365,6 @@ pub unsafe extern "C" fn rs_ssh_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_event_info(
-    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "invalid_banner" => SSHEvent::InvalidBanner as i32,
-                "long_banner" => SSHEvent::LongBanner as i32,
-                "invalid_record" => SSHEvent::InvalidRecord as i32,
-                "long_kex_record" => SSHEvent::LongKexRecord as i32,
-                _ => -1, // unknown event
-            }
-        }
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = SSHEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            SSHEvent::InvalidBanner => "invalid_banner\0",
-            SSHEvent::LongBanner => "long_banner\0",
-            SSHEvent::InvalidRecord => "invalid_record\0",
-            SSHEvent::LongKexRecord => "long_kex_record\0",
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
@@ -547,8 +489,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_de_state: rs_ssh_tx_get_detect_state,
         set_de_state: rs_ssh_tx_set_detect_state,
         get_events: Some(rs_ssh_state_get_events),
-        get_eventinfo: Some(rs_ssh_state_get_event_info),
-        get_eventinfo_byid: Some(rs_ssh_state_get_event_info_by_id),
+        get_eventinfo: Some(SSHEvent::get_event_info),
+        get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
