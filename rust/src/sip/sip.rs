@@ -24,22 +24,12 @@ use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::sip::parser::*;
 use std;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum SIPEvent {
-    IncompleteData = 0,
+    IncompleteData,
     InvalidData,
-}
-
-impl SIPEvent {
-    fn from_i32(value: i32) -> Option<SIPEvent> {
-        match value {
-            0 => Some(SIPEvent::IncompleteData),
-            1 => Some(SIPEvent::InvalidData),
-            _ => None,
-        }
-    }
 }
 
 pub struct SIPState {
@@ -242,50 +232,6 @@ pub unsafe extern "C" fn rs_sip_state_get_events(
     return tx.events;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "incomplete_data" => SIPEvent::IncompleteData as i32,
-                "invalid_data" => SIPEvent::InvalidData as i32,
-                _ => -1, // unknown event
-            }
-        }
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = SIPEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            SIPEvent::IncompleteData => "incomplete_data\0",
-            SIPEvent::InvalidData => "invalid_data\0",
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
-}
-
 static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
@@ -376,8 +322,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_de_state: rs_sip_state_get_tx_detect_state,
         set_de_state: rs_sip_state_set_tx_detect_state,
         get_events: Some(rs_sip_state_get_events),
-        get_eventinfo: Some(rs_sip_state_get_event_info),
-        get_eventinfo_byid: Some(rs_sip_state_get_event_info_by_id),
+        get_eventinfo: Some(SIPEvent::get_event_info),
+        get_eventinfo_byid: Some(SIPEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
