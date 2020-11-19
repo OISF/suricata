@@ -276,6 +276,7 @@ Some keywords function act as modifiers. There are two types of modifiers.
 
   In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
 
+
 * The more recent type is called the **'sticky buffer'**. It places the buffer name first and all keywords following it apply to that buffer, for instance::
 
       alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
