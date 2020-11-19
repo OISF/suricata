@@ -143,22 +143,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     p->ts.tv_usec = header->ts.tv_usec;
     p->datalink = pcap_datalink(pkts);
     while (r > 0) {
-        PacketCopyData(p, pkt, header->caplen);
-        //DecodePcapFile
-        TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(&tv, p, dtv);
-        if (ecode == TM_ECODE_FAILED) {
-            break;
-        }
-        Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
-        while (extra_p != NULL) {
-            PacketFree(extra_p);
+        if (PacketCopyData(p, pkt, header->caplen) == 0) {
+            //DecodePcapFile
+            TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(&tv, p, dtv);
+            if (ecode == TM_ECODE_FAILED) {
+                break;
+            }
+            Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            while (extra_p != NULL) {
+                PacketFree(extra_p);
+                extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            }
+            tmm_modules[TMM_FLOWWORKER].Func(&tv, p, fwd);
             extra_p = PacketDequeueNoLock(&tv.decode_pq);
-        }
-        tmm_modules[TMM_FLOWWORKER].Func(&tv, p, fwd);
-        extra_p = PacketDequeueNoLock(&tv.decode_pq);
-        while (extra_p != NULL) {
-            PacketFree(extra_p);
-            extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            while (extra_p != NULL) {
+                PacketFree(extra_p);
+                extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            }
         }
         r = pcap_next_ex(pkts, &header, &pkt);
         PACKET_RECYCLE(p);
