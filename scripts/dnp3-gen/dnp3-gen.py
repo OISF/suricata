@@ -575,6 +575,13 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
     return 1;
 error:
     if (object != NULL) {
+{% for field in object.fields %}
+{% if field.type == "bytearray" %}
+        if (object->{{field.name}} != NULL) {
+            SCFree(object->{{field.name}});
+        }
+{% endif %}
+{% endfor %}
         SCFree(object);
     }
 
