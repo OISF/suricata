@@ -37,7 +37,8 @@ pub fn conf_get(key: &str) -> Option<&str> {
     let mut vptr: *const c_char = ptr::null_mut();
 
     unsafe {
-        if ConfGet(CString::new(key).unwrap().as_ptr(), &mut vptr) != 1 {
+        let s = CString::new(key).unwrap();
+        if ConfGet(s.as_ptr(), &mut vptr) != 1 {
             SCLogDebug!("Failed to find value for key {}", key);
             return None;
         }
@@ -90,8 +91,9 @@ impl ConfNode {
         let mut vptr: *const c_char = ptr::null_mut();
 
         unsafe {
+            let s = CString::new(key).unwrap();
             if ConfGetChildValue(self.conf,
-                                 CString::new(key).unwrap().as_ptr(),
+                                 s.as_ptr(),
                                  &mut vptr) != 1 {
                 return None;
             }
@@ -112,8 +114,9 @@ impl ConfNode {
         let mut vptr: c_int = 0;
 
         unsafe {
+            let s = CString::new(key).unwrap();
             if ConfGetChildValueBool(self.conf,
-                                     CString::new(key).unwrap().as_ptr(),
+                                     s.as_ptr(),
                                      &mut vptr) != 1 {
                 return false;
             }
