@@ -221,6 +221,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint3
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
+        SET_PKT_LEN(p, 0);
         return -1;
     }
 
