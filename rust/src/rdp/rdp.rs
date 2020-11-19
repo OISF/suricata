@@ -245,7 +245,14 @@ impl RdpState {
                     Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
-                            return self.parse_ts(available);
+                            let r = self.parse_ts(available);
+                            if r.status == 1 {
+                                //adds bytes already consumed to incomplete result
+                                let consumed = (input.len() - available.len()) as u32;
+                                return AppLayerResult::incomplete(r.consumed + consumed, r.needed);
+                            } else {
+                                return r;
+                            }
                         } else {
                             return AppLayerResult::err();
                         }
@@ -487,7 +494,8 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx_iterator: None,
         get_tx_data: rs_rdp_get_tx_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();

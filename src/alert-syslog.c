@@ -330,7 +330,7 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 
     char temp_buf_hdr[512];
     char temp_buf_pkt[65] = "";
-    char temp_buf_tail[32];
+    char temp_buf_tail[64];
     char alert[2048] = "";
 
     for (i = 0; i < p->alerts.cnt; i++) {

@@ -85,8 +85,8 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
-      # Enable for multi-threaded eve.json output; output files are suffixed
-      # with an identifier, e.g., eve.json.9.
+      # Enable for multi-threaded eve.json output; output files are amended with
+      # with an identifier, e.g., eve.9.json
       #threaded: false
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -1762,12 +1762,6 @@ ipfw:
 
 
 napatech:
-    # The Host Buffer Allowance for all streams
-    # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
-    # This may be enabled when sharing streams with another application.
-    # Otherwise, it should be turned off.
-    #hba: -1
-
     # When use_all_streams is set to "yes" the initialization code will query
     # the Napatech service for all configured streams and listen on all of them.
     # When set to "no" the streams config array will be used.

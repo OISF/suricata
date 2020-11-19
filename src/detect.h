@@ -826,7 +826,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toserver_groups;
 
     /* specify the configuration for mpm context factory */
-    uint8_t sgh_mpm_context;
+    uint8_t sgh_mpm_ctx_cnf;
 
     /* max flowbit id that is used */
     uint32_t max_fb_id;
@@ -967,9 +967,10 @@ enum {
 
 /* Siggroup mpm context profile */
 enum {
-    ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL,
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL = 0,
     ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE,
-    ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO,
+#define ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE (ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO + 1)
 };
 
 typedef struct HttpReassembledBody_ {

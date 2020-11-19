@@ -2032,11 +2032,12 @@ void PreRunInit(const int runmode)
  * but after we dropped privs */
 void PreRunPostPrivsDropInit(const int runmode)
 {
+    StatsSetupPostConfigPreOutput();
+    RunModeInitializeOutputs();
+
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
-    StatsSetupPostConfigPreOutput();
-    RunModeInitializeOutputs();
     StatsSetupPostConfigPostOutput();
 }
 

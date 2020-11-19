@@ -423,6 +423,9 @@ These are the Napatech options available in the Suricata configuration file::
     # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
     # This may be enabled when sharing streams with another application.
     # Otherwise, it should be turned off.
+    #
+    # Note: hba will be deprecated in Suricata 7
+    #
     #hba: -1
 
     # When use_all_streams is set to "yes" the initialization code will query

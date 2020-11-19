@@ -56,8 +56,10 @@ const HTTP2_FRAME_HEADER_LEN: usize = 9;
 const HTTP2_MAGIC_LEN: usize = 24;
 const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
-const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
+const HTTP2_FRAME_PRIORITY_LEN: usize = 5;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
+//TODO make this configurable
+pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
@@ -101,8 +103,8 @@ pub enum HTTP2TransactionState {
     HTTP2StateOpen = 1,
     HTTP2StateReserved = 2,
     HTTP2StateDataClient = 3,
-    HTTP2StateDataServer = 4,
-    HTTP2StateHalfClosedClient = 5,
+    HTTP2StateHalfClosedClient = 4,
+    HTTP2StateDataServer = 5,
     HTTP2StateHalfClosedServer = 6,
     HTTP2StateClosed = 7,
     //not a RFC-defined state, used for stream 0 frames appyling to the global connection
@@ -195,7 +197,8 @@ impl HTTP2Transaction {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
                 if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
                     match self.state {
-                        HTTP2TransactionState::HTTP2StateHalfClosedClient => {
+                        HTTP2TransactionState::HTTP2StateHalfClosedClient
+                        | HTTP2TransactionState::HTTP2StateDataServer => {
                             if dir == STREAM_TOCLIENT {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
@@ -205,7 +208,7 @@ impl HTTP2Transaction {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
                         }
-                        // do not revert back to a hald closed state
+                        // do not revert back to a half closed state
                         HTTP2TransactionState::HTTP2StateClosed => {}
                         HTTP2TransactionState::HTTP2StateGlobal => {}
                         _ => {
@@ -219,9 +222,13 @@ impl HTTP2Transaction {
                 } else if header.ftype == parser::HTTP2FrameType::DATA as u8 {
                     //not end of stream
                     if dir == STREAM_TOSERVER {
-                        self.state = HTTP2TransactionState::HTTP2StateDataClient;
+                        if self.state < HTTP2TransactionState::HTTP2StateDataClient {
+                            self.state = HTTP2TransactionState::HTTP2StateDataClient;
+                        }
                     } else {
-                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
+                        if self.state < HTTP2TransactionState::HTTP2StateDataServer {
+                            self.state = HTTP2TransactionState::HTTP2StateDataServer;
+                        }
                     }
                 }
             }
@@ -266,12 +273,30 @@ impl HTTP2Event {
     }
 }
 
+pub struct HTTP2DynTable {
+    pub table: Vec<parser::HTTP2FrameHeaderBlock>,
+    pub current_size: usize,
+    pub max_size: usize,
+    pub overflow: u8,
+}
+
+impl HTTP2DynTable {
+    pub fn new() -> Self {
+        Self {
+            table: Vec::with_capacity(64),
+            current_size: 0,
+            max_size: 4096, //default value
+            overflow: 0,
+        }
+    }
+}
+
 pub struct HTTP2State {
     tx_id: u64,
     request_frame_size: u32,
     response_frame_size: u32,
-    dynamic_headers_ts: Vec<parser::HTTP2FrameHeaderBlock>,
-    dynamic_headers_tc: Vec<parser::HTTP2FrameHeaderBlock>,
+    dynamic_headers_ts: HTTP2DynTable,
+    dynamic_headers_tc: HTTP2DynTable,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: HTTP2Files,
@@ -286,8 +311,8 @@ impl HTTP2State {
             // the headers are encoded on one byte
             // with a fixed number of static headers, and
             // a variable number of dynamic headers
-            dynamic_headers_ts: Vec::with_capacity(256 - parser::HTTP2_STATIC_HEADERS_NUMBER),
-            dynamic_headers_tc: Vec::with_capacity(256 - parser::HTTP2_STATIC_HEADERS_NUMBER),
+            dynamic_headers_ts: HTTP2DynTable::new(),
+            dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             files: HTTP2Files::new(),
@@ -336,14 +361,19 @@ impl HTTP2State {
         return None;
     }
 
-    fn find_tx_index(&mut self, sid: u32) -> usize {
+    fn find_tx_index(&mut self, sid: u32, header: &parser::HTTP2FrameHeader) -> usize {
         for i in 0..self.transactions.len() {
             //reverse order should be faster
             let idx = self.transactions.len() - 1 - i;
             if sid == self.transactions[idx].stream_id {
                 if self.transactions[idx].state == HTTP2TransactionState::HTTP2StateClosed {
-                    self.set_event(HTTP2Event::StreamIdReuse);
-                    return 0;
+                    //these frames can be received in this state for a short period
+                    if header.ftype != parser::HTTP2FrameType::RSTSTREAM as u8
+                        && header.ftype != parser::HTTP2FrameType::WINDOWUPDATE as u8
+                        && header.ftype != parser::HTTP2FrameType::PRIORITY as u8
+                    {
+                        self.set_event(HTTP2Event::StreamIdReuse);
+                    }
                 }
                 return idx + 1;
             }
@@ -394,7 +424,7 @@ impl HTTP2State {
             }
             _ => header.stream_id,
         };
-        let index = self.find_tx_index(sid);
+        let index = self.find_tx_index(sid, header);
         if index > 0 {
             return &mut self.transactions[index - 1];
         } else {
@@ -434,6 +464,24 @@ impl HTTP2State {
             Some(parser::HTTP2FrameType::SETTINGS) => {
                 match parser::http2_parse_frame_settings(input) {
                     Ok((_, set)) => {
+                        for i in 0..set.len() {
+                            if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
+                                //reverse order as this is what we accept from the other endpoint
+                                let dyn_headers = if dir == STREAM_TOCLIENT {
+                                    &mut self.dynamic_headers_ts
+                                } else {
+                                    &mut self.dynamic_headers_tc
+                                };
+                                dyn_headers.max_size = set[i].value as usize;
+                                if set[i].value > HTTP2_MAX_TABLESIZE {
+                                    //mark potential overflow
+                                    dyn_headers.overflow = 1;
+                                } else {
+                                    //reset in case peer set a lower value, to be tested
+                                    dyn_headers.overflow = 0;
+                                }
+                            }
+                        }
                         //we could set an event on remaining data
                         return HTTP2FrameTypeData::SETTINGS(set);
                     }
@@ -1108,6 +1156,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_tx_data: rs_http2_get_tx_data,
         apply_tx_config: None,
         flags: 0,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

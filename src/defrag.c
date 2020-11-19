@@ -2121,6 +2121,7 @@ static int DefragTimeoutTest(void)
 
     FAIL_IF(tracker->id != 99);
 
+    SCMutexUnlock(&tracker->lock);
     SCFree(p);
 
     DefragDestroy();

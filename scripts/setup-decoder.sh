@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Script to setup a new decoder.
 # Written by Victor Julien <victor@inliniac.net>

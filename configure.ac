@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[6.0.0-dev])
+    AC_INIT([suricata],[6.0.1-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -471,47 +471,6 @@
 
 # options
 
-
-    AC_ARG_ENABLE(fuzztargets,
-        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
-    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
-    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo $rust_compiler_version | grep -q nightly])
-    AC_PROG_CXX
-    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
-        AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
-        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
-        CFLAGS_ORIG=$CFLAGS
-        CFLAGS="-Werror"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
-                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
-                [])
-        CFLAGS=$CFLAGS_ORIG
-        AC_LANG_PUSH(C++)
-        tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
-        AS_IF([test "x$LIB_FUZZING_ENGINE" = "x"], [
-            LIB_FUZZING_ENGINE=-fsanitize=fuzzer
-            AC_SUBST(LIB_FUZZING_ENGINE)
-        ])
-        _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $LIB_FUZZING_ENGINE"
-        AC_MSG_CHECKING([whether $CXX accepts $LIB_FUZZING_ENGINE])
-        AC_LINK_IFELSE([AC_LANG_SOURCE([[
-#include <sys/types.h>
-extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size);
-extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size) {
-(void)Data;
-(void)Size;
-return 0;
-}
-            ]])],
-            [ AC_MSG_RESULT(yes)
-              has_sanitizefuzzer=yes],
-            [ AC_MSG_RESULT(no) ]
-        )
-        _AC_LANG_PREFIX[]FLAGS=$tmp_saved_flags
-        AC_LANG_POP()
-    ])
-
-    AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
 
   # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
@@ -1715,12 +1674,12 @@ return 0;
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.32],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.35],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.32, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.35, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
@@ -2662,6 +2621,51 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+    AC_ARG_ENABLE(fuzztargets,
+        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
+    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
+    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly])
+    AC_PROG_CXX
+    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        AS_IF([test "x$CARGO_BUILD_TARGET" = "x" && echo "$rust_compiler_version" | grep -q nightly], [
+            CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu
+            AC_SUBST(CARGO_BUILD_TARGET)
+        ])
+        AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        CFLAGS_ORIG=$CFLAGS
+        CFLAGS="-Werror"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
+                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [])
+        CFLAGS=$CFLAGS_ORIG
+        AC_LANG_PUSH(C++)
+        tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
+        AS_IF([test "x$LIB_FUZZING_ENGINE" = "x"], [
+            LIB_FUZZING_ENGINE=-fsanitize=fuzzer
+            AC_SUBST(LIB_FUZZING_ENGINE)
+        ])
+        _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $LIB_FUZZING_ENGINE"
+        AC_MSG_CHECKING([whether $CXX accepts $LIB_FUZZING_ENGINE])
+        AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#include <sys/types.h>
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size);
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size) {
+(void)Data;
+(void)Size;
+return 0;
+}
+            ]])],
+            [ AC_MSG_RESULT(yes)
+              has_sanitizefuzzer=yes],
+            [ AC_MSG_RESULT(no) ]
+        )
+        _AC_LANG_PREFIX[]FLAGS=$tmp_saved_flags
+        AC_LANG_POP()
+    ])
+
+    AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -2813,7 +2817,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
-  Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}

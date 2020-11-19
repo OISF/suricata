@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,6 +59,8 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s);
 static int g_file_data_buffer_id = 0;
 
+static inline HtpBody *GetResponseBody(htp_tx_t *tx);
+
 /* HTTP */
 static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -74,6 +76,10 @@ static int DetectEngineInspectFiledata(
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
+
+static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for keyword: file_data
@@ -110,9 +116,8 @@ void DetectFiledataRegister(void)
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectEngineInspectBufferGeneric, HttpServerBodyGetDataCallback);
+    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, HttpServerBodyGetDataCallback);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata, NULL);
@@ -160,6 +165,73 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
 
     de_ctx->filedata_config_initialized = true;
+}
+
+static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    const int list_id = engine->sm_list;
+    const InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    bool eof = false;
+    if (buffer->inspect == NULL) {
+        SCLogDebug("running inspect on %d", list_id);
+
+        eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+
+        SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
+                engine->v2.transforms);
+
+        /* if prefilter didn't already run, we need to consider transformations */
+        const DetectEngineTransforms *transforms = NULL;
+        if (!engine->mpm) {
+            transforms = engine->v2.transforms;
+        }
+
+        buffer = engine->v2.GetData(det_ctx, transforms, f, flags, txv, list_id);
+        if (unlikely(buffer == NULL)) {
+            return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
+    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
+    ci_flags |= buffer->flags;
+
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+
+    /* Inspect all the uricontents fetched on each
+     * transaction at the app layer */
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
+            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+
+    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+     * the window sizes when freeing data */
+    htp_tx_t *tx = txv;
+    HtpBody *body = GetResponseBody(tx);
+    body->body_inspected = body->content_len_so_far;
+    SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
+
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    }
+
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+                HTP_REQUEST_BODY)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+                HTP_RESPONSE_BODY)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /**
@@ -262,7 +334,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     HtpBodyChunk *cur = body->first;
     if (cur == NULL) {
-        SCLogDebug("No http chunks to inspect for this transacation");
+        SCLogDebug("No http chunks to inspect for this transaction");
         return NULL;
     }
 
@@ -334,10 +406,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
         }
     }
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-    body->body_inspected = body->content_len_so_far;
-    SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
+    InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -365,10 +434,11 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     // TODO this is unused, is that right?
     //const uint32_t content_inspect_window = de_ctx->filedata_config[f->alproto].content_inspect_window;
 
-    SCLogDebug("content_limit %u, content_inspect_min_size %u",
-                content_limit, content_inspect_min_size);
+    SCLogDebug("[list %d] first: %d, content_limit %u, content_inspect_min_size %u", list_id,
+            first ? 1 : 0, content_limit, content_inspect_min_size);
 
-    SCLogDebug("file %p size %"PRIu64", state %d", cur_file, file_size, cur_file->state);
+    SCLogDebug("[list %d] file %p size %" PRIu64 ", state %d", list_id, cur_file, file_size,
+            cur_file->state);
 
     /* no new data */
     if (cur_file->content_inspected == file_size) {
@@ -397,15 +467,18 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
             &data, &data_len,
             cur_file->content_inspected);
     InspectionBufferSetup(buffer, data, data_len);
+    SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
+               "; data_len %" PRIu32 "; file_size %" PRIu64,
+            list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);
     buffer->inspect_offset = cur_file->content_inspected;
     InspectionBufferApplyTransforms(buffer, transforms);
+    SCLogDebug("[list %d] [after] buffer offset %" PRIu64 "; buffer len %" PRIu32, list_id,
+            buffer->inspect_offset, buffer->inspect_len);
 
-    /* update inspected tracker */
-    cur_file->content_inspected = file_size;
-    SCLogDebug("content_inspected %"PRIu64, cur_file->content_inspected);
+    SCLogDebug("[list %d] content_inspected %" PRIu64, list_id, cur_file->content_inspected);
 
-    SCLogDebug("file_data buffer %p, data %p len %u offset %"PRIu64,
-        buffer, buffer->inspect, buffer->inspect_len, buffer->inspect_offset);
+    SCLogDebug("[list %d] file_data buffer %p, data %p len %u offset %" PRIu64, list_id, buffer,
+            buffer->inspect, buffer->inspect_len, buffer->inspect_offset);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -454,6 +527,8 @@ static int DetectEngineInspectFiledata(
                                               buffer->inspect_len,
                                               buffer->inspect_offset, ciflags,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        /* update inspected tracker */
+        file->content_inspected = buffer->inspect_len + buffer->inspect_offset;
         if (match == 1) {
             r = 1;
             break;

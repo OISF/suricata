@@ -204,7 +204,7 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
-static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
+static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 {
     char varname[256];
 
@@ -222,7 +222,7 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing %s "
                        "from conf file - %s.  Killing engine",
                        varname, conf_val);
-            exit(EXIT_FAILURE);
+            return -1;
         }
     }
     GET_VAR(cnf_prefix, "hash-size");
@@ -254,12 +254,12 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
                 "total hash size by multiplying \"hash-size\" with %"PRIuMAX", "
                 "which is the hash bucket size.", ctx->config.memcap, hash_size,
                 (uintmax_t)sizeof(THashHashRow));
-        exit(EXIT_FAILURE);
+        return -1;
     }
     ctx->array = SCMallocAligned(ctx->config.hash_size * sizeof(THashHashRow), CLS);
     if (unlikely(ctx->array == NULL)) {
-        FatalError(SC_ERR_FATAL,
-                   "Fatal error encountered in THashInitConfig. Exiting...");
+        SCLogError(SC_ERR_THASH_INIT, "Fatal error encountered in THashInitConfig. Exiting...");
+        return -1;
     }
     memset(ctx->array, 0, ctx->config.hash_size * sizeof(THashHashRow));
 
@@ -276,18 +276,18 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
                     "max thash memcap reached. Memcap %"PRIu64", "
                     "Memuse %"PRIu64".", ctx->config.memcap,
                     ((uint64_t)SC_ATOMIC_GET(ctx->memuse) + THASH_DATA_SIZE(ctx)));
-            exit(EXIT_FAILURE);
+            return -1;
         }
 
         THashData *h = THashDataAlloc(ctx);
         if (h == NULL) {
             SCLogError(SC_ERR_THASH_INIT, "preallocating data failed: %s", strerror(errno));
-            exit(EXIT_FAILURE);
+            return -1;
         }
         THashDataEnqueue(&ctx->spare_q,h);
     }
 
-    return;
+    return 0;
 }
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
@@ -311,7 +311,12 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     if (memcap > 0) {
         ctx->config.memcap = memcap;
     } else {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        // limit hash size to default when fuzzing
+        ctx->config.memcap = THASH_DEFAULT_MEMCAP;
+#else
         ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
+#endif
     }
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
@@ -320,7 +325,10 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     SC_ATOMIC_INIT(ctx->prune_idx);
     THashDataQueueInit(&ctx->spare_q);
 
-    THashInitConfig(ctx, cnf_prefix);
+    if (THashInitConfig(ctx, cnf_prefix) < 0) {
+        THashShutdown(ctx);
+        ctx = NULL;
+    }
     return ctx;
 }
 
@@ -329,7 +337,7 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
 void THashConsolidateMemcap(THashTableContext *ctx)
 {
     ctx->config.memcap = MAX(SC_ATOMIC_GET(ctx->memuse), THASH_DEFAULT_MEMCAP);
-    SCLogDebug("memcap after load set to: %lu", ctx->config.memcap);
+    SCLogDebug("memcap after load set to: %" PRIu64, ctx->config.memcap);
 }
 
 /** \brief shutdown the flow engine
