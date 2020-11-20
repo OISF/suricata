@@ -23,40 +23,22 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::CString;
 
 use nom;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum IKEV2Event {
-    MalformedData = 0,
+    MalformedData,
     NoEncryption,
     WeakCryptoEnc,
-    WeakCryptoPRF,
-    WeakCryptoDH,
+    WeakCryptoPrf,
+    WeakCryptoDh,
     WeakCryptoAuth,
-    WeakCryptoNoDH,
+    WeakCryptoNoDh,
     WeakCryptoNoAuth,
     InvalidProposal,
     UnknownProposal,
-}
-
-impl IKEV2Event {
-    fn from_i32(value: i32) -> Option<IKEV2Event> {
-        match value {
-            0 => Some(IKEV2Event::MalformedData),
-            1 => Some(IKEV2Event::NoEncryption),
-            2 => Some(IKEV2Event::WeakCryptoEnc),
-            3 => Some(IKEV2Event::WeakCryptoPRF),
-            4 => Some(IKEV2Event::WeakCryptoDH),
-            5 => Some(IKEV2Event::WeakCryptoAuth),
-            6 => Some(IKEV2Event::WeakCryptoNoDH),
-            7 => Some(IKEV2Event::WeakCryptoNoAuth),
-            8 => Some(IKEV2Event::InvalidProposal),
-            9 => Some(IKEV2Event::UnknownProposal),
-            _ => None,
-        }
-    }
 }
 
 pub struct IKEV2State {
@@ -297,7 +279,7 @@ impl IKEV2State {
                             IkeTransformPRFType::PRF_HMAC_MD5 |
                             IkeTransformPRFType::PRF_HMAC_SHA1 => {
                                 SCLogDebug!("Weak PRF: {:?}", prf);
-                                self.set_event(IKEV2Event::WeakCryptoPRF);
+                                self.set_event(IKEV2Event::WeakCryptoPrf);
                             },
                             _ => (),
                         }
@@ -333,7 +315,7 @@ impl IKEV2State {
                             IkeTransformDHType::Modp1024s160 |
                             IkeTransformDHType::Modp1536 => {
                                 SCLogDebug!("Weak DH: {:?}", dh);
-                                self.set_event(IKEV2Event::WeakCryptoDH);
+                                self.set_event(IKEV2Event::WeakCryptoDh);
                             },
                             _ => (),
                         }
@@ -354,7 +336,7 @@ impl IKEV2State {
             })
             {
                 SCLogDebug!("No DH transform found");
-                self.set_event(IKEV2Event::WeakCryptoNoDH);
+                self.set_event(IKEV2Event::WeakCryptoNoDh);
             }
             // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
             if p.protocol_id == ProtocolID::AH {
@@ -575,69 +557,6 @@ pub extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                      event_name: *mut *const std::os::raw::c_char,
-                                                      event_type: *mut core::AppLayerEventType)
-                                                      -> i8
-{
-    if let Some(e) = IKEV2Event::from_i32(event_id as i32) {
-        let estr = match e {
-            IKEV2Event::MalformedData    => { "malformed_data\0" },
-            IKEV2Event::NoEncryption     => { "no_encryption\0" },
-            IKEV2Event::WeakCryptoEnc    => { "weak_crypto_enc\0" },
-            IKEV2Event::WeakCryptoPRF    => { "weak_crypto_prf\0" },
-            IKEV2Event::WeakCryptoDH     => { "weak_crypto_dh\0" },
-            IKEV2Event::WeakCryptoAuth   => { "weak_crypto_auth\0" },
-            IKEV2Event::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
-            IKEV2Event::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
-            IKEV2Event::InvalidProposal  => { "invalid_proposal\0" },
-            IKEV2Event::UnknownProposal  => { "unknown_proposal\0" },
-        };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data"     => IKEV2Event::MalformedData as i32,
-                "no_encryption"      => IKEV2Event::NoEncryption as i32,
-                "weak_crypto_enc"    => IKEV2Event::WeakCryptoEnc as i32,
-                "weak_crypto_prf"    => IKEV2Event::WeakCryptoPRF as i32,
-                "weak_crypto_auth"   => IKEV2Event::WeakCryptoAuth as i32,
-                "weak_crypto_dh"     => IKEV2Event::WeakCryptoDH as i32,
-                "weak_crypto_nodh"   => IKEV2Event::WeakCryptoNoDH as i32,
-                "weak_crypto_noauth" => IKEV2Event::WeakCryptoNoAuth as i32,
-                "invalid_proposal"   => IKEV2Event::InvalidProposal as i32,
-                "unknown_proposal"   => IKEV2Event::UnknownProposal as i32,
-                _                    => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
-}
-
-
 static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
@@ -702,8 +621,8 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         get_de_state       : rs_ikev2_state_get_tx_detect_state,
         set_de_state       : rs_ikev2_state_set_tx_detect_state,
         get_events         : Some(rs_ikev2_state_get_events),
-        get_eventinfo      : Some(rs_ikev2_state_get_event_info),
-        get_eventinfo_byid : Some(rs_ikev2_state_get_event_info_by_id),
+        get_eventinfo      : Some(IKEV2Event::get_event_info),
+        get_eventinfo_byid : Some(IKEV2Event::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,

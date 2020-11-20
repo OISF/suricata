@@ -18,7 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::CString;
 use nom;
 use nom::IResult;
 use nom::number::streaming::be_u32;
@@ -30,20 +30,10 @@ use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum KRB5Event {
-    MalformedData = 0,
+    MalformedData,
     WeakEncryption,
-}
-
-impl KRB5Event {
-    fn from_i32(value: i32) -> Option<KRB5Event> {
-        match value {
-            0 => Some(KRB5Event::MalformedData),
-            1 => Some(KRB5Event::WeakEncryption),
-            _ => None,
-        }
-    }
 }
 
 pub struct KRB5State {
@@ -355,27 +345,6 @@ pub extern "C" fn rs_krb5_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                     event_name: *mut *const std::os::raw::c_char,
-                                                     event_type: *mut core::AppLayerEventType)
-                                                     -> i8
-{
-    if let Some(e) = KRB5Event::from_i32(event_id as i32) {
-        let estr = match e {
-            KRB5Event::MalformedData  => { "malformed_data\0" },
-            KRB5Event::WeakEncryption => { "weak_encryption\0" },
-        };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
@@ -383,30 +352,6 @@ pub extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data"     => KRB5Event::MalformedData as i32,
-                "weak_encryption"    => KRB5Event::WeakEncryption as i32,
-                _                    => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
-}
 static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
@@ -648,8 +593,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_de_state       : rs_krb5_state_get_tx_detect_state,
         set_de_state       : rs_krb5_state_set_tx_detect_state,
         get_events         : Some(rs_krb5_state_get_events),
-        get_eventinfo      : Some(rs_krb5_state_get_event_info),
-        get_eventinfo_byid : Some(rs_krb5_state_get_event_info_by_id),
+        get_eventinfo      : Some(KRB5Event::get_event_info),
+        get_eventinfo_byid : Some(KRB5Event::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
