@@ -212,8 +212,8 @@ json_t *JsonDNP3LogRequest(DNP3Transaction *dnp3tx)
         json_object_set_new(dnp3js, "control", lcjs);
     }
 
-    json_object_set_new(dnp3js, "src", json_integer(dnp3tx->request_lh.src));
-    json_object_set_new(dnp3js, "dst", json_integer(dnp3tx->request_lh.dst));
+    json_object_set_new(dnp3js, "src", json_integer(DNP3_SWAP16(dnp3tx->request_lh.src)));
+    json_object_set_new(dnp3js, "dst", json_integer(DNP3_SWAP16(dnp3tx->request_lh.dst)));
 
     /* DNP3 application layer. */
     json_t *al = json_object();
@@ -263,8 +263,8 @@ json_t *JsonDNP3LogResponse(DNP3Transaction *dnp3tx)
         json_object_set_new(dnp3js, "control", lcjs);
     }
 
-    json_object_set_new(dnp3js, "src", json_integer(dnp3tx->response_lh.src));
-    json_object_set_new(dnp3js, "dst", json_integer(dnp3tx->response_lh.dst));
+    json_object_set_new(dnp3js, "src", json_integer(DNP3_SWAP16(dnp3tx->response_lh.src)));
+    json_object_set_new(dnp3js, "dst", json_integer(DNP3_SWAP16(dnp3tx->response_lh.dst)));
 
     /* DNP3 application layer. */
     json_t *al = json_object();
