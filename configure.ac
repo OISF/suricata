@@ -708,6 +708,8 @@
                 # unittests when jit is enabled.
                 pcre_jit_available="no, pcre 8.39/8.40 jit disabled for powerpc64"
             fi
+            # hack: use libatomic
+            LIBS="${LIBS} -latomic"
         ;;
         *)
             # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
