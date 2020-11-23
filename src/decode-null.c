@@ -58,8 +58,11 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (unlikely(GET_PKT_LEN(p) > HDR_SIZE + USHRT_MAX)) {
         return TM_ECODE_FAILED;
     }
-
+#if __BYTE_ORDER__ == __BIG_ENDIAN
+    uint32_t type = pkt[0] | pkt[1] << 8 | pkt[2] << 16 | pkt[3] << 24;
+#else
     uint32_t type = *((uint32_t *)pkt);
+#endif
     switch(type) {
         case AF_INET:
             SCLogDebug("IPV4 Packet");
