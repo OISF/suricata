@@ -414,6 +414,10 @@ jobs:
       - run: make -j2
       - run: make check
       - run: make distcheck
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
