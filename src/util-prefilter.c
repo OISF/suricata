@@ -103,8 +103,7 @@ void PmqReset(PrefilterRuleStore *pmq)
     if (pmq == NULL)
         return;
 
-    pmq->rule_id_array_cnt = 0;
-    /* TODO: Realloc the rule id array smaller at some size? */
+    PMQ_RESET(pmq);
 }
 
 /** \brief Cleanup a Pmq
