@@ -345,8 +345,8 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     }
 
     det_ctx->match_array_cnt = match_array - det_ctx->match_array;
-
     DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
+    PMQ_RESET(&det_ctx->pmq);
 }
 
 static inline void
@@ -686,6 +686,11 @@ static inline void DetectRunPrefilterPkt(
     Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
     /* create match list if we have non-pf and/or pf */
     if (det_ctx->non_pf_store_cnt || det_ctx->pmq.rule_id_array_cnt) {
+#ifdef PROFILING
+        if (tv) {
+            StatsAddUI64(tv, det_ctx->counter_mpm_list, (uint64_t)det_ctx->pmq.rule_id_array_cnt);
+        }
+#endif
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
         DetectPrefilterMergeSort(de_ctx, det_ctx);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
@@ -693,8 +698,6 @@ static inline void DetectRunPrefilterPkt(
 
 #ifdef PROFILING
     if (tv) {
-        StatsAddUI64(tv, det_ctx->counter_mpm_list,
-                             (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         StatsAddUI64(tv, det_ctx->counter_nonmpm_list,
                              (uint64_t)det_ctx->non_pf_store_cnt);
         /* non mpm sigs after mask prefilter */
@@ -946,8 +949,6 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow)
 {
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
-    /* cleanup pkt specific part of the patternmatcher */
-    PacketPatternCleanup(det_ctx);
     InspectionBufferClean(det_ctx);
 
     if (pflow != NULL) {
@@ -1327,6 +1328,7 @@ static void DetectRunTx(ThreadVars *tv,
                 det_ctx->tx_candidates[array_idx].stream_reset = 0;
                 array_idx++;
             }
+            PMQ_RESET(&det_ctx->pmq);
         } else {
             if (!(RuleMatchCandidateTxArrayHasSpace(det_ctx, total_rules))) {
                 RuleMatchCandidateTxArrayExpand(det_ctx, total_rules);
