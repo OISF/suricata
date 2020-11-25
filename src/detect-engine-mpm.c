@@ -527,12 +527,6 @@ uint16_t PatternMatchDefaultMatcher(void)
     return mpm_algo_val;
 }
 
-/** \brief cleans up the mpm instance after a match */
-void PacketPatternCleanup(DetectEngineThreadCtx *det_ctx)
-{
-    PmqReset(&det_ctx->pmq);
-}
-
 void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
