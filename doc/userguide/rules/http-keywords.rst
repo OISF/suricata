@@ -190,6 +190,12 @@ characters %20 in a uri. This means matching on the uri.raw. The
 uri.raw and the normalized uri are separate buffers. So, the uri.raw
 inspects the uri.raw buffer and can not inspect the normalized buffer.
 
+.. note:: uri.raw never has any spaces in it.
+          In case of a request line ``GET /uid=0(root) gid=0(root) HTTP/1.1``,
+          the http.uri.raw will match ``/uid=0(root)``
+          and http.protocol will match ``gid=0(root) HTTP/1.1``
+          `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
+
 Example of the URI in a HTTP request:
 
 .. image:: http-keywords/uri1.png
