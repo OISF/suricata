@@ -80,5 +80,4 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
-
 #endif
