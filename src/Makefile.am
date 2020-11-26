@@ -585,17 +585,24 @@ EXTRA_DIST = tests
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
-suricata_SOURCES = main.c $(COMMON_SOURCES)
+noinst_LTLIBRARIES = libsuricatac.la
+libsuricatac_la_SOURCES = $(COMMON_SOURCES)
+
+suricata_SOURCES = main.c
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
-suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+suricata_LDADD = libsuricatac.la $(HTP_LDADD) $(RUST_LDADD)
+suricata_DEPENDENCIES = libsuricatac.la
 
 if BUILD_FUZZTARGETS
-nodist_fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c $(COMMON_SOURCES)
-fuzz_applayerprotodetectgetproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_applayerprotodetectgetproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+
+LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
+LDADD_FUZZ = libsuricatac.la $(HTP_LDADD) $(RUST_LDADD)
+
+nodist_fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
+fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_applayerprotodetectgetproto_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_applayerprotodetectgetproto_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -604,9 +611,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c $(COMMON_SOURCES)
-fuzz_applayerparserparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_applayerparserparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
+fuzz_applayerparserparse_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_applayerparserparse_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_applayerparserparse_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -615,9 +622,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerparserparse_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c $(COMMON_SOURCES)
-fuzz_siginit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_siginit_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c
+fuzz_siginit_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_siginit_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_siginit_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -626,9 +633,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_siginit_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c $(COMMON_SOURCES)
-fuzz_confyamlloadstring_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_confyamlloadstring_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c
+fuzz_confyamlloadstring_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_confyamlloadstring_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_confyamlloadstring_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -637,9 +644,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_confyamlloadstring_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c $(COMMON_SOURCES)
-fuzz_decodepcapfile_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_decodepcapfile_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c
+fuzz_decodepcapfile_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_decodepcapfile_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_decodepcapfile_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -648,9 +655,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c $(COMMON_SOURCES)
-fuzz_sigpcap_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_sigpcap_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
+fuzz_sigpcap_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_sigpcap_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_sigpcap_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -659,9 +666,9 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c $(COMMON_SOURCES)
-fuzz_mimedecparseline_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_mimedecparseline_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
+fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_mimedecparseline_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_mimedecparseline_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
