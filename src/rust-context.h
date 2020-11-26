@@ -25,6 +25,8 @@
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
 
+struct AppLayerParser;
+
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
             const char *, const SCError, const char *message);
@@ -45,6 +47,8 @@ typedef struct SuricataContext_ {
     void (*FileContainerRecycle)(FileContainer *ffc);
     void (*FilePrune)(FileContainer *ffc);
     void (*FileSetTx)(FileContainer *, uint64_t);
+
+    int (*AppLayerRegisterParser)(const struct AppLayerParser *p, AppProto alproto);
 
 } SuricataContext;
 
