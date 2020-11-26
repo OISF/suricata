@@ -22,6 +22,7 @@ use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
+use crate::core::SC;
 
 #[repr(C)]
 #[derive(Debug,PartialEq)]
@@ -289,7 +290,11 @@ pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
 // Defined in app-layer-register.h
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
-    pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
+}
+
+#[allow(non_snake_case)]
+pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int {
+    (SC.unwrap().AppLayerRegisterParser)(parser, alproto)
 }
 
 // Defined in app-layer-detect-proto.h

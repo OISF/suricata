@@ -141,6 +141,8 @@ pub struct SuricataContext {
     pub FileContainerRecycle: SCFileContainerRecycle,
     pub FilePrune: SCFilePrune,
     pub FileSetTx: SCFileSetTx,
+
+    pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
 
 #[allow(non_snake_case)]

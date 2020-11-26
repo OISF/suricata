@@ -113,6 +113,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "app-layer-register.h"
 #include "app-layer-htp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
@@ -2660,6 +2661,8 @@ int InitGlobal(void) {
     suricata_context.FileContainerRecycle = FileContainerRecycle;
     suricata_context.FilePrune = FilePrune;
     suricata_context.FileSetTx = FileContainerSetTx;
+
+    suricata_context.AppLayerRegisterParser = AppLayerRegisterParser;
 
     rs_init(&suricata_context);
 
