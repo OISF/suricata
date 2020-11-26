@@ -20,7 +20,7 @@ use std::mem::transmute;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::dcerpc::{
-    DCERPCTransaction, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
+    DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
 use crate::dcerpc::parser;
 
@@ -53,26 +53,14 @@ pub struct DCERPCHdrUdp {
 #[derive(Debug)]
 pub struct DCERPCUDPState {
     pub tx_id: u64,
-    pub header: Option<DCERPCHdrUdp>,
     pub transactions: Vec<DCERPCTransaction>,
-    pub fraglenleft: u16,
-    pub uuid_entry: Option<DCERPCUuidEntry>,
-    pub uuid_list: Vec<DCERPCUuidEntry>,
-    pub de_state: Option<*mut core::DetectEngineState>,
-    pub tx_data: AppLayerTxData,
 }
 
 impl DCERPCUDPState {
     pub fn new() -> DCERPCUDPState {
         return DCERPCUDPState {
             tx_id: 0,
-            header: None,
             transactions: Vec::new(),
-            fraglenleft: 0,
-            uuid_entry: None,
-            uuid_list: Vec::new(),
-            de_state: None,
-            tx_data: AppLayerTxData::new(),
         };
     }
 
@@ -105,6 +93,26 @@ impl DCERPCUDPState {
                             tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
             self.transactions.remove(index);
         }
+    }
+
+    /// Get transaction as per the given transaction ID. Transaction ID with
+    /// which the lookup is supposed to be done as per the calls from AppLayer
+    /// parser in C. This requires an internal transaction ID to be maintained.
+    ///
+    /// Arguments:
+    /// * `tx_id`:
+    ///    description: internal transaction ID to track transactions
+    ///
+    /// Return value:
+    /// Option mutable reference to DCERPCTransaction
+    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
+        for tx in &mut self.transactions {
+            let found = tx.id == tx_id;
+            if found {
+                return Some(tx);
+            }
+        }
+        None
     }
 
     fn find_incomplete_tx(&mut self, hdr: &DCERPCHdrUdp) -> Option<&mut DCERPCTransaction> {
@@ -182,10 +190,6 @@ impl DCERPCUDPState {
                 if !self.handle_fragment_data(&header, &leftover_bytes[..header.fraglen as usize]) {
                     return AppLayerResult::err();
                 }
-                let mut uuidentry = DCERPCUuidEntry::new();
-                let auuid = header.activityuuid.to_vec();
-                uuidentry.uuid = auuid;
-                self.uuid_list.push(uuidentry);
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
@@ -239,7 +243,7 @@ pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
 pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
     vtx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
-    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     match dce_state.de_state {
         Some(ds) => ds,
         None => std::ptr::null_mut(),
@@ -250,7 +254,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
     vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
 ) -> u8 {
-    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     dce_state.de_state = Some(de_state);
     0
 }
@@ -260,33 +264,29 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
-    let tx = cast_pointer!(tx, DCERPCUDPState);
+    let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_tx(
-    state: *mut std::os::raw::c_void, _tx_id: u64,
-) -> *mut DCERPCUDPState {
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut DCERPCTransaction {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
-    dce_state
+    match dce_state.get_tx(tx_id) {
+        Some(tx) => {
+            return unsafe{transmute(tx)};
+        },
+        None => {
+            return std::ptr::null_mut();
+        }
+    } 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(_state: *mut std::os::raw::c_void) -> u8 {
-    1
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void, _direction: u8,
-) -> u8 {
-    0
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_alstate_progress_completion_status(_direction: u8) -> u8 {
-    1
+pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    dce_state.tx_id
 }
 
 #[cfg(test)]
@@ -465,7 +465,6 @@ mod tests {
             AppLayerResult::ok(),
             dcerpcudp_state.handle_input_data(request)
         );
-        assert_eq!(0, dcerpcudp_state.fraglenleft);
         assert_eq!(
             1392,
             dcerpcudp_state.transactions[0].stub_data_buffer_ts.len()

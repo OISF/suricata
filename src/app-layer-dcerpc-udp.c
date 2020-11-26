@@ -94,12 +94,12 @@ static uint64_t RustDCERPCUDPGetTxCnt(void *state)
 
 static int RustDCERPCUDPGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    return rs_dcerpc_udp_get_alstate_progress_completion_status(direction);
+    return rs_dcerpc_get_alstate_progress_completion_status(direction);
 }
 
 static int RustDCERPCUDPGetAlstateProgress(void *tx, uint8_t direction)
 {
-    return rs_dcerpc_udp_get_alstate_progress(tx, direction);
+    return rs_dcerpc_get_alstate_progress(tx, direction);
 }
 
 static int DCERPCUDPRegisterPatternsForProtocolDetection(void)

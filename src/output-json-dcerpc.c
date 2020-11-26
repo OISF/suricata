@@ -52,8 +52,14 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
     }
 
     jb_open_object(jb, "dcerpc");
-    if (!rs_dcerpc_log_json_record(state, tx, jb)) {
-        goto error;
+    if (p->proto == IPPROTO_TCP) {
+        if (!rs_dcerpc_log_json_record_tcp(state, tx, jb)) {
+            goto error;
+        }
+    } else {
+        if (!rs_dcerpc_log_json_record_udp(state, tx, jb)) {
+            goto error;
+        }
     }
     jb_close(jb);
 
