@@ -158,7 +158,7 @@ jobs:
     steps:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -356,7 +356,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -489,7 +489,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
