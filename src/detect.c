@@ -1009,8 +1009,13 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
     return 1;
 }
 
-
-/* TODO maybe let one with flags win if equal? */
+/** \internal
+ *  \brief sort helper for sorting match candidates by id: ascending
+ *
+ *  The id field is set from Signature::num, so we sort the candidates to match the signature
+ *  sort order (ascending).
+ *
+ *  \todo maybe let one with flags win if equal? */
 static int
 DetectRunTxSortHelper(const void *a, const void *b)
 {
@@ -1019,7 +1024,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
     if (s1->id == s0->id)
         return 0;
     else
-        return s0->id > s1->id ? -1 : 1;
+        return s0->id > s1->id ? 1 : -1;
 }
 
 #if 0
