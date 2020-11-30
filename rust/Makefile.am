@@ -39,6 +39,10 @@ else
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
+	if test -e $(RUST_SURICATA_LIBDIR)/suricata.lib; then \
+		cp $(RUST_SURICATA_LIBDIR)/suricata.lib \
+			$(RUST_SURICATA_LIBDIR)/libsuricata.a; \
+	fi
 
 clean-local:
 	-rm -rf target gen
