@@ -55,7 +55,8 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - run: echo "$HOME/.cargo/bin:/usr/lib/ccache" >> $GITHUB_HOME
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_HOME
+      - run: echo "/usr/lib/ccache" >> $GITHUB_HOME
       - name: Install cbindgen
         run: cargo install cbindgen
       - run: echo $PATH
