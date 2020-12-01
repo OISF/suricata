@@ -95,6 +95,7 @@ jobs:
               cd ..
           fi
           tar zcf suricata-verify.tar.gz suricata-verify
+      - run: rm -rf libhtp suricata-update suricata-verify
       - uses: actions/upload-artifact@v2
         name: Uploading prep archive
         with:
