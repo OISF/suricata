@@ -27,10 +27,15 @@ env:
 
 jobs:
 
-  prep:
-    name: Prepare Build
+  prepare-deps:
+    name: Prepare dependencies
     runs-on: ubuntu-latest
     steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo
+          key: cargo
       - run: sudo apt update && sudo apt -y install jq curl
       - name: Parse repo and branch information
         env:
@@ -95,9 +100,34 @@ jobs:
               cd ..
           fi
           tar zcf suricata-verify.tar.gz suricata-verify
-      - run: rm -rf libhtp suricata-update suricata-verify
-      - uses: actions/upload-artifact@v2
-        name: Uploading prep archive
+      - name: Cleaning up
+        run: rm -rf libhtp suricata-update suricata-verify
+      - name: Uploading prep archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: prep
+          path: .
+
+  prepare-cbindgen:
+    name: Prepare cbindgen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo
+          key: cbindgen
+      - name: Installing Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustup target add x86_64-unknown-linux-musl
+      - name: Buliding static cbindgen for Linux
+        run: |
+          cargo install --target x86_64-unknown-linux-musl --debug cbindgen
+          cp $HOME/.cargo/bin/cbindgen .
+      - name: Uploading prep archive
+        uses: actions/upload-artifact@v2
         with:
           name: prep
           path: .
@@ -106,7 +136,7 @@ jobs:
     name: CentOS 8
     runs-on: ubuntu-latest
     container: centos:8
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -135,7 +165,12 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
-
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system packages
         run: |
           yum -y install dnf-plugins-core
@@ -187,9 +222,6 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configuring
         run: |
           ./autogen.sh
@@ -272,7 +304,7 @@ jobs:
     name: Fedora 33 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:33
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -319,15 +351,18 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: |
-          cargo install --debug cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict
         env:
@@ -344,7 +379,7 @@ jobs:
     name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:32
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -391,14 +426,17 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: |
-          cargo install --debug cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict
@@ -416,7 +454,7 @@ jobs:
     name: Fedora 32 (no jansson)
     runs-on: ubuntu-latest
     container: fedora:32
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -461,15 +499,18 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: |
-          cargo install --debug cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: |
           if ./configure; then
@@ -483,7 +524,7 @@ jobs:
     name: Ubuntu 20.04 (no nss, no nspr)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Install dependencies
         run: |
@@ -522,15 +563,18 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --disable-nss --disable-nspr
       - run: make -j2
@@ -544,7 +588,7 @@ jobs:
     name: Ubuntu 20.04 (-DNDEBUG)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       - name: Install dependencies
@@ -584,15 +628,18 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
       - run: make -j2
@@ -659,7 +706,7 @@ jobs:
     name: Ubuntu 18.04 (Debug Validation)
     runs-on: ubuntu-18.04
     container: ubuntu:18.04
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -706,15 +753,18 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
       - run: make -j2
@@ -728,7 +778,7 @@ jobs:
     name: Ubuntu 18.04 (Cocci)
     runs-on: ubuntu-18.04
     container: ubuntu:18.04
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -788,15 +838,18 @@ jobs:
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
@@ -820,7 +873,7 @@ jobs:
     name: Ubuntu 18.04 (Fuzz)
     runs-on: ubuntu-18.04
     container: ubuntu:18.04
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -863,8 +916,6 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -872,6 +923,12 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH      - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ ./configure --enable-fuzztargets --disable-shared
       - run: AFL_HARDEN=1 make -j2
@@ -934,7 +991,7 @@ jobs:
     name: Debian 10
     runs-on: ubuntu-latest
     container: debian:10
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -981,9 +1038,6 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -991,6 +1045,11 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
@@ -1003,7 +1062,7 @@ jobs:
     name: Debian 9
     runs-on: ubuntu-latest
     container: debian:9
-    needs: prep
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - run: |
           apt update
@@ -1043,8 +1102,6 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.14.1 cbindgen
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -1052,6 +1109,11 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
@@ -1063,7 +1125,7 @@ jobs:
   macos-latest:
     name: MacOS Latest
     runs-on: macos-latest
-    needs: prep
+    needs: [prepare-deps]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1112,7 +1174,7 @@ jobs:
   windows-msys2-mingw64:
     name: Windows MSYS2 MINGW64
     runs-on: windows-latest
-    needs: prep
+    needs: [prepare-deps]
     defaults:
       run:
         shell: msys2 {0}
