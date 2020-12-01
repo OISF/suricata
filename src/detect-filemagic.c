@@ -82,6 +82,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilemagicRegisterTests(void);
 static void DetectFilemagicFree(void *);
 static int g_file_match_list_id = 0;
+static int g_magic_thread_ctx_id = -1;
 
 /**
  * \brief Registration function for keyword: filemagic
@@ -187,7 +188,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int ret = 0;
     DetectFilemagicData *filemagic = (DetectFilemagicData *)m;
 
-    DetectFilemagicThreadData *tfilemagic = (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, filemagic->thread_ctx_id);
+    DetectFilemagicThreadData *tfilemagic = (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, g_magic_thread_ctx_id);
     if (tfilemagic == NULL) {
         SCReturnInt(0);
     }
