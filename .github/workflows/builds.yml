@@ -267,48 +267,6 @@ jobs:
       - run: make clean
       - run: make -j2
 
-  centos-6:
-    name: CentOS 6
-    runs-on: ubuntu-latest
-    container: centos:6
-    needs: centos-8
-    steps:
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Install system dependencies
-        run: |
-          yum -y install epel-release
-          yum -y install \
-                file-devel \
-                gcc \
-                gcc-c++ \
-                jq \
-                jansson-devel \
-                make \
-                libyaml-devel \
-                libpcap-devel \
-                pcre-devel \
-                python34-PyYAML \
-                nss-devel \
-                sudo \
-                which \
-                zlib-devel
-      - name: Download suricata.tar.gz
-        # Can't use @v2 here as it uses a binary that requires a newer
-        # glibc than provided by CentOS 6.
-        uses: actions/download-artifact@v1
-        with:
-          name: dist
-      - run: tar xvf dist/suricata-*.tar.gz --strip-components=1
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2
-      - run: make install
-      - run: make install-conf
-      - name: Building Rust documentation
-        run: make doc
-        working-directory: rust
-
   fedora-32:
     name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
