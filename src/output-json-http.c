@@ -434,7 +434,7 @@ static void BodyBase64Buffer(JsonBuilder *js, HtpBody *body, const char *key)
             return;
         }
 
-        unsigned long len = body_data_len * 2 + 1;
+        unsigned long len = BASE64_BUFFER_SIZE(body_data_len);
         uint8_t encoded[len];
         if (Base64Encode(body_data, body_data_len, encoded, &len) == SC_BASE64_OK) {
             jb_set_string(js, key, (char *)encoded);
