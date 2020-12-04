@@ -16,25 +16,27 @@
  */
 
 use crate::smb::error::SmbError;
-use nom::IResult;
-use nom::combinator::rest;
-use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
+use nom::combinator::rest;
+use nom::number::streaming::{le_u16, le_u32, le_u64, le_u8};
+use nom::IResult;
 
 pub const SMB1_HEADER_SIZE: usize = 32;
 
-fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
-{
-    do_parse!(i,
-            cond!(offset % 2 == 1, take!(1))
-        >>  s: call!(smb_get_unicode_string)
-        >> ( s )
+fn smb_get_unicode_string_with_offset(
+    i: &[u8], offset: usize,
+) -> IResult<&[u8], Vec<u8>, SmbError> {
+    do_parse!(
+        i,
+        cond!(offset % 2 == 1, take!(1)) >> s: call!(smb_get_unicode_string) >> (s)
     )
 }
 
 /// take a string, unicode or ascii based on record
-pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>, SmbError> {
+pub fn smb1_get_string<'a>(
+    i: &'a [u8], r: &SmbRecord, offset: usize,
+) -> IResult<&'a [u8], Vec<u8>, SmbError> {
     if r.has_unicode_support() {
         smb_get_unicode_string_with_offset(i, offset)
     } else {
@@ -42,8 +44,7 @@ pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<
     }
 }
 
-
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbParamBlockAndXHeader {
     pub wct: u8,
     pub andx_command: u8,
@@ -64,12 +65,12 @@ named!(pub smb1_parse_andx_header<SmbParamBlockAndXHeader>,
 
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb1WriteRequestRecord<'a> {
     pub offset: u64,
     pub len: u32,
-    pub fid: &'a[u8],
-    pub data: &'a[u8],
+    pub fid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 named!(pub parse_smb1_write_request_record<Smb1WriteRequestRecord>,
@@ -91,10 +92,13 @@ named!(pub parse_smb1_write_request_record<Smb1WriteRequestRecord>,
             }))
 );
 
-pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IResult<&[u8], Smb1WriteRequestRecord> {
+pub fn parse_smb1_write_andx_request_record(
+    i: &[u8], andx_offset: usize,
+) -> IResult<&[u8], Smb1WriteRequestRecord> {
     let ax = andx_offset as u16;
-    do_parse!(i,
-            wct: le_u8
+    do_parse!(
+        i,
+        wct: le_u8
         >>  _andx_command: le_u8
         >>  take!(1)    // reserved
         >>  _andx_offset: le_u16
@@ -117,7 +121,8 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
                 len: (((data_len_high as u32) << 16) as u32)|(data_len_low as u32),
                 fid,
                 data:file_data,
-            }))
+            })
+    )
 }
 
 named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
@@ -138,10 +143,10 @@ named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
             }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb1NegotiateProtocolResponseRecord<'a> {
     pub dialect_idx: u16,
-    pub server_guid: &'a[u8],
+    pub server_guid: &'a [u8],
 }
 
 named!(pub parse_smb1_negotiate_protocol_response_record_error<Smb1NegotiateProtocolResponseRecord>,
@@ -173,12 +178,12 @@ named!(pub parse_smb1_negotiate_protocol_response_record_ok<Smb1NegotiateProtoco
 );
 
 named!(pub parse_smb1_negotiate_protocol_response_record<Smb1NegotiateProtocolResponseRecord>,
-    switch!(peek!(le_u8),
-        0 => call!(parse_smb1_negotiate_protocol_response_record_error) |
-        _ => call!(parse_smb1_negotiate_protocol_response_record_ok)
-    ));
+switch!(peek!(le_u8),
+    0 => call!(parse_smb1_negotiate_protocol_response_record_error) |
+    _ => call!(parse_smb1_negotiate_protocol_response_record_ok)
+));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb1NegotiateProtocolRecord<'a> {
     pub dialects: Vec<&'a [u8]>,
 }
@@ -194,11 +199,10 @@ named!(pub parse_smb1_negotiate_protocol_record<Smb1NegotiateProtocolRecord>,
             }))
 );
 
-
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Smb1ResponseRecordTreeConnectAndX<'a> {
-    pub service: &'a[u8],
-    pub nativefs: &'a[u8],
+    pub service: &'a [u8],
+    pub nativefs: &'a [u8],
 }
 
 named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeConnectAndX>,
@@ -218,27 +222,28 @@ named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeCon
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecordTreeConnectAndX<'a> {
     pub path: Vec<u8>,
-    pub service: &'a[u8],
+    pub service: &'a [u8],
 }
 
-pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IResult<&'a[u8], SmbRecordTreeConnectAndX<'a>, SmbError> {
-    do_parse!(i,
-       _skip1: take!(7)
-       >> pwlen: le_u16
-       >> _bcc: le_u16
-       >> _pw: take!(pwlen)
-       >> path: call!(smb1_get_string, r, 11 + pwlen as usize)
-       >> service: take_until_and_consume!("\x00")
-       >> (SmbRecordTreeConnectAndX {
-                path,
-                service
-           }))
+pub fn parse_smb_connect_tree_andx_record<'a>(
+    i: &'a [u8], r: &SmbRecord,
+) -> IResult<&'a [u8], SmbRecordTreeConnectAndX<'a>, SmbError> {
+    do_parse!(
+        i,
+        _skip1: take!(7)
+            >> pwlen: le_u16
+            >> _bcc: le_u16
+            >> _pw: take!(pwlen)
+            >> path: call!(smb1_get_string, r, 11 + pwlen as usize)
+            >> service: take_until_and_consume!("\x00")
+            >> (SmbRecordTreeConnectAndX { path, service })
+    )
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecordTransRequest<'a> {
     pub params: SmbRecordTransRequestParams,
     pub pipe: Option<SmbPipeProtocolRecord<'a>>,
@@ -246,10 +251,10 @@ pub struct SmbRecordTransRequest<'a> {
     pub data: SmbRecordTransRequestData<'a>,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbPipeProtocolRecord<'a> {
     pub function: u16,
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
 }
 
 named!(pub parse_smb_trans_request_record_pipe<&[u8], SmbPipeProtocolRecord, SmbError>,
@@ -263,9 +268,8 @@ named!(pub parse_smb_trans_request_record_pipe<&[u8], SmbPipeProtocolRecord, Smb
     )
 );
 
-
-#[derive(Debug,PartialEq)]
-pub struct SmbRecordTransRequestParams<> {
+#[derive(Debug, PartialEq)]
+pub struct SmbRecordTransRequestParams {
     pub max_data_cnt: u16,
     param_cnt: u16,
     param_offset: u16,
@@ -305,29 +309,27 @@ named!(pub parse_smb_trans_request_record_params<&[u8], (SmbRecordTransRequestPa
             pipe)))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecordTransRequestData<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
-pub fn parse_smb_trans_request_record_data(i: &[u8],
-        pad1: usize, param_cnt: u16, pad2: usize, data_len: u16)
-    -> IResult<&[u8], SmbRecordTransRequestData, SmbError>
-{
-    do_parse!(i,
-            take!(pad1)
-        >>  take!(param_cnt)
-        >>  take!(pad2)
-        >>  data: take!(data_len)
-        >> (SmbRecordTransRequestData {
-                data:data,
-            })
+pub fn parse_smb_trans_request_record_data(
+    i: &[u8], pad1: usize, param_cnt: u16, pad2: usize, data_len: u16,
+) -> IResult<&[u8], SmbRecordTransRequestData, SmbError> {
+    do_parse!(
+        i,
+        take!(pad1)
+            >> take!(param_cnt)
+            >> take!(pad2)
+            >> data: take!(data_len)
+            >> (SmbRecordTransRequestData { data: data })
     )
 }
 
-pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
-    -> IResult<&'a[u8], SmbRecordTransRequest<'a>, SmbError>
-{
+pub fn parse_smb_trans_request_record<'a, 'b>(
+    i: &'a [u8], r: &SmbRecord<'b>,
+) -> IResult<&'a [u8], SmbRecordTransRequest<'a>, SmbError> {
     let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
@@ -338,8 +340,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
 
     // spec says pad to 4 bytes, but traffic shows this doesn't
     // always happen.
-    let pad1 = if offset == params.param_offset as usize ||
-                  offset == params.data_offset as usize {
+    let pad1 = if offset == params.param_offset as usize || offset == params.data_offset as usize {
         0
     } else {
         offset % 4
@@ -358,29 +359,38 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
         };
         SCLogDebug!("pad2 {}", pad2);
 
-        let d = match parse_smb_trans_request_record_data(rem2,
-                pad1, params.param_cnt, pad2, params.data_cnt) {
+        let d = match parse_smb_trans_request_record_data(
+            rem2,
+            pad1,
+            params.param_cnt,
+            pad2,
+            params.data_cnt,
+        ) {
             Ok((_, rd)) => rd,
-            Err(e) => { return Err(e); }
+            Err(e) => {
+                return Err(e);
+            }
         };
         SCLogDebug!("d {:?}", d);
         d
     } else {
-        SmbRecordTransRequestData { data: &[], } // no data
+        SmbRecordTransRequestData { data: &[] } // no data
     };
 
     let res = SmbRecordTransRequest {
-        params: params, pipe: pipe, txname: n, data: recdata,
+        params: params,
+        pipe: pipe,
+        txname: n,
+        data: recdata,
     };
     Ok((&rem, res))
 }
 
-
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecordTransResponse<'a> {
     pub data_cnt: u16,
     pub bcc: u16,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 named!(pub parse_smb_trans_response_error_record<SmbRecordTransResponse>,
@@ -425,9 +435,9 @@ named!(pub parse_smb_trans_response_record<SmbRecordTransResponse>,
         _ => call!(parse_smb_trans_response_regular_record))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecordSetupAndX<'a> {
-    pub sec_blob: &'a[u8],
+    pub sec_blob: &'a [u8],
 }
 
 named!(pub parse_smb_setup_andx_record<SmbRecordSetupAndX>,
@@ -442,38 +452,30 @@ named!(pub parse_smb_setup_andx_record<SmbRecordSetupAndX>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbResponseRecordSetupAndX<'a> {
-    pub sec_blob: &'a[u8],
+    pub sec_blob: &'a [u8],
 }
 
-named!(response_setup_andx_record<SmbResponseRecordSetupAndX>,
+named!(
+    response_setup_andx_record<SmbResponseRecordSetupAndX>,
     do_parse!(
-          _skip1: take!(7)
-       >> sec_blob_len: le_u16
-       >> _bcc: le_u16
-       >> sec_blob: take!(sec_blob_len)
-       >> (SmbResponseRecordSetupAndX {
-                sec_blob
-           }))
+        _skip1: take!(7)
+            >> sec_blob_len: le_u16
+            >> _bcc: le_u16
+            >> sec_blob: take!(sec_blob_len)
+            >> (SmbResponseRecordSetupAndX { sec_blob })
+    )
 );
 
-named!(response_setup_andx_wct3_record<SmbResponseRecordSetupAndX>,
-    do_parse!(
-          _skip1: take!(7)
-       >> _bcc: le_u16
-       >> (SmbResponseRecordSetupAndX {
-                sec_blob:&[],
-           }))
+named!(
+    response_setup_andx_wct3_record<SmbResponseRecordSetupAndX>,
+    do_parse!(_skip1: take!(7) >> _bcc: le_u16 >> (SmbResponseRecordSetupAndX { sec_blob: &[] }))
 );
 
-named!(response_setup_andx_error_record<SmbResponseRecordSetupAndX>,
-    do_parse!(
-          _wct: le_u8
-       >> _bcc: le_u16
-       >> (SmbResponseRecordSetupAndX {
-                sec_blob: &[],
-           }))
+named!(
+    response_setup_andx_error_record<SmbResponseRecordSetupAndX>,
+    do_parse!(_wct: le_u8 >> _bcc: le_u16 >> (SmbResponseRecordSetupAndX { sec_blob: &[] }))
 );
 
 named!(pub parse_smb_response_setup_andx_record<SmbResponseRecordSetupAndX>,
@@ -483,9 +485,9 @@ named!(pub parse_smb_response_setup_andx_record<SmbResponseRecordSetupAndX>,
         _ => call!(response_setup_andx_record))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRequestReadAndXRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub size: u64,
     pub offset: u64,
 }
@@ -510,10 +512,10 @@ named!(pub parse_smb_read_andx_request_record<SmbRequestReadAndXRecord>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbResponseReadAndXRecord<'a> {
     pub len: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
@@ -538,7 +540,7 @@ named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRequestRenameRecord {
     pub oldname: Vec<u8>,
     pub newname: Vec<u8>,
@@ -559,35 +561,41 @@ named!(pub parse_smb_rename_request_record<&[u8], SmbRequestRenameRecord, SmbErr
            }))
 );
 
-#[derive(Debug,PartialEq)]
-pub struct SmbRequestCreateAndXRecord<> {
+#[derive(Debug, PartialEq)]
+pub struct SmbRequestCreateAndXRecord {
     pub disposition: u32,
     pub create_options: u32,
     pub file_name: Vec<u8>,
 }
 
-pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
-    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>, SmbError>
-{
-    do_parse!(i,
-          _skip1: take!(6)
-       >> file_name_len: le_u16
-       >> _skip3: take!(28)
-       >> disposition: le_u32
-       >> create_options: le_u32
-       >> _skip2: take!(5)
-       >> bcc: le_u16
-       >> file_name: cond!(bcc >= file_name_len, call!(smb1_get_string, r, (bcc - file_name_len) as usize))
-       >> _skip3: rest
-       >> (SmbRequestCreateAndXRecord {
+pub fn parse_smb_create_andx_request_record<'a>(
+    i: &'a [u8], r: &SmbRecord,
+) -> IResult<&'a [u8], SmbRequestCreateAndXRecord, SmbError> {
+    do_parse!(
+        i,
+        _skip1: take!(6)
+            >> file_name_len: le_u16
+            >> _skip3: take!(28)
+            >> disposition: le_u32
+            >> create_options: le_u32
+            >> _skip2: take!(5)
+            >> bcc: le_u16
+            >> file_name:
+                cond!(
+                    bcc >= file_name_len,
+                    call!(smb1_get_string, r, (bcc - file_name_len) as usize)
+                )
+            >> _skip3: rest
+            >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,
                 create_options: create_options,
                 file_name: file_name.unwrap_or(Vec::new()),
-           }))
+            })
+    )
 }
 
-#[derive(Debug,PartialEq)]
-pub struct Trans2RecordParamSetFileInfoDisposition<> {
+#[derive(Debug, PartialEq)]
+pub struct Trans2RecordParamSetFileInfoDisposition {
     pub delete: bool,
 }
 
@@ -600,9 +608,9 @@ named!(pub parse_trans2_request_data_set_file_info_disposition<Trans2RecordParam
             })
 ));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Trans2RecordParamSetFileInfo<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub loi: u16,
 }
 
@@ -616,10 +624,10 @@ named!(pub parse_trans2_request_params_set_file_info<Trans2RecordParamSetFileInf
             })
 ));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Trans2RecordParamSetFileInfoRename<'a> {
     pub replace: bool,
-    pub newname: &'a[u8],
+    pub newname: &'a [u8],
 }
 
 named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFileInfoRename>,
@@ -635,8 +643,8 @@ named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFi
             })
 ));
 
-#[derive(Debug,PartialEq)]
-pub struct Trans2RecordParamSetPathInfo<> {
+#[derive(Debug, PartialEq)]
+pub struct Trans2RecordParamSetPathInfo {
     pub loi: u16,
     pub oldname: Vec<u8>,
 }
@@ -652,10 +660,10 @@ named!(pub parse_trans2_request_params_set_path_info<&[u8], Trans2RecordParamSet
             })
 ));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Trans2RecordParamSetPathInfoRename<'a> {
     pub replace: bool,
-    pub newname: &'a[u8],
+    pub newname: &'a [u8],
 }
 
 named!(pub parse_trans2_request_data_set_path_info_rename<Trans2RecordParamSetPathInfoRename>,
@@ -671,11 +679,11 @@ named!(pub parse_trans2_request_data_set_path_info_rename<Trans2RecordParamSetPa
             })
 ));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRequestTrans2Record<'a> {
     pub subcmd: u16,
-    pub setup_blob: &'a[u8],
-    pub data_blob: &'a[u8],
+    pub setup_blob: &'a [u8],
+    pub data_blob: &'a [u8],
 }
 
 named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
@@ -710,9 +718,9 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbResponseCreateAndXRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub create_ts: SMBFiletime,
     pub last_access_ts: SMBFiletime,
     pub last_write_ts: SMBFiletime,
@@ -751,9 +759,9 @@ named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRequestCloseRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
 }
 
 named!(pub parse_smb1_close_request_record<SmbRequestCloseRecord>,
@@ -765,8 +773,8 @@ named!(pub parse_smb1_close_request_record<SmbRequestCloseRecord>,
            }))
 );
 
-#[derive(Debug,PartialEq)]
-pub struct SmbVersion<> {
+#[derive(Debug, PartialEq)]
+pub struct SmbVersion {
     pub version: u8,
 }
 
@@ -779,7 +787,7 @@ named!(pub parse_smb_version<SmbVersion>,
             }))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SmbRecord<'a> {
     pub command: u8,
     pub is_dos_error: bool,
@@ -794,7 +802,7 @@ pub struct SmbRecord<'a> {
     pub process_id: u32,
     pub ssn_id: u32,
 
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> SmbRecord<'a> {
