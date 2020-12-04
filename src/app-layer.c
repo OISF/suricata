@@ -178,6 +178,9 @@ static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
             f, f->alproto, f->alproto_ts, f->alproto_tc);
 }
 
+// how much completely reassembled data has been seen at the start
+#define STREAM_COMPLETED_LEN(stream) ((stream)->next_seq - (stream)->base_seq)
+
 /* See if we're going to have to give up:
  *
  * If we're getting a lot of data in one direction and the
@@ -205,10 +208,10 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
         return;
     }
 
-    const uint64_t size_ts = STREAM_HAS_SEEN_DATA(&ssn->client) ?
-        STREAM_RIGHT_EDGE(&ssn->client) : 0;
-    const uint64_t size_tc = STREAM_HAS_SEEN_DATA(&ssn->server) ?
-        STREAM_RIGHT_EDGE(&ssn->server) : 0;
+    const uint64_t size_ts =
+            STREAM_HAS_SEEN_DATA(&ssn->client) ? STREAM_COMPLETED_LEN(&ssn->client) : 0;
+    const uint64_t size_tc =
+            STREAM_HAS_SEEN_DATA(&ssn->server) ? STREAM_COMPLETED_LEN(&ssn->server) : 0;
     SCLogDebug("size_ts %"PRIu64", size_tc %"PRIu64, size_ts, size_tc);
 
     DEBUG_VALIDATE_BUG_ON(size_ts > 1000000UL);
