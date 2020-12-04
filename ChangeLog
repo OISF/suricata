@@ -1,3 +1,16 @@
+4.1.10 -- 2020-12-04
+
+Bug #4064: Builds fail for rustc 1.24.1 (d3ae9a9e0 2018-02-27)
+Bug #4078: smb: post-GAP file handling
+Bug #4130: icmpv4: header handling issue(s)
+Bug #4134: Segmentation fault on rule reload when using libmagic
+Bug #4167: DNP3 memory leak when parsing objects with bytearrays
+Bug #4181: DNP3 signed integer overflow
+Bug #4188: Rustc nightly warning getting the inner pointer of a temporary `CString`
+Bug #4190: dnp3: SV tests fail on big endian
+Bug #4192: PacketCopyData sets packet length even on failure
+Bug #4196: Alert metadata not present in EVE output when using Socket Control Pcap Processing Mode
+
 4.1.9 -- 2020-10-08
 
 Feature #3796: validate strip_whitespace content before loading a rule
