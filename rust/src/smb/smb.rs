@@ -1319,7 +1319,7 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_write_request_record(self, r);
+                                            smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
@@ -1561,7 +1561,7 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_read_response_record(self, r);
+                                            smb1_read_response_record(self, r, SMB1_HEADER_SIZE);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }

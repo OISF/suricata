@@ -72,6 +72,7 @@ pub const SMB1_COMMAND_QUERY_INFO_DISK:         u8 = 0x80;
 pub const SMB1_COMMAND_NT_TRANS:                u8 = 0xa0;
 pub const SMB1_COMMAND_NT_CREATE_ANDX:          u8 = 0xa2;
 pub const SMB1_COMMAND_NT_CANCEL:               u8 = 0xa4;
+pub const SMB1_COMMAND_NONE:                    u8 = 0xff;
 
 pub fn smb1_command_string(c: u8) -> String {
     match c {
@@ -179,13 +180,29 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
     }
 }
 
-pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
-    SCLogDebug!("record: command {}: record {:?}", r.command, r);
+fn smb1_command_is_andx(c: u8) -> bool {
+    match c {
+        SMB1_COMMAND_LOCKING_ANDX |
+        SMB1_COMMAND_OPEN_ANDX |
+        SMB1_COMMAND_READ_ANDX |
+        SMB1_COMMAND_SESSION_SETUP_ANDX |
+        SMB1_COMMAND_LOGOFF_ANDX |
+        SMB1_COMMAND_TREE_CONNECT_ANDX |
+        SMB1_COMMAND_NT_CREATE_ANDX |
+        SMB1_COMMAND_WRITE_ANDX  => {
+            return true;
+        }
+        _ => {
+            return false;
+        }
+    }
+}
 
+fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) -> u32 {
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
-    let have_tx = match r.command {
+    let have_tx = match command {
         SMB1_COMMAND_RENAME => {
             match parse_smb_rename_request_record(r.data) {
                 Ok((_, rd)) => {
@@ -396,7 +413,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             }
         },
         SMB1_COMMAND_READ_ANDX => {
-            match parse_smb_read_andx_request_record(r.data) {
+            match parse_smb_read_andx_request_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
                 Ok((_, rr)) => {
                     SCLogDebug!("rr {:?}", rr);
 
@@ -416,7 +433,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         SMB1_COMMAND_WRITE_ANDX |
         SMB1_COMMAND_WRITE |
         SMB1_COMMAND_WRITE_AND_CLOSE => {
-            smb1_write_request_record(state, r);
+            smb1_write_request_record(state, r, *andx_offset, command);
             true // tx handling in func
         },
         SMB1_COMMAND_TRANS => {
@@ -469,7 +486,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             }
         },
         SMB1_COMMAND_NT_CREATE_ANDX => {
-            match parse_smb_create_andx_request_record(r.data, r) {
+            match parse_smb_create_andx_request_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..], r) {
                 Ok((_, cr)) => {
                     SCLogDebug!("Create AndX {:?}", cr);
                     let del = cr.create_options & 0x0000_1000 != 0;
@@ -483,7 +500,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                     let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
                     let tx = state.new_create_tx(&cr.file_name.to_vec(),
                             cr.disposition, del, dir, tx_hdr);
-                    tx.vercmd.set_smb1_cmd(r.command);
+                    tx.vercmd.set_smb1_cmd(command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);
                     true
                 },
@@ -495,12 +512,12 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
             SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
-            smb1_session_setup_request(state, r);
+            smb1_session_setup_request(state, r, *andx_offset);
             true
         },
         SMB1_COMMAND_TREE_CONNECT_ANDX => {
             SCLogDebug!("SMB1_COMMAND_TREE_CONNECT_ANDX");
-            match parse_smb_connect_tree_andx_record(r.data, r) {
+            match parse_smb_connect_tree_andx_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..], r) {
                 Ok((_, tr)) => {
                     let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_TREE);
                     let mut name_val = tr.path;
@@ -550,36 +567,63 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             false
         },
         _ => {
-            if r.command == SMB1_COMMAND_LOGOFF_ANDX ||
-               r.command == SMB1_COMMAND_TREE_DISCONNECT ||
-               r.command == SMB1_COMMAND_NT_TRANS ||
-               r.command == SMB1_COMMAND_NT_CANCEL ||
-               r.command == SMB1_COMMAND_RENAME ||
-               r.command == SMB1_COMMAND_CHECK_DIRECTORY ||
-               r.command == SMB1_COMMAND_ECHO ||
-               r.command == SMB1_COMMAND_TRANS
+            if command == SMB1_COMMAND_LOGOFF_ANDX ||
+               command == SMB1_COMMAND_TREE_DISCONNECT ||
+               command == SMB1_COMMAND_NT_TRANS ||
+               command == SMB1_COMMAND_NT_CANCEL ||
+               command == SMB1_COMMAND_RENAME ||
+               command == SMB1_COMMAND_CHECK_DIRECTORY ||
+               command == SMB1_COMMAND_ECHO ||
+               command == SMB1_COMMAND_TRANS
             { } else {
                  SCLogDebug!("unsupported command {}/{}",
-                         r.command, &smb1_command_string(r.command));
+                         command, &smb1_command_string(command));
             }
             false
         },
     };
     if !have_tx {
-        if smb1_create_new_tx(r.command) {
+        if smb1_create_new_tx(command) {
             let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(1, r.command as u16, tx_key);
-            SCLogDebug!("tx {} created for {}/{}", tx.id, r.command, &smb1_command_string(r.command));
+            let tx = state.new_generic_tx(1, command as u16, tx_key);
+            SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
             tx.set_events(events);
             if no_response_expected {
                 tx.response_done = true;
             }
         }
     }
+    return 0;
+}
+
+pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+    SCLogDebug!("record: command {}: record {:?}", r.command, r);
+
+    let mut andx_offset = SMB1_HEADER_SIZE;
+    let mut command = r.command;
+    loop {
+        if smb1_request_record_one(state, r, command, &mut andx_offset) != 0 {
+             break;
+        }
+        // continue for next andx command if any
+        if smb1_command_is_andx(command) {
+            if let Ok((_, andx_hdr)) = smb1_parse_andx_header(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
+                if (andx_hdr.andx_offset as usize) > andx_offset &&
+                   andx_hdr.andx_command != SMB1_COMMAND_NONE &&
+                   (andx_hdr.andx_offset as usize) - SMB1_HEADER_SIZE < r.data.len() {
+                    andx_offset = andx_hdr.andx_offset as usize;
+                    command = andx_hdr.andx_command;
+                    continue;
+                }
+            }
+        }
+        break;
+    }
+
     0
 }
 
-pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) -> u32 {
     SCLogDebug!("record: command {} status {} -> {:?}", r.command, r.nt_status, r);
 
     let key_ssn_id = r.ssn_id;
@@ -588,9 +632,9 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
     let mut tx_sync = false;
     let mut events : Vec<SMBEvent> = Vec::new();
 
-    let have_tx = match r.command {
+    let have_tx = match command {
         SMB1_COMMAND_READ_ANDX => {
-            smb1_read_response_record(state, &r);
+            smb1_read_response_record(state, &r, *andx_offset);
             true // tx handling in func
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -652,7 +696,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                 return 0;
             }
 
-            match parse_smb_connect_tree_andx_response_record(r.data) {
+            match parse_smb_connect_tree_andx_response_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
                 Ok((_, tr)) => {
                     let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_TREE);
                     let is_pipe = tr.service == "IPC".as_bytes();
@@ -696,7 +740,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
         SMB1_COMMAND_NT_CREATE_ANDX => {
             SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX response {:08x}", r.nt_status);
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
-                match parse_smb_create_andx_response_record(r.data) {
+                match parse_smb_create_andx_response_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
                     Ok((_, cr)) => {
                         SCLogDebug!("Create AndX {:?}", cr);
 
@@ -717,9 +761,9 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                         }
 
                         let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-                        if let Some(tx) = state.get_generic_tx(1, r.command as u16, &tx_hdr) {
+                        if let Some(tx) = state.get_generic_tx(1, command as u16, &tx_hdr) {
                             SCLogDebug!("tx {} with {}/{} marked as done",
-                                    tx.id, r.command, &smb1_command_string(r.command));
+                                    tx.id, command, &smb1_command_string(command));
                             tx.set_status(r.nt_status, false);
                             tx.response_done = true;
 
@@ -748,7 +792,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             true
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
-            smb1_session_setup_response(state, r);
+            smb1_session_setup_response(state, r, *andx_offset);
             true
         },
         SMB1_COMMAND_LOGOFF_ANDX => {
@@ -761,24 +805,24 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
     };
 
     if !have_tx && tx_sync {
-        match state.get_last_tx(1, r.command as u16) {
+        match state.get_last_tx(1, command as u16) {
             Some(tx) => {
-                SCLogDebug!("last TX {} is CMD {}", tx.id, &smb1_command_string(r.command));
+                SCLogDebug!("last TX {} is CMD {}", tx.id, &smb1_command_string(command));
                 tx.response_done = true;
-                SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
+                SCLogDebug!("tx {} cmd {} is done", tx.id, command);
                 tx.set_status(r.nt_status, r.is_dos_error);
                 tx.set_events(events);
             },
             _ => {},
         }
-    } else if !have_tx && smb1_check_tx(r.command) {
+    } else if !have_tx && smb1_check_tx(command) {
         let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_GENERICTX,
                 key_ssn_id as u64, key_tree_id as u32, key_multiplex_id as u64);
-        let _have_tx2 = match state.get_generic_tx(1, r.command as u16, &tx_key) {
+        let _have_tx2 = match state.get_generic_tx(1, command as u16, &tx_key) {
             Some(tx) => {
                 tx.request_done = true;
                 tx.response_done = true;
-                SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
+                SCLogDebug!("tx {} cmd {} is done", tx.id, command);
                 tx.set_status(r.nt_status, r.is_dos_error);
                 tx.set_events(events);
                 true
@@ -789,8 +833,35 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             },
         };
     } else {
-        SCLogDebug!("have tx for cmd {}", r.command);
+        SCLogDebug!("have tx for cmd {}", command);
     }
+
+    return 0;
+}
+
+pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+    let mut andx_offset = SMB1_HEADER_SIZE;
+    let mut command = r.command;
+    loop {
+        if smb1_response_record_one(state, r, command, &mut andx_offset) != 0 {
+            break;
+        }
+
+        // continue for next andx command if any
+        if smb1_command_is_andx(command) {
+            if let Ok((_, andx_hdr)) = smb1_parse_andx_header(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
+                if (andx_hdr.andx_offset as usize) > andx_offset &&
+                    andx_hdr.andx_command != SMB1_COMMAND_NONE &&
+                    (andx_hdr.andx_offset as usize) - SMB1_HEADER_SIZE < r.data.len() {
+                    andx_offset = andx_hdr.andx_offset as usize;
+                    command = andx_hdr.andx_command;
+                    continue;
+                }
+            }
+        }
+        break;
+    }
+
     0
 }
 
@@ -882,13 +953,13 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
-pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
+pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize, command: u8)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
-    let result = if r.command == SMB1_COMMAND_WRITE_ANDX {
-        parse_smb1_write_andx_request_record(r.data)
-    } else if r.command == SMB1_COMMAND_WRITE {
+    let result = if command == SMB1_COMMAND_WRITE_ANDX {
+        parse_smb1_write_andx_request_record(&r.data[andx_offset-SMB1_HEADER_SIZE..], andx_offset)
+    } else if command == SMB1_COMMAND_WRITE {
         parse_smb1_write_request_record(r.data)
     } else {
         parse_smb1_write_and_close_request_record(r.data)
@@ -932,7 +1003,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 if is_pipe {
                     SCLogDebug!("SMBv1 WRITE TO PIPE");
                     let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                    let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
+                    let vercmd = SMBVerCmdStat::new1_with_ntstatus(command, r.nt_status);
                     smb_write_dcerpc_record(state, vercmd, hdr, &rd.data);
                 } else {
                     let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOSERVER);
@@ -956,7 +1027,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 
             state.set_file_left(STREAM_TOSERVER, rd.len, rd.data.len() as u32, file_fid.to_vec());
 
-            if r.command == SMB1_COMMAND_WRITE_AND_CLOSE {
+            if command == SMB1_COMMAND_WRITE_AND_CLOSE {
                 SCLogDebug!("closing FID {:?}", file_fid);
                 smb1_close_file(state, &file_fid);
             }
@@ -968,12 +1039,12 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
     smb1_request_record_generic(state, r, events);
 }
 
-pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
+pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, andx_offset: usize)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
     if r.nt_status == SMB_NTSTATUS_SUCCESS {
-        match parse_smb_read_andx_response_record(r.data) {
+        match parse_smb_read_andx_response_record(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
             Ok((_, rd)) => {
                 SCLogDebug!("SMBv1: read response => {:?}", rd);
 
@@ -1037,7 +1108,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 } else {
                     SCLogDebug!("SMBv1 READ response from PIPE");
                     let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                    let vercmd = SMBVerCmdStat::new1(r.command);
+                    let vercmd = SMBVerCmdStat::new1(SMB1_COMMAND_READ_ANDX);
 
                     // hack: we store fid with ssn id mixed in, but here we want the
                     // real thing instead.
