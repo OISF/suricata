@@ -1,3 +1,20 @@
+5.0.5 -- 2020-12-04
+
+Bug #4077: smb: post-GAP file handling
+Bug #4127: DOS in DNP3 with long loop of zero sized objects
+Bug #4128: Quadratic complexity in FTPGetOldestTx may lead to DOS
+Bug #4129: icmpv4: header handling issue(s)
+Bug #4131: Integer underflow in SSL parser
+Bug #4132: Null dereference in ipv4hdr GetData
+Bug #4133: Segmentation fault on rule reload when using libmagic
+Bug #4164: DNP3 signed integer overflow
+Bug #4166: DNP3 memory leak when parsing objects with bytearrays
+Bug #4168: Napatech: Double release of packet possible in certain error cases.
+Bug #4189: Rustc nightly warning getting the inner pointer of a temporary `CString`
+Bug #4191: dnp3: SV tests fail on big endian
+Bug #4193: PacketCopyData sets packet length even on failure
+Bug #4197: Alert metadata not present in EVE output when using Socket Control Pcap Processing Mode
+
 5.0.4 -- 2020-10-08
 
 Feature #3795: validate strip_whitespace content before loading a rule
