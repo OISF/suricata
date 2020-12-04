@@ -2277,7 +2277,15 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
 
     /* if next_seq has fallen behind last_ack, we got some catching up to do */
     } else if (SEQ_LT(ssn->client.next_seq, ssn->client.last_ack)) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
+        /* if current sequence is beyond last_ack,
+         * we may still receive data from last_ack to this sequence
+         * so, update next_seq only up to last_ack
+         */
+        if (SEQ_LT(ssn->client.last_ack, TCP_GET_SEQ(p))) {
+            StreamTcpUpdateNextSeq(ssn, &ssn->client, ssn->client.last_ack);
+        } else {
+            StreamTcpUpdateNextSeq(ssn, &ssn->client, (TCP_GET_SEQ(p) + p->payload_len));
+        }
         SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
                    " (next_seq had fallen behind last_ack)",
                    ssn, ssn->client.next_seq);
@@ -2434,7 +2442,15 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
 
     /* if next_seq has fallen behind last_ack, we got some catching up to do */
     } else if (SEQ_LT(ssn->server.next_seq, ssn->server.last_ack)) {
-        StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
+        /* if current sequence is beyond last_ack,
+         * we may still receive data from last_ack to this sequence
+         * so, update next_seq only up to last_ack
+         */
+        if (SEQ_LT(ssn->server.last_ack, TCP_GET_SEQ(p))) {
+            StreamTcpUpdateNextSeq(ssn, &ssn->server, ssn->server.last_ack);
+        } else {
+            StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
+        }
         SCLogDebug("ssn %p: ssn->server.next_seq %"PRIu32
                    " (next_seq had fallen behind last_ack)",
                    ssn, ssn->server.next_seq);
