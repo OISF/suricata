@@ -1154,7 +1154,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD03(void)
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ *        with split rules (multiline), for testing purposes.
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1196,7 +1196,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD05(void)
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ *        with split rules (multiline), for testing purposes.
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1218,7 +1218,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD06(void)
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ *        with split rules (multiline), for testing purposes.
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1256,7 +1256,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD08(void)
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ *        with split rules (multiline), for testing purposes.
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1277,7 +1277,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD09(void)
 
 /**
  * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ *        with split rules (multiline), for testing purposes.
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1318,7 +1318,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD11(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest01(void)
@@ -1351,7 +1351,7 @@ static int SCThresholdConfTest01(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest02(void)
@@ -1384,7 +1384,7 @@ static int SCThresholdConfTest02(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest03(void)
@@ -1417,7 +1417,7 @@ static int SCThresholdConfTest03(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest04(void)
@@ -1446,7 +1446,7 @@ static int SCThresholdConfTest04(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest05(void)
@@ -1501,7 +1501,7 @@ static int SCThresholdConfTest05(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest06(void)
@@ -1534,7 +1534,7 @@ static int SCThresholdConfTest06(void)
 /**
  * \test Check if the rate_filter rules are loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest07(void)
@@ -1568,7 +1568,7 @@ static int SCThresholdConfTest07(void)
  * \test Check if the rate_filter rules are loaded and well parsed
  *       with multilines
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest08(void)
@@ -1601,7 +1601,7 @@ static int SCThresholdConfTest08(void)
 /**
  * \test Check if the rate_filter rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest09(void)
@@ -1689,7 +1689,7 @@ static int SCThresholdConfTest09(void)
 /**
  * \test Check if the rate_filter rules work with track by_rule
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest10(void)
@@ -1783,7 +1783,7 @@ static int SCThresholdConfTest10(void)
 /**
  * \test Check if the rate_filter rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest11(void)
@@ -1892,7 +1892,7 @@ static int SCThresholdConfTest11(void)
 /**
  * \test Check if the rate_filter rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest12(void)
@@ -2001,7 +2001,7 @@ static int SCThresholdConfTest12(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest13(void)
@@ -2034,7 +2034,7 @@ static int SCThresholdConfTest13(void)
 /**
  * \test Check if the suppress rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest14(void)
@@ -2099,7 +2099,7 @@ static int SCThresholdConfTest14(void)
 /**
  * \test Check if the suppress rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest15(void)
@@ -2151,7 +2151,7 @@ static int SCThresholdConfTest15(void)
 /**
  * \test Check if the suppress rules work
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest16(void)
@@ -2202,7 +2202,7 @@ static int SCThresholdConfTest16(void)
 /**
  * \test Check if the suppress rules work - ip only rule
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest17(void)
@@ -2273,7 +2273,7 @@ static FILE *SCThresholdConfGenerateInvalidDummyFD12(void)
 /**
  * \test Check if the suppress rule parsing handles errors correctly
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest18(void)
@@ -2325,7 +2325,7 @@ static FILE *SCThresholdConfGenerateInvalidDummyFD13(void)
 /**
  * \test Check if the suppress rule parsing handles errors correctly
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest19(void)
@@ -2375,7 +2375,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD20(void)
 /**
  * \test Check if the threshold file is loaded and well parsed
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest20(void)
@@ -2421,7 +2421,7 @@ static int SCThresholdConfTest20(void)
  * \test Check if the threshold file is loaded and well parsed, and applied
  *       correctly to a rule with thresholding
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int SCThresholdConfTest21(void)
@@ -2483,7 +2483,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD22(void)
 /**
 * \test Check if the rate_filter rules work with track by_both
 *
-*  \retval 1 on succces
+*  \retval 1 on success
 *  \retval 0 on failure
 */
 static int SCThresholdConfTest22(void)
@@ -2624,7 +2624,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD23(void)
 * \test Check if the rate_filter by_both work when similar packets
 *       going in opposite direction
 *
-*  \retval 1 on succces
+*  \retval 1 on success
 *  \retval 0 on failure
 */
 static int SCThresholdConfTest23(void)
