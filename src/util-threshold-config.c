@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -648,14 +648,14 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     char th_rule_type[32];
     char th_gid[16];
     char th_sid[16];
-    char rule_extend[1024];
+    const char *rule_extend = NULL;
     char th_type[16] = "";
     char th_track[16] = "";
     char th_count[16] = "";
     char th_seconds[16] = "";
     char th_new_action[16] = "";
     char th_timeout[16] = "";
-    char th_ip[64] = "";
+    const char *th_ip = NULL;
 
     uint8_t parsed_type = 0;
     uint8_t parsed_track = 0;
@@ -698,9 +698,10 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
         goto error;
     }
 
-    ret = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, rule_extend, sizeof(rule_extend));
+    /* Use "get" for heap allocation */
+    ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &rule_extend);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
 
@@ -789,10 +790,10 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                     SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
                     goto error;
                 }
-                /* retrieve the IP */
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 2, th_ip, sizeof(th_ip));
+                /* retrieve the IP; use "get" for heap allocation */
+                ret = pcre_get_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 2, &th_ip);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                     goto error;
                 }
             } else {
@@ -940,13 +941,21 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     *ret_parsed_seconds = parsed_seconds;
     *ret_parsed_timeout = parsed_timeout;
     *ret_th_ip = NULL;
-    if (strcmp("", th_ip) != 0) {
-        *ret_th_ip = SCStrdup(th_ip);
-        if (*ret_th_ip == NULL)
-            goto error;
+    if (th_ip != NULL) {
+        *ret_th_ip = (char *)th_ip;
+    } else {
+        SCFree((char *)th_ip);
     }
+    SCFree((char *)rule_extend);
     return 0;
+
 error:
+    if (rule_extend != NULL) {
+        SCFree((char *)rule_extend);
+    }
+    if (th_ip != NULL) {
+        SCFree((char *)th_ip);
+    }
     return -1;
 }
 
