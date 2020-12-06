@@ -1005,7 +1005,7 @@ impl HTTP2State {
                                     }
                                 }
                             }
-                            None => panic!("BUG"),
+                            None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
                         }
                     }
                     input = &rem[hlsafe..];
