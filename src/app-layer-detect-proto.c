@@ -2102,12 +2102,10 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
     SCEnter();
 
     AppProto a;
+    AppProto b = StringToAppProto(alproto_name);
     for (a = 0; a < ALPROTO_MAX; a++) {
-        if (alpd_ctx.alproto_names[a] != NULL &&
-            strlen(alpd_ctx.alproto_names[a]) == strlen(alproto_name) &&
-            (SCMemcmp(alpd_ctx.alproto_names[a], alproto_name, strlen(alproto_name)) == 0))
-        {
-            SCReturnCT(a, "AppProto");
+        if (alpd_ctx.alproto_names[a] != NULL && AppProtoEquals(b, a)) {
+            SCReturnCT(b, "AppProto");
         }
     }
 
