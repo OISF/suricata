@@ -171,8 +171,8 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-        s->alproto != ALPROTO_SMB) {
+    if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_DCERPC &&
+        s->alolproto != ALPROTO_SMB) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }

@@ -186,7 +186,7 @@ int SignatureIsFilesizeInspecting(const Signature *s)
  */
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
-    if (s->alproto != ALPROTO_UNKNOWN)
+    if (s->alolproto != ALPROTO_UNKNOWN)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
@@ -252,7 +252,7 @@ iponly:
  */
 static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
 {
-    if (s->alproto != ALPROTO_UNKNOWN)
+    if (s->alolproto != ALPROTO_UNKNOWN)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
@@ -336,7 +336,7 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature
  */
 static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
-    if (s->alproto != ALPROTO_UNKNOWN) {
+    if (s->alolproto != ALPROTO_UNKNOWN) {
         SCReturnInt(0);
     }
 
@@ -710,8 +710,8 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
-            if (s->alproto != ALPROTO_UNKNOWN) {
-                alproto_mpm_bufs[s->alproto][mpm_list]++;
+            if (s->alolproto != ALPROTO_UNKNOWN) {
+                alproto_mpm_bufs[s->alolproto][mpm_list]++;
             }
 
             if (mpm_list == DETECT_SM_LIST_PMATCH) {
@@ -771,8 +771,8 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             payload_no_mpm_cnt++;
         }
 
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            alstats[s->alproto]++;
+        if (s->alolproto != ALPROTO_UNKNOWN) {
+            alstats[s->alolproto]++;
         }
 
         if (add_rules) {

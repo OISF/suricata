@@ -687,7 +687,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_set_uint(ctx.js, "rev", s->rev);
     jb_set_string(ctx.js, "msg", s->msg);
 
-    const char *alproto = AppProtoToString(s->alproto);
+    const char *alproto = AppProtoToString(s->alolproto);
     jb_set_string(ctx.js, "app_proto", alproto);
 
     jb_open_array(ctx.js, "requirements");
@@ -1098,7 +1098,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_pcre_http_content = 1;
     }
-    else if (s->alproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0) {
+    else if (s->alolproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0) {
         rule_warning += 1;
         warn_pcre_http = 1;
     }
@@ -1107,7 +1107,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_content_http_content = 1;
     }
-    if (s->alproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0) {
+    if (s->alolproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0) {
         rule_warning += 1;
         warn_content_http = 1;
     }
@@ -1151,11 +1151,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_offset_depth_pkt_stream = 1;
     }
-    if (rule_content_offset_depth > 0 && !stream_buf && packet_buf && s->alproto != ALPROTO_UNKNOWN) {
+    if (rule_content_offset_depth > 0 && !stream_buf && packet_buf && s->alolproto != ALPROTO_UNKNOWN) {
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
-    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
+    if (s->init_data->mpm_sm != NULL && s->alolproto == ALPROTO_HTTP &&
         SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
@@ -1192,8 +1192,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                  fprintf(rule_engine_analysis_FD, "    Rule matches on %s buffer.\n", ai->display_name);
             }
         }
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
+        if (s->alolproto != ALPROTO_UNKNOWN) {
+            fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alolproto));
         }
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
             fprintf(rule_engine_analysis_FD, "    Rule contains %d content options, %d http content options, %d pcre options, and %d pcre options with http modifiers.\n", rule_content, rule_content_http, rule_pcre, rule_pcre_http);
@@ -1273,7 +1273,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     "app layer protocol - %d.  This can lead to FNs if we "
                     "have a offset/depth content match on a packet payload "
                     "before we can detect the app layer protocol for the "
-                    "flow.\n", s->alproto);
+                    "flow.\n", s->alolproto);
         }
         if (warn_non_alproto_fp_for_alproto_sig) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer "

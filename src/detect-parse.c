@@ -163,7 +163,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
                    sigmatch_table[sm_type].name);
         goto end;
     }
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != alproto) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
                    "alprotos set");
         goto end;
@@ -217,7 +217,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
             }
         }
     }
-    s->alproto = alproto;
+    s->alolproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
 
     /* transfer the sm from the pmatch list to sm_list */
@@ -889,12 +889,12 @@ static int SigParseProto(Signature *s, const char *protostr)
 
     int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
-        s->alproto = AppLayerGetProtoByName((char *)protostr);
+        s->alolproto = AppLayerGetProtoByName((char *)protostr);
         /* indicate that the signature is app-layer */
-        if (s->alproto != ALPROTO_UNKNOWN) {
+        if (s->alolproto != ALPROTO_UNKNOWN) {
             s->flags |= SIG_FLAG_APPLAYER;
 
-            AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
+            AppLayerProtoDetectSupportedIpprotos(s->alolproto, s->proto.proto);
         }
         else {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
@@ -1485,14 +1485,14 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != alproto) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
             "can't set rule app proto to %s: already set to %s",
-            AppProtoToString(alproto), AppProtoToString(s->alproto));
+            AppProtoToString(alproto), AppProtoToString(s->alolproto));
         return -1;
     }
 
-    s->alproto = alproto;
+    s->alolproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
 }
@@ -1681,7 +1681,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && ((s->alproto == app->alproto) || s->alproto == 0)) {
+                if (app->sm_list == x && ((s->alolproto == app->alproto) || s->alolproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
@@ -1737,7 +1737,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 
 #if 0 // TODO figure out why this is even necessary
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
+    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alolproto == ALPROTO_SMTP) ||
         s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
@@ -1746,7 +1746,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags &= ~SIG_FLAG_TOCLIENT;
     }
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP) ||
+    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alolproto == ALPROTO_HTTP) ||
         s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
@@ -1850,28 +1850,36 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
         (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
-        if (s->alproto != ALPROTO_UNKNOWN &&
-                !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))
+        if (s->alolproto != ALPROTO_UNKNOWN &&
+                !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alolproto))
         {
             SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't "
-                    "support file matching", AppProtoToString(s->alproto));
+                    "support file matching", AppProtoToString(s->alolproto));
             SCReturnInt(0);
         }
-        if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
+        if (s->alolproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
             SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL,
                     "protocol HTTP2 doesn't support file name matching");
             SCReturnInt(0);
         }
 
-        if (s->alproto == ALPROTO_HTTP) {
+        if (s->alolproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
         }
     }
     if (s->init_data->init_flags & SIG_FLAG_INIT_DCERPC) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
-                s->alproto != ALPROTO_SMB) {
+        if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_DCERPC &&
+                s->alolproto != ALPROTO_SMB) {
             SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support DCERPC keyword",
-                    AppProtoToString(s->alproto));
+                    AppProtoToString(s->alolproto));
+            SCReturnInt(0);
+        }
+    }
+    if (s->init_data->init_flags & SIG_FLAG_INIT_HTTP) {
+        if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_HTTP &&
+                s->alolproto != ALPROTO_HTTP2) {
+            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support HTTP keyword",
+                    AppProtoToString(s->alolproto));
             SCReturnInt(0);
         }
     }
@@ -1915,7 +1923,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
-    if (sig->alproto != ALPROTO_UNKNOWN) {
+    if (sig->alolproto != ALPROTO_UNKNOWN) {
         int override_needed = 0;
         if (sig->proto.flags & DETECT_PROTO_ANY) {
             sig->proto.flags &= ~DETECT_PROTO_ANY;
@@ -1936,7 +1944,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
          * overridden, we use the ip proto that has been configured
          * against the app proto in use. */
         if (override_needed)
-            AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
+            AppLayerProtoDetectSupportedIpprotos(sig->alolproto, sig->proto.proto);
     }
 
     ret = DetectAppLayerEventPrepare(de_ctx, sig);
@@ -3950,7 +3958,7 @@ static int SigParseTestAppLayerTLS01(void)
         goto end;
     }
 
-    if (s->alproto == 0) {
+    if (s->alolproto == 0) {
         printf("alproto not set: ");
         goto end;
     }
@@ -3985,7 +3993,7 @@ static int SigParseTestAppLayerTLS02(void)
         goto end;
     }
 
-    if (s->alproto == 0) {
+    if (s->alolproto == 0) {
         printf("alproto not set: ");
         goto end;
     }

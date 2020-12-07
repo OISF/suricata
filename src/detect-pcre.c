@@ -904,8 +904,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                 if (alproto != ALPROTO_UNKNOWN) {
                     /* see if the proto doesn't conflict
                      * with what we already have. */
-                    if (s->alproto != ALPROTO_UNKNOWN &&
-                            alproto != s->alproto) {
+                    if (s->alolproto != ALPROTO_UNKNOWN &&
+                            alproto != s->alolproto) {
                         goto error;
                     }
                     if (DetectSignatureSetAppProto(s, alproto) < 0)

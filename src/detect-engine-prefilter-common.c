@@ -80,9 +80,9 @@ static void GetExtraMatch(const Signature *s, uint16_t *type, uint16_t *value)
     {
         *type = PREFILTER_EXTRA_MATCH_SRCPORT;
         *value = s->sp->port;
-    } else if (s->alproto != ALPROTO_UNKNOWN) {
+    } else if (s->alolproto != ALPROTO_UNKNOWN) {
         *type = PREFILTER_EXTRA_MATCH_ALPROTO;
-        *value = s->alproto;
+        *value = s->alolproto;
     } else if (s->dp != NULL && s->dp->next == NULL && s->dp->port == s->dp->port2 &&
         !(s->dp->flags & PORT_FLAG_NOT))
     {

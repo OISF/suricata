@@ -777,8 +777,8 @@ static inline void DetectRulePacketRules(
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
-            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != scratch->alproto) {
-                if (s->alproto == ALPROTO_DCERPC) {
+            if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != scratch->alproto) {
+                if (s->alolproto == ALPROTO_DCERPC) {
                     if (scratch->alproto != ALPROTO_SMB) {
                         SCLogDebug("DCERPC sig, alproto not SMB");
                         goto next;
@@ -1091,7 +1091,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             return false;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
-        if (!(f->alproto == s->alproto || s->alproto == ALPROTO_UNKNOWN)) {
+        if (!(f->alproto == s->alolproto || s->alolproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
             return false;
         }

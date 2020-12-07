@@ -264,6 +264,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_PRIO_EXPLICT          BIT_U32(8)  /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 #define SIG_FLAG_INIT_DCERPC                BIT_U32(10) /**< signature has DCERPC keyword */
+#define SIG_FLAG_INIT_HTTP                  BIT_U32(11) /**< signature has HTTP keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -529,7 +530,7 @@ typedef struct Signature_ {
     uint32_t flags;
     /* coccinelle: Signature:flags:SIG_FLAG_ */
 
-    AppProto alproto;
+    AppProto alolproto;
 
     uint16_t dsize_low;
     uint16_t dsize_high;

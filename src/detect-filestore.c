@@ -455,7 +455,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         sm->ctx = (SigMatchCtx*)NULL;
     }
 
-    if (s->alproto == ALPROTO_HTTP) {
+    if (s->alolproto == ALPROTO_HTTP) {
         AppLayerHtpNeedFileInspection();
     }
 

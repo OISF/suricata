@@ -543,7 +543,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
-        } else if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
+        } else if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != t->alproto)
             goto next;
 
         if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {

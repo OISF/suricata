@@ -136,7 +136,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     DetectAppLayerProtocolData *data = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN) {
+    if (s->alolproto != ALPROTO_UNKNOWN) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Either we already "
                    "have the rule match on an app layer protocol set through "
                    "other keywords that match on this protocol, or have "
