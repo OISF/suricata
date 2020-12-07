@@ -1486,10 +1486,14 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
     }
 
     if (s->alolproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alolproto, alproto)) {
+        if (AppProtoEquals(alproto, s->alolproto)) {
+            alproto = s->alolproto;
+        } else {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
             "can't set rule app proto to %s: already set to %s",
             AppProtoToString(alproto), AppProtoToString(s->alolproto));
         return -1;
+        }
     }
 
     s->alolproto = alproto;
