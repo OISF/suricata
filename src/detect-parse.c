@@ -163,7 +163,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
                    sigmatch_table[sm_type].name);
         goto end;
     }
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
                    "alprotos set");
         goto end;
@@ -1485,11 +1485,17 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
+        if (AppProtoEquals(alproto, s->alproto)) {
+            // happens if alproto = HTTP_ANY and s->alproto = HTTP1
+            // in this case, we must keep the most restrictive HTTP1
+            alproto = s->alproto;
+        } else {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
             "can't set rule app proto to %s: already set to %s",
             AppProtoToString(alproto), AppProtoToString(s->alproto));
         return -1;
+        }
     }
 
     s->alproto = alproto;
@@ -1681,7 +1687,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && ((s->alproto == app->alproto) || s->alproto == 0)) {
+                if (app->sm_list == x && (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
@@ -1863,7 +1869,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
 
-        if (s->alproto == ALPROTO_HTTP) {
+        if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) {
             AppLayerHtpNeedFileInspection();
         }
     }

@@ -361,7 +361,7 @@ DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx,
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
         const uint8_t rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
-        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto)) {
+        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || AppProtoEquals(rule_alproto, alproto))) {
             det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
         }
     }
@@ -777,7 +777,7 @@ static inline void DetectRulePacketRules(
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
-            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != scratch->alproto) {
+            if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, scratch->alproto)) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     if (scratch->alproto != ALPROTO_SMB) {
                         SCLogDebug("DCERPC sig, alproto not SMB");
@@ -1091,7 +1091,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             return false;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
-        if (!(f->alproto == s->alproto || s->alproto == ALPROTO_UNKNOWN)) {
+        if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
             return false;
         }

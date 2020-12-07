@@ -2090,9 +2090,15 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 {
     SCEnter();
 
+    // Custom case for only signature-only protocol so far
+    if (alproto == ALPROTO_HTTP_ANY) {
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP, ipprotos);
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
+    } else {
     AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPEGetIpprotos(alproto, ipprotos);
+    }
 
     SCReturn;
 }
@@ -2102,12 +2108,12 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
     SCEnter();
 
     AppProto a;
+    AppProto b = StringToAppProto(alproto_name);
     for (a = 0; a < ALPROTO_MAX; a++) {
-        if (alpd_ctx.alproto_names[a] != NULL &&
-            strlen(alpd_ctx.alproto_names[a]) == strlen(alproto_name) &&
-            (SCMemcmp(alpd_ctx.alproto_names[a], alproto_name, strlen(alproto_name)) == 0))
+        if (alpd_ctx.alproto_names[a] != NULL && AppProtoEquals(b, a))
         {
-            SCReturnCT(a, "AppProto");
+            // That means return HTTP_ANY if HTTP1 or HTTP2 is enabled
+            SCReturnCT(b, "AppProto");
         }
     }
 
