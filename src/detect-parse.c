@@ -163,7 +163,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
                    sigmatch_table[sm_type].name);
         goto end;
     }
-    if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != alproto) {
+    if (s->alolproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alolproto, alproto)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
                    "alprotos set");
         goto end;
@@ -1485,7 +1485,7 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
-    if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != alproto) {
+    if (s->alolproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alolproto, alproto)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
             "can't set rule app proto to %s: already set to %s",
             AppProtoToString(alproto), AppProtoToString(s->alolproto));
@@ -1681,7 +1681,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && ((s->alolproto == app->alproto) || s->alolproto == 0)) {
+                if (app->sm_list == x && (AppProtoEquals(s->alolproto, app->alproto) || s->alolproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
@@ -1863,7 +1863,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
 
-        if (s->alolproto == ALPROTO_HTTP) {
+        if (s->alolproto == ALPROTO_HTTP || s->alolproto == ALPROTO_HTTP_ANY) {
             AppLayerHtpNeedFileInspection();
         }
     }
@@ -1871,14 +1871,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_DCERPC &&
                 s->alolproto != ALPROTO_SMB) {
             SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support DCERPC keyword",
-                    AppProtoToString(s->alolproto));
-            SCReturnInt(0);
-        }
-    }
-    if (s->init_data->init_flags & SIG_FLAG_INIT_HTTP) {
-        if (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_HTTP &&
-                s->alolproto != ALPROTO_HTTP2) {
-            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support HTTP keyword",
                     AppProtoToString(s->alolproto));
             SCReturnInt(0);
         }

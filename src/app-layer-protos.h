@@ -57,6 +57,7 @@ enum AppProtoEnum {
     ALPROTO_TEMPLATE_RUST,
     ALPROTO_RDP,
     ALPROTO_HTTP2,
+    ALPROTO_HTTP_ANY, // HTTP but any version 1 or 2, used in signatures
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
@@ -75,6 +76,16 @@ typedef uint16_t AppProto;
 static inline bool AppProtoIsValid(AppProto a)
 {
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
+}
+
+static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
+{
+    switch (sigproto) {
+        case ALPROTO_HTTP_ANY:
+            return (alproto == ALPROTO_HTTP) || (alproto == ALPROTO_HTTP2) ||
+                   (alproto == ALPROTO_HTTP_ANY);
+    }
+    return (sigproto == alproto);
 }
 
 /**

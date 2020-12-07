@@ -2090,9 +2090,14 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 {
     SCEnter();
 
+    if (alproto == ALPROTO_HTTP_ANY) {
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP, ipprotos);
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
+    } else {
     AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPEGetIpprotos(alproto, ipprotos);
+    }
 
     SCReturn;
 }

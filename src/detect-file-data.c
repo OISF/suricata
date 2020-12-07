@@ -252,7 +252,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
         (s->alolproto != ALPROTO_UNKNOWN && s->alolproto != ALPROTO_HTTP &&
         s->alolproto != ALPROTO_SMTP && s->alolproto != ALPROTO_SMB &&
-        s->alolproto != ALPROTO_HTTP2)) {
+         s->alolproto != ALPROTO_HTTP2 && s->alolproto != ALPROTO_HTTP_ANY)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
@@ -282,7 +282,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s)
 {
-    if (s->alolproto == ALPROTO_HTTP || s->alolproto == ALPROTO_UNKNOWN) {
+    if (s->alolproto == ALPROTO_HTTP || s->alolproto == ALPROTO_UNKNOWN ||
+        s->alolproto == ALPROTO_HTTP_ANY) {
         AppLayerHtpEnableResponseBodyCallback();
     }
 

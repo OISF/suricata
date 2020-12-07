@@ -264,7 +264,6 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_PRIO_EXPLICT          BIT_U32(8)  /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 #define SIG_FLAG_INIT_DCERPC                BIT_U32(10) /**< signature has DCERPC keyword */
-#define SIG_FLAG_INIT_HTTP                  BIT_U32(11) /**< signature has HTTP keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -988,7 +987,7 @@ typedef struct HttpReassembledBody_ {
 typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
-    uint8_t alproto;
+    uint8_t alolproto;
 } SignatureNonPrefilterStore;
 
 /** array of TX inspect rule candidates */

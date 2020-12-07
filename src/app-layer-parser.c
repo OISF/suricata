@@ -1122,6 +1122,10 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
 
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
 {
+    if (alproto == ALPROTO_HTTP_ANY) {
+        return AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP) ||
+               AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP2);
+    }
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles != NULL)
         return TRUE;
     return FALSE;
