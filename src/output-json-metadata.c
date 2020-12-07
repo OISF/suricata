@@ -86,6 +86,7 @@ static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet
     EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
     OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
 
+    jb_free(js);
     return TM_ECODE_OK;
 }
 
