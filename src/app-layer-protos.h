@@ -77,6 +77,16 @@ static inline bool AppProtoIsValid(AppProto a)
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
 }
 
+// wether a signature AppProto matches a flow (or signature) AppProto
+static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
+{
+    if (alproto == ALPROTO_HTTP2 && sigproto == ALPROTO_HTTP) {
+        // TODO config option
+        return true;
+    }
+    return (sigproto == alproto);
+}
+
 /**
  * \brief Maps the ALPROTO_*, to its string equivalent.
  *
