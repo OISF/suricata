@@ -79,7 +79,7 @@ PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
         case PREFILTER_EXTRA_MATCH_UNUSED:
             break;
         case PREFILTER_EXTRA_MATCH_ALPROTO:
-            if (p->flow == NULL || p->flow->alproto != ctx->value)
+            if (p->flow == NULL || !AppProtoEquals(ctx->value, p->flow->alproto))
                 return FALSE;
             break;
         case PREFILTER_EXTRA_MATCH_SRCPORT:
