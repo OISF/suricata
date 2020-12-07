@@ -579,7 +579,7 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
 
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
-    dnslog_ctx->flags = ~0UL;
+    dnslog_ctx->flags = ~0ULL;
 
     if (conf) {
         if (dnslog_ctx->version == DNS_VERSION_1) {
