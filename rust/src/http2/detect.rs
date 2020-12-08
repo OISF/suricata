@@ -478,6 +478,29 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     return 0;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_uri(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    for i in 0..tx.frames_ts.len() {
+        match &tx.frames_ts[i].data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                for j in 0..hd.blocks.len() {
+                    if hd.blocks[j].name == ":path".as_bytes().to_vec() {
+                        let value = &hd.blocks[j].value;
+                        *buffer = value.as_ptr(); //unsafe
+                        *buffer_len = value.len() as u32;
+                        return 1;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    return 0;
+}
+
 fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
     //minimum size + 2 for escapes
     let normalsize = hd.blocks[i as usize].value.len() + 2 + hd.blocks[i as usize].name.len() + 2;
