@@ -710,6 +710,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
+            // && s->alolproto != ALPROTO_HTTP_ANY
             if (s->alolproto != ALPROTO_UNKNOWN) {
                 alproto_mpm_bufs[s->alolproto][mpm_list]++;
             }
