@@ -129,7 +129,7 @@ jobs:
       - name: Install system packages
         run: |
           yum -y install dnf-plugins-core
-          yum config-manager --set-enabled PowerTools
+          yum config-manager --set-enabled powertools
           yum -y install \
                 autoconf \
                 automake \
