@@ -478,6 +478,56 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     return 0;
 }
 
+fn http2_blocks_get_header_value<'a>(
+    blocks: &'a Vec<parser::HTTP2FrameHeaderBlock>, name: &str,
+) -> Result<&'a [u8], ()> {
+    for j in 0..blocks.len() {
+        if blocks[j].name == name.as_bytes().to_vec() {
+            return Ok(&blocks[j].value);
+        }
+    }
+    return Err(());
+}
+
+fn http2_frames_get_header_value<'a>(
+    frames: &'a Vec<HTTP2Frame>, name: &str,
+) -> Result<&'a [u8], ()> {
+    for i in 0..frames.len() {
+        match &frames[i].data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                if let Ok(value) = http2_blocks_get_header_value(&hd.blocks, name) {
+                    return Ok(value);
+                }
+            }
+            HTTP2FrameTypeData::PUSHPROMISE(hd) => {
+                if let Ok(value) = http2_blocks_get_header_value(&hd.blocks, name) {
+                    return Ok(value);
+                }
+            }
+            HTTP2FrameTypeData::CONTINUATION(hd) => {
+                if let Ok(value) = http2_blocks_get_header_value(&hd.blocks, name) {
+                    return Ok(value);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    return Err(());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_uri(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Ok(value) = http2_frames_get_header_value(&tx.frames_ts, ":path") {
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
 fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
     //minimum size + 2 for escapes
     let normalsize = hd.blocks[i as usize].value.len() + 2 + hd.blocks[i as usize].name.len() + 2;
