@@ -61,6 +61,7 @@ typedef struct OutputHttp2Ctx_ {
 
 typedef struct JsonHttp2LogThread_ {
     OutputHttp2Ctx *http2log_ctx;
+    LogFileCtx *file_ctx;
     MemBuffer *buffer;
 } JsonHttp2LogThread;
 
@@ -101,7 +102,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         goto end;
     }
     jb_close(js);
-    OutputJsonBuilderBuffer(js, http2_ctx->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
 end:
     jb_free(js);
     return 0;
@@ -109,29 +110,37 @@ end:
 
 static TmEcode JsonHttp2LogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonHttp2LogThread *aft = SCMalloc(sizeof(JsonHttp2LogThread));
+    JsonHttp2LogThread *aft = SCCalloc(1, sizeof(JsonHttp2LogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonHttp2LogThread));
 
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for EveLogHTTP2.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->http2log_ctx = ((OutputCtx *)initdata)->data;
+    aft->file_ctx = LogFileEnsureExists(aft->http2log_ctx->file_ctx, t->id);
+    if (!aft->file_ctx) {
+        goto error_exit;
+    }
 
     aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
+        goto error_exit;
     }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
+
+error_exit:
+    if (aft->buffer != NULL) {
+        MemBufferFree(aft->buffer);
+    }
+    SCFree(aft);
+    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonHttp2LogThreadDeinit(ThreadVars *t, void *data)
