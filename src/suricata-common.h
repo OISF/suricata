@@ -26,6 +26,8 @@
 #ifndef __SURICATA_COMMON_H__
 #define __SURICATA_COMMON_H__
 
+#error fails to build
+
 #ifdef DEBUG
 #define DBG_PERF
 #endif
