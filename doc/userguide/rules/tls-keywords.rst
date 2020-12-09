@@ -11,7 +11,7 @@ Match TLS/SSL certificate Subject field.
 Examples::
 
   tls.cert_subject; content:"CN=*.googleusercontent.com"; isdataat:!1,relative;
-  tls.cert_subject; content:"google.com"; nocase; pcre:"/google.com$/";
+  tls.cert_subject; content:"google.com"; nocase; pcre:"/google\.com$/";
 
 ``tls.cert_subject`` is a 'sticky buffer'.
 
