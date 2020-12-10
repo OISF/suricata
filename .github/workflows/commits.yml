@@ -14,7 +14,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.cargo
-          key: cargo
+          key: commit-check-cargo
       - name: Install dependencies
         run: |
           apt update
