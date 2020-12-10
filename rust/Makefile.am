@@ -31,7 +31,7 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
-all-local:
+all-local: Cargo.toml
 if HAVE_CYGPATH
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
