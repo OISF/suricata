@@ -691,7 +691,7 @@ On `x86_64` hs (Hyperscan) should be used for best performance.
 Threading
 ---------
 
-Suricata is multi-threaded. Suricata uses multiple CPU' s/CPU cores so
+Suricata is multi-threaded. Suricata uses multiple CPUs/CPU cores so
 it can process a lot of network packets simultaneously. (In a
 single-core engine, the packets will be processed one at a time.)
 
@@ -1358,8 +1358,8 @@ use of libhtp.
        # Default value of randomize-inspection-range is 10.
        #randomize-inspection-range: 10
 
-       # Can disable LZMA decompression
-       #lzma-enabled: yes
+       # Can enable LZMA decompression
+       #lzma-enabled: false
        # Memory limit usage for LZMA decompression dictionary
        # Data is decompressed until dictionary reaches this size
        #lzma-memlimit: 1 Mb

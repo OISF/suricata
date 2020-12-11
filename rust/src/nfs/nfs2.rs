@@ -17,8 +17,6 @@
 
 // written by Victor Julien
 
-use crate::log::*;
-
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;

@@ -17,7 +17,6 @@
 
 use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use crate::log::*;
 use std::mem::transmute;
 use crate::applayer::{self, *};
 use std::ffi::CString;
@@ -285,7 +284,7 @@ pub extern "C" fn rs_template_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
     return unsafe { transmute(boxed) };
@@ -394,14 +393,6 @@ pub extern "C" fn rs_template_state_get_tx_count(
 ) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_template_state_progress_completion_status(
-    _direction: u8,
-) -> std::os::raw::c_int {
-    // This parser uses 1 to signal transaction completion status.
-    return 1;
 }
 
 #[no_mangle]
@@ -536,7 +527,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         parse_tc: rs_template_parse_response,
         get_tx_count: rs_template_state_get_tx_count,
         get_tx: rs_template_state_get_tx,
-        tx_get_comp_st: rs_template_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_template_tx_get_alstate_progress,
         get_de_state: rs_template_tx_get_detect_state,
         set_de_state: rs_template_tx_set_detect_state,
@@ -550,6 +542,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

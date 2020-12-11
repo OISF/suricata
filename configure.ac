@@ -1,6 +1,6 @@
-    AC_INIT([suricata],[6.0.0-dev])
+    AC_INIT([suricata],[7.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
-    AC_CONFIG_HEADERS([config.h])
+    AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
     AM_INIT_AUTOMAKE([tar-ustar subdir-objects])
@@ -303,12 +303,10 @@
             ;;
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
-            LDFLAGS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
-            RUST_SURICATA_LIBNAME="suricata.lib"
-            RUST_LDADD="-luserenv -lshell32 -ladvapi32 -lgcc_eh"
+            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh"
             ;;
         *-*-cygwin)
             LUA_LIB_NAME="lua"
@@ -412,6 +410,29 @@
         AC_SUBST(SECLDFLAGS)
     ])
 
+    #check for plugin support
+    AC_CHECK_HEADERS([dlfcn.h])
+    AC_MSG_CHECKING([for plugin support])
+    TMPLDFLAGS="${LDFLAGS}"
+    LDFLAGS="${LDFLAGS} -rdynamic"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <dlfcn.h>]], [[]])],
+        [
+            AC_MSG_RESULT(yes)
+            has_rdynamic=yes
+        ],
+        [
+            AC_MSG_RESULT(no)
+            has_rdynamic=no
+        ])
+
+    if test "x$has_rdynamic" = "xyes"; then
+        plugin_support=yes
+        AC_DEFINE([HAVE_PLUGINS], [1], [Plugin support])
+    else
+        plugin_support=no
+        LDFLAGS="${TMPLDFLAGS}"
+    fi
+
     #enable profile generation
     AC_ARG_ENABLE(gccprofile,
            AS_HELP_STRING([--enable-gccprofile], [Enable gcc profile info i.e -pg flag is set]),[enable_gccprofile=$enableval],[enable_gccprofile=no])
@@ -448,46 +469,6 @@
 
 # options
 
-
-    AC_ARG_ENABLE(fuzztargets,
-        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
-    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
-    AC_PROG_CXX
-    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
-        AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
-        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
-        CFLAGS_ORIG=$CFLAGS
-        CFLAGS="-Werror"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
-                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
-                [])
-        CFLAGS=$CFLAGS_ORIG
-        AC_LANG_PUSH(C++)
-        tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
-        AS_IF([test "x$LIB_FUZZING_ENGINE" = "x"], [
-            LIB_FUZZING_ENGINE=-fsanitize=fuzzer
-            AC_SUBST(LIB_FUZZING_ENGINE)
-        ])
-        _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $LIB_FUZZING_ENGINE"
-        AC_MSG_CHECKING([whether $CXX accepts $LIB_FUZZING_ENGINE])
-        AC_LINK_IFELSE([AC_LANG_SOURCE([[
-#include <sys/types.h>
-extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size);
-extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size) {
-(void)Data;
-(void)Size;
-return 0;
-}
-            ]])],
-            [ AC_MSG_RESULT(yes)
-              has_sanitizefuzzer=yes],
-            [ AC_MSG_RESULT(no) ]
-        )
-        _AC_LANG_PREFIX[]FLAGS=$tmp_saved_flags
-        AC_LANG_POP()
-    ])
-
-    AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
 
   # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
@@ -725,6 +706,8 @@ return 0;
                 # unittests when jit is enabled.
                 pcre_jit_available="no, pcre 8.39/8.40 jit disabled for powerpc64"
             fi
+            # hack: use libatomic
+            LIBS="${LIBS} -latomic"
         ;;
         *)
             # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
@@ -770,32 +753,33 @@ return 0;
 
     if test "x$pcre_jit_works" = "xyes"; then
 
-       AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
-       AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-                          #include <pcre.h>
-                          #include <string.h>
-                          ]],
-           [[
-           const char *error;
-           int err_offset;
-           pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
-           pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
-           if (study == NULL)
-               exit(EXIT_FAILURE);
-           pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
-           if (stack == 0)
-               exit(EXIT_FAILURE);
-           int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
-           if (ret != 0)
-               exit(EXIT_FAILURE);
-           exit(EXIT_SUCCESS);
-           ]])],[ pcre_jit_exec_works=yes ],[:]
-       )
-       if test "x$pcre_jit_exec_works" != "xyes"; then
+       AC_MSG_CHECKING(for PCRE JIT exec availability)
+       AC_LINK_IFELSE(
+           [AC_LANG_PROGRAM(
+               [
+                  #include <pcre.h>
+                  #include <string.h>
+               ],
+               [
+                   const char *error;
+                   int err_offset;
+                   pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
+                   pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+                   if (study == NULL)
+                       exit(EXIT_FAILURE);
+                   pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
+                   if (stack == 0)
+                       exit(EXIT_FAILURE);
+                   int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
+                   exit(ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+               ])],
+           [pcre_jit_exec_available="yes" ],
+           [pcre_jit_exec_available="no" ])
+       if test "x$pcre_jit_exec_available" != "xyes"; then
            AC_MSG_RESULT(no)
        else
            AC_MSG_RESULT(yes)
-           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [Pcre with JIT compiler support enabled supporting pcre_jit_exec])
+           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [PCRE with JIT compiler support enabled supporting pcre_jit_exec])
        fi
     else
         AC_MSG_RESULT(no)
@@ -1056,7 +1040,13 @@ return 0;
             CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
         fi
 
-        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_MSG_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,
+            [AC_MSG_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)],
+            [
+                #define _GNU_SOURCE
+                #include <sys/types.h>
+                #include <stdint.h>
+            ])
 
         if test "$with_libnetfilter_queue_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
@@ -1080,6 +1070,9 @@ return 0;
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
+                    #define _GNU_SOURCE
+                    #include <sys/types.h>
+                    #include <stdint.h>
                     #include <stdio.h>
                     #include <libnetfilter_queue/libnetfilter_queue.h>
                 ],
@@ -1681,12 +1674,12 @@ return 0;
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.32],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.36],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.32, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.36, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
@@ -1699,6 +1692,7 @@ return 0;
         AC_CHECK_LIB([htp], [htp_config_set_response_decompression_layer_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Found htp_config_set_response_decompression_layer_limit function in libhtp]) ,,[-lhtp])
         AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
         AC_CHECK_LIB([htp], [htp_config_set_lzma_memlimit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Found htp_config_set_lzma_memlimit function in libhtp]) ,,[-lhtp])
+        AC_CHECK_LIB([htp], [htp_config_set_lzma_layers],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Found htp_config_set_lzma_layers function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_compression_bomb_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Found htp_config_set_compression_bomb_limit function in libhtp]) ,,[-lhtp])
     ])
 
@@ -1721,6 +1715,7 @@ return 0;
             # enable when libhtp has been updated
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Assuming htp_config_set_response_decompression_layer_limit function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Assuming htp_config_set_lzma_memlimit function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Assuming htp_config_set_lzma_layers function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Assuming htp_config_set_compression_bomb_limit function in bundled libhtp])
         else
             echo
@@ -2228,7 +2223,7 @@ return 0;
     AM_CONDITIONAL([HAVE_LUA], [test "x$enable_lua" != "xno"])
 
     # If Lua is enabled, test the integer size.
-    if test "x$enable_lua" = "xyes"; then
+    if test "x$enable_lua" = "xyes" -a "$cross_compiling" != "yes"; then
         TMPLIBS="$LIBS"
         LIBS=""
 
@@ -2484,6 +2479,12 @@ fi
 	[])
     AC_MSG_RESULT(yes)
 
+    RUST_FEATURES=""
+    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
+        [],
+	[RUST_FEATURES="$RUST_FEATURES function-macro"],
+	[RUST_FEATURES="$RUST_FEATURES function-macro"])
+
     rust_vendor_comment="# "
     have_rust_vendor="no"
 
@@ -2498,13 +2499,14 @@ fi
     fi
 
     if test "x$enable_debug" = "xyes"; then
-      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug/${RUST_SURICATA_LIBNAME}"
+      RUST_SURICATA_LIBDIR="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug"
     else
-      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release/${RUST_SURICATA_LIBNAME}"
+      RUST_SURICATA_LIBDIR="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release"
     fi
+    RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
@@ -2563,7 +2565,22 @@ fi
         have_cargo_vendor=$have_cargo_vendor_bin
     fi
 
-    AC_CHECK_FILES([$srcdir/rust/gen], [have_rust_headers="yes"])
+    have_rust_headers="no"
+    AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
+    if test -f "$srcdir/rust/dist/rust-bindings.h"; then
+       AC_MSG_RESULT(yes)
+       have_rust_headers="yes"
+    else
+       AC_MSG_RESULT(no)
+       AC_MSG_CHECKING(for $srcdir/rust/gen/rust-bindings.h)
+       if test -f "$srcdir/rust/gen/rust-bindings.h"; then
+           AC_MSG_RESULT(yes)
+           have_rust_headers="yes"
+       else
+           AC_MSG_RESULT(no)
+       fi
+    fi
+
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
@@ -2581,6 +2598,8 @@ fi
         have_rust_headers="no"
       fi
     fi
+
+    AC_SUBST([CBINDGEN], [$CBINDGEN])
 
     # Require cbindgen if generated headers are not bundled.
     if test "x$have_rust_headers" != "xyes"; then
@@ -2602,6 +2621,51 @@ fi
         RUST_FEATURES="strict"
     ])
     AC_SUBST(RUST_FEATURES)
+
+    AC_ARG_ENABLE(fuzztargets,
+        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
+    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
+    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly && echo "$RUSTFLAGS" | grep -v -q coverage])
+    AC_PROG_CXX
+    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        AS_IF([test "x$CARGO_BUILD_TARGET" = "x" && echo "$rust_compiler_version" | grep -q nightly], [
+            CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu
+            AC_SUBST(CARGO_BUILD_TARGET)
+        ])
+        AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        CFLAGS_ORIG=$CFLAGS
+        CFLAGS="-Werror"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
+                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [])
+        CFLAGS=$CFLAGS_ORIG
+        AC_LANG_PUSH(C++)
+        tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
+        AS_IF([test "x$LIB_FUZZING_ENGINE" = "x"], [
+            LIB_FUZZING_ENGINE=-fsanitize=fuzzer
+            AC_SUBST(LIB_FUZZING_ENGINE)
+        ])
+        _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $LIB_FUZZING_ENGINE"
+        AC_MSG_CHECKING([whether $CXX accepts $LIB_FUZZING_ENGINE])
+        AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#include <sys/types.h>
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size);
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size) {
+(void)Data;
+(void)Size;
+return 0;
+}
+            ]])],
+            [ AC_MSG_RESULT(yes)
+              has_sanitizefuzzer=yes],
+            [ AC_MSG_RESULT(no) ]
+        )
+        _AC_LANG_PREFIX[]FLAGS=$tmp_saved_flags
+        AC_LANG_POP()
+    ])
+
+    AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
 
 # get revision
     if test -f ./revision; then
@@ -2715,6 +2779,8 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
+AC_SUBST(RUST_FEATURES)
+AC_SUBST(RUST_SURICATA_LIBDIR)
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
@@ -2753,7 +2819,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
-  Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
@@ -2776,6 +2841,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
+
+  Plugin support (experimental):           ${plugin_support}
 
 Development settings:
   Coccinelle / spatch:                     ${enable_coccinelle}

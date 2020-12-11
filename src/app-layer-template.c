@@ -105,7 +105,7 @@ static void TemplateTxFree(void *txv)
     SCFree(tx);
 }
 
-static void *TemplateStateAlloc(void)
+static void *TemplateStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCLogNotice("Allocating template state.");
     TemplateState *state = SCCalloc(1, sizeof(TemplateState));
@@ -407,15 +407,6 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
 }
 
 /**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int TemplateGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return 1;
-}
-
-/**
  * \brief Return the state of a transaction in a given direction.
  *
  * In the case of the echo protocol, the existence of a transaction
@@ -551,8 +542,7 @@ void RegisterTemplateParsers(void)
             TemplateGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TEMPLATE,
-            TemplateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_TEMPLATE, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP,
             ALPROTO_TEMPLATE, TemplateGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEMPLATE,

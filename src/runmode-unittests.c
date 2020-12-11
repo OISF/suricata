@@ -21,7 +21,6 @@
  */
 
 #include "suricata-common.h"
-#include "config.h"
 #include "util-unittest.h"
 #include "runmode-unittests.h"
 
@@ -148,6 +147,7 @@ static void RegisterUnittests(void)
     DecodeCHDLCRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
+    DecodeGeneveRegisterTests();
     DecodeVXLANRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();

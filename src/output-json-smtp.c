@@ -112,16 +112,6 @@ bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
     return false;
 }
 
-static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
-{
-    OutputJsonEmailCtx *email_ctx = output_ctx->data;
-    if (email_ctx != NULL) {
-        LogFileFreeCtx(email_ctx->file_ctx);
-        SCFree(email_ctx);
-    }
-    SCFree(output_ctx);
-}
-
 static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -130,47 +120,6 @@ static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
         SCFree(email_ctx);
     }
     SCFree(output_ctx);
-}
-
-#define DEFAULT_LOG_FILENAME "smtp.json"
-static OutputInitResult OutputSmtpLogInit(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_SMTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
-    if (unlikely(email_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(email_ctx);
-        return result;
-    }
-
-    email_ctx->file_ctx = file_ctx;
-
-    output_ctx->data = email_ctx;
-    output_ctx->DeInit = OutputSmtpLogDeInitCtx;
-
-    /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
 }
 
 static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
@@ -254,12 +203,7 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
 }
 
 void JsonSmtpLogRegister (void) {
-    /* register as separate module */
-    OutputRegisterTxModule(LOGGER_JSON_SMTP, "JsonSmtpLog", "smtp-json-log",
-        OutputSmtpLogInit, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
-        JsonSmtpLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_SMTP, "eve-log", "JsonSmtpLog",
         "eve-log.smtp", OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger,
         JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit, NULL);

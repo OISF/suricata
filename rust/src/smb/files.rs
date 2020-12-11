@@ -16,7 +16,6 @@
  */
 
 use crate::core::*;
-use crate::log::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
 
@@ -44,39 +43,6 @@ impl SMBTransactionFile {
             share_name: Vec::new(),
             file_tracker: FileTransferTracker::new(),
             post_gap_ts: 0,
-        }
-    }
-}
-
-/// Wrapper around Suricata's internal file container logic.
-#[derive(Debug)]
-pub struct SMBFiles {
-    pub files_ts: FileContainer,
-    pub files_tc: FileContainer,
-    pub flags_ts: u16,
-    pub flags_tc: u16,
-}
-
-impl SMBFiles {
-    pub fn new() -> SMBFiles {
-        SMBFiles {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
-        if direction == STREAM_TOSERVER {
-            (&mut self.files_ts, self.flags_ts)
-        } else {
-            (&mut self.files_tc, self.flags_tc)
         }
     }
 }

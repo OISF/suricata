@@ -176,9 +176,9 @@ typedef enum {
     SC_ERR_LIBNET_BUILD_FAILED,
     SC_ERR_LIBNET_WRITE_FAILED,
     SC_ERR_LIBNET_NOT_ENABLED,
-    SC_ERR_UNIFIED_LOG_FILE_HEADER,  /**< Error to indicate the unified file
-                                          header writing function has been
-                                          failed */
+    SC_ERR_UNIFIED_LOG_FILE_HEADER, /**< Error to indicate the unified file
+                                         header writing function has been
+                                         failed */
     SC_ERR_REFERENCE_UNKNOWN,       /**< unknown reference key (cve, url, etc) */
     SC_ERR_PIDFILE_SNPRINTF,
     SC_ERR_PIDFILE_OPEN,
@@ -199,13 +199,13 @@ typedef enum {
     SC_ERR_ERF_DAG_STREAM_READ_FAILED,
     SC_WARN_ERF_DAG_REC_LEN_CHANGED,
     SC_ERR_DAG_REQUIRED,
-    SC_ERR_DAG_NOSUPPORT,           /**< no ERF/DAG support compiled in */
+    SC_ERR_DAG_NOSUPPORT, /**< no ERF/DAG support compiled in */
     SC_ERR_FATAL,
     SC_ERR_DCERPC,
-    SC_ERR_DETECT_PREPARE,          /**< preparing the detection engine failed */
+    SC_ERR_DETECT_PREPARE, /**< preparing the detection engine failed */
     SC_ERR_AHO_CORASICK,
     SC_ERR_REFERENCE_CONFIG,
-    SC_ERR_DUPLICATE_SIG,       /**< Error to indicate that signature is duplicate */
+    SC_ERR_DUPLICATE_SIG, /**< Error to indicate that signature is duplicate */
     SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL,
     SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT,
     SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT,
@@ -230,7 +230,7 @@ typedef enum {
     SC_ERR_SIZE_PARSE,
     SC_ERR_RAWBYTES_BUFFER,
     SC_ERR_SOCKET,
-    SC_ERR_PCAP_TRANSLATE,          /* failed to translate ip to dev */
+    SC_ERR_PCAP_TRANSLATE, /* failed to translate ip to dev */
     SC_WARN_OUTDATED_LIBHTP,
     SC_WARN_DEPRECATED,
     SC_WARN_PROFILE,
@@ -302,9 +302,9 @@ typedef enum {
     SC_ERR_INVALID_RULE_ARGUMENT, /**< Generic error code for invalid
                                    * rule argument. */
     SC_ERR_MT_NO_MAPPING,
-    SC_ERR_STATS_LOG_NEGATED, /** When totals and threads are both NO in yaml **/
-    SC_ERR_JSON_STATS_LOG_NEGATED, /** When totals and threads are both NO in yaml **/
-    SC_ERR_DEPRECATED_CONF, /**< Deprecated configuration parameter. */
+    SC_ERR_STATS_LOG_NEGATED,      /**< When totals and threads are both NO in yaml **/
+    SC_ERR_JSON_STATS_LOG_NEGATED, /**< When totals and threads are both NO in yaml **/
+    SC_ERR_DEPRECATED_CONF,        /**< Deprecated configuration parameter. */
     SC_WARN_FASTER_CAPTURE_AVAILABLE,
     SC_WARN_POOR_RULE,
     SC_ERR_ALERT_PAYLOAD_BUFFER,
@@ -363,6 +363,10 @@ typedef enum {
     SC_WARN_HASSH_DISABLED,
     SC_WARN_FILESTORE_CONFIG,
     SC_WARN_PATH_READ_ERROR,
+    SC_ERR_HTTP2_LOG_GENERIC,
+    SC_ERR_PLUGIN,
+    SC_ERR_LOG_OUTPUT,
+    SC_ERR_RULE_INVALID_UTF8,
 
     SC_ERR_MAX
 } SCError;

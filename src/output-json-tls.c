@@ -261,7 +261,7 @@ static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
         return;
     }
 
-    unsigned long len = cert->cert_len * 2;
+    unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
     uint8_t encoded[len];
     if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                      SC_BASE64_OK) {
@@ -279,7 +279,7 @@ static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
 
     SSLCertsChain *cert;
     TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
-        unsigned long len = cert->cert_len * 2;
+        unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
         uint8_t encoded[len];
         if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                          SC_BASE64_OK) {
@@ -498,15 +498,6 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void OutputTlsLogDeinit(OutputCtx *output_ctx)
-{
-    OutputTlsCtx *tls_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = tls_ctx->file_ctx;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(tls_ctx);
-    SCFree(output_ctx);
-}
-
 static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
 {
     OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
@@ -565,45 +556,6 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-static OutputInitResult OutputTlsLogInit(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    LogFileCtx *file_ctx = LogFileNewCtx();
-    if (file_ctx == NULL) {
-        SCLogError(SC_ERR_TLS_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputTlsCtx *tls_ctx = OutputTlsInitCtx(conf);
-    if (unlikely(tls_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(tls_ctx);
-        return result;
-    }
-
-    tls_ctx->file_ctx = file_ctx;
-
-    output_ctx->data = tls_ctx;
-    output_ctx->DeInit = OutputTlsLogDeinit;
-
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
 static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
 {
     OutputTlsCtx *tls_ctx = output_ctx->data;
@@ -649,13 +601,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
 
 void JsonTlsLogRegister (void)
 {
-    /* register as separate module */
-    OutputRegisterTxModuleWithProgress(LOGGER_JSON_TLS, "JsonTlsLog",
-        "tls-json-log", OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger,
-        TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, JsonTlsLogThreadInit,
-        JsonTlsLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TLS, "eve-log",
         "JsonTlsLog", "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS,
         JsonTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,

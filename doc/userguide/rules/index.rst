@@ -27,10 +27,12 @@ Suricata Rules
    sip-keywords
    rfb-keywords
    mqtt-keywords
+   http2-keywords
    app-layer
    xbits
    thresholding
    ip-reputation-rules
+   config
    datasets
    rule-lua-scripting
    differences-from-snort

@@ -132,7 +132,7 @@ void FreeCachedCtx(void)
     }
 }
 
-static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, int dir)
+static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, enum RejectDirection dir)
 {
     switch (dir) {
         case REJECT_DIR_SRC:
@@ -154,6 +154,7 @@ static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, int dir)
             lpacket->dp = TCP_GET_SRC_PORT(p);
             break;
         case REJECT_DIR_DST:
+        default:
             SCLogDebug("sending a tcp reset to dst");
             lpacket->seq = TCP_GET_SEQ(p);
             lpacket->ack = TCP_GET_ACK(p);
@@ -161,8 +162,6 @@ static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, int dir)
             lpacket->sp = TCP_GET_SRC_PORT(p);
             lpacket->dp = TCP_GET_DST_PORT(p);
             break;
-        default:
-            abort();
     }
     lpacket->window = TCP_GET_WINDOW(p);
     //lpacket.seq += lpacket.dsize;
@@ -236,7 +235,7 @@ static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
     return 0;
 }
 
-static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, int dir)
+static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, enum RejectDirection dir)
 {
     switch (dir) {
         case REJECT_DIR_SRC:
@@ -244,11 +243,10 @@ static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, int dir)
             lpacket->dmac = p->ethh->eth_src;
             break;
         case REJECT_DIR_DST:
+        default:
             lpacket->smac = p->ethh->eth_src;
             lpacket->dmac = p->ethh->eth_dst;
             break;
-        default:
-            abort();
     }
 }
 
@@ -277,7 +275,7 @@ static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16
     return 0;
 }
 
-int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -304,6 +302,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
             lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
             break;
         case REJECT_DIR_DST:
+        default:
             lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
             lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
             break;
@@ -342,7 +341,7 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -370,13 +369,10 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
             lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
             break;
         case REJECT_DIR_DST:
+        default:
             lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
             lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
             break;
-        default:
-            SCLogError(SC_ERR_LIBNET_INVALID_DIR,
-                       "reset not src or dst returning");
-            return 1;
     }
 
     /* TODO come up with ttl calc function */
@@ -422,7 +418,7 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -449,6 +445,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
             memcpy(lpacket.dst6.libnet_s6_addr, GET_IPV6_SRC_ADDR(p), 16);
             break;
         case REJECT_DIR_DST:
+        default:
             memcpy(lpacket.src6.libnet_s6_addr, GET_IPV6_SRC_ADDR(p), 16);
             memcpy(lpacket.dst6.libnet_s6_addr, GET_IPV6_DST_ADDR(p), 16);
             break;
@@ -486,7 +483,7 @@ cleanup:
 }
 
 #ifdef HAVE_LIBNET_ICMPV6_UNREACH
-int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -514,13 +511,10 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
             memcpy(lpacket.dst6.libnet_s6_addr, GET_IPV6_SRC_ADDR(p), 16);
             break;
         case REJECT_DIR_DST:
+        default:
             memcpy(lpacket.src6.libnet_s6_addr, GET_IPV6_SRC_ADDR(p), 16);
             memcpy(lpacket.dst6.libnet_s6_addr, GET_IPV6_DST_ADDR(p), 16);
             break;
-        default:
-            SCLogError(SC_ERR_LIBNET_INVALID_DIR,
-                       "reset not src or dst returning");
-            return 1;
     }
 
     /* TODO come up with ttl calc function */
@@ -567,7 +561,7 @@ cleanup:
 
 #else /* HAVE_LIBNET_ICMPV6_UNREACH */
 
-int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
                 "Usually this means that you don't have a patched libnet installed,"
@@ -579,7 +573,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
 #else
 
-int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -587,7 +581,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -595,7 +589,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -603,7 +597,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"

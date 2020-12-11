@@ -44,6 +44,7 @@
 #include "flow-manager.h"
 #include "flow-storage.h"
 #include "flow-bypass.h"
+#include "flow-spare-pool.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -74,6 +75,8 @@
 
 #define FLOW_DEFAULT_PREALLOC    10000
 
+SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
+
 /** atomic int that is used when freeing a flow from the hash. In this
  *  case we walk the hash to find a flow to free. This var records where
  *  we left off in the hash. Without this only the top rows of the hash
@@ -89,10 +92,8 @@ SC_ATOMIC_DECLARE(unsigned int, flow_flags);
 
 FlowProtoTimeout flow_timeouts_normal[FLOW_PROTO_MAX];
 FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
 FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
-
-/** spare/unused/prealloced flows live here */
-FlowQueue flow_spare_q;
 
 FlowConfig flow_config;
 
@@ -147,51 +148,6 @@ void FlowCleanupAppLayer(Flow *f)
     f->alstate = NULL;
     f->alparser = NULL;
     return;
-}
-
-/** \brief Make sure we have enough spare flows. 
- *
- *  Enforce the prealloc parameter, so keep at least prealloc flows in the
- *  spare queue and free flows going over the limit.
- *
- *  \retval 1 if the queue was properly updated (or if it already was in good shape)
- *  \retval 0 otherwise.
- */
-int FlowUpdateSpareFlows(void)
-{
-    SCEnter();
-    uint32_t toalloc = 0, tofree = 0, len;
-
-    FQLOCK_LOCK(&flow_spare_q);
-    len = flow_spare_q.len;
-    FQLOCK_UNLOCK(&flow_spare_q);
-
-    if (len < flow_config.prealloc) {
-        toalloc = flow_config.prealloc - len;
-
-        uint32_t i;
-        for (i = 0; i < toalloc; i++) {
-            Flow *f = FlowAlloc();
-            if (f == NULL)
-                return 0;
-
-            FlowEnqueue(&flow_spare_q,f);
-        }
-    } else if (len > flow_config.prealloc) {
-        tofree = len - flow_config.prealloc;
-
-        uint32_t i;
-        for (i = 0; i < tofree; i++) {
-            /* FlowDequeue locks the queue */
-            Flow *f = FlowDequeue(&flow_spare_q);
-            if (f == NULL)
-                return 1;
-
-            FlowFree(f);
-        }
-    }
-
-    return 1;
 }
 
 /** \brief Set the IPOnly scanned flag for 'direction'.
@@ -435,12 +391,18 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
 #ifdef CAPTURE_OFFLOAD
-    int state = SC_ATOMIC_GET(f->flow_state);
+    int state = f->flow_state;
 
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
 #endif
         /* update the last seen timestamp of this flow */
-        COPY_TIMESTAMP(&p->ts, &f->lastts);
+        if (timercmp(&p->ts, &f->lastts, >)) {
+            COPY_TIMESTAMP(&p->ts, &f->lastts);
+            const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + f->timeout_policy;
+            if (timeout_at != f->timeout_at) {
+                f->timeout_at = timeout_at;
+            }
+        }
 #ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
@@ -492,7 +454,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         FlowUpdateEthernet(tv, dtv, f, p->ethh, false);
     }
 
-    if (SC_ATOMIC_GET(f->flow_state) == FLOW_STATE_ESTABLISHED) {
+    if (f->flow_state == FLOW_STATE_ESTABLISHED) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -535,12 +497,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
  *  \param dtv decode thread vars (for flow output api thread data)
  *  \param p packet to handle flow for
  */
-void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
+void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(tv, dtv, p, &p->flow);
+    Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow);
     if (f == NULL)
         return;
 
@@ -560,7 +522,6 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_INIT(flow_memuse);
     SC_ATOMIC_INIT(flow_prune_idx);
     SC_ATOMIC_INIT(flow_config.memcap);
-    FlowQueueInit(&flow_spare_q);
     FlowQueueInit(&flow_recycle_q);
 
     /* set defaults */
@@ -576,7 +537,8 @@ void FlowInitConfig(char quiet)
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of 1 and 100 (as percentage)");
+            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of "
+                                             "1 and 100 (as percentage)");
             flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
         }
     } else {
@@ -589,7 +551,7 @@ void FlowInitConfig(char quiet)
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
-    uint64_t flow_memcap_copy;
+    uint64_t flow_memcap_copy = 0;
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
         if (conf_val == NULL) {
@@ -662,42 +624,18 @@ void FlowInitConfig(char quiet)
                   SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
     }
-
-    /* pre allocate flows */
-    for (i = 0; i < flow_config.prealloc; i++) {
-        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow) + FlowStorageSize()))) {
-            SCLogError(SC_ERR_FLOW_INIT, "preallocating flows failed: "
-                    "max flow memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", SC_ATOMIC_GET(flow_config.memcap),
-                    ((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)sizeof(Flow)));
-            exit(EXIT_FAILURE);
-        }
-
-        Flow *f = FlowAlloc();
-        if (f == NULL) {
-            SCLogError(SC_ERR_FLOW_INIT, "preallocating flow failed: %s", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        FlowEnqueue(&flow_spare_q,f);
-    }
-
+    FlowSparePoolInit();
     if (quiet == FALSE) {
-        SCLogConfig("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
-                flow_spare_q.len, (uintmax_t)(sizeof(Flow) + + FlowStorageSize()));
         SCLogConfig("flow memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), SC_ATOMIC_GET(flow_config.memcap));
     }
 
     FlowInitFlowProto();
 
-    return;
-}
-
-/** \brief print some flow stats
- *  \warning Not thread safe */
-static void FlowPrintStats (void)
-{
+    uint32_t sz = sizeof(Flow) + FlowStorageSize();
+    SCLogConfig("flow size %u, memcap allows for %" PRIu64 " flows. Per hash row in perfect "
+                "conditions %" PRIu64,
+            sz, flow_memcap_copy / sz, (flow_memcap_copy / sz) / flow_config.hash_size);
     return;
 }
 
@@ -706,26 +644,27 @@ static void FlowPrintStats (void)
 void FlowShutdown(void)
 {
     Flow *f;
-    uint32_t u;
-
-    FlowPrintStats();
-
-    /* free queues */
-    while((f = FlowDequeue(&flow_spare_q))) {
-        FlowFree(f);
-    }
-    while((f = FlowDequeue(&flow_recycle_q))) {
+    while ((f = FlowDequeue(&flow_recycle_q))) {
         FlowFree(f);
     }
 
     /* clear and free the hash */
     if (flow_hash != NULL) {
         /* clean up flow mutexes */
-        for (u = 0; u < flow_config.hash_size; u++) {
+        for (uint32_t u = 0; u < flow_config.hash_size; u++) {
             f = flow_hash[u].head;
             while (f) {
-                DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(f->use_cnt) != 0);
-                Flow *n = f->hnext;
+                DEBUG_VALIDATE_BUG_ON(f->use_cnt != 0);
+                Flow *n = f->next;
+                uint8_t proto_map = FlowGetProtoMapping(f->proto);
+                FlowClearMemory(f, proto_map);
+                FlowFree(f);
+                f = n;
+            }
+            f = flow_hash[u].evicted;
+            while (f) {
+                DEBUG_VALIDATE_BUG_ON(f->use_cnt != 0);
+                Flow *n = f->next;
                 uint8_t proto_map = FlowGetProtoMapping(f->proto);
                 FlowClearMemory(f, proto_map);
                 FlowFree(f);
@@ -738,8 +677,8 @@ void FlowShutdown(void)
         flow_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
-    FlowQueueDestroy(&flow_spare_q);
     FlowQueueDestroy(&flow_recycle_q);
+    FlowSparePoolDestroy();
     return;
 }
 
@@ -1074,6 +1013,39 @@ void FlowInitFlowProto(void)
         }
     }
 
+    for (int i = 0; i < FLOW_PROTO_MAX; i++) {
+        FlowProtoTimeout *n = &flow_timeouts_normal[i];
+        FlowProtoTimeout *e = &flow_timeouts_emerg[i];
+        FlowProtoTimeout *d = &flow_timeouts_delta[i];
+
+        if (e->est_timeout > n->est_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'established\' must be below normal value");
+            e->est_timeout = n->est_timeout / 10;
+        }
+        d->est_timeout = n->est_timeout - e->est_timeout;
+
+        if (e->new_timeout > n->new_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'new\' must be below normal value");
+            e->new_timeout = n->new_timeout / 10;
+        }
+        d->new_timeout = n->new_timeout - e->new_timeout;
+
+        if (e->closed_timeout > n->closed_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'closed\' must be below normal value");
+            e->closed_timeout = n->closed_timeout / 10;
+        }
+        d->closed_timeout = n->closed_timeout - e->closed_timeout;
+
+        if (e->bypassed_timeout > n->bypassed_timeout) {
+            SCLogWarning(SC_WARN_FLOW_EMERGENCY, "emergency timeout value for \'bypassed\' must be below normal value");
+            e->bypassed_timeout = n->bypassed_timeout / 10;
+        }
+        d->bypassed_timeout = n->bypassed_timeout - e->bypassed_timeout;
+
+        SCLogDebug("deltas: new: -%u est: -%u closed: -%u bypassed: -%u",
+                d->new_timeout, d->est_timeout, d->closed_timeout, d->bypassed_timeout);
+    }
+
     return;
 }
 
@@ -1155,24 +1127,35 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         newflags |= STREAM_DEPTH;
     }
-    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
-        newflags |= STREAM_GAP;
-    }
     /* todo: handle pass case (also for UDP!) */
 
     return newflags;
 }
 
-void FlowUpdateState(Flow *f, enum FlowState s)
+void FlowUpdateState(Flow *f, const enum FlowState s)
 {
-    /* set the state */
-    SC_ATOMIC_SET(f->flow_state, s);
+    if (s != f->flow_state) {
+        /* set the state */
+        f->flow_state = s;
 
-    if (f->fb) {
+        /* update timeout policy and value */
+        const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
+        if (timeout_policy != f->timeout_policy) {
+            f->timeout_policy = timeout_policy;
+            const uint32_t timeout_at = (uint32_t)f->lastts.tv_sec + timeout_policy;
+            if (timeout_at != f->timeout_at)
+                f->timeout_at = timeout_at;
+        }
+    }
+#ifdef UNITTESTS
+    if (f->fb != NULL) {
+#endif
         /* and reset the flow buckup next_ts value so that the flow manager
          * has to revisit this row */
         SC_ATOMIC_SET(f->fb->next_ts, 0);
+#ifdef UNITTESTS
     }
+#endif
 }
 
 /**
@@ -1267,17 +1250,16 @@ static int FlowTest02 (void)
 static int FlowTest07 (void)
 {
     int result = 0;
-
     FlowInitConfig(FLOW_QUIET);
     FlowConfig backup;
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = flow_spare_q.len;
+    uint32_t end = FlowSpareGetPoolSize();
     SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
-    /* Let's get the flow_spare_q empty */
+    /* Let's get the flow spare pool empty */
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
@@ -1290,7 +1272,7 @@ static int FlowTest07 (void)
     /* should time out normal */
     TimeSetIncrementTime(2000);
     ini = end + 1;
-    end = end + 2;;
+    end = end + 2;
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* This means that the engine entered emerg mode: should happen as easy
@@ -1298,8 +1280,8 @@ static int FlowTest07 (void)
     if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
         result = 1;
 
-    memcpy(&flow_config, &backup, sizeof(FlowConfig));
     FlowShutdown();
+    memcpy(&flow_config, &backup, sizeof(FlowConfig));
 
     return result;
 }
@@ -1320,11 +1302,11 @@ static int FlowTest08 (void)
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = flow_spare_q.len;
+    uint32_t end = FlowSpareGetPoolSize();
     SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
-    /* Let's get the flow_spare_q empty */
+    /* Let's get the flow spare pool empty */
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
@@ -1367,11 +1349,11 @@ static int FlowTest09 (void)
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = flow_spare_q.len;
+    uint32_t end = FlowSpareGetPoolSize();
     SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
-    /* Let's get the flow_spare_q empty */
+    /* Let's get the flow spare pool empty */
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
@@ -1415,7 +1397,6 @@ void FlowRegisterTests (void)
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
                    FlowTest09);
 
-    FlowMgrRegisterTests();
     RegisterFlowStorageTests();
 #endif /* UNITTESTS */
 }

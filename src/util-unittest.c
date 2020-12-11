@@ -217,6 +217,10 @@ uint32_t UtRunTests(const char *regex_arg)
                     printf("STREAM MEMORY IN USE %"PRIu64"\n", StreamTcpMemuseCounter());
                     ret = 0;
                 }
+                if (FlowGetMemuse() != 0) {
+                    printf("FLOW MEMORY IN USE %"PRIu64"\n", FlowGetMemuse());
+                    ret = 0;
+                }
 
                 if (StreamTcpReassembleMemuseGlobalCounter() != 0) {
                     printf("STREAM REASSEMBLY MEMORY IN USE %"PRIu64"\n", StreamTcpReassembleMemuseGlobalCounter());

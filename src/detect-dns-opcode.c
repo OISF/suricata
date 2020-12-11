@@ -74,14 +74,12 @@ static int DetectDnsOpcodeMatch(DetectEngineThreadCtx *det_ctx,
     return rs_dns_opcode_match(txv, (void *)ctx, flags);
 }
 
-static int DetectEngineInspectRequestGenericDnsOpcode(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectRequestGenericDnsOpcode(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-       f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 void DetectDnsOpcodeRegister(void)
@@ -94,13 +92,11 @@ void DetectDnsOpcodeRegister(void)
     sigmatch_table[DETECT_AL_DNS_OPCODE].AppLayerTxMatch =
         DetectDnsOpcodeMatch;
 
-    DetectAppLayerInspectEngineRegister("dns.opcode",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectRequestGenericDnsOpcode);
+    DetectAppLayerInspectEngineRegister2("dns.opcode", ALPROTO_DNS, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectRequestGenericDnsOpcode, NULL);
 
-    DetectAppLayerInspectEngineRegister("dns.opcode",
-            ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectRequestGenericDnsOpcode);
+    DetectAppLayerInspectEngineRegister2("dns.opcode", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectRequestGenericDnsOpcode, NULL);
 
     dns_opcode_list_id = DetectBufferTypeGetByName("dns.opcode");
 }

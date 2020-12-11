@@ -155,16 +155,6 @@ static TmEcode JsonMetadataLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonMetadataLogDeInitCtx(OutputCtx *output_ctx)
-{
-    MetadataJsonOutputCtx *json_output_ctx = (MetadataJsonOutputCtx *) output_ctx->data;
-    if (json_output_ctx != NULL) {
-        LogFileFreeCtx(json_output_ctx->file_ctx);
-        SCFree(json_output_ctx);
-    }
-    SCFree(output_ctx);
-}
-
 static void JsonMetadataLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -175,53 +165,6 @@ static void JsonMetadataLogDeInitCtxSub(OutputCtx *output_ctx)
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
-}
-
-#define DEFAULT_LOG_FILENAME "metadata.json"
-
-/**
- * \brief Create a new LogFileCtx for "fast" output style.
- * \param conf The configuration node for this output.
- * \return A LogFileCtx pointer on success, NULL on failure.
- */
-static OutputInitResult JsonMetadataLogInitCtx(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    MetadataJsonOutputCtx *json_output_ctx = NULL;
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("MetadataFastLogInitCtx2: Could not create new LogFileCtx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    json_output_ctx = SCMalloc(sizeof(MetadataJsonOutputCtx));
-    if (unlikely(json_output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        SCFree(output_ctx);
-        return result;
-    }
-    memset(json_output_ctx, 0, sizeof(MetadataJsonOutputCtx));
-
-    json_output_ctx->file_ctx = logfile_ctx;
-    json_output_ctx->cfg.include_metadata = true;
-
-    output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonMetadataLogDeInitCtx;
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
 }
 
 /**
@@ -270,20 +213,12 @@ error:
 
 void JsonMetadataLogRegister (void)
 {
-    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "metadata-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
-        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
-        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
         "eve-log.metadata", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,
         JsonMetadataLogThreadDeinit, NULL);
 
     /* Kept for compatibility. */
-    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "vars-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
-        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
-        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
         "eve-log.vars", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,

@@ -19,7 +19,6 @@ use super::dcerpc::{
     DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
     DCERPC_UUID_ENTRY_FLAG_FF,
 };
-use crate::log::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
@@ -61,7 +60,7 @@ pub struct DCEOpnumData {
 }
 
 fn extract_op_version(opver: &str) -> Result<(u8, u16), ()> {
-    if opver.len() < 1 {
+    if !opver.is_char_boundary(1){
         return Err(());
     }
     let (op, version) = opver.split_at(1);

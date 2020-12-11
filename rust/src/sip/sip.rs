@@ -22,7 +22,6 @@ extern crate nom;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
-use crate::log::*;
 use crate::sip::parser::*;
 use std;
 use std::ffi::{CStr, CString};
@@ -170,7 +169,7 @@ impl Drop for SIPTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_sip_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SIPState::new();
     let boxed = Box::new(state);
     return unsafe { std::mem::transmute(boxed) };
@@ -204,11 +203,6 @@ pub extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) ->
 pub extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SIPState);
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_sip_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return 1;
 }
 
 #[no_mangle]
@@ -380,7 +374,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         parse_tc: rs_sip_parse_response,
         get_tx_count: rs_sip_state_get_tx_count,
         get_tx: rs_sip_state_get_tx,
-        tx_get_comp_st: rs_sip_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_sip_tx_get_alstate_progress,
         get_de_state: rs_sip_state_get_tx_detect_state,
         set_de_state: rs_sip_state_set_tx_detect_state,
@@ -393,7 +388,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_tx_iterator: None,
         get_tx_data: rs_sip_get_tx_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

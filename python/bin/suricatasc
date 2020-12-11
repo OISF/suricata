@@ -47,7 +47,7 @@ except:
 parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')
 parser.add_argument('-c', '--command', default=None, help='execute on single command and return JSON')
-parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connnect to', default=None)
+parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connect to', default=None)
 args = parser.parse_args()
 
 if args.socket != None:

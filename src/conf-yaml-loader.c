@@ -566,39 +566,28 @@ default-log-dir: /tmp\n\
 
     ConfNode *node;
     node = ConfGetNode("rule-files");
-    if (node == NULL)
-        return 0;
-    if (!ConfNodeIsSequence(node))
-        return 0;
-    if (TAILQ_EMPTY(&node->head))
-        return 0;
+    FAIL_IF_NULL(node);
+    FAIL_IF_NOT(ConfNodeIsSequence(node));
+    FAIL_IF(TAILQ_EMPTY(&node->head));
     int i = 0;
     ConfNode *filename;
     TAILQ_FOREACH(filename, &node->head, next) {
         if (i == 0) {
-            if (strcmp(filename->val, "netbios.rules") != 0)
-                return 0;
-            if (ConfNodeIsSequence(filename))
-                return 0;
-            if (filename->is_seq != 0)
-                return 0;
+            FAIL_IF(strcmp(filename->val, "netbios.rules") != 0);
+            FAIL_IF(ConfNodeIsSequence(filename));
+            FAIL_IF(filename->is_seq != 0);
         }
         else if (i == 1) {
-            if (strcmp(filename->val, "x11.rules") != 0)
-                return 0;
-            if (ConfNodeIsSequence(filename))
-                return 0;
+            FAIL_IF(strcmp(filename->val, "x11.rules") != 0);
+            FAIL_IF(ConfNodeIsSequence(filename));
         }
-        else {
-            return 0;
-        }
+        FAIL_IF(i > 1);
         i++;
     }
 
     ConfDeInit();
     ConfRestoreContextBackup();
-
-    return 1;
+    PASS;
 }
 
 static int
@@ -623,57 +612,45 @@ logging:\n\
 
     ConfNode *outputs;
     outputs = ConfGetNode("logging.output");
-    if (outputs == NULL)
-        return 0;
+    FAIL_IF_NULL(outputs);
 
     ConfNode *output;
     ConfNode *output_param;
 
     output = TAILQ_FIRST(&outputs->head);
-    if (output == NULL)
-        return 0;
-    if (strcmp(output->name, "0") != 0)
-        return 0;
+    FAIL_IF_NULL(output);
+    FAIL_IF(strcmp(output->name, "0") != 0);
+
     output_param = TAILQ_FIRST(&output->head);
-    if (output_param == NULL)
-        return 0;
-    if (strcmp(output_param->name, "interface") != 0)
-        return 0;
-    if (strcmp(output_param->val, "console") != 0)
-        return 0;
+    FAIL_IF_NULL(output_param);
+    FAIL_IF(strcmp(output_param->name, "interface") != 0);
+    FAIL_IF(strcmp(output_param->val, "console") != 0);
+
     output_param = TAILQ_NEXT(output_param, next);
-    if (strcmp(output_param->name, "log-level") != 0)
-        return 0;
-    if (strcmp(output_param->val, "error") != 0)
-        return 0;
+    FAIL_IF(strcmp(output_param->name, "log-level") != 0);
+    FAIL_IF(strcmp(output_param->val, "error") != 0);
 
     output = TAILQ_NEXT(output, next);
-    if (output == NULL)
-        return 0;
-    if (strcmp(output->name, "1") != 0)
-        return 0;
+    FAIL_IF_NULL(output);
+    FAIL_IF(strcmp(output->name, "1") != 0);
+
     output_param = TAILQ_FIRST(&output->head);
-    if (output_param == NULL)
-        return 0;
-    if (strcmp(output_param->name, "interface") != 0)
-        return 0;
-    if (strcmp(output_param->val, "syslog") != 0)
-        return 0;
+    FAIL_IF_NULL(output_param);
+    FAIL_IF(strcmp(output_param->name, "interface") != 0);
+    FAIL_IF(strcmp(output_param->val, "syslog") != 0);
+
     output_param = TAILQ_NEXT(output_param, next);
-    if (strcmp(output_param->name, "facility") != 0)
-        return 0;
-    if (strcmp(output_param->val, "local4") != 0)
-        return 0;
+    FAIL_IF(strcmp(output_param->name, "facility") != 0);
+    FAIL_IF(strcmp(output_param->val, "local4") != 0);
+
     output_param = TAILQ_NEXT(output_param, next);
-    if (strcmp(output_param->name, "log-level") != 0)
-        return 0;
-    if (strcmp(output_param->val, "info") != 0)
-        return 0;
+    FAIL_IF(strcmp(output_param->name, "log-level") != 0);
+    FAIL_IF(strcmp(output_param->val, "info") != 0);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -685,13 +662,12 @@ ConfYamlNonYamlFileTest(void)
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfYamlLoadFile("/etc/passwd") != -1)
-        return 0;
+    FAIL_IF(ConfYamlLoadFile("/etc/passwd") != -1);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 static int
@@ -712,13 +688,12 @@ logging:\n\
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfYamlLoadString(input, strlen(input)) != -1)
-        return 0;
+    FAIL_IF(ConfYamlLoadString(input, strlen(input)) != -1);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 static int
@@ -748,42 +723,34 @@ libhtp:\n\
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfYamlLoadString(input, strlen(input)) != 0)
-        return 0;
+    FAIL_IF(ConfYamlLoadString(input, strlen(input)) != 0);
 
     ConfNode *outputs;
     outputs = ConfGetNode("libhtp.server-config");
-    if (outputs == NULL)
-        return 0;
+    FAIL_IF_NULL(outputs);
 
     ConfNode *node;
 
     node = TAILQ_FIRST(&outputs->head);
-    if (node == NULL)
-        return 0;
-    if (strcmp(node->name, "0") != 0)
-        return 0;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "0") != 0);
+
     node = TAILQ_FIRST(&node->head);
-    if (node == NULL)
-        return 0;
-    if (strcmp(node->name, "apache-php") != 0)
-        return 0;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "apache-php") != 0);
 
     node = ConfNodeLookupChild(node, "address");
-    if (node == NULL)
-        return 0;
+    FAIL_IF_NULL(node);
+
     node = TAILQ_FIRST(&node->head);
-    if (node == NULL)
-        return 0;
-    if (strcmp(node->name, "0") != 0)
-        return 0;
-    if (strcmp(node->val, "192.168.1.0/24") != 0)
-        return 0;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "0") != 0);
+    FAIL_IF(strcmp(node->val, "192.168.1.0/24") != 0);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -792,7 +759,6 @@ libhtp:\n\
 static int
 ConfYamlFileIncludeTest(void)
 {
-    int ret = 0;
     FILE *config_file;
 
     const char config_filename[] = "ConfYamlFileIncludeTest-config.yaml";
@@ -816,21 +782,12 @@ ConfYamlFileIncludeTest(void)
     ConfInit();
 
     /* Write out the test files. */
-    if ((config_file = fopen(config_filename, "w")) == NULL) {
-        goto cleanup;
-    }
-    if (fwrite(config_file_contents, strlen(config_file_contents), 1,
-            config_file) != 1) {
-        goto cleanup;
-    }
+    FAIL_IF_NULL((config_file = fopen(config_filename, "w")));
+    FAIL_IF(fwrite(config_file_contents, strlen(config_file_contents), 1, config_file) != 1);
     fclose(config_file);
-    if ((config_file = fopen(include_filename, "w")) == NULL) {
-        goto cleanup;
-    }
-    if (fwrite(include_file_contents, strlen(include_file_contents), 1,
-            config_file) != 1) {
-        goto cleanup;
-    }
+
+    FAIL_IF_NULL((config_file = fopen(include_filename, "w")));
+    FAIL_IF(fwrite(include_file_contents, strlen(include_file_contents), 1, config_file) != 1);
     fclose(config_file);
 
     /* Reset conf_dirname. */
@@ -839,45 +796,35 @@ ConfYamlFileIncludeTest(void)
         conf_dirname = NULL;
     }
 
-    if (ConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0)
-        goto cleanup;
+    FAIL_IF(ConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0);
 
     /* Check values that should have been loaded into the root of the
      * configuration. */
     ConfNode *node;
     node = ConfGetNode("host-mode");
-    if (node == NULL)
-        goto cleanup;
-    if (strcmp(node->val, "auto") != 0)
-        goto cleanup;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "auto") != 0);
+
     node = ConfGetNode("unix-command.enabled");
-    if (node == NULL)
-        goto cleanup;
-    if (strcmp(node->val, "no") != 0)
-        goto cleanup;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "no") != 0);
 
     /* Check for values that were included under a mapping. */
     node = ConfGetNode("mapping.host-mode");
-    if (node == NULL)
-        goto cleanup;
-    if (strcmp(node->val, "auto") != 0)
-        goto cleanup;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "auto") != 0);
+
     node = ConfGetNode("mapping.unix-command.enabled");
-    if (node == NULL)
-        goto cleanup;
-    if (strcmp(node->val, "no") != 0)
-        goto cleanup;
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "no") != 0);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    ret = 1;
-
-cleanup:
     unlink(config_filename);
     unlink(include_filename);
 
-    return ret;
+    PASS;
 }
 
 /**
@@ -905,25 +852,19 @@ ConfYamlOverrideTest(void)
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfYamlLoadString(config, strlen(config)) != 0)
-        return 0;
-    if (!ConfGet("some-log-dir", &value))
-        return 0;
-    if (strcmp(value, "/tmp") != 0)
-        return 0;
+    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
+    FAIL_IF_NOT(ConfGet("some-log-dir", &value));
+    FAIL_IF(strcmp(value, "/tmp") != 0);
 
     /* Test that parent.child0 does not exist, but child1 does. */
-    if (ConfGetNode("parent.child0") != NULL)
-        return 0;
-    if (!ConfGet("parent.child1.key", &value))
-        return 0;
-    if (strcmp(value, "value") != 0)
-        return 0;
+    FAIL_IF_NOT_NULL(ConfGetNode("parent.child0"));
+    FAIL_IF_NOT(ConfGet("parent.child1.key", &value));
+    FAIL_IF(strcmp(value, "value") != 0);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -942,24 +883,18 @@ ConfYamlOverrideFinalTest(void)
         "default-log-dir: /var/log\n";
 
     /* Set the log directory as if it was set on the command line. */
-    if (!ConfSetFinal("default-log-dir", "/tmp"))
-        return 0;
-    if (ConfYamlLoadString(config, strlen(config)) != 0)
-        return 0;
+    FAIL_IF_NOT(ConfSetFinal("default-log-dir", "/tmp"));
+    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
 
     const char *default_log_dir;
 
-    if (!ConfGet("default-log-dir", &default_log_dir))
-        return 0;
-    if (strcmp(default_log_dir, "/tmp") != 0) {
-        fprintf(stderr, "final value was reassigned\n");
-        return 0;
-    }
+    FAIL_IF_NOT(ConfGet("default-log-dir", &default_log_dir));
+    FAIL_IF(strcmp(default_log_dir, "/tmp") != 0);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 #endif /* UNITTESTS */

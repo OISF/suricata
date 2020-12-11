@@ -4,7 +4,7 @@ version = "@PACKAGE_VERSION@"
 edition = "2018"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
 path = "@e_rustdir@/src/lib.rs"
 
 [profile.release]
@@ -16,6 +16,7 @@ lua_int8 = ["lua"]
 strict = []
 debug = []
 debug-validate = []
+function-macro = []
 
 [dependencies]
 nom = "= 5.1.1"

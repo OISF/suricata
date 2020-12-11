@@ -48,15 +48,14 @@ typedef struct SuricataContext_ {
 
 } SuricataContext;
 
+extern SuricataContext suricata_context;
+
 typedef struct SuricataFileContext_ {
 
     const StreamingBufferConfig *sbcfg;
 
 } SuricataFileContext;
 
-struct _Store;
-typedef struct _Store Store;
-
-/** Opaque Rust types. */
+SuricataContext *SCGetContext(void);
 
 #endif /* !__RUST_CONTEXT_H__ */

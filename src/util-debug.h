@@ -575,4 +575,6 @@ void SCLogRegisterTests(void);
 
 void SCLogLoadConfig(int daemon, int verbose);
 
+SCLogLevel SCLogGetLogLevel(void);
+
 #endif /* __UTIL_DEBUG_H__ */

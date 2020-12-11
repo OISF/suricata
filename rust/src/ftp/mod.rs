@@ -22,8 +22,6 @@ use std::str;
 use std;
 use std::str::FromStr;
 
-use crate::log::*;
-
 // We transform an integer string into a i64, ignoring surrounding whitespaces
 // We look for a digit suite, and try to convert it.
 // If either str::from_utf8 or FromStr::from_str fail,

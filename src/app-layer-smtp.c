@@ -1432,7 +1432,7 @@ static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))
@@ -1715,10 +1715,6 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return 1;
-}
-
 static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
 {
     SMTPTransaction *tx = vtx;
@@ -1816,8 +1812,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
-                                                               SMTPStateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -5154,7 +5149,7 @@ static int SMTPProcessDataChunkTest02(void){
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
@@ -5185,7 +5180,7 @@ static int SMTPProcessDataChunkTest03(void){
     Flow f;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret;
@@ -5241,7 +5236,7 @@ static int SMTPProcessDataChunkTest04(void){
     Flow f;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret = MIME_DEC_OK;
@@ -5281,7 +5276,7 @@ static int SMTPProcessDataChunkTest05(void){
     int ret;
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
-    f.alstate = SMTPStateAlloc();
+    f.alstate = SMTPStateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF(f.alstate == NULL);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;

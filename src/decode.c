@@ -222,6 +222,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
+        SET_PKT_LEN(p, 0);
         return -1;
     }
 
@@ -402,13 +403,19 @@ void PacketDefragPktSetupParent(Packet *parent)
     DecodeSetNoPayloadInspectionFlag(parent);
 }
 
+/**
+ *  \note if p->flow is set, the flow is locked
+ */
 void PacketBypassCallback(Packet *p)
 {
+    if (PKT_IS_PSEUDOPKT(p))
+        return;
+
 #ifdef CAPTURE_OFFLOAD
     /* Don't try to bypass if flow is already out or
      * if we have failed to do it once */
     if (p->flow) {
-        int state = SC_ATOMIC_GET(p->flow->flow_state);
+        int state = p->flow->flow_state;
         if ((state == FLOW_STATE_LOCAL_BYPASSED) ||
                 (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
@@ -431,7 +438,7 @@ void PacketBypassCallback(Packet *p)
     }
 #else /* CAPTURE_OFFLOAD */
     if (p->flow) {
-        int state = SC_ATOMIC_GET(p->flow->flow_state);
+        int state = p->flow->flow_state;
         if (state == FLOW_STATE_LOCAL_BYPASSED)
             return;
         FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
@@ -495,6 +502,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", tv);
     dtv->counter_ppp = StatsRegisterCounter("decoder.ppp", tv);
     dtv->counter_pppoe = StatsRegisterCounter("decoder.pppoe", tv);
+    dtv->counter_geneve = StatsRegisterCounter("decoder.geneve", tv);
     dtv->counter_gre = StatsRegisterCounter("decoder.gre", tv);
     dtv->counter_vlan = StatsRegisterCounter("decoder.vlan", tv);
     dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", tv);
@@ -515,6 +523,17 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_flow_udp = StatsRegisterCounter("flow.udp", tv);
     dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", tv);
     dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", tv);
+    dtv->counter_flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", tv);
+    dtv->counter_flow_get_used = StatsRegisterCounter("flow.get_used", tv);
+    dtv->counter_flow_get_used_eval = StatsRegisterCounter("flow.get_used_eval", tv);
+    dtv->counter_flow_get_used_eval_reject = StatsRegisterCounter("flow.get_used_eval_reject", tv);
+    dtv->counter_flow_get_used_eval_busy = StatsRegisterCounter("flow.get_used_eval_busy", tv);
+    dtv->counter_flow_get_used_failed = StatsRegisterCounter("flow.get_used_failed", tv);
+
+    dtv->counter_flow_spare_sync_avg = StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", tv);
+    dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", tv);
+    dtv->counter_flow_spare_sync_incomplete = StatsRegisterCounter("flow.wrk.spare_sync_incomplete", tv);
+    dtv->counter_flow_spare_sync_empty = StatsRegisterCounter("flow.wrk.spare_sync_empty", tv);
 
     dtv->counter_defrag_ipv4_fragments =
         StatsRegisterCounter("defrag.ipv4.fragments", tv);
@@ -698,6 +717,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_FFR:
             pkt_src_str = "stream (flow timeout)";
             break;
+        case PKT_SRC_DECODER_GENEVE:
+            pkt_src_str = "geneve encapsulation";
+            break;
         case PKT_SRC_DECODER_VXLAN:
             pkt_src_str = "vxlan encapsulation";
             break;
@@ -735,6 +757,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
 void DecodeGlobalConfig(void)
 {
     DecodeTeredoConfig();
+    DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
 }

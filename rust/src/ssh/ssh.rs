@@ -19,7 +19,6 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::log::*;
 use std::ffi::{CStr, CString};
 use std::mem::transmute;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -429,7 +428,7 @@ pub extern "C" fn rs_ssh_state_get_event_info_by_id(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
     return unsafe { transmute(boxed) };
@@ -487,11 +486,6 @@ pub extern "C" fn rs_ssh_state_get_tx(
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -> u64 {
     return 1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ssh_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return SSHConnectionState::SshStateFinished as i32;
 }
 
 #[no_mangle]
@@ -553,7 +547,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         parse_tc: rs_ssh_parse_response,
         get_tx_count: rs_ssh_state_get_tx_count,
         get_tx: rs_ssh_state_get_tx,
-        tx_get_comp_st: rs_ssh_state_progress_completion_status,
+        tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
+        tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
         get_de_state: rs_ssh_tx_get_detect_state,
         set_de_state: rs_ssh_tx_set_detect_state,
@@ -567,6 +562,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_tx_data: rs_ssh_get_tx_data,
         apply_tx_config: None,
         flags: 0,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

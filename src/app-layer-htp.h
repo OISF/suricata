@@ -52,6 +52,7 @@
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT             9000U
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD             18000U
 
+#define HTP_CONFIG_DEFAULT_LZMA_LAYERS 0U
 /* default libhtp lzma limit, taken from libhtp. */
 #define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT                1048576U
 #define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT       1048576U
@@ -287,6 +288,8 @@ void HTPConfigure(void);
 
 void HtpConfigCreateBackup(void);
 void HtpConfigRestoreBackup(void);
+
+void *HtpGetTxForH2(void *);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 

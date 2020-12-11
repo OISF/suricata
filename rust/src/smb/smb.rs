@@ -35,9 +35,9 @@ use std::collections::HashMap;
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::filecontainer::*;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -756,7 +756,7 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    pub files: SMBFiles,
+    pub files: Files,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -809,7 +809,7 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: SMBFiles::new(),
+            files: Files::new(),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -1825,7 +1825,7 @@ impl SMBState {
 
 /// Returns *mut SMBState
 #[no_mangle]
-pub extern "C" fn rs_smb_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1978,9 +1978,8 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
             if hdr.is_smb() {
                 SCLogDebug!("smb found");
                 return 1;
-            } else if hdr.is_valid() {
-                SCLogDebug!("nbss found, assume smb");
-                return 1;
+            } else if hdr.needs_more(){
+                return 0;
             }
         },
         _ => { },
@@ -2038,14 +2037,6 @@ pub extern "C" fn rs_smb_state_tx_free(state: &mut SMBState,
 {
     SCLogDebug!("freeing tx {}", tx_id as u64);
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
 }
 
 #[no_mangle]
@@ -2132,6 +2123,7 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::MalformedNtlmsspResponse => { "malformed_ntlmssp_response\0" },
             SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
+            SMBEvent::FileOverlap => { "file_overlap\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

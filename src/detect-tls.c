@@ -95,14 +95,12 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
 
 static int g_tls_cert_list_id = 0;
 
-static int InspectTlsCert(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int InspectTlsCert(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -151,9 +149,8 @@ void DetectTlsRegister (void)
 
     g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
 
-    DetectAppLayerInspectEngineRegister("tls_cert",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            InspectTlsCert);
+    DetectAppLayerInspectEngineRegister2(
+            "tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY, InspectTlsCert, NULL);
 }
 
 /**

@@ -14,7 +14,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.cargo
-          key: cargo
+          key: commit-check-cargo
       - name: Install dependencies
         run: |
           apt update
@@ -25,6 +25,7 @@ jobs:
                 autoconf \
                 automake \
                 ccache \
+                curl \
                 git \
                 jq \
                 libtool \
@@ -54,10 +55,19 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - run: echo "::add-path::$HOME/.cargo/bin:/usr/lib/ccache"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Installing sccache
+        run: |
+          (cd /tmp && curl -OL https://github.com/mozilla/sccache/releases/download/0.2.13/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz)
+          mkdir -p "$HOME/.cargo/bin"
+          (cd "$HOME/.cargo/bin" && tar xvf /tmp/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz --strip-components=1 --wildcards '*/sccache')
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - run: echo "/usr/lib/ccache" >> $GITHUB_PATH
       - name: Install cbindgen
-        run: cargo install cbindgen
-      - run: echo $PATH
+        run: |
+          cd $HOME/.cargo/bin
+          curl -OL https://github.com/eqrion/cbindgen/releases/download/v0.15.0/cbindgen
+          chmod 755 cbindgen
       - uses: actions/checkout@v1
       - run: git fetch
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -76,6 +86,7 @@ jobs:
               fi
               make -ik distclean > /dev/null
           done
+      - run: sccache -s
       - uses: actions/upload-artifact@v2-preview
         name: Uploading build log
         if: always()

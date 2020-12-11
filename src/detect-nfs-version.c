@@ -76,11 +76,9 @@ static void DetectNfsVersionRegisterTests(void);
 #endif
 static int g_nfs_request_buffer_id = 0;
 
-static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int DetectNfsVersionMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
@@ -103,23 +101,20 @@ void DetectNfsVersionRegister (void)
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister("nfs_request",
-            ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectNfsRequestGeneric);
+    DetectAppLayerInspectEngineRegister2("nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectNfsRequestGeneric, NULL);
 
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");
 
     SCLogDebug("g_nfs_request_buffer_id %d", g_nfs_request_buffer_id);
 }
 
-static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectNfsRequestGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 static inline int

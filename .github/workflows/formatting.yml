@@ -1,0 +1,142 @@
+name: formatting-check
+
+on:
+  push:
+    # Only run on pushes to pull request branches
+    branches-ignore:
+      - 'master'
+      - 'master-*'
+  pull_request:
+
+jobs:
+
+  # Checking for correct formatting of branch for C code changes
+  check-formatting:
+    name: Formatting Check (clang 9)
+    runs-on: ubuntu-18.04
+    container: ubuntu:18.04
+    continue-on-error: true
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                python \
+                rustc \
+                software-properties-common \
+                wget \
+                zlib1g \
+                zlib1g-dev
+      - name: Install packages for clang-format 9
+        run: |
+          # no need to install full clang
+          apt-get install -y clang-format-9
+      - name: Install cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      # Checking out the branch is not as simple as "checking out".
+      #
+      # In case master has any new commits since we branched off, github will
+      # automatically add a "merge commit" from our branch to master and check
+      # this out instead of the original last commit on the branch.
+      #
+      # This screws up git clang-format as it'll also format the "merge commit"
+      # and essentially report any formatting issues in the "merge commit".
+      # However, we really don't care about any of the new commits on master.
+      #
+      # There are supposed to be ways to use with/ref to fix that and while
+      # they work perfectly well for pull requests within the forked repo, none
+      # of the ones tried worked for pull requests from forks to the OISF repo.
+      #
+      # My patience simply ran too short to keep on looking. See follow-on
+      # action to manually fix this up.
+      - name: Checkout - might be merge commit!
+        uses: actions/checkout@v1
+        # Use last commit of branch, not potential merge commit!
+        #
+        # This works perfectly well on pull requests within forked repos, but
+        # not for pull requests from forks to the OISF repo as the latter one
+        # does not know the branch (from the forked repo). Argh.
+#        with:
+#          ref: ${{ github.head_ref }} # check out branch
+
+      # Manually ignore the merge commit as none of the with/ref things tried
+      # with actions/checkout seemed to work for pull requests from forks into
+      # the OISF repo.
+      - name: Peel off potential merge request
+        run: |
+          # The "merge commit" has a distinct subject that we can look for.
+          # If we find it, ignore it by checking out the "real last commit".
+          #
+          # Note, github uses the non-abbreviated sha for the commit subject.
+          #
+          # Commit history example in case github added merge, i.e. if you did
+          # git log --pretty=oneline -2:
+          #   sha_1 Merge sha_2 into latest_sha_on_master
+          #   sha_2 This is the real last commit on branch
+          echo "Last two commits on checkout:"
+          git log --pretty=oneline -2
+          last_commit_subject=$(git log --pretty=%s -1)
+          second_last_commit_sha=$(git log --pretty=%H -2 |tail -1)
+          echo "$last_commit_subject" | grep -e "^Merge $second_last_commit_sha into [0-9a-fA-F]*$" > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+              # Last commit was a merge to master - ignore
+              echo "Found github merge commit - checking out real last commit instead..."
+              git checkout $second_last_commit_sha
+          else
+              echo "No github merge commit found"
+          fi
+        shell: bash {0}
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - name: Check formatting
+        run: |
+          ./scripts/clang-format.sh check-branch --diffstat --show-commits  >> check_formatting_log.txt 2>&1
+          rc=$?
+          if [ $rc -eq 0 ]; then
+              cat check_formatting_log.txt
+              echo "Formatting is following code style guide"
+          elif [ $rc -eq 1 ]; then
+              # limit output as it might be a lot in the worst case
+              tail -n 100 check_formatting_log.txt
+              echo "::error ::Formatting is not following code style guide!"
+              exit 1
+          else
+              cat check_formatting_log.txt
+              # use last output line as error
+              last_line=$(tail -n 1 check_formatting_log.txt)
+              echo "::error ::$last_line"
+              exit 1
+          fi
+        shell: bash {0}

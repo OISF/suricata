@@ -1212,6 +1212,11 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
 {
     SCEnter();
 
+    if (!rs_check_utf8(sigstr)) {
+        SCLogError(SC_ERR_RULE_INVALID_UTF8, "rule is not valid UTF-8");
+        SCReturnInt(-1);
+    }
+
     s->sig_str = SCStrdup(sigstr);
     if (unlikely(s->sig_str == NULL)) {
         SCReturnInt(-1);
@@ -1852,12 +1857,24 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     "support file matching", AppProtoToString(s->alproto));
             SCReturnInt(0);
         }
+        if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
+            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL,
+                    "protocol HTTP2 doesn't support file name matching");
+            SCReturnInt(0);
+        }
 
         if (s->alproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
         }
     }
-
+    if (s->init_data->init_flags & SIG_FLAG_INIT_DCERPC) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC &&
+                s->alproto != ALPROTO_SMB) {
+            SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't support DCERPC keyword",
+                    AppProtoToString(s->alproto));
+            SCReturnInt(0);
+        }
+    }
     SCReturnInt(1);
 }
 
@@ -2451,7 +2468,7 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
 
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
 {
-    const char *eb;
+    const char *eb = NULL;
     int eo;
 
     detect_parse->regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);

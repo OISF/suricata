@@ -1,14 +1,14 @@
 Init Scripts
 ============
 
-For Ubuntu with Upstart, the following can be used in /etc/init/suricata.conf:
+For Ubuntu with Upstart, the following can be used in ``/etc/init/suricata.conf``:
 
 
 ::
 
 
   # suricata
-  description "Intruder Detection System Daemon"
+  description "Intrusion Detection System Daemon"
   start on runlevel [2345]
   stop on runlevel [!2345]
   expect fork

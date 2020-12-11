@@ -276,11 +276,6 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return TLS_STATE_FINISHED;
-}
-
 static int SSLGetAlstateProgress(void *tx, uint8_t direction)
 {
     SSLState *ssl_state = (SSLState *)tx;
@@ -1631,6 +1626,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             ssl_state->curr_connp->bytes_processed + input_len) {
         SCLogDebug("msg done");
 
+        // Safety check against integer underflow
+        DEBUG_VALIDATE_BUG_ON(
+                ssl_state->curr_connp->message_start + ssl_state->curr_connp->message_length <
+                ssl_state->curr_connp->bytes_processed);
         write_len = (ssl_state->curr_connp->message_start + ssl_state->curr_connp->message_length) -
             ssl_state->curr_connp->bytes_processed;
         DEBUG_VALIDATE_BUG_ON(write_len > input_len);
@@ -2068,12 +2067,11 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 4:
                         if (input_len >= 6) {
-                            ssl_state->curr_connp->session_id_length = input[4] << 8;
-                            ssl_state->curr_connp->session_id_length |= input[5];
+                            uint16_t session_id_length = input[5] | (input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
-                            if (ssl_state->curr_connp->session_id_length == 0) {
+                            if (session_id_length == 0) {
                                 ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
@@ -2108,14 +2106,12 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                         /* fall through */
                     case 8:
-                        ssl_state->curr_connp->session_id_length = *(input++) << 8;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
 
                         /* fall through */
                     case 9:
-                        ssl_state->curr_connp->session_id_length |= *(input++);
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
@@ -2127,12 +2123,11 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 3:
                         if (input_len >= 6) {
-                            ssl_state->curr_connp->session_id_length = input[4] << 8;
-                            ssl_state->curr_connp->session_id_length |= input[5];
+                            uint16_t session_id_length = input[5] | (input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
-                            if (ssl_state->curr_connp->session_id_length == 0) {
+                            if (session_id_length == 0) {
                                 ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
@@ -2167,14 +2162,12 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                         /* fall through */
                     case 7:
-                        ssl_state->curr_connp->session_id_length = *(input++) << 8;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
 
                         /* fall through */
                     case 8:
-                        ssl_state->curr_connp->session_id_length |= *(input++);
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
@@ -2373,8 +2366,10 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
                 /* In TLSv1.3, ChangeCipherSpec is only used for middlebox
                    compability (rfc8446, appendix D.4). */
-                if ((ssl_state->client_connp.version > TLS_VERSION_12) &&
-                       ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
+                // Client hello flags is needed to have a valid version
+                if ((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                        (ssl_state->client_connp.version > TLS_VERSION_12) &&
+                        ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
                     /* do nothing */
                 } else {
                     break;
@@ -2634,7 +2629,7 @@ static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParse
  * \internal
  * \brief Function to allocate the SSL state memory.
  */
-static void *SSLStateAlloc(void)
+static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SSLState *ssl_state = SCMalloc(sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
@@ -2983,8 +2978,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
-                                                               SSLGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_TLS, TLS_STATE_FINISHED, TLS_STATE_FINISHED);
 
         ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {

@@ -17,7 +17,6 @@
 
 use std::ptr;
 use crate::core::*;
-use crate::log::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 

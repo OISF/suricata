@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "config.h"
 
 #if HAVE_GETOPT_H
 #include <getopt.h>
@@ -172,6 +171,8 @@
 #include "host-storage.h"
 
 #include "util-lua.h"
+
+#include "util-plugin.h"
 
 #include "rust.h"
 
@@ -1201,6 +1202,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"no-random", 0, &g_disable_randomness, 1},
         {"strict-rule-keywords", optional_argument, 0, 0},
 
+        {"capture-plugin", required_argument, 0, 0},
+        {"capture-plugin-args", required_argument, 0, 0},
+
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1291,6 +1295,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
+            }
+            else if (strcmp((long_opts[option_index]).name , "capture-plugin") == 0){
+                suri->run_mode = RUNMODE_PLUGIN;
+                suri->capture_plugin_name = optarg;
+            }
+            else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
+                suri->capture_plugin_args = optarg;
             }
             else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
             {
@@ -1467,17 +1478,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 						" to receive packets using --dag.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
-		}
-        else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
 #ifdef HAVE_NAPATECH
-            suri->run_mode = RUNMODE_NAPATECH;
+                suri->run_mode = RUNMODE_NAPATECH;
 #else
-            SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
-                                                 " to capture packets using --napatech.");
-            return TM_ECODE_FAILED;
+                SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
+                                                     " to capture packets using --napatech.");
+                return TM_ECODE_FAILED;
 #endif /* HAVE_NAPATECH */
-			}
-            else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pcap-buffer-size.\n");
@@ -1487,12 +1496,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_NO_PCAP_SET_BUFFER_SIZE, "The version of libpcap you have"
                         " doesn't support setting buffer size.");
 #endif /* HAVE_PCAP_SET_BUFF */
-            }
-            else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "build-info") == 0) {
                 suri->run_mode = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
-            }
-            else if(strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
 #ifdef WINDIVERT
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_WINDIVERT;
@@ -1532,6 +1539,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* WINDIVERT */
             } else if(strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
 #ifdef HAVE_LIBNET11
+                BUG_ON(optarg == NULL); /* for static analysis */
                 extern char *g_reject_dev;
                 extern uint16_t g_reject_dev_mtu;
                 g_reject_dev = optarg;
@@ -1736,6 +1744,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* IPFW */
             break;
         case 'r':
+            BUG_ON(optarg == NULL); /* for static analysis */
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_PCAP_FILE;
             } else {
@@ -2023,11 +2032,12 @@ void PreRunInit(const int runmode)
  * but after we dropped privs */
 void PreRunPostPrivsDropInit(const int runmode)
 {
+    StatsSetupPostConfigPreOutput();
+    RunModeInitializeOutputs();
+
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
-    StatsSetupPostConfigPreOutput();
-    RunModeInitializeOutputs();
     StatsSetupPostConfigPostOutput();
 }
 
@@ -2548,7 +2558,9 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
-
+#ifdef HAVE_PLUGINS
+    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
+#endif
     AppLayerHtpNeedFileInspection();
 
     StorageFinalize();
@@ -2650,8 +2662,6 @@ static void SuricataMainLoop(SCInstance *suri)
     }
 }
 
-SuricataContext context;
-
 /**
  * \brief Global initialization common to all runmodes.
  *
@@ -2659,21 +2669,20 @@ SuricataContext context;
  */
 
 int InitGlobal(void) {
-    context.SCLogMessage = SCLogMessage;
-    context.DetectEngineStateFree = DetectEngineStateFree;
-    context.AppLayerDecoderEventsSetEventRaw =
-        AppLayerDecoderEventsSetEventRaw;
-    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+    suricata_context.SCLogMessage = SCLogMessage;
+    suricata_context.DetectEngineStateFree = DetectEngineStateFree;
+    suricata_context.AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw;
+    suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
 
-    context.FileOpenFileWithId = FileOpenFileWithId;
-    context.FileCloseFileById = FileCloseFileById;
-    context.FileAppendDataById = FileAppendDataById;
-    context.FileAppendGAPById = FileAppendGAPById;
-    context.FileContainerRecycle = FileContainerRecycle;
-    context.FilePrune = FilePrune;
-    context.FileSetTx = FileContainerSetTx;
+    suricata_context.FileOpenFileWithId = FileOpenFileWithId;
+    suricata_context.FileCloseFileById = FileCloseFileById;
+    suricata_context.FileAppendDataById = FileAppendDataById;
+    suricata_context.FileAppendGAPById = FileAppendGAPById;
+    suricata_context.FileContainerRecycle = FileContainerRecycle;
+    suricata_context.FilePrune = FilePrune;
+    suricata_context.FileSetTx = FileContainerSetTx;
 
-    rs_init(&context);
+    rs_init(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);
 
@@ -2789,7 +2798,8 @@ int SuricataMain(int argc, char **argv)
     }
 
     SCSetStartTime(&suricata);
-    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode);
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
+            suricata.capture_plugin_name, suricata.capture_plugin_args);
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode();
     }

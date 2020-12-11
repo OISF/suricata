@@ -152,8 +152,8 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
     JsonDNP3LogLinkControl(js, dnp3tx->request_lh.control);
     jb_close(js);
 
-    jb_set_uint(js, "src", dnp3tx->request_lh.src);
-    jb_set_uint(js, "dst", dnp3tx->request_lh.dst);
+    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->request_lh.src));
+    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->request_lh.dst));
 
     jb_open_object(js, "application");
 
@@ -186,8 +186,8 @@ void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
     JsonDNP3LogLinkControl(js, dnp3tx->response_lh.control);
     jb_close(js);
 
-    jb_set_uint(js, "src", dnp3tx->response_lh.src);
-    jb_set_uint(js, "dst", dnp3tx->response_lh.dst);
+    jb_set_uint(js, "src", DNP3_SWAP16(dnp3tx->response_lh.src));
+    jb_set_uint(js, "dst", DNP3_SWAP16(dnp3tx->response_lh.dst));
 
     jb_open_object(js, "application");
 

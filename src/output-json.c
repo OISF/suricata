@@ -60,12 +60,15 @@
 #include "util-device.h"
 #include "util-validate.h"
 #include "util-crypt.h"
+#include "util-plugin.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "flow-storage.h"
 
 #include "source-pcap-file.h"
+
+#include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
@@ -436,7 +439,7 @@ static void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
     }
 }
 
-int CreateJSONEther(JsonBuilder *parent, const Packet *p, const MacSet *ms);
+int CreateJSONEther(JsonBuilder *parent, const Packet *p, const Flow *f);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js)
@@ -445,9 +448,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         EveAddMetadata(p, f, js);
     }
     if (cfg->include_ethernet) {
-        MacSet *ms = FlowGetStorageById((Flow*) f, MacSetGetFlowStorageID());
-        if (ms != NULL)
-            CreateJSONEther(js, p, ms);
+        CreateJSONEther(js, p, f);
     }
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
@@ -464,7 +465,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
 {
     unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
-    unsigned long len = 2 * max_len;
+    unsigned long len = BASE64_BUFFER_SIZE(max_len);
     uint8_t encoded_packet[len];
     if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
         jb_set_string(js, "packet", (char *)encoded_packet);
@@ -795,15 +796,23 @@ static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
     return 0;
 }
 
-int CreateJSONEther(JsonBuilder *js, const Packet *p, const MacSet *ms)
+int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
 {
-    jb_open_object(js, "ether");
     if (unlikely(js == NULL))
         return 0;
+    /* start new EVE sub-object */
+    jb_open_object(js, "ether");
     if (p == NULL) {
+        MacSet *ms = NULL;
+        /* ensure we have a flow */
+        if (unlikely(f == NULL)) {
+            jb_close(js);
+            return 0;
+        }
         /* we are creating an ether object in a flow context, so we need to
            append to arrays */
-        if (MacSetSize(ms) > 0) {
+        ms = FlowGetStorageById((Flow *)f, MacSetGetFlowStorageID());
+        if (ms != NULL && MacSetSize(ms) > 0) {
             JSONMACAddrInfo info;
             info.dst = jb_new_array();
             info.src = jb_new_array();
@@ -812,6 +821,7 @@ int CreateJSONEther(JsonBuilder *js, const Packet *p, const MacSet *ms)
                 /* should not happen, JSONFlowAppendMACAddrs is sane */
                 jb_free(info.dst);
                 jb_free(info.src);
+                jb_close(js);
                 return ret;
             }
             jb_close(info.dst);
@@ -1081,9 +1091,19 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                                       "redis JSON output option is not compiled");
 #endif
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Invalid JSON output option: %s", output_s);
-                exit(EXIT_FAILURE);
+#ifdef HAVE_PLUGINS
+                SCPluginFileType *plugin = SCPluginFindFileType(output_s);
+                if (plugin == NULL) {
+                    FatalError(SC_ERR_INVALID_ARGUMENT,
+                            "Invalid JSON output option: %s", output_s);
+                } else {
+                    json_ctx->json_out = LOGFILE_TYPE_PLUGIN;
+                    json_ctx->plugin = plugin;
+                }
+#else
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "Invalid JSON output option: %s", output_s);
+#endif
             }
         }
 
@@ -1177,6 +1197,20 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 #endif
+        else if (json_ctx->json_out == LOGFILE_TYPE_PLUGIN) {
+            ConfNode *plugin_conf = ConfNodeLookupChild(conf,
+                json_ctx->plugin->name);
+            void *plugin_data = NULL;
+            if (json_ctx->plugin->Open(plugin_conf, &plugin_data) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return result;
+            } else {
+                json_ctx->file_ctx->plugin = json_ctx->plugin;
+                json_ctx->file_ctx->plugin_data = plugin_data;
+            }
+        }
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {

@@ -25,7 +25,6 @@ use std::ffi::CStr;
 
 use nom;
 
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core::*;
@@ -260,38 +259,6 @@ impl NFSRequestXidMap {
     }
 }
 
-#[derive(Debug)]
-pub struct NFSFiles {
-    pub files_ts: FileContainer,
-    pub files_tc: FileContainer,
-    pub flags_ts: u16,
-    pub flags_tc: u16,
-}
-
-impl NFSFiles {
-    pub fn new() -> NFSFiles {
-        NFSFiles {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
-        if direction == STREAM_TOSERVER {
-            (&mut self.files_ts, self.flags_ts)
-        } else {
-            (&mut self.files_tc, self.flags_tc)
-        }
-    }
-}
-
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
@@ -316,7 +283,7 @@ pub struct NFSState {
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
 
-    pub files: NFSFiles,
+    pub files: Files,
 
     /// partial record tracking
     pub ts_chunk_xid: u32,
@@ -359,7 +326,7 @@ impl NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
-            files:NFSFiles::new(),
+            files:Files::new(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
             ts_chunk_left:0,
@@ -1409,7 +1376,7 @@ impl NFSState {
 
 /// Returns *mut NFSState
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1554,14 +1521,6 @@ pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
                                        tx_id: u64)
 {
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
 }
 
 #[no_mangle]

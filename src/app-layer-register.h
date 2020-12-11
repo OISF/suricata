@@ -35,7 +35,7 @@ typedef struct AppLayerParser {
     uint16_t min_depth;
     uint16_t max_depth;
 
-    void *(*StateAlloc)(void);
+    void *(*StateAlloc)(void *, AppProto);
     void (*StateFree)(void *);
 
     AppLayerParserFPtr ParseTS;
@@ -45,7 +45,8 @@ typedef struct AppLayerParser {
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     void (*StateTransactionFree)(void *, uint64_t);
 
-    int (*StateGetProgressCompletionStatus)(uint8_t direction);
+    const int complete_ts;
+    const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
     DetectEngineState *(*GetTxDetectState)(void *tx);
@@ -70,6 +71,9 @@ typedef struct AppLayerParser {
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     uint32_t flags;
+
+    void (*Truncate)(void *state, uint8_t direction);
+
 } AppLayerParser;
 
 /**

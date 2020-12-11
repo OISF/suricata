@@ -260,90 +260,72 @@ static int XFFTest01(void) {
     char input[] = "1.2.3.4:5678";
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "1.2.3.4") == 0);
+    PASS;
 }
 
 static int XFFTest02(void) {
     char input[] = "[12::34]:1234"; // thanks chort!
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "12::34") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "12::34") == 0);
+    PASS;
 }
 
 static int XFFTest03(void) {
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]:80"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0);
+    PASS;
 }
 
 static int XFFTest04(void) {
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0);
+    PASS;
 }
 
 static int XFFTest05(void) {
     char input[] = "[::ffff:1.2.3.4]:1234"; // thanks double-p
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "::ffff:1.2.3.4") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "::ffff:1.2.3.4") == 0);
+    PASS;
 }
 
 static int XFFTest06(void) {
     char input[] = "12::34";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "12::34") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "12::34") == 0);
+    PASS;
 }
 
 static int XFFTest07(void) {
     char input[] = "1.2.3.4";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 1 && strcmp(output, "1.2.3.4") == 0);
+    PASS;
 }
 
 static int XFFTest08(void) {
     char input[] = "[1.2.3.4:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 0);
+    PASS;
 }
 
 static int XFFTest09(void) {
     char input[] = "999.999.999.999:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 0) {
-        return 1;
-    }
-    return 0;
+    FAIL_IF_NOT(r == 0);
+    PASS;
 }
 
 #endif

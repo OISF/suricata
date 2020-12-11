@@ -66,11 +66,9 @@ static void DetectSslStateRegisterTests(void);
 #endif
 static void DetectSslStateFree(DetectEngineCtx *, void *);
 
-static int InspectTlsGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int g_tls_generic_list_id = 0;
 
@@ -96,22 +94,18 @@ void DetectSslStateRegister(void)
     DetectBufferTypeSetDescriptionByName("tls_generic",
             "generic ssl/tls inspection");
 
-    DetectAppLayerInspectEngineRegister("tls_generic",
-            ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
-            InspectTlsGeneric);
-    DetectAppLayerInspectEngineRegister("tls_generic",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
-            InspectTlsGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "tls_generic", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, InspectTlsGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "tls_generic", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0, InspectTlsGeneric, NULL);
 }
 
-static int InspectTlsGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int InspectTlsGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

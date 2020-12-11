@@ -475,8 +475,10 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
-    AppLayerDestroyCtxThread(ra_ctx->app_tctx);
-    SCFree(ra_ctx);
+    if (ra_ctx) {
+        AppLayerDestroyCtxThread(ra_ctx->app_tctx);
+        SCFree(ra_ctx);
+    }
     SCReturn;
 }
 
@@ -805,9 +807,7 @@ int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
     int use_app = 1;
     int use_raw = 1;
 
-    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-          (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
         // app is dead
         use_app = 0;
     }
@@ -1043,11 +1043,10 @@ static inline uint32_t AdjustToAcked(const Packet *p,
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == FALSE) {
         SCLogDebug("ssn->state %s", StreamTcpStateAsString(ssn->state));
-        if ((ssn->state < TCP_CLOSED ||
-                    (ssn->state == TCP_CLOSED &&
-                     (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
-                (p->flags & PKT_PSEUDO_STREAM_END))
-        {
+        if (data_len == 0 || ((ssn->state < TCP_CLOSED ||
+                                      (ssn->state == TCP_CLOSED &&
+                                              (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
+                                     (p->flags & PKT_PSEUDO_STREAM_END))) {
             // fall through, we use all available data
         } else {
             uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
@@ -1058,9 +1057,10 @@ static inline uint32_t AdjustToAcked(const Packet *p,
                 /* get max absolute offset */
                 last_ack_abs += delta;
             }
+            DEBUG_VALIDATE_BUG_ON(app_progress > last_ack_abs);
 
             /* see if the buffer contains unack'd data as well */
-            if (app_progress + data_len > last_ack_abs) {
+            if (app_progress <= last_ack_abs && app_progress + data_len > last_ack_abs) {
                 uint32_t check = data_len;
                 adjusted = last_ack_abs - app_progress;
                 BUG_ON(adjusted > check);
@@ -1090,11 +1090,20 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     const uint8_t *mydata;
     uint32_t mydata_len;
     bool gap_ahead = false;
+    bool last_was_gap = false;
 
     while (1) {
+        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         bool check_for_gap_ahead = ((*stream)->data_required > 0);
         gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
                 app_progress, check_for_gap_ahead);
+        if (last_was_gap && mydata_len == 0) {
+            break;
+        }
+        last_was_gap = false;
+
+        /* make sure to only deal with ACK'd data */
+        mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
@@ -1124,9 +1133,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 return 0;
             if (no_progress_update)
                 break;
+            last_was_gap = true;
             continue;
 
-        } else if (mydata == NULL || mydata_len == 0) {
+        } else if (flags & STREAM_DEPTH) {
+            // we're just called once with this flag, so make sure we pass it on
+
+        } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
                 SCReturnInt(0);
@@ -1139,12 +1152,6 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
         SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
-
-        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
-        /* get window of data that is acked */
-        mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
-        if (mydata_len == 0 && (flags & STREAM_EOF) == 0)
-            SCReturnInt(0);
 
         if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
             if (mydata_len < (*stream)->data_required) {
@@ -1172,6 +1179,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;
+        if (flags & STREAM_DEPTH)
+            break;
     }
 
     SCReturnInt(0);
@@ -1361,11 +1370,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     /* if app is active and beyond raw, sync raw to app */
-    } else if (progress == 0 &&
-            STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
-            !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
-            !(stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    } else if (progress == 0 && STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
+               !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         /* if trigger raw is set we sync the 2 trackers */
         if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
         {
@@ -3380,7 +3386,6 @@ static int StreamTcpReassembleInlineTest08(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 15;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
     f.protoctx = &ssn;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
@@ -3432,7 +3437,6 @@ static int StreamTcpReassembleInlineTest09(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 20;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);

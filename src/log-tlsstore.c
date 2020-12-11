@@ -123,7 +123,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     }
 
     TAILQ_FOREACH(cert, &state->server_connp.certs, next) {
-        pemlen = (4 * (cert->cert_len + 2) / 3) +1;
+        pemlen = BASE64_BUFFER_SIZE(cert->cert_len);
         if (pemlen > aft->enc_buf_len) {
             ptmp = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
             if (ptmp == NULL) {

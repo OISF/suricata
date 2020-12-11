@@ -25,8 +25,6 @@ use crate::applayer::{self, *};
 use std;
 use std::ffi::{CStr,CString};
 
-use crate::log::*;
-
 use nom;
 
 #[repr(u32)]
@@ -177,7 +175,7 @@ impl Drop for NTPTransaction {
 
 /// Returns *mut NTPState
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
     return unsafe{std::mem::transmute(boxed)};
@@ -250,14 +248,6 @@ pub extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,NTPState);
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ntp_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
 }
 
 #[no_mangle]
@@ -395,7 +385,8 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         parse_tc           : rs_ntp_parse_response,
         get_tx_count       : rs_ntp_state_get_tx_count,
         get_tx             : rs_ntp_state_get_tx,
-        tx_get_comp_st     : rs_ntp_state_progress_completion_status,
+        tx_comp_st_ts      : 1,
+        tx_comp_st_tc      : 1,
         tx_get_progress    : rs_ntp_tx_get_alstate_progress,
         get_de_state       : rs_ntp_state_get_tx_detect_state,
         set_de_state       : rs_ntp_state_set_tx_detect_state,
@@ -408,7 +399,8 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_tx_iterator    : None,
         get_tx_data        : rs_ntp_get_tx_data,
         apply_tx_config    : None,
-        flags              : 0,
+        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate           : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

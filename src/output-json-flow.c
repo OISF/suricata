@@ -250,7 +250,7 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
         state = "closed";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
         state = "bypassed";
-        int flow_state = SC_ATOMIC_GET(f->flow_state);
+        int flow_state = f->flow_state;
         switch (flow_state) {
             case FLOW_STATE_LOCAL_BYPASSED:
                 JB_SET_STRING(jb, "bypass", "local");
@@ -270,12 +270,14 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
     jb_set_string(jb, "state", state);
 
     const char *reason = NULL;
-    if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
-        reason = "timeout";
-    else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
+    if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
         reason = "forced";
     else if (f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN)
         reason = "shutdown";
+    else if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
+        reason = "timeout";
+    else
+        reason = "unknown";
 
     jb_set_string(jb, "reason", reason);
 
@@ -313,10 +315,6 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
             const char *tcp_state = StreamTcpStateAsString(ssn->state);
             if (tcp_state != NULL)
                 jb_set_string(jb, "state", tcp_state);
-            if (ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP)
-                JB_SET_TRUE(jb, "gap_ts");
-            if (ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
-                JB_SET_TRUE(jb, "gap_tc");
         }
 
         /* Close tcp. */
@@ -343,52 +341,6 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
-}
-
-static void OutputFlowLogDeinit(OutputCtx *output_ctx)
-{
-    LogJsonFileCtx *flow_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = flow_ctx->file_ctx;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(flow_ctx);
-    SCFree(output_ctx);
-}
-
-#define DEFAULT_LOG_FILENAME "flow.json"
-static OutputInitResult OutputFlowLogInit(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
-    if (unlikely(flow_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        SCFree(flow_ctx);
-        return result;
-    }
-
-    flow_ctx->file_ctx = file_ctx;
-    output_ctx->data = flow_ctx;
-    output_ctx->DeInit = OutputFlowLogDeinit;
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
 }
 
 static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
@@ -477,12 +429,7 @@ static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonFlowLogRegister (void)
 {
-    /* register as separate module */
-    OutputRegisterFlowModule(LOGGER_JSON_FLOW, "JsonFlowLog", "flow-json-log",
-        OutputFlowLogInit, JsonFlowLogger, JsonFlowLogThreadInit,
-        JsonFlowLogThreadDeinit, NULL);
-
-    /* also register as child of eve-log */
+    /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog",
         "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
         JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);

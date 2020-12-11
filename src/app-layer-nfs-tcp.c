@@ -66,9 +66,9 @@ SCEnumCharMap nfs_decoder_event_table[] = {
     { NULL, 0 }
 };
 
-static void *NFSTCPStateAlloc(void)
+static void *NFSTCPStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    return rs_nfs_state_new();
+    return rs_nfs_state_new(orig_state, proto_orig);
 }
 
 static void NFSTCPStateFree(void *state)
@@ -209,15 +209,6 @@ static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
 }
 
 /**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int NFSTCPGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs_state_progress_completion_status(direction);
-}
-
-/**
  * \brief Return the state of a transaction in a given direction.
  *
  * In the case of the echo protocol, the existence of a transaction
@@ -338,8 +329,7 @@ void RegisterNFSTCPParsers(void)
             NFSTCPGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_NFS,
-            NFSTCPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_NFS, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP,
             ALPROTO_NFS, NFSTCPGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_NFS,

@@ -263,6 +263,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICT          BIT_U32(8)  /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
+#define SIG_FLAG_INIT_DCERPC                BIT_U32(10) /**< signature has DCERPC keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -383,13 +384,6 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         const DetectEngineTransforms *transforms,
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
-
-typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
-        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-        const struct Signature_ *sig, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *tx, uint64_t tx_id);
-
 struct DetectEngineAppInspectionEngine_;
 
 typedef int (*InspectEngineFuncPtr2)(
@@ -406,14 +400,6 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint16_t stream:1;
     uint16_t sm_list:14;
     int16_t progress;
-
-    /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
-     *         1 Match.
-     *         2 Sig can't match.
-     *         3 Special value used by filestore sigs to indicate disabling
-     *           filestore for the tx.
-     */
-    InspectEngineFuncPtr Callback;
 
     struct {
         InspectionBufferGetDataPtr GetData;
@@ -825,7 +811,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toserver_groups;
 
     /* specify the configuration for mpm context factory */
-    uint8_t sgh_mpm_context;
+    uint8_t sgh_mpm_ctx_cnf;
 
     /* max flowbit id that is used */
     uint32_t max_fb_id;
@@ -966,9 +952,10 @@ enum {
 
 /* Siggroup mpm context profile */
 enum {
-    ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL,
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL = 0,
     ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE,
-    ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO,
+#define ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE (ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO + 1)
 };
 
 typedef struct HttpReassembledBody_ {

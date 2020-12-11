@@ -18,7 +18,6 @@
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
@@ -144,11 +143,15 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             };
             SCLogDebug!("SMBv2 READ: GUID {:?} offset {}", file_guid, offset);
 
+            let mut set_event_fileoverlap = false;
             // look up existing tracker and if we have it update it
             let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOCLIENT) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
+                        if offset < tdf.file_tracker.tracked {
+                            set_event_fileoverlap = true;
+                        }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &tdf.file_name, rd.data, offset,
                                 rd.len, 0, false, &file_id);
@@ -208,6 +211,9 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOCLIENT);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
+                        if offset < tdf.file_tracker.tracked {
+                            set_event_fileoverlap = true;
+                        }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, offset,
                                 rd.len, 0, false, &file_id);
@@ -219,6 +225,9 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 }
             }
 
+            if set_event_fileoverlap {
+                state.set_event(SMBEvent::FileOverlap);
+            }
             state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_guid.to_vec());
         }
         _ => {
@@ -248,10 +257,14 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 None => Vec::new(),
             };
 
+            let mut set_event_fileoverlap = false;
             let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOSERVER) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
+                        if wr.wr_offset < tdf.file_tracker.tracked {
+                            set_event_fileoverlap = true;
+                        }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
                                 wr.wr_len, 0, false, &file_id);
@@ -307,6 +320,9 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOSERVER);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
+                        if wr.wr_offset < tdf.file_tracker.tracked {
+                            set_event_fileoverlap = true;
+                        }
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
                                 wr.wr_len, 0, false, &file_id);
@@ -315,6 +331,10 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                             r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                 }
+            }
+
+            if set_event_fileoverlap {
+                state.set_event(SMBEvent::FileOverlap);
             }
             state.set_file_left(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32, file_guid.to_vec());
         },

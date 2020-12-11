@@ -55,8 +55,8 @@ static AppLayerResult DCERPCParseRequest(Flow *f, void *dcerpc_state,
         SCLogDebug("DCERPC request GAP of %u bytes, retval %d", input_len, res.status);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_dcerpc_parse_request(f, dcerpc_state, pstate, input, input_len,
-                                                     local_data, 0x04);
+        AppLayerResult res = rs_dcerpc_parse_request(
+                f, dcerpc_state, pstate, input, input_len, local_data, flags);
         SCLogDebug("DCERPC request%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
         SCReturnStruct(res);
@@ -73,17 +73,17 @@ static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
         SCLogDebug("DCERPC response GAP of %u bytes, retval %d", input_len, res.status);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_dcerpc_parse_response(f, dcerpc_state, pstate, input, input_len,
-                                                      local_data, 0x08);
+        AppLayerResult res = rs_dcerpc_parse_response(
+                f, dcerpc_state, pstate, input, input_len, local_data, flags);
         SCLogDebug("DCERPC response%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
         SCReturnStruct(res);
     }
 }
 
-static void *RustDCERPCStateNew(void)
+static void *RustDCERPCStateNew(void *state_orig, AppProto proto_orig)
 {
-    return rs_dcerpc_state_new();
+    return rs_dcerpc_state_new(state_orig, proto_orig);
 }
 
 static void DCERPCStateFree(void *s)
@@ -114,11 +114,6 @@ static void *DCERPCGetTx(void *state, uint64_t tx_id)
 static uint64_t DCERPCGetTxCnt(void *state)
 {
     return rs_dcerpc_get_tx_cnt(state);
-}
-
-static int DCERPCGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return rs_dcerpc_get_alstate_progress_completion_status(direction);
 }
 
 static int DCERPCGetAlstateProgress(void *tx, uint8_t direction)
@@ -178,10 +173,12 @@ void RegisterDCERPCParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
-                                                               DCERPCGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DCERPC, 1, 1);
+
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DCERPC, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
+
+        AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_DCERPC, rs_dcerpc_state_trunc);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

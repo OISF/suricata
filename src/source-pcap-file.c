@@ -307,6 +307,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (pv->should_recurse == true && pv->should_loop == true) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous and --pcap-file-recursive "
                                                 "cannot be used together.");
+            CleanupPcapFileDirectoryVars(pv);
+            CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -413,7 +415,9 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
     double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
     if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {
         prev_signaled_ts = curr_ts;
+#if 0
         FlowWakeupFlowManagerThread();
+#endif
     }
 
     DecoderFunc decoder;

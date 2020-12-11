@@ -44,6 +44,9 @@
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 static bool SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
+// Threaded eve.json identifier
+static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint32_t, eve_file_id, 1);
+
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -177,6 +180,11 @@ tryagain:
     return ret;
 }
 #endif /* BUILD_WITH_UNIXSOCKET */
+static inline void OutputWriteLock(pthread_mutex_t *m)
+{
+    SCMutexLock(m);
+
+}
 
 /**
  * \brief Write buffer to log file.
@@ -204,9 +212,18 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
     }
 
     if (log_ctx->fp) {
-        clearerr(log_ctx->fp);
-        ret = SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp);
-        fflush(log_ctx->fp);
+        SCClearErrUnlocked(log_ctx->fp);
+        if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
+            /* Only the first error is logged */
+            if (!log_ctx->output_errors) {
+                SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                        SCFerrorUnlocked(log_ctx->fp) ? strerror(errno) : "unknown error",
+                        log_ctx->filename);
+            }
+            log_ctx->output_errors++;
+        } else {
+            SCFflushUnlocked(log_ctx->fp);
+        }
     }
 
     return ret;
@@ -219,7 +236,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
  */
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
-    SCMutexLock(&log_ctx->fp_mutex);
+    OutputWriteLock(&log_ctx->fp_mutex);
     int ret = 0;
 
 #ifdef BUILD_WITH_UNIXSOCKET
@@ -245,8 +262,17 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
 
         if (log_ctx->fp) {
             clearerr(log_ctx->fp);
-            ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-            fflush(log_ctx->fp);
+            if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
+                /* Only the first error is logged */
+                if (!log_ctx->output_errors) {
+                    SCLogError(SC_ERR_LOG_OUTPUT, "%s error while writing to %s",
+                            ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
+                            log_ctx->filename);
+                }
+                log_ctx->output_errors++;
+            } else {
+                fflush(log_ctx->fp);
+            }
         }
     }
 
@@ -280,6 +306,11 @@ static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
 {
     if (log_ctx->fp)
         fclose(log_ctx->fp);
+
+    if (log_ctx->output_errors) {
+        SCLogError(SC_ERR_LOG_OUTPUT, "There were %" PRIu64 " output errors to %s",
+                log_ctx->output_errors, log_ctx->filename);
+    }
 }
 
 static void SCLogFileClose(LogFileCtx *log_ctx)
@@ -677,6 +708,50 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
     return parent_ctx->threads->lf_slots[thread_id];
 }
 
+/** \brief LogFileThreadedName() Create file name for threaded EVE storage
+ *
+ */
+static bool LogFileThreadedName(
+        const char *original_name, char *threaded_name, size_t len, uint32_t unique_id)
+{
+    const char *base = SCBasename(original_name);
+    if (!base) {
+        FatalError(SC_ERR_FATAL,
+                "Invalid filename for threaded mode \"%s\"; "
+                "no basename found.",
+                original_name);
+    }
+
+    /* Check if basename has an extension */
+    char *dot = strrchr(base, '.');
+    if (dot) {
+        char *tname = SCStrdup(original_name);
+        if (!tname) {
+            return false;
+        }
+
+        /* Fetch extension location from original, not base
+         * for update
+         */
+        dot = strrchr(original_name, '.');
+        int dotpos = dot - original_name;
+        tname[dotpos] = '\0';
+        char *ext = tname + dotpos + 1;
+        if (strlen(tname) && strlen(ext)) {
+            snprintf(threaded_name, len, "%s.%d.%s", tname, unique_id, ext);
+        } else {
+            FatalError(SC_ERR_FATAL,
+                    "Invalid filename for threaded mode \"%s\"; "
+                    "filenames must include an extension, e.g: \"name.ext\"",
+                    original_name);
+        }
+        SCFree(tname);
+    } else {
+        snprintf(threaded_name, len, "%s.%d", original_name, unique_id);
+    }
+    return true;
+}
+
 /** \brief LogFileNewThreadedCtx() Create file context for threaded output
  * \param parent_ctx
  * \param log_path
@@ -693,7 +768,10 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 
     *thread = *parent_ctx;
     char fname[NAME_MAX];
-    snprintf(fname, sizeof(fname), "%s.%d", log_path, thread_id);
+    if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
+        goto error;
+    }
     SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
     thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
     if (thread->fp == NULL) {
@@ -708,13 +786,16 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     thread->threaded = false;
     thread->parent = parent_ctx;
     thread->id = thread_id;
+    thread->is_regular = true;
     thread->Write = SCLogFileWriteNoLock;
     thread->Close = SCLogFileCloseNoLock;
+    OutputRegisterFileRotationFlag(&thread->rotation_flag);
 
     parent_ctx->threads->lf_slots[thread_id] = thread;
     return true;
 
 error:
+    SC_ATOMIC_SUB(eve_file_id, 1);
     if (thread->fp) {
         thread->Close(thread);
     }
@@ -739,6 +820,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexDestroy(&lf_ctx->threads->mutex);
         for(int i = 0; i < lf_ctx->threads->slot_count; i++) {
             if (lf_ctx->threads->lf_slots[i]) {
+                OutputUnregisterFileRotationFlag(&lf_ctx->threads->lf_slots[i]->rotation_flag);
                 SCFree(lf_ctx->threads->lf_slots[i]->filename);
                 SCFree(lf_ctx->threads->lf_slots[i]);
             }
@@ -747,7 +829,11 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCFree(lf_ctx->threads->append);
         SCFree(lf_ctx->threads);
     } else {
-        if (lf_ctx->fp != NULL) {
+        if (lf_ctx->type == LOGFILE_TYPE_PLUGIN) {
+            if (lf_ctx->plugin->Close != NULL) {
+                lf_ctx->plugin->Close(lf_ctx->plugin_data);
+            }
+        } else if (lf_ctx->fp != NULL) {
             lf_ctx->Close(lf_ctx);
         }
         if (lf_ctx->parent) {
@@ -769,7 +855,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     if (lf_ctx->sensor_name)
         SCFree(lf_ctx->sensor_name);
 
-    OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
+    if (!lf_ctx->threaded) {
+        OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
+    }
 
     SCFree(lf_ctx);
 
@@ -798,6 +886,10 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
+    else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        file_ctx->plugin->Write((const char *)MEMBUFFER_BUFFER(buffer),
+                        MEMBUFFER_OFFSET(buffer), file_ctx->plugin_data);
+    }
 
     return 0;
 }

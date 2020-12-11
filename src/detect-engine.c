@@ -168,67 +168,6 @@ void DetectPktInspectEngineRegister(const char *name,
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
-void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback)
-{
-    if (AppLayerParserIsEnabled(alproto)) {
-        if (!AppLayerParserSupportsTxDetectFlags(alproto)) {
-            FatalError(SC_ERR_INITIALIZATION,
-                "Inspect engine registered for app-layer protocol without "
-                "TX detect flag support: %s", AppProtoToString(alproto));
-        }
-    }
-    DetectBufferTypeRegister(name);
-    const int sm_list = DetectBufferTypeGetByName(name);
-    if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-            "failed to register inspect engine %s", name);
-    }
-
-    if ((alproto >= ALPROTO_FAILED) ||
-        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-        (progress < 0 || progress >= SHRT_MAX) ||
-        (Callback == NULL))
-    {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
-        BUG_ON(1);
-    }
-
-    int direction;
-    if (dir == SIG_FLAG_TOSERVER) {
-        direction = 0;
-    } else {
-        direction = 1;
-    }
-
-    DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
-    if (unlikely(new_engine == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(new_engine, 0, sizeof(*new_engine));
-    new_engine->alproto = alproto;
-    new_engine->dir = direction;
-    new_engine->sm_list = sm_list;
-    new_engine->progress = progress;
-    new_engine->Callback = Callback;
-
-    if (g_app_inspect_engines == NULL) {
-        g_app_inspect_engines = new_engine;
-    } else {
-        DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
-        while (t->next != NULL) {
-            t = t->next;
-        }
-
-        t->next = new_engine;
-    }
-}
-
-/** \brief register inspect engine at start up time
- *
- *  \note errors are fatal */
 void DetectAppLayerInspectEngineRegister2(const char *name,
         AppProto alproto, uint32_t dir, int progress,
         InspectEngineFuncPtr2 Callback2,
@@ -303,7 +242,6 @@ static void DetectAppLayerInspectEngineCopy(
             new_engine->dir = t->dir;
             new_engine->sm_list = new_list;         /* use new list id */
             new_engine->progress = t->progress;
-            new_engine->Callback = t->Callback;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
 
@@ -335,7 +273,6 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
         new_engine->progress = t->progress;
-        new_engine->Callback = t->Callback;
         new_engine->v2 = t->v2;
 
         if (de_ctx->app_inspect_engines == NULL) {
@@ -436,7 +373,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
-    new_engine->Callback = DetectEngineInspectStream;
+    new_engine->v2.Callback = DetectEngineInspectStream;
     new_engine->progress = 0;
 
     /* append */
@@ -568,7 +505,6 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
         new_engine->smd = ptrs[new_engine->sm_list];
-        new_engine->Callback = t->Callback;
         new_engine->progress = t->progress;
         new_engine->v2 = t->v2;
         SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p",
@@ -1593,12 +1529,9 @@ int DetectEngineReloadIsIdle(void)
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectGenericList(ThreadVars *tv,
-                                   const DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, const SigMatchData *smd,
-                                   Flow *f, const uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id)
+int DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Flow *f, const uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
@@ -2233,15 +2166,15 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             de_ctx->mpm_matcher == MPM_HS ||
 #endif
             de_ctx->mpm_matcher == MPM_AC_BS) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         }
     } else {
         if (strcmp(sgh_mpm_context, "single") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
                       "invalid conf value for detect-engine.sgh-mpm-context-"
@@ -2251,7 +2184,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     if (run_mode == RUNMODE_UNITTEST) {
-        de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+        de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
     }
 
     /* parse profile custom-values */

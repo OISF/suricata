@@ -58,7 +58,7 @@ Debian Based Distros::
  $ apt-get install linux-headers-$(uname .r) gcc make
 	$ ./package_install_3gd.sh
 
-To complete installation for all distros ntservice::
+To complete installation for all distros ``ntservice``::
 
 	$ /opt/napatech3/bin/ntstart.sh -m
 
@@ -124,14 +124,14 @@ Below are the options to set::
         ports: [all]
         hashmode: hash5tuplesorted
 
-Now modify ntservice.ini. You also need make sure that you have allocated enough
-host buffers in ntservice.ini for the streams. It's a good idea to also set the
-TimeSyncReferencePriority. To do this make the following changes to ntservice.ini:
+Now modify ``ntservice.ini``. You also need make sure that you have allocated enough
+host buffers in ``ntservice.ini`` for the streams. It's a good idea to also set the
+``TimeSyncReferencePriority``. To do this make the following changes to ntservice.ini:
 
     HostBuffersRx = [4,16,-1] # [number of host buffers, Size(MB), NUMA node]
     TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
 
-Stop and restart ntservice after making changes to ntservice::
+Stop and restart ``ntservice`` after making changes to ntservice::
 
 	$ /opt/napatech3/bin/ntstop.sh
 	$ /opt/napatech3/bin/ntstart.sh
@@ -144,7 +144,7 @@ Example Configuration - Auto-config with cpu-affinity:
 ------------------------------------------------------
 
 This option will create a single worker-thread and stream for each CPU defined in the
-worker-cpu-set. To use this option make the following changes to suricata.yaml:
+``worker-cpu-set``. To use this option make the following changes to suricata.yaml:
 
 1. Turn on cpu-affinity
 2. Specify the worker-cpu-set
@@ -183,7 +183,7 @@ To do this make the following changes to ntservice.ini::
     TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
     HostBuffersRx = [16,16,0],[16,16,1] # [number of host buffers, Size(MB), NUMA node]
 
-Stop and restart ntservice after making changes to ntservice::
+Stop and restart ``ntservice`` after making changes to ntservice::
 
 	$ /opt/napatech3/bin/ntstop.sh -m
 	$ /opt/napatech3/bin/ntstart.sh -m
@@ -233,7 +233,7 @@ commands to complete the setup. Create a file will the following commands::
 	Delete=All				# Delete any existing filters
 	Assign[streamid=(0..3)]= all	# Assign all physical ports to stream ID 0
 
-Next execute those command using the ntpl tool::
+Next execute those command using the ``ntpl`` tool::
 
 	$ /opt/napatech3/bin/ntpl -f <my_ntpl_file>
 
@@ -247,7 +247,7 @@ creating the appropriate NTPL file and attaching Suricata to the streams.
 Bypassing Flows
 ---------------
 
-On flow-aware Napatech products traffic from individual flows can be automatically
+On flow-aware Napatech products, traffic from individual flows can be automatically
 dropped or, in the case of inline configurations, forwarded by the hardware after
 an inspection of the initial packet(s) of the flow by Suricata. This will save
 CPU cycles since Suricata does not process packets for a flow that has already been
@@ -423,6 +423,9 @@ These are the Napatech options available in the Suricata configuration file::
     # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
     # This may be enabled when sharing streams with another application.
     # Otherwise, it should be turned off.
+    #
+    # Note: hba will be deprecated in Suricata 7
+    #
     #hba: -1
 
     # When use_all_streams is set to "yes" the initialization code will query
@@ -519,7 +522,7 @@ This insures that, should Suricata get behind in its packet processing, the othe
 of the packets. If this is enabled without another application sharing the stream it will result in sub-optimal packet
 buffering.*
 
-Make sure that there are enough host-buffers declared in ntservice.ini to
+Make sure that there are enough host-buffers declared in ``ntservice.ini`` to
 accommodate the number of cores/streams being used.
 
 Support

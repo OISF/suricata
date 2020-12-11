@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, multispace0, multispace1};

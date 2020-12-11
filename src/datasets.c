@@ -33,11 +33,11 @@
 #include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
 #include "util-byte.h"
+#include "util-misc.h"
 
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
-static bool experimental_warning = false;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
@@ -48,6 +48,7 @@ static inline void DatasetUnlockData(THashData *d)
     THashDataUnlock(d);
 }
 static bool DatasetIsStatic(const char *save, const char *load);
+static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize);
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s)
 {
@@ -216,6 +217,7 @@ static int DatasetLoadMd5(Dataset *set)
                     (uint32_t)strlen(line), line);
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -281,6 +283,7 @@ static int DatasetLoadSha256(Dataset *set)
             cnt++;
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -356,6 +359,7 @@ static int DatasetLoadString(Dataset *set)
             SCLogDebug("line with rep %s, %s", line, r);
         }
     }
+    THashConsolidateMemcap(set->hash);
 
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -416,18 +420,16 @@ Dataset *DatasetFind(const char *name, enum DatasetTypes type)
     return set;
 }
 
-Dataset *DatasetGet(const char *name, enum DatasetTypes type,
-        const char *save, const char *load)
+Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t memcap, uint32_t hashsize)
 {
+    uint64_t default_memcap = 0;
+    uint32_t default_hashsize = 0;
     if (strlen(name) > DATASET_NAME_MAX_LEN) {
         return NULL;
     }
 
     SCMutexLock(&sets_lock);
-    if (!experimental_warning) {
-        SCLogNotice("dataset and datarep features are experimental and subject to change");
-        experimental_warning = true;
-    }
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
@@ -487,26 +489,31 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     char cnf_name[128];
     snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
 
+    GetDefaultMemcap(&default_memcap, &default_hashsize);
     switch (type) {
         case DATASET_TYPE_MD5:
-            set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet,
-                    Md5StrFree, Md5StrHash, Md5StrCompare);
+            set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
+                    Md5StrCompare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
-            set->hash = THashInit(cnf_name, sizeof(StringType), StringSet,
-                    StringFree, StringHash, StringCompare);
+            set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
+                    StringCompare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_SHA256:
-            set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet,
-                    Sha256StrFree, Sha256StrHash, Sha256StrCompare);
+            set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet, Sha256StrFree,
+                    Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
@@ -593,11 +600,37 @@ void DatasetPostReloadCleanup(void)
     SCMutexUnlock(&sets_lock);
 }
 
+static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
+{
+    const char *str = NULL;
+    if (ConfGetValue("datasets.defaults.memcap", &str) == 1) {
+        if (ParseSizeStringU64(str, memcap) < 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "memcap value cannot be deduced: %s,"
+                    " resetting to default",
+                    str);
+            *memcap = 0;
+        }
+    }
+    if (ConfGetValue("datasets.defaults.hashsize", &str) == 1) {
+        if (ParseSizeStringU32(str, hashsize) < 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "hashsize value cannot be deduced: %s,"
+                    " resetting to default",
+                    str);
+            *hashsize = 0;
+        }
+    }
+}
+
 int DatasetsInit(void)
 {
     SCLogDebug("datasets start");
     int n = 0;
     ConfNode *datasets = ConfGetNode("datasets");
+    uint64_t default_memcap = 0;
+    uint32_t default_hashsize = 0;
+    GetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
         int list_pos = 0;
         ConfNode *iter = NULL;
@@ -609,6 +642,8 @@ int DatasetsInit(void)
 
             char save[PATH_MAX] = "";
             char load[PATH_MAX] = "";
+            uint64_t memcap = 0;
+            uint32_t hashsize = 0;
 
             const char *set_name = iter->name;
             if (strlen(set_name) > DATASET_NAME_MAX_LEN) {
@@ -636,13 +671,35 @@ int DatasetsInit(void)
                 }
             }
 
+            ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
+            if (set_memcap) {
+                if (ParseSizeStringU64(set_memcap->val, &memcap) < 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                            "memcap value cannot be"
+                            " deduced: %s, resetting to default",
+                            set_memcap->val);
+                    memcap = 0;
+                }
+            }
+            ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
+            if (set_hashsize) {
+                if (ParseSizeStringU32(set_hashsize->val, &hashsize) < 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                            "hashsize value cannot be"
+                            " deduced: %s, resetting to default",
+                            set_hashsize->val);
+                    hashsize = 0;
+                }
+            }
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
 
             SCLogDebug("(%d) set %s type %s. Conf %s", n, set_name, set_type->val, conf_str);
 
             if (strcmp(set_type->val, "md5") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load,
+                        memcap > 0 ? memcap : default_memcap,
+                        hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -650,7 +707,9 @@ int DatasetsInit(void)
                 n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load,
+                        memcap > 0 ? memcap : default_memcap,
+                        hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
@@ -658,7 +717,9 @@ int DatasetsInit(void)
                 n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
-                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load);
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load,
+                        memcap > 0 ? memcap : default_memcap,
+                        hashsize > 0 ? hashsize : default_hashsize);
                 if (dset == NULL)
                     FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);

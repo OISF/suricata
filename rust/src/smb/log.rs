@@ -17,11 +17,11 @@
 
 use std::str;
 use std::string::String;
+use uuid;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::smb::smb::*;
 use crate::smb::smb1::*;
 use crate::smb::smb2::*;
-use crate::smb::dcerpc::*;
 use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
 
@@ -336,7 +336,8 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                                 jsb.open_array("interfaces")?;
                                 for i in ifaces {
                                     jsb.start_object()?;
-                                    let ifstr = dcerpc_uuid_to_string(&i);
+                                    let ifstr = uuid::Uuid::from_slice(&i.uuid);
+                                    let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
                                     jsb.set_string("version", &vstr)?;

@@ -636,7 +636,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 static inline bool SegmentInUse(const TcpStream *stream, const TcpSegment *seg)
 {
     /* if proto detect isn't done, we're not returning */
-    if (!(stream->flags & (STREAMTCP_STREAM_FLAG_GAP|STREAMTCP_STREAM_FLAG_NOREASSEMBLY))) {
+    if (!(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
             SCReturnInt(true);
         }
@@ -672,9 +672,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     bool use_log = true;
 
     uint64_t left_edge = 0;
-    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-          (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         use_app = false; // app is dead
     }
 
@@ -829,10 +827,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         StreamingBufferClear(&stream->sb);
         return;
 
-    } else if (((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-                (stream->flags & STREAMTCP_STREAM_FLAG_GAP))     &&
-               (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW))
-    {
+    } else if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
+               (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW)) {
         SCLogDebug("ssn %p / stream %p: both app and raw are done, "
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn, stream);
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;

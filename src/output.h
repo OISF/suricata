@@ -151,11 +151,6 @@ void OutputRegisterFiledataSubModule(LoggerId, const char *parent_name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputRegisterFlowModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
     FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,

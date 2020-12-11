@@ -44,6 +44,7 @@ vars:
     MODBUS_PORTS: 502
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
     FTP_PORTS: 21
+    GENEVE_PORTS: 6081
     VXLAN_PORTS: 4789
     TEREDO_PORTS: 3544
 
@@ -84,8 +85,8 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
-      # Enable for multi-threaded eve.json output; output files are suffixed
-      # with an identifier, e.g., eve.json.9.
+      # Enable for multi-threaded eve.json output; output files are amended with
+      # with an identifier, e.g., eve.9.json
       #threaded: false
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -281,6 +282,10 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
+        # HTTP2 logging. HTTP2 support is currently experimental and
+        # disabled by default. To enable, uncomment the following line
+        # and be sure to enable http2 in the app-layer section.
+        #- http2
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -756,6 +761,9 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+    # HTTP2: Experimental HTTP 2 support. Disabled by default.
+    http2:
+      enabled: no
     smtp:
       enabled: yes
       raw-extraction: no
@@ -881,8 +889,8 @@ app-layer:
            double-decode-path: no
            double-decode-query: no
 
-           # Can disable LZMA decompression
-           #lzma-enabled: yes
+           # Can enable LZMA decompression
+           #lzma-enabled: false
            # Memory limit usage for LZMA decompression dictionary
            # Data is decompressed until dictionary reaches this size
            #lzma-memlimit: 1mb
@@ -961,6 +969,13 @@ app-layer:
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
 
+# Datasets default settings
+# datasets:
+#   # Default fallback memcap and hashsize values for datasets in case these
+#   # were not explicitly defined.
+#   defaults:
+#     memcap: 100mb
+#     hashsize: 2048
 
 ##############################################################################
 ##
@@ -1338,6 +1353,11 @@ decoder:
     enabled: true
     ports: $VXLAN_PORTS # syntax: '[8472, 4789]' or '4789'.
 
+  # Geneve decoder is assigned to up to 4 UDP ports. By default only the
+  # IANA assigned port 6081 is enabled.
+  geneve:
+    enabled: true
+    ports: $GENEVE_PORTS # syntax: '[6081, 1234]' or '6081'.
 
 ##
 ## Performance tuning and profiling
@@ -1742,12 +1762,6 @@ ipfw:
 
 
 napatech:
-    # The Host Buffer Allowance for all streams
-    # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
-    # This may be enabled when sharing streams with another application.
-    # Otherwise, it should be turned off.
-    #hba: -1
-
     # When use_all_streams is set to "yes" the initialization code will query
     # the Napatech service for all configured streams and listen on all of them.
     # When set to "no" the streams config array will be used.

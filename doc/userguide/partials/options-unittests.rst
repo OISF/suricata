@@ -2,7 +2,7 @@
 
 .. option:: -u
 
-   Run the unit tests and exit. Requires that Suricata be compiled
+   Run the unit tests and exit. Requires that Suricata be configured
    with *--enable-unittests*.
 
 .. option:: -U, --unittest-filter=REGEX
@@ -13,7 +13,7 @@
 
 .. option:: --list-unittests
 
-   List all unit tests.
+   Lists available unit tests.
 
 .. option:: --fatal-unittests
 

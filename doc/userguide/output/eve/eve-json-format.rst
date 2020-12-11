@@ -401,11 +401,37 @@ Outline of fields seen in the different kinds of DNS events:
 * "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
-* "rdata": Resource Data (ex. IP that domain name resolves to)
+* "rdata": Resource Data (ex: IP that domain name resolves to)
 * "ttl": Time-To-Live for this resource record
 
+More complex DNS record types may log additional fields for resource data:
 
-One can also control which RR types are logged explicitly from additional custom field enabled in the suricata.yaml file. If custom field is not specified, all RR types are logged. More than 50 values can be specified with the custom field and can be used as following:
+* "soa": Section containing fields for the SOA (start of authority) record type
+
+  * "mname": Primary name server for this zone
+  * "rname": Authority's mailbox
+  * "serial": Serial version number
+  * "refresh": Refresh interval (seconds)
+  * "retry": Retry interval (seconds)
+  * "expire": Upper time limit until zone is no longer authoritative (seconds)
+  * "minimum": Minimum ttl for records in this zone (seconds)
+
+* "sshfp": section containing fields for the SSHFP (ssh fingerprint) record type
+
+  * "fingerprint": Hex format of the fingerprint (ex: ``12:34:56:78:9a:bc:de:...``)
+  * "algo": Algorithm number (ex: 1 for RSA, 2 for DSS)
+  * "type": Fingerprint type (ex: 1 for SHA-1)
+
+* "srv": section containing fields for the SRV (location of services) record type
+
+  * "target": Domain name of the target host (ex: ``foo.bar.baz``)
+  * "priority": Target priority (ex: 20)
+  * "weight": Weight for target selection (ex: 1)
+  * "port": Port on this target host of this service (ex: 5060)
+
+One can control which RR types are logged by using the "types" field in the
+suricata.yaml file. If this field is not specified, all RR types are logged.
+More than 50 values can be specified with this field as shown below:
 
 
 ::
@@ -423,14 +449,16 @@ One can also control which RR types are logged explicitly from additional custom
         types:
           - alert
           - dns:
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-            custom: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
+            # Control logging of requests and responses:
+            # - requests: enable logging of DNS queries
+            # - responses: enable logging of DNS answers
+            # By default both requests and responses are logged.
+            requests: yes
+            responses: yes
+            # DNS record types to log, based on the query type.
+            # Default: all.
+            #types: [a, aaaa, cname, mx, ns, ptr, txt]
+            types: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
             wks, ptr, hinfo, minfo, mx, txt, rp, afsdb, x25, isdn,
             rt, nsap, nsapptr, sig, key, px, gpos, aaaa, loc, nxt,
             srv, atma, naptr, kx, cert, a6, dname, opt, apl, ds,
@@ -1300,7 +1328,6 @@ Example of RFB logging, with full VNC style authentication parameters:
       }
     }
 
-
 Event type: MQTT
 ----------------
 
@@ -1681,5 +1708,106 @@ Example of a truncated MQTT PUBLISH message (with 10000 being the maximum length
         "truncated": true,
         "skipped_length": 100011
       }
+
+Event type: HTTP2
+-----------------
+
+Fields
+~~~~~~
+
+There are the two fields "request" and "response" which can each contain the same set of fields :
+* "settings": a list of settings with "name" and "value"
+* "headers": a list of headers with either "name" and "value", or "table_size_update", or "error" if any
+* "error_code": the error code from GOAWAY or RST_STREAM, which can be "NO_ERROR"
+* "priority": the stream priority.
+
+
+Examples
+~~~~~~~~
+
+Example of HTTP2 logging, of a settings frame:
+
+::
+
+  "http2": {
+    "request": {
+      "settings": [
+        {
+          "settings_id": "SETTINGSMAXCONCURRENTSTREAMS",
+          "settings_value": 100
+        },
+        {
+          "settings_id": "SETTINGSINITIALWINDOWSIZE",
+          "settings_value": 65535
+        }
+      ]
+    },
+    "response": {}
+  }
+
+Example of HTTP2 logging, of a request and response:
+
+::
+
+  "http2": {
+    "request": {
+      "headers": [
+        {
+          "name": ":authority",
+          "value": "localhost:3000"
+        },
+        {
+          "name": ":method",
+          "value": "GET"
+        },
+        {
+          "name": ":path",
+          "value": "/doc/manual/html/index.html"
+        },
+        {
+          "name": ":scheme",
+          "value": "http"
+        },
+        {
+          "name": "accept",
+          "value": "*/*"
+        },
+        {
+          "name": "accept-encoding",
+          "value": "gzip, deflate"
+        },
+        {
+          "name": "user-agent",
+          "value": "nghttp2/0.5.2-DEV"
+        }
+      ]
+    },
+    "response": {
+      "headers": [
+        {
+          "name": ":status",
+          "value": "200"
+        },
+        {
+          "name": "server",
+          "value": "nghttpd nghttp2/0.5.2-DEV"
+        },
+        {
+          "name": "content-length",
+          "value": "22617"
+        },
+        {
+          "name": "cache-control",
+          "value": "max-age=3600"
+        },
+        {
+          "name": "date",
+          "value": "Sat, 02 Aug 2014 10:50:25 GMT"
+        },
+        {
+          "name": "last-modified",
+          "value": "Sat, 02 Aug 2014 07:58:59 GMT"
+        }
+      ]
     }
   }

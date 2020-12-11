@@ -63,9 +63,9 @@ SCEnumCharMap nfs_udp_decoder_event_table[] = {
     { NULL, 0 }
 };
 
-static void *NFSStateAlloc(void)
+static void *NFSStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    return rs_nfs_state_new();
+    return rs_nfs_state_new(orig_state, proto_orig);
 }
 
 static void NFSStateFree(void *state)
@@ -176,15 +176,6 @@ static AppLayerGetTxIterTuple RustNFSGetTxIterator(
         AppLayerGetTxIterState *istate)
 {
     return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
-}
-
-/**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int NFSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs_state_progress_completion_status(direction);
 }
 
 /**
@@ -302,8 +293,7 @@ void RegisterNFSUDPParsers(void)
             NFSGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_NFS,
-            NFSGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_NFS, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP,
             ALPROTO_NFS, NFSGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_NFS,

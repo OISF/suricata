@@ -1338,9 +1338,11 @@ static int StatsTestCounterReg03(void)
 
     result = RegisterCounter("t1", "c1", &pctx);
 
+    FAIL_IF_NOT(result);
+
     StatsReleaseCounters(pctx.head);
 
-    return result;
+    PASS;
 }
 
 static int StatsTestCounterReg04(void)
@@ -1356,9 +1358,11 @@ static int StatsTestCounterReg04(void)
 
     result = RegisterCounter("t1", "c1", &pctx);
 
+    FAIL_IF_NOT(result);
+
     StatsReleaseCounters(pctx.head);
 
-    return result;
+    PASS;
 }
 
 static int StatsTestGetCntArray05(void)
@@ -1369,35 +1373,30 @@ static int StatsTestGetCntArray05(void)
     memset(&tv, 0, sizeof(ThreadVars));
 
     id = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    if (id != 1) {
-        printf("id %d: ", id);
-        return 0;
-    }
+    FAIL_IF(id != 1);
 
     int r = StatsGetAllCountersArray(NULL, &tv.perf_private_ctx);
-    return (r == -1) ? 1 : 0;
+    FAIL_IF_NOT(r == -1);
+    PASS;
 }
 
 static int StatsTestGetCntArray06(void)
 {
     ThreadVars tv;
     int id;
-    int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
     id = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    if (id != 1)
-        return 0;
+    FAIL_IF(id != 1);
 
     int r = StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-
-    result = (r == 0) ? 1  : 0;
+    FAIL_IF_NOT(r == 0);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(&tv.perf_private_ctx);
 
-    return result;
+    PASS;
 }
 
 static int StatsTestCntArraySize07(void)
@@ -1432,7 +1431,6 @@ static int StatsTestUpdateCounter08(void)
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
     int id;
-    int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1444,12 +1442,12 @@ static int StatsTestUpdateCounter08(void)
     StatsIncr(&tv, id);
     StatsAddUI64(&tv, id, 100);
 
-    result = pca->head[id].value;
+    FAIL_IF_NOT(pca->head[id].value == 101);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result == 101;
+    PASS;
 }
 
 static int StatsTestUpdateCounter09(void)
@@ -1457,7 +1455,6 @@ static int StatsTestUpdateCounter09(void)
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
     uint16_t id1, id2;
-    int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1473,12 +1470,12 @@ static int StatsTestUpdateCounter09(void)
     StatsIncr(&tv, id2);
     StatsAddUI64(&tv, id2, 100);
 
-    result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
+    FAIL_IF_NOT((pca->head[id1].value == 0) && (pca->head[id2].value == 101));
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    PASS;
 }
 
 static int StatsTestUpdateGlobalCounter10(void)
@@ -1508,11 +1505,12 @@ static int StatsTestUpdateGlobalCounter10(void)
     result = (1 == tv.perf_public_ctx.head->value);
     result &= (100 == tv.perf_public_ctx.head->next->value);
     result &= (101 == tv.perf_public_ctx.head->next->next->value);
+    FAIL_IF_NOT(result);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    PASS;
 }
 
 static int StatsTestCounterValues11(void)
@@ -1541,17 +1539,15 @@ static int StatsTestCounterValues11(void)
     StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
     result &= (1 == tv.perf_public_ctx.head->value);
-
     result &= (256 == tv.perf_public_ctx.head->next->value);
-
     result &= (257 == tv.perf_public_ctx.head->next->next->value);
-
     result &= (16843024 == tv.perf_public_ctx.head->next->next->next->value);
+    FAIL_IF_NOT(result);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    PASS;
 }
 
 #endif

@@ -17,8 +17,7 @@
 
 // written by Victor Julien
 
-use crate::log::*;
-
+use uuid;
 use crate::smb::smb::*;
 use crate::smb::smb2::*;
 use crate::smb::dcerpc_records::*;
@@ -84,16 +83,6 @@ impl DCERPCIface {
         }
     }
 }
-
-pub fn dcerpc_uuid_to_string(i: &DCERPCIface) -> String {
-    let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            i.uuid[0],  i.uuid[1],  i.uuid[2],  i.uuid[3],
-            i.uuid[4],  i.uuid[5],  i.uuid[6],  i.uuid[7],
-            i.uuid[8],  i.uuid[9],  i.uuid[10], i.uuid[11],
-            i.uuid[12], i.uuid[13], i.uuid[14], i.uuid[15]);
-    return output;
-}
-
 
 #[derive(Debug)]
 pub struct SMBTransactionDCERPC {
@@ -298,9 +287,11 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                                     } else {
                                         i.iface.to_vec()
                                     };
+                                    let uuid_str = uuid::Uuid::from_slice(&x.clone());
+                                    let uuid_str = uuid_str.map(|uuid_str| uuid_str.to_hyphenated().to_string()).unwrap();
                                     let d = DCERPCIface::new(x,i.ver,i.ver_min);
                                     SCLogDebug!("UUID {} version {}/{} bytes {:?}",
-                                            dcerpc_uuid_to_string(&d),
+                                            uuid_str,
                                             i.ver, i.ver_min,i.iface);
                                     ifaces.push(d);
                                 }

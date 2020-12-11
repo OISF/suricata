@@ -30,8 +30,6 @@ use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
 
-use crate::log::*;
-
 #[repr(u32)]
 pub enum KRB5Event {
     MalformedData = 0,
@@ -275,7 +273,7 @@ pub fn test_weak_encryption(alg:EncryptionType) -> bool {
 
 /// Returns *mut KRB5State
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_krb5_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = KRB5State::new();
     let boxed = Box::new(state);
     return unsafe{std::mem::transmute(boxed)};
@@ -316,14 +314,6 @@ pub extern "C" fn rs_krb5_state_tx_free(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,KRB5State);
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_krb5_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
 }
 
 #[no_mangle]
@@ -645,7 +635,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         parse_tc           : rs_krb5_parse_response,
         get_tx_count       : rs_krb5_state_get_tx_count,
         get_tx             : rs_krb5_state_get_tx,
-        tx_get_comp_st     : rs_krb5_state_progress_completion_status,
+        tx_comp_st_ts      : 1,
+        tx_comp_st_tc      : 1,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
         get_de_state       : rs_krb5_state_get_tx_detect_state,
         set_de_state       : rs_krb5_state_set_tx_detect_state,
@@ -658,7 +649,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx_iterator    : None,
         get_tx_data        : rs_krb5_get_tx_data,
         apply_tx_config    : None,
-        flags              : 0,
+        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate           : None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();

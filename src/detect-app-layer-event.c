@@ -55,11 +55,9 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char
 static void DetectAppLayerEventRegisterTests(void);
 #endif
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
-static int DetectEngineAptEventInspect(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *tx, uint64_t tx_id);
+static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 static int g_applayer_events_list_id = 0;
 
 /**
@@ -78,21 +76,18 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister("app-layer-events",
-            ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
-            DetectEngineAptEventInspect);
-    DetectAppLayerInspectEngineRegister("app-layer-events",
-            ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineAptEventInspect);
+
+    DetectAppLayerInspectEngineRegister2("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
+            DetectEngineAptEventInspect, NULL);
+    DetectAppLayerInspectEngineRegister2("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineAptEventInspect, NULL);
 
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
 
-static int DetectEngineAptEventInspect(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *tx, uint64_t tx_id)
+static int DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     int r = 0;
     const AppProto alproto = f->alproto;
@@ -101,6 +96,7 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
     if (decoder_events == NULL)
         goto end;
 
+    SigMatchData *smd = engine->smd;
     while (1) {
         DetectAppLayerEventData *aled = (DetectAppLayerEventData *)smd->ctx;
         KEYWORD_PROFILING_START;
@@ -165,6 +161,16 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     return aled;
 }
 
+static bool OutdatedEvent(const char *raw)
+{
+    if (strcmp(raw, "tls.certificate_missing_element") == 0 ||
+            strcmp(raw, "tls.certificate_unknown_element") == 0 ||
+            strcmp(raw, "tls.certificate_invalid_string") == 0) {
+        return true;
+    }
+    return false;
+}
+
 /** \retval int 0 ok
   * \retval int -1 error
   * \retval int -3 non-fatal error: sig will be rejected w/o raising error
@@ -177,6 +183,18 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     uint8_t ipproto;
     char alproto_name[MAX_ALPROTO_NAME];
     int r = 0;
+
+    if (OutdatedEvent(data->arg)) {
+        if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            return -1;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_SIGNATURE,
+                    "app-layer-event keyword no longer supports event \"%s\"", data->arg);
+            return -3;
+        }
+    }
 
     const char *p_idx = strchr(data->arg, '.');
     if (strlen(data->arg) > MAX_ALPROTO_NAME) {

@@ -35,6 +35,7 @@ app-layer-htp-file.c app-layer-htp-file.h \
 app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
 app-layer-htp-xff.c app-layer-htp-xff.h \
+app-layer-http2.c app-layer-http2.h \
 app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
@@ -68,6 +69,7 @@ decode-chdlc.c decode-chdlc.h \
 decode-erspan.c decode-erspan.h \
 decode-ethernet.c decode-ethernet.h \
 decode-events.c decode-events.h \
+decode-geneve.c decode-geneve.h \
 decode-gre.c decode-gre.h \
 decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
@@ -208,8 +210,10 @@ detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-http-ua.c detect-http-ua.h \
 detect-http-uri.c detect-http-uri.h \
+detect-http2.c detect-http2.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
+detect-icmpv4hdr.c detect-icmpv4hdr.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \
 detect-icmpv6-mtu.c detect-icmpv6-mtu.h \
 detect-icode.c detect-icode.h \
@@ -333,6 +337,7 @@ flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
 flow-storage.c flow-storage.h \
+flow-spare-pool.c flow-spare-pool.h \
 flow-timeout.c flow-timeout.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
@@ -371,6 +376,7 @@ output-json-flow.c output-json-flow.h \
 output-json-ftp.c output-json-ftp.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
+output-json-http2.c output-json-http2.h \
 output-json-sip.c output-json-sip.h \
 output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
@@ -418,7 +424,7 @@ runmode-unix-socket.c runmode-unix-socket.h \
 runmode-windivert.c runmode-windivert.h \
 runmodes.c runmodes.h \
 rust.h \
-rust-context.h \
+rust-context.c rust-context.h \
 source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
@@ -523,6 +529,7 @@ util-optimize.h \
 util-pages.c util-pages.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
+util-plugin.c util-plugin.h \
 util-pool.c util-pool.h \
 util-pool-thread.c util-pool-thread.h \
 util-prefilter.c util-prefilter.h \
@@ -567,6 +574,9 @@ win32-syscall.c win32-syscall.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
+
+include_HEADERS = \
+suricata-plugin.h
 
 EXTRA_DIST = tests
 

@@ -37,7 +37,6 @@
 #include "tmqh-packetpool.h"
 
 #include "conf.h"
-#include "config.h"
 #include "conf-yaml-loader.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
@@ -376,7 +375,7 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
     if (active_runmode && !strcmp("workers", active_runmode)) {
         nq->use_mutex = 0;
         runmode_workers = 1;
-        SCLogInfo("NFQ running in 'workers' runmode, will not use mutex.");
+        SCLogDebug("NFQ running in 'workers' runmode, will not use mutex.");
     } else {
         nq->use_mutex = 1;
         runmode_workers = 0;

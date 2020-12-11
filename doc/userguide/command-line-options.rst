@@ -10,10 +10,12 @@ Suricata's command line options:
 Unit Tests
 ~~~~~~~~~~
 
-Builtin unittests are only available if Suricata has been built with
---enable-unittests.
+The builtin unittests are only available when Suricata has been configured and built with
+``--enable-unittests``.
 
-Running unittests does not take a configuration file. Use -l to supply
-an output directory.
+Running unittests does not require a configuration file. Use -l to supply
+an output directory.::
+
+    sudo suricata -u
 
 .. include:: partials/options-unittests.rst

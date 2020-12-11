@@ -679,11 +679,11 @@ static void NapatechReleasePacket(struct Packet_ *p)
      * If the packet is to be dropped we need to set the wirelength
      * before releasing the Napatech buffer back to NTService.
      */
+#ifdef NAPATECH_ENABLE_BYPASS
     if (is_inline && PACKET_TEST_ACTION(p, ACTION_DROP)) {
         p->ntpv.dyn3->wireLength = 0;
     }
 
-#ifdef NAPATECH_ENABLE_BYPASS
     /*
      *  If this flow is to be programmed for hardware bypass we do it now.  This is done
      *  here because the action is not available in the packet structure at the time of the
@@ -847,11 +847,11 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         SC_ATOMIC_ADD(stream_count, 1);
         if (SC_ATOMIC_GET(stream_count) == NapatechGetNumConfiguredStreams()) {
 
+#ifdef NAPATECH_ENABLE_BYPASS
             if (ConfGetBool("napatech.inline", &is_inline) == 0) {
                 is_inline = 0;
             }
 
-#ifdef NAPATECH_ENABLE_BYPASS
             /* Initialize the port map before we setup traffic filters */
             for (int i = 0; i < MAX_PORTS; ++i) {
                 inline_port_map[i] = -1;
@@ -1001,12 +1001,10 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
         if (unlikely(PacketSetData(p, (uint8_t *)NT_NET_GET_PKT_L2_PTR(packet_buffer), NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
             TmqhOutputPacketpool(ntv->tv, p);
-            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
         if (unlikely(TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK)) {
-            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 

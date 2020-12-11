@@ -57,9 +57,9 @@ static AppLayerResult RustDCERPCUDPParse(Flow *f, void *dcerpc_state,
                                local_data, flags);
 }
 
-static void *RustDCERPCUDPStateNew(void)
+static void *RustDCERPCUDPStateNew(void *state_orig, AppProto proto_orig)
 {
-    return rs_dcerpc_udp_state_new();
+    return rs_dcerpc_udp_state_new(state_orig, proto_orig);
 }
 
 static void RustDCERPCUDPStateFree(void *s)
@@ -92,14 +92,9 @@ static uint64_t RustDCERPCUDPGetTxCnt(void *state)
     return rs_dcerpc_udp_get_tx_cnt(state);
 }
 
-static int RustDCERPCUDPGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return rs_dcerpc_udp_get_alstate_progress_completion_status(direction);
-}
-
 static int RustDCERPCUDPGetAlstateProgress(void *tx, uint8_t direction)
 {
-    return rs_dcerpc_udp_get_alstate_progress(tx, direction);
+    return rs_dcerpc_get_alstate_progress(tx, direction);
 }
 
 static int DCERPCUDPRegisterPatternsForProtocolDetection(void)
@@ -148,8 +143,7 @@ void RegisterDCERPCUDPParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_DCERPC, RustDCERPCUDPGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
-                                                               RustDCERPCUDPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DCERPC, 1, 1);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
             "still on.", "dcerpc");

@@ -25,8 +25,6 @@ use der_parser;
 use der_parser::error::BerError;
 use der_parser::der::parse_der_oid;
 
-use crate::log::*;
-
 #[derive(Debug)]
 pub enum SecBlobError {
     NotSpNego,

@@ -23,7 +23,6 @@ use std::mem::transmute;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-use crate::log::*;
 use crate::applayer::*;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
@@ -233,12 +232,74 @@ pub struct DNSQueryEntry {
 }
 
 #[derive(Debug,PartialEq)]
+pub struct DNSRDataSOA {
+    /// Primary name server for this zone
+    pub mname: Vec<u8>,
+    /// Authority's mailbox
+    pub rname: Vec<u8>,
+    /// Serial version number
+    pub serial: u32,
+    /// Refresh interval (seconds)
+    pub refresh: u32,
+    /// Retry interval (seconds)
+    pub retry: u32,
+    /// Upper time limit until zone is no longer authoritative (seconds)
+    pub expire: u32,
+    /// Minimum ttl for records in this zone (seconds)
+    pub minimum: u32,
+}
+
+#[derive(Debug,PartialEq)]
+pub struct DNSRDataSSHFP {
+    /// Algorithm number
+    pub algo: u8,
+    /// Fingerprint type
+    pub fp_type: u8,
+    /// Fingerprint
+    pub fingerprint: Vec<u8>,
+}
+
+#[derive(Debug,PartialEq)]
+pub struct DNSRDataSRV {
+    /// Priority
+    pub priority: u16,
+    /// Weight
+    pub weight: u16,
+    /// Port
+    pub port: u16,
+    /// Target
+    pub target: Vec<u8>,
+}
+
+/// Represents RData of various formats
+#[derive(Debug,PartialEq)]
+pub enum DNSRData {
+    // RData is an address
+    A(Vec<u8>),
+    AAAA(Vec<u8>),
+    // RData is a domain name
+    CNAME(Vec<u8>),
+    PTR(Vec<u8>),
+    MX(Vec<u8>),
+    NS(Vec<u8>),
+    // RData is text
+    TXT(Vec<u8>),
+    NULL(Vec<u8>),
+    // RData has several fields
+    SOA(DNSRDataSOA),
+    SRV(DNSRDataSRV),
+    SSHFP(DNSRDataSSHFP),
+    // RData for remaining types is sometimes ignored
+    Unknown(Vec<u8>),
+}
+
+#[derive(Debug,PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
     pub rrclass: u16,
     pub ttl: u32,
-    pub data: Vec<u8>,
+    pub data: DNSRData,
 }
 
 #[derive(Debug)]
@@ -564,6 +625,9 @@ impl DNSState {
                 } else {
                     return AppLayerResult::err();
                 }
+            } else if size == 0 {
+                cur_i = &cur_i[2..];
+                consumed += 2;
             } else {
                 SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
                             consumed as u32, (size + 2) as u32);
@@ -608,6 +672,9 @@ impl DNSState {
                 } else {
                     return AppLayerResult::err();
                 }
+            } else if size == 0 {
+                cur_i = &cur_i[2..];
+                consumed += 2;
             } else  {
                 SCLogDebug!("[response]Not enough DNS traffic to parse. Returning {}/{}",
                     consumed as u32, (cur_i.len() - consumed) as u32);
@@ -662,7 +729,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 
 /// Returns *mut DNSState
 #[no_mangle]
-pub extern "C" fn rs_dns_state_new() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
     return unsafe{transmute(boxed)};
@@ -770,15 +837,6 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
         state.response_gap(input_len);
     }
     AppLayerResult::ok()
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    SCLogDebug!("rs_dns_state_progress_completion_status");
-    return 1;
 }
 
 #[no_mangle]
@@ -1020,7 +1078,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         parse_tc: rs_dns_parse_response,
         get_tx_count: rs_dns_state_get_tx_count,
         get_tx: rs_dns_state_get_tx,
-        tx_get_comp_st: rs_dns_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(rs_dns_state_get_event_info),
@@ -1034,6 +1093,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -1064,7 +1124,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         parse_tc: rs_dns_parse_response_tcp,
         get_tx_count: rs_dns_state_get_tx_count,
         get_tx: rs_dns_state_get_tx,
-        tx_get_comp_st: rs_dns_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(rs_dns_state_get_event_info),
@@ -1078,6 +1139,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

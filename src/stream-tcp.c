@@ -4832,10 +4832,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
 
-        if (p->flow->flags & FLOW_WRONG_THREAD ||
-            ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP ||
-            ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
-        {
+        if (p->flow->flags & FLOW_WRONG_THREAD) {
             /* Stream and/or session in known bad condition. Block events
              * from being set. */
             p->flags |= PKT_STREAM_NO_EVENTS;

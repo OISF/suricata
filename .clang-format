@@ -1,0 +1,51 @@
+﻿# Suricata settings as per
+#   doc/devguide/codebase/code-style.rst
+#
+# This file is set up for clang 9. For the settings available, see
+#   https://releases.llvm.org/9.0.0/tools/clang/docs/ClangFormatStyleOptions.html
+#
+# For the settings available in the latest clang release, see
+#   https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+---
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: Right
+# clang 10: AllowShortBlocksOnASingleLine: Never
+# clang 11: AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+# BreakBeforeBraces: Mozilla is closest, but does not split empty functions/structs
+BraceWrapping:
+  AfterClass:      true
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterStruct:     false
+  AfterUnion:      false
+  AfterExternBlock: true
+  BeforeElse:      false
+  IndentBraces:    false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+BreakBeforeBraces: Custom
+Cpp11BracedListStyle: false
+ColumnLimit: 100
+ConstructorInitializerIndentWidth: 8
+ContinuationIndentWidth: 8
+ForEachMacros: ['json_array_foreach', 'json_object_foreach', 'SLIST_FOREACH',
+                'SLIST_FOREACH_PREVPTR', 'LIST_FOREACH', 'SIMPLEQ_FOREACH', 'TAILQ_FOREACH',
+                'TAILQ_FOREACH_SAFE', 'TAILQ_FOREACH_REVERSE', 'CIRCLEQ_FOREACH',
+                'CIRCLEQ_FOREACH_REVERSE', 'CIRCLEQ_FOREACH_SAFE', 'CIRCLEQ_FOREACH_REVERSE_SAFE',
+                'SPLAY_FOREACH, RB_FOREACH', 'RB_FOREACH_FROM', 'RB_FOREACH_SAFE',
+                'RB_FOREACH_REVERSE', 'RB_FOREACH_REVERSE_FROM', 'RB_FOREACH_REVERSE_SAFE' ]
+IndentCaseLabels: true
+IndentWidth: 4
+ReflowComments: true
+SortIncludes: false
+
+# implicit by LLVM style
+#BreakBeforeTernaryOperators: true
+#UseTab: Never
+#TabWidth: 8
+
+...
