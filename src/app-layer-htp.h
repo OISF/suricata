@@ -107,8 +107,6 @@ typedef struct HTPCfgRec_ {
     htp_cfg_t           *cfg;
     struct HTPCfgRec_   *next;
 
-    int                 uri_include_all; /**< use all info in uri (bool) */
-
     /** max size of the client body we inspect */
     int                 randomize;
     int                 randomize_range;
