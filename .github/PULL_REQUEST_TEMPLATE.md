@@ -10,6 +10,3 @@ Describe changes:
 -
 -
 -
-
-[PRScript](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/PRscript) output (if applicable):
-
