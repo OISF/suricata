@@ -37,12 +37,9 @@ A github pull request is actually just a pointer to a branch in your tree. Githu
 #. Incremental pull requests need to describe changes since the last PR
 #. Link to the ticket(s) that are addressed to it.
 #. When fixing an issue, update the issue status to ``In Review`` after submitting the PR.
-#. Links to the prscript builds*
 #. Pull requests are automatically tested using github actions (https://github.com/OISF/suricata/blob/master/.github/workflows/builds.yml).
    Failing builds won't be considered and should be closed immediately.
 #. Pull requests that change, or add a feature should include a documentation update commit
-
-  (*) access to prscript is limited to trusted devs. For the rest of you, ask Victor, Eric, Andreas or Jason to run it for you.
 
 Tests and QA
 ~~~~~~~~~~~~
