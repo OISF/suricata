@@ -429,7 +429,7 @@ end:
 }
 
 /**
- * \test Test the file_data fails with flow:to_server.
+ * \test Test the file_data HTTP1 fails with flow:to_server.
  */
 static int DetectFiledataParseTest05(void)
 {
@@ -442,7 +442,7 @@ static int DetectFiledataParseTest05(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
+                               "alert http1 any any -> any any "
                                "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 1;

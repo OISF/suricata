@@ -290,7 +290,7 @@ static int DetectAppLayerProtocolTest01(void)
 {
     DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http", false);
     FAIL_IF_NULL(data);
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated != 0);
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
@@ -300,7 +300,7 @@ static int DetectAppLayerProtocolTest02(void)
 {
     DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http", true);
     FAIL_IF_NULL(data);
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated == 0);
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
@@ -324,7 +324,7 @@ static int DetectAppLayerProtocolTest03(void)
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
     data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -349,7 +349,7 @@ static int DetectAppLayerProtocolTest04(void)
 
     data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF_NULL(data);
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated == 0);
 
     DetectEngineCtxFree(de_ctx);
@@ -375,7 +375,7 @@ static int DetectAppLayerProtocolTest05(void)
 
     data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF_NULL(data);
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated == 0);
 
     data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->next->ctx;
@@ -515,7 +515,7 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
     data = (DetectAppLayerProtocolData *)s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated);
 
     Signature *s2 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
@@ -525,7 +525,7 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
     data = (DetectAppLayerProtocolData *)s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated);
 
     /* flow:established and other options not supported for PD-only */
@@ -536,7 +536,7 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
     data = (DetectAppLayerProtocolData *)s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->alproto != ALPROTO_HTTP_ANY);
     FAIL_IF(data->negated);
 
     SigGroupBuild(de_ctx);
