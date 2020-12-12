@@ -236,6 +236,15 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     return 0;
 }
 
+static AppProto AppLayerEventGetProtoByName(char *alproto_name) {
+    AppProto alproto = AppLayerGetProtoByName(alproto_name);
+    if (alproto == ALPROTO_HTTP_ANY) {
+        // app-layer events http refer to http1
+        alproto = ALPROTO_HTTP;
+    }
+    return alproto;
+}
+
 static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 {
     /* period index */
@@ -250,7 +259,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     /* + 1 for trailing \0 */
     strlcpy(alproto_name, arg, p_idx - arg + 1);
 
-    const AppProto alproto = AppLayerGetProtoByName(alproto_name);
+    const AppProto alproto = AppLayerEventGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
         if (!strcmp(alproto_name, "file")) {
             needs_detctx = true;

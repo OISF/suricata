@@ -257,7 +257,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    if (s->alproto == ALPROTO_HTTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
+    if ((s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) &&
+        (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
                 "flow:to_server or flow:from_client with http.");
