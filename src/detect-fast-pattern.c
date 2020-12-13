@@ -175,7 +175,7 @@ void DetectFastPatternRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FAST_PATTERN].RegisterTests = DetectFastPatternRegisterTests;
 #endif
-    sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -188,7 +188,7 @@ void DetectFastPatternRegister(void)
  *
  * \param de_ctx   Pointer to the Detection Engine Context.
  * \param s        Pointer to the Signature to which the current keyword belongs.
- * \param null_str Should hold an empty string always.
+ * \param arg      May hold an argument
  *
  * \retval  0 On success.
  * \retval -1 On failure.
