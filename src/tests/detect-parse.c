@@ -38,6 +38,23 @@ static int DetectParseTest01 (void)
     PASS;
 }
 
+/**
+ * \test DetectParseTestNoOpt  is a regression test to make sure that we reject
+ * any signature where a NOOPT rule option is given a value. This can hide rule
+ * errors which make other options disappear, eg: foo: bar: baz; where "foo" is
+ * the NOOPT option, we will end up with a signature which is missing "bar".
+ */
+
+static int DetectParseTestNoOpt(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(DetectEngineAppendSig(de_ctx,
+                    "alert http any any -> any any (msg:\"sid 1 version 0\"; "
+                    "content:\"dummy1\"; endswith: reference: ref; sid:1;)") != NULL);
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
+}
 
 /**
  * \brief this function registers unit tests for DetectParse
@@ -45,4 +62,5 @@ static int DetectParseTest01 (void)
 void DetectParseRegisterTests(void)
 {
     UtRegisterTest("DetectParseTest01", DetectParseTest01);
+    UtRegisterTest("DetectParseTestNoOpt", DetectParseTestNoOpt);
 }
