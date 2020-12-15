@@ -542,6 +542,8 @@ static void NetmapReleasePacket(Packet *p)
 {
     NetmapThreadVars *ntv = (NetmapThreadVars *)p->netmap_v.ntv;
 
+    BUG_ON(p->pkt_src != PKT_SRC_WIRE);
+
     if ((ntv->copy_mode != NETMAP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
         NetmapWritePacket(ntv, p);
     }

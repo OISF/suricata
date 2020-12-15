@@ -807,6 +807,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->payload = NULL;                    \
         (p)->payload_len = 0;                   \
         (p)->BypassPacketsFlow = NULL;          \
+        (p)->ReleasePacket = ((p)->flags & PKT_ALLOC ? PacketFree : PacketPoolReturnPacket);  \
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
         (p)->alerts.drop.action = 0;            \
