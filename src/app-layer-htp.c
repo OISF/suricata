@@ -617,30 +617,30 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
 #endif
-    if (htp_tx_flags(tx) & (   HTP_REQUEST_INVALID_T_E|HTP_REQUEST_INVALID_C_L|
-                        HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
-                        HTP_HOSTH_INVALID))
+    if (htp_tx_flags(tx) & (   HTP_FLAGS_REQUEST_INVALID_T_E|HTP_FLAGS_REQUEST_INVALID_C_L|
+                        HTP_FLAGS_HOST_MISSING|HTP_FLAGS_HOST_AMBIGUOUS|HTP_FLAGS_HOSTU_INVALID|
+                        HTP_FLAGS_HOSTH_INVALID))
     {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         if (htud == NULL)
             return;
 
-        if (htp_tx_flags(tx) & HTP_REQUEST_INVALID_T_E)
+        if (htp_tx_flags(tx) & HTP_FLAGS_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
-        if (htp_tx_flags(tx) & HTP_REQUEST_INVALID_C_L)
+        if (htp_tx_flags(tx) & HTP_FLAGS_REQUEST_INVALID_C_L)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
-        if (htp_tx_flags(tx) & HTP_HOST_MISSING)
+        if (htp_tx_flags(tx) & HTP_FLAGS_HOST_MISSING)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_MISSING_HOST_HEADER);
-        if (htp_tx_flags(tx) & HTP_HOST_AMBIGUOUS)
+        if (htp_tx_flags(tx) & HTP_FLAGS_HOST_AMBIGUOUS)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS);
-        if (htp_tx_flags(tx) & HTP_HOSTU_INVALID)
+        if (htp_tx_flags(tx) & HTP_FLAGS_HOSTU_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_URI_HOST_INVALID);
-        if (htp_tx_flags(tx) & HTP_HOSTH_INVALID)
+        if (htp_tx_flags(tx) & HTP_FLAGS_HOSTH_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                         HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
