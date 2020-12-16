@@ -232,13 +232,12 @@ enum TcpState
                                             (p)->flowflags |= FLOW_PKT_TOCLIENT : (p)->flowflags &= ~FLOW_PKT_TOCLIENT \
                                             (p)->flowflags |= FLOW_PKT_TOSERVER : 0)
 
-/* Macro's for comparing Sequence numbers
- * Page 810 from TCP/IP Illustrated, Volume 2. */
-#define SEQ_EQ(a,b)  ((int32_t)((a) - (b)) == 0)
-#define SEQ_LT(a,b)  ((int32_t)((a) - (b)) <  0)
-#define SEQ_LEQ(a,b) ((int32_t)((a) - (b)) <= 0)
-#define SEQ_GT(a,b)  ((int32_t)((a) - (b)) >  0)
-#define SEQ_GEQ(a,b) ((int32_t)((a) - (b)) >= 0)
+/* SEQ Compare*/
+#define SEQ_EQ(a,b)  ((a) == (b))
+#define SEQ_LT(a,b)  ((a) <  (b))
+#define SEQ_LEQ(a,b) ((a) <= (b))
+#define SEQ_GT(a,b)  ((a) >  (b))
+#define SEQ_GEQ(a,b) ((a) >= (b))
 
 #define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
     do { \
