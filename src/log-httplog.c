@@ -65,9 +65,8 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, vo
 
 void LogHttpLogRegister (void)
 {
-    OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log",
-        LogHttpLogInitCtx, ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,
-        LogHttpLogThreadDeinit, NULL);
+    OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log", LogHttpLogInitCtx, ALPROTO_HTTP1,
+            LogHttpLogger, LogHttpLogThreadInit, LogHttpLogThreadDeinit, NULL);
 }
 
 #define LOG_HTTP_CF_REQUEST_HOST 'h'
@@ -611,7 +610,7 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
     SCLogDebug("HTTP log output initialized");
 
     /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
 
     result.ctx = output_ctx;
     result.ok = true;

@@ -943,7 +943,7 @@ pub extern "C" fn rs_http2_state_new(
     let boxed = Box::new(state);
     let r = unsafe { transmute(boxed) };
     if orig_state != std::ptr::null_mut() {
-        //we could check ALPROTO_HTTP == orig_proto
+        //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
             HTTP2MimicHttp1Request(orig_state, r);
         }

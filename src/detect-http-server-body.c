@@ -109,10 +109,8 @@ void DetectHttpServerBodyRegister(void)
  */
 int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_SERVER_BODY,
-                                                  g_file_data_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_SERVER_BODY, g_file_data_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -128,7 +126,7 @@ static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (DetectBufferSetActiveList(s, g_file_data_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
     return 0;
 }

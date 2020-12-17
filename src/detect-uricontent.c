@@ -219,16 +219,14 @@ static int HTTPUriTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                            httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -240,7 +238,7 @@ static int HTTPUriTest01(void)
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -290,16 +288,14 @@ static int HTTPUriTest02(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                            httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -311,7 +307,7 @@ static int HTTPUriTest02(void)
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -361,16 +357,14 @@ static int HTTPUriTest03(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                            httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -382,7 +376,7 @@ static int HTTPUriTest03(void)
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_UNKNOWN ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -433,16 +427,14 @@ static int HTTPUriTest04(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                            httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -454,7 +446,7 @@ static int HTTPUriTest04(void)
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -540,7 +532,7 @@ static int DetectUriSigTest02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -576,8 +568,8 @@ static int DetectUriSigTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -656,7 +648,7 @@ static int DetectUriSigTest03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -692,8 +684,8 @@ static int DetectUriSigTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -717,8 +709,7 @@ static int DetectUriSigTest03(void)
 
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
     FLOWLOCK_UNLOCK(&f);
@@ -996,7 +987,7 @@ static int DetectUriSigTest05(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1019,8 +1010,8 @@ static int DetectUriSigTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     http_state = f->alstate;
     FAIL_IF_NULL(http_state);
@@ -1075,7 +1066,7 @@ static int DetectUriSigTest06(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1108,8 +1099,8 @@ static int DetectUriSigTest06(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     http_state = f->alstate;
     FAIL_IF_NULL(http_state);
@@ -1164,7 +1155,7 @@ static int DetectUriSigTest07(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1197,8 +1188,8 @@ static int DetectUriSigTest07(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     http_state = f->alstate;
     FAIL_IF_NULL(http_state);

@@ -1380,7 +1380,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
     /* we currently only handle multipart for ts.  When we support it for tc,
      * we will need to supply right direction */
-    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
+    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, STREAM_TOSERVER);
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
         if (header_start != NULL || (tx_progress > HTP_REQUEST_BODY)) {
@@ -2205,7 +2205,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
             if (tx->request_port_number != -1) {
                 dp = (uint16_t)tx->request_port_number;
             }
-            // both ALPROTO_HTTP and ALPROTO_TLS are normal options
+            // both ALPROTO_HTTP1 and ALPROTO_TLS are normal options
             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
@@ -3074,8 +3074,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
              * 3 is subtracted from the length since the spacing is hex typed as |xx|
              * but the pattern matching should only be one char
             */
-            register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP,
-                    ALPROTO_HTTP, method_buffer, strlen(method_buffer)-3, 0, STREAM_TOSERVER);
+            register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
+                    method_buffer, strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
                 return -1;
             }
@@ -3084,9 +3084,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
 
     /* Loop through all the http verions patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
-        register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP,
-                ALPROTO_HTTP, versions[versions_pos], strlen(versions[versions_pos]),
-                0, STREAM_TOCLIENT);
+        register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
+                versions[versions_pos], strlen(versions[versions_pos]), 0, STREAM_TOCLIENT);
         if (register_result < 0) {
             return -1;
         }
@@ -3107,7 +3106,7 @@ void RegisterHTPParsers(void)
 
     /** HTTP */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
-        AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP, proto_name);
+        AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP1, proto_name);
         if (HTPRegisterPatternsForProtocolDetection() < 0)
             return;
     } else {
@@ -3117,44 +3116,46 @@ void RegisterHTPParsers(void)
     }
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
-        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
-        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTransactionFree);
-        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetFiles);
-        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetAlstateProgress);
-        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxCnt);
-        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTx);
+        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateAlloc, HTPStateFree);
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTransactionFree);
+        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetFiles);
+        AppLayerParserRegisterGetStateProgressFunc(
+                IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetAlstateProgress);
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTxCnt);
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTx);
 
         AppLayerParserRegisterStateProgressCompletionStatus(
-                ALPROTO_HTTP, HTP_REQUEST_COMPLETE, HTP_RESPONSE_COMPLETE);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
-        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
-        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfoById);
+                ALPROTO_HTTP1, HTP_REQUEST_COMPLETE, HTP_RESPONSE_COMPLETE);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetEvents);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(
+                IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfoById);
 
-        AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
-                                               HTPGetTxDetectState, HTPSetTxDetectState);
-        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetTxData);
+        AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTruncate);
+        AppLayerParserRegisterDetectStateFuncs(
+                IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxDetectState, HTPSetTxDetectState);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxData);
 
-        AppLayerParserRegisterSetStreamDepthFlag(IPPROTO_TCP, ALPROTO_HTTP,
-                                                 AppLayerHtpSetStreamDepthFlag);
+        AppLayerParserRegisterSetStreamDepthFlag(
+                IPPROTO_TCP, ALPROTO_HTTP1, AppLayerHtpSetStreamDepthFlag);
 
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
-                                     HTPHandleRequestData);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOCLIENT,
-                                     HTPHandleResponseData);
+        AppLayerParserRegisterParser(
+                IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER, HTPHandleRequestData);
+        AppLayerParserRegisterParser(
+                IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOCLIENT, HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(
-                IPPROTO_TCP, ALPROTO_HTTP, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
-        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
-                ALPROTO_HTTP, STREAM_TOSERVER|STREAM_TOCLIENT);
+                IPPROTO_TCP, ALPROTO_HTTP1, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
+        AppLayerParserRegisterParserAcceptableDataDirection(
+                IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_TOCLIENT);
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_HTTP, HTPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_HTTP1, HTPParserRegisterTests);
 #endif
 
     SCReturn;
@@ -3195,7 +3196,7 @@ static int HTPParserTest01(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3210,8 +3211,7 @@ static int HTPParserTest01(void)
         else
             flags = STREAM_TOSERVER;
 
-        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         FAIL_IF(r != 0);
     }
 
@@ -3251,13 +3251,12 @@ static int HTPParserTest01b(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     uint8_t flags =STREAM_TOSERVER|STREAM_START|STREAM_EOF;
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-            httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
     HtpState *htp_state = f->alstate;
@@ -3296,7 +3295,7 @@ static int HTPParserTest01c(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3311,8 +3310,7 @@ static int HTPParserTest01c(void)
         else
             flags = STREAM_TOSERVER;
 
-        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         FAIL_IF(r != 0);
     }
 
@@ -3356,7 +3354,7 @@ static int HTPParserTest01a(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3372,8 +3370,7 @@ static int HTPParserTest01a(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3429,15 +3426,13 @@ static int HTPParserTest02(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(f);
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(f);
@@ -3492,7 +3487,7 @@ static int HTPParserTest03(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3505,8 +3500,7 @@ static int HTPParserTest03(void)
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3561,15 +3555,13 @@ static int HTPParserTest04(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(f);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                            httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         FLOWLOCK_UNLOCK(f);
         goto end;
@@ -3629,34 +3621,30 @@ static int HTPParserTest05(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf4,
-                            httplen4);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf4, httplen4);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT,
-                            httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf5, httplen5);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                            httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF, httpbuf3, httplen3);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_EOF, httpbuf6, httplen6);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF, httpbuf6, httplen6);
     FAIL_IF(r != 0);
 
     HtpState *http_state = f->alstate;
@@ -3735,17 +3723,15 @@ static int HTPParserTest06(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
     HtpState *http_state = f->alstate;
@@ -3789,7 +3775,7 @@ static int HTPParserTest07(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3805,8 +3791,7 @@ static int HTPParserTest07(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3896,7 +3881,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3904,8 +3889,7 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     FLOWLOCK_WRLOCK(f);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -3982,7 +3966,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3990,8 +3974,7 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     FLOWLOCK_WRLOCK(f);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1,
-                            httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -4049,7 +4032,7 @@ static int HTPParserTest10(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4065,8 +4048,7 @@ static int HTPParserTest10(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4141,7 +4123,7 @@ static int HTPParserTest11(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4157,8 +4139,7 @@ static int HTPParserTest11(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4226,7 +4207,7 @@ static int HTPParserTest12(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4242,8 +4223,7 @@ static int HTPParserTest12(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4314,7 +4294,7 @@ static int HTPParserTest13(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4330,8 +4310,7 @@ static int HTPParserTest13(void)
             flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4714,7 +4693,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     htp_cfg_t *htp = cfglist.cfg;
 
@@ -4741,8 +4720,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4911,7 +4889,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4924,8 +4902,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5080,7 +5057,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5093,8 +5070,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5247,7 +5223,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5260,8 +5236,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5384,7 +5359,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5397,8 +5372,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5494,7 +5468,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5507,8 +5481,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5604,7 +5577,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5617,8 +5590,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5715,7 +5687,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5728,8 +5700,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5823,7 +5794,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5836,8 +5807,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5932,7 +5902,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5945,8 +5915,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -6094,15 +6063,14 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     FLOWLOCK_WRLOCK(f);
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(f);
@@ -6111,8 +6079,7 @@ libhtp:\n\
     FLOWLOCK_UNLOCK(f);
     SCLogDebug("\n>>>> processing chunk 1 again <<<<\n");
     FLOWLOCK_WRLOCK(f);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                            httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(f);
@@ -6200,7 +6167,7 @@ libhtp:\n\
     Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
     f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
@@ -6213,8 +6180,8 @@ libhtp:\n\
         else if (u == (len - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        (void)AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                (uint8_t *)&httpbuf[u], 1);
+        (void)AppLayerParserParse(
+                NULL, alp_tctx, f, ALPROTO_HTTP1, flags, (uint8_t *)&httpbuf[u], 1);
     }
     HtpState *htp_state = f->alstate;
     FAIL_IF_NULL(htp_state);
@@ -6224,8 +6191,9 @@ libhtp:\n\
     FAIL_IF(tx->request_method_number != HTP_M_GET);
     FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
 
-    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events =
+            AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     FAIL_IF_NULL(decoder_events);
 
     FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG);
@@ -6303,7 +6271,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6316,8 +6284,7 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                                (uint8_t *)&httpbuf[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, (uint8_t *)&httpbuf[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -6342,8 +6309,9 @@ libhtp:\n\
     }
 
     FLOWLOCK_WRLOCK(f);
-    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events =
+            AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     if (decoder_events != NULL) {
         printf("app events: ");
         FLOWLOCK_UNLOCK(f);
@@ -6393,15 +6361,14 @@ static int HTPParserTest16(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     uint8_t flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     FLOWLOCK_WRLOCK(f);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
-                            (uint8_t *)httpbuf, len);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, (uint8_t *)httpbuf, len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(f);
@@ -6427,8 +6394,9 @@ static int HTPParserTest16(void)
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 //these events are disabled during fuzzing as they are too noisy and consume much resource
     FLOWLOCK_WRLOCK(f);
-    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events =
+            AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     if (decoder_events == NULL) {
         printf("no app events: ");
         FLOWLOCK_UNLOCK(f);
@@ -6480,23 +6448,20 @@ static int HTPParserTest20(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf3,
-                            httplen3);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf3, httplen3);
     FAIL_IF(r != 0);
 
     http_state = f->alstate;
@@ -6542,23 +6507,20 @@ static int HTPParserTest21(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf3,
-                            httplen3);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf3, httplen3);
     FAIL_IF(r != 0);
 
     http_state = f->alstate;
@@ -6603,18 +6565,16 @@ static int HTPParserTest22(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
     http_state = f->alstate;
@@ -6659,18 +6619,16 @@ static int HTPParserTest23(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
     http_state = f->alstate;
@@ -6715,18 +6673,16 @@ static int HTPParserTest24(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
     http_state = f->alstate;
@@ -6762,58 +6718,58 @@ static int HTPParserTest25(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     const char *str = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Suricata/1.0\r\n\r\n";
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, (uint8_t *)str, strlen(str));
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START,
+            (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
 
     str = "HTTP 1.1 200 OK\r\nServer: Suricata/1.0\r\nContent-Length: 8\r\n\r\nSuricata";
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT | STREAM_START, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_START,
+            (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
 
     AppLayerParserTransactionsCleanup(f);
@@ -6825,8 +6781,8 @@ static int HTPParserTest25(void)
     FAIL_IF_NOT(ret[2] == 8); // log_id
     FAIL_IF_NOT(ret[3] == 8); // min_id
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_EOF, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF,
+            (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f);
 
@@ -6836,8 +6792,8 @@ static int HTPParserTest25(void)
     FAIL_IF_NOT(ret[2] == 8); // log_id
     FAIL_IF_NOT(ret[3] == 8); // min_id
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOCLIENT | STREAM_EOF, (uint8_t *)str, strlen(str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF,
+            (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f);
 
@@ -6916,7 +6872,7 @@ libhtp:\n\
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6932,10 +6888,8 @@ libhtp:\n\
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-
-    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;
@@ -6951,9 +6905,8 @@ libhtp:\n\
 
     FAIL_IF((PacketAlertCheck(p1, 1)));
 
-    r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf2,
-                            httplen2);
+    r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;
@@ -6964,9 +6917,8 @@ libhtp:\n\
 
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
-    r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf3,
-                            httplen3);
+    r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf3, httplen3);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;
