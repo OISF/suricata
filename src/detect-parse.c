@@ -1759,7 +1759,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags &= ~SIG_FLAG_TOCLIENT;
     }
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP) ||
+    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP1) ||
         s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
@@ -1876,7 +1876,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
 
-        if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) {
+        if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
         }
     }

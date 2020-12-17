@@ -130,7 +130,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
     if (tx_id >= total_txs)
         return 0;
 
-    tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP, htp_state, tx_id);
+    tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP1, htp_state, tx_id);
     if (tx == NULL) {
         SCLogDebug("tx is NULL, XFF cannot be retrieved");
         return 0;

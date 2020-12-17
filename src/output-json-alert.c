@@ -447,7 +447,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
     const AppProto proto = FlowGetAppProtocol(p->flow);
     JsonBuilderMark mark = { 0, 0, 0 };
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             // TODO: Could result in an empty http object being logged.
             jb_open_object(jb, "http");
             if (EveHttpAddMetadata(p->flow, tx_id, jb)) {
@@ -596,7 +596,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         int have_xff_ip = 0;
         char xff_buffer[XFF_MAXLEN];
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
-            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg,
                             xff_buffer, XFF_MAXLEN);

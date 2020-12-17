@@ -93,18 +93,16 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS+1,
-            DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS+1,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_raw_header", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmHttpHeaderRawRequestRegister, NULL, ALPROTO_HTTP,
+            PrefilterMpmHttpHeaderRawRequestRegister, NULL, ALPROTO_HTTP1,
             0); /* progress handled in register */
     DetectAppLayerMpmRegister2("http_raw_header", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmHttpHeaderRawResponseRegister, NULL, ALPROTO_HTTP,
+            PrefilterMpmHttpHeaderRawResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* progress handled in register */
 
     DetectBufferTypeSetDescriptionByName("http_raw_header",
@@ -131,10 +129,8 @@ void DetectHttpRawHeaderRegister(void)
  */
 int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_RAW_HEADER,
-                                                  g_http_raw_header_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_RAW_HEADER, g_http_raw_header_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -150,7 +146,7 @@ static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s,
 {
     if (DetectBufferSetActiveList(s, g_http_raw_header_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
     return 0;
 }

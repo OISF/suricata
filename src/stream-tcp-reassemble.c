@@ -2558,8 +2558,8 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
     FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
@@ -2582,9 +2582,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2607,9 +2607,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2632,9 +2632,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2656,9 +2656,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2682,9 +2682,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2708,9 +2708,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2733,9 +2733,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2760,9 +2760,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2786,9 +2786,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
 
     StreamTcpPruneSession(&f, STREAM_TOSERVER);
     StreamTcpPruneSession(&f, STREAM_TOCLIENT);
@@ -2944,7 +2944,7 @@ static int StreamTcpReassembleTest40 (void)
     ssn.server.last_ack = 16;
     SCLogDebug("8 -- start");
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
-    FAIL_IF(f->alproto != ALPROTO_HTTP);
+    FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
@@ -3123,7 +3123,7 @@ static int StreamTcpReassembleTest47 (void)
         FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
     }
 
-    FAIL_IF(f->alproto != ALPROTO_HTTP);
+    FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
