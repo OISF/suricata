@@ -120,6 +120,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_HTTP2:
             proto_name = "http2";
             break;
+        case ALPROTO_HTTP_ANY:
+            proto_name = "http_any";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
@@ -138,7 +141,10 @@ AppProto StringToAppProto(const char *proto_name)
 {
     if (proto_name == NULL) return ALPROTO_UNKNOWN;
 
-    if (strcmp(proto_name,"http")==0) return ALPROTO_HTTP;
+    if (strcmp(proto_name, "http") == 0)
+        return ALPROTO_HTTP_ANY;
+    if (strcmp(proto_name, "http1") == 0)
+        return ALPROTO_HTTP;
     if (strcmp(proto_name,"ftp")==0) return ALPROTO_FTP;
     if (strcmp(proto_name,"smtp")==0) return ALPROTO_SMTP;
     if (strcmp(proto_name,"tls")==0) return ALPROTO_TLS;

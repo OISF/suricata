@@ -1487,6 +1487,8 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 
     if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
         if (AppProtoEquals(alproto, s->alproto)) {
+            // happens if alproto = HTTP_ANY and s->alproto = HTTP1
+            // in this case, we must keep the most restrictive HTTP1
             alproto = s->alproto;
         } else {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
@@ -1868,7 +1870,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
 
-        if (s->alproto == ALPROTO_HTTP) {
+        if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) {
             AppLayerHtpNeedFileInspection();
         }
     }

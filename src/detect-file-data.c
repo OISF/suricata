@@ -250,15 +250,16 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     SCEnter();
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-        (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
-        s->alproto != ALPROTO_HTTP2)) {
+            (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
+                    s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
+                    s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_HTTP_ANY)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
 
-    if (s->alproto == ALPROTO_HTTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
-        (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
+    if ((s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) &&
+            (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOSERVER) &&
+            !(s->flags & SIG_FLAG_TOCLIENT)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
                 "flow:to_server or flow:from_client with http.");
         return -1;
@@ -282,10 +283,10 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s)
 {
-    if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
+    if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN ||
+            s->alproto == ALPROTO_HTTP_ANY) {
         AppLayerHtpEnableResponseBodyCallback();
     }
-
 
     /* server body needs to be inspected in sync with stream if possible */
     s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
