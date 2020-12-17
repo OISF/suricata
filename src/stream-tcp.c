@@ -2014,7 +2014,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
             if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
                 ssn->server.window = TCP_GET_WINDOW(p);
-                ssn->client.next_win = ssn->server.last_ack +
+                ssn->server.next_win = ssn->server.last_ack +
                     ssn->server.window;
                 /* window scaling for midstream pickups, we can't do much
                  * other than assume that it's set to the max value: 14 */
@@ -5807,6 +5807,11 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
             goto invalid;
         }
 
+        SCReturnInt(0);
+    }
+
+    /* no further checks possible for ASYNC */
+    if ((ssn->flags & STREAMTCP_FLAG_ASYNC) != 0) {
         SCReturnInt(0);
     }
 
