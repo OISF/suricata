@@ -952,8 +952,7 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     if (pflow != NULL) {
         /* update inspected tracker for raw reassembly */
         if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
-            (p->flags & PKT_STREAM_EST))
-        {
+                (p->flags & PKT_DETECT_HAS_STREAMDATA)) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
         }
