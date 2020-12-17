@@ -85,14 +85,11 @@ void DetectHttpResponseLineRegister(void)
 #endif
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_response_line",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            DetectEngineInspectBufferGeneric,
-            GetData);
+    DetectAppLayerInspectEngineRegister2("http_response_line", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_response_line", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData,
-            ALPROTO_HTTP, HTP_RESPONSE_LINE);
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_response_line",
             "http response line");
@@ -118,7 +115,7 @@ static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (DetectBufferSetActiveList(s, g_http_response_line_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
 
     return 0;
@@ -215,7 +212,7 @@ static int DetectHttpResponseLineTest02(void)
     p->flow = &f;
     p->flowflags |= (FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED);
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -232,13 +229,15 @@ static int DetectHttpResponseLineTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_len);
+    int r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;
     FAIL_IF_NULL(http_state);
 
-    r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     FAIL_IF(r != 0);
 
     /* do detect */

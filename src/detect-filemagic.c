@@ -126,10 +126,10 @@ void DetectFilemagicRegister(void)
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
-    AppProto protos_ts[] = {
-        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
-    AppProto protos_tc[] = {
-        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
+    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS,
+        ALPROTO_HTTP2, 0 };
+    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2,
+        0 };
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],

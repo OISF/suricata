@@ -85,11 +85,13 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
 
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <= HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
+                HTP_REQUEST_HEADERS)
             return NULL;
         headers = tx->request_headers;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <= HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
+                HTP_RESPONSE_HEADERS)
             return NULL;
         headers = tx->response_headers;
     }
@@ -199,10 +201,12 @@ static int DetectEngineInspectBufferHttpHeader(
     }
 end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
+                HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
+                HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -376,10 +380,8 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx,
  */
 static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_HEADER,
-                                                  g_http_header_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_HEADER, g_http_header_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -395,7 +397,7 @@ static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 {
     if (DetectBufferSetActiveList(s, g_http_header_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
     return 0;
 }
@@ -425,18 +427,16 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectBufferHttpHeader, NULL);
+    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmHttpHeaderRequestRegister, NULL, ALPROTO_HTTP,
+            PrefilterMpmHttpHeaderRequestRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
-    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
-            DetectEngineInspectBufferHttpHeader, NULL);
+    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP,
+            PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectBufferTypeSetDescriptionByName("http_header",

@@ -77,7 +77,7 @@ static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
 
     return 0;
@@ -128,18 +128,14 @@ void DetectHttpProtocolRegister(void)
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_LINE);
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_RESPONSE_LINE);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
-            DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
