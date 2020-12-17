@@ -153,6 +153,13 @@ void DetectHttpUriRegister (void)
     DetectAppLayerMpmRegister2("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
+    // no difference between raw and decoded uri for HTTP2
+    DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
+
+    DetectAppLayerMpmRegister2("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+
     DetectBufferTypeSetDescriptionByName("http_raw_uri",
             "raw http uri");
 
@@ -302,7 +309,7 @@ static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 {
     if (DetectBufferSetActiveList(s, g_http_raw_uri_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
