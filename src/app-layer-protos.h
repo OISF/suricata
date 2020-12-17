@@ -27,7 +27,7 @@
 
 enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
-    ALPROTO_HTTP,
+    ALPROTO_HTTP1,
     ALPROTO_FTP,
     ALPROTO_SMTP,
     ALPROTO_TLS, /* SSLv2, SSLv3 & TLSv1 */
@@ -59,8 +59,8 @@ enum AppProtoEnum {
     ALPROTO_HTTP2,
 
     // signature-only (ie not seen in flow)
-    // HTTP for any version (ALPROTO_HTTP (version 1) or ALPROTO_HTTP2)
-    ALPROTO_HTTP_ANY,
+    // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)
+    ALPROTO_HTTP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
@@ -85,9 +85,9 @@ static inline bool AppProtoIsValid(AppProto a)
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {
     switch (sigproto) {
-        case ALPROTO_HTTP_ANY:
-            return (alproto == ALPROTO_HTTP) || (alproto == ALPROTO_HTTP2) ||
-                   (alproto == ALPROTO_HTTP_ANY);
+        case ALPROTO_HTTP:
+            return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2) ||
+                   (alproto == ALPROTO_HTTP);
     }
     return (sigproto == alproto);
 }

@@ -376,7 +376,7 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
         LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tlua->luastate, -3);
     }
-    if (tlua->alproto == ALPROTO_HTTP) {
+    if (tlua->alproto == ALPROTO_HTTP1) {
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
@@ -384,7 +384,7 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                                                                  STREAM_TOSERVER);
             uint64_t total_txs= AppLayerParserGetTxCnt(p->flow, htp_state);
             for ( ; idx < total_txs; idx++) {
-                tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
+                tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, idx);
                 if (tx == NULL)
                     continue;
 
@@ -492,11 +492,11 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    if (tlua->alproto == ALPROTO_HTTP) {
+    if (tlua->alproto == ALPROTO_HTTP1) {
         HtpState *htp_state = state;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
-            tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, det_ctx->tx_id);
+            tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, det_ctx->tx_id);
             if (tx != NULL) {
                 if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
                     bstr_len(tx->request_line) > 0) {
@@ -863,7 +863,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             }
 
         } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
-            if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP) {
+            if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP1) {
                 SCLogError(SC_ERR_LUA_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
                 goto error;
             }
@@ -873,7 +873,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             }
 
             /* http types */
-            ld->alproto = ALPROTO_HTTP;
+            ld->alproto = ALPROTO_HTTP1;
 
             if (strcmp(k, "http.uri") == 0)
                 ld->flags |= DATATYPE_HTTP_URI;
@@ -1042,7 +1042,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
                 list = DETECT_SM_LIST_MATCH;
         }
 
-    } else if (lua->alproto == ALPROTO_HTTP) {
+    } else if (lua->alproto == ALPROTO_HTTP1) {
         if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
             list = DetectBufferTypeGetByName("file_data");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY) {
@@ -1211,7 +1211,7 @@ static int LuaMatchTest01(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1240,8 +1240,8 @@ static int LuaMatchTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1264,8 +1264,7 @@ static int LuaMatchTest01(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1375,7 +1374,7 @@ static int LuaMatchTest02(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1511,7 +1510,7 @@ static int LuaMatchTest03(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1646,7 +1645,7 @@ static int LuaMatchTest04(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1676,8 +1675,8 @@ static int LuaMatchTest04(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1700,8 +1699,7 @@ static int LuaMatchTest04(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1796,7 +1794,7 @@ static int LuaMatchTest05(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1826,8 +1824,8 @@ static int LuaMatchTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1850,8 +1848,7 @@ static int LuaMatchTest05(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1951,7 +1948,7 @@ static int LuaMatchTest06(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1981,8 +1978,8 @@ static int LuaMatchTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2005,8 +2002,7 @@ static int LuaMatchTest06(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);

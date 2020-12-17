@@ -99,10 +99,8 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMTP, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister,
-            HttpServerBodyGetDataCallback,
-            ALPROTO_HTTP, HTP_RESPONSE_BODY);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            HttpServerBodyGetDataCallback, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
@@ -116,7 +114,7 @@ void DetectFiledataRegister(void)
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, HttpServerBodyGetDataCallback);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
@@ -223,11 +221,11 @@ static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
     }
 
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
                 HTP_REQUEST_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
                 HTP_RESPONSE_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
@@ -250,14 +248,14 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     SCEnter();
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-            (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
+            (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP1 &&
                     s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
-                    s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_HTTP_ANY)) {
+                    s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_HTTP)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
 
-    if ((s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_HTTP_ANY) &&
+    if ((s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) &&
             (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOSERVER) &&
             !(s->flags & SIG_FLAG_TOCLIENT)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
@@ -283,8 +281,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s)
 {
-    if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN ||
-            s->alproto == ALPROTO_HTTP_ANY) {
+    if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_UNKNOWN ||
+            s->alproto == ALPROTO_HTTP) {
         AppLayerHtpEnableResponseBodyCallback();
     }
 
@@ -339,22 +337,24 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
         return NULL;
     }
 
-    SCLogDebug("response.body_limit %u response_body.content_len_so_far %"PRIu64
-               ", response.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
-              htp_state->cfg->response.body_limit,
-              body->content_len_so_far,
-              htp_state->cfg->response.inspect_min_size,
-              flags & STREAM_EOF ? "true" : "false",
-               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
+    SCLogDebug("response.body_limit %u response_body.content_len_so_far %" PRIu64
+               ", response.inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
+            htp_state->cfg->response.body_limit, body->content_len_so_far,
+            htp_state->cfg->response.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
+            (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
+                    HTP_RESPONSE_BODY)
+                    ? "true"
+                    : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->response.body_limit == 0 ||
-             body->content_len_so_far < htp_state->cfg->response.body_limit) &&
-            body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
-            !(flags & STREAM_EOF)) {
+                    body->content_len_so_far < htp_state->cfg->response.body_limit) &&
+                body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
+                !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
+                        HTP_RESPONSE_BODY) &&
+                !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "
                        "entire body.");
