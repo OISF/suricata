@@ -1097,8 +1097,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     if (rule_content_http > 0 && rule_pcre > 0 && rule_pcre_http == 0) {
         rule_warning += 1;
         warn_pcre_http_content = 1;
-    }
-    else if (s->alproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0) {
+    } else if (s->alproto == ALPROTO_HTTP1 && rule_pcre > 0 && rule_pcre_http == 0) {
         rule_warning += 1;
         warn_pcre_http = 1;
     }
@@ -1107,7 +1106,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_content_http_content = 1;
     }
-    if (s->alproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0) {
+    if (s->alproto == ALPROTO_HTTP1 && rule_content > 0 && rule_content_http == 0) {
         rule_warning += 1;
         warn_content_http = 1;
     }
@@ -1155,8 +1154,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
-    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
-        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP1 &&
+            SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
@@ -1216,7 +1215,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses content options with http_* and pcre options without http modifiers.\n"
                                              "             -Consider adding http pcre modifier.\n");
         }
-        else if (warn_pcre_http /*s->alproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0*/) {
+        else if (warn_pcre_http /*s->alproto == ALPROTO_HTTP1 && rule_pcre > 0 && rule_pcre_http == 0*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but pcre options do not have http modifiers.\n"
                                              "             -Consider adding http pcre modifiers.\n");
         }
@@ -1224,7 +1223,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    Warning: Rule contains content with http_* and content without http_*.\n"
                                          "             -Consider adding http content modifiers.\n");
         }
-        if (warn_content_http /*s->alproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0*/) {
+        if (warn_content_http /*s->alproto == ALPROTO_HTTP1 && rule_content > 0 && rule_content_http == 0*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but content options do not have http_* modifiers.\n"
                                              "             -Consider adding http content modifiers.\n");
         }

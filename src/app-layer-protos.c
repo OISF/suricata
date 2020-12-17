@@ -33,7 +33,7 @@ const char *AppProtoToString(AppProto alproto)
     enum AppProtoEnum proto = alproto;
 
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             proto_name = "http";
             break;
         case ALPROTO_FTP:
@@ -120,7 +120,7 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_HTTP2:
             proto_name = "http2";
             break;
-        case ALPROTO_HTTP_ANY:
+        case ALPROTO_HTTP:
             proto_name = "http_any";
             break;
         case ALPROTO_FAILED:
@@ -142,9 +142,9 @@ AppProto StringToAppProto(const char *proto_name)
     if (proto_name == NULL) return ALPROTO_UNKNOWN;
 
     if (strcmp(proto_name, "http") == 0)
-        return ALPROTO_HTTP_ANY;
-    if (strcmp(proto_name, "http1") == 0)
         return ALPROTO_HTTP;
+    if (strcmp(proto_name, "http1") == 0)
+        return ALPROTO_HTTP1;
     if (strcmp(proto_name,"ftp")==0) return ALPROTO_FTP;
     if (strcmp(proto_name, "ftp-data") == 0)
         return ALPROTO_FTPDATA;

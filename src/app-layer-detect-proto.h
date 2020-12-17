@@ -136,7 +136,7 @@ int AppLayerProtoDetectDeSetup(void);
  *        With this function you are associating/registering a string
  *        that can be used by users to write rules, i.e.
  *        you register the http protocol for protocol detection using
- *        AppLayerProtoDetectRegisterProtocol(ctx, ALPROTO_HTTP, "http"),
+ *        AppLayerProtoDetectRegisterProtocol(ctx, ALPROTO_HTTP1, "http"),
  *        following which you can write rules like -
  *        alert http any any -> any any (sid:1;)
  *        which basically matches on the HTTP protocol.

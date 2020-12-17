@@ -97,9 +97,9 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
-            DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_BODY, DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_BODY, DetectFileInspectGeneric, NULL);
 
     DetectAppLayerInspectEngineRegister2(
@@ -128,10 +128,9 @@ void DetectFilenameRegister(void)
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
-    AppProto protos_ts[] = { ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB,
-        ALPROTO_NFS, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
+    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
         0 };
+    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS, 0 };
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.name", protos_ts[i],

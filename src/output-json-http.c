@@ -411,7 +411,7 @@ void EveHttpLogJSONBodyPrintable(JsonBuilder *js, Flow *f, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
         if (tx) {
             HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
             if (htud != NULL) {
@@ -446,7 +446,7 @@ void EveHttpLogJSONBodyBase64(JsonBuilder *js, Flow *f, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
         if (tx) {
             HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
             if (htud != NULL) {
@@ -529,7 +529,7 @@ bool EveHttpAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
 
         if (tx) {
             EveHttpLogJSONBasic(js, tx);
@@ -629,7 +629,7 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     output_ctx->DeInit = OutputHttpLogDeinitSub;
 
     /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -690,7 +690,7 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
 void JsonHttpLogRegister (void)
 {
     /* register as child of eve-log */
-    OutputRegisterTxSubModule(LOGGER_JSON_HTTP, "eve-log", "JsonHttpLog",
-        "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
-        JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_HTTP, "eve-log", "JsonHttpLog", "eve-log.http",
+            OutputHttpLogInitSub, ALPROTO_HTTP1, JsonHttpLogger, JsonHttpLogThreadInit,
+            JsonHttpLogThreadDeinit, NULL);
 }

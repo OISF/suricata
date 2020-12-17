@@ -164,11 +164,9 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
     }
 
     const int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
-                STREAM_TOSERVER);
+            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP1, STREAM_TOSERVER);
     const int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
-                STREAM_TOCLIENT);
+            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP1, STREAM_TOCLIENT);
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
     uint64_t tx_id = 0;
@@ -181,10 +179,10 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
         int tx_done = 0;
         int tx_logged = 0;
         int tx_progress_ts = AppLayerParserGetStateProgress(
-                IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
+                IPPROTO_TCP, ALPROTO_HTTP1, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
         if (tx_progress_ts >= tx_progress_done_value_ts) {
             int tx_progress_tc = AppLayerParserGetStateProgress(
-                    IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
+                    IPPROTO_TCP, ALPROTO_HTTP1, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
             if (tx_progress_tc >= tx_progress_done_value_tc) {
                 tx_done = 1;
             }
@@ -351,7 +349,7 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
         }
     }
     if (op_thread_data->loggers & (1<<STREAMING_HTTP_BODIES)) {
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+        if (f->alproto == ALPROTO_HTTP1 && f->alstate != NULL) {
             int close = 0;
             TcpSession *ssn = f->protoctx;
             if (ssn) {

@@ -85,7 +85,7 @@ static int DetectEngineHttpStatCodeTest01(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -106,8 +106,8 @@ static int DetectEngineHttpStatCodeTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -132,8 +132,8 @@ static int DetectEngineHttpStatCodeTest01(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -205,7 +205,7 @@ static int DetectEngineHttpStatCodeTest02(void)
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -226,8 +226,8 @@ static int DetectEngineHttpStatCodeTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -237,8 +237,8 @@ static int DetectEngineHttpStatCodeTest02(void)
     FLOWLOCK_UNLOCK(&f);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -325,7 +325,7 @@ static int DetectEngineHttpStatCodeTest03(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -346,8 +346,8 @@ static int DetectEngineHttpStatCodeTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -372,8 +372,8 @@ static int DetectEngineHttpStatCodeTest03(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -383,8 +383,8 @@ static int DetectEngineHttpStatCodeTest03(void)
     FLOWLOCK_UNLOCK(&f);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf3, http_len3);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf3, http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -462,7 +462,7 @@ static int DetectEngineHttpStatCodeTest04(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -483,8 +483,8 @@ static int DetectEngineHttpStatCodeTest04(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -509,8 +509,8 @@ static int DetectEngineHttpStatCodeTest04(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -588,7 +588,7 @@ static int DetectEngineHttpStatCodeTest05(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -609,8 +609,8 @@ static int DetectEngineHttpStatCodeTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -635,8 +635,8 @@ static int DetectEngineHttpStatCodeTest05(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -714,7 +714,7 @@ static int DetectEngineHttpStatCodeTest06(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -735,8 +735,8 @@ static int DetectEngineHttpStatCodeTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -761,8 +761,8 @@ static int DetectEngineHttpStatCodeTest06(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -840,7 +840,7 @@ static int DetectEngineHttpStatCodeTest07(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -861,8 +861,8 @@ static int DetectEngineHttpStatCodeTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -887,8 +887,8 @@ static int DetectEngineHttpStatCodeTest07(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -966,7 +966,7 @@ static int DetectEngineHttpStatCodeTest08(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -987,8 +987,8 @@ static int DetectEngineHttpStatCodeTest08(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1013,8 +1013,8 @@ static int DetectEngineHttpStatCodeTest08(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1092,7 +1092,7 @@ static int DetectEngineHttpStatCodeTest09(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1114,8 +1114,8 @@ static int DetectEngineHttpStatCodeTest09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1140,8 +1140,8 @@ static int DetectEngineHttpStatCodeTest09(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1219,7 +1219,7 @@ static int DetectEngineHttpStatCodeTest10(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1241,8 +1241,8 @@ static int DetectEngineHttpStatCodeTest10(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1267,8 +1267,8 @@ static int DetectEngineHttpStatCodeTest10(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1346,7 +1346,7 @@ static int DetectEngineHttpStatCodeTest11(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1368,8 +1368,8 @@ static int DetectEngineHttpStatCodeTest11(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1394,8 +1394,8 @@ static int DetectEngineHttpStatCodeTest11(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1473,7 +1473,7 @@ static int DetectEngineHttpStatCodeTest12(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1495,8 +1495,8 @@ static int DetectEngineHttpStatCodeTest12(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1521,8 +1521,8 @@ static int DetectEngineHttpStatCodeTest12(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1600,7 +1600,7 @@ static int DetectEngineHttpStatCodeTest13(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1622,8 +1622,8 @@ static int DetectEngineHttpStatCodeTest13(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1648,8 +1648,8 @@ static int DetectEngineHttpStatCodeTest13(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1727,7 +1727,7 @@ static int DetectEngineHttpStatCodeTest14(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1749,8 +1749,8 @@ static int DetectEngineHttpStatCodeTest14(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1775,8 +1775,8 @@ static int DetectEngineHttpStatCodeTest14(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1854,7 +1854,7 @@ static int DetectEngineHttpStatCodeTest15(void)
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1876,8 +1876,8 @@ static int DetectEngineHttpStatCodeTest15(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1902,8 +1902,8 @@ static int DetectEngineHttpStatCodeTest15(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -2072,7 +2072,7 @@ static int DetectHttpStatCodeSigTest01(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2095,16 +2095,15 @@ static int DetectHttpStatCodeSigTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2175,7 +2174,7 @@ static int DetectHttpStatCodeSigTest02(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2204,8 +2203,8 @@ static int DetectHttpStatCodeSigTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2213,8 +2212,7 @@ static int DetectHttpStatCodeSigTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2292,7 +2290,7 @@ static int DetectHttpStatCodeSigTest03(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2321,8 +2319,8 @@ static int DetectHttpStatCodeSigTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2330,8 +2328,7 @@ static int DetectHttpStatCodeSigTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2409,7 +2406,7 @@ static int DetectHttpStatCodeSigTest04(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2438,8 +2435,8 @@ static int DetectHttpStatCodeSigTest04(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2447,8 +2444,7 @@ static int DetectHttpStatCodeSigTest04(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
