@@ -139,7 +139,7 @@ static int DetectHttpUserAgentSetup(DetectEngineCtx *de_ctx, Signature *s, const
 {
     if (DetectBufferSetActiveList(s, g_http_ua_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
