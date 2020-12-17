@@ -309,18 +309,19 @@ static ModbusTransaction *ModbusTxFindByTransaction(const ModbusState   *modbus,
 static ModbusTransaction *ModbusTxAlloc(ModbusState *modbus) {
     ModbusTransaction *tx;
 
+    /* Check flood limit */
+    if ((request_flood != 0) && (modbus->unreplied_cnt >= request_flood)) {
+        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_FLOODED);
+        modbus->givenup = 1;
+        return NULL;
+    }
+
     tx = (ModbusTransaction *) SCCalloc(1, sizeof(ModbusTransaction));
     if (unlikely(tx == NULL))
         return NULL;
 
     modbus->transaction_max++;
     modbus->unreplied_cnt++;
-
-    /* Check flood limit */
-    if ((request_flood != 0) && (modbus->unreplied_cnt > request_flood)) {
-        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_FLOODED);
-        modbus->givenup = 1;
-    }
 
     modbus->curr = tx;
 
