@@ -69,6 +69,9 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_user_agent" keyword.
@@ -176,6 +179,29 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = bstr_ptr(h->value);
 
         InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_useragent(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
