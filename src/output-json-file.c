@@ -106,7 +106,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     int have_xff_ip = 0;
     char xff_buffer[XFF_MAXLEN];
     if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
-        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
             have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, xff_buffer, XFF_MAXLEN);
         }
         if (have_xff_ip && xff_cfg->flags & XFF_OVERWRITE) {
@@ -125,7 +125,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
 
     JsonBuilderMark mark = { 0, 0, 0 };
     switch (p->flow->alproto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             jb_open_object(js, "http");
             EveHttpAddMetadata(p->flow, ff->txid, js);
             jb_close(js);

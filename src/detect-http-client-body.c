@@ -98,14 +98,12 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
-            DetectEngineInspectBufferGeneric,
-            HttpClientBodyGetDataCallback);
+    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_BODY, DetectEngineInspectBufferGeneric, HttpClientBodyGetDataCallback);
 
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, HttpClientBodyGetDataCallback,
-            ALPROTO_HTTP, HTP_REQUEST_BODY);
+            PrefilterGenericMpmRegister, HttpClientBodyGetDataCallback, ALPROTO_HTTP1,
+            HTP_REQUEST_BODY);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
@@ -141,10 +139,8 @@ static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
  */
 int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_CLIENT_BODY,
-                                                  g_http_client_body_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg, DETECT_AL_HTTP_CLIENT_BODY,
+            g_http_client_body_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -160,7 +156,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (DetectBufferSetActiveList(s, g_http_client_body_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
     return 0;
 }
@@ -208,21 +204,24 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *de
         return NULL;
     }
 
-    SCLogDebug("request.body_limit %u request_body.content_len_so_far %"PRIu64
-               ", request.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
-              htp_state->cfg->request.body_limit, body->content_len_so_far,
-              htp_state->cfg->request.inspect_min_size,
-              flags & STREAM_EOF ? "true" : "false",
-               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) ? "true" : "false");
+    SCLogDebug("request.body_limit %u request_body.content_len_so_far %" PRIu64
+               ", request.inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
+            htp_state->cfg->request.body_limit, body->content_len_so_far,
+            htp_state->cfg->request.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
+            (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
+                    HTP_REQUEST_BODY)
+                    ? "true"
+                    : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->request.body_limit == 0 ||
-             body->content_len_so_far < htp_state->cfg->request.body_limit) &&
-            body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
-            !(flags & STREAM_EOF)) {
+                    body->content_len_so_far < htp_state->cfg->request.body_limit) &&
+                body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
+                !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
+                        HTP_REQUEST_BODY) &&
+                !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire request body.  "
                        "Let's defer body inspection till we see the "
                        "entire body.");

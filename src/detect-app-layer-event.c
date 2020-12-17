@@ -239,9 +239,9 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
 static AppProto AppLayerEventGetProtoByName(char *alproto_name)
 {
     AppProto alproto = AppLayerGetProtoByName(alproto_name);
-    if (alproto == ALPROTO_HTTP_ANY) {
+    if (alproto == ALPROTO_HTTP) {
         // app-layer events http refer to http1
-        alproto = ALPROTO_HTTP;
+        alproto = ALPROTO_HTTP1;
     }
     return alproto;
 }
@@ -490,8 +490,8 @@ static int DetectAppLayerEventTest02(void)
 
     AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP,
                             DetectAppLayerEventTestGetEventInfo);
-    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP,
-                            DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(
+            IPPROTO_TCP, ALPROTO_HTTP1, DetectAppLayerEventTestGetEventInfo);
     AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMB,
                             DetectAppLayerEventTestGetEventInfo);
     AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_FTP,
@@ -520,7 +520,7 @@ static int DetectAppLayerEventTest02(void)
                                     &event_type);
     FAIL_IF_NULL(aled);
     FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
-    FAIL_IF(aled->alproto != ALPROTO_HTTP);
+    FAIL_IF(aled->alproto != ALPROTO_HTTP1);
     FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT2);
 
     aled = DetectAppLayerEventParse("smb.event3",
