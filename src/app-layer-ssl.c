@@ -2371,6 +2371,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                         ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
                     /* do nothing */
                 } else {
+                    // if we started parsing this, we must stop
+                    ssl_state->curr_connp->hs_bytes_processed = 0;
                     break;
                 }
             }
