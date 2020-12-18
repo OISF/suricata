@@ -525,9 +525,6 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
-    StatsRegisterGlobalCounter("file_store.open_files",
-            OutputFilestoreOpenFilesCounter);
-
     result.ctx = output_ctx;
     result.ok = true;
     SCReturnCT(result, "OutputInitResult");
@@ -542,4 +539,9 @@ void OutputFilestoreRegister(void)
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);
+}
+
+void OutputFilestoreRegisterGlobalCounters(void)
+{
+    StatsRegisterGlobalCounter("file_store.open_files", OutputFilestoreOpenFilesCounter);
 }

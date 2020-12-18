@@ -20,5 +20,6 @@
 
 void OutputFilestoreRegister(void);
 void OutputFilestoreInitConfig(void);
+void OutputFilestoreRegisterGlobalCounters(void);
 
 #endif /* __OUTPUT_FILESTORE_H__ */
