@@ -2281,6 +2281,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                        ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
                     /* do nothing */
                 } else {
+                    // if we started parsing this, we must stop
+                    ssl_state->curr_connp->hs_bytes_processed = 0;
                     break;
                 }
             }
@@ -5271,15 +5273,13 @@ static int SSLParserTest25(void)
     FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
-    /* The reason hs_bytes_processed is 2 is because, the record
-     * immediately after the client key exchange is 2 bytes long,
-     * and next time we see a new handshake, it is after we have
-     * seen a change cipher spec.  Hence when we process the
-     * handshake, we immediately break and don't parse the pdu from
-     * where we left off, and leave the hs_bytes_processed var
-     * isn't reset. */
+	 /*
+     * Formerly, hs_bytes_processed was not reset; it's now
+     * being reset when a new handshake is seen, its value
+     * will be reset.
+     */
     FAIL_IF(ssl_state->client_connp.bytes_processed != 0);
-    FAIL_IF(ssl_state->client_connp.hs_bytes_processed != 2);
+    FAIL_IF(ssl_state->client_connp.hs_bytes_processed != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
