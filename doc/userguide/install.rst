@@ -149,20 +149,24 @@ For Debian 10 (buster), for instance, run the following as ``root``::
 Fedora
 ^^^^^^
 
+The following is an example of installing Suricata 6.0 on Fedora. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
+
 ::
 
+    dnf install dnf-plugins-core
+    dnf copr enable @oisf/suricata-6.0
     dnf install suricata
 
-RHEL/CentOS
-^^^^^^^^^^^
+RHEL/CentOS 8 and 7
+^^^^^^^^^^^^^^^^^^^
 
-For RedHat Enterprise Linux 7 and CentOS 7 the EPEL repository can be used.
+The following is an example of installing Suricata 6.0 on CentOS. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
 
 ::
 
-    yum install epel-release
+    yum install epel-release yum-plugin-copr
+    yum copr enable @oisf/suricata-6.0
     yum install suricata
-
 
 .. _install-advanced:
 
