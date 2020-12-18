@@ -131,6 +131,8 @@
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
 
+#include "output-filestore.h"
+
 #include "util-decode-der.h"
 #include "util-ebpf.h"
 #include "util-radix-tree.h"
@@ -2318,6 +2320,7 @@ void PreRunInit(const int runmode)
     StreamTcpInitConfig(STREAM_VERBOSE);
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
+    OutputFilestoreRegisterGlobalCounters();
 }
 
 /* tasks we need to run before packets start flowing,
