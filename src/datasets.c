@@ -154,12 +154,8 @@ static int ParseRepLine(const char *in, size_t ins, DataRepType *rep_out)
     return 0;
 }
 
-static int DatasetLoadMd5(Dataset *set)
+static FILE* DatasetOpenFile(Dataset *set)
 {
-    if (strlen(set->load) == 0)
-        return 0;
-
-    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
     const char *fopen_mode = "r";
     if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
         fopen_mode = "a+";
@@ -169,8 +165,20 @@ static int DatasetLoadMd5(Dataset *set)
     if (fp == NULL) {
         SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
                 set->load, strerror(errno));
-        return -1;
     }
+ 
+    return fp;
+}
+
+static int DatasetLoadMd5(Dataset *set)
+{
+    if (strlen(set->load) == 0)
+        return 0;
+
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    FILE *fp = DatasetOpenFile(set);
+    if (fp == NULL)
+        return -1;
 
     uint32_t cnt = 0;
     char line[1024];
@@ -230,17 +238,9 @@ static int DatasetLoadSha256(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
-    const char *fopen_mode = "r";
-    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
-        fopen_mode = "a+";
-    }
-
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
-                set->load, strerror(errno));
+    FILE *fp = DatasetOpenFile(set);
+    if (fp == NULL)
         return -1;
-    }
 
     uint32_t cnt = 0;
     char line[1024];
@@ -296,17 +296,9 @@ static int DatasetLoadString(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
-    const char *fopen_mode = "r";
-    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
-        fopen_mode = "a+";
-    }
-
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
-                set->load, strerror(errno));
+    FILE *fp = DatasetOpenFile(set);
+    if (fp == NULL)
         return -1;
-    }
 
     uint32_t cnt = 0;
     char line[1024];
