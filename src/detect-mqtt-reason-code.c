@@ -31,7 +31,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "^\\s*\\d+\\s*$"
 static DetectParseRegex parse_regex;

@@ -30,7 +30,7 @@
 #include "detect-mqtt-flags.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "(?: *,?!?(?:retain|dup))+"
 static DetectParseRegex parse_regex;
