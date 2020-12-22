@@ -16,6 +16,7 @@
  */
 
 use digest::Digest;
+use md5c::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
 
@@ -101,6 +102,34 @@ pub unsafe extern "C" fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: 
 pub unsafe extern "C" fn SCSha1Free(hasher: &mut SCSha1) {
     // Drop.
     let _: Box<SCSha1> = Box::from_raw(hasher);
+}
+
+// Start of MD5 C bindins.
+
+pub struct SCMd5(Md5);
+
+#[no_mangle]
+pub extern "C" fn SCMd5New() -> *mut SCMd5 {
+    let hasher = Box::new(SCMd5(Md5::new()));
+    Box::into_raw(hasher)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: u32) {
+    update(&mut hasher.0, bytes, len);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u32) {
+    let hasher: Box<SCMd5> = Box::from_raw(hasher);
+    finalize(hasher.0, out, len);
+}
+
+/// Free an unfinalized Sha1 context.
+#[no_mangle]
+pub unsafe extern "C" fn SCMd5Free(hasher: &mut SCMd5) {
+    // Drop.
+    let _: Box<SCMd5> = Box::from_raw(hasher);
 }
 
 // Functions that are generic over Digest. For the most part the C bindings are
