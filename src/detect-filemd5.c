@@ -31,29 +31,6 @@
 
 #include "detect-filemd5.h"
 
-#ifndef HAVE_NSS
-
-static int DetectFileMd5SetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
-{
-    SCLogError(SC_ERR_NO_MD5_SUPPORT, "no MD5 calculation support built in, needed for filemd5 keyword");
-    return -1;
-}
-
-/**
- * \brief Registration function for keyword: filemd5
- */
-void DetectFileMd5Register(void)
-{
-    sigmatch_table[DETECT_FILEMD5].name = "filemd5";
-    sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5SetupNoSupport;
-    sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
-
-    SCLogDebug("registering filemd5 rule option");
-    return;
-}
-
-#else /* HAVE_NSS */
-
 static int g_file_match_list_id = 0;
 
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, const char *);
@@ -159,6 +136,3 @@ void DetectFileMd5RegisterTests(void)
     UtRegisterTest("MD5MatchTest01", MD5MatchTest01);
 }
 #endif
-
-#endif /* HAVE_NSS */
-

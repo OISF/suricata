@@ -54,6 +54,10 @@
 #include "flow-private.h"
 #include "util-validate.h"
 
+#ifdef HAVE_NSS
+#include <sechash.h>
+#endif
+
 SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
     { "INVALID_SSLV2_HEADER",        TLS_DECODER_EVENT_INVALID_SSLV2_HEADER },

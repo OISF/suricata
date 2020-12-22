@@ -25,6 +25,10 @@
 #ifndef MIME_DECODE_H_
 #define MIME_DECODE_H_
 
+#ifdef HAVE_NSS
+#include <sechash.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

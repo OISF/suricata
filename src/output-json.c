@@ -156,7 +156,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             JB_SET_STRING(jb, "state", "CLOSED");
-#ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
                 size_t x;
                 int i;
@@ -175,7 +174,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
                 }
                 jb_set_string(jb, "sha1", str);
             }
-#endif
             break;
         case FILE_STATE_TRUNCATED:
             JB_SET_STRING(jb, "state", "TRUNCATED");
@@ -188,7 +186,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
             break;
     }
 
-#ifdef HAVE_NSS
     if (ff->flags & FILE_SHA256) {
         size_t x;
         int i;
@@ -198,7 +195,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
         }
         jb_set_string(jb, "sha256", str);
     }
-#endif
 
     if (stored) {
         JB_SET_TRUE(jb, "stored");

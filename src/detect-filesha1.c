@@ -32,29 +32,6 @@
 
 #include "detect-filesha1.h"
 
-#ifndef HAVE_NSS
-
-static int DetectFileSha1SetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
-{
-    SCLogError(SC_ERR_NO_SHA1_SUPPORT, "no SHA-1 calculation support built in, needed for filesha1 keyword");
-    return -1;
-}
-
-/**
- * \brief Registration function for keyword: filesha1
- */
-void DetectFileSha1Register(void)
-{
-    sigmatch_table[DETECT_FILESHA1].name = "filesha1";
-    sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1SetupNoSupport;
-    sigmatch_table[DETECT_FILESHA1].flags = SIGMATCH_NOT_BUILT;
-
-    SCLogDebug("registering filesha1 rule option");
-    return;
-}
-
-#else /* HAVE_NSS */
-
 static int DetectFileSha1Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha1RegisterTests(void);
@@ -145,4 +122,3 @@ static void DetectFileSha1RegisterTests(void)
     UtRegisterTest("SHA1MatchTest01", SHA1MatchTest01);
 }
 #endif
-#endif /* HAVE_NSS */
