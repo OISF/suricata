@@ -528,7 +528,7 @@ static void FileFree(File *ff)
 
 #ifdef HAVE_NSS
     if (ff->md5_ctx)
-        HASH_Destroy(ff->md5_ctx);
+        SCMd5Free(ff->md5_ctx);
     if (ff->sha1_ctx)
         SCSha1Free(ff->sha1_ctx);
     if (ff->sha256_ctx)
@@ -614,7 +614,7 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 
 #ifdef HAVE_NSS
     if (file->md5_ctx) {
-        HASH_Update(file->md5_ctx, data, data_len);
+        SCMd5Update(file->md5_ctx, data, data_len);
     }
     if (file->sha1_ctx) {
         SCSha1Update(file->sha1_ctx, data, data_len);
@@ -674,7 +674,7 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
         int hash_done = 0;
         /* no storage but forced hashing */
         if (ff->md5_ctx) {
-            HASH_Update(ff->md5_ctx, data, data_len);
+            SCMd5Update(ff->md5_ctx, data, data_len);
             hash_done = 1;
         }
         if (ff->sha1_ctx) {
@@ -888,10 +888,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
 
 #ifdef HAVE_NSS
     if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
-        ff->md5_ctx = HASH_Create(HASH_AlgMD5);
-        if (ff->md5_ctx != NULL) {
-            HASH_Begin(ff->md5_ctx);
-        }
+        ff->md5_ctx = SCMd5New();
     }
     if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
         ff->sha1_ctx = SCSha1New();
@@ -956,7 +953,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
 #ifdef HAVE_NSS
             /* no storage but hashing */
             if (ff->md5_ctx)
-                HASH_Update(ff->md5_ctx, data, data_len);
+                SCMd5Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
                 SCSha1Update(ff->sha1_ctx, data, data_len);
             if (ff->sha256_ctx)
@@ -990,8 +987,8 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
 
 #ifdef HAVE_NSS
         if (ff->md5_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
+            SCMd5Finalize(ff->md5_ctx, ff->md5, sizeof(ff->md5));
+            ff->md5_ctx = NULL;
             ff->flags |= FILE_MD5;
         }
         if (ff->sha1_ctx) {
@@ -1118,7 +1115,7 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
                 if ((per_file_flags & FILE_NOMD5) &&
                         ptr->md5_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->md5_ctx);
+                    SCMd5Free(ptr->md5_ctx);
                     ptr->md5_ctx = NULL;
                 }
 #endif

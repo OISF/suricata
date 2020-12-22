@@ -43,6 +43,9 @@ typedef struct SCSha256 SCSha256;
 typedef struct SCSha1 SCSha1;
 #define SC_SHA1_LEN 20
 
+typedef struct SCMd5 SCMd5;
+#define SC_MD5_LEN 16
+
 #define FILE_TRUNCATED  BIT_U16(0)
 #define FILE_NOMAGIC    BIT_U16(1)
 #define FILE_NOMD5      BIT_U16(2)
@@ -86,8 +89,8 @@ typedef struct File_ {
 #endif
     struct File_ *next;
 #ifdef HAVE_NSS
-    HASHContext *md5_ctx;
-    uint8_t md5[MD5_LENGTH];
+    SCMd5 *md5_ctx;
+    uint8_t md5[SC_MD5_LEN];
     SCSha1 *sha1_ctx;
     uint8_t sha1[SC_SHA1_LEN];
     SCSha256 *sha256_ctx;
