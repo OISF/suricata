@@ -32,13 +32,11 @@
 #include "util-print.h"
 #include "util-misc.h"
 
-#ifdef HAVE_NSS
-
 #define MODULE_NAME "OutputFilestore"
 
 /* Create a filestore specific PATH_MAX that is less than the system
  * PATH_MAX to prevent newer gcc truncation warnings with snprint. */
-#define SHA256_STRING_LEN (SHA256_LENGTH * 2)
+#define SHA256_STRING_LEN    (SC_SHA256_LEN * 2)
 #define LEAF_DIR_MAX_LEN 4
 #define FILESTORE_PREFIX_MAX (PATH_MAX - SHA256_STRING_LEN - LEAF_DIR_MAX_LEN)
 
@@ -129,7 +127,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         const Packet *p, File *ff, uint8_t dir) {
     /* Stringify the SHA256 which will be used in the final
      * filename. */
-    char sha256string[(SHA256_LENGTH * 2) + 1];
+    char sha256string[(SC_SHA256_LEN * 2) + 1];
     PrintHexString(sha256string, sizeof(sha256string), ff->sha256,
             sizeof(ff->sha256));
 
@@ -535,11 +533,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     SCReturnCT(result, "OutputInitResult");
 }
 
-#endif /* HAVE_NSS */
-
 void OutputFilestoreRegister(void)
 {
-#ifdef HAVE_NSS
     OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
             OutputFilestoreLogInitCtx, OutputFilestoreLogger,
             OutputFilestoreLogThreadInit, OutputFilestoreLogThreadDeinit,
@@ -547,5 +542,4 @@ void OutputFilestoreRegister(void)
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);
-#endif
 }
