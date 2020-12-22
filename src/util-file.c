@@ -530,7 +530,7 @@ static void FileFree(File *ff)
     if (ff->md5_ctx)
         HASH_Destroy(ff->md5_ctx);
     if (ff->sha1_ctx)
-        HASH_Destroy(ff->sha1_ctx);
+        SCSha1Free(ff->sha1_ctx);
     if (ff->sha256_ctx)
         SCSha256Free(ff->sha256_ctx);
 #endif
@@ -617,7 +617,7 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
         HASH_Update(file->md5_ctx, data, data_len);
     }
     if (file->sha1_ctx) {
-        HASH_Update(file->sha1_ctx, data, data_len);
+        SCSha1Update(file->sha1_ctx, data, data_len);
     }
     if (file->sha256_ctx) {
         SCSha256Update(file->sha256_ctx, data, data_len);
@@ -678,7 +678,7 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
             hash_done = 1;
         }
         if (ff->sha1_ctx) {
-            HASH_Update(ff->sha1_ctx, data, data_len);
+            SCSha1Update(ff->sha1_ctx, data, data_len);
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
@@ -894,10 +894,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
         }
     }
     if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
-        ff->sha1_ctx = HASH_Create(HASH_AlgSHA1);
-        if (ff->sha1_ctx != NULL) {
-            HASH_Begin(ff->sha1_ctx);
-        }
+        ff->sha1_ctx = SCSha1New();
     }
     if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
         ff->sha256_ctx = SCSha256New();
@@ -961,7 +958,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             if (ff->md5_ctx)
                 HASH_Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
-                HASH_Update(ff->sha1_ctx, data, data_len);
+                SCSha1Update(ff->sha1_ctx, data, data_len);
             if (ff->sha256_ctx)
                 SCSha256Update(ff->sha256_ctx, data, data_len);
 #endif
@@ -998,8 +995,8 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_MD5;
         }
         if (ff->sha1_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->sha1_ctx, ff->sha1, &len, sizeof(ff->sha1));
+            SCSha1Finalize(ff->sha1_ctx, ff->sha1, sizeof(ff->sha1));
+            ff->sha1_ctx = NULL;
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
@@ -1115,7 +1112,7 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
                 if ((per_file_flags & FILE_NOSHA1) &&
                     ptr->sha1_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->sha1_ctx);
+                    SCSha1Free(ptr->sha1_ctx);
                     ptr->sha1_ctx = NULL;
                 }
                 if ((per_file_flags & FILE_NOMD5) &&
