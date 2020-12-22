@@ -3026,18 +3026,9 @@ void RegisterSSLParsers(void)
         }
         SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
 
-#ifndef HAVE_NSS
-        if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
-            SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                         "no MD5 calculation support built in (LibNSS), disabling JA3");
-            SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
-        }
-#else
         if (RunmodeIsUnittests()) {
             SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
         }
-#endif
-
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
@@ -3057,7 +3048,6 @@ void RegisterSSLParsers(void)
  */
 void SSLEnableJA3(void)
 {
-#ifdef HAVE_NSS
     if (ssl_config.disable_ja3) {
         return;
     }
@@ -3065,16 +3055,13 @@ void SSLEnableJA3(void)
         return;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
-#endif
 }
 
 bool SSLJA3IsEnabled(void)
 {
-#ifdef HAVE_NSS
     if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         return true;
     }
-#endif
     return false;
 }
 
