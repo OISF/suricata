@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use sha1::Sha1;
+use sha2::Sha256;
 
 pub const SC_SHA256_LEN: usize = 32;
 
@@ -32,17 +34,13 @@ pub extern "C" fn SCSha256New() -> *mut SCSha256 {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSha256Update(hasher: &mut SCSha256, bytes: *const u8, len: u32) {
-    let data = std::slice::from_raw_parts(bytes, len as usize);
-    hasher.0.update(data);
+    update(&mut hasher.0, bytes, len);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, len: u32) {
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
-    let result = hasher.0.finalize();
-    let output = std::slice::from_raw_parts_mut(out, len as usize);
-    // This will panic if the sizes differ.
-    output.copy_from_slice(&result);
+    finalize(hasher.0, out, len);
 }
 
 /// C function to finalize the Sha256 hasher to a hex string.
@@ -75,4 +73,47 @@ pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut 
 pub unsafe extern "C" fn SCSha256Free(hasher: &mut SCSha256) {
     // Drop.
     let _: Box<SCSha256> = Box::from_raw(hasher);
+}
+
+// Start of SHA1 C bindings.
+
+pub struct SCSha1(Sha1);
+
+#[no_mangle]
+pub extern "C" fn SCSha1New() -> *mut SCSha1 {
+    let hasher = Box::new(SCSha1(Sha1::new()));
+    Box::into_raw(hasher)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1Update(hasher: &mut SCSha1, bytes: *const u8, len: u32) {
+    update(&mut hasher.0, bytes, len);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: u32) {
+    let hasher: Box<SCSha1> = Box::from_raw(hasher);
+    finalize(hasher.0, out, len);
+}
+
+/// Free an unfinalized Sha1 context.
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1Free(hasher: &mut SCSha1) {
+    // Drop.
+    let _: Box<SCSha1> = Box::from_raw(hasher);
+}
+
+// Functions that are generic over Digest. For the most part the C bindings are
+// just wrappers around these.
+
+unsafe fn update<D: Digest>(digest: &mut D, bytes: *const u8, len: u32) {
+    let data = std::slice::from_raw_parts(bytes, len as usize);
+    digest.update(data);
+}
+
+unsafe fn finalize<D: Digest>(digest: D, out: *mut u8, len: u32) {
+    let result = digest.finalize();
+    let output = std::slice::from_raw_parts_mut(out, len as usize);
+    // This will panic if the sizes differ.
+    output.copy_from_slice(&result);
 }
