@@ -30,7 +30,7 @@
 #include "detect-mqtt-type.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int mqtt_type_id = 0;
 
