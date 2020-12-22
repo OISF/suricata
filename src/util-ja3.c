@@ -28,6 +28,10 @@
 #include "util-validate.h"
 #include "util-ja3.h"
 
+#ifdef HAVE_NSS
+#include <sechash.h>
+#endif
+
 #define MD5_STRING_LENGTH 33
 
 /**

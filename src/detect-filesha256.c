@@ -32,29 +32,6 @@
 
 #include "detect-filesha256.h"
 
-#ifndef HAVE_NSS
-
-static int DetectFileSha256SetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
-{
-    SCLogError(SC_ERR_NO_SHA256_SUPPORT, "no SHA-256 calculation support built in, needed for filesha256 keyword");
-    return -1;
-}
-
-/**
- * \brief Registration function for keyword: filesha256
- */
-void DetectFileSha256Register(void)
-{
-    sigmatch_table[DETECT_FILESHA256].name = "filesha256";
-    sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256SetupNoSupport;
-    sigmatch_table[DETECT_FILESHA256].flags = SIGMATCH_NOT_BUILT;
-
-    SCLogDebug("registering filesha256 rule option");
-    return;
-}
-
-#else /* HAVE_NSS */
-
 static int DetectFileSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha256RegisterTests(void);
@@ -160,4 +137,3 @@ void DetectFileSha256RegisterTests(void)
     UtRegisterTest("SHA256MatchTest01", SHA256MatchTest01);
 }
 #endif
-#endif /* HAVE_NSS */
