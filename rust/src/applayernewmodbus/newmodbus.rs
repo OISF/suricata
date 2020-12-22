@@ -25,6 +25,160 @@ use super::parser;
 
 static mut ALPROTO_NEWMODBUS: AppProto = ALPROTO_UNKNOWN;
 
+/* Modbus Protocol version. */
+pub const MODBUS_PROTOCOL_VER: u16 = 0x0000;
+
+/* Modbus Function Code Categories. */
+// TODO - confirm if those should really be u8
+pub const MODBUS_CAT_NONE: u8 =                   0x0;
+pub const MODBUS_CAT_PUBLIC_ASSIGNED: u8 =      1<<0;
+pub const MODBUS_CAT_PUBLIC_UNASSIGNED: u8 =    1<<1;
+pub const MODBUS_CAT_USER_DEFINED: u8 =         1<<2;
+pub const MODBUS_CAT_RESERVED: u8 =             1<<3;
+pub const MODBUS_CAT_ALL: u8 =                   0xFF;
+
+/* Modbus Function Code. */
+pub const MODBUS_FUNC_NONE: u8 =                 0x00;
+
+/* Modbus Read/Write function and Access Types. */
+pub const MODBUS_TYP_NONE: u8 =                  0x0;
+pub const MODBUS_TYP_ACCESS_MASK: u8 =           0x03;
+pub const MODBUS_TYP_READ: u8 =                 1<<0;
+pub const MODBUS_TYP_WRITE: u8 =                1<<1;
+pub const MODBUS_TYP_ACCESS_FUNCTION_MASK: u8 =  0x3C;
+pub const MODBUS_TYP_BIT_ACCESS_MASK: u8 =       0x0C;
+pub const MODBUS_TYP_DISCRETES: u8 =            1<<2;
+pub const MODBUS_TYP_COILS: u8 =                1<<3;
+pub const MODBUS_TYP_WORD_ACCESS_MASK: u8 =      0x30;
+pub const MODBUS_TYP_INPUT: u8 =                1<<4;
+pub const MODBUS_TYP_HOLDING: u8 =              1<<5;
+pub const MODBUS_TYP_SINGLE: u8 =               1<<6;
+pub const MODBUS_TYP_MULTIPLE: u8 =             1<<7;
+pub const MODBUS_TYP_WRITE_SINGLE: u8 =         MODBUS_TYP_WRITE | MODBUS_TYP_SINGLE;
+pub const MODBUS_TYP_WRITE_MULTIPLE: u8 =       MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE;
+pub const MODBUS_TYP_READ_WRITE_MULTIPLE: u8 =  MODBUS_TYP_READ | MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE;
+
+/* Modbus Read/Write function and Access Types. */
+// TODO I think those exactly the same as the last three above, can we delete them, therefore?
+// pub const MODBUS_TYP_WRITE_SINGLE         MODBUS_TYP_WRITE | MODBUS_TYP_SINGLE;
+// pub const MODBUS_TYP_WRITE_MULTIPLE       MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE;
+// pub const MODBUS_TYP_READ_WRITE_MULTIPLE  MODBUS_TYP_READ | MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE;
+
+// Modbus Application Protocol Header (MBAP) size
+pub const MODBUS_PDA_HEADER_LEN: usize = 7; 
+
+/* Modbus Protocol Data Unit (PDU) length range. */
+pub const MODBUS_MIN_ADU_LEN: usize =   2;
+pub const MODBUS_MAX_ADU_LEN: usize =  254; 
+// TODO confirm MODBUS PDU MAX value with tests and pcaps, documentation says max is 253
+// Unless it's being used like that because the length field in the MBAP header contains the length
+// including next field, which is unit address (1 byte), in which case, yes, if we compare 
+// with that in mind, max is 254. but, then, min len would be... 3? still confused
+// TODO should this really be usize? I'm having trouble using it, because header length is
+// u16. Not sure how to handle this properly...
+
+/* Modbus Unit Identifier range. */
+pub const MODBUS_MIN_INVALID_UNIT_ID: u8 = 247;
+pub const MODBUS_MAX_INVALID_UNIT_ID: u8 = 255;
+
+/* Modbus Quantity range. */
+pub const MODBUS_MIN_QUANTITY: u8                =     0;
+pub const MODBUS_MAX_QUANTITY_IN_BIT_ACCESS: u16 =  2000;
+pub const MODBUS_MAX_QUANTITY_IN_WORD_ACCESS: u8 =   125;
+
+/* Modbus Count range. */
+pub const MODBUS_MIN_COUNT: u8  =     1;
+pub const MODBUS_MAX_COUNT: u16 =    250;
+
+/* Modbus Function Code. */
+pub const MODBUS_FUNC_READCOILS: u8 =           0x01;
+pub const MODBUS_FUNC_READDISCINPUTS: u8 =      0x02;
+pub const MODBUS_FUNC_READHOLDREGS: u8 =        0x03;
+pub const MODBUS_FUNC_READINPUTREGS: u8 =       0x04;
+pub const MODBUS_FUNC_WRITESINGLECOIL: u8 =     0x05;
+pub const MODBUS_FUNC_WRITESINGLEREG: u8 =      0x06;
+pub const MODBUS_FUNC_READEXCSTATUS: u8 =       0x07;
+pub const MODBUS_FUNC_DIAGNOSTIC: u8 =          0x08;
+pub const MODBUS_FUNC_GETCOMEVTCOUNTER: u8 =    0x0b;
+pub const MODBUS_FUNC_GETCOMEVTLOG: u8 =        0x0c;
+pub const MODBUS_FUNC_WRITEMULTCOILS: u8 =      0x0f;
+pub const MODBUS_FUNC_WRITEMULTREGS: u8 =       0x10;
+pub const MODBUS_FUNC_REPORTSERVERID: u8 =      0x11;
+pub const MODBUS_FUNC_READFILERECORD: u8 =      0x14;
+pub const MODBUS_FUNC_WRITEFILERECORD: u8 =     0x15;
+pub const MODBUS_FUNC_MASKWRITEREG: u8 =        0x16;
+pub const MODBUS_FUNC_READWRITEMULTREGS: u8 =   0x17;
+pub const MODBUS_FUNC_READFIFOQUEUE: u8 =       0x18;
+pub const MODBUS_FUNC_ENCAPINTTRANS: u8 =       0x2b;
+pub const MODBUS_FUNC_MASK: u8 =                0x7f;
+pub const MODBUS_FUNC_ERRORMASK: u8 =           0x80;
+
+/* Modbus Diagnostic functions: Subfunction Code. */
+pub const MODBUS_SUBFUNC_QUERY_DATA: u16 =           0x00;
+pub const MODBUS_SUBFUNC_RESTART_COM: u16 =          0x01;
+pub const MODBUS_SUBFUNC_DIAG_REGS: u16 =            0x02;
+pub const MODBUS_SUBFUNC_CHANGE_DELIMITER: u16 =     0x03;
+pub const MODBUS_SUBFUNC_LISTEN_MODE: u16 =          0x04;
+pub const MODBUS_SUBFUNC_CLEAR_REGS: u16 =           0x0a;
+pub const MODBUS_SUBFUNC_BUS_MSG_COUNT: u16 =        0x0b;
+pub const MODBUS_SUBFUNC_COM_ERR_COUNT: u16 =        0x0c;
+pub const MODBUS_SUBFUNC_EXCEPT_ERR_COUNT: u16 =     0x0d;
+pub const MODBUS_SUBFUNC_SERVER_MSG_COUNT: u16 =     0x0e;
+pub const MODBUS_SUBFUNC_SERVER_NO_RSP_COUNT: u16 =  0x0f;
+pub const MODBUS_SUBFUNC_SERVER_NAK_COUNT: u16 =     0x10;
+pub const MODBUS_SUBFUNC_SERVER_BUSY_COUNT: u16 =    0x11;
+pub const MODBUS_SUBFUNC_SERVER_CHAR_COUNT: u16 =    0x12;
+pub const MODBUS_SUBFUNC_CLEAR_COUNT: u16 =          0x14;
+
+/* Modbus Encapsulated Interface Transport function: MEI type. */
+pub const MODBUS_MEI_ENCAPINTTRANS_CAN: u8 =   0x0d;
+pub const MODBUS_MEI_ENCAPINTTRANS_READ: u8 =  0x0e;
+
+/* Modbus Exception Codes. */
+pub const MODBUS_ERROR_CODE_ILLEGAL_FUNCTION: u8 =      0x01;
+pub const MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS: u8 =  0x02;
+pub const MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE: u8 =    0x03;
+pub const MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE: u8 = 0x04;
+pub const MODBUS_ERROR_CODE_MEMORY_PARITY_ERROR: u8 =   0x08;
+
+/* Macro to convert quantity value (in bit) into count value (in word):
+ count = Ceil(quantity/8) */
+ //TODO this macro
+// #define CEIL(quantity) (((quantity) + 7)>>3)
+
+/* Modbus Default unreplied Modbus requests are considered a flood */
+pub const MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD: u32 = 500;
+
+/* Modbus default stream reassembly depth */
+pub const MODBUS_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+
+static mut request_flood: u32 = MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD;
+static mut stream_depth: u32 = MODBUS_CONFIG_DEFAULT_STREAM_DEPTH;
+
+#[repr(packed, C)]
+pub struct NewModbusHeader {
+    pub transaction_id: u16,
+    pub protocol_id: u16,
+    pub length: u16,
+    pub unit_id: u8,
+}
+
+impl NewModbusHeader {
+    pub fn new() -> NewModbusHeader {
+        NewModbusHeader {
+            transaction_id: 0,
+            protocol_id: MODBUS_PROTOCOL_VER,
+            length: 0,
+            unit_id: 0,
+        }
+    }
+
+    //TODO will the simplest parser come here? Will I need a simpler method that will be struct independent? most likely...
+    
+}
+
+
+//TODO check and adapt these
 pub struct NewModbusTransaction {
     tx_id: u64,
     pub request: Option<String>,
@@ -237,6 +391,18 @@ impl NewModbusState {
         self.response_gap = true;
     }
 }
+
+
+/// Probe for a valid header.
+///
+/// TODO CHANGE THIS
+/// For Modbus Application Packet (MBAP) Header, the size is fixed
+// /// at 7 bytes
+// fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
+//     let (size) = cmp::assert_eq!(input.len(),std::mem::size_of<NewModbusHeader>())?;
+//     Ok((rem, ()))
+// }
+
 
 /// Probe for a valid header.
 ///
@@ -570,9 +736,30 @@ pub unsafe extern "C" fn rs_newmodbus_register_parser() {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::applayer::AppLayerResult;
+    use crate::core;
+    use std::cmp;
+    use std::mem;
 
     #[test]
-    fn test_probe() {
+    fn test_header_constructor() {
+        let mut header_valid = NewModbusHeader::new();
+        header_valid.transaction_id = 0x000A;
+        header_valid.protocol_id = MODBUS_PROTOCOL_VER;
+        header_valid.length = 0x0008;
+        header_valid.unit_id = 0x00;
+
+        assert_eq!(7,mem::size_of::<NewModbusHeader>());
+    }
+
+    #[test]
+    fn test_max_pdu_length() {
+        // TODO what's the best way to test this?
+        unimplemented!("Still to understand best way to check this. PCAPs?");
+    }
+
+    #[test]
+    fn test_probe() { ///TODO re-write
         assert!(probe(b"1").is_err());
         assert!(probe(b"1:").is_ok());
         assert!(probe(b"123456789:").is_ok());
