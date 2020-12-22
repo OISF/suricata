@@ -22,15 +22,6 @@
  *
  */
 
-#ifndef HAVE_NSS
-
-static void DetectTlsJa3HashRegisterTests(void)
-{
-    /* Don't register any tests */
-}
-
-#else /* HAVE_NSS */
-
 /**
  * \test Test matching on a simple client hello packet
  */
@@ -224,5 +215,3 @@ static void DetectTlsJa3HashRegisterTests(void)
     UtRegisterTest("DetectTlsJa3HashTest01", DetectTlsJa3HashTest01);
     UtRegisterTest("DetectTlsJa3HashTest02", DetectTlsJa3HashTest02);
 }
-
-#endif /* HAVE_NSS */
