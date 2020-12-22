@@ -5,8 +5,6 @@ Suricata comes with a JA3 integration (https://github.com/salesforce/ja3). JA3 i
 
 JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
 
-JA3 also requires Suricata to be built with LibNSS support.
-
 ja3.hash
 --------
 
