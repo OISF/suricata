@@ -22,15 +22,6 @@
  *
  */
 
-#ifndef HAVE_NSS
-
-static void DetectTlsJa3SHashRegisterTests(void)
-{
-    /* Don't register any tests */
-}
-
-#else /* HAVE_NSS */
-
 /**
  * \test Test matching on a JA3S hash from a ServerHello record
  */
@@ -173,5 +164,3 @@ void DetectTlsJa3SHashRegisterTests(void)
 {
     UtRegisterTest("DetectTlsJa3SHashTest01", DetectTlsJa3SHashTest01);
 }
-
-#endif /* HAVE_NSS */
