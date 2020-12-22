@@ -34,6 +34,10 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
+#ifdef HAVE_NSS
+#include <sechash.h>
+#endif
+
 static int DetectTransformToMd5Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
 #ifdef UNITTESTS

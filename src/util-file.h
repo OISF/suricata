@@ -25,10 +25,6 @@
 #ifndef __UTIL_FILE_H__
 #define __UTIL_FILE_H__
 
-#ifdef HAVE_NSS
-#include <sechash.h>
-#endif
-
 #include "conf.h"
 
 #include "util-streaming-buffer.h"
@@ -88,14 +84,12 @@ typedef struct File_ {
     char *magic;
 #endif
     struct File_ *next;
-#ifdef HAVE_NSS
     SCMd5 *md5_ctx;
     uint8_t md5[SC_MD5_LEN];
     SCSha1 *sha1_ctx;
     uint8_t sha1[SC_SHA1_LEN];
     SCSha256 *sha256_ctx;
     uint8_t sha256[SC_SHA256_LEN];
-#endif
     uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
                                      *   flag is set */
     uint64_t content_stored;
