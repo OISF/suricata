@@ -36,6 +36,7 @@
 #include "util-print.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
+#include "rust.h"
 
 extern int g_detect_disabled;
 
@@ -527,11 +528,11 @@ static void FileFree(File *ff)
 
 #ifdef HAVE_NSS
     if (ff->md5_ctx)
-        HASH_Destroy(ff->md5_ctx);
+        SCMd5Free(ff->md5_ctx);
     if (ff->sha1_ctx)
-        HASH_Destroy(ff->sha1_ctx);
+        SCSha1Free(ff->sha1_ctx);
     if (ff->sha256_ctx)
-        HASH_Destroy(ff->sha256_ctx);
+        SCSha256Free(ff->sha256_ctx);
 #endif
     SCFree(ff);
 }
@@ -613,13 +614,13 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 
 #ifdef HAVE_NSS
     if (file->md5_ctx) {
-        HASH_Update(file->md5_ctx, data, data_len);
+        SCMd5Update(file->md5_ctx, data, data_len);
     }
     if (file->sha1_ctx) {
-        HASH_Update(file->sha1_ctx, data, data_len);
+        SCSha1Update(file->sha1_ctx, data, data_len);
     }
     if (file->sha256_ctx) {
-        HASH_Update(file->sha256_ctx, data, data_len);
+        SCSha256Update(file->sha256_ctx, data, data_len);
     }
 #endif
     SCReturnInt(0);
@@ -673,15 +674,15 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
         int hash_done = 0;
         /* no storage but forced hashing */
         if (ff->md5_ctx) {
-            HASH_Update(ff->md5_ctx, data, data_len);
+            SCMd5Update(ff->md5_ctx, data, data_len);
             hash_done = 1;
         }
         if (ff->sha1_ctx) {
-            HASH_Update(ff->sha1_ctx, data, data_len);
+            SCSha1Update(ff->sha1_ctx, data, data_len);
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
-            HASH_Update(ff->sha256_ctx, data, data_len);
+            SCSha256Update(ff->sha256_ctx, data, data_len);
             hash_done = 1;
         }
 
@@ -887,22 +888,13 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
 
 #ifdef HAVE_NSS
     if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
-        ff->md5_ctx = HASH_Create(HASH_AlgMD5);
-        if (ff->md5_ctx != NULL) {
-            HASH_Begin(ff->md5_ctx);
-        }
+        ff->md5_ctx = SCMd5New();
     }
     if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
-        ff->sha1_ctx = HASH_Create(HASH_AlgSHA1);
-        if (ff->sha1_ctx != NULL) {
-            HASH_Begin(ff->sha1_ctx);
-        }
+        ff->sha1_ctx = SCSha1New();
     }
     if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
-        ff->sha256_ctx = HASH_Create(HASH_AlgSHA256);
-        if (ff->sha256_ctx != NULL) {
-            HASH_Begin(ff->sha256_ctx);
-        }
+        ff->sha256_ctx = SCSha256New();
     }
 #endif
 
@@ -961,11 +953,11 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
 #ifdef HAVE_NSS
             /* no storage but hashing */
             if (ff->md5_ctx)
-                HASH_Update(ff->md5_ctx, data, data_len);
+                SCMd5Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
-                HASH_Update(ff->sha1_ctx, data, data_len);
+                SCSha1Update(ff->sha1_ctx, data, data_len);
             if (ff->sha256_ctx)
-                HASH_Update(ff->sha256_ctx, data, data_len);
+                SCSha256Update(ff->sha256_ctx, data, data_len);
 #endif
         } else {
             if (AppendData(ff, data, data_len) != 0) {
@@ -995,13 +987,13 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
 
 #ifdef HAVE_NSS
         if (ff->md5_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
+            SCMd5Finalize(ff->md5_ctx, ff->md5, sizeof(ff->md5));
+            ff->md5_ctx = NULL;
             ff->flags |= FILE_MD5;
         }
         if (ff->sha1_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->sha1_ctx, ff->sha1, &len, sizeof(ff->sha1));
+            SCSha1Finalize(ff->sha1_ctx, ff->sha1, sizeof(ff->sha1));
+            ff->sha1_ctx = NULL;
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
@@ -1111,19 +1103,19 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
                 if ((per_file_flags & FILE_NOSHA256) &&
                         ptr->sha256_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->sha256_ctx);
+                    SCSha256Free(ptr->sha256_ctx);
                     ptr->sha256_ctx = NULL;
                 }
                 if ((per_file_flags & FILE_NOSHA1) &&
                     ptr->sha1_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->sha1_ctx);
+                    SCSha1Free(ptr->sha1_ctx);
                     ptr->sha1_ctx = NULL;
                 }
                 if ((per_file_flags & FILE_NOMD5) &&
                         ptr->md5_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->md5_ctx);
+                    SCMd5Free(ptr->md5_ctx);
                     ptr->md5_ctx = NULL;
                 }
 #endif
@@ -1262,8 +1254,8 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
 static void FileEndSha256(File *ff)
 {
     if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
-        unsigned int len = 0;
-        HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+        SCSha256Finalize(ff->sha256_ctx, ff->sha256, sizeof(ff->sha256));
+        ff->sha256_ctx = NULL;
         ff->flags |= FILE_SHA256;
     }
 }
