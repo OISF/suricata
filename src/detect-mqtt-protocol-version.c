@@ -32,7 +32,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int mqtt_protocol_version_id = 0;
 
