@@ -132,6 +132,14 @@ pub unsafe extern "C" fn SCMd5Free(hasher: &mut SCMd5) {
     let _: Box<SCMd5> = Box::from_raw(hasher);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut u8, len: u32) {
+    let data = std::slice::from_raw_parts(buf, buf_len as usize);
+    let output = std::slice::from_raw_parts_mut(out, len as usize);
+    let hash = Md5::new().chain(data).finalize();
+    output.copy_from_slice(&hash);
+}
+
 // Functions that are generic over Digest. For the most part the C bindings are
 // just wrappers around these.
 
