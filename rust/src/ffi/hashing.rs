@@ -17,6 +17,8 @@
 
 use sha2::{Digest, Sha256};
 
+pub const SC_SHA256_LEN: usize = 32;
+
 // Wrap the Rust Sha256 in a new type named SCSha256 to give this type
 // the "SC" prefix. The one drawback is we must access the actual context
 // with .0.
@@ -39,6 +41,7 @@ pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, l
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
     let output = std::slice::from_raw_parts_mut(out, len as usize);
+    // This will panic if the sizes differ.
     output.copy_from_slice(&result);
 }
 
@@ -59,7 +62,11 @@ pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut 
     let result = hasher.0.finalize();
     let hex = format!("{:x}", &result);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
+
+    // This will panic if the sizes differ.
     output[0..len as usize - 1].copy_from_slice(&hex.as_bytes());
+
+    // Terminate the string.
     output[output.len() - 1] = 0;
 }
 

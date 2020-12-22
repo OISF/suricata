@@ -36,6 +36,7 @@
 #include "util-print.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
+#include "rust.h"
 
 extern int g_detect_disabled;
 
@@ -531,7 +532,7 @@ static void FileFree(File *ff)
     if (ff->sha1_ctx)
         HASH_Destroy(ff->sha1_ctx);
     if (ff->sha256_ctx)
-        HASH_Destroy(ff->sha256_ctx);
+        SCSha256Free(ff->sha256_ctx);
 #endif
     SCFree(ff);
 }
@@ -619,7 +620,7 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
         HASH_Update(file->sha1_ctx, data, data_len);
     }
     if (file->sha256_ctx) {
-        HASH_Update(file->sha256_ctx, data, data_len);
+        SCSha256Update(file->sha256_ctx, data, data_len);
     }
 #endif
     SCReturnInt(0);
@@ -681,7 +682,7 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
-            HASH_Update(ff->sha256_ctx, data, data_len);
+            SCSha256Update(ff->sha256_ctx, data, data_len);
             hash_done = 1;
         }
 
@@ -899,10 +900,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
         }
     }
     if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
-        ff->sha256_ctx = HASH_Create(HASH_AlgSHA256);
-        if (ff->sha256_ctx != NULL) {
-            HASH_Begin(ff->sha256_ctx);
-        }
+        ff->sha256_ctx = SCSha256New();
     }
 #endif
 
@@ -965,7 +963,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             if (ff->sha1_ctx)
                 HASH_Update(ff->sha1_ctx, data, data_len);
             if (ff->sha256_ctx)
-                HASH_Update(ff->sha256_ctx, data, data_len);
+                SCSha256Update(ff->sha256_ctx, data, data_len);
 #endif
         } else {
             if (AppendData(ff, data, data_len) != 0) {
@@ -1111,7 +1109,7 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
                 if ((per_file_flags & FILE_NOSHA256) &&
                         ptr->sha256_ctx != NULL)
                 {
-                    HASH_Destroy(ptr->sha256_ctx);
+                    SCSha256Free(ptr->sha256_ctx);
                     ptr->sha256_ctx = NULL;
                 }
                 if ((per_file_flags & FILE_NOSHA1) &&
@@ -1262,8 +1260,8 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
 static void FileEndSha256(File *ff)
 {
     if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
-        unsigned int len = 0;
-        HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+        SCSha256Finalize(ff->sha256_ctx, ff->sha256, sizeof(ff->sha256));
+        ff->sha256_ctx = NULL;
         ff->flags |= FILE_SHA256;
     }
 }
