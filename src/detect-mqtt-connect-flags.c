@@ -30,7 +30,7 @@
 #include "detect-mqtt-connect-flags.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "(?: *,?!?(?:username|password|will|will_retain|clean_session))+"
 static DetectParseRegex parse_regex;

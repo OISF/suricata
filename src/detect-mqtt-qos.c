@@ -31,7 +31,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int mqtt_qos_id = 0;
 

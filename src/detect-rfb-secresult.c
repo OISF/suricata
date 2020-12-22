@@ -30,7 +30,7 @@
 #include "detect-rfb-secresult.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "\\S[A-z]"
 static DetectParseRegex parse_regex;
