@@ -54,10 +54,6 @@
 #include "flow-private.h"
 #include "util-validate.h"
 
-#ifdef HAVE_NSS
-#include <sechash.h>
-#endif
-
 SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
     { "INVALID_SSLV2_HEADER",        TLS_DECODER_EVENT_INVALID_SSLV2_HEADER },
@@ -456,10 +452,9 @@ static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
     if (ssl_state->server_connp.cert0_fingerprint == NULL)
         return -1;
 
-    uint8_t hash[SHA1_LENGTH];
-    if (ComputeSHA1(input, cert_len, hash, sizeof(hash)) == 1) {
-        for (int i = 0, x = 0; x < SHA1_LENGTH; x++)
-        {
+    uint8_t hash[SC_SHA1_LEN];
+    if (SCSha1HashBuffer(input, cert_len, hash, sizeof(hash)) == 1) {
+        for (int i = 0, x = 0; x < SC_SHA1_LEN; x++) {
             i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
                     SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
                     hash[x]);
@@ -3026,8 +3021,16 @@ void RegisterSSLParsers(void)
         }
         SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
 
-        if (RunmodeIsUnittests()) {
-            SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+        if (g_disable_hashing) {
+            if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+                SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
+                        "no MD5 calculation support built in (LibNSS), disabling JA3");
+                SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
+            }
+        } else {
+            if (RunmodeIsUnittests()) {
+                SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+            }
         }
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
@@ -3048,7 +3051,7 @@ void RegisterSSLParsers(void)
  */
 void SSLEnableJA3(void)
 {
-    if (ssl_config.disable_ja3) {
+    if (g_disable_hashing || ssl_config.disable_ja3) {
         return;
     }
     if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
