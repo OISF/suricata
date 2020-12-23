@@ -668,7 +668,7 @@ static bool CalculateCommunityFlowIdv4(const Flow *f,
     ipv4.pad0 = 0;
 
     uint8_t hash[20];
-    if (ComputeSHA1((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
+    if (SCSha1HashBuffer((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
@@ -730,7 +730,7 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
     ipv6.pad0 = 0;
 
     uint8_t hash[20];
-    if (ComputeSHA1((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
+    if (SCSha1HashBuffer((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
