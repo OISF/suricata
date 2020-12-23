@@ -342,8 +342,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nspr-devel \
-                nss-devel \
                 nss-softokn-devel \
                 pcre-devel \
                 pkgconfig \
@@ -417,8 +415,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nspr-devel \
-                nss-devel \
                 nss-softokn-devel \
                 pcre-devel \
                 pkgconfig \
@@ -490,8 +486,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nspr-devel \
-                nss-devel \
                 nss-softokn-devel \
                 pcre-devel \
                 pkgconfig \
@@ -576,7 +570,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --disable-nss --disable-nspr
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
       - run: make -j2
       - run: make dist
       - name: Extracting suricata-verify
@@ -958,7 +952,6 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
-                libnss3-dev \
                 libpcre3 \
                 libpcre3-dev \
                 libpcap-dev \
@@ -1022,7 +1015,6 @@ jobs:
                 libcap-ng0 \
                 libmagic-dev \
                 libjansson-dev \
-                libnss3-dev \
                 libgeoip-dev \
                 liblua5.1-dev \
                 libhiredis-dev \
@@ -1086,7 +1078,6 @@ jobs:
                 libcap-ng0 \
                 libmagic-dev \
                 libjansson-dev \
-                libnss3-dev \
                 libgeoip-dev \
                 liblua5.1-dev \
                 libhiredis-dev \
@@ -1146,8 +1137,6 @@ jobs:
           libtool \
           libyaml \
           lua \
-          nss \
-          nspr \
           pcre \
           pkg-config \
           rust \
@@ -1184,7 +1173,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson mingw-w64-x86_64-nss mingw-w64-x86_64-nspr unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
