@@ -125,7 +125,6 @@ static bool EveEmailJsonArrayFromCommaList(JsonBuilder *js, const uint8_t *val, 
     return true;
 }
 
-#ifdef HAVE_NSS
 static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
@@ -136,12 +135,12 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
         }
         field = MimeDecFindField(entity, "subject");
         if (field != NULL) {
-            unsigned char md5[MD5_LENGTH];
+            unsigned char md5[SC_MD5_LEN];
             char smd5[256];
             char *value = BytesToString((uint8_t *)field->value , field->value_len);
             if (value) {
                 size_t i,x;
-                HASH_HashBuf(HASH_AlgMD5, md5, (unsigned char *)value, strlen(value));
+                SCMd5HashBuffer((uint8_t *)value, strlen(value), md5, sizeof(md5));
                 for (i = 0, x = 0; x < sizeof(md5); x++) {
                     i += snprintf(smd5 + i, 255 - i, "%02x", md5[x]);
                 }
@@ -166,7 +165,6 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
         }
     }
 }
-#endif
 
 static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
 {
@@ -381,9 +379,9 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *
     if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
         EveEmailLogJSONCustom(email_ctx, js, tx);
 
-#ifdef HAVE_NSS
-    EveEmailLogJSONMd5(email_ctx, js, tx);
-#endif
+    if (!g_disable_hashing) {
+        EveEmailLogJSONMd5(email_ctx, js, tx);
+    }
 
     jb_close(js);
     SCReturnInt(TM_ECODE_OK);
