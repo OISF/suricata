@@ -53,6 +53,10 @@
 #include "output-json.h"
 #include "output-json-email-common.h"
 
+#ifdef HAVE_NSS
+#include <sechash.h>
+#endif
+
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)
 #define LOG_EMAIL_ARRAY         (1<<1) /* require array handling */
@@ -149,7 +153,7 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
 
     if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
         MimeDecParseState *mime_state = tx->mime_state;
-        if (mime_state && mime_state->md5_ctx && (mime_state->state_flag == PARSE_DONE)) {
+        if (mime_state && mime_state->has_md5 && (mime_state->state_flag == PARSE_DONE)) {
             size_t x;
             int i;
             char s[256];
