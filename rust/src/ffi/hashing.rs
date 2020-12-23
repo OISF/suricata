@@ -17,7 +17,7 @@
 
 use std::os::raw::c_char;
 use digest::Digest;
-use md5c::Md5;
+use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
 
