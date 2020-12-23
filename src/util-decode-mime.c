@@ -32,6 +32,8 @@
 #include "util-memcmp.h"
 #include "util-print.h"
 
+#include "rust.h"
+
 /* Character constants */
 #ifndef CR
 #define CR  13
@@ -2094,13 +2096,6 @@ static int ProcessBodyComplete(MimeDecParseState *state)
         }
     }
 
-#ifdef HAVE_NSS
-    if (state->md5_ctx) {
-        unsigned int len = 0;
-        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
-    }
-#endif
-
     /* Invoke pre-processor and callback with remaining data */
     ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     if (ret != MIME_DEC_OK) {
@@ -2269,17 +2264,16 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     int body_found = 0;
     uint32_t tlen;
 
-#ifdef HAVE_NSS
-    if (MimeDecGetConfig()->body_md5) {
-        if (state->body_begin == 1) {
-            if (state->md5_ctx == NULL) {
-                state->md5_ctx = HASH_Create(HASH_AlgMD5);
-                HASH_Begin(state->md5_ctx);
+    if (!g_disable_hashing) {
+        if (MimeDecGetConfig()->body_md5) {
+            if (state->body_begin == 1) {
+                if (state->md5_ctx == NULL) {
+                    state->md5_ctx = SCMd5New();
+                }
             }
+            SCMd5Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
         }
-        HASH_Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
     }
-#endif
 
     /* Ignore empty lines */
     if (len == 0) {
@@ -2505,10 +2499,8 @@ void MimeDecDeInitParser(MimeDecParseState *state)
     SCFree(state->hname);
     FreeDataValue(state->hvalue);
     FreeMimeDecStack(state->stack);
-#ifdef HAVE_NSS
     if (state->md5_ctx)
-        HASH_Destroy(state->md5_ctx);
-#endif
+        SCMd5Free(state->md5_ctx);
     SCFree(state);
 }
 
@@ -2545,6 +2537,12 @@ int MimeDecParseComplete(MimeDecParseState *state)
     if (ret != MIME_DEC_OK) {
         SCLogDebug("Error: ProcessBodyComplete() function failed");
         return ret;
+    }
+
+    if (state->md5_ctx) {
+        SCMd5Finalize(state->md5_ctx, state->md5, sizeof(state->md5));
+        state->md5_ctx = NULL;
+        state->has_md5 = true;
     }
 
     if (state->stack->top == NULL) {
