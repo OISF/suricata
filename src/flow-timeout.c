@@ -80,6 +80,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            Flow *f,
                                                            TcpSession *ssn)
 {
+    const int orig_dir = direction;
     p->tenant_id = f->tenant_id;
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
@@ -217,7 +218,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->tcph->th_urp = 0;
 
     /* to server */
-    if (direction == 0) {
+    if (orig_dir == 0) {
         p->tcph->th_sport = htons(f->sp);
         p->tcph->th_dport = htons(f->dp);
 
