@@ -15,12 +15,13 @@
  * 02110-1301, USA.
  */
 
-use std::os::raw::c_char;
 use digest::Digest;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
+use std::os::raw::c_char;
 
+pub const SC_SHA1_LEN: usize = 20;
 pub const SC_SHA256_LEN: usize = 32;
 
 // Wrap the Rust Sha256 in a new type named SCSha256 to give this type
@@ -101,6 +102,20 @@ pub unsafe extern "C" fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: 
 pub unsafe extern "C" fn SCSha1Free(hasher: &mut SCSha1) {
     // Drop.
     let _: Box<SCSha1> = Box::from_raw(hasher);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1HashBuffer(
+    buf: *const u8, buf_len: u32, out: *mut u8, len: u32,
+) -> bool {
+    if len as usize != SC_SHA1_LEN {
+        return false;
+    }
+    let data = std::slice::from_raw_parts(buf, buf_len as usize);
+    let output = std::slice::from_raw_parts_mut(out, len as usize);
+    let hash = Sha1::new().chain(data).finalize();
+    output.copy_from_slice(&hash);
+    return true;
 }
 
 // Start of MD5 C bindins.
