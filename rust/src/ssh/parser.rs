@@ -17,7 +17,7 @@
 
 use nom::combinator::rest;
 use nom::number::streaming::{be_u32, be_u8};
-use md5c::Md5;
+use md5::Md5;
 use digest::Digest;
 use std::fmt;
 
