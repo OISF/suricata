@@ -233,6 +233,10 @@ int g_disable_randomness = 1;
   * comparing flows */
 uint16_t g_vlan_mask = 0xffff;
 
+/* flag to disable hashing almost globally, to be similar to disabling nss
+ * support */
+bool g_disable_hashing = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
