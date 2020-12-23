@@ -31,11 +31,6 @@
 #include <signal.h>
 #endif
 
-#ifdef HAVE_NSS
-#include <prinit.h>
-#include <nss.h>
-#endif
-
 #include "suricata.h"
 #include "decode.h"
 #include "feature.h"
@@ -357,12 +352,6 @@ static void GlobalsDestroy(SCInstance *suri)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
-#ifdef HAVE_NSS
-    if (NSS_IsInitialized()) {
-        NSS_Shutdown();
-        PR_Cleanup();
-    }
-#endif
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
@@ -703,9 +692,8 @@ static void PrintBuildInfo(void)
 #ifdef PCRE_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
-#ifdef HAVE_NSS
+    /* For compatibility, just say we have HAVE_NSS. */
     strlcat(features, "HAVE_NSS ", sizeof(features));
-#endif
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #endif
@@ -2593,15 +2581,6 @@ int PostConfLoadedSetup(SCInstance *suri)
                 "Shutting down the engine", suri->log_dir, suri->conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
     }
-
-
-#ifdef HAVE_NSS
-    if (suri->run_mode != RUNMODE_CONF_TEST) {
-        /* init NSS for hashing */
-        PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-        NSS_NoDB_Init(NULL);
-    }
-#endif
 
     if (suri->disabled_detect) {
         SCLogConfig("detection engine disabled");
