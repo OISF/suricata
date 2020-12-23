@@ -76,6 +76,20 @@ pub unsafe extern "C" fn SCSha256Free(hasher: &mut SCSha256) {
     let _: Box<SCSha256> = Box::from_raw(hasher);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCSha256HashBuffer(
+    buf: *const u8, buf_len: u32, out: *mut u8, len: u32,
+) -> bool {
+    if len as usize != SC_SHA256_LEN {
+        return false;
+    }
+    let data = std::slice::from_raw_parts(buf, buf_len as usize);
+    let output = std::slice::from_raw_parts_mut(out, len as usize);
+    let hash = Sha256::new().chain(data).finalize();
+    output.copy_from_slice(&hash);
+    return true;
+}
+
 // Start of SHA1 C bindings.
 
 pub struct SCSha1(Sha1);
