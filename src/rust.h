@@ -23,7 +23,8 @@
 
 /* Some manual exports from Rust as we are not yet exporting constants with
  * cbindgen. */
-#define SC_MD5_LEN 16
+#define SC_MD5_LEN  16
+#define SC_SHA1_LEN 20
 
 #define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
 #define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
