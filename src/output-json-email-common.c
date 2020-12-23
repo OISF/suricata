@@ -53,10 +53,6 @@
 #include "output-json.h"
 #include "output-json-email-common.h"
 
-#ifdef HAVE_NSS
-#include <sechash.h>
-#endif
-
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)
 #define LOG_EMAIL_ARRAY         (1<<1) /* require array handling */
