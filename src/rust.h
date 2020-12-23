@@ -21,6 +21,10 @@
 #include "rust-context.h"
 #include "rust-bindings.h"
 
+/* Some manual exports from Rust as we are not yet exporting constants with
+ * cbindgen. */
+#define SC_MD5_LEN 16
+
 #define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
 #define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
 #define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")
