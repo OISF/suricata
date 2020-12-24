@@ -200,6 +200,14 @@ statement it will overwrite the included file. Therefor any include
 statement at the end of the document will overwrite the already
 configured sections.
 
+Global Memcap
+-------------
+
+The global memcap value, if enabled, sets an upper bound on the sum of all
+configured memcap values.
+If the global memcap value is exceeded, Suricata will fail to start.
+By default, the global memcap is disabled. Set a value to enable.
+
 Event output
 ------------
 
