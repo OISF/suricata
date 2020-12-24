@@ -1998,10 +1998,10 @@ static int InitSignalHandler(SCInstance *suri)
  * unix socket mode.
  *
  * Will be run once per pcap in unix-socket mode */
-void PreRunInit(const int runmode)
+void PreRunInit(const SCInstance *suri, const int runmode)
 {
     /* Initialize Datasets to be able to use them with unix socket */
-    DatasetsInit();
+    DatasetsInit(suri);
     HttpRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
@@ -2612,7 +2612,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
 
-    PreRunInit(suri->run_mode);
+    PreRunInit(suri, suri->run_mode);
 
     SCReturnInt(TM_ECODE_OK);
 }
