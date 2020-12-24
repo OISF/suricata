@@ -334,7 +334,8 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load, memcap, hashsize);
+    /* Do not set uid and gid as we already are in low privilege mode here */
+    Dataset *set = DatasetGet(name, type, /* no save */ NULL, load, memcap, hashsize, 0, 0);
     if (set == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE,
                 "failed to set up datarep set '%s'.", name);
