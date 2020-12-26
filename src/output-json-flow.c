@@ -64,6 +64,32 @@ typedef struct JsonFlowLogThread_ {
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
+static void EveBuildFlowIPParams(
+        const Flow *f, char *srcip, size_t srclen, char *dstip, size_t dstlen, Port *sp, Port *dp)
+{
+    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, srclen);
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, dstlen);
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, srclen);
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, dstlen);
+        }
+        *sp = f->sp;
+        *dp = f->dp;
+    } else {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, srclen);
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, dstlen);
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, srclen);
+            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, dstlen);
+        }
+        *sp = f->dp;
+        *dp = f->sp;
+    }
+}
+
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
@@ -81,28 +107,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 
     CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
 
-    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
-        if (FLOW_IS_IPV4(f)) {
-            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
-            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
-        } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
-        }
-        sp = f->sp;
-        dp = f->dp;
-    } else {
-        if (FLOW_IS_IPV4(f)) {
-            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, sizeof(srcip));
-            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, sizeof(dstip));
-        } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
-        }
-        sp = f->dp;
-        dp = f->sp;
-    }
-
+    EveBuildFlowIPParams(f, srcip, sizeof(srcip), dstip, sizeof(dstip), &sp, &dp);
     /* time */
     jb_set_string(jb, "timestamp", timebuf);
 
@@ -221,6 +226,14 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
     jb_set_string(js, "start", timebuf1);
+
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
+    Port sp, dp;
+    EveBuildFlowIPParams(f, srcip, sizeof(srcip), dstip, sizeof(dstip), &sp, &dp);
+    jb_set_string(js, "src_ip", srcip);
+    jb_set_string(js, "dest_ip", dstip);
+    jb_set_uint(js, "src_port", sp);
+    jb_set_uint(js, "dest_port", dp);
 }
 
 /* Eve format logging */
