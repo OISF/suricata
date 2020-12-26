@@ -716,7 +716,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             EveAddAppProto(p->flow, jb);
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 jb_open_object(jb, "flow");
-                EveAddFlow(p->flow, jb);
+                EveAddFlow(p->flow, jb, FLOW_LOG_DIR_VERBOSE);
                 jb_close(jb);
             }
         }
