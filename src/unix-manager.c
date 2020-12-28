@@ -1088,6 +1088,7 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("dataset-remove", UnixSocketDatasetRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand(
             "get-flow-stats-by-id", UnixSocketGetFlowStatsById, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("dataset-dump", UnixSocketDatasetDump, NULL, 0);
 
     return 0;
 }
