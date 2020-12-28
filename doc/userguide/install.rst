@@ -149,7 +149,7 @@ For Debian 10 (buster), for instance, run the following as ``root``::
 Fedora
 ^^^^^^
 
-The following is an example of install Suricata 6.0 on Fedora. If you wish to install 5.0 or 4.1 instead, change the version in *@oisf/suricata-6.0*.
+The following is an example of installing Suricata 6.0 on Fedora. If you wish to install 5.0 or 4.1 instead, change the version in *@oisf/suricata-6.0*.
 
 ::
 
