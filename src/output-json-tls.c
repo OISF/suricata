@@ -411,7 +411,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    EveAddCommonOptions(&tls_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&tls_ctx->cfg, p, f, js, aft->buffer);
 
     jb_open_object(js, "tls");
 
@@ -423,7 +423,8 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         JsonTlsLogJSONCustom(tls_ctx, js, ssl_state);
     }
     /* log extended */
-    else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
+    else if ((tls_ctx->flags & LOG_TLS_EXTENDED) ||
+             OutputJSONNeedFullLog(&aft->tlslog_ctx->cfg, f, tx_id, LOG_TYPE_STRING)) {
         JsonTlsLogJSONExtended(js, ssl_state);
     }
     /* log basic */

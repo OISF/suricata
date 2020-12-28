@@ -80,7 +80,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    EveAddCommonOptions(&ssh_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&ssh_ctx->cfg, p, f, js, aft->buffer);
 
     /* reset */
     MemBufferReset(aft->buffer);

@@ -78,7 +78,7 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
     }
     jb_close(jb);
 
-    EveAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, jb, thread->buffer);
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
 

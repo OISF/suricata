@@ -64,11 +64,12 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
-    EveAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js, thread->buffer);
     if (!rs_rdp_to_json(tx, js)) {
         jb_free(js);
         return TM_ECODE_FAILED;
     }
+
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
 

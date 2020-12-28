@@ -129,7 +129,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         }
 
         if (is_ip_pkt) {
-            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, aft->json_buffer);
         }
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
@@ -186,7 +186,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, aft->json_buffer);
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
 

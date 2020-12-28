@@ -91,7 +91,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    EveAddCommonOptions(&http2_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&http2_ctx->cfg, p, f, js, aft->buffer);
 
     /* reset */
     MemBufferReset(aft->buffer);

@@ -83,7 +83,7 @@ static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+    EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, NULL);
     OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
 
     return TM_ECODE_OK;

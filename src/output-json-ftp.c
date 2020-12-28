@@ -163,7 +163,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
 
     JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id);
     if (likely(jb)) {
-        EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb);
+        EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb, thread->buffer);
         jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
             EveFTPDataAddMetadata(f, jb);
