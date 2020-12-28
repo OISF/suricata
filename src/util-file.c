@@ -181,8 +181,13 @@ void FileForceHashParseCfg(ConfNode *conf)
                 "found. Please use 'force-hash: [md5]' instead");
 
         if (ConfValIsTrue(force_md5)) {
-            FileForceMd5Enable();
-            SCLogInfo("forcing md5 calculation for logged files");
+            if (g_disable_hashing) {
+                SCLogInfo(
+                        "not forcing md5 calculation for logged files: hashing globally disabled");
+            } else {
+                FileForceMd5Enable();
+                SCLogInfo("forcing md5 calculation for logged files");
+            }
         }
     }
 
@@ -194,18 +199,33 @@ void FileForceHashParseCfg(ConfNode *conf)
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
             if (strcasecmp("md5", field->val) == 0) {
-                FileForceMd5Enable();
-                SCLogConfig("forcing md5 calculation for logged or stored files");
+                if (g_disable_hashing) {
+                    SCLogInfo("not forcing md5 calculation for logged files: hashing globally "
+                              "disabled");
+                } else {
+                    FileForceMd5Enable();
+                    SCLogConfig("forcing md5 calculation for logged or stored files");
+                }
             }
 
             if (strcasecmp("sha1", field->val) == 0) {
-                FileForceSha1Enable();
-                SCLogConfig("forcing sha1 calculation for logged or stored files");
+                if (g_disable_hashing) {
+                    SCLogInfo("not forcing sha1 calculation for logged files: hashing globally "
+                              "disabled");
+                } else {
+                    FileForceSha1Enable();
+                    SCLogConfig("forcing sha1 calculation for logged or stored files");
+                }
             }
 
             if (strcasecmp("sha256", field->val) == 0) {
-                FileForceSha256Enable();
-                SCLogConfig("forcing sha256 calculation for logged or stored files");
+                if (g_disable_hashing) {
+                    SCLogInfo("not forcing sha256 calculation for logged files: hashing globally "
+                              "disabled");
+                } else {
+                    FileForceSha256Enable();
+                    SCLogConfig("forcing sha256 calculation for logged or stored files");
+                }
             }
         }
     }
@@ -863,14 +883,16 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
         ff->flags |= FILE_USE_DETECT;
     }
 
-    if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
-        ff->md5_ctx = SCMd5New();
-    }
-    if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
-        ff->sha1_ctx = SCSha1New();
-    }
-    if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
-        ff->sha256_ctx = SCSha256New();
+    if (!g_disable_hashing) {
+        if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
+            ff->md5_ctx = SCMd5New();
+        }
+        if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
+            ff->sha1_ctx = SCSha1New();
+        }
+        if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
+            ff->sha256_ctx = SCSha256New();
+        }
     }
 
     ff->state = FILE_STATE_OPENED;
