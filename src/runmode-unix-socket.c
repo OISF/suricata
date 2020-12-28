@@ -755,6 +755,15 @@ TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t* answer, void *data)
     }
 }
 
+TmEcode UnixSocketDatasetDump(json_t *cmd, json_t *answer, void *data)
+{
+    SCEnter();
+    SCLogDebug("Going to dump datasets");
+    DatasetsSave();
+    json_object_set_new(answer, "message", json_string("datasets dump done"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 /**
  * \brief Command to add a tenant handler
  *
