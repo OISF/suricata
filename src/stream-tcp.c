@@ -2045,12 +2045,38 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpSetEvent(p, STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION);
             return -1;
 
-        /* if we get a packet with a proper ack, but a seq that is beyond
-         * next_seq but in-window, we probably missed some packets */
+            /* SYN/ACK followed by more TOCLIENT suggesting packet loss */
+        } else if (PKT_IS_TOCLIENT(p) && !StreamTcpInlineMode() &&
+                   SEQ_GT(TCP_GET_SEQ(p), ssn->client.next_seq) &&
+                   SEQ_GT(TCP_GET_ACK(p), ssn->client.last_ack)) {
+            SCLogDebug("ssn %p: ACK for missing data", ssn);
+
+            if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                StreamTcpHandleTimestamp(ssn, p);
+            }
+
+            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+            ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+            SCLogDebug("ssn %p: ACK for missing data: ssn->server.next_seq %u", ssn,
+                    ssn->server.next_seq);
+            ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
+
+            ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+
+            ssn->client.window = TCP_GET_WINDOW(p);
+            ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+
+            StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
+            SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
+
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p, pq);
+
+            /* if we get a packet with a proper ack, but a seq that is beyond
+             * next_seq but in-window, we probably missed some packets */
         } else if (SEQ_GT(TCP_GET_SEQ(p), ssn->client.next_seq) &&
-                   SEQ_LEQ(TCP_GET_SEQ(p),ssn->client.next_win) &&
-                   SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq))
-        {
+                   SEQ_LEQ(TCP_GET_SEQ(p), ssn->client.next_win) &&
+                   SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq)) {
             SCLogDebug("ssn %p: ACK for missing data", ssn);
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -2084,10 +2110,9 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
         /* toclient packet: after having missed the 3whs's final ACK */
         } else if ((ack_indicates_missed_3whs_ack_packet ||
-                    (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN)) &&
-                SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack) &&
-                SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
-        {
+                           (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN)) &&
+                   SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack) &&
+                   SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
             if (ack_indicates_missed_3whs_ack_packet) {
                 SCLogDebug("ssn %p: packet fits perfectly after a missed 3whs-ACK", ssn);
             } else {
