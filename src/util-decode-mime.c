@@ -2094,13 +2094,6 @@ static int ProcessBodyComplete(MimeDecParseState *state)
         }
     }
 
-#ifdef HAVE_NSS
-    if (state->md5_ctx) {
-        unsigned int len = 0;
-        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
-    }
-#endif
-
     /* Invoke pre-processor and callback with remaining data */
     ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     if (ret != MIME_DEC_OK) {
@@ -2546,6 +2539,13 @@ int MimeDecParseComplete(MimeDecParseState *state)
         SCLogDebug("Error: ProcessBodyComplete() function failed");
         return ret;
     }
+
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        unsigned int len = 0;
+        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
+    }
+#endif
 
     if (state->stack->top == NULL) {
         state->msg->anomaly_flags |= ANOM_MALFORMED_MSG;
