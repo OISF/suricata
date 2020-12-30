@@ -233,14 +233,8 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
         return NULL;
     }
 
-    unsigned char md5[SC_MD5_LEN];
-    SCMd5HashBuffer((unsigned char *)buffer->data, buffer->used, md5, sizeof(md5));
-
-    int i, x;
-    for (i = 0, x = 0; x < SC_MD5_LEN; x++) {
-        i += snprintf(ja3_hash + i, MD5_STRING_LENGTH - i, "%02x", md5[x]);
-    }
-
+    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash,
+            MD5_STRING_LENGTH * sizeof(char));
     return ja3_hash;
 }
 
