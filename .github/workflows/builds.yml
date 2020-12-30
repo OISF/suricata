@@ -25,6 +25,9 @@ env:
   # A known good Rust version we should test against.
   RUST_VERSION_KNOWN: "1.37.0"
 
+  # The minimum version of Rust supported.
+  RUST_VERSION_MIN: "1.41.1"
+
 jobs:
 
   prepare-deps:
@@ -969,7 +972,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v2
