@@ -24,6 +24,9 @@ use std::os::raw::c_char;
 pub const SC_SHA1_LEN: usize = 20;
 pub const SC_SHA256_LEN: usize = 32;
 
+// Length of a MD5 hex string, not including a trailing NUL.
+pub const SC_MD5_HEX_LEN: usize = 32;
+
 // Wrap the Rust Sha256 in a new type named SCSha256 to give this type
 // the "SC" prefix. The one drawback is we must access the actual context
 // with .0.
@@ -147,10 +150,31 @@ pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: 
     update(&mut hasher.0, bytes, len);
 }
 
+/// Finalize the MD5 hash placing the digest in the provided out buffer.
+///
+/// This function consumes the SCMd5 hash context.
 #[no_mangle]
 pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u32) {
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     finalize(hasher.0, out, len);
+}
+
+/// Finalize MD5 context to a hex string.
+///
+/// Consumes the hash context and cannot be re-used.
+#[no_mangle]
+pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char, len: u32) {
+    let out = &mut *(out as *mut u8);
+    let hasher: Box<SCMd5> = Box::from_raw(hasher);
+    let result = hasher.0.finalize();
+    let hex = format!("{:x}", &result);
+    let output = std::slice::from_raw_parts_mut(out, len as usize);
+
+    // This will panic if the sizes differ.
+    output[0..len as usize - 1].copy_from_slice(&hex.as_bytes());
+
+    // Terminate the string.
+    output[output.len() - 1] = 0;
 }
 
 /// Free an unfinalized Sha1 context.
