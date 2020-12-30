@@ -33,6 +33,8 @@
 #include "util-base64.h"
 #include "util-debug.h"
 
+#include "rust.h"
+
 /* Content Flags */
 #define CTNT_IS_MSG           1
 #define CTNT_IS_ENV           2
@@ -198,7 +200,8 @@ typedef struct MimeDecParseState {
     uint8_t bvr_len;  /**< Length of remainder from base64-decoded line */
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
     SCMd5 *md5_ctx;
-    uint8_t md5[SC_MD5_LEN];
+    char md5hex[SC_MD5_HEX_LEN + 1];
+    bool has_md5;
     uint8_t state_flag;  /**<  Flag representing current state of parser */
     uint32_t data_chunk_len;  /**< Length of data chunk */
     int found_child;  /**< Flag indicating a child entity was found */

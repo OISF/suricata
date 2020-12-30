@@ -2096,11 +2096,6 @@ static int ProcessBodyComplete(MimeDecParseState *state)
         }
     }
 
-    if (state->md5_ctx) {
-        SCMd5Finalize(state->md5_ctx, state->md5, sizeof(state->md5));
-        state->md5_ctx = NULL;
-    }
-
     /* Invoke pre-processor and callback with remaining data */
     ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     if (ret != MIME_DEC_OK) {
@@ -2542,6 +2537,12 @@ int MimeDecParseComplete(MimeDecParseState *state)
     if (ret != MIME_DEC_OK) {
         SCLogDebug("Error: ProcessBodyComplete() function failed");
         return ret;
+    }
+
+    if (state->md5_ctx) {
+        SCMd5FinalizeToHex(state->md5_ctx, state->md5hex, sizeof(state->md5hex));
+        state->md5_ctx = NULL;
+        state->has_md5 = true;
     }
 
     if (state->stack->top == NULL) {
