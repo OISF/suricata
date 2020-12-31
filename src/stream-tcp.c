@@ -4701,16 +4701,19 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
     SCLogDebug("ssn: %p", ssn);
     switch (state) {
         case TCP_SYN_SENT:
+            SCLogDebug("packet received on TCP_SYN_SENT state");
             if (StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_SYN_RECV:
+            SCLogDebug("packet received on TCP_SYN_RECV state");
             if (StreamTcpPacketStateSynRecv(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_ESTABLISHED:
+            SCLogDebug("packet received on TCP_ESTABLISHED state");
             if (StreamTcpPacketStateEstablished(tv, p, stt, ssn, pq)) {
                 return -1;
             }
