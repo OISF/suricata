@@ -367,6 +367,12 @@ typedef enum {
     SC_ERR_PLUGIN,
     SC_ERR_LOG_OUTPUT,
     SC_ERR_RULE_INVALID_UTF8,
+#ifdef HAVE_LIBMNL
+    SC_ERR_MNL_OPEN,
+    SC_ERR_MNL_BIND,
+    SC_ERR_MNL_SENDTO,
+    SC_ERR_MNL_CB,
+#endif /* HAVE_LIBMNL */
 
     SC_ERR_MAX
 } SCError;

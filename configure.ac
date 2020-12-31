@@ -1022,6 +1022,31 @@
             fi
             ;;
         esac
+   #libmnl
+        case $host in
+            *-*-mingw32*)
+                ;;
+            *)
+                AC_ARG_WITH(libmnl_includes,
+                        [  --with-libmnl-includes=DIR  libmnl include directory],
+                        [with_libmnl_includes="$withval"],[with_libmnl_includes=no])
+                AC_ARG_WITH(libmnl_libraries,
+                        [  --with-libmnl-libraries=DIR    libmnl library directory],
+                        [with_libmnl_libraries="$withval"],[with_libmnl_libraries="no"])
+
+                if test "$with_libmnl_includes" != "no"; then
+                    CPPFLAGS="${CPPFLAGS} -I${with_libmnl_includes}"
+                fi
+
+                if test "$with_libmnl_libraries" != "no"; then
+                    LDFLAGS="${LDFLAGS}  -L${with_libmnl_libraries}"
+                fi
+
+                MNL=""
+                AC_CHECK_LIB(mnl, mnl_socket_open,, MNL="no")
+                AS_IF([test "$MNL" = "yes"], [AC_DEFINE([HAVE_LIBMNL], [1], [libmnl is installed])])
+                ;;
+            esac
     fi
 
     # enable support for NFQUEUE
