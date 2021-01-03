@@ -12,7 +12,7 @@ noinst_HEADERS = \
 	alert-fastlog.h \
 	alert-prelude.h \
 	alert-syslog.h \
-	app-layer-dcerpc-common.h \
+	app-layer-dcerpc-common.h 
 	app-layer-dcerpc.h \
 	app-layer-dcerpc-udp.h \
 	app-layer-detect-proto.h \
@@ -213,6 +213,14 @@ noinst_HEADERS = \
 	detect-icmpv6-mtu.h \
 	detect-icode.h \
 	detect-id.h \
+	detect-ike-exch-type.h \
+	detect-ike-spi.h \
+	detect-ike-vendor.h \
+	detect-ike-chosen-sa.h \
+	detect-ike-key-exchange-payload-length.h \
+	detect-ike-nonce-payload-length.h \
+	detect-ike-nonce-payload.h \
+	detect-ike-key-exchange-payload.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
 	detect-iprep.h \
@@ -781,6 +789,14 @@ libsuricata_c_a_SOURCES = \
 	detect-icmpv6-mtu.c \
 	detect-icode.c \
 	detect-id.c \
+	detect-ike-exch-type.c \
+	detect-ike-spi.c \
+	detect-ike-vendor.c \
+	detect-ike-chosen-sa.c \
+	detect-ike-key-exchange-payload-length.c \
+	detect-ike-nonce-payload-length.c \
+	detect-ike-nonce-payload.c \
+	detect-ike-key-exchange-payload.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
 	detect-iprep.c \
