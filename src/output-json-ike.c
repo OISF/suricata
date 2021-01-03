@@ -64,6 +64,19 @@ typedef struct LogIKELogThread_ {
     MemBuffer *buffer;
 } LogIKELogThread;
 
+bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+{
+    IKEState *state = FlowGetAppState(f);
+    if (state) {
+        IKETransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
+        if (tx) {
+            return rs_ike_logger_log(state, tx, LOG_IKE_EXTENDED, js);
+        }
+    }
+
+    return false;
+}
+
 static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *tx, uint64_t tx_id)
 {
