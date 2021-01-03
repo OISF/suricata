@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ * \author Frank Honza <frank.honza@dcso.de>
  *
  * Implement JSON/eve logging app-layer IKE.
  */
@@ -49,9 +50,12 @@
 
 #include "rust.h"
 
+#define LOG_IKE_DEFAULT  0
+#define LOG_IKE_EXTENDED (1 << 0)
+
 typedef struct LogIKEFileCtx_ {
     LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
+    uint32_t flags;
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
@@ -63,21 +67,16 @@ typedef struct LogIKELogThread_ {
 static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *tx, uint64_t tx_id)
 {
-    IKETransaction *iketx = tx;
     LogIKELogThread *thread = thread_data;
-
     JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->ikelog_ctx->cfg, p, f, jb);
-
-    jb_open_object(jb, "ike");
-    if (unlikely(!rs_ike_log_json_response(state, iketx, jb))) {
+    LogIKEFileCtx *ike_ctx = thread->ikelog_ctx;
+    if (!rs_ike_logger_log(state, tx, ike_ctx->flags, jb)) {
         goto error;
     }
-    jb_close(jb);
 
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
@@ -107,17 +106,23 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
         return result;
     }
     ikelog_ctx->file_ctx = ajt->file_ctx;
-    ikelog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(ikelog_ctx);
         return result;
     }
+
+    ikelog_ctx->flags = LOG_IKE_DEFAULT;
+    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    if (extended) {
+        if (ConfValIsTrue(extended)) {
+            ikelog_ctx->flags = LOG_IKE_EXTENDED;
+        }
+    }
+
     output_ctx->data = ikelog_ctx;
     output_ctx->DeInit = OutputIKELogDeInitCtxSub;
-
-    SCLogDebug("IKE log sub-module initialized.");
 
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKE);
 
@@ -179,6 +184,4 @@ void JsonIKELogRegister(void)
     OutputRegisterTxSubModule(LOGGER_JSON_IKE, "eve-log", "JsonIKELog", "eve-log.ike",
             OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELogThreadInit,
             JsonIKELogThreadDeinit, NULL);
-
-    SCLogDebug("IKE JSON logger registered.");
 }
