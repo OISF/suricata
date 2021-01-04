@@ -184,7 +184,7 @@ static inline void ConsolidateBackward(TcpStream *stream,
 
 static int Insert(TcpStream *stream, struct TCPSACK *tree, uint32_t le, uint32_t re)
 {
-    SCLogDebug("* inserting: %u/%u\n", le, re);
+    SCLogDebug("inserting: %u-%u", le, re);
 
     struct StreamTcpSackRecord *sa = StreamTcpSackRecordAlloc();
     if (unlikely(sa == NULL))
@@ -248,11 +248,13 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
  */
 int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 {
+    SCEnter();
+
     const int records = TCP_GET_SACK_CNT(p);
     const uint8_t *data = TCP_GET_SACK_PTR(p);
 
     if (records == 0 || data == NULL)
-        return 0;
+        SCReturnInt(0);
 
     TCPOptSackRecord rec[records], *sack_rec = rec;
     memcpy(&rec, data, sizeof(TCPOptSackRecord) * records);
