@@ -35,7 +35,6 @@ addons:
     # Define the required packages without libjansson so we can do a
     # build without libjansson.
     packages-without-jansson: &packages-without-jansson
-      - libnss3-dev
       - libpcre3
       - libpcre3-dbg
       - libpcre3-dev
