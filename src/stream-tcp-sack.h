@@ -39,6 +39,7 @@ static inline uint32_t StreamTcpSackedSize(TcpStream *stream)
 }
 
 int StreamTcpSackUpdatePacket(TcpStream *, Packet *);
+bool StreamTcpSackPacketIsOutdated(TcpStream *stream, Packet *p);
 void StreamTcpSackPruneList(TcpStream *);
 void StreamTcpSackFreeList(TcpStream *);
 void StreamTcpSackRegisterTests (void);
