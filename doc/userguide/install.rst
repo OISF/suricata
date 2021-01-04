@@ -71,7 +71,7 @@ The following tools are required::
 
 For full features, also add::
 
-  libnss, libgeoip, liblua5.1, libhiredis, libevent
+  libgeoip, liblua5.1, libhiredis, libevent
 
 Rust support::
 
@@ -96,7 +96,7 @@ Recommended::
     apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
                     libcap-ng-dev libcap-ng0 make libmagic-dev         \
-                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
+                    libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
                     python-yaml rustc cargo
 
 Extra for iptables/nftables IPS integration::
