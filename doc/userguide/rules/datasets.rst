@@ -169,6 +169,15 @@ type
 data
   Data to remove in serialized form (base64 for string, hex notation for md5/sha256)
 
+dataset-dump
+~~~~~~~~~~~~
+
+Unix socket command to trigger a dump of datasets to disk.
+
+Syntax::
+
+    dataset-dump
+
 File formats
 ------------
 
