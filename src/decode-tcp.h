@@ -62,7 +62,7 @@
 #define TCP_OPT_SACK_MIN_LEN                 10 /* hdr 2, 1 pair 8 = 10 */
 #define TCP_OPT_SACK_MAX_LEN                 34 /* hdr 2, 4 pair 32= 34 */
 #define TCP_OPT_TFO_MIN_LEN                  6  /* kind, len, 6 */
-#define TCP_OPT_TFO_MAX_LEN                  20 /* kind, len, 18 */
+#define TCP_OPT_TFO_MAX_LEN                  18 /* kind, len, 18 */
 
 /** Max valid wscale value. */
 #define TCP_WSCALE_MAX                       14
