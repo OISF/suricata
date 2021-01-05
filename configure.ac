@@ -487,7 +487,7 @@
           [
             AS_IF([test "$CLANG" != no],
                   [
-                    llc_candidates=$($CLANG --version | \
+                    llc_candidates=$($CLANG --version | sed -e 's/.*clang version/clang version/' | \
                       awk '/^clang version/ {
                              split($3, v, ".");
                              printf("llc-%s.%s llc-%s llc", v[[1]], v[[2]], v[[1]])
