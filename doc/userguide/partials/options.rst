@@ -172,6 +172,14 @@
 
    Disable the detection engine.
 
+.. option:: --disable-hashing
+
+   Disable support for hash algorithms such as md5, sha1 and sha256.
+
+   By default hashing is enabled. Disabling hashing will also disable some
+   Suricata features such as the filestore, ja3, and rule keywords that use hash
+   algorithms.
+
 .. Information options.
    
 .. option:: --dump-config
