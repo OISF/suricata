@@ -42,4 +42,5 @@ x509-parser = "0.6.5"
 libc = "0.2.67"
 
 [dev-dependencies]
-test-case = "1.0"
+#test-case = "1.0"
+test-case = { git = "https://github.com/frondeus/test-case", rev = "65b6fb60c69054950a149b64a0a9f042c0e4fd59" }
