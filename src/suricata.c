@@ -1177,68 +1177,50 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     g_ut_covered = 0;
 #endif
 
-    struct option long_opts[] = {
-        {"dump-config", 0, &dump_config, 1},
-        {"dump-features", 0, &dump_features, 1},
-        {"pfring", optional_argument, 0, 0},
-        {"pfring-int", required_argument, 0, 0},
-        {"pfring-cluster-id", required_argument, 0, 0},
-        {"pfring-cluster-type", required_argument, 0, 0},
-        {"af-packet", optional_argument, 0, 0},
-        {"netmap", optional_argument, 0, 0},
-        {"pcap", optional_argument, 0, 0},
-        {"pcap-file-continuous", 0, 0, 0},
-        {"pcap-file-delete", 0, 0, 0},
-        {"pcap-file-recursive", 0, 0, 0},
-        {"simulate-ips", 0, 0 , 0},
-        {"no-random", 0, &g_disable_randomness, 1},
-        {"strict-rule-keywords", optional_argument, 0, 0},
+    struct option long_opts[] = { { "dump-config", 0, &dump_config, 1 },
+        { "dump-features", 0, &dump_features, 1 }, { "pfring", optional_argument, 0, 0 },
+        { "pfring-int", required_argument, 0, 0 }, { "pfring-cluster-id", required_argument, 0, 0 },
+        { "pfring-cluster-type", required_argument, 0, 0 },
+        { "af-packet", optional_argument, 0, 0 }, { "netmap", optional_argument, 0, 0 },
+        { "pcap", optional_argument, 0, 0 }, { "pcap-file-continuous", 0, 0, 0 },
+        { "pcap-file-delete", 0, 0, 0 }, { "pcap-file-recursive", 0, 0, 0 },
+        { "simulate-ips", 0, 0, 0 }, { "no-random", 0, &g_disable_randomness, 1 },
+        { "strict-rule-keywords", optional_argument, 0, 0 },
 
-        {"capture-plugin", required_argument, 0, 0},
-        {"capture-plugin-args", required_argument, 0, 0},
+        { "capture-plugin", required_argument, 0, 0 },
+        { "capture-plugin-args", required_argument, 0, 0 },
 
 #ifdef BUILD_UNIX_SOCKET
-        {"unix-socket", optional_argument, 0, 0},
+        { "unix-socket", optional_argument, 0, 0 },
 #endif
-        {"pcap-buffer-size", required_argument, 0, 0},
-        {"unittest-filter", required_argument, 0, 'U'},
-        {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
-        {"list-unittests", 0, &list_unittests, 1},
-        {"list-runmodes", 0, &list_runmodes, 1},
-        {"list-keywords", optional_argument, &list_keywords, 1},
-        {"runmode", required_argument, NULL, 0},
-        {"engine-analysis", 0, &engine_analysis, 1},
+        { "pcap-buffer-size", required_argument, 0, 0 },
+        { "unittest-filter", required_argument, 0, 'U' },
+        { "list-app-layer-protos", 0, &list_app_layer_protocols, 1 },
+        { "list-unittests", 0, &list_unittests, 1 }, { "list-runmodes", 0, &list_runmodes, 1 },
+        { "list-keywords", optional_argument, &list_keywords, 1 },
+        { "runmode", required_argument, NULL, 0 }, { "engine-analysis", 0, &engine_analysis, 1 },
 #ifdef OS_WIN32
-		{"service-install", 0, 0, 0},
-		{"service-remove", 0, 0, 0},
-		{"service-change-params", 0, 0, 0},
+        { "service-install", 0, 0, 0 }, { "service-remove", 0, 0, 0 },
+        { "service-change-params", 0, 0, 0 },
 #endif /* OS_WIN32 */
-        {"pidfile", required_argument, 0, 0},
-        {"init-errors-fatal", 0, 0, 0},
-        {"disable-detection", 0, 0, 0},
-        {"disable-hashing", 0, 0, 0},
-        {"fatal-unittests", 0, 0, 0},
-        {"unittests-coverage", 0, &coverage_unittests, 1},
-        {"user", required_argument, 0, 0},
-        {"group", required_argument, 0, 0},
-        {"erf-in", required_argument, 0, 0},
-        {"dag", required_argument, 0, 0},
-        {"napatech", 0, 0, 0},
-        {"build-info", 0, &build_info, 1},
-        {"data-dir", required_argument, 0, 0},
+        { "pidfile", required_argument, 0, 0 }, { "init-errors-fatal", 0, 0, 0 },
+        { "disable-detection", 0, 0, 0 }, { "disable-hashing", 0, 0, 0 },
+        { "fatal-unittests", 0, 0, 0 }, { "unittests-coverage", 0, &coverage_unittests, 1 },
+        { "user", required_argument, 0, 0 }, { "group", required_argument, 0, 0 },
+        { "erf-in", required_argument, 0, 0 }, { "dag", required_argument, 0, 0 },
+        { "napatech", 0, 0, 0 }, { "build-info", 0, &build_info, 1 },
+        { "data-dir", required_argument, 0, 0 },
 #ifdef WINDIVERT
-        {"windivert", required_argument, 0, 0},
-        {"windivert-forward", required_argument, 0, 0},
+        { "windivert", required_argument, 0, 0 }, { "windivert-forward", required_argument, 0, 0 },
 #endif
 #ifdef HAVE_LIBNET11
-        {"reject-dev", required_argument, 0, 0},
+        { "reject-dev", required_argument, 0, 0 },
 #endif
-        {"set", required_argument, 0, 0},
+        { "set", required_argument, 0, 0 },
 #ifdef HAVE_NFLOG
-        {"nflog", optional_argument, 0, 0},
+        { "nflog", optional_argument, 0, 0 },
 #endif
-        {NULL, 0, NULL, 0}
-    };
+        { NULL, 0, NULL, 0 } };
 
     /* getopt_long stores the option index here. */
     int option_index = 0;
@@ -1418,19 +1400,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
-            }
-            else if(strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
                 g_disable_hashing = true;
-            }
-            else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
                 unittests_fatal = 1;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
-            }
-            else if(strcmp((long_opts[option_index]).name, "user") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "user") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
@@ -1439,8 +1418,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->user_name = optarg;
                 suri->do_setuid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
-            }
-            else if(strcmp((long_opts[option_index]).name, "group") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
@@ -1449,15 +1427,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->group_name = optarg;
                 suri->do_setgid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
-            }
-            else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     return TM_ECODE_FAILED;
                 }
-            }
-            else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_DAG;
