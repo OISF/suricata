@@ -222,13 +222,15 @@ error:
     if (urilend)
         SCFree(urilend);
     if (arg1 != NULL)
-        SCFree(arg1);
+        pcre_free_substring(arg1);
     if (arg2 != NULL)
-        SCFree(arg2);
+        pcre_free_substring(arg2);
     if (arg3 != NULL)
-        SCFree(arg3);
+        pcre_free_substring(arg3);
     if (arg4 != NULL)
-        SCFree(arg4);
+        pcre_free_substring(arg4);
+    if (arg5 != NULL)
+        pcre_free_substring(arg5);
     return NULL;
 }
 
