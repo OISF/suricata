@@ -1432,19 +1432,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
-            }
-            else if(strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
                 g_disable_hashing = true;
-            }
-            else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
                 unittests_fatal = 1;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
-            }
-            else if(strcmp((long_opts[option_index]).name, "user") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "user") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
@@ -1453,8 +1450,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->user_name = optarg;
                 suri->do_setuid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
-            }
-            else if(strcmp((long_opts[option_index]).name, "group") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
@@ -1463,15 +1459,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->group_name = optarg;
                 suri->do_setgid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
-            }
-            else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     return TM_ECODE_FAILED;
                 }
-            }
-            else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_DAG;
