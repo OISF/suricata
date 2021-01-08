@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#[cfg(feature = "decompression")]
 use super::decompression;
 use super::parser;
 use crate::applayer::{self, *};
@@ -126,6 +127,7 @@ pub struct HTTP2Transaction {
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
 
+    #[cfg(feature = "decompression")]
     decoder: decompression::HTTP2Decoder,
 
     de_state: Option<*mut core::DetectEngineState>,
@@ -147,6 +149,7 @@ impl HTTP2Transaction {
             state: HTTP2TransactionState::HTTP2StateIdle,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            #[cfg(feature = "decompression")]
             decoder: decompression::HTTP2Decoder::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -165,6 +168,10 @@ impl HTTP2Transaction {
         }
     }
 
+    #[cfg(not(feature = "decompression"))]
+    fn handle_headers(&mut self, _blocks: &Vec<parser::HTTP2FrameHeaderBlock>, _dir: u8) {}
+
+    #[cfg(feature = "decompression")]
     fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
         for i in 0..blocks.len() {
             if blocks[i].name == "content-encoding".as_bytes().to_vec() {
@@ -173,12 +180,18 @@ impl HTTP2Transaction {
         }
     }
 
+    // dir may be unused without the decompression feature
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: u8, sfcm: &'static SuricataFileContext, over: bool,
+        &'a mut self, input: &'a [u8], _dir: u8, sfcm: &'static SuricataFileContext, over: bool,
         files: &mut FileContainer, flags: u16,
     ) -> io::Result<()> {
+        #[cfg(feature = "decompression")]
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
-        let decompressed = self.decoder.decompress(input, &mut output, dir)?;
+        #[cfg(feature = "decompression")]
+        let decompressed = self.decoder.decompress(input, &mut output, _dir)?;
+        #[cfg(not(feature = "decompression"))]
+        let decompressed = input;
+
         let xid: u32 = self.tx_id as u32;
         self.ft.new_chunk(
             sfcm,
