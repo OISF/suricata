@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#[cfg(feature = "decompression")]
 mod decompression;
 pub mod detect;
 pub mod http2;

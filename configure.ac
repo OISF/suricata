@@ -521,6 +521,14 @@
     ])
     AM_CONDITIONAL([DEBUG_VALIDATION], [test "x$enable_debug_validation" = "xyes"])
 
+  # enable http2 decompression
+    AC_ARG_ENABLE(http2-decompression,
+           AS_HELP_STRING([--enable-http2-decompression], [Enable http2 decompression]),[enable_http2_decompression=$enableval],[enable_http2_decompression=no])
+    AS_IF([test "x$enable_http2_decompression" = "xyes"], [
+        AC_DEFINE([HTTP2_DECOMPRESSION],[1],[Enable http2 decompression])
+    ])
+    AM_CONDITIONAL([HTTP2_DECOMPRESSION], [test "x$enable_http2_decompression" = "xyes"])
+
   # profiling support
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),[enable_profiling=$enableval],[enable_profiling=no])
@@ -2822,6 +2830,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
+  HTTP2 decompression:                     ${enable_http2_decompression}
 
   Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}

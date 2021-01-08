@@ -17,6 +17,7 @@ strict = []
 debug = []
 debug-validate = []
 function-macro = []
+decompression = ["flate2", "brotli"]
 
 [dependencies]
 nom = "= 5.1.1"
@@ -30,8 +31,6 @@ num-derive = "0.2"
 num-traits = "0.2"
 widestring = "0.4"
 md5 = "0.7.0"
-flate2 = "1.0"
-brotli = "3.3.0"
 
 der-parser = "4.0"
 kerberos-parser = "0.5"
@@ -42,6 +41,9 @@ snmp-parser = "0.6"
 tls-parser = "0.9"
 x509-parser = "0.6.5"
 libc = "0.2.67"
+
+flate2 = { version = "1.0", optional = true }
+brotli = { version = "3.3.0", optional = true }
 
 [dev-dependencies]
 test-case = "1.0"
