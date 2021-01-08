@@ -1025,7 +1025,7 @@ jobs:
                 libtool \
                 m4 \
                 make \
-                python-yaml \
+                python3-yaml \
                 pkg-config \
                 sudo \
                 zlib1g \
@@ -1051,7 +1051,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py
 
   debian-9:
     name: Debian 9
@@ -1088,7 +1088,7 @@ jobs:
                 libtool \
                 m4 \
                 make \
-                python-yaml \
+                python3-yaml \
                 pkg-config \
                 sudo \
                 zlib1g \
@@ -1114,7 +1114,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py
 
   macos-latest:
     name: MacOS Latest
