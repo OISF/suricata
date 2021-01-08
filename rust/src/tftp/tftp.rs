@@ -22,10 +22,17 @@ extern crate nom;
 use std::str;
 use std;
 use std::mem::transmute;
+use nom::*;
 
 use crate::applayer::AppLayerTxData;
 
-#[derive(Debug)]
+const READREQUEST:  u8 = 1;
+const WRITEREQUEST: u8 = 2;
+const DATA:         u8 = 3;
+const ACK:          u8 = 4;
+const ERROR:        u8 = 5;
+
+#[derive(Debug, PartialEq)]
 pub struct TFTPTransaction {
     pub opcode : u8,
     pub filename : String,
@@ -70,6 +77,12 @@ impl TFTPTransaction {
             _ => false
         }
     }
+    pub fn is_opcode_ok(&self) -> bool {
+        match self.opcode {
+            READREQUEST | WRITEREQUEST | ACK | DATA | ERROR => true,
+            _ => false
+        }
+    }
 }
 
 #[no_mangle]
@@ -110,33 +123,51 @@ named!(getstr<&str>, map_res!(
     )
 );
 
-named!(pub tftp_request<TFTPTransaction>,
-       do_parse!(
+fn tftp_request<'a>(slice: &'a [u8]) -> IResult<&[u8], TFTPTransaction> {
+       do_parse!(slice,
            tag!([0]) >>
            opcode: take!(1) >>
            filename: getstr >>
            tag!([0]) >>
-           mode : getstr >>
+           mode: getstr >>
            (
                TFTPTransaction::new(opcode[0], String::from(filename), String::from(mode))
-           )
-    )
-);
+            )
+       )
+}
 
+fn parse_tftp_request(input: &[u8]) -> Option<TFTPTransaction> {
+    match tftp_request(input) {
+        Ok((_, tx)) => {
+            if !tx.is_mode_ok() {
+                return None;
+            }
+            if !tx.is_opcode_ok() {
+                return None;
+            }
+            return Some(tx);
+        }
+        Err(_) => {
+            return None;
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
                                   input: *const u8,
                                   len: u32) -> i64 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
-    return match tftp_request(buf) {
-        Ok((_, mut rqst)) => {
+    match parse_tftp_request(buf) {
+        Some(mut tx) => {
             state.tx_id += 1;
-            rqst.id = state.tx_id;
-            state.transactions.push(rqst);
+            tx.id = state.tx_id;
+            state.transactions.push(tx);
             0
         },
-        _ => 0
+        None => {
+           -1
+        }
     }
 }
 
