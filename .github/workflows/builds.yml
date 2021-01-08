@@ -1153,12 +1153,13 @@ jobs:
           nspr \
           pcre \
           pkg-config \
+          python \
           rust \
           xz
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: pip install PyYAML
+      - run: pip3 install PyYAML
       - uses: actions/checkout@v2
       - name: Downloading prep archive
         uses: actions/download-artifact@v2
@@ -1172,7 +1173,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py
 
   windows-msys2-mingw64:
     name: Windows MSYS2 MINGW64
