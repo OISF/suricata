@@ -284,7 +284,6 @@ impl From<nom::Err<der_parser::error::BerError>> for Asn1DecodeError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
 
     // Example from the specification X.690-0207 Appendix A.3
     static ASN1_A3: &[u8] = b"\x60\x81\x85\x61\x10\x1A\x04John\x1A\x01 \
@@ -296,36 +295,48 @@ mod tests {
                     \x31\x1F\x61\x11\x1A\x05Susan\x1A\x01B\x1A\x05 \
                     Jones\xA0\x0A\x43\x0819590717";
 
-    /// Ensure that the checks work when they should
-    #[test_case("oversize_length 132 absolute_offset 0", ASN1_A3, DetectAsn1Data {
+    macro_rules! asn1_parse {
+        ($name:ident, $rule:expr, $asn1_buf:expr, $expected_data:expr, $expected_check:expr) => {
+            #[test]
+            fn $name() {
+                let (_rest, ad) = parse_rules::asn1_parse_rule($rule).unwrap();
+                assert_eq!($expected_data, ad);
+                // decode
+                let asn1 = Asn1::from_slice($asn1_buf, &ad).unwrap();
+
+                // Run checks
+            // m
+                let result = asn1.check(&ad);
+                assert_eq!($expected_check, result);
+
+            }
+        }
+    }
+
+    // Ensure that the checks work when they should
+    asn1_parse!(mod_parse_1,"oversize_length 132 absolute_offset 0", ASN1_A3,
+        DetectAsn1Data {
             oversize_length: Some(132),
             absolute_offset: Some(0),
             ..Default::default()
-        }, Some(Asn1Check::OversizeLength); "Test oversize_length rule (match)" )]
-    #[test_case("oversize_length 133 absolute_offset 0", ASN1_A3, DetectAsn1Data {
+        },
+        Some(Asn1Check::OversizeLength));
+    asn1_parse!(mod_parse_2,"oversize_length 133 absolute_offset 0", ASN1_A3,
+        DetectAsn1Data {
             oversize_length: Some(133),
             absolute_offset: Some(0),
             ..Default::default()
-        }, None; "Test oversize_length rule (non-match)" )]
-    #[test_case("bitstring_overflow, absolute_offset 0",
-        /* tagnum bitstring, primitive, and as universal tag,
-           length = 1 octet, but the next octet specify to ignore the last 256 bits */
+        },
+        None);
+    asn1_parse!(mod_parse_3,"bitstring_overflow, absolute_offset 0",
         b"\x03\x01\xFF",
         DetectAsn1Data {
             bitstring_overflow: true,
             absolute_offset: Some(0),
             ..Default::default()
-        }, Some(Asn1Check::BitstringOverflow); "Test bitstring_overflow rule (match)" )]
-    #[test_case("bitstring_overflow, absolute_offset 0",
-        /* tagnum bitstring, primitive, and as universal tag,
-           length = 1 octet, but the next octet specify to ignore the last 7 bits */
-        b"\x03\x01\x07",
-        DetectAsn1Data {
-            bitstring_overflow: true,
-            absolute_offset: Some(0),
-            ..Default::default()
-        }, None; "Test bitstring_overflow rule (non-match)" )]
-    #[test_case("double_overflow, absolute_offset 0",
+        },
+        Some(Asn1Check::BitstringOverflow));
+    asn1_parse!(mod_parse_4, "double_overflow, absolute_offset 0",
         {
             static TEST_BUF: [u8; 261] = {
                 let mut b = [0x05; 261];
@@ -346,42 +357,5 @@ mod tests {
             double_overflow: true,
             absolute_offset: Some(0),
             ..Default::default()
-        }, Some(Asn1Check::DoubleOverflow); "Test double_overflow rule (match)" )]
-    #[test_case("double_overflow, absolute_offset 0",
-        {
-            static TEST_BUF: [u8; 261] = {
-                let mut b = [0x05; 261];
-                /* universal class, primitive type, tag_num = 9 (Data type Real) */
-                b[0] = 0x09;
-                /* length, definite form, 2 octets */
-                b[1] = 0x82;
-                /* length is the sum of the following octets (256): */
-                b[2] = 0x01;
-                b[3] = 0x00;
-
-                b
-            };
-
-            &TEST_BUF
-        },
-        DetectAsn1Data {
-            double_overflow: true,
-            absolute_offset: Some(0),
-            ..Default::default()
-        }, None; "Test double_overflow rule (non-match)" )]
-    fn test_checks(
-        rule: &str, asn1_buf: &'static [u8], expected_data: DetectAsn1Data,
-        expected_check: Option<Asn1Check>,
-    ) {
-        // Parse rule
-        let (_rest, ad) = parse_rules::asn1_parse_rule(rule).unwrap();
-        assert_eq!(expected_data, ad);
-
-        // Decode
-        let asn1 = Asn1::from_slice(asn1_buf, &ad).unwrap();
-
-        // Run checks
-        let result = asn1.check(&ad);
-        assert_eq!(expected_check, result);
-    }
+        }, Some(Asn1Check::DoubleOverflow));
 }

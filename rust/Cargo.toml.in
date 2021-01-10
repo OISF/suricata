@@ -41,5 +41,5 @@ tls-parser = "0.9"
 x509-parser = "0.6.5"
 libc = "0.2.67"
 
-[dev-dependencies]
-test-case = "1.0"
+#[dev-dependencies]
+#test-case = "1.0"

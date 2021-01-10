@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -210,116 +210,96 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
+    use nom::error::ErrorKind::*;
+
+    macro_rules! asn1_parse_ok {
+        ($name:ident, $input:expr, $type:expr) => {
+            #[test]
+            fn $name() {
+                let res = $type;
+                match asn1_parse_rule($input) {
+                    Ok((_rest, _data)) => {
+                        assert_eq!(_data, res);
+                    }
+                    Err(_e) => {
+                        panic!("should not have failed");
+                    }
+                }
+            }
+        }
+    }
+
+    macro_rules! asn1_parse_fail {
+        ($name:ident, $input:tt, $stt:tt, $kind:tt) => {
+            #[test]
+            fn $name() {
+                match asn1_parse_rule($input) {
+                    Ok((_, _)) => {
+                        panic!("should've failed");
+                    }
+                    Err(e) => {
+                        assert_eq!(e, nom::Err::Error(($stt, $kind)));
+                    }
+                }
+            }
+        }
+    }
 
     // Test oversize_length
-    #[test_case("oversize_length 1024",
-        DetectAsn1Data { oversize_length: Some(1024), ..Default::default()};
-        "check that we parse oversize_length correctly")]
-    #[test_case("oversize_length 0",
-        DetectAsn1Data { oversize_length: Some(0), ..Default::default()};
-        "check lower bound on oversize_length")]
-    #[test_case("oversize_length -1",
-        DetectAsn1Data::default() => panics "Error((\"oversize_length -1\", Verify))";
-        "check under lower bound on oversize_length")]
-    #[test_case("oversize_length 4294967295",
-        DetectAsn1Data { oversize_length: Some(4294967295), ..Default::default()};
-        "check upper bound on oversize_length")]
-    #[test_case("oversize_length 4294967296",
-        DetectAsn1Data::default() => panics "Error((\"oversize_length 4294967296\", Verify))";
-        "check over upper bound on oversize_length")]
-    #[test_case("oversize_length",
-        DetectAsn1Data::default() => panics "Error((\"oversize_length\", Verify))";
-        "check that we fail if the needed arg oversize_length is not given")]
+    asn1_parse_ok!(test_asn_parse_ok_1, "oversize_length 1024",
+         DetectAsn1Data { oversize_length: Some(1024), ..Default::default() });
+    asn1_parse_ok!(test_asn_parse_ok_2, "oversize_length 0",
+         DetectAsn1Data { oversize_length: Some(0), ..Default::default() });
+    asn1_parse_fail!(test_asn_parse_fail_3, "oversize_length -1", "oversize_length -1", Verify);
+    asn1_parse_ok!(test_asn_parse_ok_4, "oversize_length 4294967295",
+         DetectAsn1Data { oversize_length: Some(4294967295), ..Default::default()});
+    asn1_parse_fail!(test_asn_parse_fail_5, "oversize_length 4294967296", "oversize_length 4294967296", Verify);
+    asn1_parse_fail!(test_asn_parse_fail_6, "oversize_length", "oversize_length", Verify);
     // Test absolute_offset
-    #[test_case("absolute_offset 1024",
-        DetectAsn1Data { absolute_offset: Some(1024), ..Default::default()};
-        "check that we parse absolute_offset correctly")]
-    #[test_case("absolute_offset 0",
-        DetectAsn1Data { absolute_offset: Some(0), ..Default::default()};
-        "check lower bound on absolute_offset")]
-    #[test_case("absolute_offset -1",
-        DetectAsn1Data::default() => panics "Error((\"absolute_offset -1\", Verify))";
-        "check under lower bound on absolute_offset")]
-    #[test_case("absolute_offset 65535",
-        DetectAsn1Data { absolute_offset: Some(65535), ..Default::default()};
-        "check upper bound on absolute_offset")]
-    #[test_case("absolute_offset 65536",
-        DetectAsn1Data::default() => panics "Error((\"absolute_offset 65536\", Verify))";
-        "check over upper bound on absolute_offset")]
-    #[test_case("absolute_offset",
-        DetectAsn1Data::default() => panics "Error((\"absolute_offset\", Verify))";
-        "check that we fail if the needed arg absolute_offset is not given")]
+    asn1_parse_ok!(test_asn_parse_ok_7, "absolute_offset 1024",
+         DetectAsn1Data { absolute_offset: Some(1024), ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_8, "oversize_length 0",
+         DetectAsn1Data { oversize_length: Some(0), ..Default::default()});
+    asn1_parse_fail!(test_asn_parse_fail_9, "absolute_offset -1", "absolute_offset -1", Verify);
+    asn1_parse_ok!(test_asn_parse_ok_10, "absolute_offset 65535",
+         DetectAsn1Data { absolute_offset: Some(65535), ..Default::default()});
+    asn1_parse_fail!(test_asn_parse_fail_11, "absolute_offset 65536", "absolute_offset 65536", Verify);
+    asn1_parse_fail!(test_asn_parse_fail_12, "absolute_offset", "absolute_offset", Verify);
     // Test relative_offset
-    #[test_case("relative_offset 1024",
-        DetectAsn1Data { relative_offset: Some(1024), ..Default::default()};
-        "check that we parse relative_offset correctly")]
-    #[test_case("relative_offset -65535",
-        DetectAsn1Data { relative_offset: Some(-65535), ..Default::default()};
-        "check lower bound on relative_offset")]
-    #[test_case("relative_offset -65536",
-        DetectAsn1Data::default() => panics "Error((\"relative_offset -65536\", Verify))";
-        "check under lower bound on relative_offset")]
-    #[test_case("relative_offset 65535",
-        DetectAsn1Data { relative_offset: Some(65535), ..Default::default()};
-        "check upper bound on relative_offset")]
-    #[test_case("relative_offset 65536",
-        DetectAsn1Data::default() => panics "Error((\"relative_offset 65536\", Verify))";
-        "check over upper bound on relative_offset")]
-    #[test_case("relative_offset",
-        DetectAsn1Data::default() => panics "Error((\"relative_offset\", Verify))";
-        "check that we fail if the needed arg relative_offset is not given")]
+    asn1_parse_ok!(test_asn_parse_ok_13, "relative_offset 1024",
+         DetectAsn1Data { relative_offset: Some(1024), ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_14, "relative_offset -65535",
+         DetectAsn1Data { relative_offset: Some(-65535), ..Default::default()});
+    asn1_parse_fail!(test_asn_parse_fail_15, "relative_offset -65536", "relative_offset -65536", Verify);
+    asn1_parse_ok!(test_asn_parse_ok_16, "relative_offset 65535",
+         DetectAsn1Data { relative_offset: Some(65535), ..Default::default()});
+    asn1_parse_fail!(test_asn_parse_fail_17, "relative_offset 65536", "relative_offset 65536", Verify);
+    asn1_parse_fail!(test_asn_parse_fail_18, "relative_offset", "relative_offset", Verify);
     // Test bitstring_overflow
-    #[test_case("bitstring_overflow",
-        DetectAsn1Data { bitstring_overflow: true, ..Default::default()};
-        "check that we parse bitstring_overflow correctly")]
+    asn1_parse_ok!(test_asn_parse_ok_19, "bitstring_overflow",
+         DetectAsn1Data { bitstring_overflow: true, ..Default::default()});
     // Test double_overflow
-    #[test_case("double_overflow",
-        DetectAsn1Data { double_overflow: true, ..Default::default()};
-        "check that we parse double_overflow correctly")]
+    asn1_parse_ok!(test_asn_parse_ok_20, "double_overflow",
+         DetectAsn1Data { double_overflow: true, ..Default::default()});
     // Test combination of params
-    #[test_case("oversize_length 1024, relative_offset 10",
-        DetectAsn1Data { oversize_length: Some(1024), relative_offset: Some(10),
-            ..Default::default()};
-        "check for combinations of keywords (comma seperated)")]
-    #[test_case("oversize_length 1024 absolute_offset 10",
-        DetectAsn1Data { oversize_length: Some(1024), absolute_offset: Some(10),
-            ..Default::default()};
-        "check for combinations of keywords (space seperated)")]
-    #[test_case("oversize_length 1024 absolute_offset 10, bitstring_overflow",
+    asn1_parse_ok!(test_asn_parse_ok_21, "oversize_length 1024, relative_offset 10",
+        DetectAsn1Data { oversize_length: Some(1024), relative_offset: Some(10), ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_22,"oversize_length 1024, absolute_offset 10",
+        DetectAsn1Data { oversize_length: Some(1024), absolute_offset: Some(10), ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_23,"oversize_length 1024 absolute_offset 10, bitstring_overflow",
         DetectAsn1Data { bitstring_overflow: true, oversize_length: Some(1024),
-            absolute_offset: Some(10), ..Default::default()};
-        "check for combinations of keywords (space/comma seperated)")]
-    #[test_case(
-        "double_overflow, oversize_length 1024 absolute_offset 10,\n bitstring_overflow",
-        DetectAsn1Data { double_overflow: true, bitstring_overflow: true,
+            absolute_offset: Some(10), ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_24,"double_overflow, oversize_length 1024 absolute_offset 10,\n bitstring_overflow",
+         DetectAsn1Data { double_overflow: true, bitstring_overflow: true,
             oversize_length: Some(1024), absolute_offset: Some(10),
-            ..Default::default()};
-        "1. check for combinations of keywords (space/comma/newline seperated)")]
-    #[test_case(
-        "\n\t double_overflow, oversize_length 1024 relative_offset 10,\n bitstring_overflow",
+            ..Default::default()});
+    asn1_parse_ok!(test_asn_parse_ok_25,"\n\t double_overflow, oversize_length 1024 relative_offset 10,\n bitstring_overflow",
         DetectAsn1Data { double_overflow: true, bitstring_overflow: true,
-            oversize_length: Some(1024), relative_offset: Some(10),
-            ..Default::default()};
-        "2. check for combinations of keywords (space/comma/newline seperated)")]
-    // Test empty
-    #[test_case("",
-        DetectAsn1Data::default() => panics "Error((\"\", Eof))";
-        "test that we break with a empty string")]
-    // Test invalid rules
-    #[test_case("oversize_length 1024, some_other_param 360",
-        DetectAsn1Data::default() => panics "Error((\" some_other_param 360\", Verify))";
-        "test that we break on invalid options")]
-    #[test_case("oversize_length 1024,,",
-        DetectAsn1Data::default() => panics "Error((\",\", Verify))";
-        "test that we break on invalid format (missing option)")]
-    #[test_case("bitstring_overflowabsolute_offset",
-        DetectAsn1Data::default() => panics "Error((\"absolute_offset\", Verify))";
-        "test that we break on invalid format (missing seperator)")]
-    fn test_asn1_parse_rule(input: &str, expected: DetectAsn1Data) {
-        let (rest, res) = asn1_parse_rule(input).unwrap();
+                        oversize_length: Some(1024), relative_offset: Some(10),
+                        ..Default::default()});
 
-        assert_eq!(0, rest.len());
-        assert_eq!(expected, res);
-    }
+    asn1_parse_fail!(test_asn_parse_fail_26, "", "", Eof);
+    asn1_parse_fail!(test_asn_parse_fail_27, "oversize_length 1024, some_other_param 360", " some_other_param 360", Verify);
+    asn1_parse_fail!(test_asn_parse_fail_28, "oversize_length 1024,,", ",", Verify);
+    asn1_parse_fail!(test_asn_parse_fail_29, "bitstring_overflowabsolute_offset", "absolute_offset", Verify);
 }
