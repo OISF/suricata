@@ -233,6 +233,10 @@ int g_disable_randomness = 1;
   * comparing flows */
 uint16_t g_vlan_mask = 0xffff;
 
+/* flag to disable hashing almost globally, to be similar to disabling nss
+ * support */
+bool g_disable_hashing = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -1224,6 +1228,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"disable-detection", 0, 0, 0},
+        {"disable-hashing", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
         {"unittests-coverage", 0, &coverage_unittests, 1},
         {"user", required_argument, 0, 0},
@@ -1425,6 +1430,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
+            }
+            else if(strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
+                g_disable_hashing = true;
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
