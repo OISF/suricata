@@ -129,9 +129,9 @@ void DetectFilenameRegister(void)
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
     AppProto protos_ts[] = {
-        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, 0 };
+        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS, 0 };
     AppProto protos_tc[] = {
-        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, 0 };
+        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS, 0 };
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.name", protos_ts[i],
