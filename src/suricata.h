@@ -171,6 +171,9 @@ extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 extern uint16_t g_vlan_mask;
 
+/* Flag to disable hashing (almost) globally. */
+extern bool g_disable_hashing;
+
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 #define u8_toupper(c) toupper((uint8_t)(c))
