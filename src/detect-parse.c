@@ -1491,14 +1491,18 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto &&
+            // allow to keep HTTP2 with HTTP1 keywords
+            !(s->alproto == ALPROTO_HTTP2 && alproto == ALPROTO_HTTP)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
             "can't set rule app proto to %s: already set to %s",
             AppProtoToString(alproto), AppProtoToString(s->alproto));
         return -1;
     }
 
-    s->alproto = alproto;
+    if (!(s->alproto == ALPROTO_HTTP2 && alproto == ALPROTO_HTTP)) {
+        s->alproto = alproto;
+    }
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
 }
