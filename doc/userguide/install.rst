@@ -97,7 +97,7 @@ Recommended::
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
                     libcap-ng-dev libcap-ng0 make libmagic-dev         \
                     libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
-                    python-yaml rustc cargo
+                    python-yaml rustc cargo libjansson libjansson-dev
 
 Extra for iptables/nftables IPS integration::
 
