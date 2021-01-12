@@ -77,7 +77,7 @@
 static const char luaext_key_ld[] = "suricata:luadata";
 
 /* hack to please scan-build. Even though LuaCallbackError *always*
- * returns 2, scan-build doesn't accept it and and generates false
+ * returns 2, scan-build doesn't accept it and generates false
  * positives */
 #define LUA_ERROR(msg)                  \
     LuaCallbackError(luastate, (msg));  \
