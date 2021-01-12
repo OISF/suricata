@@ -124,20 +124,15 @@ static bool EveEmailJsonArrayFromCommaList(JsonBuilder *js, const uint8_t *val, 
 static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
-        MimeDecField *field;
         MimeDecEntity *entity = tx->msg_tail;
         if (entity == NULL) {
             return;
         }
-        field = MimeDecFindField(entity, "subject");
+        MimeDecField *field = MimeDecFindField(entity, "subject");
         if (field != NULL) {
             char smd5[SC_MD5_HEX_LEN + 1];
-            char *value = BytesToString((uint8_t *)field->value , field->value_len);
-            if (value) {
-                SCMd5HashBufferToHex((uint8_t *)value, strlen(value), smd5, sizeof(smd5));
-                jb_set_string(js, "subject_md5", smd5);
-                SCFree(value);
-            }
+            SCMd5HashBufferToHex((uint8_t *)field->value, field->value_len, smd5, sizeof(smd5));
+            jb_set_string(js, "subject_md5", smd5);
         }
     }
 
@@ -147,12 +142,10 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
             size_t x;
             int i;
             char s[256];
-            if (likely(s != NULL)) {
-                for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
-                    i += snprintf(s + i, 255-i, "%02x", mime_state->md5[x]);
-                }
-                jb_set_string(js, "body_md5", s);
+            for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
+                i += snprintf(s + i, 255 - i, "%02x", mime_state->md5[x]);
             }
+            jb_set_string(js, "body_md5", s);
         }
     }
 }
