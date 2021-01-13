@@ -757,36 +757,35 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     char *md5ptr = NULL;
     char *sha1ptr = NULL;
     char *sha256ptr = NULL;
-    if (!g_disable_hashing) {
-        char md5[33] = "";
-        md5ptr = md5;
-        if (file->flags & FILE_MD5) {
-            size_t x;
-            for (x = 0; x < sizeof(file->md5); x++) {
-                char one[3] = "";
-                snprintf(one, sizeof(one), "%02x", file->md5[x]);
-                strlcat(md5, one, sizeof(md5));
-            }
+
+    char md5[33] = "";
+    md5ptr = md5;
+    if (file->flags & FILE_MD5) {
+        size_t x;
+        for (x = 0; x < sizeof(file->md5); x++) {
+            char one[3] = "";
+            snprintf(one, sizeof(one), "%02x", file->md5[x]);
+            strlcat(md5, one, sizeof(md5));
         }
-        char sha1[41] = "";
-        sha1ptr = sha1;
-        if (file->flags & FILE_SHA1) {
-            size_t x;
-            for (x = 0; x < sizeof(file->sha1); x++) {
-                char one[3] = "";
-                snprintf(one, sizeof(one), "%02x", file->sha1[x]);
-                strlcat(sha1, one, sizeof(sha1));
-            }
+    }
+    char sha1[41] = "";
+    sha1ptr = sha1;
+    if (file->flags & FILE_SHA1) {
+        size_t x;
+        for (x = 0; x < sizeof(file->sha1); x++) {
+            char one[3] = "";
+            snprintf(one, sizeof(one), "%02x", file->sha1[x]);
+            strlcat(sha1, one, sizeof(sha1));
         }
-        char sha256[65] = "";
-        sha256ptr = sha256;
-        if (file->flags & FILE_SHA256) {
-            size_t x;
-            for (x = 0; x < sizeof(file->sha256); x++) {
-                char one[3] = "";
-                snprintf(one, sizeof(one), "%02x", file->sha256[x]);
-                strlcat(sha256, one, sizeof(sha256));
-            }
+    }
+    char sha256[65] = "";
+    sha256ptr = sha256;
+    if (file->flags & FILE_SHA256) {
+        size_t x;
+        for (x = 0; x < sizeof(file->sha256); x++) {
+            char one[3] = "";
+            snprintf(one, sizeof(one), "%02x", file->sha256[x]);
+            strlcat(sha256, one, sizeof(sha256));
         }
     }
 
