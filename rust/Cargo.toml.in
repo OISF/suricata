@@ -42,4 +42,4 @@ x509-parser = "0.6.5"
 libc = "0.2.67"
 
 [dev-dependencies]
-test-case = "1.0"
+test-case = "~1.0.1"
