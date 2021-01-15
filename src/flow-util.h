@@ -149,6 +149,7 @@ Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, const Packet *);
+void FlowInitFromFlow(Flow *, const Flow *, const Packet *);
 uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 
 #endif /* __FLOW_UTIL_H__ */
