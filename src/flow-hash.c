@@ -743,19 +743,22 @@ static Flow *FlowDoPeriodicLog(ThreadVars *tv,
 
     /* new Flow is locked */
 
-    /* put new flow at the start of the hash bucket */
+    /* remove old Flow from the hash; NOTE: we *must* do this before adding the new flow 
+     * to the bucket, as adding the new flow modifies the list and potentially the relationship 
+     * between old_f -> prev_f (i.e., in the 1-flow-in-the-bucket case new_f would become prev_f
+     */
+    RemoveFromHash(old_f, prev_f);
+
+    /* Now put the new flow at the start of the hash bucket */
     new_f->next = fb->head;
     fb->head = new_f;
+    new_f->fb = fb;
 
     /* initialize new flow */
-    FlowInit(new_f, p);
-    new_f->flow_hash = hash;
-    new_f->fb = fb;
+    FlowInitFromFlow(new_f, old_f, p);
     new_f->thread_id[0] = thread_id[0];
     new_f->thread_id[1] = thread_id[1];
 
-    /* remove old Flow from the hash */
-    RemoveFromHash(old_f, prev_f);
 
     SC_ATOMIC_SET(fb->next_ts, 0);
 

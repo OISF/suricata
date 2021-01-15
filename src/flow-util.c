@@ -246,6 +246,70 @@ void FlowInit(Flow *f, const Packet *p)
     SCReturn;
 }
 
+void FlowInitFromFlow(Flow* f, const Flow* old_f, const Packet* p) {
+    SCEnter();
+    SCLogDebug("flow %p old_flow", f, old_f);
+
+    f->proto = old_f->proto;
+    f->recursion_level = old_f->recursion_level;
+    f->vlan_id[0] = old_f->vlan_id[0];
+    f->vlan_id[1] = old_f->vlan_id[1];
+    f->vlan_idx = old_f->vlan_idx;
+    f->livedev = old_f->livedev;
+
+    f->src = old_f->src;
+    f->dst = old_f->dst;
+    f->sp = old_f->sp;
+    f->dp = old_f->dp;
+
+    f->flags = old_f->flags;
+
+    f->flow_hash = old_f->flow_hash;
+    
+    if (PKT_IS_IPV4(p)) {
+        bool from_client = (f->src.addr_data32[0] == p->ip4h->s_ip_src.s_addr);
+            
+        if (from_client) {
+            f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_IPTTL((p));
+        } else {
+            f->min_ttl_toclient = f->max_ttl_toclient = IPV4_GET_IPTTL((p));
+        }
+        f->flags |= FLOW_IPV4;
+    } else if (PKT_IS_IPV6(p)) {
+        bool from_client = (( f->src.addr_data32[0] == p->ip6h->s_ip6_src[0] ) &&
+                            ( f->src.addr_data32[1] == p->ip6h->s_ip6_src[1] ) &&
+                            ( f->src.addr_data32[2] == p->ip6h->s_ip6_src[2] ) &&
+                            ( f->src.addr_data32[3] == p->ip6h->s_ip6_src[3] ));
+
+        if (from_client) {
+            f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));
+        } else {
+            f->min_ttl_toclient = f->max_ttl_toclient = IPV6_GET_HLIM((p));
+        }
+        f->flags |= FLOW_IPV6;
+    }    
+
+    COPY_TIMESTAMP(&p->ts, &f->startts);
+
+
+    f->protomap = FlowGetProtoMapping(f->proto);
+    f->timeout_policy = FlowGetTimeoutPolicy(f);
+    const uint32_t timeout_at = (uint32_t)f->startts.tv_sec + f->timeout_policy;
+    f->timeout_at = timeout_at;
+
+    if (MacSetFlowStorageEnabled()) {
+        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+        if (ms != NULL) {
+            MacSetReset(ms);
+        } else {
+            ms = MacSetInit(10);
+            FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
+        }
+    }
+
+    SCReturn;
+}
+
 FlowStorageId g_bypass_info_id = { .id = -1 };
 
 FlowStorageId GetFlowBypassInfoID(void)
