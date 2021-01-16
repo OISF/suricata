@@ -79,40 +79,45 @@ impl Json {
 
     pub fn set(&self, key: &str, val: Json) {
         unsafe {
+            let s = CString::new(key).unwrap();
             json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
+                                s.as_ptr(),
                                 val.js);
         }
     }
 
     pub fn set_string_from_bytes(&self, key: &str, val: &[u8]) {
         unsafe {
+            let s = CString::new(key).unwrap();
             json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
+                                s.as_ptr(),
                                 json_string(to_cstring(val).as_ptr()));
         }
     }
 
     pub fn set_string(&self, key: &str, val: &str) {
         unsafe {
+            let s = CString::new(key).unwrap();
             json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
+                                s.as_ptr(),
                                 json_string(to_cstring(val.as_bytes()).as_ptr()));
         }
     }
 
     pub fn set_integer(&self, key: &str, val: u64) {
         unsafe {
+            let s = CString::new(key).unwrap();
             json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
+                                s.as_ptr(),
                                 json_integer(val));
         }
     }
 
     pub fn set_boolean(&self, key: &str, val: bool) {
         unsafe {
+            let s = CString::new(key).unwrap();
             json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
+                                s.as_ptr(),
                                 SCJsonBool(val));
         }
     }
