@@ -517,8 +517,8 @@ jobs:
             exit 0
           fi
 
-  ubuntu-20-04:
-    name: Ubuntu 20.04 (no nss, no nspr)
+  ubuntu-20-04-cov-sv:
+    name: Ubuntu 20.04 (suricata verify coverage)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     needs: [prepare-deps, prepare-cbindgen]
@@ -532,6 +532,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
+                gcc-9 \
                 git \
                 jq \
                 libtool \
@@ -547,6 +548,7 @@ jobs:
                 libnfnetlink-dev \
                 libnfnetlink0 \
                 libhiredis-dev \
+                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -559,7 +561,8 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
-                exuberant-ctags
+                exuberant-ctags \
+                curl
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -573,13 +576,95 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage" ./configure
       - run: make -j2
-      - run: make dist
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      - name: Gcov
+        run: |
+          cd src
+          gcov-9 *.[ch]
+          cd ../libhtp/htp
+          gcov-9 *.[ch]
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          flags: suricata-verify
+
+  ubuntu-20-04-cov-ut:
+    name: Ubuntu 20.04 (unittests coverage)
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                gcc-9 \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                liblua5.1-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags \
+                curl
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage" ./configure --enable-unittests
+      - run: make -j2
+      - run: ./src/suricata -u -l /tmp/
+      - name: Gcov
+        run: |
+          cd src
+          gcov-9 *.[ch]
+          cd ../libhtp/htp
+          gcov-9 *.[ch]
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests
 
   ubuntu-20-04-ndebug:
     name: Ubuntu 20.04 (-DNDEBUG)
