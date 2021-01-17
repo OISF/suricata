@@ -47,25 +47,6 @@
  * be the size of a header. TODO actual min size is likely larger */
 #define NFSTCP_MIN_FRAME_LEN 32
 
-/* Enum of app-layer events for an echo protocol. Normally you might
- * have events for errors in parsing data, like unexpected data being
- * received. For echo we'll make something up, and log an app-layer
- * level alert if an empty message is received.
- *
- * Example rule:
- *
- * alert nfs any any -> any any (msg:"SURICATA NFS empty message"; \
- *    app-layer-event:nfs.empty_message; sid:X; rev:Y;)
- */
-enum {
-    NFSTCP_DECODER_EVENT_EMPTY_MESSAGE,
-};
-
-SCEnumCharMap nfs_decoder_event_table[] = {
-    {"EMPTY_MESSAGE", NFSTCP_DECODER_EVENT_EMPTY_MESSAGE},
-    { NULL, 0 }
-};
-
 static void *NFSTCPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     return rs_nfs_state_new(orig_state, proto_orig);
@@ -362,18 +343,4 @@ void RegisterNFSTCPParsers(void)
     else {
         SCLogDebug("NFSTCP protocol parsing disabled.");
     }
-
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_NFS,
-        NFSTCPParserRegisterTests);
-#endif
-}
-
-#ifdef UNITTESTS
-#endif
-
-void NFSTCPParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
 }
