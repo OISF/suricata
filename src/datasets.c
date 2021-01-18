@@ -1175,6 +1175,48 @@ int DatasetAddSerialized(Dataset *set, const char *string)
     return -1;
 }
 
+/** \brief add serialized data to set
+ *  \retval int 1 added
+ *  \retval int 0 already in hash
+ *  \retval int -1 API error (not added)
+ *  \retval int -2 DATA error
+ */
+int DatasetLookupSerialized(Dataset *set, const char *string)
+{
+    if (set == NULL)
+        return -1;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING: {
+            // coverity[alloc_strlen : FALSE]
+            uint8_t decoded[strlen(string)];
+            uint32_t consumed = 0, num_decoded = 0;
+            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
+                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            if (code == BASE64_ECODE_ERR)
+                FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s", set->name, set->load);
+            return DatasetLookup(set, decoded, num_decoded);
+        }
+        case DATASET_TYPE_MD5: {
+            if (strlen(string) != 32)
+                return -2;
+            uint8_t hash[16];
+            if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
+                return -2;
+            return DatasetLookup(set, hash, 16);
+        }
+        case DATASET_TYPE_SHA256: {
+            if (strlen(string) != 64)
+                return -2;
+            uint8_t hash[32];
+            if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
+                return -2;
+            return DatasetLookup(set, hash, 32);
+        }
+    }
+    return -1;
+}
+
 /**
  *  \retval 1 data was removed from the hash
  *  \retval 0 data not removed (busy)
