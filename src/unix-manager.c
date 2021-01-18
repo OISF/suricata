@@ -1085,6 +1085,8 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("dataset-add", UnixSocketDatasetAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dataset-remove", UnixSocketDatasetRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dataset-dump", UnixSocketDatasetDump, NULL, 0);
+    UnixManagerRegisterCommand(
+            "dataset-clear", UnixSocketDatasetClear, &command, UNIX_CMD_TAKE_ARGS);
 
     return 0;
 }
