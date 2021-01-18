@@ -112,9 +112,7 @@ typedef struct OutputJsonThreadCtx_ {
     MemBuffer *buffer;
 } OutputJsonThreadCtx;
 
-json_t *SCJsonBool(int val);
 json_t *SCJsonString(const char *val);
-void SCJsonDecref(json_t *js);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js);

@@ -96,20 +96,6 @@ void OutputJsonRegister (void)
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
 }
 
-json_t *SCJsonBool(int val)
-{
-    return (val ? json_true() : json_false());
-}
-
-/**
- * Wrap json_decref. This is mainly to expose this function to Rust as its
- * defined in the Jansson header file as an inline function.
- */
-void SCJsonDecref(json_t *json)
-{
-    json_decref(json);
-}
-
 json_t *SCJsonString(const char *val)
 {
     if (val == NULL){
