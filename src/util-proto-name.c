@@ -33,6 +33,16 @@
 char *known_proto[256];
 static int init_once = 0;
 
+static void SetDefault(const uint8_t proto, const char *string)
+{
+    if (known_proto[proto] == NULL) {
+        known_proto[proto] = SCStrdup(string);
+        if (unlikely(known_proto[proto] == NULL)) {
+            FatalError(SC_ERR_MEM_ALLOC, "failed to alloc protocol name");
+        }
+    }
+}
+
 /**
  *  \brief  Function to load the protocol names from the specified protocol
  *          file.
@@ -86,6 +96,8 @@ void SCProtoNameInit()
         }
         fclose(fp);
     }
+
+    SetDefault(IPPROTO_SCTP, "SCTP");
 }
 
 /**
