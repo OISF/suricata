@@ -75,8 +75,7 @@ static int DecodeCHDLCTest01 (void)
         0x02,0x04,0x05,0xb4,0x01,0x01,0x04,0x02 };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
