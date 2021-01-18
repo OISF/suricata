@@ -34,6 +34,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed);
 TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketDatasetDump(json_t *cmd, json_t *answer, void *data);
+TmEcode UnixSocketDatasetClear(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);
