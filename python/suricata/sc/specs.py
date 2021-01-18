@@ -201,4 +201,14 @@ argsd = {
             "required": 1,
         },
     ],
+    "dataset-clear": [
+        {
+            "name": "setname",
+            "required": 1,
+        },
+        {
+            "name": "settype",
+            "required": 1,
+        }
+    ],
     }

@@ -108,6 +108,7 @@ class SuricataSC:
                 "dataset-add",
                 "dataset-remove",
                 "get-flow-stats-by-id",
+                "dataset-clear",
                 ]
         self.cmd_list = self.basic_commands + self.fn_commands
         self.sck_path = sck_path
