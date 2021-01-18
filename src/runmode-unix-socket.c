@@ -764,6 +764,42 @@ TmEcode UnixSocketDatasetDump(json_t *cmd, json_t *answer, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixSocketDatasetClear(json_t *cmd, json_t *answer, void *data)
+{
+    /* 1 get dataset name */
+    json_t *narg = json_object_get(cmd, "setname");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setname is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *set_name = json_string_value(narg);
+
+    /* 2 get the data type */
+    json_t *targ = json_object_get(cmd, "settype");
+    if (!json_is_string(targ)) {
+        json_object_set_new(answer, "message", json_string("settype is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *type = json_string_value(targ);
+
+    enum DatasetTypes t = DatasetGetTypeFromString(type);
+    if (t == DATASET_TYPE_NOTSET) {
+        json_object_set_new(answer, "message", json_string("unknown settype"));
+        return TM_ECODE_FAILED;
+    }
+
+    Dataset *set = DatasetFind(set_name, t);
+    if (set == NULL) {
+        json_object_set_new(answer, "message", json_string("set not found or wrong type"));
+        return TM_ECODE_FAILED;
+    }
+
+    THashCleanup(set->hash);
+
+    json_object_set_new(answer, "message", json_string("dataset cleared"));
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Command to add a tenant handler
  *
