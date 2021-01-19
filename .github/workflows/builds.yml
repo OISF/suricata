@@ -585,9 +585,9 @@ jobs:
       - name: Gcov
         run: |
           cd src
-          gcov-9 *.[ch]
+          gcov-9 -p *.[ch]
           cd ../libhtp/htp
-          gcov-9 *.[ch]
+          gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
@@ -658,11 +658,9 @@ jobs:
       - name: Gcov
         run: |
           cd src
-          gcov-9 *.[ch]
-          cd tests
-          gcov-9 *.[ch]
+          gcov-9 -p *.[ch]
           cd ../../libhtp/htp
-          gcov-9 *.[ch]
+          gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
