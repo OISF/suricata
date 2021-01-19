@@ -36,7 +36,6 @@ app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
 app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-http2.c app-layer-http2.h \
-app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
 app-layer-smb.c app-layer-smb.h \
@@ -144,7 +143,6 @@ detect-engine-build.c detect-engine-build.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
-detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
@@ -376,6 +374,7 @@ output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \
 output-json-flow.c output-json-flow.h \
 output-json-ftp.c output-json-ftp.h \
+output-json-modbus.c output-json-modbus.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-http2.c output-json-http2.h \
