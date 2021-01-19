@@ -40,7 +40,6 @@
  *     access write, address 1500<>2000, value >2000 (Write multiple coils/register:
  *     at address between 1500 and 2000 value greater than 2000)
  */
-
 #include "suricata-common.h"
 
 #include "detect.h"
@@ -48,37 +47,17 @@
 #include "detect-engine.h"
 
 #include "detect-modbus.h"
-#include "detect-engine-modbus.h"
 
 #include "util-debug.h"
 #include "util-byte.h"
 
-#include "app-layer-modbus.h"
-
 #include "stream-tcp.h"
-
-/**
- * \brief Regex for parsing the Modbus unit id string
- */
-#define PARSE_REGEX_UNIT_ID "^\\s*\"?\\s*unit\\s+([<>]?\\d+)(<>\\d+)?(,\\s*(.*))?\\s*\"?\\s*$"
-static DetectParseRegex unit_id_parse_regex;
-
-/**
- * \brief Regex for parsing the Modbus function string
- */
-#define PARSE_REGEX_FUNCTION "^\\s*\"?\\s*function\\s*(!?[A-z0-9]+)(,\\s*subfunction\\s+(\\d+))?\\s*\"?\\s*$"
-static DetectParseRegex function_parse_regex;
-
-/**
- * \brief Regex for parsing the Modbus access string
- */
-#define PARSE_REGEX_ACCESS "^\\s*\"?\\s*access\\s*(read|write)\\s*(discretes|coils|input|holding)?(,\\s*address\\s+([<>]?\\d+)(<>\\d+)?(,\\s*value\\s+([<>]?\\d+)(<>\\d+)?)?)?\\s*\"?\\s*$"
-static DetectParseRegex access_parse_regex;
+#include "rust.h"
 
 static int g_modbus_buffer_id = 0;
 
 #ifdef UNITTESTS
-void DetectModbusRegisterTests(void);
+static void DetectModbusRegisterTests(void);
 #endif
 
 /** \internal
@@ -89,412 +68,11 @@ void DetectModbusRegisterTests(void);
  */
 static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
     SCEnter();
-    DetectModbus *modbus = (DetectModbus *) ptr;
-
-    if(modbus) {
-        if (modbus->unit_id)
-            SCFree(modbus->unit_id);
-
-        if (modbus->address)
-            SCFree(modbus->address);
-
-        if (modbus->data)
-            SCFree(modbus->data);
-
-        SCFree(modbus);
+    if (ptr != NULL) {
+        rs_modbus_free(ptr);
     }
+    SCReturn;
 }
-
-/** \internal
- *
- * \brief This function is used to parse Modbus parameters in access mode
- *
- * \param de_ctx Pointer to the detection engine context
- * \param str Pointer to the user provided id option
- *
- * \retval Pointer to DetectModbusData on success or NULL on failure
- */
-static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char *str)
-{
-    SCEnter();
-    DetectModbus *modbus = NULL;
-
-    char    arg[MAX_SUBSTRINGS];
-    int     ov[MAX_SUBSTRINGS], ret, res;
-
-    ret = DetectParsePcreExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 1)
-        goto error;
-
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-
-    /* We have a correct Modbus option */
-    modbus = (DetectModbus *) SCCalloc(1, sizeof(DetectModbus));
-    if (unlikely(modbus == NULL))
-        goto error;
-
-    if (strcmp(arg, "read") == 0)
-        modbus->type = MODBUS_TYP_READ;
-    else if (strcmp(arg, "write") == 0)
-        modbus->type = MODBUS_TYP_WRITE;
-    else
-        goto error;
-
-    if (ret > 2) {
-        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 2, arg, MAX_SUBSTRINGS);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-
-        if (*arg != '\0') {
-            if (strcmp(arg, "discretes") == 0) {
-                if (modbus->type == MODBUS_TYP_WRITE)
-                    /* Discrete access is only read access. */
-                    goto error;
-
-                modbus->type |= MODBUS_TYP_DISCRETES;
-            }
-            else if (strcmp(arg, "coils") == 0) {
-                modbus->type |= MODBUS_TYP_COILS;
-            }
-            else if (strcmp(arg, "input") == 0) {
-                if (modbus->type == MODBUS_TYP_WRITE) {
-                    /* Input access is only read access. */
-                    goto error;
-                }
-
-                modbus->type |= MODBUS_TYP_INPUT;
-            }
-            else if (strcmp(arg, "holding") == 0) {
-                modbus->type |= MODBUS_TYP_HOLDING;
-            }
-            else
-                goto error;
-        }
-
-        if (ret > 4) {
-            res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 4, arg, MAX_SUBSTRINGS);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                goto error;
-            }
-
-            /* We have a correct address option */
-            modbus->address = (DetectModbusValue *) SCCalloc(1, sizeof(DetectModbusValue));
-            if (unlikely(modbus->address == NULL))
-                goto error;
-
-            uint8_t idx;
-            if (arg[0] == '>') {
-                idx = 1;
-                modbus->address->mode   = DETECT_MODBUS_GT;
-            } else if (arg[0] == '<') {
-                idx = 1;
-                modbus->address->mode   = DETECT_MODBUS_LT;
-            } else {
-                idx = 0;
-            }
-            if (StringParseUint16(&modbus->address->min, 10, 0,
-                                  (const char *) (arg + idx)) < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for min "
-                           "address: %s", (const char *)(arg + idx));
-                goto error;
-            }
-            SCLogDebug("and min/equal address %d", modbus->address->min);
-
-            if (ret > 5) {
-                res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 5, arg, MAX_SUBSTRINGS);
-                if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                    goto error;
-                }
-
-                if (*arg != '\0') {
-                    if (StringParseUint16(&modbus->address->max, 10, 0,
-                                         (const char*) (arg + 2)) < 0) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for max "
-                                   "address: %s", (const char*)(arg + 2));
-                        goto error;
-                    }
-                    modbus->address->mode   = DETECT_MODBUS_RA;
-                    SCLogDebug("and max address %d", modbus->address->max);
-                }
-
-                if (ret > 7) {
-                    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 7, arg, MAX_SUBSTRINGS);
-                    if (res < 0) {
-                        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                        goto error;
-                    }
-
-                    if (modbus->address->mode != DETECT_MODBUS_EQ) {
-                        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords (address range and value).");
-                        goto error;
-                    }
-
-                    /* We have a correct address option */
-                    if (modbus->type == MODBUS_TYP_READ)
-                        /* Value access is only possible in write access. */
-                        goto error;
-
-                    modbus->data = (DetectModbusValue *) SCCalloc(1, sizeof(DetectModbusValue));
-                    if (unlikely(modbus->data == NULL))
-                        goto error;
-
-
-                    uint8_t idx_mode;
-                    if (arg[0] == '>') {
-                        idx_mode = 1;
-                        modbus->data->mode  = DETECT_MODBUS_GT;
-                    } else if (arg[0] == '<') {
-                        idx_mode = 1;
-                        modbus->data->mode  = DETECT_MODBUS_LT;
-                    } else {
-                        idx_mode = 0;
-                    }
-                    if (StringParseUint16(&modbus->data->min, 10, 0,
-                                          (const char*) (arg + idx_mode)) < 0) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                                   "min data: %s", (const char*)(arg + idx_mode));
-                        goto error;
-                    }
-                    SCLogDebug("and min/equal value %d", modbus->data->min);
-
-                    if (ret > 8) {
-                        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 8, arg, MAX_SUBSTRINGS);
-                        if (res < 0) {
-                            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                            goto error;
-                        }
-
-                        if (*arg != '\0') {
-                            if (StringParseUint16(&modbus->data->max,
-                                                  10, 0, (const char*) (arg + 2)) < 0) {
-                                SCLogError(SC_ERR_INVALID_VALUE,
-                                           "Invalid value for max data: %s",
-                                           (const char*)(arg + 2));
-                                goto error;
-                            }
-                            modbus->data->mode  = DETECT_MODBUS_RA;
-                            SCLogDebug("and max value %d", modbus->data->max);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    SCReturnPtr(modbus, "DetectModbusAccess");
-
-error:
-    if (modbus != NULL)
-        DetectModbusFree(de_ctx, modbus);
-
-    SCReturnPtr(NULL, "DetectModbus");
-}
-
-/** \internal
- *
- * \brief This function is used to parse Modbus parameters in function mode
- *
- * \param str Pointer to the user provided id option
- *
- * \retval id_d pointer to DetectModbusData on success
- * \retval NULL on failure
- */
-static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const char *str)
-{
-    SCEnter();
-    DetectModbus *modbus = NULL;
-
-    char    arg[MAX_SUBSTRINGS], *ptr = arg;
-    int     ov[MAX_SUBSTRINGS], res, ret;
-
-    ret = DetectParsePcreExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 1)
-        goto error;
-
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-
-    /* We have a correct Modbus function option */
-    modbus = (DetectModbus *) SCCalloc(1, sizeof(DetectModbus));
-    if (unlikely(modbus == NULL))
-        goto error;
-
-    if (isdigit((unsigned char)ptr[0])) {
-        if (StringParseUint8(&modbus->function, 10, 0, (const char *)ptr) < 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                       "modbus function: %s", (const char *)ptr);
-            goto error;
-        }
-        /* Function code 0 is managed by decoder_event INVALID_FUNCTION_CODE */
-        if (modbus->function == MODBUS_FUNC_NONE) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "Invalid argument \"%d\" supplied to modbus function keyword.",
-                    modbus->function);
-            goto error;
-        }
-
-        SCLogDebug("will look for modbus function %d", modbus->function);
-
-        if (ret > 2) {
-            res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 3, arg, MAX_SUBSTRINGS);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                goto error;
-            }
-
-            if (StringParseUint16(&modbus->subfunction, 10, 0, (const char *)arg) < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                           "modbus subfunction: %s", (const char*)arg);
-                goto error;
-            }
-            modbus->has_subfunction = true;
-
-            SCLogDebug("and subfunction %d", modbus->subfunction);
-        }
-    } else {
-        uint8_t neg = 0;
-
-        if (ptr[0] == '!') {
-            neg = 1;
-            ptr++;
-        }
-
-        if (strcmp("assigned", ptr) == 0)
-            modbus->category = MODBUS_CAT_PUBLIC_ASSIGNED;
-        else if (strcmp("unassigned", ptr) == 0)
-            modbus->category = MODBUS_CAT_PUBLIC_UNASSIGNED;
-        else if (strcmp("public", ptr) == 0)
-            modbus->category = MODBUS_CAT_PUBLIC_ASSIGNED | MODBUS_CAT_PUBLIC_UNASSIGNED;
-        else if (strcmp("user", ptr) == 0)
-            modbus->category = MODBUS_CAT_USER_DEFINED;
-        else if (strcmp("reserved", ptr) == 0)
-            modbus->category = MODBUS_CAT_RESERVED;
-        else if (strcmp("all", ptr) == 0)
-            modbus->category = MODBUS_CAT_ALL;
-
-        if (neg)
-            modbus->category = ~modbus->category;
-        SCLogDebug("will look for modbus category function %d", modbus->category);
-    }
-
-    SCReturnPtr(modbus, "DetectModbusFunction");
-
-error:
-    if (modbus != NULL)
-        DetectModbusFree(de_ctx, modbus);
-
-    SCReturnPtr(NULL, "DetectModbus");
-}
-
-/** \internal
- *
- * \brief This function is used to parse Modbus parameters in unit id mode
- *
- * \param str Pointer to the user provided id option
- *
- * \retval Pointer to DetectModbusUnit on success or NULL on failure
- */
-static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char *str)
-{
-    SCEnter();
-    DetectModbus *modbus = NULL;
-
-    char    arg[MAX_SUBSTRINGS];
-    int     ov[MAX_SUBSTRINGS], ret, res;
-
-    ret = DetectParsePcreExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 1)
-        goto error;
-
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-
-    if (ret > 3) {
-        /* We have more Modbus option */
-        const char *str_ptr;
-
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 4, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-
-        if ((modbus = DetectModbusFunctionParse(de_ctx, str_ptr)) == NULL) {
-            if ((modbus = DetectModbusAccessParse(de_ctx, str_ptr)) == NULL) {
-                SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
-                goto error;
-            }
-        }
-    } else {
-        /* We have only unit id Modbus option */
-        modbus = (DetectModbus *) SCCalloc(1, sizeof(DetectModbus));
-        if (unlikely(modbus == NULL))
-            goto error;
-    }
-
-    /* We have a correct unit id option */
-    modbus->unit_id = (DetectModbusValue *) SCCalloc(1, sizeof(DetectModbusValue));
-    if (unlikely(modbus->unit_id == NULL))
-        goto error;
-
-    uint8_t idx;
-    if (arg[0] == '>') {
-        idx = 1;
-        modbus->unit_id->mode  = DETECT_MODBUS_GT;
-    } else if (arg[0] == '<') {
-        idx = 1;
-        modbus->unit_id->mode  = DETECT_MODBUS_LT;
-    } else {
-        idx = 0;
-    }
-    if (StringParseUint16(&modbus->unit_id->min, 10, 0, (const char *) (arg + idx)) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                   "modbus min unit id: %s", (const char*)(arg + idx));
-        goto error;
-    }
-    SCLogDebug("and min/equal unit id %d", modbus->unit_id->min);
-
-    if (ret > 2) {
-        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 2, arg, MAX_SUBSTRINGS);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-
-        if (*arg != '\0') {
-            if (StringParseUint16(&modbus->unit_id->max, 10, 0, (const char *) (arg + 2)) < 0) {
-                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                           "modbus max unit id: %s", (const char*)(arg + 2));
-                goto error;
-            }
-            modbus->unit_id->mode  = DETECT_MODBUS_RA;
-            SCLogDebug("and max unit id %d", modbus->unit_id->max);
-        }
-    }
-
-    SCReturnPtr(modbus, "DetectModbusUnitId");
-
-error:
-    if (modbus != NULL)
-        DetectModbusFree(de_ctx, modbus);
-
-    SCReturnPtr(NULL, "DetectModbus");
-}
-
 
 /** \internal
  *
@@ -515,9 +93,9 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
         return -1;
 
-    if ((modbus = DetectModbusUnitIdParse(de_ctx, str)) == NULL) {
-        if ((modbus = DetectModbusFunctionParse(de_ctx, str)) == NULL) {
-            if ((modbus = DetectModbusAccessParse(de_ctx, str)) == NULL) {
+    if ((modbus = rs_parse_unit_id(str)) == NULL) {
+        if ((modbus = rs_parse_function(str)) == NULL) {
+            if ((modbus = rs_parse_access(str)) == NULL) {
                 SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
                 goto error;
             }
@@ -544,24 +122,47 @@ error:
     SCReturnInt(-1);
 }
 
+static int DetectModbusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
+{
+    return rs_modbus_inspect(txv, (void *)ctx);
+}
+
+/** \brief Do the content inspection & validation for a signature
+ *
+ *  \param de_ctx   Detection engine context
+ *  \param det_ctx  Detection engine thread context
+ *  \param s        Signature to inspect ( and sm: SigMatch to inspect)
+ *  \param f        Flow
+ *  \param flags    App layer flags
+ *  \param alstate  App layer state
+ *  \param txv      Pointer to Modbus Transaction structure
+ *
+ *  \retval 0 no match or 1 match
+ */
+static int DetectEngineInspectModbus(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+}
+
 /**
  * \brief Registration function for Modbus keyword
  */
 void DetectModbusRegister(void)
 {
-    SCEnter();
-    sigmatch_table[DETECT_AL_MODBUS].name          = "modbus";
-    sigmatch_table[DETECT_AL_MODBUS].desc          = "match on various properties of Modbus requests";
-    sigmatch_table[DETECT_AL_MODBUS].url           = "/rules/modbus-keyword.html#modbus-keyword";
-    sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
-    sigmatch_table[DETECT_AL_MODBUS].Setup         = DetectModbusSetup;
-    sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
+    sigmatch_table[DETECT_AL_MODBUS].name = "modbus";
+    sigmatch_table[DETECT_AL_MODBUS].desc = "match on various properties of Modbus requests";
+    sigmatch_table[DETECT_AL_MODBUS].url = "/rules/modbus-keyword.html#modbus-keyword";
+    sigmatch_table[DETECT_AL_MODBUS].Match = NULL;
+    sigmatch_table[DETECT_AL_MODBUS].Setup = DetectModbusSetup;
+    sigmatch_table[DETECT_AL_MODBUS].Free = DetectModbusFree;
+    sigmatch_table[DETECT_AL_MODBUS].AppLayerTxMatch = DetectModbusMatch;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX_UNIT_ID, &unit_id_parse_regex);
-    DetectSetupParseRegexes(PARSE_REGEX_FUNCTION, &function_parse_regex);
-    DetectSetupParseRegexes(PARSE_REGEX_ACCESS, &access_parse_regex);
 
     DetectAppLayerInspectEngineRegister2(
             "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectModbus, NULL);
@@ -570,442 +171,179 @@ void DetectModbusRegister(void)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+#include "app-layer-parser.h"
+
+#include "flow-util.h"
+
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+/**
+ * Sample data for tests derived from
+ * https://github.com/bro/bro/blob/master/testing/btest/Traces/modbus/modbus.trace
+ */
+static uint8_t writeSingleCoil[] = {
+    /* Transaction ID */ 0x00, 0x01,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x06,
+    /* Unit ID */ 0x0a,
+    /* Function code */ 0x05,
+    /* Read Starting Address */ 0x00, 0x02,
+    /* Data */ 0x00, 0x00
+};
+
+static uint8_t restartCommOption[] = {
+    /* Transaction ID */ 0x00, 0x00,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x06,
+    /* Unit ID */ 0x0a,
+    /* Function code */ 0x08,
+    /* Diagnostic Code */ 0x00, 0x01,
+    /* Data */ 0x00, 0x00
+};
+
+/** \test Signature containing an access type. */
+static int DetectModbusTestAccess(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(restartCommOption, sizeof(restartCommOption), IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto = ALPROTO_MODBUS;
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
+                                           "(msg:\"Testing modbus code function\"; "
+                                           "modbus: access write; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+            writeSingleCoil, sizeof(writeSingleCoil));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
+
+    FAIL_IF_NULL(f.alstate);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
+}
 
 /** \test Signature containing a function. */
-static int DetectModbusTest01(void)
+static int DetectModbusTestFunction(void)
 {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(writeSingleCoil, sizeof(writeSingleCoil), IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto = ALPROTO_MODBUS;
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
+                                           "(msg:\"Testing modbus code function\"; "
+                                           "modbus: function 8; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus function\"; "
-                                       "modbus: function 1;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+            restartCommOption, sizeof(restartCommOption));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
 
-    FAIL_IF_NOT(modbus->function == 1);
+    FAIL_IF_NULL(f.alstate);
 
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
     SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-    PASS;
-}
 
-/** \test Signature containing a function and a subfunction. */
-static int DetectModbusTest02(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus function and subfunction\"; "
-                                       "modbus: function 8, subfunction 4;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->function == 8);
-    FAIL_IF_NOT(modbus->subfunction == 4);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a function category. */
-static int DetectModbusTest03(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.function\"; "
-                                       "modbus: function reserved;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->category == MODBUS_CAT_RESERVED);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a negative function category. */
-static int DetectModbusTest04(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
-
-    uint8_t category = ~MODBUS_CAT_PUBLIC_ASSIGNED;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus function\"; "
-                                       "modbus: function !assigned;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->category == category);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a access type. */
-static int DetectModbusTest05(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: access read;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->type == MODBUS_TYP_READ);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a access function. */
-static int DetectModbusTest06(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    DetectModbus    *modbus = NULL;
-
-    uint8_t type = (MODBUS_TYP_READ | MODBUS_TYP_DISCRETES);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: access read discretes;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->type == type);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a read access at an address. */
-static int DetectModbusTest07(void)
-{
-    DetectEngineCtx     *de_ctx = NULL;
-    DetectModbus        *modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_EQ;
-
-    uint8_t type = MODBUS_TYP_READ;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: access read, address 1000;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->type == type);
-    FAIL_IF_NOT((*modbus->address).mode == mode);
-    FAIL_IF_NOT((*modbus->address).min == 1000);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a write access at a range of address. */
-static int DetectModbusTest08(void)
-{
-    DetectEngineCtx     *de_ctx = NULL;
-    DetectModbus        *modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_GT;
-
-    uint8_t type = (MODBUS_TYP_WRITE | MODBUS_TYP_COILS);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: access write coils, address >500;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->type == type);
-    FAIL_IF_NOT((*modbus->address).mode == mode);
-    FAIL_IF_NOT((*modbus->address).min == 500);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a write access at a address a range of value. */
-static int DetectModbusTest09(void)
-{
-    DetectEngineCtx     *de_ctx = NULL;
-    DetectModbus        *modbus = NULL;
-    DetectModbusMode    addressMode = DETECT_MODBUS_EQ;
-    DetectModbusMode    valueMode = DETECT_MODBUS_RA;
-
-    uint8_t type = (MODBUS_TYP_WRITE | MODBUS_TYP_HOLDING);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: access write holding, address 100, value 500<>1000;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT(modbus->type == type);
-    FAIL_IF_NOT((*modbus->address).mode == addressMode);
-    FAIL_IF_NOT((*modbus->address).min == 100);
-    FAIL_IF_NOT((*modbus->data).mode == valueMode);
-    FAIL_IF_NOT((*modbus->data).min == 500);
-    FAIL_IF_NOT((*modbus->data).max == 1000);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a unit_id. */
-static int DetectModbusTest10(void)
-{
-    DetectEngineCtx 	*de_ctx = NULL;
-    DetectModbus    	*modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_EQ;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus unit_id\"; "
-                                       "modbus: unit 10;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT((*modbus->unit_id).min == 10);
-    FAIL_IF_NOT((*modbus->unit_id).mode == mode);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a unit_id, a function and a subfunction. */
-static int DetectModbusTest11(void)
-{
-    DetectEngineCtx 	*de_ctx = NULL;
-    DetectModbus    	*modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_EQ;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus function and subfunction\"; "
-                                       "modbus: unit 10, function 8, subfunction 4;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT((*modbus->unit_id).min == 10);
-    FAIL_IF_NOT((*modbus->unit_id).mode == mode);
-    FAIL_IF_NOT(modbus->function == 8);
-    FAIL_IF_NOT(modbus->subfunction == 4);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing an unit_id and a read access at an address. */
-static int DetectModbusTest12(void)
-{
-    DetectEngineCtx     *de_ctx = NULL;
-    DetectModbus        *modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_EQ;
-
-    uint8_t type = MODBUS_TYP_READ;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: unit 10, access read, address 1000;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT((*modbus->unit_id).min == 10);
-    FAIL_IF_NOT((*modbus->unit_id).mode == mode);
-    FAIL_IF_NOT(modbus->type == type);
-    FAIL_IF_NOT((*modbus->address).mode == mode);
-    FAIL_IF_NOT((*modbus->address).min == 1000);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-/** \test Signature containing a range of unit_id. */
-static int DetectModbusTest13(void)
-{
-    DetectEngineCtx     *de_ctx = NULL;
-    DetectModbus        *modbus = NULL;
-    DetectModbusMode    mode = DETECT_MODBUS_RA;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus.access\"; "
-                                       "modbus: unit 10<>500;  sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx);
-
-    modbus = (DetectModbus *) de_ctx->sig_list->sm_lists_tail[g_modbus_buffer_id]->ctx;
-
-    FAIL_IF_NOT((*modbus->unit_id).min == 10);
-    FAIL_IF_NOT((*modbus->unit_id).max == 500);
-    FAIL_IF_NOT((*modbus->unit_id).mode == mode);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
     PASS;
 }
 
 /**
  * \brief this function registers unit tests for DetectModbus
  */
-void DetectModbusRegisterTests(void)
+static void DetectModbusRegisterTests(void)
 {
-    UtRegisterTest("DetectModbusTest01 - Testing function",
-                   DetectModbusTest01);
-    UtRegisterTest("DetectModbusTest02 - Testing function and subfunction",
-                   DetectModbusTest02);
-    UtRegisterTest("DetectModbusTest03 - Testing category function",
-                   DetectModbusTest03);
-    UtRegisterTest("DetectModbusTest04 - Testing category function in negative",
-                   DetectModbusTest04);
-    UtRegisterTest("DetectModbusTest05 - Testing access type",
-                   DetectModbusTest05);
-    UtRegisterTest("DetectModbusTest06 - Testing access function",
-                   DetectModbusTest06);
-    UtRegisterTest("DetectModbusTest07 - Testing access at address",
-                   DetectModbusTest07);
-    UtRegisterTest("DetectModbusTest08 - Testing a range of address",
-                   DetectModbusTest08);
-    UtRegisterTest("DetectModbusTest09 - Testing write a range of value",
-                   DetectModbusTest09);
-    UtRegisterTest("DetectModbusTest10 - Testing unit_id",
-                   DetectModbusTest10);
-    UtRegisterTest("DetectModbusTest11 - Testing unit_id, function and subfunction",
-                   DetectModbusTest11);
-    UtRegisterTest("DetectModbusTest12 - Testing unit_id and access at address",
-                   DetectModbusTest12);
-    UtRegisterTest("DetectModbusTest13 - Testing a range of unit_id",
-                   DetectModbusTest13);
+    UtRegisterTest("DetectModbusTestAccess", DetectModbusTestAccess);
+    UtRegisterTest("DetectModbusTestFunction", DetectModbusTestFunction);
 }
 #endif /* UNITTESTS */
