@@ -1,3 +1,3 @@
 [submodule "libhtp"]
 	path = libhtp
-	url = git@github.com:rtkjweeks/libhtp.git
+	url = git@github.com:rtkwlf/libhtp.git
