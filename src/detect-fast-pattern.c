@@ -70,17 +70,6 @@ int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
         return 1;
 
     return DetectBufferTypeSupportsMpmGetById(de_ctx, list_id);
-
-#if 0
-    SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
-    while (tmp_smlist_fp != NULL) {
-        if (tmp_smlist_fp->list_id == list_id)
-            return 1;
-
-        tmp_smlist_fp = tmp_smlist_fp->next;
-    }
-#endif
-    return 0;
 }
 
 /**
@@ -148,17 +137,6 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH, 3);
 
     /* other types are handled by DetectMpmAppLayerRegister() */
-
-#if 0
-    SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
-    while (tmp != NULL) {
-        printf("%d - %d\n", tmp->list_id, tmp->priority);
-
-        tmp = tmp->next;
-    }
-#endif
-
-    return;
 }
 
 /**
@@ -179,8 +157,6 @@ void DetectFastPatternRegister(void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
-
-//static int DetectFastPatternParseArg(
 
 /**
  * \brief Configures the previous content context for a fast_pattern modifier
@@ -333,20 +309,6 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                    ", string %s", ret, arg);
         goto error;
     }
-
-    //int args;
-    //args = 0;
-    //printf("ret-%d\n", ret);
-    //for (args = 0; args < ret; args++) {
-    //    res = pcre_get_substring((char *)arg, ov, MAX_SUBSTRINGS,
-    //                             args, &arg_substr);
-    //    if (res < 0) {
-    //        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
-    //                   "for arg 1");
-    //        goto error;
-    //    }
-    //    printf("%d-%s\n", args, arg_substr);
-    //}
 
     cd->flags |= DETECT_CONTENT_FAST_PATTERN;
 
