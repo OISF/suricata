@@ -1134,13 +1134,10 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
     return -1;
 }
 
-/** \brief add serialized data to set
- *  \retval int 1 added
- *  \retval int 0 already in hash
- *  \retval int -1 API error (not added)
- *  \retval int -2 DATA error
- */
-int DatasetAddSerialized(Dataset *set, const char *string)
+typedef int (*DatasetOpFunc)(Dataset *set, const uint8_t *data, const uint32_t data_len);
+
+static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc DatasetOpString,
+        DatasetOpFunc DatasetOpMd5, DatasetOpFunc DatasetOpSha256)
 {
     if (set == NULL)
         return -1;
@@ -1156,7 +1153,7 @@ int DatasetAddSerialized(Dataset *set, const char *string)
                 return -2;
             }
 
-            return DatasetAddString(set, decoded, num_decoded);
+            return DatasetOpString(set, decoded, num_decoded);
         }
         case DATASET_TYPE_MD5: {
             if (strlen(string) != 32)
@@ -1164,7 +1161,7 @@ int DatasetAddSerialized(Dataset *set, const char *string)
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
                 return -2;
-            return DatasetAddMd5(set, hash, 16);
+            return DatasetOpMd5(set, hash, 16);
         }
         case DATASET_TYPE_SHA256: {
             if (strlen(string) != 64)
@@ -1172,7 +1169,7 @@ int DatasetAddSerialized(Dataset *set, const char *string)
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
                 return -2;
-            return DatasetAddSha256(set, hash, 32);
+            return DatasetOpSha256(set, hash, 32);
         }
     }
     return -1;
@@ -1184,40 +1181,21 @@ int DatasetAddSerialized(Dataset *set, const char *string)
  *  \retval int -1 API error (not added)
  *  \retval int -2 DATA error
  */
+int DatasetAddSerialized(Dataset *set, const char *string)
+{
+    return DatasetOpSerialized(set, string, DatasetAddString, DatasetAddMd5, DatasetAddSha256);
+}
+
+/** \brief add serialized data to set
+ *  \retval int 1 added
+ *  \retval int 0 already in hash
+ *  \retval int -1 API error (not added)
+ *  \retval int -2 DATA error
+ */
 int DatasetLookupSerialized(Dataset *set, const char *string)
 {
-    if (set == NULL)
-        return -1;
-
-    switch (set->type) {
-        case DATASET_TYPE_STRING: {
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[strlen(string)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
-            if (code == BASE64_ECODE_ERR)
-                FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s", set->name, set->load);
-            return DatasetLookup(set, decoded, num_decoded);
-        }
-        case DATASET_TYPE_MD5: {
-            if (strlen(string) != 32)
-                return -2;
-            uint8_t hash[16];
-            if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
-                return -2;
-            return DatasetLookup(set, hash, 16);
-        }
-        case DATASET_TYPE_SHA256: {
-            if (strlen(string) != 64)
-                return -2;
-            uint8_t hash[32];
-            if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
-                return -2;
-            return DatasetLookup(set, hash, 32);
-        }
-    }
-    return -1;
+    return DatasetOpSerialized(
+            set, string, DatasetLookupString, DatasetLookupMd5, DatasetLookupSha256);
 }
 
 /**
@@ -1268,38 +1246,6 @@ static int DatasetRemoveSha256(Dataset *set, const uint8_t *data, const uint32_t
  *  \retval int -2 DATA error */
 int DatasetRemoveSerialized(Dataset *set, const char *string)
 {
-    if (set == NULL)
-        return -1;
-
-    switch (set->type) {
-        case DATASET_TYPE_STRING: {
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[strlen(string)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
-            if (code == BASE64_ECODE_ERR) {
-                return -2;
-            }
-
-            return DatasetRemoveString(set, decoded, num_decoded);
-        }
-        case DATASET_TYPE_MD5: {
-            if (strlen(string) != 32)
-                return -2;
-            uint8_t hash[16];
-            if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
-                return -2;
-            return DatasetRemoveMd5(set, hash, 16);
-        }
-        case DATASET_TYPE_SHA256: {
-            if (strlen(string) != 64)
-                return -2;
-            uint8_t hash[32];
-            if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
-                return -2;
-            return DatasetRemoveSha256(set, hash, 32);
-        }
-    }
-    return -1;
+    return DatasetOpSerialized(
+            set, string, DatasetRemoveString, DatasetRemoveMd5, DatasetRemoveSha256);
 }
