@@ -705,7 +705,7 @@ static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t
     StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep.value = 0 };
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return 1;
     }
     return 0;
