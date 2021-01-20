@@ -1656,7 +1656,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             Base64Encode(data->user_public_key, data->user_public_key_len,
                 user_public_key_b64, &user_public_key_b64_len);
             jb_set_string(js, "data->user_public_key", (char *)user_public_key_b64);
-            unsigned long certification_data_b64_len = BASE64_BUFFER_SIZE(data->certification_data_len);
+            unsigned long certification_data_b64_len =
+                    BASE64_BUFFER_SIZE(data->certification_data_len);
             uint8_t certification_data_b64[certification_data_b64_len];
             Base64Encode(data->certification_data, data->certification_data_len,
                 certification_data_b64, &certification_data_b64_len);
@@ -1678,7 +1679,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             } else {
                 jb_set_string(js, "username", "");
             }
-            unsigned long master_challenge_data_b64_len = BASE64_BUFFER_SIZE(data->master_challenge_data_len);
+            unsigned long master_challenge_data_b64_len =
+                    BASE64_BUFFER_SIZE(data->master_challenge_data_len);
             uint8_t master_challenge_data_b64[master_challenge_data_b64_len];
             Base64Encode(data->master_challenge_data, data->master_challenge_data_len,
                 master_challenge_data_b64, &master_challenge_data_b64_len);
@@ -1702,7 +1704,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "ksq", data->ksq);
             jb_set_uint(js, "user_number", data->user_number);
             jb_set_uint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
-            unsigned long encrypted_update_key_data_b64_len = BASE64_BUFFER_SIZE(data->encrypted_update_key_len);
+            unsigned long encrypted_update_key_data_b64_len =
+                    BASE64_BUFFER_SIZE(data->encrypted_update_key_len);
             uint8_t encrypted_update_key_data_b64[encrypted_update_key_data_b64_len];
             Base64Encode(data->encrypted_update_key_data, data->encrypted_update_key_len,
                 encrypted_update_key_data_b64, &encrypted_update_key_data_b64_len);
@@ -1711,7 +1714,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(120, 14): {
             DNP3ObjectG120V14 *data = point->data;
-            unsigned long digital_signature_b64_len = BASE64_BUFFER_SIZE(data->digital_signature_len);
+            unsigned long digital_signature_b64_len =
+                    BASE64_BUFFER_SIZE(data->digital_signature_len);
             uint8_t digital_signature_b64[digital_signature_b64_len];
             Base64Encode(data->digital_signature, data->digital_signature_len,
                 digital_signature_b64, &digital_signature_b64_len);

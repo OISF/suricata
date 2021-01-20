@@ -120,7 +120,7 @@ void DetectFilenameRegister(void)
     DetectAppLayerInspectEngineRegister2(
             "files", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
 
-    //this is used by filestore
+    // this is used by filestore
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectFileInspectGeneric, NULL);
     DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,

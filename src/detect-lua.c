@@ -2188,12 +2188,10 @@ static int LuaMatchTest04a(void)
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2224,12 +2222,12 @@ static int LuaMatchTest04a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2336,12 +2334,10 @@ static int LuaMatchTest05(void)
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2372,12 +2368,12 @@ static int LuaMatchTest05(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2484,12 +2480,10 @@ static int LuaMatchTest05a(void)
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2520,12 +2514,12 @@ static int LuaMatchTest05a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2545,8 +2539,8 @@ static int LuaMatchTest05a(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2569,8 +2563,7 @@ static int LuaMatchTest05a(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2638,12 +2631,10 @@ static int LuaMatchTest06(void)
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2674,12 +2665,12 @@ static int LuaMatchTest06(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2699,8 +2690,8 @@ static int LuaMatchTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2723,8 +2714,7 @@ static int LuaMatchTest06(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);

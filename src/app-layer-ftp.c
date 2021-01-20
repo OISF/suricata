@@ -907,7 +907,7 @@ static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state, FTPTransaction *start
     }
     FTPTransaction *tx = starttx;
     FTPTransaction *lasttx = NULL;
-    while(tx != NULL) {
+    while (tx != NULL) {
         /* Return oldest open tx */
         if (!tx->done) {
             SCLogDebug("Returning tx %p id %"PRIu64, tx, tx->tx_id);

@@ -673,7 +673,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                     (void *)payload);
                 if (payload->offset) {
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = BASE64_BUFFER_SIZE(json_output_ctx->payload_buffer_size);
+                        unsigned long len =
+                                BASE64_BUFFER_SIZE(json_output_ctx->payload_buffer_size);
                         uint8_t encoded[len];
                         Base64Encode(payload->buffer, payload->offset, encoded, &len);
                         jb_set_string(jb, "payload", (char *)encoded);
