@@ -7,34 +7,34 @@ X-Python-Version: >= 2.6
 Standards-Version: 3.9.2
 Homepage: http://www.openinfosecfoundation.org/
 
-Package: suricata-xdp
+Package: suricata6-xdp
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
-Replaces: libhtp1, suricata-dev, suricata-dbg, suricata2beta, suricata
-Conflicts: suricata2beta,suricata
-Provides: suricata
+Replaces: libhtp1, suricata2beta
+Conflicts: suricata2beta
+Provides: suricata6
 Description: Suricata open source multi-thread IDS/IPS/NSM.
  Suricata open source multi-thread IDS/IPS/NSM.
 
-Package: suricata-xdp-dev
+Package: suricata6-xdp-dev
 Architecture: any
 Depends: ${misc:Depends}, autotools-dev, libnss3-dev, libpcre3-dev, libpcap-dev, libnet1-dev, libyaml-dev, zlib1g-dev, libcap-ng-dev, libnspr4-dev, libgeoip-dev, libnetfilter-queue-dev, libnfnetlink-dev, libmagic-dev, libjansson-dev (>= 2.7)
-Replaces: libhtp1, suricata, suricata-dev, suricata2beta-dev, suricata-xdp
-Conflicts: suricata2beta-dev,suricata-dev
-Provides: suricata-dev
+Replaces: libhtp1, suricata2beta-dev, suricata6-xdp
+Conflicts: suricata2beta-dev
+Provides: suricata6-dev
 Description: Suricata open source multi-thread IDS/IPS/NSM.
  Suricata open source multi-thread IDS/IPS/NSM.
  .
  This package contains the files that are needed to build applications.
 
-Package: suricata-xdp-dbg
+Package: suricata6-xdp-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Depends: suricata-xdp (= ${binary:Version}), ${misc:Depends}
-Replaces: libhtp1, suricata-xdp-dev, suricata-xdp, suricata2beta-dbg, suricata-dev, suricata-dbg
-Conflicts: suricata2beta-dbg,suricata-dbg
-Provides: suricata-dbg
+Depends: suricata6-xdp (= ${binary:Version}), ${misc:Depends}
+Replaces: libhtp1, suricata2beta-dbg, suricata6-xdp, suricata6-xdp-dev
+Conflicts: suricata2beta-dbg
+Provides: suricata6-dbg
 Description: Suricata open source multi-thread IDS/IPS/NSM.
  Suricata open source multi-thread IDS/IPS/NSM.
  .

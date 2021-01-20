@@ -1,0 +1,6 @@
+opt/suricata6/include/*
+opt/suricata6/lib/lib*.a
+opt/suricata6/lib/lib*.so
+opt/suricata6/lib/pkgconfig/*
+src/*.h opt/suricata6/include/suricata
+# config.h usr/include/suricata
