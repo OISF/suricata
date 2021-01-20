@@ -648,11 +648,6 @@ pub extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
@@ -815,7 +810,8 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         parse_tc: rs_mqtt_parse_response,
         get_tx_count: rs_mqtt_state_get_tx_count,
         get_tx: rs_mqtt_state_get_tx,
-        tx_get_comp_st: rs_mqtt_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_mqtt_tx_get_alstate_progress,
         get_de_state: rs_mqtt_tx_get_detect_state,
         set_de_state: rs_mqtt_tx_set_detect_state,

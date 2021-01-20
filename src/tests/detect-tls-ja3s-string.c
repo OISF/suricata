@@ -15,15 +15,6 @@
  * 02110-1301, USA.
  */
 
-#ifndef HAVE_NSS
-
-static void DetectTlsJa3SStringRegisterTests(void)
-{
-    /* Don't register any tests */
-}
-
-#else /* HAVE_NSS */
-
 /**
  * \test Test matching on a simple client hello packet
  */
@@ -166,5 +157,3 @@ static void DetectTlsJa3SStringRegisterTests(void)
 {
     UtRegisterTest("DetectTlsJa3SStringTest01", DetectTlsJa3SStringTest01);
 }
-
-#endif /* HAVE_NSS */

@@ -41,6 +41,8 @@ typedef struct PrefilterRuleStore_ {
 
 } PrefilterRuleStore;
 
+#define PMQ_RESET(pmq) (pmq)->rule_id_array_cnt = 0
+
 /* Resize Signature ID array. Only called from MpmAddSids(). */
 int PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size);
 

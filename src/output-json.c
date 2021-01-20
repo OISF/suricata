@@ -96,20 +96,6 @@ void OutputJsonRegister (void)
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
 }
 
-json_t *SCJsonBool(int val)
-{
-    return (val ? json_true() : json_false());
-}
-
-/**
- * Wrap json_decref. This is mainly to expose this function to Rust as its
- * defined in the Jansson header file as an inline function.
- */
-void SCJsonDecref(json_t *json)
-{
-    json_decref(json);
-}
-
 json_t *SCJsonString(const char *val)
 {
     if (val == NULL){
@@ -156,7 +142,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             JB_SET_STRING(jb, "state", "CLOSED");
-#ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
                 size_t x;
                 int i;
@@ -175,7 +160,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
                 }
                 jb_set_string(jb, "sha1", str);
             }
-#endif
             break;
         case FILE_STATE_TRUNCATED:
             JB_SET_STRING(jb, "state", "TRUNCATED");
@@ -188,7 +172,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
             break;
     }
 
-#ifdef HAVE_NSS
     if (ff->flags & FILE_SHA256) {
         size_t x;
         int i;
@@ -198,7 +181,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
         }
         jb_set_string(jb, "sha256", str);
     }
-#endif
 
     if (stored) {
         JB_SET_TRUE(jb, "stored");
@@ -453,6 +435,9 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
     }
+    if (f != NULL && f->tenant_id > 0) {
+        jb_set_uint(js, "tenant_id", f->tenant_id);
+    }
 }
 
 /**
@@ -465,7 +450,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
 {
     unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
-    unsigned long len = 2 * max_len;
+    unsigned long len = BASE64_BUFFER_SIZE(max_len);
     uint8_t encoded_packet[len];
     if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
         jb_set_string(js, "packet", (char *)encoded_packet);
@@ -669,7 +654,7 @@ static bool CalculateCommunityFlowIdv4(const Flow *f,
     ipv4.pad0 = 0;
 
     uint8_t hash[20];
-    if (ComputeSHA1((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
+    if (SCSha1HashBuffer((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
@@ -731,7 +716,7 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
     ipv6.pad0 = 0;
 
     uint8_t hash[20];
-    if (ComputeSHA1((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
+    if (SCSha1HashBuffer((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {

@@ -1228,5 +1228,6 @@ void HTPFileParserRegisterTests(void)
     UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09);
     UtRegisterTest("HTPFileParserTest10", HTPFileParserTest10);
     UtRegisterTest("HTPFileParserTest11", HTPFileParserTest11);
+    AppLayerHtpFileRegisterTests();
 #endif /* UNITTESTS */
 }

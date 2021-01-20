@@ -190,6 +190,12 @@ characters %20 in a uri. This means matching on the uri.raw. The
 uri.raw and the normalized uri are separate buffers. So, the uri.raw
 inspects the uri.raw buffer and can not inspect the normalized buffer.
 
+.. note:: uri.raw never has any spaces in it.
+          With this request line ``GET /uid=0(root) gid=0(root) HTTP/1.1``,
+          the ``http.uri.raw`` will match ``/uid=0(root)``
+          and ``http.protocol`` will match ``gid=0(root) HTTP/1.1``
+          Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
+
 Example of the URI in a HTTP request:
 
 .. image:: http-keywords/uri1.png
@@ -297,6 +303,9 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
     https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
+    If there are multiple values for the same header name, they are
+    concatenated with a comma and space (", ") between each of them.
+    See RFC 2616 4.2 Message Headers.
     To avoid that, use the ``http.header.raw`` keyword.
 
 Example of a header in a HTTP request:

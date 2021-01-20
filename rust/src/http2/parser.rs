@@ -562,9 +562,9 @@ fn http2_parse_headers_block_dynamic_size<'a>(
         ));
     }
     if (maxsize2 as usize) < dyn_headers.max_size {
-        dyn_headers.max_size = maxsize2 as usize;
+        //dyn_headers.max_size is updated later with all headers
         //may evict entries
-        while dyn_headers.current_size > dyn_headers.max_size {
+        while dyn_headers.current_size > (maxsize2 as usize) {
             dyn_headers.current_size -=
                 32 + dyn_headers.table[0].name.len() + dyn_headers.table[0].value.len();
             dyn_headers.table.remove(0);

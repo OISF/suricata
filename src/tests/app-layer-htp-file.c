@@ -28,7 +28,7 @@ static int AppLayerHtpFileParseContentRangeTest01 (void)
 {
     HtpContentRange range;
     bstr * rawvalue = bstr_dup_c("bytes 12-25/100");
-    FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == HTP_OK);
+    FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == 0);
     FAIL_IF_NOT(range.start == 12);
     FAIL_IF_NOT(range.end == 25);
     FAIL_IF_NOT(range.size == 100);
@@ -45,7 +45,7 @@ static int AppLayerHtpFileParseContentRangeTest02 (void)
 {
     HtpContentRange range;
     bstr * rawvalue = bstr_dup_c("bytes 15335424-27514354/");
-    FAIL_IF(HTPParseContentRange(rawvalue, &range) == HTP_OK);
+    FAIL_IF(HTPParseContentRange(rawvalue, &range) == 0);
     bstr_free(rawvalue);
     PASS;
 }
@@ -59,7 +59,7 @@ static int AppLayerHtpFileParseContentRangeTest03 (void)
 {
     HtpContentRange range;
     bstr * rawvalue = bstr_dup_c("bytes 15335424-");
-    FAIL_IF(HTPParseContentRange(rawvalue, &range) == HTP_OK);
+    FAIL_IF(HTPParseContentRange(rawvalue, &range) == 0);
     bstr_free(rawvalue);
     PASS;
 }
@@ -74,7 +74,7 @@ static int AppLayerHtpFileParseContentRangeTest04 (void)
 {
     HtpContentRange range;
     bstr * rawvalue = bstr_dup_c("bytes 24-42/*");
-    FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == HTP_OK);
+    FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == 0);
     FAIL_IF_NOT(range.start == 24);
     FAIL_IF_NOT(range.end == 42);
     bstr_free(rawvalue);

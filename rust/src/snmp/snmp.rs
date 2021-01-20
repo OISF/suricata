@@ -367,14 +367,6 @@ pub extern "C" fn rs_snmp_state_tx_free(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
@@ -571,7 +563,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         parse_tc           : rs_snmp_parse_response,
         get_tx_count       : rs_snmp_state_get_tx_count,
         get_tx             : rs_snmp_state_get_tx,
-        tx_get_comp_st     : rs_snmp_state_progress_completion_status,
+        tx_comp_st_ts      : 1,
+        tx_comp_st_tc      : 1,
         tx_get_progress    : rs_snmp_tx_get_alstate_progress,
         get_de_state       : rs_snmp_state_get_tx_detect_state,
         set_de_state       : rs_snmp_state_set_tx_detect_state,

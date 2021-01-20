@@ -32,6 +32,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-fast-pattern.h"
 #include "detect-icmpv6hdr.h"
+#include "util-validate.h"
 
 /* prototypes */
 static int DetectICMPv6hdrSetup (DetectEngineCtx *, Signature *, const char *);
@@ -104,6 +105,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t hlen = ICMPV6_HEADER_LEN;
+        DEBUG_VALIDATE_BUG_ON(p->icmpv6h == NULL);
         if (((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen) >
                 ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
         {

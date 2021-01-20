@@ -52,6 +52,12 @@ if (x != NULL) S1 else S2
 if (x && E1) S1
 |
 BUG_ON(x == NULL)
+|
+FAIL_IF(x == NULL)
+|
+FAIL_IF(unlikely(x == NULL))
+|
+FAIL_IF_NULL(x)
 )
 
 

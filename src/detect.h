@@ -384,13 +384,6 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         const DetectEngineTransforms *transforms,
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
-
-typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
-        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-        const struct Signature_ *sig, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *tx, uint64_t tx_id);
-
 struct DetectEngineAppInspectionEngine_;
 
 typedef int (*InspectEngineFuncPtr2)(
@@ -407,14 +400,6 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint16_t stream:1;
     uint16_t sm_list:14;
     int16_t progress;
-
-    /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
-     *         1 Match.
-     *         2 Sig can't match.
-     *         3 Special value used by filestore sigs to indicate disabling
-     *           filestore for the tx.
-     */
-    InspectEngineFuncPtr Callback;
 
     struct {
         InspectionBufferGetDataPtr GetData;

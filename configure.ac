@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[6.0.1-dev])
+    AC_INIT([suricata],[7.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -303,12 +303,10 @@
             ;;
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
-            LDFLAGS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
-            RUST_SURICATA_LIBNAME="suricata.lib"
-            RUST_LDADD="-luserenv -lshell32 -ladvapi32 -lgcc_eh"
+            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh"
             ;;
         *-*-cygwin)
             LUA_LIB_NAME="lua"
@@ -489,7 +487,7 @@
           [
             AS_IF([test "$CLANG" != no],
                   [
-                    llc_candidates=$($CLANG --version | \
+                    llc_candidates=$($CLANG --version | sed -e 's/.*clang version/clang version/' | \
                       awk '/^clang version/ {
                              split($3, v, ".");
                              printf("llc-%s.%s llc-%s llc", v[[1]], v[[2]], v[[1]])
@@ -708,6 +706,8 @@
                 # unittests when jit is enabled.
                 pcre_jit_available="no, pcre 8.39/8.40 jit disabled for powerpc64"
             fi
+            # hack: use libatomic
+            LIBS="${LIBS} -latomic"
         ;;
         *)
             # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
@@ -1674,12 +1674,12 @@
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.35],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.36],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.35, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.36, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
@@ -1848,110 +1848,6 @@
         fi
 
         AC_DEFINE([HAVE_DAG],[1],(Endace DAG card support enabled))
-    fi
-
-# libnspr (enabled by default)
-    AC_ARG_ENABLE(nspr,
-            AS_HELP_STRING([--disable-nspr],[Disable libnspr support]),
-            [enable_nspr=$enableval],[enable_nspr="yes"])
-
-    AC_ARG_WITH(libnspr_includes,
-            [  --with-libnspr-includes=DIR  libnspr include directory],
-            [with_libnspr_includes="$withval"],[with_libnspr_includes="no"])
-
-    AC_ARG_WITH(libnspr_libraries,
-            [  --with-libnspr-libraries=DIR    libnspr library directory],
-            [with_libnspr_libraries="$withval"],[with_libnspr_libraries="no"])
-
-    if test "$enable_nspr" != "no"; then
-        # Try pkg-config first:
-        PKG_CHECK_MODULES([libnspr],nspr,,[with_pkgconfig_nspr="no"])
-
-        if test "$with_pkgconfig_nspr" != "no"; then
-            CPPFLAGS="${CPPFLAGS} ${libnspr_CFLAGS}"
-            LIBS="${LIBS} ${libnspr_LIBS}"
-        fi
-
-        if test "$with_libnspr_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libnspr_includes}"
-        fi
-        TMPLIBS="${LIBS}"
-        AC_CHECK_HEADER(nspr.h,
-           AC_CHECK_LIB(nspr4,PR_GetCurrentThread,[AC_DEFINE([HAVE_NSPR],[1],[libnspr available])
-           NSPR="yes"
-            if test "$NSPR" = "yes"; then
-                if test "$with_libnspr_libraries" != "no"; then
-                    LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
-                   LIBS="${TMPLIBS}"
-                else
-                   LIBS="${TMPLIBS}"
-                fi
-            fi]),NSPR="no")
-
-        if test "$NSPR" = "no"; then
-            echo
-            echo "   libnspr library not found, go get it"
-            echo "   from Mozilla or your distribution:"
-            echo
-            echo "   Ubuntu: apt-get install libnspr4-dev"
-            echo "   Fedora: dnf install nspr-devel"
-            echo "   CentOS/RHEL: yum install nspr-devel"
-            echo
-            enable_nspr="no"
-        fi
-    fi
-
-  # libnss (enabled by default)
-
-    AC_ARG_ENABLE(nss,
-            AS_HELP_STRING([--disable-nss],[Disable libnss support]),
-            [enable_nss=$enableval],[enable_nss="yes"])
-
-    AC_ARG_WITH(libnss_includes,
-            [  --with-libnss-includes=DIR  libnss include directory],
-            [with_libnss_includes="$withval"],[with_libnss_includes="no"])
-
-    AC_ARG_WITH(libnss_libraries,
-            [  --with-libnss-libraries=DIR    libnss library directory],
-            [with_libnss_libraries="$withval"],[with_libnss_libraries="no"])
-
-    if test "$enable_nss" != "no"; then
-        # Try pkg-config first:
-        PKG_CHECK_MODULES([libnss],nss,,[with_pkgconfig_nss="no"])
-
-        if test "$with_pkgconfig_nss" != "no"; then
-            CPPFLAGS="${CPPFLAGS} ${libnss_CFLAGS}"
-            LIBS="${LIBS} ${libnss_LIBS}"
-        fi
-
-        if test "$with_libnss_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libnss_includes}"
-        fi
-        TMPLIBS="${LIBS}"
-
-        AC_CHECK_HEADER(sechash.h,
-            AC_CHECK_LIB(nss3,HASH_Begin,[AC_DEFINE([HAVE_NSS],[1],[libnss available])
-            NSS="yes"
-           if test "$NSS" = "yes"; then
-                if test "$with_libnss_libraries" != "no"; then
-                    LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
-                   LIBS="${TMPLIBS}"
-               else
-                   LIBS="${TMPLIBS}"
-                fi
-           fi]),NSS="no")
-
-        if test "$NSS" = "no"; then
-            echo
-            echo "   libnss library not found, go get it"
-            echo "   from Mozilla or your distribution:"
-            echo
-            echo "   Ubuntu: apt-get install libnss3-dev"
-            echo "   Fedora: dnf install nss-devel"
-            echo "   CentOS/RHEL: yum install nss-devel"
-            echo
-            enable_nss="no"
-        fi
     fi
 
   # libmagic
@@ -2499,10 +2395,11 @@ fi
     fi
 
     if test "x$enable_debug" = "xyes"; then
-      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug/${RUST_SURICATA_LIBNAME}"
+      RUST_SURICATA_LIBDIR="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug"
     else
-      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release/${RUST_SURICATA_LIBNAME}"
+      RUST_SURICATA_LIBDIR="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release"
     fi
+    RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
     CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
@@ -2624,7 +2521,7 @@ fi
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
-    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly])
+    AM_CONDITIONAL([RUST_BUILD_STD], [test "x$enable_fuzztargets" = "xyes" && echo "$rust_compiler_version" | grep -q nightly && echo "$RUSTFLAGS" | grep -v -q coverage])
     AC_PROG_CXX
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
         AS_IF([test "x$CARGO_BUILD_TARGET" = "x" && echo "$rust_compiler_version" | grep -q nightly], [
@@ -2779,6 +2676,7 @@ AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(RUST_FEATURES)
+AC_SUBST(RUST_SURICATA_LIBDIR)
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
@@ -2806,8 +2704,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Detection enabled:                       ${enable_detection}
 
   Libmagic support:                        ${enable_magic}
-  libnss support:                          ${enable_nss}
-  libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}

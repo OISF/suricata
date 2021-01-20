@@ -63,11 +63,9 @@ static void DetectDceIfaceRegisterTests(void);
 #endif
 static int g_dce_generic_list_id = 0;
 
-static int InspectDceGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registers the keyword handlers for the "dce_iface" keyword.
@@ -86,25 +84,23 @@ void DetectDceIfaceRegister(void)
 
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
 
-    DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0, InspectDceGeneric);
-    DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, InspectDceGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "dce_generic", ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0, InspectDceGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "dce_generic", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, InspectDceGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric);
-    DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "dce_generic", ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "dce_generic", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric, NULL);
 }
 
-static int InspectDceGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int InspectDceGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

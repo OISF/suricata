@@ -276,11 +276,6 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return TLS_STATE_FINISHED;
-}
-
 static int SSLGetAlstateProgress(void *tx, uint8_t direction)
 {
     SSLState *ssl_state = (SSLState *)tx;
@@ -457,10 +452,9 @@ static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
     if (ssl_state->server_connp.cert0_fingerprint == NULL)
         return -1;
 
-    uint8_t hash[SHA1_LENGTH];
-    if (ComputeSHA1(input, cert_len, hash, sizeof(hash)) == 1) {
-        for (int i = 0, x = 0; x < SHA1_LENGTH; x++)
-        {
+    uint8_t hash[SC_SHA1_LEN];
+    if (SCSha1HashBuffer(input, cert_len, hash, sizeof(hash)) == 1) {
+        for (int i = 0, x = 0; x < SC_SHA1_LEN; x++) {
             i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
                     SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
                     hash[x]);
@@ -2983,8 +2977,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
 
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
-                                                               SSLGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(
+                ALPROTO_TLS, TLS_STATE_FINISHED, TLS_STATE_FINISHED);
 
         ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {
@@ -3027,18 +3021,17 @@ void RegisterSSLParsers(void)
         }
         SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
 
-#ifndef HAVE_NSS
-        if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
-            SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                         "no MD5 calculation support built in (LibNSS), disabling JA3");
-            SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
+        if (g_disable_hashing) {
+            if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+                SCLogWarning(
+                        SC_WARN_NO_JA3_SUPPORT, "MD5 calculation has been disabled, disabling JA3");
+                SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
+            }
+        } else {
+            if (RunmodeIsUnittests()) {
+                SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+            }
         }
-#else
-        if (RunmodeIsUnittests()) {
-            SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
-        }
-#endif
-
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
@@ -3058,24 +3051,20 @@ void RegisterSSLParsers(void)
  */
 void SSLEnableJA3(void)
 {
-#ifdef HAVE_NSS
-    if (ssl_config.disable_ja3) {
+    if (g_disable_hashing || ssl_config.disable_ja3) {
         return;
     }
     if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         return;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
-#endif
 }
 
 bool SSLJA3IsEnabled(void)
 {
-#ifdef HAVE_NSS
     if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         return true;
     }
-#endif
     return false;
 }
 

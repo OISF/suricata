@@ -1,3 +1,43 @@
+6.0.1 -- 2020-12-04
+
+Feature #2689: http: Normalized HTTP client body buffer 
+Feature #4121: http2: support file inspection API 
+Bug #1275: ET Rule 2003927 not matchin in suricata 
+Bug #3467: Alert metadata not present in EVE output when using Socket Control Pcap Processing Mode 
+Bug #3616: strip_whitespace causes FN 
+Bug #3726: Segmentation fault on rule reload when using libmagic 
+Bug #3856: dcerpc: last response packet not logged 
+Bug #3924: asan leak htp_connp_create 
+Bug #3925: dcerpc: crash in eve logging 
+Bug #3930: Out of memory from THashInitConfig called by DetectDatasetSetup 
+Bug #3994: SIGABRT TCPProtoDetectCheckBailConditions 
+Bug #4018: Napatech: Double release of packet possible in certain error cases. 
+Bug #4069: dcerpc: fix UDP transaction handling, free_tx, etc 
+Bug #4071: Null dereference in ipv4hdr GetData 
+Bug #4072: ssl: Integer underflow in SSL parser 
+Bug #4073: Protocol detection evasion by packet splitting on enip/SMB 
+Bug #4074: Timeout while loading many rules with keyword ssl_version 
+Bug #4076: http2: Memory leak when parsing signature with filestore 
+Bug #4085: Assertion from AdjustToAcked 
+Bug #4086: dns: memory leak in v1 dns eve logging 
+Bug #4090: icmpv4: header handling issue(s) 
+Bug #4091: byte_math: Offset is a signed value 
+Bug #4094: AddressSanitizer: dynamic-stack-buffer-overflow (util-crypt) 
+Bug #4100: ftp: Quadratic complexity in FTPGetOldestTx may lead to DOS 
+Bug #4109: mac address logging crash 
+Bug #4110: http: LibHTP wrong protocol with content duplication 
+Bug #4111: dnp3: DOS in long loop of zero sized objects 
+Bug #4120: http2: null ptr deref in http2 alert metadata 
+Bug #4124: dcerpc: UDP request response pair match is incorrect 
+Bug #4155: dnp3: memory leak when parsing objects with bytearrays 
+Bug #4156: dnp3: signed integer overflow 
+Bug #4158: PacketCopyData sets packet length even on failure 
+Bug #4173: dnp3: SV tests fail on big endian 
+Bug #4177: Rustc nightly warning getting the inner pointer of a temporary `CString` 
+Optimization #4114: Optmize Rust logging macros: SCLogInfo, SCLogDebug and friends 
+Task #4137: deprecate: eve.dns v1 record support 
+Task #4180: libhtp 0.5.36
+
 6.0.0 -- 2020-10-08
 
 Bug #3099: Weird handling of IKEv2 flows when alerts happen

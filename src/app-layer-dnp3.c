@@ -1502,14 +1502,6 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
 /**
  * \brief App-layer support.
  */
-static int DNP3GetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return 1;
-}
-
-/**
- * \brief App-layer support.
- */
 static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
@@ -1642,8 +1634,7 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNP3,
-            DNP3GetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DNP3, 1, 1);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateGetEventInfo);
@@ -1767,6 +1758,7 @@ static int DNP3CheckUserDataCRCsTest(void)
     };
     FAIL_IF(!DNP3CheckUserDataCRCs(data_valid, sizeof(data_valid)));
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Multi-block data with one non-crc byte altered. */
     uint8_t data_invalid[] = {
         0xff, 0xc9, 0x05, 0x0c,
@@ -1791,7 +1783,6 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x01, /* Invalid byte. */
         0xff, 0xff, /* CRC. */
     };
-#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     FAIL_IF(DNP3CheckUserDataCRCs(data_invalid, sizeof(data_invalid)));
 
     /* 1 byte - need at least 3. */

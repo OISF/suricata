@@ -1715,10 +1715,6 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return 1;
-}
-
 static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
 {
     SMTPTransaction *tx = vtx;
@@ -1816,8 +1812,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
-                                                               SMTPStateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"

@@ -232,12 +232,10 @@ void DetectDnsQueryRegister (void)
     g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
 
     /* register these generic engines from here for now */
-    DetectAppLayerInspectEngineRegister("dns_request",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectDnsRequest);
-    DetectAppLayerInspectEngineRegister("dns_response",
-            ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectDnsResponse);
+    DetectAppLayerInspectEngineRegister2(
+            "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsRequest, NULL);
+    DetectAppLayerInspectEngineRegister2("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectDnsResponse, NULL);
 
     DetectBufferTypeSetDescriptionByName("dns_request",
             "dns requests");

@@ -157,6 +157,9 @@ enum {
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
 
+    /* ESP EVENTS */
+    ESP_PKT_TOO_SMALL, /**< esp packet smaller than minimum size */
+
     /* Fragmentation reasembly events. */
     IPV4_FRAG_PKT_TOO_LARGE,
     IPV6_FRAG_PKT_TOO_LARGE,
@@ -200,8 +203,16 @@ enum {
     /* Cisco HDLC events. */
     CHDLC_PKT_TOO_SMALL,
 
+    /* NSH events */
+    NSH_HEADER_TOO_SMALL,
+    NSH_UNSUPPORTED_VERSION,
+    NSH_BAD_HEADER_LENGTH,
+    NSH_RESERVED_TYPE,
+    NSH_UNSUPPORTED_TYPE,
+    NSH_UNKNOWN_PAYLOAD,
+
     /* END OF DECODE EVENTS ON SINGLE PACKET */
-    DECODE_EVENT_PACKET_MAX = CHDLC_PKT_TOO_SMALL,
+    DECODE_EVENT_PACKET_MAX = NSH_UNKNOWN_PAYLOAD,
 
     /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,

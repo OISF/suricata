@@ -1656,7 +1656,7 @@ static int UriTestSig16(void)
     UTHAddStreamToFlow(f, 0, http_buf1, http_buf1_len);
 
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST | PKT_DETECT_HAS_STREAMDATA;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f->alproto = ALPROTO_HTTP;

@@ -30,7 +30,7 @@
 #include "detect-mqtt-connect-flags.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "(?: *,?!?(?:username|password|will|will_retain|clean_session))+"
 static DetectParseRegex parse_regex;
@@ -45,11 +45,9 @@ static int DetectMQTTConnectFlagsSetup (DetectEngineCtx *, Signature *, const ch
 void MQTTConnectFlagsRegisterTests(void);
 void DetectMQTTConnectFlagsFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTConnectFlagsGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 typedef struct DetectMQTTConnectFlagsData_ {
     MQTTFlagState username,
@@ -76,21 +74,18 @@ void DetectMQTTConnectFlagsRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister("mqtt.connect.flags",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTConnectFlagsGeneric);
+    DetectAppLayerInspectEngineRegister2("mqtt.connect.flags", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectMQTTConnectFlagsGeneric, NULL);
 
     mqtt_connect_flags_id = DetectBufferTypeGetByName("mqtt.connect.flags");
 }
 
-static int DetectEngineInspectMQTTConnectFlagsGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectMQTTConnectFlagsGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

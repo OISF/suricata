@@ -17,6 +17,8 @@
 
 use nom::combinator::rest;
 use nom::number::streaming::{be_u32, be_u8};
+use md5::Md5;
+use digest::Digest;
 use std::fmt;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -151,8 +153,6 @@ pub struct SshPacketKeyExchange<'a> {
     pub reserved: u32,
 }
 
-use md5::compute;
-
 const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = [b';'];
 
 impl<'a> SshPacketKeyExchange<'a> {
@@ -172,7 +172,7 @@ impl<'a> SshPacketKeyExchange<'a> {
         hassh_string.reserve_exact(slices.iter().fold(0, |acc, x| acc + x.len()));
         // copying slices to hassh string
         slices.iter().for_each(|&x| hassh_string.extend_from_slice(x)); 
-        hassh.extend(format!("{:x?}", compute(&hassh_string)).as_bytes());
+        hassh.extend(format!("{:x}", Md5::new().chain(&hassh_string).finalize()).as_bytes());
     }
 }
 

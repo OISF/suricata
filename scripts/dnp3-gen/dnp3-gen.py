@@ -354,15 +354,15 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
     DNP3PointList *points)
 {
     DNP3ObjectG{{object.group}}V{{object.variation}} *object = NULL;
-    int bytes = (count / 8) + 1;
+    uint32_t bytes = (count / 8) + 1;
     uint32_t prefix = 0;
-    int point_index = start;
+    uint32_t point_index = start;
 
     if (!DNP3ReadPrefix(buf, len, prefix_code, &prefix)) {
         goto error;
     }
 
-    for (int i = 0; i < bytes; i++) {
+    for (uint32_t i = 0; i < bytes; i++) {
 
         uint8_t octet;
 
@@ -432,6 +432,9 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
 {% endfor %}
 {% endif %}
 
+    if (*len < count/8) {
+        goto error;
+    }
     while (count--) {
 
         object = SCCalloc(1, sizeof(*object));
@@ -566,6 +569,13 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
     return 1;
 error:
     if (object != NULL) {
+{% for field in object.fields %}
+{% if field.type == "bytearray" %}
+        if (object->{{field.name}} != NULL) {
+            SCFree(object->{{field.name}});
+        }
+{% endif %}
+{% endfor %}
         SCFree(object);
     }
 

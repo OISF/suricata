@@ -49,11 +49,9 @@ static void DetectFtpdataFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectFtpdataRegisterTests (void);
 #endif
-static int DetectEngineInspectFtpdataGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 static int g_ftpdata_buffer_id = 0;
 
 /**
@@ -78,27 +76,23 @@ void DetectFtpdataRegister(void) {
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FTPDATA].RegisterTests = DetectFtpdataRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister("ftpdata_command",
-            ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFtpdataGeneric);
+    DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectFtpdataGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("ftpdata_command",
-            ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectFtpdataGeneric);
+    DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectFtpdataGeneric, NULL);
     g_ftpdata_buffer_id = DetectBufferTypeGetByName("ftpdata_command");
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectEngineInspectFtpdataGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectFtpdataGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

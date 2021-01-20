@@ -179,6 +179,9 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
             jb_set_uint(js, "icmp_code", code);
             break;
         }
+        case IPPROTO_ESP:
+            jb_set_uint(js, "spi", f->esp.spi);
+            break;
     }
     return js;
 }

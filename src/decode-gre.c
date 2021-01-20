@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -286,8 +286,7 @@ static int DecodeGREtest01 (void)
 {
     uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -295,14 +294,10 @@ static int DecodeGREtest01 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
-
-    if(ENGINE_ISSET_EVENT(p,GRE_PKT_TOO_SMALL))  {
-        SCFree(p);
-        return 1;
-    }
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, GRE_PKT_TOO_SMALL));
 
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /**
@@ -327,8 +322,7 @@ static int DecodeGREtest02 (void)
         0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -336,14 +330,10 @@ static int DecodeGREtest02 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
-
-    if(ENGINE_ISSET_EVENT(p,GRE_WRONG_VERSION))  {
-        SCFree(p);
-        return 1;
-    }
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, GRE_WRONG_VERSION));
 
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 
@@ -369,8 +359,7 @@ static int DecodeGREtest03 (void)
         0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -378,15 +367,10 @@ static int DecodeGREtest03 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
-
-    if(p->greh == NULL) {
-        SCFree(p);
-        return 0;
-    }
-
+    FAIL_IF_NULL(p->greh);
 
     SCFree(p);
-    return 1;
+    PASS;
 }
 #endif /* UNITTESTS */
 

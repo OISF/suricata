@@ -193,7 +193,7 @@ typedef struct SSLStateConnp_ {
     uint32_t handshake_length;
 
     /* the no of bytes processed in the currently parsed record */
-    uint16_t bytes_processed;
+    uint32_t bytes_processed;
     /* the no of bytes processed in the currently parsed handshake */
     uint16_t hs_bytes_processed;
 

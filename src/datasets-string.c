@@ -47,8 +47,8 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
 {
     const StringType *str = s;
 
-    unsigned long len = out_size;
-    uint8_t encoded_data[str->len * 2];
+    unsigned long len = BASE64_BUFFER_SIZE(str->len);
+    uint8_t encoded_data[len];
     if (Base64Encode((unsigned char *)str->ptr, str->len,
         encoded_data, &len) != SC_BASE64_OK)
         return 0;
