@@ -728,7 +728,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CC=clang-10 CXX=clang++-10 CFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" CXXFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" ./configure --enable-fuzztargets --disable-shared --enable-gccprotect
+      - run: LIB_FUZZING_ENGINE="" CC=clang-10 CXX=clang++-10 CFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" CXXFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" ./configure --enable-fuzztargets --disable-shared --enable-gccprotect
       - run: make -j2
       - run: ./qa/run-ossfuzz-corpus.sh
       - name: Gcov
