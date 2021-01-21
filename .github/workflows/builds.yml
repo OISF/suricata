@@ -848,9 +848,10 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
+      - run: CFLAGS="${DEFAULT_CFLAGS} -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION -g -fsanitize=address -fsanitize=fuzzer-no-link" CC="clang" CXX="clang++" LIB_FUZZING_ENGINE="" ./configure --enable-debug-validation --enable-fuzztargets
       - run: make -j2
       - run: make check
+      - run: ./scripts/run_fuzz_corpus.sh
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
