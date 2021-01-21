@@ -9,5 +9,5 @@ do
     rm -rf corpus_$target
     unzip -q public.zip -d corpus_$target
     #run target on corpus. Don't fail CI if the target fails.
-    find corpus_$target -type f | xargs -L1 ./src/$target &> /dev/null
+    ./src/$target corpus_$target
 done
