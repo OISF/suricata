@@ -1011,7 +1011,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         goto error;
 
     if (lua->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto != ALPROTO_UNKNOWN && lua->alproto != s->alproto) {
+        if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, lua->alproto)) {
             goto error;
         }
         s->alproto = lua->alproto;
