@@ -2381,6 +2381,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
+    // enables request decompression
+    htp_config_set_request_decompression(cfg_prec->cfg, 1);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
     // disable by default
     htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
