@@ -1,10 +1,4 @@
-#define _DEFAULT_SOURCE 1 // for DT_REG
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <dirent.h>
-#include <unistd.h>
-#include "autoconf.h"
+#include "suricata-common.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size);
 
