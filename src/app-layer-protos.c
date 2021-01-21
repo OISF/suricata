@@ -140,6 +140,8 @@ AppProto StringToAppProto(const char *proto_name)
 
     if (strcmp(proto_name,"http")==0) return ALPROTO_HTTP;
     if (strcmp(proto_name,"ftp")==0) return ALPROTO_FTP;
+    if (strcmp(proto_name, "ftp-data") == 0)
+        return ALPROTO_FTPDATA;
     if (strcmp(proto_name,"smtp")==0) return ALPROTO_SMTP;
     if (strcmp(proto_name,"tls")==0) return ALPROTO_TLS;
     if (strcmp(proto_name,"ssh")==0) return ALPROTO_SSH;
