@@ -9,5 +9,5 @@ do
     rm -rf corpus_$target
     unzip -q public.zip -d corpus_$target
     #run target on corpus. Don't fail CI if the target fails.
-    LIB_FUZZING_ENGINE="" ./src/$target corpus_$target || true
+    find corpus_$target -type f | xargs -L1 ./src/$target
 done
