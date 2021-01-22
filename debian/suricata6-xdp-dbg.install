@@ -6,6 +6,7 @@ opt/suricata6/lib/python3.5/site-packages/*
 opt/suricata6/share/doc/suricata/*
 opt/suricata6/share/suricata/classification.config /opt/suricata6/etc
 opt/suricata6/share/suricata/reference.config /opt/suricata6/etc
+opt/suricata6/share/suricata/env.config /opt/suricata6/etc
 suricata.yaml /opt/suricata6/etc
 
 
