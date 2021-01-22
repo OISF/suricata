@@ -126,7 +126,7 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((remainder, err))) => {
+            Err(nom::Err::Error((_remainder, err))) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -170,7 +170,7 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((remainder, err))) => {
+            Err(nom::Err::Error((_remainder, err))) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -210,7 +210,7 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((remainder, err))) => {
+            Err(nom::Err::Error((_remainder, err))) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
             Err(nom::Err::Incomplete(_)) => {
