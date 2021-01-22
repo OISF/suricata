@@ -756,7 +756,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
-    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    struct timeval ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
     if (input_len > 0) {
         const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
@@ -820,7 +820,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
-    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
+    struct timeval ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     htp_tx_t *tx = NULL;
     size_t consumed = 0;
     if (input_len > 0) {
