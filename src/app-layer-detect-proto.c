@@ -329,8 +329,10 @@ static AppProto AppLayerProtoDetectPMGetProto(
     MpmThreadCtx *mpm_tctx;
     int m = -1;
 
-    if (f->protomap >= FLOW_PROTO_DEFAULT)
-        return ALPROTO_FAILED;
+    if (f->protomap >= FLOW_PROTO_DEFAULT) {
+        pm_results[0] = ALPROTO_FAILED;
+        SCReturnUInt(1);
+    }
 
     if (direction & STREAM_TOSERVER) {
         pm_ctx = &alpd_ctx.ctx_ipp[f->protomap].ctx_pm[0];
