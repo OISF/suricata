@@ -691,7 +691,7 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
             /* Check Quantity range and conversion in byte (count) */
             if ((quantity == MODBUS_MIN_QUANTITY)               ||
                 (quantity > MODBUS_MAX_QUANTITY_IN_BIT_ACCESS)  ||
-                (quantity != CEIL(count)))
+                (count != CEIL(quantity)))
                 goto error;
 
             /* The length of Write Multiple Coils (code 15) request is (7 + count)  */
