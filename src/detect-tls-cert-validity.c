@@ -216,19 +216,19 @@ static int DetectTlsValidityMatch (DetectEngineThreadCtx *det_ctx,
  * \param string Date string.
  *
  * \retval epoch time on success.
- * \retval 0 on failure.
+ * \retval LONG_MIN on failure.
  */
 static time_t StringIsEpoch (char *string)
 {
     if (strlen(string) == 0)
-        return -1;
+        return LONG_MIN;
 
     /* We assume that the date string is epoch if it consists of only
        digits. */
     char *sp = string;
     while (*sp) {
         if (isdigit(*sp++) == 0)
-            return -1;
+            return LONG_MIN;
     }
 
     return strtol(string, NULL, 10);
@@ -281,14 +281,14 @@ static time_t DateStringToEpoch (char *string)
     }
 
     time_t epoch = StringIsEpoch(string);
-    if (epoch != -1) {
-        return epoch;;
+    if (epoch != LONG_MIN) {
+        return epoch;
     }
 
     r = SCStringPatternToTime(string, patterns, 10, &tm);
 
     if (r != 0)
-        return -1;
+        return LONG_MIN;
 
     return SCMkTimeUtc(&tm);
 }
@@ -387,7 +387,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 
     /* set the first value */
     dd->epoch = DateStringToEpoch(value1);
-    if (dd->epoch == -1)
+    if (dd->epoch == LONG_MIN)
         goto error;
 
     /* set the second value if specified */
@@ -399,7 +399,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
         }
 
         dd->epoch2 = DateStringToEpoch(value2);
-        if (dd->epoch2 == -1)
+        if (dd->epoch2 == LONG_MIN)
             goto error;
 
         if (dd->epoch2 <= dd->epoch) {
