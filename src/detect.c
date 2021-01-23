@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,6 +32,7 @@
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 
 #include "detect.h"
 #include "detect-engine.h"
@@ -942,6 +943,32 @@ static inline void DetectRunPostRules(
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 }
 
+static inline HtpBody *GetBody(const uint8_t flow_flags, void *tx)
+{
+    htp_tx_t *htx = tx;
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(htx);
+    if (htud == NULL) {
+        SCLogDebug("no htud");
+        return NULL;
+    }
+
+    return flow_flags & STREAM_TOSERVER ? &htud->request_body : &htud->response_body;
+}
+
+static inline void DetectRunTxCleanup(
+        DetectEngineThreadCtx *det_ctx, const AppProto alproto, const uint8_t flow_flags, void *tx)
+{
+    if (alproto == ALPROTO_HTTP1 && det_ctx->http_body_progress_updated) {
+        HtpBody *body = GetBody(flow_flags, tx);
+        if (body) {
+            body->body_inspected = det_ctx->http_body_progress;
+            det_ctx->http_body_progress_updated = false;
+            SCLogDebug("body->inspected = %" PRIu64 " body->content_len_so_far = %" PRIu64,
+                    body->body_inspected, body->content_len_so_far);
+        }
+    }
+}
+
 static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow)
 {
@@ -1524,6 +1551,8 @@ static void DetectRunTx(ThreadVars *tv,
 
             StoreDetectFlags(&tx, flow_flags, ipproto, alproto, new_detect_flags);
         }
+
+        DetectRunTxCleanup(det_ctx, alproto, flow_flags, tx.tx_ptr);
 next:
         InspectionBufferClean(det_ctx);
 
