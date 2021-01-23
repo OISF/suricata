@@ -313,22 +313,20 @@ static int DetectEngineInspectBufferHttpRequest(DetectEngineCtx *de_ctx,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
             data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+    /* Set to move inspected tracker to end of the data. HtpBodyPrune will consider
      * the window sizes when freeing data */
+
+    HtpBody *body = GetRequestBody(txv);
+    det_ctx->http_body_progress_updated = true;
+    det_ctx->http_body_progress = body->content_len_so_far;
 
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     }
 
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
-                HTP_REQUEST_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
-                HTP_RESPONSE_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
+    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) > HTP_REQUEST_BODY)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
