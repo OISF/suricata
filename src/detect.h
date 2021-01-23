@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1133,6 +1133,10 @@ typedef struct DetectEngineThreadCtx_ {
 
     AppLayerDecoderEvents *decoder_events;
     uint16_t events;
+
+    /** signal when HTTP body progress should be updated */
+    bool http_body_progress_updated;
+    uint64_t http_body_progress;
 
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
