@@ -2479,8 +2479,10 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     StorageInit();
 #ifdef HAVE_PACKET_EBPF
-    EBPFRegisterExtension();
-    LiveDevRegisterExtension();
+    if (suri->run_mode == RUNMODE_AFP_DEV) {
+        EBPFRegisterExtension();
+        LiveDevRegisterExtension();
+    }
 #endif
     RegisterFlowBypassInfo();
 
