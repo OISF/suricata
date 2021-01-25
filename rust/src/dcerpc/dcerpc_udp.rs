@@ -291,7 +291,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx(
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return unsafe{&mut *(tx as *mut DCERPCTransaction)};
         },
         None => {
             return std::ptr::null_mut();
