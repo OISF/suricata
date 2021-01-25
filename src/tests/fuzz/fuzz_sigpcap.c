@@ -61,6 +61,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
+        //do not load rules before reproducible DetectEngineReload
+        remove("/tmp/fuzz.rules");
         surifuzz.sig_file = strdup("/tmp/fuzz.rules");
         surifuzz.sig_file_exclusive = 1;
         //loads rules after init
