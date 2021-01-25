@@ -17,7 +17,8 @@
 
 use std::mem::transmute;
 
-use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::applayer::{
+    AppLayerResult, AppLayerTxData, AppLayerParserStateIssetFlag, APP_LAYER_PARSER_EOF};
 use crate::core;
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
@@ -208,9 +209,24 @@ impl DCERPCUDPState {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *mut core::Flow, state: &mut DCERPCUDPState, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
+    let eof = unsafe {
+        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
+            true
+        } else {
+            false
+        }
+    };
+
+    if eof {
+        // If needed, handled EOF, or pass it into the parser.
+        return AppLayerResult::ok();
+    }
+
+    let state = cast_pointer!(state, DCERPCUDPState);
+
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf);
