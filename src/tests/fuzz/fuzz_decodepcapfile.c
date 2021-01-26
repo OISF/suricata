@@ -74,6 +74,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         tmm_modules[TMM_DECODEPCAPFILE].ThreadInit(tv, NULL, (void **) &dtv);
         (void)SC_ATOMIC_SET(tv->tm_slots->slot_next->slot_data, dtv);
 
+        extern intmax_t max_pending_packets;
+        max_pending_packets = 128;
         PacketPoolInit();
 
         initialized = 1;

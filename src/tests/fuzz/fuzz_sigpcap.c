@@ -81,6 +81,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
         StatsSetupPrivate(&tv);
 
+        extern intmax_t max_pending_packets;
+        max_pending_packets = 128;
         PacketPoolInit();
         initialized = 1;
     }
