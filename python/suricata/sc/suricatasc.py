@@ -108,6 +108,7 @@ class SuricataSC:
                 "dataset-add",
                 "dataset-remove",
                 "dataset-clear",
+                "dataset-lookup",
                 ]
         self.cmd_list = self.basic_commands + self.fn_commands
         self.sck_path = sck_path
