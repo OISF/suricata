@@ -576,7 +576,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage" ./configure
+      - run: CFLAGS="${DEFAULT_CFLAGS} -fprofile-arcs -ftest-coverage -O0 -ggdb" ./configure
       - run: make -j2
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
