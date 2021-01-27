@@ -215,12 +215,16 @@ static void JsonTlsLogJa3String(JsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogJa3(JsonBuilder *js, SSLState *ssl_state)
 {
-    jb_open_object(js, "ja3");
+    if ((ssl_state->client_connp.ja3_hash != NULL) ||
+            ((ssl_state->client_connp.ja3_str != NULL) &&
+                    ssl_state->client_connp.ja3_str->data != NULL)) {
+        jb_open_object(js, "ja3");
 
-    JsonTlsLogJa3Hash(js, ssl_state);
-    JsonTlsLogJa3String(js, ssl_state);
+        JsonTlsLogJa3Hash(js, ssl_state);
+        JsonTlsLogJa3String(js, ssl_state);
 
-    jb_close(js);
+        jb_close(js);
+    }
 }
 
 static void JsonTlsLogJa3SHash(JsonBuilder *js, SSLState *ssl_state)
@@ -242,12 +246,16 @@ static void JsonTlsLogJa3SString(JsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogJa3S(JsonBuilder *js, SSLState *ssl_state)
 {
-    jb_open_object(js, "ja3s");
+    if ((ssl_state->server_connp.ja3_hash != NULL) ||
+            ((ssl_state->server_connp.ja3_str != NULL) &&
+                    ssl_state->server_connp.ja3_str->data != NULL)) {
+        jb_open_object(js, "ja3s");
 
-    JsonTlsLogJa3SHash(js, ssl_state);
-    JsonTlsLogJa3SString(js, ssl_state);
+        JsonTlsLogJa3SHash(js, ssl_state);
+        JsonTlsLogJa3SString(js, ssl_state);
 
-    jb_close(js);
+        jb_close(js);
+    }
 }
 
 static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
