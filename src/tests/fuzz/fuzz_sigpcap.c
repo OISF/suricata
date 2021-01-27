@@ -153,13 +153,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
             Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
             while (extra_p != NULL) {
-                PacketFree(extra_p);
+                PacketFreeOrRelease(extra_p);
                 extra_p = PacketDequeueNoLock(&tv.decode_pq);
             }
             tmm_modules[TMM_FLOWWORKER].Func(&tv, p, fwd);
             extra_p = PacketDequeueNoLock(&tv.decode_pq);
             while (extra_p != NULL) {
-                PacketFree(extra_p);
+                PacketFreeOrRelease(extra_p);
                 extra_p = PacketDequeueNoLock(&tv.decode_pq);
             }
         }
