@@ -46,7 +46,6 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-dcerpc.h"
 #include "app-layer-smb.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
@@ -1604,7 +1603,7 @@ void AppLayerParserRegisterProtocolParsers(void)
 
     RegisterHTPParsers();
     RegisterSSLParsers();
-    RegisterDCERPCParsers();
+    rs_dcerpc_register_parser();
     rs_dcerpc_udp_register_parser();
     RegisterSMBParsers();
     RegisterFTPParsers();

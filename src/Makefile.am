@@ -19,7 +19,6 @@ alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
 alert-syslog.c alert-syslog.h \
 app-layer.c app-layer.h \
-app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-dnp3.c app-layer-dnp3.h \
 app-layer-dnp3-objects.c app-layer-dnp3-objects.h \

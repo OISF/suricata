@@ -24,9 +24,6 @@ use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
 use crate::dcerpc::parser;
-use nom::IResult;
-use nom::number::streaming::be_u16;
-
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
@@ -365,26 +362,12 @@ pub extern "C" fn rs_dcerpc_udp_tx_get_alstate_progress(
 fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_udp_header(input) {
         Ok((_, hdr)) => {
-            let is_request = hdr.pkt_type & 0x00 == 0;
-            return (true, is_request);
+            let is_request = hdr.pkt_type == 0x00;
+            let is_dcerpc = hdr.rpc_vers == 0x04;
+            return (is_dcerpc, is_request);
         },
         Err(_) => (false, false),
     }
-}
-
-/// Probe input to see if it looks like DCERPC.
-pub fn probe_inp(input: &[u8]) -> (bool, bool, bool) {
-    match be_u16(input) as IResult<&[u8],_> {
-        Ok((rem, _)) => {
-            let r = probe(rem);
-            return (r.0, r.1, false);
-        },
-        Err(nom::Err::Incomplete(_)) => {
-            return (false, false, true);
-        }
-        _ => {}
-    }
-    return (false, false, false);
 }
 
 #[no_mangle]
@@ -402,8 +385,8 @@ pub extern "C" fn rs_dcerpc_udp_probe(
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
     //is_incomplete is checked by caller
-    let (is_dns, is_request, _) = probe_inp(slice);
-    if is_dns {
+    let (is_dcerpc, is_request) = probe(slice);
+    if is_dcerpc {
         let dir = if is_request {
             core::STREAM_TOSERVER
         } else {
@@ -431,13 +414,14 @@ const PARSER_NAME: &'static [u8] = b"dcerpc\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
-    let default_port = CString::new("[135]").unwrap();
+    let default_port = CString::new("[0:65535]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_UDP,
         probe_ts: Some(rs_dcerpc_udp_probe),
         probe_tc: Some(rs_dcerpc_udp_probe),
+        cs_pattern: None,
         min_depth: 0,
         max_depth: std::mem::size_of::<DCERPCHdrUdp>() as u16 + 2,
         state_new: rs_dcerpc_udp_state_new,

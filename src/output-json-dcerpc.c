@@ -31,11 +31,11 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-dcerpc.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-dcerpc-common.h"
-#include "output-json-dcerpc.h"
 
 #include "rust.h"
 
@@ -80,6 +80,7 @@ static OutputInitResult DCERPCLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+#define MODULE_NAME "JsonDCERPCLog"
 void JsonDCERPCLogRegister(void)
 {
     /* Register as an eve sub-module. */

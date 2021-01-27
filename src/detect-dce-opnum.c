@@ -37,7 +37,6 @@
 #include "flow-util.h"
 
 #include "app-layer.h"
-#include "app-layer-dcerpc.h"
 #include "queue.h"
 #include "stream-tcp-reassemble.h"
 #include "detect-dce-opnum.h"
