@@ -194,6 +194,7 @@ int DecodeGeneve(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
     if (unlikely(len < GENEVE_MIN_HEADER_LEN))
         return TM_ECODE_FAILED;
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     /* Specific Geneve header field validation */
     geneve_hdr_len = GENEVE_TOTAL_HEADER_LEN(geneve_hdr);

@@ -54,6 +54,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         ENGINE_SET_INVALID_EVENT(p, GRE_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     p->greh = (GREHdr *)pkt;
     if(p->greh == NULL)

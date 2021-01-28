@@ -45,6 +45,7 @@ int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         ENGINE_SET_INVALID_EVENT(p, SLL_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     SllHdr *sllh = (SllHdr *)pkt;
     if (unlikely(sllh == NULL))

@@ -51,6 +51,7 @@ int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (unlikely(len > CHDLC_HEADER_LEN + USHRT_MAX)) {
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     CHDLCHdr *hdr = (CHDLCHdr *)pkt;
     if (unlikely(hdr == NULL))

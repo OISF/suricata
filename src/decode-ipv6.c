@@ -571,6 +571,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
         CLEAR_IPV6_PACKET(p);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) { /* only convert the addresses if debug is really enabled */

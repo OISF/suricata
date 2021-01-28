@@ -80,6 +80,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
         ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     const ErspanHdr *ehdr = (const ErspanHdr *)pkt;
     uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;

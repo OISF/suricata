@@ -38,6 +38,8 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#define MAX_ETH_OFFSET 256
+
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)
 {
@@ -48,6 +50,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
+    PACKET_INCREASE_CHECK_LAYERS(p);
     p->ethh = (EthernetHdr *)pkt;
     if (unlikely(p->ethh == NULL))
         return TM_ECODE_FAILED;

@@ -62,6 +62,7 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         //ENGINE_SET_EVENT(p,TEMPLATE_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
 
     /* Now we can access the header */
     const TemplateHdr *hdr = (const TemplateHdr *)pkt;

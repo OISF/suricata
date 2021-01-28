@@ -70,6 +70,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    PACKET_INCREASE_CHECK_LAYERS(p);
     if (p->vlan_idx >= 2) {
         ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
         return TM_ECODE_FAILED;

@@ -73,7 +73,9 @@ extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 
-int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t, enum DecodeTunnelProto) WARN_UNUSED;
+
+static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
 {
     switch (proto) {

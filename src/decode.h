@@ -610,6 +610,9 @@ typedef struct Packet_
      */
     struct PktPool_ *pool;
 
+    /* make sure we have no too deep recursion */
+    uint8_t nb_decoded_layers;
+
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
@@ -831,6 +834,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         PACKET_RESET_CHECKSUMS((p));                                                               \
         PACKET_PROFILING_RESET((p));                                                               \
         p->tenant_id = 0;                                                                          \
+        p->nb_decoded_layers = 0;                                                                  \
     } while (0)
 
 #define PACKET_RECYCLE(p) do { \
@@ -886,6 +890,15 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
      ((p)->root->action |= a) : \
      ((p)->action |= a)); \
 } while (0)
+
+#define PKT_MAX_DECODED_LAYERS 16
+
+#define PACKET_INCREASE_CHECK_LAYERS(p) do {                                        \
+      (p)->nb_decoded_layers++;                                                     \
+      if ((p)->nb_decoded_layers > PKT_MAX_DECODED_LAYERS) {                        \
+          return TM_ECODE_FAILED;                                                                 \
+      }                                                                             \
+    } while (0)
 
 #define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
@@ -952,7 +965,6 @@ int DecodeSll(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint3
 int DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
-int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t, enum DecodeTunnelProto) WARN_UNUSED;
 int DecodeNull(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
