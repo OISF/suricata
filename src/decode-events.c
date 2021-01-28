@@ -535,6 +535,11 @@ const struct DecodeEvents_ DEvents[] = {
             CHDLC_PKT_TOO_SMALL,
     },
 
+    {
+            "decoder.too_many_layers",
+            GENERIC_TOO_MANY_LAYERS,
+    },
+
     /* STREAM EVENTS */
     {
             "stream.3whs_ack_in_wrong_dir",

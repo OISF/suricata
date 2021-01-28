@@ -581,6 +581,9 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 {
     StatsIncr(tv, dtv->counter_ipv6);
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     /* do the actual decoding */
     int ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
     if (unlikely(ret < 0)) {

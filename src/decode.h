@@ -607,6 +607,11 @@ typedef struct Packet_
      */
     struct PktPool_ *pool;
 
+    /* count decoded layers of packet : too many layers
+     * cause issues with performance and stability (stack exhaustion)
+     */
+    uint8_t nb_decoded_layers;
+
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
@@ -822,6 +827,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
         p->tenant_id = 0;                       \
+        p->nb_decoded_layers = 0;                                                                  \
     } while (0)
 
 #define PACKET_RECYCLE(p) do { \
@@ -942,7 +948,6 @@ int DecodeSll(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint3
 int DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
-int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t, enum DecodeTunnelProto) WARN_UNUSED;
 int DecodeNull(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
@@ -1148,6 +1153,19 @@ void DecodeUnregisterCounters(void);
     ((p)->flags & (PKT_PSEUDO_STREAM_END|PKT_PSEUDO_DETECTLOG_FLUSH))
 
 #define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
+
+#define PKT_DEFAULT_MAX_DECODED_LAYERS 16
+extern uint8_t decoder_max_layers;
+
+static inline bool PacketIncreaseCheckLayers(Packet *p)
+{
+    p->nb_decoded_layers++;
+    if (p->nb_decoded_layers >= decoder_max_layers) {
+        ENGINE_SET_INVALID_EVENT(p, GENERIC_TOO_MANY_LAYERS);
+        return false;
+    }
+    return true;
+}
 
 /** \brief return true if *this* packet needs to trigger a verdict.
  *
