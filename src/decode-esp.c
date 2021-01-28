@@ -61,6 +61,9 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 {
     StatsIncr(tv, dtv->counter_esp);
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     if (unlikely(DecodeESPPacket(tv, p, pkt, len) < 0)) {
         CLEAR_ESP_PACKET(p);
         return TM_ECODE_FAILED;

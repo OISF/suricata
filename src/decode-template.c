@@ -62,6 +62,15 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         //ENGINE_SET_EVENT(p,TEMPLATE_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    /* Each packet keeps a count of decoded layers
+     * This function increases it and returns false
+     * if we have too many decoded layers, such as
+     * ethernet/MPLS/ethernet/MPLS... which may
+     * lead to stack overflow by a too deep recursion
+     */
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
 
     /* Now we can access the header */
     const TemplateHdr *hdr = (const TemplateHdr *)pkt;
