@@ -65,6 +65,9 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         CLEAR_ESP_PACKET(p);
         return TM_ECODE_FAILED;
     }
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
 
     SCLogDebug("ESP spi: %" PRIu32 " sequence: %" PRIu32, ESP_GET_SPI(p), ESP_GET_SEQUENCE(p));
 

@@ -49,6 +49,9 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         ENGINE_SET_INVALID_EVENT(p, PPP_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
 
     p->ppph = (PPPHdr *)pkt;
     if (unlikely(p->ppph == NULL))
