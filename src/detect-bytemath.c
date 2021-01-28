@@ -262,7 +262,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 #undef MAX_SUBSTRINGS
 #define MAX_SUBSTRINGS 100
     int ov[MAX_SUBSTRINGS];
-    char tmp_str[128];
+    char tmp_str[128] = "";
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < MIN_GROUP || ret > MAX_GROUP) {
