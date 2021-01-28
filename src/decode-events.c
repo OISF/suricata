@@ -185,7 +185,15 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.erspan.too_many_vlan_layers", ERSPAN_TOO_MANY_VLAN_LAYERS, },
 
     /* Cisco Fabric Path/DCE events. */
-    { "decoder.dce.pkt_too_small", DCE_PKT_TOO_SMALL, },
+    {
+            "decoder.dce.pkt_too_small",
+            DCE_PKT_TOO_SMALL,
+    },
+
+    {
+            "decoder.too_many_layers",
+            GENERIC_TOO_MANY_LAYERS,
+    },
 
     /* STREAM EVENTS */
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
