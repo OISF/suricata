@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -31,13 +30,14 @@
  */
 
 #define KEYWORD_NAME_LEGACY "http_accept_enc"
-#define KEYWORD_NAME "http.accept_enc"
-#define KEYWORD_DOC "http-keywords.html#http-accept-enc"
-#define BUFFER_NAME "http_accept_enc"
-#define BUFFER_DESC "http accept encoding header"
-#define HEADER_NAME "Accept-Encoding"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_ACCEPT_ENC
-#define KEYWORD_TOSERVER 1
+#define KEYWORD_NAME        "http.accept_enc"
+#define KEYWORD_DOC         "http-keywords.html#http-accept-enc"
+#define BUFFER_NAME         "http_accept_enc"
+#define BUFFER_DESC         "http accept encoding header"
+#define HEADER_NAME         "Accept-Encoding"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_ACCEPT_ENC
+#define KEYWORD_ID_LEGACY   DETECT_HTTP_HEADER_ACCEPT_ENC
+#define KEYWORD_TOSERVER    1
 
 #include "detect-http-headers-stub.h"
 #include "detect-http-accept-enc.h"

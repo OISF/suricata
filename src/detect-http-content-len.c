@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -31,14 +30,15 @@
  */
 
 #define KEYWORD_NAME_LEGACY "http_content_len"
-#define KEYWORD_NAME "http.content_len"
-#define KEYWORD_DOC "http-keywords.html#http-content-len"
-#define BUFFER_NAME "http_content_len"
-#define BUFFER_DESC "http content length header"
-#define HEADER_NAME "Content-Length"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONTENT_LEN
-#define KEYWORD_TOSERVER 1
-#define KEYWORD_TOCLIENT 1
+#define KEYWORD_NAME        "http.content_len"
+#define KEYWORD_DOC         "http-keywords.html#http-content-len"
+#define BUFFER_NAME         "http_content_len"
+#define BUFFER_DESC         "http content length header"
+#define HEADER_NAME         "Content-Length"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_CONTENT_LEN
+#define KEYWORD_ID_LEGACY   DETECT_HTTP_HEADER_CONTENT_LEN
+#define KEYWORD_TOSERVER    1
+#define KEYWORD_TOCLIENT    1
 
 #include "detect-http-headers-stub.h"
 #include "detect-http-content-len.h"

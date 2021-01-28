@@ -51,8 +51,8 @@ static int g_buffer_id = 0;
 
 #ifdef KEYWORD_TOSERVER
 static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -63,11 +63,9 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         if (tx->request_headers == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers, HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP %s header not present in this request",
-                       HEADER_NAME);
+            SCLogDebug("HTTP %s header not present in this request", HEADER_NAME);
             return NULL;
         }
 
@@ -84,8 +82,8 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
 #endif
 #ifdef KEYWORD_TOCLIENT
 static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -96,11 +94,9 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         if (tx->response_headers == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers, HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP %s header not present in this request",
-                       HEADER_NAME);
+            SCLogDebug("HTTP %s header not present in this request", HEADER_NAME);
             return NULL;
         }
 
@@ -145,26 +141,31 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetupSticky;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+#ifdef KEYWORD_ID_LEGACY
+    sigmatch_table[KEYWORD_ID_LEGACY].name = KEYWORD_NAME_LEGACY;
+    sigmatch_table[KEYWORD_ID_LEGACY].desc =
+            KEYWORD_NAME_LEGACY " content modifier for the " BUFFER_DESC;
+    sigmatch_table[KEYWORD_ID_LEGACY].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[KEYWORD_ID_LEGACY].Setup = DetectHttpHeadersSetupSticky;
+    sigmatch_table[KEYWORD_ID_LEGACY].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[KEYWORD_ID_LEGACY].alternative = KEYWORD_ID;
+#endif
 
 #ifdef KEYWORD_TOSERVER
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetRequestData,
-            ALPROTO_HTTP, HTP_REQUEST_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRequestData, ALPROTO_HTTP, HTP_REQUEST_HEADERS);
 #endif
 #ifdef KEYWORD_TOCLIENT
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetResponseData,
-            ALPROTO_HTTP, HTP_RESPONSE_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetResponseData, ALPROTO_HTTP, HTP_RESPONSE_HEADERS);
 #endif
 #ifdef KEYWORD_TOSERVER
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectBufferGeneric, GetRequestData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
 #endif
 #ifdef KEYWORD_TOCLIENT
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
-            DetectEngineInspectBufferGeneric, GetResponseData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
 #endif
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
