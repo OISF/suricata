@@ -521,6 +521,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     /* do the actual decoding */
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {
         SCLogDebug("decoding IPv4 packet failed");

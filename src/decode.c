@@ -72,9 +72,13 @@ uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
+uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 
-int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
+        enum DecodeTunnelProto) WARN_UNUSED;
+
+static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt,
+        uint32_t len, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -739,6 +743,14 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    intmax_t value = 0;
+    if (ConfGetInt("decoder.max-layers", &value) == 1) {
+        if (value < 0 || value > UINT8_MAX) {
+            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for decoder.max-layers");
+        } else {
+            decoder_max_layers = value;
+        }
+    }
 }
 
 /**
