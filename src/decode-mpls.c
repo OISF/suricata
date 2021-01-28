@@ -53,6 +53,9 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     StatsIncr(tv, dtv->counter_mpls);
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     do {
         if (len < MPLS_HEADER_LEN) {
             ENGINE_SET_INVALID_EVENT(p, MPLS_HEADER_TOO_SMALL);

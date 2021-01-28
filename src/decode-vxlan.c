@@ -136,6 +136,9 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     if (len < (VXLAN_HEADER_LEN + sizeof(EthernetHdr)))
         return TM_ECODE_FAILED;
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
 
     const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
     if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0)

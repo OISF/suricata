@@ -1361,6 +1361,9 @@ decoder:
     enabled: true
     ports: $GENEVE_PORTS # syntax: '[6081, 1234]' or '6081'.
 
+  # maximum number of decoder layers for a packet
+  # max-layers: 16
+
 ##
 ## Performance tuning and profiling
 ##
