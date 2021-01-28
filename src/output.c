@@ -54,6 +54,7 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
+#include "output-json-modbus.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
@@ -1071,6 +1072,8 @@ void OutputRegisterLoggers(void)
     OutputFilestoreRegister();
     /* dns */
     JsonDnsLogRegister();
+    /* modbus */
+    JsonModbusLogRegister();
     /* tcp streaming data */
     LogTcpDataLogRegister();
     /* log stats */

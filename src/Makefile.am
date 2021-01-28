@@ -374,6 +374,7 @@ output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \
 output-json-flow.c output-json-flow.h \
 output-json-ftp.c output-json-ftp.h \
+output-json-modbus.c output-json-modbus.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-http2.c output-json-http2.h \
