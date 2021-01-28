@@ -1811,3 +1811,110 @@ Example of HTTP2 logging, of a request and response:
       ]
     }
   }
+
+Event type: Modbus
+------------------
+
+Common fields
+~~~~~~~~~~~~~
+
+* "id": The unique transaction number given by Suricata
+
+Request/Response fields
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* "transaction_id": The transaction id found in the packet
+* "protocol_id": The modbus version
+* "unit_id": ID of the remote server to interact with
+* "function_raw": Raw value of the function code byte
+* "function_code": Associated name of the raw function value
+* "access_type": Type of access requested by the function
+* "category": The function code's category
+* "error_flags": Errors found in the data while parsing
+
+Exception fields
+~~~~~~~~~~~~~~~~
+
+* "raw": Raw value of the exception code byte
+* "code": Associated name of the raw exception value
+
+Diagnostic fields
+~~~~~~~~~~~~~~~~~
+
+* "raw": Raw value of the subfunction code bytes
+* "code": Associated name of the raw subfunction value
+* "data": Bytes following the subfunction code
+
+MEI fields
+~~~~~~~~~~
+
+* "raw": Raw value of the mei function code bytes
+* "code": Associated name of the raw mei function value
+* "data": Bytes following the mei function code
+
+Read Request fields
+~~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to read from
+* "quantity": Amount to read
+
+Read Response fields
+~~~~~~~~~~~~~~~~~~~~
+
+* "data": Data that was read
+
+Multiple Write Request fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to write to
+* "quantity": Amount to write
+* "data": Data to write
+
+Mask Write fields
+~~~~~~~~~~~~~~~~~
+
+* "address": Starting address of content modification
+* "and_mask": And mask to modify content with
+* "or_mask": Or mask to modify content with
+
+Other Write fields
+~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to write to
+* "data": Data to write
+
+Generic Data fields
+~~~~~~~~~~~~~~~~~~~
+
+* "data": Data following the function code
+
+Example
+~~~~~~~
+
+Example of Modbus logging of a request and response:
+
+::
+
+  "modbus": {
+    "id": 1,
+    "request": {
+      "transaction_id": 0,
+      "protocol_id": 0,
+      "unit_id": 0,
+      "function_raw": 1,
+      "function_code": "RdCoils",
+      "access_type": "READ | COILS",
+      "category": "PUBLIC_ASSIGNED",
+      "error_flags": "NONE",
+    },
+    "response": {
+      "transaction_id": 0,
+      "protocol_id": 0,
+      "unit_id": 0,
+      "function_raw": 1,
+      "function_code": "RdCoils",
+      "access_type": "READ | COILS",
+      "category": "PUBLIC_ASSIGNED",
+      "error_flags": "DATA_VALUE",
+    },
+  }
