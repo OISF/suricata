@@ -1840,12 +1840,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         return TM_ECODE_FAILED;
     }
 
-    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && suri->set_logdir) {
-        SCLogError(SC_ERR_INITIALIZATION,
-                "can't use -l and unix socket runmode at the same time");
-        return TM_ECODE_FAILED;
-    }
-
     /* save the runmode from the commandline (if any) */
     suri->aux_run_mode = suri->run_mode;
 
