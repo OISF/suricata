@@ -123,7 +123,8 @@ typedef struct JsonAlertLogThread_ {
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
-static int AlertJsonDumpStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
+static int AlertJsonDumpStreamSegmentCallback(
+        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
 {
     MemBuffer *payload = (MemBuffer *)data;
     MemBufferWriteRaw(payload, buf, buflen);
@@ -731,9 +732,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 MemBufferReset(payload);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flag = FLOW_PKT_TOCLIENT;
+                    flag = STREAM_DUMP_TOCLIENT;
                 } else {
-                    flag = FLOW_PKT_TOSERVER;
+                    flag = STREAM_DUMP_TOSERVER;
                 }
 
                 StreamSegmentForEach((const Packet *)p, flag,

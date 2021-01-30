@@ -6319,7 +6319,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         return 0;
     }
 
-    if (flag & FLOW_PKT_TOSERVER) {
+    if (flag & STREAM_DUMP_TOSERVER) {
         stream = &(ssn->server);
     } else {
         stream = &(ssn->client);
@@ -6343,7 +6343,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         uint32_t seg_datalen;
         StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
-        int ret = CallbackFunc(p, data, seg_data, seg_datalen);
+        int ret = CallbackFunc(p, seg, data, seg_data, seg_datalen);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             return -1;
