@@ -35,7 +35,6 @@
 #include "suricata-common.h"
 
 #include "app-layer.h"
-#include "app-layer-modbus.h"
 
 #include "detect.h"
 #include "detect-modbus.h"
@@ -45,224 +44,6 @@
 #include "flow.h"
 
 #include "util-debug.h"
-
-/** \internal
- *
- * \brief Value match detection code
- *
- *  \param  value   Modbus value context (min, max and mode)
- *  \param  min     Minimum value to compare
- *  \param  inter   Interval or maximum (min + inter) value to compare
- *
- *  \retval 1 match or 0 no match
- */
-static int DetectEngineInspectModbusValueMatch(DetectModbusValue    *value,
-                                               uint16_t             min,
-                                               uint16_t             inter)
-{
-    SCEnter();
-    uint16_t max = min + inter;
-
-    int ret = 0;
-
-    switch (value->mode) {
-        case DETECT_MODBUS_EQ:
-            if ((value->min >= min) && (value->min <= max))
-                ret = 1;
-            break;
-
-        case DETECT_MODBUS_LT:
-            if (value->min > min)
-                ret = 1;
-            break;
-
-        case DETECT_MODBUS_GT:
-            if (value->min < max)
-                ret = 1;
-            break;
-
-        case DETECT_MODBUS_RA:
-            if ((value->max > min) && (value->min < max))
-                ret = 1;
-            break;
-    }
-
-    SCReturnInt(ret);
-}
-
-/** \internal
- *
- * \brief Do data (and address) inspection & validation for a signature
- *
- *  \param tx       Pointer to Modbus Transaction
- *  \param address  Address inspection
- *  \param data     Pointer to data signature structure to match
- *
- *  \retval 0 no match or 1 match
- */
-static int DetectEngineInspectModbusData(ModbusTransaction  *tx,
-                                         uint16_t           address,
-                                         DetectModbusValue  *data)
-{
-    SCEnter();
-    uint16_t offset, value = 0, type = tx->type;
-
-    if (type & MODBUS_TYP_SINGLE) {
-        /* Output/Register(s) Value */
-        if (type & MODBUS_TYP_COILS)
-            value = (tx->data[0])? 1 : 0;
-        else
-            value = tx->data[0];
-    } else if (type & MODBUS_TYP_MULTIPLE) {
-        int i, size = (int) sizeof(tx->data);
-
-        offset = address - (tx->write.address + 1);
-
-        /* In case of Coils, offset is in bit (convert in byte) */
-        if (type & MODBUS_TYP_COILS)
-            offset >>= 3;
-
-        for (i=0; i< size; i++) {
-            /* Select the correct register/coils amongst the output value */
-            if (!(offset--)) {
-                value = tx->data[i];
-                break;
-            }
-        }
-
-        /* In case of Coils,  offset is now in the bit is the rest of previous convert */
-        if (type & MODBUS_TYP_COILS) {
-            offset  = (address - (tx->write.address + 1)) & 0x7;
-            value   = (value >> offset) & 0x1;
-        }
-    } else {
-        /* It is not possible to define the value that is writing for Mask      */
-        /* Write Register function because the current content is not available.*/
-        SCReturnInt(0);
-    }
-
-    SCReturnInt(DetectEngineInspectModbusValueMatch(data, value, 0));
-}
-
-/** \internal
- *
- * \brief Do address inspection & validation for a signature
- *
- *  \param tx       Pointer to Modbus Transaction
- *  \param address  Pointer to address signature structure to match
- *  \param access   Access mode (READ or WRITE)
- *
- *  \retval 0 no match or 1 match
- */
-static int DetectEngineInspectModbusAddress(ModbusTransaction   *tx,
-                                            DetectModbusValue   *address,
-                                            uint8_t             access)
-{
-    SCEnter();
-    int ret = 0;
-
-    /* Check if read/write address of request is at/in the address range of signature */
-    if (access == MODBUS_TYP_READ) {
-        /* In the PDU Coils are addresses starting at zero */
-        /* therefore Coils numbered 1-16 are addressed as 0-15 */
-        ret = DetectEngineInspectModbusValueMatch(address,
-                                                  tx->read.address + 1,
-                                                  tx->read.quantity - 1);
-    } else {
-        /* In the PDU Registers are addresses starting at zero */
-        /* therefore Registers numbered 1-16 are addressed as 0-15 */
-        if (tx->type & MODBUS_TYP_SINGLE)
-            ret = DetectEngineInspectModbusValueMatch(address,
-                                                      tx->write.address + 1,
-                                                      0);
-        else
-            ret = DetectEngineInspectModbusValueMatch(address,
-                                                      tx->write.address + 1,
-                                                      tx->write.quantity - 1);
-    }
-
-    SCReturnInt(ret);
-}
-
-/** \brief Do the content inspection & validation for a signature
- *
- *  \param de_ctx   Detection engine context
- *  \param det_ctx  Detection engine thread context
- *  \param s        Signature to inspect ( and sm: SigMatch to inspect)
- *  \param f        Flow
- *  \param flags    App layer flags
- *  \param alstate  App layer state
- *  \param txv      Pointer to Modbus Transaction structure
- *
- *  \retval 0 no match or 1 match
- */
-int DetectEngineInspectModbus(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    SCEnter();
-    ModbusTransaction   *tx = (ModbusTransaction *)txv;
-    DetectModbus *modbus = (DetectModbus *)engine->smd->ctx;
-
-    int ret = 0;
-
-    if (modbus == NULL) {
-        SCLogDebug("no modbus state, no match");
-        SCReturnInt(0);
-    }
-
-    if (modbus->unit_id != NULL) {
-        if (DetectEngineInspectModbusValueMatch(modbus->unit_id, tx->unit_id, 0) == 0) {
-            SCReturnInt(0);
-        } else {
-            ret = 1;
-        }
-    }
-
-    if (modbus->type == MODBUS_TYP_NONE) {
-        if (modbus->category == MODBUS_CAT_NONE) {
-            if (modbus->function != MODBUS_FUNC_NONE) {
-                if (modbus->function == tx->function) {
-                    if (modbus->has_subfunction) {
-                        SCLogDebug("looking for Modbus server function %d and subfunction %d",
-                                   modbus->function, modbus->subfunction);
-                        ret = (modbus->subfunction == (tx->subFunction))? 1 : 0;
-                    } else {
-                        SCLogDebug("looking for Modbus server function %d", modbus->function);
-                        ret = 1;
-                    }
-                } else {
-                    ret = 0;
-                }
-            }
-        } else {
-            SCLogDebug("looking for Modbus category function %d", modbus->category);
-            ret = (tx->category & modbus->category)? 1 : 0;
-        }
-    } else {
-        uint8_t access      = modbus->type & MODBUS_TYP_ACCESS_MASK;
-        uint8_t function    = modbus->type & MODBUS_TYP_ACCESS_FUNCTION_MASK;
-
-        if (access != MODBUS_TYP_NONE) {
-            if ((access & tx->type) && ((function == MODBUS_TYP_NONE) || (function & tx->type))) {
-                if (modbus->address != NULL) {
-                    ret = DetectEngineInspectModbusAddress(tx, modbus->address, access);
-
-                    if (ret && (modbus->data != NULL)) {
-                        ret = DetectEngineInspectModbusData(tx, modbus->address->min, modbus->data);
-                    }
-                } else {
-                    SCLogDebug("looking for Modbus access type %d and function type %d", access, function);
-                    ret = 1;
-                }
-            } else {
-                ret = 0;
-            }
-        }
-    }
-
-    SCReturnInt(ret);
-}
 
 #ifdef UNITTESTS /* UNITTESTS */
 #include "app-layer-parser.h"
@@ -336,11 +117,13 @@ static uint8_t encapsulatedInterfaceTransport[] = {
                                         /* MEI Type */           0x0F,
                                         /* Data */               0x00, 0x00};
 
-static uint8_t unassigned[] = {/* Transaction ID */     0x00, 0x0A,
-                               /* Protocol ID */        0x00, 0x00,
-                               /* Length */             0x00, 0x02,
-                               /* Unit ID */            0x00,
-                               /* Function code */      0x12};
+static uint8_t unassigned[] = {
+    /* Transaction ID */ 0x00, 0x0A,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x02,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x3F
+};
 
 /** \test Test code function. */
 static int DetectEngineInspectModbusTest01(void)
@@ -394,8 +177,7 @@ static int DetectEngineInspectModbusTest01(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -465,8 +247,7 @@ static int DetectEngineInspectModbusTest02(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -537,8 +318,7 @@ static int DetectEngineInspectModbusTest03(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -608,8 +388,7 @@ static int DetectEngineInspectModbusTest04(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -679,8 +458,7 @@ static int DetectEngineInspectModbusTest05(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -750,8 +528,7 @@ static int DetectEngineInspectModbusTest06(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -821,8 +598,7 @@ static int DetectEngineInspectModbusTest07(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -940,8 +716,7 @@ static int DetectEngineInspectModbusTest08(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -1072,8 +847,7 @@ static int DetectEngineInspectModbusTest09(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -1194,8 +968,7 @@ static int DetectEngineInspectModbusTest10(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -1311,8 +1084,7 @@ static int DetectEngineInspectModbusTest11(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -1409,8 +1181,7 @@ static int DetectEngineInspectModbusTest12(void)
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    ModbusState    *modbus_state = f.alstate;
-    FAIL_IF_NULL(modbus_state);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
