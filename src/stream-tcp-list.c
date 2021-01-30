@@ -563,6 +563,58 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 }
 
 /**
+ * \brief Adds the following information to the TcpSegment from the current
+ *  packet being processed: time values, packet length, and the
+ *  header data of the packet. This information is added to the TcpSegment so
+ *  that it can be used in pcap capturing (log-pcap-stream) to dump the tcp
+ *  session at the beginning of the pcap capture.
+ * \param seg TcpSegment where information is being stored.
+ * \param p Packet being processed.
+ * \param tv Thread-specific variables.
+ * \param ra_ctx TcpReassembly thread-specific variables
+ */
+static void StreamTcpSegmentAddPacketData(
+        TcpSegment *seg, Packet *p, ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
+{
+    if (seg->pcap_hdr_storage == NULL || seg->pcap_hdr_storage->pkt_hdr == NULL) {
+        return;
+    }
+
+    /* FIXME we need to address pseudo packet */
+
+    if (GET_PKT_DATA(p) != NULL && GET_PKT_LEN(p) > p->payload_len) {
+        seg->pcap_hdr_storage->ts.tv_sec = p->ts.tv_sec;
+        seg->pcap_hdr_storage->ts.tv_usec = p->ts.tv_usec;
+        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(p) - p->payload_len;
+        /*
+         * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
+         * need to check that this is sufficient and allocate more memory if
+         * not.
+         */
+        if (GET_PKT_LEN(p) - p->payload_len > seg->pcap_hdr_storage->alloclen) {
+            uint8_t *tmp_pkt_hdr =
+                    SCRealloc(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_LEN(p) - p->payload_len);
+            if (tmp_pkt_hdr == NULL) {
+                SCLogDebug("Failed to realloc");
+                seg->pcap_hdr_storage->ts.tv_sec = 0;
+                seg->pcap_hdr_storage->ts.tv_usec = 0;
+                seg->pcap_hdr_storage->pktlen = 0;
+                return;
+            } else {
+                seg->pcap_hdr_storage->pkt_hdr = tmp_pkt_hdr;
+                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(p) - p->payload_len;
+            }
+        }
+        memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(p),
+                (size_t)GET_PKT_LEN(p) - p->payload_len);
+    } else {
+        seg->pcap_hdr_storage->ts.tv_sec = 0;
+        seg->pcap_hdr_storage->ts.tv_usec = 0;
+        seg->pcap_hdr_storage->pktlen = 0;
+    }
+}
+
+/**
  *  \return 0 ok
  *  \return -1 segment not inserted due to memcap issue
  *
@@ -585,6 +637,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
         StreamTcpSegmentReturntoPool(seg);
         SCReturnInt(-1);
+    }
+    if (IsTcpSessionDumpingEnabled()) {
+        StreamTcpSegmentAddPacketData(seg, p, tv, ra_ctx);
     }
 
     if (likely(r == 0)) {
