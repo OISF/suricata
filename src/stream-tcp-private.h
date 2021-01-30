@@ -58,12 +58,27 @@ int TcpSackCompare(struct StreamTcpSackRecord *a, struct StreamTcpSackRecord *b)
 RB_HEAD(TCPSACK, StreamTcpSackRecord);
 RB_PROTOTYPE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
 
+#define TCPSEG_PKT_HDR_DEFAULT_SIZE 64
+
+/*
+ * Struct to add the additional information required to use TcpSegments to dump
+ * a packet capture to file with the stream-pcap-log output option. This is only
+ * used if the session-dump option is enabled.
+ */
+typedef struct TcpSegmentPcapHdrStorage_ {
+    struct timeval ts;
+    uint32_t pktlen;
+    uint32_t alloclen;
+    uint8_t *pkt_hdr;
+} TcpSegmentPcapHdrStorage;
+
 typedef struct TcpSegment {
     PoolThreadReserved res;
     uint16_t payload_len;       /**< actual size of the payload */
     uint32_t seq;
     RB_ENTRY(TcpSegment) __attribute__((__packed__)) rb;
     StreamingBufferSegment sbseg;
+    TcpSegmentPcapHdrStorage *pcap_hdr_storage;
 } __attribute__((__packed__)) TcpSegment;
 
 /** \brief compare function for the Segment tree

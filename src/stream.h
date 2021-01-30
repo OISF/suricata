@@ -25,6 +25,7 @@
 #define __STREAM_H__
 
 #include "flow.h"
+#include "stream-tcp-private.h"
 
 #define STREAM_START        BIT_U8(0)
 #define STREAM_EOF          BIT_U8(1)
@@ -37,7 +38,12 @@
 
 #define STREAM_FLAGS_FOR_PACKET(p) PKT_IS_TOSERVER((p)) ? STREAM_TOSERVER : STREAM_TOCLIENT
 
-typedef int (*StreamSegmentCallback)(const Packet *, void *, const uint8_t *, uint32_t);
+#define STREAM_DUMP_TOCLIENT BIT_U8(1)
+#define STREAM_DUMP_TOSERVER BIT_U8(2)
+#define STREAM_DUMP_HEADERS  BIT_U8(3)
+
+typedef int (*StreamSegmentCallback)(
+        const Packet *, TcpSegment *, void *, const uint8_t *, uint32_t);
 int StreamSegmentForEach(const Packet *p, uint8_t flag,
                          StreamSegmentCallback CallbackFunc,
                          void *data);
