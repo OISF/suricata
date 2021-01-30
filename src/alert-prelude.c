@@ -1000,7 +1000,8 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     SCReturnInt(0);
 }
 
-static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
+static int PreludePrintStreamSegmentCallback(
+        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
 {
     int ret;
 
@@ -1271,9 +1272,9 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
         uint8_t flag;
         if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag = FLOW_PKT_TOCLIENT;
+            flag = STREAM_DUMP_TOCLIENT;
         } else {
-            flag = FLOW_PKT_TOSERVER;
+            flag = STREAM_DUMP_TOSERVER;
         }
         ret = StreamSegmentForEach(p, flag,
                                    PreludePrintStreamSegmentCallback,
