@@ -74,6 +74,124 @@ static int DetectEngineInspectFilename(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
+DetectAppLayerParserKeywordEntry filename_list[] = {
+        {
+            .alproto = ALPROTO_HTTP, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        },
+        {
+            .alproto = ALPROTO_SMTP, .directions = SIG_FLAG_TOSERVER,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        },
+        {
+            .alproto = ALPROTO_FTP, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        },
+        {
+            .alproto = ALPROTO_FTPDATA, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        },
+        {
+            .alproto = ALPROTO_SMB, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        },
+        {
+            .alproto = ALPROTO_NFS, .directions = SIG_FLAG_TOCLIENT,
+            .inspect =  {
+                .Callback = DetectEngineInspectFilename
+            },
+            .mpm =  {
+                .priority = 2,
+                .PrefilterRegister = PrefilterMpmFilenameRegister
+            }
+        }
+};
+
+DetectAppLayerParserKeywordEntry files_list[] = {
+	{
+		.alproto= ALPROTO_HTTP, .directions = SIG_FLAG_TOSERVER,
+		.inspect = {
+			.progress = HTP_REQUEST_BODY,
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_HTTP, .directions = SIG_FLAG_TOCLIENT,
+		.inspect =  {
+			.progress = HTP_RESPONSE_BODY,
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_HTTP2, .directions = SIG_FLAG_TOSERVER,
+		.inspect =  {
+			.progress = HTTP2StateDataClient,
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_HTTP2, .directions = SIG_FLAG_TOCLIENT,
+		.inspect =  {
+			.progress = HTTP2StateDataServer,
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_NFS, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+		.inspect =  {
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_SMB, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+		.inspect =  {
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_SMTP, .directions = SIG_FLAG_TOSERVER,
+		.inspect =  {
+			.Callback = DetectFileInspectGeneric
+		}
+	},
+	{
+		.alproto = ALPROTO_FTPDATA, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
+		.inspect =  {
+			.Callback = DetectFileInspectGeneric
+		}
+	}
+};
+
 /**
  * \brief Registration function for keyword: filename
  */
@@ -155,6 +273,10 @@ void DetectFilenameRegister(void)
     DetectBufferTypeSetDescriptionByName("file.name",
             "http user agent");
 
+    AppLayerParserRegisterFileKeywordHandler("files", files_list, ARRAY_SIZE(files_list));
+    AppLayerParserRegisterFileKeywordHandler("file.name", filename_list, ARRAY_SIZE(filename_list));
+
+    g_file_match_list_id = DetectBufferTypeGetByName("files");
     g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
 	SCLogDebug("registering filename rule option");
     return;

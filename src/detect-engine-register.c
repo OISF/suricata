@@ -657,6 +657,7 @@ void SigTableSetup(void)
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
 
+    AppLayerParserRegisterFileHandlers();
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
 }

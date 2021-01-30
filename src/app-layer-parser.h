@@ -122,6 +122,27 @@ typedef struct AppLayerGetTxIterState {
     } un;
 } AppLayerGetTxIterState;
 
+typedef struct DetectAppLayerParserRegisterKeywordEntry_ {
+    AppProto alproto;
+    uint32_t    directions;
+    struct {
+        int progress;
+        InspectEngineFuncPtr2 Callback;
+        InspectionBufferGetDataPtr Getdata;
+    } inspect;
+    /* MPM */
+    struct {
+        int priority;
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+                SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id);
+        InspectionBufferGetDataPtr Getdata;
+        int tx_min_progress;
+    } mpm;
+} DetectAppLayerParserKeywordEntry;
+
+void AppLayerParserRegisterFileKeywordEntry(const char *, DetectAppLayerParserKeywordEntry *);
+
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
        (const uint8_t ipproto, const AppProto alproto,
@@ -192,6 +213,8 @@ void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
         bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
 
+void AppLayerParserRegisterFileKeywordHandler(const char *, DetectAppLayerParserKeywordEntry *, size_t);
+
 /***** Get and transaction functions *****/
 
 uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto);
@@ -228,6 +251,7 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f, AppLayerParserState *
 
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 
+void AppLayerParserRegisterFileHandlers(void);
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
