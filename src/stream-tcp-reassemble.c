@@ -81,6 +81,18 @@ static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 /* Memory use counter */
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
 
+static int g_tcp_session_dump_enabled = 0;
+
+inline bool IsTcpSessionDumpingEnabled(void)
+{
+    return g_tcp_session_dump_enabled == 1;
+}
+
+void EnableTcpSessionDumping(void)
+{
+    g_tcp_session_dump_enabled = 1;
+}
+
 /* prototypes */
 TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *);
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
@@ -251,19 +263,64 @@ static void *TcpSegmentPoolAlloc(void)
     seg = SCMalloc(sizeof (TcpSegment));
     if (unlikely(seg == NULL))
         return NULL;
+
+    if (IsTcpSessionDumpingEnabled()) {
+        uint32_t memuse =
+                sizeof(TcpSegmentPcapHdrStorage) + sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
+            SCFree(seg);
+            return NULL;
+        }
+
+        seg->pcap_hdr_storage = SCCalloc(1, sizeof(TcpSegmentPcapHdrStorage));
+        if (seg->pcap_hdr_storage == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
+                                         "TcpSegmentPcapHdrStorage");
+            SCFree(seg);
+            return NULL;
+        } else {
+            seg->pcap_hdr_storage->alloclen = sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+            seg->pcap_hdr_storage->pkt_hdr =
+                    SCCalloc(1, sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
+            if (seg->pcap_hdr_storage->pkt_hdr == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for "
+                                             "packet header data within "
+                                             "TcpSegmentPcapHdrStorage");
+                SCFree(seg->pcap_hdr_storage);
+                SCFree(seg);
+                return NULL;
+            }
+        }
+    } else {
+        seg->pcap_hdr_storage = NULL;
+    }
+
     return seg;
 }
 
 static int TcpSegmentPoolInit(void *data, void *initdata)
 {
     TcpSegment *seg = (TcpSegment *) data;
+    TcpSegmentPcapHdrStorage *pcap_hdr;
+
+    pcap_hdr = seg->pcap_hdr_storage;
 
     /* do this before the can bail, so TcpSegmentPoolCleanup
      * won't have uninitialized memory to consider. */
     memset(seg, 0, sizeof (TcpSegment));
 
-    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
-        return 0;
+    if (IsTcpSessionDumpingEnabled()) {
+        uint32_t memuse =
+                sizeof(TcpSegmentPcapHdrStorage) + sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        seg->pcap_hdr_storage = pcap_hdr;
+        if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
+            return 0;
+        }
+        StreamTcpReassembleIncrMemuse(memuse);
+    } else {
+        if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
+            return 0;
+        }
     }
 
 #ifdef DEBUG
@@ -283,6 +340,17 @@ static void TcpSegmentPoolCleanup(void *ptr)
 {
     if (ptr == NULL)
         return;
+
+    TcpSegment *seg = (TcpSegment *)ptr;
+    if (seg && seg->pcap_hdr_storage) {
+        if (seg->pcap_hdr_storage->pkt_hdr) {
+            SCFree(seg->pcap_hdr_storage->pkt_hdr);
+            StreamTcpReassembleDecrMemuse(seg->pcap_hdr_storage->alloclen);
+        }
+        SCFree(seg->pcap_hdr_storage);
+        seg->pcap_hdr_storage = NULL;
+        StreamTcpReassembleDecrMemuse((uint32_t)sizeof(TcpSegmentPcapHdrStorage));
+    }
 
     StreamTcpReassembleDecrMemuse((uint32_t)sizeof(TcpSegment));
 
@@ -304,6 +372,10 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
 {
     if (seg == NULL)
         return;
+
+    if (seg->pcap_hdr_storage && seg->pcap_hdr_storage->pktlen) {
+        seg->pcap_hdr_storage->pktlen = 0;
+    }
 
     PoolThreadReturn(segment_thread_pool, seg);
 }
