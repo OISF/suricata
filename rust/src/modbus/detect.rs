@@ -46,73 +46,6 @@ pub struct DetectModbusRust {
     value: Option<Range<u16>>,
 }
 
-/// TODO: remove these after regression testing commit
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_category(modbus: *const DetectModbusRust) -> u8 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.category.map(|val| val.bits()).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_function(modbus: *const DetectModbusRust) -> u8 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.function.map(|val| val as u8).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_subfunction(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.subfunction.unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_has_subfunction(modbus: *const DetectModbusRust) -> bool {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.subfunction.is_some()
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_access_type(modbus: *const DetectModbusRust) -> u8 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.access_type.map(|val| val.bits()).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_unit_id_min(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.unit_id.as_ref().map(|val| val.start).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_unit_id_max(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.unit_id.as_ref().map(|val| val.end).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_address_min(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.address.as_ref().map(|val| val.start).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_address_max(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.address.as_ref().map(|val| val.end).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_data_min(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.value.as_ref().map(|val| val.start).unwrap_or(0)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_modbus_get_data_max(modbus: *const DetectModbusRust) -> u16 {
-    let modbus = unsafe { modbus.as_ref() }.unwrap();
-    modbus.value.as_ref().map(|val| val.end).unwrap_or(0)
-}
-
 impl Default for DetectModbusRust {
     fn default() -> Self {
         DetectModbusRust {
@@ -547,4 +480,866 @@ fn parse_unit_id(unit_str: &str) -> Result<DetectModbusRust, ()> {
     }
 
     Ok(modbus)
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::modbus::ModbusState;
+    use super::*;
+    use crate::applayer::*;
+    use sawp::parser::Direction;
+
+    #[test]
+    fn test_parse() {
+        assert_eq!(
+            parse_function("function 1"),
+            Ok(DetectModbusRust {
+                function: Some(FunctionCode::RdCoils),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_function("function 8, subfunction 4"),
+            Ok(DetectModbusRust {
+                function: Some(FunctionCode::Diagnostic),
+                subfunction: Some(4),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_function("function reserved"),
+            Ok(DetectModbusRust {
+                category: Some(CodeCategory::RESERVED),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_function("function !assigned"),
+            Ok(DetectModbusRust {
+                category: Some(!CodeCategory::PUBLIC_ASSIGNED),
+                ..Default::default()
+            })
+        );
+
+        assert_eq!(
+            parse_access("access read"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::READ),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access read discretes"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::READ | AccessType::DISCRETES),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access read, address 1000"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::READ),
+                address: Some(1000..1000),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access write coils, address <500"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::WRITE | AccessType::COILS),
+                address: Some(std::u16::MIN..500),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access write coils, address >500"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::WRITE | AccessType::COILS),
+                address: Some(500..std::u16::MAX),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access write holding, address 100, value <1000"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                address: Some(100..100),
+                value: Some(std::u16::MIN..1000),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_access("access write holding, address 100, value 500<>1000"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                address: Some(100..100),
+                value: Some(500..1000),
+                ..Default::default()
+            })
+        );
+
+        assert_eq!(
+            parse_unit_id("unit 10"),
+            Ok(DetectModbusRust {
+                unit_id: Some(10..10),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_unit_id("unit 10, function 8, subfunction 4"),
+            Ok(DetectModbusRust {
+                function: Some(FunctionCode::Diagnostic),
+                subfunction: Some(4),
+                unit_id: Some(10..10),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_unit_id("unit 10, access read, address 1000"),
+            Ok(DetectModbusRust {
+                access_type: Some(AccessType::READ),
+                unit_id: Some(10..10),
+                address: Some(1000..1000),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_unit_id("unit <11"),
+            Ok(DetectModbusRust {
+                unit_id: Some(std::u16::MIN..11),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            parse_unit_id("unit 10<>500"),
+            Ok(DetectModbusRust {
+                unit_id: Some(10..500),
+                ..Default::default()
+            })
+        );
+
+        assert_eq!(parse_access("access write holdin"), Err(()));
+        assert_eq!(parse_access("unt 10"), Err(()));
+        assert_eq!(
+            parse_access("access write holding, address 100, value 500<>"),
+            Err(())
+        );
+    }
+
+    #[test]
+    fn test_match() {
+        let mut modbus = ModbusState::new();
+
+        // Read/Write Multiple Registers Request
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x12, 0x34, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x11, // Length
+                    0x0a, // Unit ID
+                    0x17, // Function code
+                    0x00, 0x03, // Read Starting Address
+                    0x00, 0x06, // Quantity to Read
+                    0x00, 0x0E, // Write Starting Address
+                    0x00, 0x03, // Quantity to Write
+                    0x06, // Write Byte count
+                    0x12, 0x34, // Write Registers Value
+                    0x56, 0x78, 0x9A, 0xBC
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 1);
+        // function 23
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::RdWrMultRegs),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 15, value <4660
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(15..15),
+                    value: Some(std::u16::MIN..4660),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 15, value 4661
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(15..15),
+                    value: Some(4661..4661),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 16, value 20000<>22136
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(16..16),
+                    value: Some(20000..22136),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 16, value 22136<>30000
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(16..16),
+                    value: Some(22136..30000),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 15, value >4660
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(15..15),
+                    value: Some(4660..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 16, value <22137
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(16..16),
+                    value: Some(std::u16::MIN..22137),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 16, value <22137
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(16..16),
+                    value: Some(std::u16::MIN..22137),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 17, value 39612
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(17..17),
+                    value: Some(39612..39612),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 17, value 30000<>39613
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(17..17),
+                    value: Some(30000..39613),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 15, value 4659<>5000
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(15..15),
+                    value: Some(4659..5000),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access write holding, address 17, value >39611
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE | AccessType::HOLDING),
+                    address: Some(17..17),
+                    value: Some(39611..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 12
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(12..12),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 5<>9
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(5..9),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11<>15
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(11..15),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit >11
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(11..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit <9
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(std::u16::MIN..9),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 5<>15
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(5..15),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit >9
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(9..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit <11
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    unit_id: Some(std::u16::MIN..11),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, function 20
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::RdFileRec),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11, function 20
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::RdFileRec),
+                    unit_id: Some(11..11),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11, function 23
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::RdWrMultRegs),
+                    unit_id: Some(11..11),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11, function public
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    category: Some(CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED),
+                    unit_id: Some(11..11),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, function user
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    category: Some(CodeCategory::USER_DEFINED),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, function 23
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::RdWrMultRegs),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, function public
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    category: Some(CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, function !user
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[0],
+                &DetectModbusRust {
+                    category: Some(!CodeCategory::USER_DEFINED),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+
+        // Force Listen Only Mode
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x0A, 0x00, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x06, // Length
+                    0x00, // Unit ID
+                    0x08, // Function code
+                    0x00, 0x04, // Sub-function code
+                    0x00, 0x00 // Data
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 2);
+        // function 8, subfunction 4
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[1],
+                &DetectModbusRust {
+                    function: Some(FunctionCode::Diagnostic),
+                    subfunction: Some(4),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+
+        // Encapsulated Interface Transport (MEI)
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x00, 0x10, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x05, // Length
+                    0x00, // Unit ID
+                    0x2B, // Function code
+                    0x0F, // MEI Type
+                    0x00, 0x00 // Data
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 3);
+        // function reserved
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[2],
+                &DetectModbusRust {
+                    category: Some(CodeCategory::RESERVED),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+
+        // Unassigned/Unknown function
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x00, 0x0A, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x02, // Length
+                    0x00, // Unit ID
+                    0x12  // Function code
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 4);
+        // function !assigned
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[3],
+                &DetectModbusRust {
+                    category: Some(!CodeCategory::PUBLIC_ASSIGNED),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+
+        // Read Coils request
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x00, 0x00, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x06, // Length
+                    0x0a, // Unit ID
+                    0x01, // Function code
+                    0x78, 0x90, // Starting Address
+                    0x00, 0x13 // Quantity of coils
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 5);
+        // access read
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read, address 30870
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    address: Some(30870..30870),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, access read, address 30863
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    unit_id: Some(10..10),
+                    address: Some(30863..30863),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11, access read, address 30870
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    unit_id: Some(11..11),
+                    address: Some(30870..30870),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 11, access read, address 30863
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    unit_id: Some(11..11),
+                    address: Some(30863..30863),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, access write
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::WRITE),
+                    unit_id: Some(10..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // unit 10, access read, address 30870
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[4],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ),
+                    unit_id: Some(10..10),
+                    address: Some(30870..30870),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+
+        // Read Inputs Register request
+        assert_eq!(
+            modbus.parse(
+                &[
+                    0x00, 0x0A, // Transaction ID
+                    0x00, 0x00, // Protocol ID
+                    0x00, 0x06, // Length
+                    0x00, // Unit ID
+                    0x04, // Function code
+                    0x00, 0x08, // Starting Address
+                    0x00, 0x60 // Quantity of Registers
+                ],
+                Direction::ToServer
+            ),
+            AppLayerResult::ok()
+        );
+        assert_eq!(modbus.transactions.len(), 6);
+        // access read input
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address <9
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(std::u16::MIN..9),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 5<>9
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(5..9),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address >104
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(104..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 104<>110
+        assert_ne!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(104..110),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 9
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(9..9),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address <10
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(std::u16::MIN..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 5<>10
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(5..10),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address >103
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(103..std::u16::MAX),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 103<>110
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(103..110),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+        // access read input, address 104
+        assert_eq!(
+            rs_modbus_inspect(
+                &modbus.transactions[5],
+                &DetectModbusRust {
+                    access_type: Some(AccessType::READ | AccessType::INPUT),
+                    address: Some(104..104),
+                    ..Default::default()
+                }
+            ),
+            1
+        );
+    }
 }

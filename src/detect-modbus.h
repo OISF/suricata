@@ -34,32 +34,6 @@
 #ifndef __DETECT_MODBUS_H__
 #define __DETECT_MODBUS_H__
 
-#include "app-layer-modbus.h"
-
-typedef enum {
-    DETECT_MODBUS_EQ = 0,   /** < EQual operator */
-    DETECT_MODBUS_LT,       /** < "Less Than" operator */
-    DETECT_MODBUS_GT,       /** < "Greater Than" operator */
-    DETECT_MODBUS_RA,       /** < RAnge operator */
-} DetectModbusMode;
-
-typedef struct DetectModbusValue_ {
-    uint16_t            min;    /** < Modbus minimum [range] or equal value to match */
-    uint16_t            max;    /** < Modbus maximum value [range] to match */
-    DetectModbusMode    mode;   /** < Modbus operator used in the address/data signature */
-} DetectModbusValue;
-
-typedef struct DetectModbus_ {
-    uint8_t             category;          /** < Modbus function code category to match */
-    uint8_t             function;          /** < Modbus function code to match */
-    uint16_t            subfunction;      /** < Modbus subfunction to match */
-    bool                has_subfunction;   /** < Modbus subfunction indicator */
-    uint8_t             type;              /** < Modbus access type to match */
-    DetectModbusValue   *unit_id;          /** < Modbus unit id to match */
-    DetectModbusValue   *address;          /** < Modbus address to match */
-    DetectModbusValue   *data;             /** < Modbus data to match */
-} DetectModbus;
-
 /* prototypes */
 void DetectModbusRegister(void);
 

@@ -36,7 +36,6 @@ app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
 app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-http2.c app-layer-http2.h \
-app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
 app-layer-smb.c app-layer-smb.h \
@@ -144,7 +143,6 @@ detect-engine-build.c detect-engine-build.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
-detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
