@@ -917,6 +917,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         if (ires.tx_ptr == NULL)
             break;
 
+        bool tx_skipped = false;
         void *tx = ires.tx_ptr;
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
@@ -945,7 +946,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
-                    skipped = true;
+                    tx_skipped = skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -955,7 +956,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
-                    skipped = true;
+                    tx_skipped = skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -964,7 +965,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         // If not a unidirectional transaction both sides are required to have
         // been inspected.
-        if (!is_unidir && skipped) {
+        if (!is_unidir && tx_skipped) {
+            SCLogDebug("%p/%" PRIu64 " !is_unidir && tx_skipped", tx, i);
             goto next;
         }
 
@@ -972,7 +974,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         // inspected, which the inspected flag tells us. This is also guarded
         // with skip to limit this check to transactions that actually had the
         // tx inspected flag checked.
-        if (is_unidir && skipped && !inspected) {
+        if (is_unidir && tx_skipped && !inspected) {
+            SCLogDebug("%p/%" PRIu64 " is_unidir && tx_skipped && !inspected", tx, i);
             goto next;
         }
 
