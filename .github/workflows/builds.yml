@@ -22,8 +22,10 @@ env:
   # Apt sometimes likes to ask for user input, this will prevent that.
   DEBIAN_FRONTEND: "noninteractive"
 
-  # A known good Rust version we should test against.
-  RUST_VERSION_KNOWN: "1.37.0"
+  # A recent version of stable Rust that is known to pass build, test and other
+  # verification steps in this workflow. This was added because using "stable"
+  # could cause some steps to fail.
+  RUST_VERSION_KNOWN: "1.49.0"
 
 jobs:
 
