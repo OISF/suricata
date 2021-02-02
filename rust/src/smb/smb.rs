@@ -1977,8 +1977,10 @@ pub extern "C" fn rs_smb_probe_tcp(flags: u8,
     -> i8
 {
     let slice = build_slice!(input, len as usize);
-    if rs_smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
-        return 1;
+    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
+        if rs_smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
+            return 1;
+        }
     }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {
