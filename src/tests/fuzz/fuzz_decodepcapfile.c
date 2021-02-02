@@ -1,7 +1,7 @@
 /**
  * @file
  * @author Philippe Antoine <contact@catenacyber.fr>
- * fuzz target for AppLayerProtoDetectGetProto
+ * fuzz target for TMM_DECODEPCAPFILE
  */
 
 #include "suricata-common.h"

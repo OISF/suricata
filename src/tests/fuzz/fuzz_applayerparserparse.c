@@ -1,9 +1,8 @@
 /**
  * @file
  * @author Philippe Antoine <contact@catenacyber.fr>
- * fuzz target for AppLayerProtoDetectGetProto
+ * fuzz target for AppLayerParserParse
  */
-
 
 #include "suricata-common.h"
 #include "app-layer-detect-proto.h"
