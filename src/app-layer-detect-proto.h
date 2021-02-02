@@ -27,9 +27,8 @@
 
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
-typedef AppProto (*ProbingParserFPtr)(Flow *f, uint8_t dir,
-                                      const uint8_t *input, uint32_t input_len,
-                                      uint8_t *rdir);
+typedef AppProto (*ProbingParserFPtr)(
+        Flow *f, uint8_t flags, const uint8_t *input, uint32_t input_len, uint8_t *rdir);
 
 /***** Protocol Retrieval *****/
 
@@ -41,16 +40,13 @@ typedef AppProto (*ProbingParserFPtr)(Flow *f, uint8_t dir,
  * \param buf The buffer to be inspected.
  * \param buflen The length of the above buffer.
  * \param ipproto The ip protocol.
- * \param direction The direction bitfield - STREAM_TOSERVER/STREAM_TOCLIENT.
+ * \param flags The direction bitfield - STREAM_TOSERVER/STREAM_TOCLIENT.
  * \param[out] reverse_flow true if flow is detected to be reversed
  *
  * \retval The app layer protocol.
  */
-AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
-                                     Flow *f,
-                                     const uint8_t *buf, uint32_t buflen,
-                                     uint8_t ipproto, uint8_t direction,
-                                     bool *reverse_flow);
+AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f,
+        const uint8_t *buf, uint32_t buflen, uint8_t ipproto, uint8_t flags, bool *reverse_flow);
 
 /***** State Preparation *****/
 
