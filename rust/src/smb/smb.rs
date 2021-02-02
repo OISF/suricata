@@ -1905,15 +1905,8 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
-// probing parser
-// return 1 if found, 0 is not found
-#[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(direction: u8,
-        input: *const u8, len: u32,
-        rdir: *mut u8)
-    -> i8
+fn rs_smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
 {
-    let slice = build_slice!(input, len as usize);
     match search_smb_record(slice) {
         Ok((_, ref data)) => {
             SCLogDebug!("smb found");
@@ -1971,6 +1964,21 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
         _ => {
             SCLogDebug!("no dice");
         },
+    }
+    return 0;
+}
+
+// probing parser
+// return 1 if found, 0 is not found
+#[no_mangle]
+pub extern "C" fn rs_smb_probe_tcp(flags: u8,
+        input: *const u8, len: u32,
+        rdir: *mut u8)
+    -> i8
+{
+    let slice = build_slice!(input, len as usize);
+    if rs_smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
+        return 1;
     }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {
