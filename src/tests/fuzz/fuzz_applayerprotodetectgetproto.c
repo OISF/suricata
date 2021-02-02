@@ -55,8 +55,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     f->protomap = FlowGetProtoMapping(f->proto);
 
     alproto = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, size-HEADER_LEN, f->proto, data[0], &reverse);
-    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
-        /* If we find a valid protocol :
+    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP &&
+            (data[0] & STREAM_MIDSTREAM) == 0) {
+        /* If we find a valid protocol at the start of a stream :
          * check that with smaller input
          * we find the same protocol or ALPROTO_UNKNOWN.
          * Otherwise, we have evasion with TCP splitting
