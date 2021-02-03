@@ -830,7 +830,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                 ret = -1;
                 break;
             case HTP_STREAM_STATE_TUNNEL:
-                tx = htp_connp_get_out_tx(hstate->connp);
+                tx = htp_connp_get_response_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
                     const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
                     if (h != NULL) {
@@ -2008,7 +2008,7 @@ static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
 
 /**
  *  \brief  callback for request to store the recent incoming request
-            in to the recent_in_tx for the given htp state
+            in to the recent_request_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
@@ -2052,7 +2052,7 @@ static int HTPCallbackRequest(const htp_connp_t *connp, htp_tx_t *tx)
 
 /**
  *  \brief  callback for response to remove the recent received requests
-            from the recent_in_tx for the given htp state
+            from the recent_request_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
@@ -2813,8 +2813,8 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && htp_conn_tx_size(http_state->conn) >= 0) {
-        const uint64_t size = (uint64_t) htp_conn_tx_size(http_state->conn);
+    if (http_state != NULL && htp_connp_tx_size(http_state->connp) >= 0) {
+        const uint64_t size = (uint64_t) htp_connp_tx_size(http_state->connp);
         SCLogDebug("size %"PRIu64, size);
         return size;
     } else {
@@ -2826,8 +2826,8 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL)
-        return htp_conn_tx(http_state->conn, tx_id);
+    if (http_state != NULL && http_state->connp != NULL)
+        return htp_connp_tx(http_state->connp, tx_id);
     else
         return NULL;
 }
@@ -2836,10 +2836,10 @@ void *HtpGetTxForH2(void *alstate)
 {
     // gets last transaction
     HtpState *http_state = (HtpState *)alstate;
-    if (http_state != NULL && http_state->conn != NULL) {
-        size_t txid = htp_conn_tx_size(http_state->conn);
+    if (http_state != NULL && http_state->connp != NULL) {
+        size_t txid = htp_connp_tx_size(http_state->connp);
         if (txid > 0) {
-            return htp_conn_tx(http_state->conn, txid - 1);
+            return htp_connp_tx(http_state->connp, txid - 1);
         }
     }
     return NULL;
@@ -5875,7 +5875,7 @@ static int HTPBodyReassemblyTest01(void)
     BUG_ON(cfg == NULL);
     htp_connp_t *connp = htp_connp_create(cfg);
     BUG_ON(connp == NULL);
-    htp_tx_t *tx = htp_tx_create(connp);
+    htp_tx_t *tx = htp_connp_get_request_tx(connp);
     BUG_ON(tx == NULL);
 
     hstate.f = &flow;
