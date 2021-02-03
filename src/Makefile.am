@@ -12,6 +12,9 @@ if BUILD_FUZZTARGETS
     fuzz_confyamlloadstring fuzz_decodepcapfile \
     fuzz_sigpcap fuzz_mimedecparseline
 endif
+if HAS_FUZZPCAP
+    bin_PROGRAMS += fuzz_sigpcap_aware
+endif
 
 COMMON_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
@@ -658,6 +661,19 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
+
+if HAS_FUZZPCAP
+nodist_fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c $(COMMON_SOURCES)
+fuzz_sigpcap_aware_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_sigpcap_aware_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD) -lfuzzpcap
+if HAS_FUZZLDFLAGS
+fuzz_sigpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+nodist_fuzz_sigpcap_aware_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
+endif
 
 nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c $(COMMON_SOURCES)
 fuzz_mimedecparseline_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
