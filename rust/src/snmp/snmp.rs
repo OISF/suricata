@@ -554,6 +554,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         ipproto            : core::IPPROTO_UDP,
         probe_ts           : Some(rs_snmp_probing_parser),
         probe_tc           : Some(rs_snmp_probing_parser),
+        cs_pattern         : None,
         min_depth          : 0,
         max_depth          : 16,
         state_new          : rs_snmp_state_new,

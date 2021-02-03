@@ -365,6 +365,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         ipproto: core::IPPROTO_UDP,
         probe_ts: Some(rs_sip_probing_parser_ts),
         probe_tc: Some(rs_sip_probing_parser_tc),
+        cs_pattern: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_sip_state_new,

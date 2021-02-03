@@ -32,6 +32,9 @@ typedef struct AppLayerParser {
     ProbingParserFPtr ProbeTS;
     ProbingParserFPtr ProbeTC;
 
+    bool (*AppLayerProtoDetectPMRegisterPatternCS)(uint8_t ipproto, AppProto alproto,
+            const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction);
+
     uint16_t min_depth;
     uint16_t max_depth;
 

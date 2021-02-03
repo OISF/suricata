@@ -1107,6 +1107,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                                                              ProbingParserFPtr ProbingParser2)
 {
     SCEnter();
+    SCLogDebug("alproto: %d, port: %d", alproto, port);
 
     /* get the top level ipproto pp */
     AppLayerProtoDetectProbingParser *curr_pp = *pp;

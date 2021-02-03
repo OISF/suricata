@@ -669,6 +669,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: None,
         probe_tc: None,
+        cs_pattern: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_rfb_state_new,

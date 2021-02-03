@@ -1386,6 +1386,22 @@ pub extern "C" fn rs_dcerpc_probe(
     return 0;
 }
 
+#[no_mangle]
+pub extern "C" fn rs_dcerpc_match_pattern_cs(
+    ipproto: u8,
+    alproto: AppProto,
+    pattern: *const i8,
+    depth: u16,
+    offset: u16,
+    dir: u8
+) -> bool {
+    SCLogInfo!("going to match the pattern");
+    // Don't have input here, what do I match the pattern against?
+    // Also, we use SPM w hyperscan and some other matchers, ow does that fit in here?
+    // 
+    true
+}
+
 //export_tx_get_detect_state!(
 //    rs_dcerpc_tx_get_detect_state,
 //    DCERPCTransaction
@@ -1407,7 +1423,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: Some(rs_dcerpc_probe),
         probe_tc: Some(rs_dcerpc_probe),
-        cs_pattern: None,
+        cs_pattern: Some(rs_dcerpc_match_pattern_cs),
         min_depth: 0,
         max_depth: std::mem::size_of::<DCERPCHdr>() as u16,
         state_new: rs_dcerpc_state_new,

@@ -407,6 +407,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         ipproto            : IPPROTO_UDP,
         probe_ts           : Some(rs_dhcp_probing_parser),
         probe_tc           : Some(rs_dhcp_probing_parser),
+        cs_pattern         : None,
         min_depth          : 0,
         max_depth          : 16,
         state_new          : rs_dhcp_state_new,

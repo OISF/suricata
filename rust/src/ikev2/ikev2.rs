@@ -680,6 +680,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         ipproto            : core::IPPROTO_UDP,
         probe_ts           : Some(rs_ikev2_probing_parser),
         probe_tc           : Some(rs_ikev2_probing_parser),
+        cs_pattern         : None,
         min_depth          : 0,
         max_depth          : 16,
         state_new          : rs_ikev2_state_new,

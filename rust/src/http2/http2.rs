@@ -1174,6 +1174,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: None, // big magic string should be enough
         probe_tc: Some(rs_http2_probing_parser_tc),
+        cs_pattern: None,
         min_depth: HTTP2_FRAME_HEADER_LEN as u16,
         max_depth: HTTP2_MAGIC_LEN as u16,
         state_new: rs_http2_state_new,

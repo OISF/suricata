@@ -538,6 +538,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         //simple patterns, no probing
         probe_ts: None,
         probe_tc: None,
+        cs_pattern: None,
         min_depth: 0,
         max_depth: 0,
         state_new: rs_ssh_state_new,

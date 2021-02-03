@@ -801,6 +801,7 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         ipproto: IPPROTO_TCP,
         probe_ts: Some(rs_mqtt_probing_parser),
         probe_tc: Some(rs_mqtt_probing_parser),
+        cs_pattern: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_mqtt_state_new,

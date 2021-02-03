@@ -171,6 +171,8 @@ pub struct RustParser {
     pub probe_ts:           Option<ProbeFn>,
     /// Probing function, for packets going to client
     pub probe_tc:           Option<ProbeFn>,
+    /// Function to match pattern in the packet data
+    pub cs_pattern:         Option<CSPatternFn>,
 
     /// Minimum frame depth for probing
     pub min_depth:          u16,
@@ -261,6 +263,7 @@ pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        data: *const c_void,
                                        flags: u8) -> AppLayerResult;
 pub type ProbeFn      = extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
+pub type CSPatternFn    = extern "C" fn (ipproto: u8, alproto: AppProto, pattern: *const c_char, depth: u16, offset: u16, dir: u8) -> bool;
 pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = extern "C" fn (*mut c_void, u64);

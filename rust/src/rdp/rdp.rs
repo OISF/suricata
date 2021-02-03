@@ -466,6 +466,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: Some(rs_rdp_probe_ts_tc),
         probe_tc: Some(rs_rdp_probe_ts_tc),
+        cs_pattern: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_rdp_state_new,
