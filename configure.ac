@@ -2527,6 +2527,8 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+    AC_CHECK_LIB(fuzzpcap, FPC_IsFuzzPacketCapture, HAS_FUZZPCAP="yes")
+    AM_CONDITIONAL([HAS_FUZZPCAP], [test "x$HAS_FUZZPCAP" = "xyes"])
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
