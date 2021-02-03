@@ -199,7 +199,7 @@ typedef struct HtpState_ {
     const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;
-    uint16_t htp_messages_offset; /**< offset into conn->messages list */
+    uint16_t htp_messages_count; /**< Number of already logged messages */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;

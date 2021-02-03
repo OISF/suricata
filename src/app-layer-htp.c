@@ -577,39 +577,39 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
  */
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
-    if (s == NULL || s->conn == NULL) {
-        return;
-    }
-
-    ssize_t size = htp_conn_message_size(s->conn);
-    ssize_t msg;
-    if(size >= HTP_MAX_MESSAGES) {
-        if (s->htp_messages_offset < HTP_MAX_MESSAGES) {
-            //only once per HtpState
-            HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
-            s->htp_messages_offset = HTP_MAX_MESSAGES;
-            //too noisy in fuzzing
-            //DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
-        }
+    if (s == NULL || s->conn == NULL || s->htp_messages_count >= HTP_MAX_MESSAGES) {
         // ignore further messages
         return;
     }
 
-    for (msg = s->htp_messages_offset; msg < size; msg++) {
-        char *log = htp_conn_message_log(s->conn, msg);
-        if (log == NULL)
+    htp_log_t *log = htp_conn_next_log(s->conn);
+    while (log != NULL) {
+        char *msg = htp_log_message(log);
+        if (msg == NULL) {
+            htp_log_free(log);
+            log = htp_conn_next_log(s->conn);
             continue;
+        }
 
-        SCLogDebug("message %s", log);
+        SCLogDebug("message %s", msg);
 
-        htp_log_code_t id = htp_conn_message_code(s->conn, msg);
+        htp_log_code_t id = htp_log_code(log);
         if (id != HTP_LOG_CODE_UNKNOWN && id != HTP_LOG_CODE_ERROR) {
             HTPSetEvent(s, NULL, dir, id);
         }
+        htp_free_cstring(msg);
         htp_log_free(log);
+        s->htp_messages_count++;
+        if (s->htp_messages_count >= HTP_MAX_MESSAGES) {
+            //only once per HtpState
+            HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
+            //too noisy in fuzzing
+            //DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
+            break;
+        }
+        log = htp_conn_next_log(s->conn);
     }
-    s->htp_messages_offset = (uint16_t)msg;
-    SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
+    SCLogDebug("s->htp_messages_count %u", s->htp_messages_count);
 }
 
 static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
