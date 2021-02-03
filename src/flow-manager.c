@@ -1011,7 +1011,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         memset(&sleep_startts, 0, sizeof(sleep_startts));
         gettimeofday(&sleep_startts, NULL);
 #endif
-        usleep(100);
+        usleep(250);
 
 #ifdef FM_PROFILE
         struct timeval sleep_endts;
@@ -1207,7 +1207,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         memset(&sleep_startts, 0, sizeof(sleep_startts));
         gettimeofday(&sleep_startts, NULL);
 #endif
-        usleep(100);
+        usleep(250);
 #ifdef FM_PROFILE
         struct timeval sleep_endts;
         memset(&sleep_endts, 0, sizeof(sleep_endts));
