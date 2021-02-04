@@ -225,12 +225,11 @@ static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
             data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+    /* Set to move inspected tracker to end of the data. HtpBodyPrune will consider
      * the window sizes when freeing data */
-    htp_tx_t *tx = txv;
-    HtpBody *body = GetResponseBody(tx);
-    body->body_inspected = body->content_len_so_far;
-    SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
+    HtpBody *body = GetResponseBody(txv);
+    det_ctx->http_body_progress_updated = true;
+    det_ctx->http_body_progress = body->content_len_so_far;
 
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
