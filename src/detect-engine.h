@@ -29,7 +29,7 @@
 #include "flow-private.h"
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
-void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id, InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
 void InspectionBufferFree(InspectionBuffer *buffer);
 void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);

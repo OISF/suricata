@@ -706,7 +706,7 @@ static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(buffer, b, b_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");
@@ -840,7 +840,7 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(buffer, b, b_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

@@ -161,7 +161,7 @@ static int DetectTransformCompressWhitespaceTest01(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 9);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformCompressWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -176,7 +176,7 @@ static int DetectTransformCompressWhitespaceTest02(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 9);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -195,7 +195,7 @@ static int DetectTransformCompressWhitespaceTest03(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 10);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF(TransformCompressWhitespaceValidate(buffer.inspect, buffer.inspect_len, NULL));
     PASS;
@@ -208,7 +208,7 @@ static int DetectTransformCompressWhitespaceTest04(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 9);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF(TransformCompressWhitespaceValidate(buffer.inspect, buffer.inspect_len, NULL));

@@ -996,11 +996,7 @@ void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
 
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id)
 {
-    InspectionBuffer *buffer = &det_ctx->inspect.buffers[list_id];
-    if (buffer->inspect == NULL) {
-        det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
-    }
-    return buffer;
+    return &det_ctx->inspect.buffers[list_id];
 }
 
 /** \brief for a InspectionBufferMultipleForList get a InspectionBuffer
@@ -1053,8 +1049,15 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx,
+        const int list_id, InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
+    if (buffer->inspect == NULL) {
+#ifdef UNITTESTS
+        if (det_ctx && list_id != -1)
+#endif
+            det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
+    }
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
