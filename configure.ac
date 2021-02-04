@@ -283,14 +283,12 @@
             LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
-            LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
-            RUST_LDADD="-lrt -lm"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11 -lrt -lm"
             ;;
         *-*-openbsd*)
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
-            LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-            RUST_LDADD="-lm -lc++ -lc++abi"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1 -lm -lc++ -lc++abi"
             ;;
         *darwin*|*Darwin*)
             LUA_LIB_NAME="lua-5.1"
@@ -299,14 +297,14 @@
             LDFLAGS="${LDFLAGS} -L/opt/local/lib"
             ;;
         *-*-linux*)
-            RUST_LDADD="-ldl -lrt -lm"
+            LIBS="${LIBS} -ldl -lrt -lm"
             ;;
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
-            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh"
+            LIBS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh"
             ;;
         *-*-cygwin)
             LUA_LIB_NAME="lua"
@@ -2401,10 +2399,8 @@ fi
     fi
     RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
-    RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
     CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
     AC_SUBST(RUST_SURICATA_LIB)
-    AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
         if test "x$HAVE_CYGPATH" != "xno"; then
           CYGPATH_CARGO_HOME=$(cygpath -a -t mixed ~/.cargo)
