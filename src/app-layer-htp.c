@@ -430,8 +430,6 @@ void HTPStateFree(void *state)
 /**
  *  \brief HTP transaction cleanup callback
  *
- *  \warning We cannot actually free the transactions here. It seems that
- *           HTP only accepts freeing of transactions in the response callback.
  */
 static void HTPStateTransactionFree(void *state, uint64_t id)
 {
@@ -447,18 +445,6 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
         HtpTxUserDataFree(s, htud);
         htp_tx_set_user_data(tx, NULL);
-
-        /* hack: even if libhtp considers the tx incomplete, we want to
-         * free it here. htp_tx_destroy however, will refuse to do this.
-         * As htp_tx_destroy_incomplete isn't available in the public API,
-         * we hack around it here. */
-        if (unlikely(!(
-            htp_tx_request_progress(tx) == HTP_REQUEST_PROGRESS_COMPLETE &&
-            htp_tx_response_progress(tx) == HTP_RESPONSE_PROGRESS_COMPLETE)))
-        {
-            htp_tx_set_request_progress(tx, HTP_REQUEST_PROGRESS_COMPLETE);
-            htp_tx_set_response_progress(tx, HTP_RESPONSE_PROGRESS_COMPLETE);
-        }
         htp_tx_destroy(s->connp, tx);
     }
 }
@@ -2094,8 +2080,6 @@ static int HTPCallbackResponse(const htp_connp_t *connp, htp_tx_t *tx)
             }
             // both ALPROTO_HTTP and ALPROTO_TLS are normal options
             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
-            htp_tx_set_request_progress(tx, HTP_REQUEST_PROGRESS_COMPLETE);
-            htp_tx_set_response_progress(tx, HTP_RESPONSE_PROGRESS_COMPLETE);
         }
     }
 
