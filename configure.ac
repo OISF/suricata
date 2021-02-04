@@ -2759,7 +2759,8 @@ Generic build parameters:
   Position Independent Executable enabled: ${enable_pie}
   CFLAGS                                   ${CFLAGS}
   PCAP_CFLAGS                              ${PCAP_CFLAGS}
-  SECCFLAGS                                ${SECCFLAGS}"
+  SECCFLAGS                                ${SECCFLAGS}
+  LDFLAGS                                  ${LDFLAGS} ${LIBS}"
 
 echo
 echo "$SURICATA_BUILD_CONF"
