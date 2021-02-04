@@ -45,9 +45,9 @@ else
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
-	if test -e $(RUST_SURICATA_LIBDIR)/suricata.lib; then \
-		cp $(RUST_SURICATA_LIBDIR)/suricata.lib \
-			$(RUST_SURICATA_LIBDIR)/libsuricata.a; \
+	if test -e $(RUST_SURICATA_LIBDIR)/suricata_rust.lib; then \
+		cp $(RUST_SURICATA_LIBDIR)/suricata_rust.lib \
+			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
 

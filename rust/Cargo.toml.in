@@ -6,6 +6,7 @@ edition = "2018"
 [lib]
 crate-type = ["staticlib", "rlib"]
 path = "@e_rustdir@/src/lib.rs"
+name = "suricata_rust"
 
 [profile.release]
 debug = true
