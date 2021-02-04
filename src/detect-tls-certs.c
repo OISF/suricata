@@ -158,8 +158,8 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         return NULL;
     }
 
-    InspectionBufferSetup(buffer, cbdata->cert->cert_data,
-		          cbdata->cert->cert_len);
+    InspectionBufferSetup(
+            det_ctx, list_id, buffer, cbdata->cert->cert_data, cbdata->cert->cert_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

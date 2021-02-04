@@ -190,7 +190,7 @@ static void PrefilterTxHttpRequestStart(DetectEngineThreadCtx *det_ctx,
             return;
 
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
         InspectionBufferApplyTransforms(buffer, ctx->transforms);
     }
 
@@ -264,7 +264,7 @@ static void PrefilterTxHttpResponseStart(DetectEngineThreadCtx *det_ctx,
             return;
 
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
         InspectionBufferApplyTransforms(buffer, ctx->transforms);
     }
 
@@ -329,7 +329,7 @@ static int InspectEngineHttpStart(
             goto end;
         }
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

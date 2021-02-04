@@ -367,7 +367,7 @@ static InspectionBuffer *FilenameGetDataCallback(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data = cur_file->name;
     uint32_t data_len = cur_file->name_len;
 
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

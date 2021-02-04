@@ -83,7 +83,7 @@ static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_
         return NULL;
     }
 
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");
