@@ -76,7 +76,7 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(buffer, b, b_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

@@ -176,7 +176,7 @@ static int DetectEngineInspectBufferHttpHeader(
             goto end;
         }
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -243,7 +243,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
             return;
 
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
         InspectionBufferApplyTransforms(buffer, ctx->transforms);
     }
 

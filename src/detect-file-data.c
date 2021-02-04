@@ -388,7 +388,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
 
     /* built-in 'transformation' */
@@ -466,7 +466,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     StreamingBufferGetDataAtOffset(cur_file->sb,
             &data, &data_len,
             cur_file->content_inspected);
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);

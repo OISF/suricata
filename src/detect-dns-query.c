@@ -91,7 +91,7 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
                 &data, &data_len) == 0) {
         return NULL;
     }
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

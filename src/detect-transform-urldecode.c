@@ -136,7 +136,7 @@ static int DetectTransformUrlDecodeTest01(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 8);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformUrlDecode(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
