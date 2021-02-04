@@ -51,6 +51,12 @@ endif
 	fi
 	$(MAKE) gen/rust-bindings.h
 
+install-data-local:
+	$(INSTALL_DATA) $(RUST_SURICATA_LIB) "$(DESTDIR)$(libdir)"
+
+uninstall-local:
+	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
+
 clean-local:
 	rm -rf target
 if HAVE_CBINDGEN
