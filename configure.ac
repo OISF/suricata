@@ -273,7 +273,7 @@
     fi
     echo -n "installation for $host OS... "
 
-    RUST_SURICATA_LIBNAME="libsuricata.a"
+    RUST_SURICATA_LIBNAME="libsuricata_rust.a"
 
     e_magic_file=""
     e_magic_file_comment="#"
