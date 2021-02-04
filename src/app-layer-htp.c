@@ -2124,46 +2124,6 @@ static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
     return HTP_STATUS_OK;
 }
 
-static int HTPCallbackDoubleDecodeUriPart(const htp_connp_t *connp, htp_tx_t *tx, bstr *part)
-{
-    if (part == NULL)
-        return HTP_STATUS_OK;
-
-    uint64_t flags = 0;
-    size_t prevlen = bstr_len(part);
-    htp_status_t res = htp_urldecode_inplace(htp_tx_cfg(tx), part, &flags);
-    // shorter string means that uri was encoded
-    if (res == HTP_STATUS_OK && prevlen > bstr_len(part)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(tx);
-        if (htud == NULL)
-            return HTP_STATUS_OK;
-        HtpState *s = htp_connp_user_data(connp);
-
-        if (s == NULL)
-            return HTP_STATUS_OK;
-        HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTP_LOG_CODE_DOUBLE_ENCODED_URI);
-    }
-
-    return HTP_STATUS_OK;
-}
-
-static int HTPCallbackDoubleDecodeQuery(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    if (htp_tx_parsed_uri(tx) == NULL)
-        return HTP_STATUS_OK;
-
-    return HTPCallbackDoubleDecodeUriPart(connp, tx, (bstr *) htp_uri_query(htp_tx_parsed_uri(tx)));
-}
-
-static int HTPCallbackDoubleDecodePath(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    if (htp_tx_parsed_uri(tx) == NULL)
-        return HTP_STATUS_OK;
-
-    return HTPCallbackDoubleDecodeUriPart(connp, tx, (bstr *) htp_uri_path(htp_tx_parsed_uri(tx)));
-}
-
 static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
@@ -2461,16 +2421,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
 
         } else if (strcasecmp("double-decode-query", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodeQuery);
-            }
+            htp_config_set_double_decode_normalized_query(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("double-decode-path", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodePath);
-            }
+            htp_config_set_double_decode_normalized_path(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
