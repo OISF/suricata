@@ -357,6 +357,7 @@ ippair-timeout.c ippair-timeout.h \
 log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-pcap-capture-alert.c log-pcap-capture-alert.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \

@@ -309,10 +309,11 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
  *
  *  \param td pointer to DetectTagDataEntry
  */
-static void DetectTagDataEntryFree(void *ptr)
+void DetectTagDataEntryFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
+        CleanUpTaggedPcap(dte->pcap_file);
         SCFree(dte);
     }
 }
