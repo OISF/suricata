@@ -227,19 +227,6 @@ pub extern "C" fn rs_http2_tx_get_next_window(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_settingsid(
-    str: *const std::os::raw::c_char,
-) -> std::os::raw::c_int {
-    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
-    if let Ok(s) = ft_name.to_str() {
-        if let Ok(x) = parser::HTTP2SettingsId::from_str(s) {
-            return x as i32;
-        }
-    }
-    return -1;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
