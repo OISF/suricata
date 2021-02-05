@@ -141,7 +141,7 @@ int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
 
 /**
- *  \brief Close a File
+ *  \brief Close all files in the container
  *
  *  \param ffc the container
  *  \param data final data if any
