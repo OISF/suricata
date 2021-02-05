@@ -817,25 +817,20 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                 break;
             case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_response_tx(hstate->connp);
-                if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
-                    const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
-                    if (h != NULL) {
-                        if (bstr_cmp_c(htp_header_value(h), "h2c") == 0) {
-                            uint16_t dp = 0;
-                            if (htp_tx_request_port_number(tx) != -1) {
-                                dp = (uint16_t)htp_tx_request_port_number(tx);
-                            }
-                            consumed = htp_connp_res_data_consumed(hstate->connp);
-                            AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
-                            // During HTTP2 upgrade, we may consume the HTTP1 part of the data
-                            // and we need to parser the remaining part with HTTP2
-                            if (consumed > 0 && consumed < input_len) {
-                                SCReturnStruct(
-                                        APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
-                            }
-                            SCReturnStruct(APP_LAYER_OK);
-                        }
+                if (tx != NULL && htp_tx_is_http_2_upgrade(tx)) {
+                    uint16_t dp = 0;
+                    if (htp_tx_request_port_number(tx) != -1) {
+                        dp = (uint16_t)htp_tx_request_port_number(tx);
                     }
+                    consumed = htp_connp_res_data_consumed(hstate->connp);
+                    AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
+                    // During HTTP2 upgrade, we may consume the HTTP1 part of the data
+                    // and we need to parser the remaining part with HTTP2
+                    if (consumed > 0 && consumed < input_len) {
+                        SCReturnStruct(
+                                APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                    }
+                    SCReturnStruct(APP_LAYER_OK);
                 }
                 break;
             default:
