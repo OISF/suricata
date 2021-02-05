@@ -649,13 +649,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 }
                 if (LooksLikeHTTPMethod(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_request_line or "
-                                    "http_method and http_uri instead for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.request_line or "
+                                    "http.method and http.uri instead for improved performance");
                 }
                 if (LooksLikeHTTPUA(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_user_agent "
-                                    "or http_header for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.user_agent "
+                                    "or http.header for improved performance");
                 }
                 jb_close(js);
                 break;
