@@ -1056,11 +1056,6 @@ pub extern "C" fn rs_dns_apply_tx_config(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_init(proto: AppProto) {
-    ALPROTO_DNS = proto;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
     let parser = RustParser{
