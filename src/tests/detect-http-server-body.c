@@ -2259,7 +2259,6 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    int result = 0;
     uint8_t http_buf1[] =
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.openinfosecfoundation.org\r\n"
@@ -2303,102 +2302,58 @@ libhtp:\n\
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"890\"; depth:3; http_server_body; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any ("
+                                                 "content:\"890\"; depth:3; http_server_body; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                                 STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
+    SCLogDebug("chunk http_buf2");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 1));
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
+    SCLogDebug("chunk http_buf3");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 1));
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
     HtpConfigRestoreBackup();
     ConfRestoreContextBackup();
 
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 /*
