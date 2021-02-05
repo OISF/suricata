@@ -177,6 +177,17 @@ impl TemplateState {
             return AppLayerResult::ok();
         }
 
+        if self.response_gap {
+            if probe(input).is_err() {
+                // The parser now needs to decide what to do as we are not in sync.
+                // For this template, we'll just try again next time.
+                return AppLayerResult::ok();
+            }
+
+            // It looks like we're in sync with a message header, clear gap
+            // state and keep parsing.
+            self.response_gap = false;
+        }
         let mut start = input;
         while start.len() > 0 {
             match parser::parse_message(start) {
