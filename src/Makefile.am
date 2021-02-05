@@ -35,6 +35,7 @@ noinst_HEADERS = \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
 	app-layer-mqtt.h \
+	app-layer-pgsql.h \
 	app-layer-nbss.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
@@ -387,6 +388,7 @@ noinst_HEADERS = \
 	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-mqtt.h \
+	output-json-pgsql.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
 	output-json-rdp.h \
@@ -609,6 +611,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
 	app-layer-mqtt.c \
+	app-layer-pgsql.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
 	app-layer-ntp.c \
@@ -955,6 +958,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-mqtt.c \
+	output-json-pgsql.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
 	output-json-rdp.c \
