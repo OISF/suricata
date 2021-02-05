@@ -4,7 +4,8 @@ noinst_HEADERS = action-globals.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
 	suricata-common.h threadvars.h tree.h \
-    util-validate.h
+    util-validate.h \
+    suricata-plugin.h
 bin_PROGRAMS = suricata
 if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
@@ -577,8 +578,13 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-include_HEADERS = \
-suricata-plugin.h
+headers = $(filter %.h,$(COMMON_SOURCES) $(noinst_HEADERS) autoconf.h)
+
+install-headers:
+	mkdir -p $(DESTDIR)${includedir}/suricata
+	for header in $(headers); do \
+		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
+	done
 
 EXTRA_DIST = tests
 
