@@ -123,27 +123,22 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
 static void DeStateSignatureAppend(DetectEngineState *state,
         const Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
-    int jump = 0;
-    int i = 0;
+    SCEnter();
+
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
     BUG_ON(DeStateSearchState(state, direction, s->num));
 #endif
-    DeStateStore *store = dir_state->head;
+    DeStateStore *store = dir_state->tail;
 
     if (store == NULL) {
         store = DeStateStoreAlloc();
-        if (store != NULL) {
-            dir_state->head = store;
-            dir_state->tail = store;
-        }
+        dir_state->head = store;
+        dir_state->tail = store;
     } else {
-        jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
-        for (i = 0; i < jump; i++) {
-            store = store->next;
-        }
-        if (store == NULL) {
+        SCLogDebug("dir_state->cnt %u mod chunksize %u", dir_state->cnt, dir_state->cnt % DE_STATE_CHUNK_SIZE);
+        if (dir_state->cnt && dir_state->cnt % DE_STATE_CHUNK_SIZE == 0) {
             store = DeStateStoreAlloc();
             if (store != NULL) {
                 dir_state->tail->next = store;
@@ -151,15 +146,14 @@ static void DeStateSignatureAppend(DetectEngineState *state,
             }
         }
     }
-
     if (store == NULL)
-        return;
+        SCReturn;
 
     SigIntId idx = dir_state->cnt++ % DE_STATE_CHUNK_SIZE;
     store->store[idx].sid = s->num;
     store->store[idx].flags = inspect_flags;
 
-    return;
+    SCReturn;
 }
 
 DetectEngineState *DetectEngineStateAlloc(void)
