@@ -51,6 +51,7 @@ app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-rfb.c app-layer-rfb.h \
 app-layer-mqtt.c app-layer-mqtt.h \
+app-layer-pgsql.c app-layer-pgsql.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-rdp.c app-layer-rdp.h \
@@ -393,6 +394,7 @@ output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-rfb.c output-json-rfb.h \
 output-json-mqtt.c output-json-mqtt.h \
+output-json-pgsql.c output-json-pgsql.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \
