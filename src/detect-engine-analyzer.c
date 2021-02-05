@@ -865,11 +865,13 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_close(ctx.js);
 
     if (ctx.js_warnings) {
+        jb_close(ctx.js_warnings);
         jb_set_object(ctx.js, "warnings", ctx.js_warnings);
         jb_free(ctx.js_warnings);
         ctx.js_warnings = NULL;
     }
     if (ctx.js_notes) {
+        jb_close(ctx.js_notes);
         jb_set_object(ctx.js, "notes", ctx.js_notes);
         jb_free(ctx.js_notes);
         ctx.js_notes = NULL;
