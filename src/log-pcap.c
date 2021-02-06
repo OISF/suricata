@@ -237,9 +237,6 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
     if (p->flags & PKT_PSEUDO_STREAM_END) {
         return FALSE;
     }
-    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
-        return FALSE;
-    }
     /* Log alerted flow */
     if (ptd->pcap_log->conditional == LOGMODE_COND_ALERTS) {
         if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
@@ -247,6 +244,10 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
         } else {
             return FALSE;
         }
+    }
+
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        return FALSE;
     }
     return TRUE;
 }
@@ -403,13 +404,25 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 {
     PCAPLOG_PROFILE_START;
 
-    SCLogDebug("Setting pcap-log link type to %u", p->datalink);
-
-    if (pl->pcap_dead_handle == NULL) {
-        if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
-                PCAP_SNAPLEN)) == NULL) {
-            SCLogDebug("Error opening dead pcap handle");
-            return TM_ECODE_FAILED;
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        Packet *real_p = p->root;
+        SCMutexLock(&real_p->tunnel_mutex);
+        SCLogDebug("Setting pcap-log link type to %u", real_p->datalink);
+        if (pl->pcap_dead_handle == NULL) {
+            if ((pl->pcap_dead_handle = pcap_open_dead(real_p->datalink, PCAP_SNAPLEN)) == NULL) {
+                SCLogDebug("Error opening dead pcap handle");
+                SCMutexUnlock(&real_p->tunnel_mutex);
+                return TM_ECODE_FAILED;
+            }
+        }
+        SCMutexUnlock(&real_p->tunnel_mutex);
+    } else {
+        SCLogDebug("Setting pcap-log link type to %u", p->datalink);
+        if (pl->pcap_dead_handle == NULL) {
+            if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink, PCAP_SNAPLEN)) == NULL) {
+                SCLogDebug("Error opening dead pcap handle");
+                return TM_ECODE_FAILED;
+            }
         }
     }
 
@@ -576,6 +589,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     size_t len;
     int rotate = 0;
     int ret = 0;
+    Packet *rp = NULL;
 
     PcapLogThreadData *td = (PcapLogThreadData *)thread_data;
     PcapLogData *pl = td->pcap_log;
@@ -583,7 +597,6 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     if ((p->flags & PKT_PSEUDO_STREAM_END) ||
         ((p->flags & PKT_STREAM_NOPCAPLOG) &&
          (pl->use_stream_depth == USE_STREAM_DEPTH_ENABLED)) ||
-        (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) ||
         (pl->honor_pass_rules && (p->flags & PKT_NOPACKET_INSPECTION)))
     {
         return TM_ECODE_OK;
@@ -594,9 +607,18 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     pl->pkt_cnt++;
     pl->h->ts.tv_sec = p->ts.tv_sec;
     pl->h->ts.tv_usec = p->ts.tv_usec;
-    pl->h->caplen = GET_PKT_LEN(p);
-    pl->h->len = GET_PKT_LEN(p);
-    len = sizeof(*pl->h) + GET_PKT_LEN(p);
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        rp = p->root;
+        SCMutexLock(&rp->tunnel_mutex);
+        pl->h->caplen = GET_PKT_LEN(rp);
+        pl->h->len = GET_PKT_LEN(rp);
+        len = sizeof(*pl->h) + GET_PKT_LEN(rp);
+        SCMutexUnlock(&rp->tunnel_mutex);
+    } else {
+        pl->h->caplen = GET_PKT_LEN(p);
+        pl->h->len = GET_PKT_LEN(p);
+        len = sizeof(*pl->h) + GET_PKT_LEN(p);
+    }
 
     if (pl->filename == NULL) {
         ret = PcapLogOpenFileCtx(pl);
@@ -662,18 +684,29 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
         if (PKT_IS_TCP(p)) {
             /* dump fake packets for all segments we have on acked by packet */
 #ifdef HAVE_LIBLZ4
-            PcapLogDumpSegments(td, connp, p);
+            PcapLogDumpSegments(td, comp, p);
 #else
             PcapLogDumpSegments(td, NULL, p);
 #endif
         }
     }
 
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        rp = p->root;
+        SCMutexLock(&rp->tunnel_mutex);
 #ifdef HAVE_LIBLZ4
-    ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
+        ret = PcapWrite(pl, comp, GET_PKT_DATA(rp), len);
 #else
-    ret = PcapWrite(pl, NULL, GET_PKT_DATA(p), len);
+        ret = PcapWrite(pl, NULL, GET_PKT_DATA(rp), len);
 #endif
+        SCMutexUnlock(&rp->tunnel_mutex);
+    } else {
+#ifdef HAVE_LIBLZ4
+        ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
+#else
+        ret = PcapWrite(pl, NULL, GET_PKT_DATA(p), len);
+#endif
+    }
     if (ret != TM_ECODE_OK) {
         PCAPLOG_PROFILE_END(pl->profile_write);
         PcapLogUnlock(pl);

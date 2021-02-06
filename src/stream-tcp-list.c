@@ -576,24 +576,28 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 static void StreamTcpSegmentAddPacketData(
         TcpSegment *seg, Packet *p, ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
 {
+    Packet *rp = p;
     if (seg->pcap_hdr_storage == NULL || seg->pcap_hdr_storage->pkt_hdr == NULL) {
         return;
     }
 
-    /* FIXME we need to address pseudo packet */
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        rp = p->root;
+    }
 
-    if (GET_PKT_DATA(p) != NULL && GET_PKT_LEN(p) > p->payload_len) {
-        seg->pcap_hdr_storage->ts.tv_sec = p->ts.tv_sec;
-        seg->pcap_hdr_storage->ts.tv_usec = p->ts.tv_usec;
-        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(p) - p->payload_len;
+    SCMutexLock(&rp->tunnel_mutex);
+    if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > p->payload_len) {
+        seg->pcap_hdr_storage->ts.tv_sec = rp->ts.tv_sec;
+        seg->pcap_hdr_storage->ts.tv_usec = rp->ts.tv_usec;
+        seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - p->payload_len;
         /*
          * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
          * need to check that this is sufficient and allocate more memory if
          * not.
          */
-        if (GET_PKT_LEN(p) - p->payload_len > seg->pcap_hdr_storage->alloclen) {
+        if (GET_PKT_LEN(rp) - p->payload_len > seg->pcap_hdr_storage->alloclen) {
             uint8_t *tmp_pkt_hdr =
-                    SCRealloc(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_LEN(p) - p->payload_len);
+                    SCRealloc(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_LEN(rp) - p->payload_len);
             if (tmp_pkt_hdr == NULL) {
                 SCLogDebug("Failed to realloc");
                 seg->pcap_hdr_storage->ts.tv_sec = 0;
@@ -602,16 +606,17 @@ static void StreamTcpSegmentAddPacketData(
                 return;
             } else {
                 seg->pcap_hdr_storage->pkt_hdr = tmp_pkt_hdr;
-                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(p) - p->payload_len;
+                seg->pcap_hdr_storage->alloclen = GET_PKT_LEN(rp) - p->payload_len;
             }
         }
-        memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(p),
-                (size_t)GET_PKT_LEN(p) - p->payload_len);
+        memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(rp),
+                (size_t)GET_PKT_LEN(rp) - p->payload_len);
     } else {
         seg->pcap_hdr_storage->ts.tv_sec = 0;
         seg->pcap_hdr_storage->ts.tv_usec = 0;
         seg->pcap_hdr_storage->pktlen = 0;
     }
+    SCMutexUnlock(&rp->tunnel_mutex);
 }
 
 /**
