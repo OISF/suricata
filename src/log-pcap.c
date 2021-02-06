@@ -26,7 +26,9 @@
  */
 
 #include "suricata-common.h"
+#include "util-buffer.h"
 #include "util-fmemopen.h"
+#include "stream-tcp-util.h"
 
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
@@ -189,6 +191,7 @@ typedef struct PcapLogData_ {
 
 typedef struct PcapLogThreadData_ {
     PcapLogData *pcap_log;
+    MemBuffer *buf;
 } PcapLogThreadData;
 
 /* Pattern for extracting timestamp from pcap log files. */
@@ -516,6 +519,48 @@ static inline int PcapWrite(
     return TM_ECODE_OK;
 }
 
+struct PcapLogCallbackContext {
+    PcapLogData *pl;
+    PcapLogCompressionData *connp;
+    MemBuffer *buf;
+};
+
+static int PcapLogSegmentCallback(
+        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
+{
+    struct PcapLogCallbackContext *pctx = (struct PcapLogCallbackContext *)data;
+
+    if (seg->pcap_hdr_storage->pktlen) {
+        pctx->pl->h->ts.tv_sec = seg->pcap_hdr_storage->ts.tv_sec;
+        pctx->pl->h->ts.tv_usec = seg->pcap_hdr_storage->ts.tv_usec;
+        pctx->pl->h->len = seg->pcap_hdr_storage->pktlen + buflen;
+        pctx->pl->h->caplen = seg->pcap_hdr_storage->pktlen + buflen;
+        MemBufferReset(pctx->buf);
+        MemBufferWriteRaw(pctx->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
+        MemBufferWriteRaw(pctx->buf, buf, buflen);
+
+        PcapWrite(pctx->pl, pctx->connp, (uint8_t *)pctx->buf->buffer, pctx->pl->h->len);
+    }
+    return 1;
+}
+
+static void PcapLogDumpSegments(
+        PcapLogThreadData *td, PcapLogCompressionData *connp, const Packet *p)
+{
+    uint8_t flag;
+    /*  check which side is packet */
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        flag = STREAM_DUMP_TOCLIENT;
+    } else {
+        flag = STREAM_DUMP_TOSERVER;
+    }
+    flag |= STREAM_DUMP_HEADERS;
+
+    /* Loop on segment from this side */
+    struct PcapLogCallbackContext data = { td->pcap_log, connp, td->buf };
+    StreamSegmentForEach(p, flag, PcapLogSegmentCallback, (void *)&data);
+}
+
 /**
  * \brief Pcap logging main function
  *
@@ -610,6 +655,19 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     }
 
     PCAPLOG_PROFILE_START;
+
+    /* if we are using alerted logging and if packet is first one with alert in flow
+     * then we need to dump in the pcap the stream acked by the packet */
+    if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional == LOGMODE_COND_ALERTS)) {
+        if (PKT_IS_TCP(p)) {
+            /* dump fake packets for all segments we have on acked by packet */
+#ifdef HAVE_LIBLZ4
+            PcapLogDumpSegments(td, connp, p);
+#else
+            PcapLogDumpSegments(td, NULL, p);
+#endif
+        }
+    }
 
 #ifdef HAVE_LIBLZ4
     ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
@@ -984,6 +1042,12 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 
     *data = (void *)td;
 
+    if (IsTcpSessionDumpingEnabled()) {
+        td->buf = MemBufferCreateNew(PCAP_OUTPUT_BUFFER_SIZE);
+    } else {
+        td->buf = NULL;
+    }
+
     if (pl->max_files && (pl->mode == LOGMODE_MULTI || pl->threads == 1)) {
 #ifdef INIT_RING_BUFFER
         if (PcapLogInitRingBuffer(td->pcap_log) == TM_ECODE_FAILED) {
@@ -1093,6 +1157,9 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
     if (pl != g_pcap_data) {
         PcapLogDataFree(pl);
     }
+
+    if (td->buf)
+        MemBufferFree(td->buf);
 
     SCFree(td);
     return TM_ECODE_OK;
@@ -1456,6 +1523,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         if (s_conditional != NULL) {
             if (strcasecmp(s_conditional, "alerts") == 0) {
                 pl->conditional = LOGMODE_COND_ALERTS;
+                EnableTcpSessionDumping();
             } else if (strcasecmp(s_conditional, "all") != 0) {
                 FatalError(SC_ERR_INVALID_ARGUMENT,
                         "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
