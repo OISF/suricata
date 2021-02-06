@@ -293,7 +293,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
         if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
             /* pcap_dump_close did not write any data because we call
              * pcap_dump_flush() after every write when writing
-	     * compressed output. */
+             * compressed output. */
             uint64_t bytes_written = LZ4F_compressEnd(comp->lz4f_context,
                     comp->buffer, comp->buffer_size, NULL);
             if (LZ4F_isError(bytes_written)) {
