@@ -624,6 +624,8 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     uint32_t prefilter_cnt = 0;
     uint32_t mpm_cnt = 0;
     uint32_t nonmpm_cnt = 0;
+    uint32_t mpm_depth_cnt = 0;
+    uint32_t mpm_endswith_cnt = 0;
     uint32_t negmpm_cnt = 0;
     uint32_t any5_cnt = 0;
     uint32_t payload_no_mpm_cnt = 0;
@@ -765,6 +767,12 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 SCLogDebug("SGH %p MPM Pattern on %s, is negated. Rule %u", sgh, DetectListToString(mpm_list), s->id);
                 negmpm_cnt++;
             }
+            if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                mpm_endswith_cnt++;
+            }
+            if (cd->flags & DETECT_CONTENT_DEPTH) {
+                mpm_depth_cnt++;
+            }
         }
 
         if (RuleInspectsPayloadHasNoMpm(s)) {
@@ -791,6 +799,8 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_t *types = json_object();
     json_object_set_new(types, "mpm", json_integer(mpm_cnt));
     json_object_set_new(types, "non_mpm", json_integer(nonmpm_cnt));
+    json_object_set_new(types, "mpm_depth", json_integer(mpm_depth_cnt));
+    json_object_set_new(types, "mpm_endswith", json_integer(mpm_endswith_cnt));
     json_object_set_new(types, "negated_mpm", json_integer(negmpm_cnt));
     json_object_set_new(types, "payload_but_no_mpm", json_integer(payload_no_mpm_cnt));
     json_object_set_new(types, "prefilter", json_integer(prefilter_cnt));
