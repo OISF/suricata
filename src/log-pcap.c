@@ -79,7 +79,8 @@
 
 typedef enum LogModeConditionalType_ {
     LOGMODE_COND_ALL,
-    LOGMODE_COND_ALERTS
+    LOGMODE_COND_ALERTS,
+    LOGMODE_COND_TAG
 } LogModeConditionalType;
 
 #define RING_BUFFER_MODE_DISABLED       0
@@ -237,13 +238,25 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
     if (p->flags & PKT_PSEUDO_STREAM_END) {
         return FALSE;
     }
-    /* Log alerted flow */
-    if (ptd->pcap_log->conditional == LOGMODE_COND_ALERTS) {
-        if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
-            return TRUE;
-        } else {
-            return FALSE;
-        }
+
+    /* Log alerted flow or tagged flow */
+    switch (ptd->pcap_log->conditional) {
+        case LOGMODE_COND_ALL:
+            break;
+        case LOGMODE_COND_ALERTS:
+            if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
+                return TRUE;
+            } else {
+                return FALSE;
+            }
+            break;
+        case LOGMODE_COND_TAG:
+            if (p->flags & PKT_HAS_TAG) {
+                return TRUE;
+            } else {
+                return FALSE;
+            }
+            break;
     }
 
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
@@ -680,7 +693,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     /* if we are using alerted logging and if packet is first one with alert in flow
      * then we need to dump in the pcap the stream acked by the packet */
-    if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional == LOGMODE_COND_ALERTS)) {
+    if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional != LOGMODE_COND_ALL)) {
         if (PKT_IS_TCP(p)) {
             /* dump fake packets for all segments we have on acked by packet */
 #ifdef HAVE_LIBLZ4
@@ -1557,10 +1570,13 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             if (strcasecmp(s_conditional, "alerts") == 0) {
                 pl->conditional = LOGMODE_COND_ALERTS;
                 EnableTcpSessionDumping();
+            } else if (strcasecmp(s_conditional, "tag") == 0) {
+                pl->conditional = LOGMODE_COND_TAG;
+                EnableTcpSessionDumping();
             } else if (strcasecmp(s_conditional, "all") != 0) {
                 FatalError(SC_ERR_INVALID_ARGUMENT,
                         "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
-                        "or \"alerts\" mode ",
+                        "\"alerts\", or \"tag\" mode ",
                         s_conditional);
             }
         }
