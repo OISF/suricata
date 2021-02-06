@@ -471,6 +471,16 @@ By default all packets are logged except:
 - TCP streams beyond stream.reassembly.depth
 - encrypted streams after the key exchange
 
+It is possible to do conditional pcap logging by using the `conditional`
+option in the pcap-log section. By default the variable is set to `all`
+so all packet are logged. If the variable is set to `alerts` then only
+the flow with alerts will be logged. If the variable is set to `tag`
+then only packets tagged by signature using the `tag` keyword will
+be logged to the pcap file. Please note that if `alerts` or `tag` is
+used, then in the case of TCP session, Suricata will use available
+information from the streaming engine to log data that have triggered
+the alert.
+
 ::
 
   - pcap-log:
@@ -482,6 +492,7 @@ By default all packets are logged except:
 
       mode: sguil # "normal" (default) or sguil.
       sguil_base_dir: /nsm_data/
+      conditional: alerts
 
 Verbose Alerts Log (alert-debug.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
