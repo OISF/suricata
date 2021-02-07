@@ -71,6 +71,11 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter needs preceding match");
         SCReturnInt(-1);
     }
+    if (sigmatch_table[sm->type].SupportsPrefilter == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter is not supported for %s",
+                sigmatch_table[sm->type].name);
+        SCReturnInt(-1);
+    }
 
     s->init_data->prefilter_sm = sm;
 
