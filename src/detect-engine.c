@@ -1479,14 +1479,14 @@ bool DetectEnginePktInspectionRun(ThreadVars *tv,
 /**
  * \param data pointer to SigMatchData. Allowed to be NULL.
  */
-static int DetectEnginePktInspectionAppend(Signature *s,
-        InspectionBufferPktInspectFunc Callback,
-        SigMatchData *data)
+static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInspectFunc Callback,
+        SigMatchData *data, const int list_id)
 {
     DetectEnginePktInspectionEngine *e = SCCalloc(1, sizeof(*e));
     if (e == NULL)
         return -1;
 
+    e->sm_list = list_id;
     e->v1.Callback = Callback;
     e->smd = data;
 
@@ -1506,15 +1506,15 @@ int DetectEnginePktInspectionSetup(Signature *s)
 {
     /* only handle PMATCH here if we're not an app inspect rule */
     if (s->sm_arrays[DETECT_SM_LIST_PMATCH] && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) == 0) {
-        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePayloadMatches,
-                NULL) < 0)
+        if (DetectEnginePktInspectionAppend(
+                    s, DetectEngineInspectRulePayloadMatches, NULL, DETECT_SM_LIST_PMATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
     }
 
     if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
-        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePacketMatches,
-                NULL) < 0)
+        if (DetectEnginePktInspectionAppend(
+                    s, DetectEngineInspectRulePacketMatches, NULL, DETECT_SM_LIST_MATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePacketMatches appended", s->id);
     }
