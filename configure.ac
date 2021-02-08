@@ -297,6 +297,8 @@
             LDFLAGS="${LDFLAGS} -L/opt/local/lib"
             ;;
         *-*-linux*)
+            # Always compile with -fPIC on Linux for shared library support.
+            CFLAGS="${CFLAGS} -fPIC"
             LIBS="${LIBS} -ldl -lrt -lm"
             ;;
         *-*-mingw32*|*-*-msys)
@@ -2674,6 +2676,8 @@ AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(RUST_FEATURES)
 AC_SUBST(RUST_SURICATA_LIBDIR)
 AC_SUBST(RUST_SURICATA_LIBNAME)
+
+AM_CONDITIONAL([ENABLE_SHARED], [test "x$enable_shared" = "xyes"])
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
