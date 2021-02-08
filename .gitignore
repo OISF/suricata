@@ -65,3 +65,5 @@ test.sh
 .vscode/*
 /suricata-update/*
 !/suricata-update/Makefile.am
+/libsuricata-config
+!/libsuricata-config.in
