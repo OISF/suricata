@@ -919,8 +919,26 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
             json_object_set_new(tcp, "toclient", tc_array);
 
             json_object_set_new(js, name, tcp);
-        }
+        } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
+            const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
+            json_t *o = json_object();
+            json_t *ts = json_object();
+            json_t *tc = json_object();
 
+            if (de_ctx->flow_gh[1].sgh[p]) {
+                json_t *group_ts = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(ts, "rulegroup", group_ts);
+                json_object_set_new(o, "toserver", ts);
+            }
+            if (de_ctx->flow_gh[0].sgh[p]) {
+                json_t *group_tc = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(tc, "rulegroup", group_tc);
+                json_object_set_new(o, "toclient", tc);
+            }
+            json_object_set_new(js, name, o);
+        }
     }
 
     const char *filename = "rule_group.json";
