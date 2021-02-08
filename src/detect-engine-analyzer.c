@@ -911,6 +911,18 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             smd++;
         } while (1);
         jb_close(ctx.js);
+    } else if (s->init_data->prefilter_sm) {
+        jb_open_object(ctx.js, "prefilter");
+        int prefilter_list = SigMatchListSMBelongsTo(s, s->init_data->prefilter_sm);
+        const char *name;
+        if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
+            name = DetectListToHumanString(prefilter_list);
+        else
+            name = DetectBufferTypeGetNameById(de_ctx, prefilter_list);
+        jb_set_string(ctx.js, "buffer", name);
+        const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
+        jb_set_string(ctx.js, "name", mname);
+        jb_close(ctx.js);
     }
 
     if (ctx.js_warnings) {
