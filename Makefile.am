@@ -58,3 +58,4 @@ endif
 install-library:
 	cd src && $(MAKE) $@
 	cd rust && $(MAKE) $@
+	$(INSTALL) libsuricata-config "$(DESTDIR)$(bindir)/libsuricata-config"
