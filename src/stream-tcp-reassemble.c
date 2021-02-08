@@ -224,7 +224,7 @@ static void *ReassembleCalloc(size_t n, size_t size)
 /*
     void *(*Realloc)(void *ptr, size_t orig_size, size_t size);
 */
-static void *ReassembleRealloc(void *optr, size_t orig_size, size_t size)
+void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size)
 {
     if (size > orig_size) {
         if (StreamTcpReassembleCheckMemcap(size - orig_size) == 0)
@@ -484,7 +484,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.sbcnf.buf_size = 2048;
     stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
-    stream_config.sbcnf.Realloc = ReassembleRealloc;
+    stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
 
     return 0;
