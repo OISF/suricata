@@ -2686,6 +2686,7 @@ AC_CONFIG_FILES(contrib/Makefile contrib/file_processor/Makefile contrib/file_pr
 AC_CONFIG_FILES(suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service)
 AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
 AC_CONFIG_FILES(ebpf/Makefile)
+AC_CONFIG_FILES(suricata-config)
 AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:

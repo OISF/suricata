@@ -9,6 +9,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     acsite.m4
 SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
           $(SURICATA_UPDATE_DIR)
+bin_SCRIPTS = suricata-config
 
 CLEANFILES = stamp-h[0-9]*
 

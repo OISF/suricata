@@ -1,0 +1,58 @@
+#! /bin/sh
+
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+includedir="@includedir@"
+libdir="@libdir@"
+LIBS="@LIBS@"
+
+shared_lib="-lsuricata"
+static_lib="-lsuricata_c -lsuricata_rust"
+
+lib="$shared_lib"
+
+show_libs="no"
+show_cflags="no"
+use_static="no"
+
+if [ "$#" = 0 ]; then
+    echo "usage: suricata-config [--cflags] [--libs] [--static]"
+    exit 0
+fi
+
+while [ "$#" != 0 ]
+do
+    case "$1" in
+        --libs)
+            show_libs="yes"
+            ;;
+        --cflags)
+            show_cflags="yes"
+            ;;
+        --static)
+            lib="$static_lib"
+            use_status="yes"
+            ;;
+    esac
+    shift
+done
+
+# If --static wasn't provided, use the static library if the shared
+# library is not available.
+if [ "$use_static" = "no" ]; then
+    if ! test -e "$libdir/libsuricata.so"; then
+        lib="$static_lib"
+    fi
+fi
+
+output=""
+
+if [ "$show_cflags" = "yes" ]; then
+    output="${output} -DHAVE_CONFIG_H -I$includedir/suricata"
+fi
+
+if [ "$show_libs" = "yes" ]; then
+    output="${output} -L$libdir $lib $LIBS"
+fi
+
+echo "$output"
