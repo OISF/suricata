@@ -2679,6 +2679,7 @@ AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(RUST_FEATURES)
 AC_SUBST(RUST_SURICATA_LIBDIR)
 AC_SUBST(RUST_SURICATA_LIBNAME)
+AC_SUBST(enable_non_bundled_htp)
 
 AM_CONDITIONAL([ENABLE_SHARED], [test "x$enable_shared" = "xyes"])
 
@@ -2689,6 +2690,7 @@ AC_CONFIG_FILES(contrib/Makefile contrib/file_processor/Makefile contrib/file_pr
 AC_CONFIG_FILES(suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service)
 AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
 AC_CONFIG_FILES(ebpf/Makefile)
+AC_CONFIG_FILES(suricata-config)
 AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
