@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -723,7 +723,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     {
         char *ptr = NULL;
         while ((name_array[name_idx] = strtok_r(name_idx == 0 ? capture_names : NULL, " ,", &ptr))){
-            if (name_idx > capture_cnt) {
+            if (name_idx > (capture_cnt - 1)) {
                 SCLogError(SC_ERR_VAR_LIMIT, "more pkt/flow "
                         "var capture names than capturing substrings");
                 return -1;
