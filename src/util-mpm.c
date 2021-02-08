@@ -61,7 +61,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
 {
     /* the very first entry */
     if (de_ctx->mpm_ctx_factory_container == NULL) {
-        de_ctx->mpm_ctx_factory_container = SCCalloc(1,sizeof(MpmCtxFactoryContainer));
+        de_ctx->mpm_ctx_factory_container = SCCalloc(1, sizeof(MpmCtxFactoryContainer));
         if (de_ctx->mpm_ctx_factory_container == NULL) {
             FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
@@ -72,23 +72,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     MpmCtxFactoryItem *pitem = NULL;
     while (item) {
         if (item->sm_list == sm_list && item->name != NULL && strcmp(item->name, name) == 0) {
-            /* looks like we have this mpm_ctx freed */
-            BUG_ON(item->mpm_ctx_ts == NULL);
-            if (item->mpm_ctx_ts == NULL) {
-                item->mpm_ctx_ts = SCCalloc(1,sizeof(MpmCtx));
-                if (item->mpm_ctx_ts == NULL) {
-                    FatalError(SC_ERR_FATAL, "Error allocating memory");
-                }
-                item->mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
-            }
-            BUG_ON(item->mpm_ctx_tc == NULL);
-            if (item->mpm_ctx_tc == NULL) {
-                item->mpm_ctx_tc = SCCalloc(1,sizeof(MpmCtx));
-                if (item->mpm_ctx_tc == NULL) {
-                    FatalError(SC_ERR_FATAL, "Error allocating memory");
-                }
-                item->mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
-            }
             return item->id;
         }
         pitem = item;
@@ -160,7 +143,8 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id,
         /* this id does not exist */
         return NULL;
     } else {
-        for (MpmCtxFactoryItem *i = de_ctx->mpm_ctx_factory_container->items; i != NULL; i = i->next) {
+        for (MpmCtxFactoryItem *i = de_ctx->mpm_ctx_factory_container->items; i != NULL;
+                i = i->next) {
             if (id == i->id) {
                 return (direction == 0) ? i->mpm_ctx_ts : i->mpm_ctx_tc;
             }
