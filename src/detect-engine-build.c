@@ -620,6 +620,7 @@ static int RuleMpmIsNegated(const Signature *s)
 static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
         const int add_rules, const int add_mpm_stats)
 {
+    uint32_t prefilter_cnt = 0;
     uint32_t mpm_cnt = 0;
     uint32_t nonmpm_cnt = 0;
     uint32_t negmpm_cnt = 0;
@@ -682,6 +683,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             any5_cnt++;
         }
 
+        prefilter_cnt += (s->init_data->prefilter_sm != 0);
         if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
@@ -794,6 +796,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(types, "non_mpm", json_integer(nonmpm_cnt));
     json_object_set_new(types, "negated_mpm", json_integer(negmpm_cnt));
     json_object_set_new(types, "payload_but_no_mpm", json_integer(payload_no_mpm_cnt));
+    json_object_set_new(types, "prefilter", json_integer(prefilter_cnt));
     json_object_set_new(types, "syn", json_integer(syn_cnt));
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
