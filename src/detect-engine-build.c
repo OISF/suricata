@@ -713,9 +713,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
-            if (s->alproto != ALPROTO_UNKNOWN) {
-                alproto_mpm_bufs[s->alproto][mpm_list]++;
-            }
+            alproto_mpm_bufs[s->alproto][mpm_list]++;
 
             if (mpm_list == DETECT_SM_LIST_PMATCH) {
                 if (size == 1) {
@@ -774,9 +772,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             payload_no_mpm_cnt++;
         }
 
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            alstats[s->alproto]++;
-        }
+        alstats[s->alproto]++;
 
         if (add_rules) {
             json_t *js_sig = json_object();
@@ -802,8 +798,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    int i;
-    for (i = 0; i < ALPROTO_MAX; i++) {
+    for (int i = 0; i < ALPROTO_MAX; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
@@ -821,14 +816,15 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
             }
 
-            json_object_set_new(stats, AppProtoToString(i), app);
+            const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
+            json_object_set_new(stats, proto_name, app);
         }
     }
 
     if (add_mpm_stats) {
         json_t *mpm_js = json_object();
 
-        for (i = 0; i < max_buffer_type_id; i++) {
+        for (int i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
 
                 json_t *mpm_sizes_array = json_array();
