@@ -3552,6 +3552,11 @@ static int DetectPcreParseCaptureTest(void)
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
             "(content:\"Server: \"; http_header; pcre:\"/([a-z]+)([0-9]+)\\r\\n/HR, flow:somecapture, pkt:anothercap\"; content:\"xyz\"; http_header; sid:3;)");
     FAIL_IF(s == NULL);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(content:\"Server: \"; http_header; pcre:\"/([a-z]+)\\r\\n/HR, flow:somecapture, "
+            "pkt:anothercap\"; content:\"xyz\"; http_header; sid:3;)");
+    FAIL_IF_NOT_NULL(s);
 
     SigGroupBuild(de_ctx);
 
