@@ -86,14 +86,9 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
                 false /* mpm doesn't use min inspect depth */);
         SCLogDebug("POST det_ctx->raw_stream_progress %"PRIu64,
                 det_ctx->raw_stream_progress);
-    } else {
-        SCLogDebug("NOT p->flags & PKT_DETECT_HAS_STREAMDATA");
-    }
 
-    /* packets that have not been added to the stream will be inspected
-     * as if they are stream chunks */
-    if ((p->flags & (PKT_NOPAYLOAD_INSPECTION|PKT_STREAM_ADD)) == 0)
-    {
+    /* packets that have not been added to the stream will be inspected as if they are stream chunks */
+    } else if ((p->flags & (PKT_NOPAYLOAD_INSPECTION|PKT_STREAM_ADD)) == 0) {
         if (p->payload_len >= mpm_ctx->minlen) {
 #ifdef DEBUG
             det_ctx->payload_mpm_cnt++;
