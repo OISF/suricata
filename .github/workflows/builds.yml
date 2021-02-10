@@ -250,7 +250,7 @@ jobs:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: centos-8
+    needs: [prepare-deps, centos-8]
     steps:
       - name: Install system dependencies
         run: |
@@ -280,6 +280,7 @@ jobs:
                 nss-devel \
                 pcre-devel \
                 pkgconfig \
+                python36-PyYAML \
                 rust \
                 sudo \
                 which \
@@ -302,6 +303,12 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: python3 ./suricata-verify/run.py
 
   fedora-33:
     name: Fedora 33 (debug, clang, asan, wshadow, rust-strict)
