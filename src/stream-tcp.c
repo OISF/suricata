@@ -910,14 +910,54 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         PacketQueueNoLock *pq)
 {
     if (p->tcph->th_flags & TH_RST) {
-        StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
-        SCLogDebug("RST packet received, no session setup");
-        return -1;
+        if (stream_config.midstream == FALSE) {
+            StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
+            SCLogDebug("RST packet received, no session setup");
+            return -1;
+        }
+        ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+        if (ssn == NULL) {
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+            return -1;
+        }
+        StatsIncr(tv, stt->counter_tcp_sessions);
+        StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
+
+        if (PKT_IS_TOSERVER(p)) {
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        } else {
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+        }
+        StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+        SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_CLOSED", ssn);
 
     } else if (p->tcph->th_flags & TH_FIN) {
-        StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
-        SCLogDebug("FIN packet received, no session setup");
-        return -1;
+        if (stream_config.midstream == FALSE) {
+            StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
+            SCLogDebug("FIN packet received, no session setup");
+            return -1;
+        }
+        ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
+        if (ssn == NULL) {
+            StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+            return -1;
+        }
+        StatsIncr(tv, stt->counter_tcp_sessions);
+        StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+
+        ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
+
+        if (PKT_IS_TOSERVER(p)) {
+            StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
+            SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_CLOSE_WAIT", ssn);
+        } else {
+            StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
+            SCLogDebug("ssn %p: =~ midstream picked ssn state is now TCP_FIN_WAIT1", ssn);
+        }
 
     /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
