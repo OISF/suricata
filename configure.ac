@@ -2028,7 +2028,7 @@
                         ])
                     ])
                 ])
-                LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
+                LIBS="${LIBS} ${LUA_LIBS}"
             fi
 
             if test "$LUA" = "no"; then
@@ -2079,7 +2079,7 @@
                 LDFLAGS="${LDFLAGS}  -L${with_libluajit_libraries}"
             else
                 PKG_CHECK_MODULES([LUAJIT], [luajit])
-                LDFLAGS="${LDFLAGS} ${LUAJIT_LIBS}"
+                LIBS="${LIBS} ${LUAJIT_LIBS}"
             fi
 
             AC_CHECK_LIB(luajit-5.1, luaL_openlibs,, LUAJIT="no")
