@@ -1125,6 +1125,13 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
                 }
             }
         }
+
+        if ((tok == 0) && (pl->mode == LOGMODE_MULTI)) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Invalid filename for multimode. Need at list one %%-sign option");
+            goto error;
+        }
+
         if (s) {
             if (tok >= MAX_TOKS) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -1221,11 +1228,6 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     pl->suffix = "";
-
-    if (filename) {
-        if (ParseFilename(pl, filename) != 0)
-            exit(EXIT_FAILURE);
-    }
 
     pl->size_limit = DEFAULT_LIMIT;
     if (conf != NULL) {
@@ -1416,6 +1418,11 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
         SCLogInfo("Selected pcap-log compression method: %s",
                 compression_str ? compression_str : "none");
+    }
+
+    if (filename) {
+        if (ParseFilename(pl, filename) != 0)
+            exit(EXIT_FAILURE);
     }
 
     SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
