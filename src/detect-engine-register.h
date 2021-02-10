@@ -303,7 +303,7 @@ enum DetectKeywordId {
     DETECT_TBLSIZE,
 };
 
-void SigTableList(const char *keyword);
+int SigTableList(const char *keyword);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
 

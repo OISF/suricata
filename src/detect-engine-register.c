@@ -351,7 +351,7 @@ static void SigMultilinePrint(int i, const char *prefix)
     printf("\n");
 }
 
-void SigTableList(const char *keyword)
+int SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
     size_t i;
@@ -414,14 +414,16 @@ void SigTableList(const char *keyword)
                 printf("= %s =\n", sigmatch_table[i].name);
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     printf("Not built-in\n");
-                    return;
+                    return TM_ECODE_FAILED;
                 }
                 SigMultilinePrint(i, "");
-                return;
+                return TM_ECODE_DONE;
             }
         }
+        printf("Non existing keyword\n");
+        return TM_ECODE_FAILED;
     }
-    return;
+    return TM_ECODE_DONE;
 }
 
 void SigTableSetup(void)
