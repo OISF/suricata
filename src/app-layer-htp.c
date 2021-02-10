@@ -598,7 +598,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     SCLogDebug("s->htp_messages_count %u", s->htp_messages_count);
 }
 
-static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
+static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
 {
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
@@ -1038,7 +1038,7 @@ static int HTTPParseContentTypeHeader(const uint8_t *name, const size_t name_len
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
+static int HtpRequestBodySetupMultipart(const htp_tx_t *tx, HtpTxUserData *htud)
 {
     const htp_header_t *h = htp_tx_request_header(tx, "Content-Type");
     if (h != NULL && htp_header_value_len(h) > 0) {
@@ -1198,7 +1198,7 @@ static void HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     memcpy(boundary + 2, htud->boundary, htud->boundary_len);
 }
 
-static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, void *tx,
+static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, const void *tx,
         const uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
@@ -1234,7 +1234,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
     /* we currently only handle multipart for ts.  When we support it for tc,
      * we will need to supply right direction */
-    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
+    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, (void *)tx, STREAM_TOSERVER);
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
         if (header_start != NULL || (tx_progress > HTP_REQUEST_PROGRESS_BODY)) {
@@ -1517,7 +1517,7 @@ end:
 static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
            htp_tx_data_t *tx_data)
 {
-    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
     const uint8_t *data = htp_tx_data_data(tx_data);
     uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
@@ -1573,7 +1573,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 {
     SCEnter();
 
-    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
     const uint8_t *data = htp_tx_data_data(tx_data);
     uint32_t data_len = (uint32_t) htp_tx_data_len(tx_data);
     int result = 0;
@@ -1659,7 +1659,7 @@ static int HTPCallbackRequestBodyData(const htp_connp_t *connp, htp_tx_data_t *d
 {
     SCEnter();
 
-    htp_tx_t *tx = htp_tx_data_tx(d);
+    const htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_STATUS_OK);
@@ -1795,7 +1795,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
 {
     SCEnter();
 
-    htp_tx_t *tx = htp_tx_data_tx(d);
+    const htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
         SCReturnInt(HTP_STATUS_OK);
@@ -2106,7 +2106,7 @@ static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
     if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_STATUS_OK;
 
@@ -2136,7 +2136,7 @@ static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t 
 static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
     if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_STATUS_OK;
 
