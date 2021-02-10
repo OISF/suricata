@@ -2091,15 +2091,13 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
     /* Treat internal running mode */
     switch(suri->run_mode) {
         case RUNMODE_LIST_KEYWORDS:
-            ListKeywords(suri->keyword_info);
-            return TM_ECODE_DONE;
+            return ListKeywords(suri->keyword_info);
         case RUNMODE_LIST_APP_LAYERS:
             if (suri->conf_filename != NULL) {
-                ListAppLayerProtocols(suri->conf_filename);
+                return ListAppLayerProtocols(suri->conf_filename);
             } else {
-                ListAppLayerProtocols(DEFAULT_CONF_FILE);
+                return ListAppLayerProtocols(DEFAULT_CONF_FILE);
             }
-            return TM_ECODE_DONE;
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
             return TM_ECODE_DONE;
