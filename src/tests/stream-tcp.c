@@ -413,14 +413,12 @@ static int StreamTcpTest06(void)
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Flow f;
-    TcpSession ssn;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     PacketQueueNoLock pq;
     memset(&pq, 0, sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&stt, 0, sizeof(StreamTcpThread));
     memset(&tcph, 0, sizeof(TCPHdr));
@@ -4272,6 +4270,136 @@ end:
     return ret;
 }
 
+/**
+ *  \test   Test the setting up a TCP session when we have seen only the
+ *          FIN packet, and midstream pickups are enabled.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest46(void)
+{
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    Flow f;
+    TcpSession *ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    PacketQueueNoLock pq;
+    memset(&pq, 0, sizeof(PacketQueueNoLock));
+    memset(&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&stt, 0, sizeof(StreamTcpThread));
+    memset(&tcph, 0, sizeof(TCPHdr));
+    FLOW_INITIALIZE(&f);
+    p->flow = &f;
+
+    StreamTcpUTInit(&stt.ra_ctx);
+
+    p->tcph = &tcph;
+
+    /* Enable midtream to see that a session is setup */
+    stream_config.midstream = TRUE;
+
+    /* StreamTcpPacket should succeed with midstream true */
+    tcph.th_flags = TH_FIN;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+
+    ssn = (TcpSession *)(p->flow->protoctx);
+
+    FAIL_IF_NULL(ssn);
+    FAIL_IF_NOT(ssn->flags & STREAMTCP_FLAG_MIDSTREAM);
+    FAIL_IF_NOT(ssn->state == TCP_FIN_WAIT1);
+
+    /* Reset the session, and try the other direction as well */
+    StreamTcpSessionClear(ssn);
+    p->flow->protoctx = NULL;
+    p->flowflags = FLOW_PKT_TOSERVER;
+
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+
+    ssn = (TcpSession *)(p->flow->protoctx);
+
+    FAIL_IF_NULL(ssn);
+    FAIL_IF_NOT(ssn->flags & STREAMTCP_FLAG_MIDSTREAM);
+    FAIL_IF_NOT(ssn->state == TCP_CLOSE_WAIT);
+
+    StreamTcpSessionClear(ssn);
+    SCFree(p);
+    FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
+
+    PASS;
+}
+
+/**
+ *  \test   Test the setting up a TCP session when we have only seen a
+ *          RST packet, and midstream pickups are enabled.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpTest47(void)
+{
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    Flow f;
+    TcpSession *ssn;
+    ThreadVars tv;
+    StreamTcpThread stt;
+    TCPHdr tcph;
+    PacketQueueNoLock pq;
+    memset(&pq, 0, sizeof(PacketQueueNoLock));
+    memset(&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&stt, 0, sizeof(StreamTcpThread));
+    memset(&tcph, 0, sizeof(TCPHdr));
+    FLOW_INITIALIZE(&f);
+    p->flow = &f;
+
+    StreamTcpUTInit(&stt.ra_ctx);
+
+    p->tcph = &tcph;
+
+    /* Enable midtream to see that a session is setup */
+    stream_config.midstream = TRUE;
+
+    tcph.th_flags = TH_RST;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+
+    ssn = (TcpSession *)(p->flow->protoctx);
+
+    FAIL_IF_NULL(ssn);
+    FAIL_IF_NOT(ssn->flags & STREAMTCP_FLAG_MIDSTREAM);
+    FAIL_IF_NOT(ssn->client.flags & STREAMTCP_STREAM_FLAG_RST_RECV);
+
+    /* reset the session object, and try from the other direction */
+    StreamTcpSessionClear(ssn);
+    p->flow->protoctx = NULL;
+    p->flowflags = FLOW_PKT_TOSERVER;
+
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+
+    ssn = (TcpSession *)(p->flow->protoctx);
+
+    FAIL_IF_NULL(ssn);
+    FAIL_IF_NOT(ssn->flags & STREAMTCP_FLAG_MIDSTREAM);
+    FAIL_IF_NOT(ssn->server.flags & STREAMTCP_STREAM_FLAG_RST_RECV);
+    FAIL_IF_NOT(ssn->state == TCP_CLOSED);
+
+    StreamTcpSessionClear(ssn);
+    SCFree(p);
+    FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
+
+    PASS;
+}
+
 void StreamTcpRegisterTests(void)
 {
     UtRegisterTest("StreamTcpTest01 -- TCP session allocation", StreamTcpTest01);
@@ -4329,6 +4457,9 @@ void StreamTcpRegisterTests(void)
     UtRegisterTest("StreamTcpTest43 -- SYN/ACK queue", StreamTcpTest43);
     UtRegisterTest("StreamTcpTest44 -- SYN/ACK queue", StreamTcpTest44);
     UtRegisterTest("StreamTcpTest45 -- SYN/ACK queue", StreamTcpTest45);
+
+    UtRegisterTest("StreamTcpTest46 -- FIN packet midstream", StreamTcpTest46);
+    UtRegisterTest("StreamTcpTest47 -- RST packet midstream", StreamTcpTest47);
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
