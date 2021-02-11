@@ -1557,11 +1557,13 @@ void RegisterModbusParsers(void)
 #include "stream-tcp-private.h"
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
-static uint8_t invalidFunctionCode[] = {/* Transaction ID */    0x00, 0x00,
-                                         /* Protocol ID */       0x00, 0x01,
-                                         /* Length */            0x00, 0x02,
-                                         /* Unit ID */           0x00,
-                                         /* Function code */     0x00};
+static uint8_t invalidFunctionCode[] = {
+    /* Transaction ID */ 0x00, 0x00,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x02,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x00
+};
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */
@@ -1581,12 +1583,15 @@ static uint8_t readCoilsRsp[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Byte count */        0x03,
                                  /* Coil Status */       0xCD, 0x6B, 0x05 };
 
-static uint8_t readCoilsErrorRsp[] = {/* Transaction ID */    0x00, 0x00,
-                                      /* Protocol ID */       0x00, 0x00,
-                                      /* Length */            0x00, 0x03,
-                                      /* Unit ID */           0x00,
-                                      /* Function code */     0x81,
-                                      /* Exception code */    0x05};
+static uint8_t readCoilsErrorRsp[] = {
+    /* Transaction ID */ 0x00, 0x00,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x03,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x81,
+    /* Invalid Exception code: should trigger the InvalidExceptionCode ModbusEvent */
+    0xFF
+};
 
 /* Modbus Application Protocol Specification V1.1b3 6.6: Write Single register */
 /* Example of a request to write register 2 to 00 03 hex */
@@ -2401,8 +2406,7 @@ static int ModbusParserTest10(void) {
     memcpy(input + sizeof(readCoilsRsp), writeMultipleRegistersRsp, sizeof(writeMultipleRegistersRsp));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
-                            STREAM_TOCLIENT, input, sizeof(input_len));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT, input, input_len);
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2422,6 +2426,14 @@ static int ModbusParserTest11(void) {
     Signature *s = NULL;
     TcpSession ssn;
     ThreadVars tv;
+
+    size_t input_len = 65536;
+    uint8_t *input = SCCalloc(1, input_len);
+
+    FAIL_IF(input == NULL);
+
+    memcpy(input, exceededLengthWriteMultipleRegistersReq,
+            sizeof(exceededLengthWriteMultipleRegistersReq));
 
     FAIL_IF(alp_tctx == NULL);
 
@@ -2459,10 +2471,8 @@ static int ModbusParserTest11(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
-                                STREAM_TOSERVER,
-                                exceededLengthWriteMultipleRegistersReq,
-                                sizeof(exceededLengthWriteMultipleRegistersReq) + 65523 * sizeof(uint8_t));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER, input, input_len);
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
