@@ -75,6 +75,7 @@ include = [
     "AppLayerGetTxIterTuple",
     "RdpState",
     "SIPState",
+    "ModbusState",
     "CMark",
 ]
 
