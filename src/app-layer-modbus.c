@@ -1555,11 +1555,13 @@ void RegisterModbusParsers(void)
 #include "stream-tcp-private.h"
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
-static uint8_t invalidFunctionCode[] = {/* Transaction ID */    0x00, 0x00,
-                                         /* Protocol ID */       0x00, 0x01,
-                                         /* Length */            0x00, 0x02,
-                                         /* Unit ID */           0x00,
-                                         /* Function code */     0x00};
+static uint8_t invalidFunctionCode[] = {
+    /* Transaction ID */ 0x00, 0x00,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x02,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x00
+};
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */
@@ -1579,12 +1581,14 @@ static uint8_t readCoilsRsp[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Byte count */        0x03,
                                  /* Coil Status */       0xCD, 0x6B, 0x05 };
 
-static uint8_t readCoilsErrorRsp[] = {/* Transaction ID */    0x00, 0x00,
-                                      /* Protocol ID */       0x00, 0x00,
-                                      /* Length */            0x00, 0x03,
-                                      /* Unit ID */           0x00,
-                                      /* Function code */     0x81,
-                                      /* Exception code */    0x05};
+static uint8_t readCoilsErrorRsp[] = {
+    /* Transaction ID */ 0x00, 0x00,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x03,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x81,
+    /* Exception code */ 0xFF
+};
 
 /* Modbus Application Protocol Specification V1.1b3 6.6: Write Single register */
 /* Example of a request to write register 2 to 00 03 hex */
@@ -2399,8 +2403,7 @@ static int ModbusParserTest10(void) {
     memcpy(input + sizeof(readCoilsRsp), writeMultipleRegistersRsp, sizeof(writeMultipleRegistersRsp));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
-                            STREAM_TOCLIENT, input, sizeof(input_len));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT, input, input_len);
     FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
