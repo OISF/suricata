@@ -336,7 +336,7 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
  * */
 void THashConsolidateMemcap(THashTableContext *ctx)
 {
-    ctx->config.memcap = MAX(SC_ATOMIC_GET(ctx->memuse), THASH_DEFAULT_MEMCAP);
+    ctx->config.memcap = MAX(SC_ATOMIC_GET(ctx->memuse), ctx->config.memcap);
     SCLogDebug("memcap after load set to: %" PRIu64, ctx->config.memcap);
 }
 
