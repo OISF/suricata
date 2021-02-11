@@ -54,3 +54,7 @@ endif
 	@echo "For more information please see:"
 	@echo "  https://suricata.readthedocs.io/en/latest/rule-management/index.html"
 	@echo ""
+
+install-library:
+	cd src && $(MAKE) $@
+	cd rust && $(MAKE) $@

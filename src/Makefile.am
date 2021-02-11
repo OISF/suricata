@@ -608,6 +608,23 @@ libsuricata.so:
 	@exit 1
 endif
 
+if BUILD_SHARED_LIBRARY
+install-library: libsuricata.so.$(VERSION)
+else
+install-library:
+endif
+	$(MKDIR_P) "$(DESTDIR)$(libdir)"
+	$(INSTALL_DATA) libsuricata_c.a "$(DESTDIR)$(libdir)"
+if BUILD_SHARED_LIBRARY
+	$(INSTALL) libsuricata.so.$(VERSION) "$(DESTDIR)$(libdir)"
+	ln -sf libsuricata.so.$(VERSION) "$(DESTDIR)$(libdir)/libsuricata.so"
+endif
+
+uninstall-local:
+	rm -f "$(DESTDIR)$(libdir)/libsuricata_c.a"
+	rm -f "$(DESTDIR)$(libdir)/libsuricata.so"
+	rm -f "$(DESTDIR)$(libdir)/libsuricata.$(VERSION)"
+
 if BUILD_FUZZTARGETS
 
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
