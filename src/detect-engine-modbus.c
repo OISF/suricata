@@ -336,11 +336,13 @@ static uint8_t encapsulatedInterfaceTransport[] = {
                                         /* MEI Type */           0x0F,
                                         /* Data */               0x00, 0x00};
 
-static uint8_t unassigned[] = {/* Transaction ID */     0x00, 0x0A,
-                               /* Protocol ID */        0x00, 0x00,
-                               /* Length */             0x00, 0x02,
-                               /* Unit ID */            0x00,
-                               /* Function code */      0x12};
+static uint8_t unassigned[] = {
+    /* Transaction ID */ 0x00, 0x0A,
+    /* Protocol ID */ 0x00, 0x00,
+    /* Length */ 0x00, 0x02,
+    /* Unit ID */ 0x00,
+    /* Function code */ 0x3F
+};
 
 /** \test Test code function. */
 static int DetectEngineInspectModbusTest01(void)
