@@ -383,6 +383,18 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      # Now install and make sure headers and libraries aren't install
+      # until requested.
+      - run: make install
+      - run: test ! -e /usr/local/lib/libsuricata_c.a
+      - run: test ! -e /usr/local/include/suricata
+      - run: make install-headers
+      - run: test -e /usr/local/include/suricata/suricata.h
+      - run: make install-library
+      - run: test -e /usr/local/lib/libsuricata_c.a
+      - run: test -e /usr/local/lib/libsuricata_rust.a
+      - run: test -e /usr/local/bin/libsuricata-config
+      - run: test ! -e /usr/local/lib/libsuricata.so
 
   fedora-32:
     name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
@@ -816,6 +828,19 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
+      # Now install and make sure headers and libraries aren't install
+      # until requested.
+      - run: make install
+      - run: test ! -e /usr/local/lib/libsuricata_c.a
+      - run: test ! -e /usr/local/include/suricata
+      - run: make install-headers
+      - run: test -e /usr/local/include/suricata/suricata.h
+      - run: make install-library
+      - run: test -e /usr/local/lib/libsuricata_c.a
+      - run: test -e /usr/local/lib/libsuricata_rust.a
+      - run: test -e /usr/local/bin/libsuricata-config
+      - run: test -e /usr/local/lib/libsuricata.so
+      - run: test -e /usr/local/lib/$(readlink /usr/local/lib/libsuricata.so)
 
   ubuntu-20-04-too-old-rust:
     name: Ubuntu 20.04 (unsupported rust)
