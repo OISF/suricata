@@ -1836,6 +1836,7 @@
         if test "$have_xdp" = "yes"; then
             AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
         fi
+        AC_CHECK_FUNCS(bpf_program__section_name)
     fi;
 
   # Check for DAG support.
