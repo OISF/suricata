@@ -34,25 +34,6 @@
 #ifndef __APP_LAYER_MODBUS_H__
 #define __APP_LAYER_MODBUS_H__
 
-#include "decode.h"
-#include "detect-engine-state.h"
-#include "queue.h"
-#include "rust.h"
-
-/* Modbus Application Data Unit (ADU)
- * and Protocol Data Unit (PDU) messages */
-enum {
-    MODBUS_DECODER_EVENT_INVALID_PROTOCOL_ID,
-    MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE,
-    MODBUS_DECODER_EVENT_INVALID_LENGTH,
-    MODBUS_DECODER_EVENT_INVALID_UNIT_IDENTIFIER,
-    MODBUS_DECODER_EVENT_INVALID_FUNCTION_CODE,
-    MODBUS_DECODER_EVENT_INVALID_VALUE,
-    MODBUS_DECODER_EVENT_INVALID_EXCEPTION_CODE,
-    MODBUS_DECODER_EVENT_VALUE_MISMATCH,
-    MODBUS_DECODER_EVENT_FLOODED,
-};
-
 /* Modbus Function Code Categories. */
 #define MODBUS_CAT_NONE                 0x0
 #define MODBUS_CAT_PUBLIC_ASSIGNED      (1<<0)
@@ -79,57 +60,6 @@ enum {
 #define MODBUS_TYP_WRITE_MULTIPLE       (MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
 #define MODBUS_TYP_READ_WRITE_MULTIPLE  (MODBUS_TYP_READ | MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
 
-/* Modbus Function Code. */
-#define MODBUS_FUNC_NONE                0x00
-
-/* Modbus Transaction Structure, request/response. */
-typedef struct ModbusTransaction_ {
-    struct ModbusState_ *modbus;
-
-    uint64_t    tx_num;         /**< internal: id */
-    uint16_t    transactionId;
-    uint16_t    length;
-    uint8_t     unit_id;
-    uint8_t     function;
-    uint8_t     category;
-    uint8_t     type;
-    uint8_t     replied;                    /**< bool indicating request is replied to. */
-
-    union {
-        uint16_t    subFunction;
-        uint8_t     mei;
-        struct {
-            struct {
-                uint16_t    address;
-                uint16_t    quantity;
-            } read;
-            struct {
-                uint16_t    address;
-                uint16_t    quantity;
-                uint8_t     count;
-            } write;
-        };
-    };
-    uint16_t    *data;  /**< to store data to write, bit is converted in 16bits. */
-
-    AppLayerDecoderEvents *decoder_events;  /**< per tx events */
-    DetectEngineState *de_state;
-    AppLayerTxData tx_data;
-
-    TAILQ_ENTRY(ModbusTransaction_) next;
-} ModbusTransaction;
-
-/* Modbus State Structure. */
-typedef struct ModbusState_ {
-    TAILQ_HEAD(, ModbusTransaction_)    tx_list;    /**< transaction list */
-    ModbusTransaction                   *curr;      /**< ptr to current tx */
-    uint64_t                            transaction_max;
-    uint32_t                            unreplied_cnt;  /**< number of unreplied requests */
-    uint16_t                            events;
-    uint8_t                             givenup;    /**< bool indicating flood. */
-} ModbusState;
-
 void RegisterModbusParsers(void);
-void ModbusParserRegisterTests(void);
 
 #endif /* __APP_LAYER_MODBUS_H__ */
