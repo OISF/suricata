@@ -595,6 +595,19 @@ suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = libsuricata_c.a $(HTP_LDADD) $(RUST_LDADD)
 suricata_DEPENDENCIES = libsuricata_c.a
 
+if BUILD_SHARED_LIBRARY
+libsuricata.so.$(VERSION): libsuricata_c.a
+	$(CC) -shared -o $@ -Wl,-soname,$@ -Wl,--whole-archive \
+		libsuricata_c.a \
+		$(RUST_SURICATA_LIB) \
+		-Wl,--no-whole-archive
+libsuricata.so: libsuricata.so.$(VERSION)
+else
+libsuricata.so:
+	@echo "shared library support not enabled"
+	@exit 1
+endif
+
 if BUILD_FUZZTARGETS
 
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
