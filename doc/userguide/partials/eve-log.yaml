@@ -162,6 +162,8 @@ outputs:
         - nfs
         # IKE logging. Requires Rust.
         - ike
+        # BitTorrent DHT logging. Requires Rust.
+        - bittorrent-dht
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
