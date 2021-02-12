@@ -91,6 +91,7 @@ you can pick from. These are:
 * nfs
 * ikev2
 * krb5
+* bittorrent-dht
 * ntp
 * dhcp
 * rfb
