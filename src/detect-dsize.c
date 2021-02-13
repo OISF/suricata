@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -444,6 +444,65 @@ void SigParseSetDsizePair(Signature *s)
 
         SCLogDebug("low %u, high %u, mode %u", low, high, dd->mode);
     }
+}
+
+/**
+ *  \brief Determine the required dsize for the signature
+ *  \param s signature to get dsize value from
+ *
+ *  Note that negated content does not contribute to the maximum
+ *  required dsize value.
+ *
+ * \retval -1 Signature doesn't have a dsize keyword
+ * \retval >= 0 Dsize value required to not exclude content matches
+ */
+int SigParseMaxRequiredDsize(const Signature *s)
+{
+    SCEnter();
+
+    if (!(s->flags & SIG_FLAG_DSIZE)) {
+        SCReturnInt(-1);
+    }
+
+    int dsize = SigParseGetMaxDsize(s);
+    if (dsize < 0) {
+        /* nothing to do */
+        SCReturnInt(-1);
+    }
+
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    int max_depth = 0, max_offset = 0, required_dsize = 0;
+    for (; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT || sm->ctx == NULL) {
+            continue;
+        }
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (cd->flags & DETECT_CONTENT_NEGATED && cd->content_len == cd->within) {
+            SCLogDebug("negated ... within: %d", cd->within);
+            continue;
+        }
+        required_dsize += cd->content_len + cd->distance;
+        max_offset = MAX(max_offset, cd->offset);
+        max_depth = MAX(max_depth, cd->depth);
+    }
+
+    if (required_dsize > dsize) {
+        SCLogDebug("required_dsize: %d exceeds dsize: %d", required_dsize, dsize);
+        return required_dsize;
+    }
+
+    if (max_offset > dsize) {
+        SCLogDebug("max_offset: %d exceeds dsize: %d", max_offset, dsize);
+        return max_offset + required_dsize;
+    }
+
+    if (max_depth > dsize) {
+        SCLogDebug("max_depth: %d exceeds dsize: %d", max_depth, dsize);
+        return max_depth + required_dsize;
+    }
+
+    SCReturnInt(-1);
 }
 
 /**
