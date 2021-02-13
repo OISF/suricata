@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -402,6 +402,16 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
 
     uint32_t max_right_edge = (uint32_t)max_right_edge_i;
 
+    int min_dsize_required = SigParseMaxRequiredDsize(s);
+    if (min_dsize_required >= 0) {
+        SCLogNotice("min_dsize %d; max_right_edge %d", min_dsize_required, max_right_edge);
+        if ((uint32_t) min_dsize_required > max_right_edge) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"signature can't match as required content length %d exceeds dsize value %d",
+                    min_dsize_required, max_right_edge);
+            return false;
+        }
+    }
+
     const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     for ( ; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT)
@@ -421,6 +431,7 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
             return false;
         }
     }
+
     return true;
 }
 
