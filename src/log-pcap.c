@@ -913,8 +913,8 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
             }
             switch (part[1]) {
                 case 'i':
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "Thread ID not allowed inring buffer mode.");
+                    SCLogError(
+                            SC_ERR_INVALID_ARGUMENT, "Thread ID not allowed in ring buffer mode.");
                     return TM_ECODE_FAILED;
                 case 'n': {
                     char tmp[PATH_MAX];
