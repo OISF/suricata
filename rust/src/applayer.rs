@@ -326,6 +326,7 @@ extern {
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
     pub fn AppLayerParserRegisterOptionFlags(ipproto: u8, alproto: AppProto, flags: u32);
+    pub fn AppLayerParserTriggerRawStreamReassembly(flow: *const Flow, direction: u8);
 }
 
 #[repr(C)]
