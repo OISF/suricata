@@ -402,14 +402,17 @@ static inline uint32_t HostGetKey(Address *a)
     return key;
 }
 
-/* Since two or more hosts can have the same hash key, we need to compare
- * the flow with the current flow key. */
-#define CMP_HOST(h,a) \
-    (CMP_ADDR(&(h)->a, (a)))
-
 static inline int HostCompare(Host *h, Address *a)
 {
-    return CMP_HOST(h, a);
+    if (h->a.family == a->family) {
+        switch (a->family) {
+            case AF_INET:
+                return (h->a.addr_data32[0] == a->addr_data32[0]);
+            case AF_INET6:
+                return CMP_ADDR(&h->a, a);
+        }
+    }
+    return 0;
 }
 
 /**
