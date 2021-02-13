@@ -110,6 +110,8 @@ typedef struct PcapFileName_ {
     TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
 } PcapFileName;
 
+thread_local char *current_pcap_file = NULL;
+
 typedef struct PcapLogProfileData_ {
     uint64_t total;
     uint64_t cnt;
@@ -1089,6 +1091,16 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 #endif /* INIT_RING_BUFFER */
     }
 
+    if (pl->mode == LOGMODE_MULTI) {
+        PcapLogOpenFileCtx(td->pcap_log);
+    } else {
+        if (pl->filename == NULL) {
+            PcapLogOpenFileCtx(pl);
+        } else {
+            current_pcap_file = pl->filename;
+        }
+    }
+
     return TM_ECODE_OK;
 }
 
@@ -1844,12 +1856,21 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     SCLogDebug("Opening pcap file log %s", pf->filename);
     TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
 
+    current_pcap_file = pf->filename;
     PCAPLOG_PROFILE_END(pl->profile_open);
     return 0;
 
 error:
     PcapFileNameFree(pf);
     return -1;
+}
+
+char *PcapLogGetFilename(void)
+{
+    if (current_pcap_file != NULL) {
+        return current_pcap_file;
+    }
+    return NULL;
 }
 
 static int profiling_pcaplog_enabled = 0;
