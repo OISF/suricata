@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -392,12 +392,12 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
     if (!(s->flags & SIG_FLAG_DSIZE)) {
-        return TRUE;
+        return true;
     }
 
     int max_right_edge_i = SigParseGetMaxDsize(s);
     if (max_right_edge_i < 0) {
-        return TRUE;
+        return true;
     }
 
     uint32_t max_right_edge = (uint32_t)max_right_edge_i;
@@ -407,21 +407,22 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
         if (sm->type != DETECT_CONTENT)
             continue;
         const DetectContentData *cd = (const DetectContentData *)sm->ctx;
-        uint32_t right_edge = cd->content_len + cd->offset;
         if (cd->content_len > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "signature can't match as content length %u is bigger than dsize %u.",
                     cd->content_len, max_right_edge);
-            return FALSE;
+            return false;
         }
+        /* Incorporate the distance when comparing with the right edge */
+        uint32_t right_edge = cd->content_len + cd->offset + cd->distance;
         if (right_edge > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u.",
-                    cd->content_len, cd->offset, right_edge, max_right_edge);
-            return FALSE;
+                    "signature can't match as content length %u with offset %u distance %u (=%u) is bigger than dsize %u.",
+                    cd->content_len, cd->offset, cd->distance, right_edge, max_right_edge);
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 /** \brief apply depth/offset and distance/within to content matches
