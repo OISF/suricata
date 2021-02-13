@@ -54,6 +54,7 @@
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
+#include "log-pcap.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -772,6 +773,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
             EvePacket(p, jb, 0);
+        }
+
+        char *pcap_filename = PcapLogGetFilename();
+        if (pcap_filename != NULL) {
+            jb_set_string(jb, "capture_file", pcap_filename);
         }
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
