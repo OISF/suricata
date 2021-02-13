@@ -110,7 +110,7 @@ typedef struct PcapFileName_ {
     TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
 } PcapFileName;
 
-thread_local char *current_pcap_file = NULL;
+thread_local char *pcap_file_multi = NULL;
 
 typedef struct PcapLogProfileData_ {
     uint64_t total;
@@ -1096,8 +1096,6 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
     } else {
         if (pl->filename == NULL) {
             PcapLogOpenFileCtx(pl);
-        } else {
-            current_pcap_file = pl->filename;
         }
     }
 
@@ -1856,7 +1854,9 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     SCLogDebug("Opening pcap file log %s", pf->filename);
     TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
 
-    current_pcap_file = pf->filename;
+    if (pl->mode == LOGMODE_MULTI) {
+        pcap_file_multi = pl->filename;
+    }
     PCAPLOG_PROFILE_END(pl->profile_open);
     return 0;
 
@@ -1867,8 +1867,9 @@ error:
 
 char *PcapLogGetFilename(void)
 {
-    if (current_pcap_file != NULL) {
-        return current_pcap_file;
+    /* do we have a file per thread */
+    if (pcap_file_multi != NULL) {
+        return pcap_file_multi;
     }
     return NULL;
 }
