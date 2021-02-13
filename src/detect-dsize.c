@@ -435,6 +435,48 @@ void SigParseSetDsizePair(Signature *s)
 }
 
 /**
+ *  \brief Determine the required dsize for the signature
+ *  \param s signature to get dsize value from
+ *
+ *  Note that negated content does not contribute to the maximum
+ *  required dsize value. However, each negated content's values
+ *  must not exceed the dsize value. See SigParseRequiredContentSize.
+ *
+ * \retval -1 Signature doesn't have a dsize keyword
+ * \retval >= 0 Dsize value required to not exclude content matches
+ */
+int SigParseMaxRequiredDsize(const Signature *s)
+{
+    SCEnter();
+
+    if (!(s->flags & SIG_FLAG_DSIZE)) {
+        SCReturnInt(-1);
+    }
+
+    const int dsize = SigParseGetMaxDsize(s);
+    if (dsize < 0) {
+        /* nothing to do */
+        SCReturnInt(-1);
+    }
+
+    int total_length, offset;
+    SigParseRequiredContentSize(s, dsize, DETECT_SM_LIST_PMATCH, &total_length, &offset);
+    SCLogDebug("dsize: %d  len: %d; offset: %d [%s]", dsize, total_length, offset, s->sig_str);
+
+    if (total_length > dsize) {
+        SCLogDebug("required_dsize: %d exceeds dsize: %d", total_length, dsize);
+        return total_length;
+    }
+
+    if ((total_length + offset) > dsize) {
+        SCLogDebug("length + offset: %d exceeds dsize: %d", total_length + offset, dsize);
+        return total_length + offset;
+    }
+
+    SCReturnInt(-1);
+}
+
+/**
  *  \brief Apply dsize as depth to content matches in the rule
  *  \param s signature to get dsize value from
  */
