@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -392,9 +392,78 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
+/*
+ *  \brief Determine the size needed to accommodate the content
+ *  elements of a signature
+ *  \param s signature to get dsize value from
+ *  \param max_size Maximum buffer/data size allowed.
+ *  \param list signature match list.
+ *  \param len Maximum length required
+ *  \param offset Maximum offset encounted
+ *
+ *  Note that negated content does not contribute to the maximum
+ *  required size value. However, each negated content's values
+ *  must not exceed the size value.
+ *
+ *  Values from negated content blocks are used to determine if the
+ *  negated content block requires a value that exceeds "max_size". The
+ *  distance and within values from negated content blocks are added to
+ *  the running total of required content size to see if the max_size
+ *  would be exceeded.
+ *
+ *  - Non-negated content contributes to the required size (content length, distance)
+ *  - Negated content values are checked but not accumulated for the required size.
+ */
+void SigParseRequiredContentSize(
+        const Signature *s, const int max_size, int list, int *len, int *offset)
+{
+    if (list > (int)s->init_data->smlists_array_size) {
+        return;
+    }
+
+    SigMatch *sm = s->init_data->smlists[list];
+    int max_offset = 0, total_len = 0;
+    bool first = true;
+    for (; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT || sm->ctx == NULL) {
+            continue;
+        }
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        SCLogDebug("content_len %d; negated: %s; distance: %d, offset: %d, depth: %d",
+                cd->content_len, cd->flags & DETECT_CONTENT_NEGATED ? "yes" : "no", cd->distance,
+                cd->offset, cd->depth);
+
+        if (!first) {
+            /* only count content with relative modifiers */
+            if (!((cd->flags & DETECT_CONTENT_DISTANCE) || (cd->flags & DETECT_CONTENT_WITHIN)))
+                continue;
+
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                /* Check if distance/within cause max to be exceeded */
+                int check = total_len + cd->distance + cd->within;
+                if (max_size < check) {
+                    *len = check;
+                    return;
+                }
+
+                continue;
+            }
+        }
+        SCLogDebug("content_len %d; distance: %d, offset: %d, depth: %d", cd->content_len,
+                cd->distance, cd->offset, cd->depth);
+        total_len += cd->content_len + cd->distance;
+        max_offset = MAX(max_offset, cd->offset);
+        first = false;
+    }
+
+    *len = total_len;
+    *offset = max_offset;
+}
+
 /**
- *  \retval 1 valid
- *  \retval 0 invalid
+ *  \retval true valid
+ *  \retval false invalid
  */
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
@@ -409,25 +478,17 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
 
     uint32_t max_right_edge = (uint32_t)max_right_edge_i;
 
-    const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_CONTENT)
-            continue;
-        const DetectContentData *cd = (const DetectContentData *)sm->ctx;
-        uint32_t right_edge = cd->content_len + cd->offset;
-        if (cd->content_len > max_right_edge) {
+    int min_dsize_required = SigParseMaxRequiredDsize(s);
+    if (min_dsize_required >= 0) {
+        SCLogDebug("min_dsize %d; max_right_edge %d", min_dsize_required, max_right_edge);
+        if ((uint32_t)min_dsize_required > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u is bigger than dsize %u.",
-                    cd->content_len, max_right_edge);
-            return false;
-        }
-        if (right_edge > max_right_edge) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u.",
-                    cd->content_len, cd->offset, right_edge, max_right_edge);
+                    "signature can't match as required content length %d exceeds dsize value %d",
+                    min_dsize_required, max_right_edge);
             return false;
         }
     }
+
     return true;
 }
 
@@ -2636,7 +2697,7 @@ static int SigTest42TestNegatedContent(void)
 /**
  * \test A negative test that checks that the content string doesn't contain
  *       the negated content within the specified depth, and also after the
- *       specified offset. Since the content is there, the match fails. 
+ *       specified offset. Since the content is there, the match fails.
  *
  *       Match is at offset:23, depth:34
  */

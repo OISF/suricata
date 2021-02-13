@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -124,5 +124,7 @@ bool DetectContentPMATCHValidateCallback(const Signature *s);
 void DetectContentPropagateLimits(Signature *s);
 
 void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len);
+void SigParseRequiredContentSize(
+        const Signature *s, const int max, int list, int *len, int *offset);
 
 #endif /* __DETECT_CONTENT_H__ */
