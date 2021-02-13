@@ -32,5 +32,6 @@
 
 void PcapLogRegister(void);
 void PcapLogProfileSetup(void);
+char *PcapLogGetFilename(void);
 
 #endif /* __LOG_PCAP_H__ */
