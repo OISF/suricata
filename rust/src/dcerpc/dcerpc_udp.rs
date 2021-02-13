@@ -338,7 +338,10 @@ fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_udp_header(input) {
         Ok((_, hdr)) => {
             let is_request = hdr.pkt_type == 0x00;
-            let is_dcerpc = hdr.rpc_vers == 0x04;
+            let is_dcerpc = hdr.rpc_vers == 0x04 &&
+                (hdr.flags2 & 0xfc == 0) &&
+                (hdr.drep[0] & 0xee == 0) &&
+                (hdr.drep[1] <= 3);
             return (is_dcerpc, is_request);
         },
         Err(_) => (false, false),
