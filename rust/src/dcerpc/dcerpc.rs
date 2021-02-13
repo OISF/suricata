@@ -16,7 +16,7 @@
  */
 
 use std::mem::transmute;
-use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::applayer::*;
 use crate::core::{self, sc_detect_engine_state_free};
 use crate::dcerpc::parser;
 use nom::error::ErrorKind;
@@ -1162,8 +1162,8 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_request(
-    _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dcerpc_parse_request(
+    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
@@ -1177,14 +1177,22 @@ pub extern "C" fn rs_dcerpc_parse_request(
     }
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
-        return state.handle_input_data(buf, core::STREAM_TOSERVER);
+        let ret = state.handle_input_data(buf, core::STREAM_TOSERVER);
+        let tx_id = state.tx_id - 1;
+        let req_done = if let Some(tx) = state.get_tx(tx_id) {
+            tx.req_done
+        } else { false };
+        if req_done == true {
+            AppLayerParserTriggerRawStreamReassembly(flow, core::STREAM_TOSERVER);
+        }
+        return ret;
     }
     AppLayerResult::err()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_response(
-    _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dcerpc_parse_response(
+    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1197,7 +1205,15 @@ pub extern "C" fn rs_dcerpc_parse_response(
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = build_slice!(input, input_len as usize);
-            return state.handle_input_data(buf, core::STREAM_TOCLIENT);
+            let ret = state.handle_input_data(buf, core::STREAM_TOCLIENT);
+            let tx_id = state.tx_id - 1;
+            let resp_done = if let Some(tx) = state.get_tx(tx_id) {
+                tx.resp_done
+            } else { false };
+            if resp_done == true {
+                AppLayerParserTriggerRawStreamReassembly(flow, core::STREAM_TOCLIENT);
+            }
+            return ret;
         }
     }
     AppLayerResult::err()
