@@ -53,8 +53,12 @@ static AppLayerResult RustDCERPCUDPParse(Flow *f, void *dcerpc_state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
-    return rs_dcerpc_udp_parse(f, dcerpc_state, pstate, input, input_len,
-                               local_data, flags);
+    if (flags & 0x04) {
+        return rs_dcerpc_udp_parse_request(
+                f, dcerpc_state, pstate, input, input_len, local_data, flags);
+    }
+    return rs_dcerpc_udp_parse_response(
+            f, dcerpc_state, pstate, input, input_len, local_data, flags);
 }
 
 static void *RustDCERPCUDPStateNew(void *state_orig, AppProto proto_orig)
