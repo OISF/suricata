@@ -333,6 +333,47 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u6
     dce_state.tx_id
 }
 
+/// Probe input to see if it looks like DCERPC.
+fn probe(input: &[u8]) -> (bool, bool) {
+    match parser::parse_dcerpc_udp_header(input) {
+        Ok((_, hdr)) => {
+            let is_request = hdr.pkt_type == 0x00;
+            let is_dcerpc = hdr.rpc_vers == 0x04;
+            return (is_dcerpc, is_request);
+        },
+        Err(_) => (false, false),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
+                                      len: u32, rdir: *mut u8) -> i32
+{
+    SCLogDebug!("Probing the packet for DCERPC/UDP");
+    if len == 0 {
+        return core::ALPROTO_UNKNOWN;
+    }
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    //is_incomplete is checked by caller
+    let (is_dcerpc, is_request) = probe(slice);
+    if is_dcerpc {
+        let dir = if is_request {
+            core::STREAM_TOSERVER
+        } else {
+            core::STREAM_TOCLIENT
+        };
+        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
+            unsafe { *rdir = dir };
+        }
+        return 1;
+    }
+    return 0;
+
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::applayer::AppLayerResult;
