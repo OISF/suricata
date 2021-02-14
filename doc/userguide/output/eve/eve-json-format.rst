@@ -109,6 +109,13 @@ the signature.
        "port": 80
      },
 
+Pcap Field
+~~~~~~~~~~
+
+If pcap log capture is active, a `capture_file` key will be added to the event
+with value being the full path of the pcap file where the corresponding packets
+have been extracted.
+
 Event type: Anomaly
 -------------------
 
