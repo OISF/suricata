@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,112 +59,55 @@ int mpm_default_matcher;
 int32_t MpmFactoryRegisterMpmCtxProfile(
         DetectEngineCtx *de_ctx, const char *name, const int sm_list)
 {
-    void *ptmp;
     /* the very first entry */
     if (de_ctx->mpm_ctx_factory_container == NULL) {
-        de_ctx->mpm_ctx_factory_container = SCMalloc(sizeof(MpmCtxFactoryContainer));
+        de_ctx->mpm_ctx_factory_container = SCCalloc(1, sizeof(MpmCtxFactoryContainer));
         if (de_ctx->mpm_ctx_factory_container == NULL) {
             FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
-        memset(de_ctx->mpm_ctx_factory_container, 0, sizeof(MpmCtxFactoryContainer));
         de_ctx->mpm_ctx_factory_container->max_id = ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE;
-
-        MpmCtxFactoryItem *item = SCMalloc(sizeof(MpmCtxFactoryItem));
-        if (unlikely(item == NULL)) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-
-        item[0].name = name;
-        item[0].sm_list = sm_list;
-
-        /* toserver */
-        item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
-        if (item[0].mpm_ctx_ts == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-        memset(item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
-
-        /* toclient */
-        item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
-        if (item[0].mpm_ctx_tc == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-        memset(item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
-        item[0].id = de_ctx->mpm_ctx_factory_container->max_id++;
-
-        /* store the newly created item */
-        de_ctx->mpm_ctx_factory_container->items = item;
-        de_ctx->mpm_ctx_factory_container->no_of_items++;
-
-        /* the first id is always 0 */
-        return item[0].id;
-    } else {
-        int i;
-        MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
-        for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (items[i].sm_list == sm_list && items[i].name != NULL &&
-                    strcmp(items[i].name, name) == 0) {
-                /* looks like we have this mpm_ctx freed */
-                if (items[i].mpm_ctx_ts == NULL) {
-                    items[i].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
-                    if (items[i].mpm_ctx_ts == NULL) {
-                        FatalError(SC_ERR_FATAL, "Error allocating memory");
-                    }
-                    memset(items[i].mpm_ctx_ts, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
-                }
-                if (items[i].mpm_ctx_tc == NULL) {
-                    items[i].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
-                    if (items[i].mpm_ctx_tc == NULL) {
-                        FatalError(SC_ERR_FATAL, "Error allocating memory");
-                    }
-                    memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
-                }
-                return items[i].id;
-            }
-        }
-
-        /* let's make the new entry */
-        ptmp = SCRealloc(items,
-                         (de_ctx->mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
-        if (unlikely(ptmp == NULL)) {
-            SCFree(items);
-            items = NULL;
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-        items = ptmp;
-
-        de_ctx->mpm_ctx_factory_container->items = items;
-
-        MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
-        new_item[0].name = name;
-        new_item[0].sm_list = sm_list;
-
-        /* toserver */
-        new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
-        if (new_item[0].mpm_ctx_ts == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-        memset(new_item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
-
-        /* toclient */
-        new_item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
-        if (new_item[0].mpm_ctx_tc == NULL) {
-            FatalError(SC_ERR_FATAL, "Error allocating memory");
-        }
-        memset(new_item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
-
-        new_item[0].id = de_ctx->mpm_ctx_factory_container->max_id++;
-        de_ctx->mpm_ctx_factory_container->no_of_items++;
-
-        /* the newly created id */
-        return new_item[0].id;
     }
+
+    MpmCtxFactoryItem *item = de_ctx->mpm_ctx_factory_container->items;
+    MpmCtxFactoryItem *pitem = NULL;
+    while (item) {
+        if (item->sm_list == sm_list && item->name != NULL && strcmp(item->name, name) == 0) {
+            return item->id;
+        }
+        pitem = item;
+        item = item->next;
+    }
+
+    MpmCtxFactoryItem *nitem = SCCalloc(1, sizeof(MpmCtxFactoryItem));
+    if (unlikely(nitem == NULL)) {
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
+    }
+    nitem->name = name;
+    nitem->sm_list = sm_list;
+    nitem->id = de_ctx->mpm_ctx_factory_container->max_id++;
+
+    /* toserver */
+    nitem->mpm_ctx_ts = SCCalloc(1, sizeof(MpmCtx));
+    if (nitem->mpm_ctx_ts == NULL) {
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
+    }
+    nitem->mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
+
+    /* toclient */
+    nitem->mpm_ctx_tc = SCCalloc(1, sizeof(MpmCtx));
+    if (nitem->mpm_ctx_tc == NULL) {
+        FatalError(SC_ERR_FATAL, "Error allocating memory");
+    }
+    nitem->mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
+
+    /* store the newly created item */
+    if (pitem == NULL)
+        de_ctx->mpm_ctx_factory_container->items = nitem;
+    else
+        pitem->next = nitem;
+
+    de_ctx->mpm_ctx_factory_container->no_of_items++;
+    return nitem->id;
 }
 
 int32_t MpmFactoryIsMpmCtxAvailable(const DetectEngineCtx *de_ctx, const MpmCtx *mpm_ctx)
@@ -174,16 +117,14 @@ int32_t MpmFactoryIsMpmCtxAvailable(const DetectEngineCtx *de_ctx, const MpmCtx 
 
     if (de_ctx->mpm_ctx_factory_container == NULL) {
         return 0;
-    } else {
-        int i;
-        for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (mpm_ctx == de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_ts ||
-                mpm_ctx == de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_tc) {
-                return 1;
-            }
-        }
-        return 0;
     }
+
+    for (MpmCtxFactoryItem *i = de_ctx->mpm_ctx_factory_container->items; i != NULL; i = i->next) {
+        if (mpm_ctx == i->mpm_ctx_ts || mpm_ctx == i->mpm_ctx_tc) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id, int direction)
@@ -202,10 +143,10 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id,
         /* this id does not exist */
         return NULL;
     } else {
-        for (int i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (id == de_ctx->mpm_ctx_factory_container->items[i].id) {
-                return (direction == 0) ? de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_ts
-                                        : de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_tc;
+        for (MpmCtxFactoryItem *i = de_ctx->mpm_ctx_factory_container->items; i != NULL;
+                i = i->next) {
+            if (id == i->id) {
+                return (direction == 0) ? i->mpm_ctx_ts : i->mpm_ctx_tc;
             }
         }
         return NULL;
@@ -222,8 +163,6 @@ void MpmFactoryReClaimMpmCtx(const DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
             mpm_table[mpm_ctx->mpm_type].DestroyCtx(mpm_ctx);
         SCFree(mpm_ctx);
     }
-
-    return;
 }
 
 void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
@@ -231,26 +170,26 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
     if (de_ctx->mpm_ctx_factory_container == NULL)
         return;
 
-    int i = 0;
-    MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
-    for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-        if (items[i].mpm_ctx_ts != NULL) {
-            if (items[i].mpm_ctx_ts->mpm_type != MPM_NOTSET)
-                mpm_table[items[i].mpm_ctx_ts->mpm_type].DestroyCtx(items[i].mpm_ctx_ts);
-            SCFree(items[i].mpm_ctx_ts);
+    MpmCtxFactoryItem *item = de_ctx->mpm_ctx_factory_container->items;
+    while (item) {
+        if (item->mpm_ctx_ts != NULL) {
+            if (item->mpm_ctx_ts->mpm_type != MPM_NOTSET)
+                mpm_table[item->mpm_ctx_ts->mpm_type].DestroyCtx(item->mpm_ctx_ts);
+            SCFree(item->mpm_ctx_ts);
         }
-        if (items[i].mpm_ctx_tc != NULL) {
-            if (items[i].mpm_ctx_tc->mpm_type != MPM_NOTSET)
-                mpm_table[items[i].mpm_ctx_tc->mpm_type].DestroyCtx(items[i].mpm_ctx_tc);
-            SCFree(items[i].mpm_ctx_tc);
+        if (item->mpm_ctx_tc != NULL) {
+            if (item->mpm_ctx_tc->mpm_type != MPM_NOTSET)
+                mpm_table[item->mpm_ctx_tc->mpm_type].DestroyCtx(item->mpm_ctx_tc);
+            SCFree(item->mpm_ctx_tc);
         }
+
+        MpmCtxFactoryItem *next = item->next;
+        SCFree(item);
+        item = next;
     }
 
-    SCFree(de_ctx->mpm_ctx_factory_container->items);
     SCFree(de_ctx->mpm_ctx_factory_container);
     de_ctx->mpm_ctx_factory_container = NULL;
-
-    return;
 }
 
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher)

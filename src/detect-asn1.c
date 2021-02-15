@@ -125,18 +125,17 @@ static DetectAsn1Data *DetectAsn1Parse(const char *asn1str)
  */
 static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *asn1str)
 {
-    DetectAsn1Data *ad = NULL;
-    SigMatch *sm = NULL;
-
-    ad = DetectAsn1Parse(asn1str);
+    DetectAsn1Data *ad = DetectAsn1Parse(asn1str);
     if (ad == NULL)
-        goto error;
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectAsn1Free(de_ctx, ad);
+        return -1;
+    }
 
     sm->type = DETECT_ASN1;
     sm->ctx = (SigMatchCtx *)ad;
@@ -144,13 +143,6 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
-
-error:
-    if (sm != NULL)
-        SCFree(sm);
-    if (ad != NULL)
-        DetectAsn1Free(de_ctx, ad);
-    return -1;
 }
 
 /**
@@ -172,7 +164,6 @@ static void DetectAsn1Free(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectAsn1TestReal01(void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
                    "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
                    "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
@@ -215,10 +206,9 @@ static int DetectAsn1TestReal01(void)
     Packet *p[2];
 
     p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p[0]);
     p[1] = UTHBuildPacket((uint8_t *)buf2, buflen2, IPPROTO_TCP);
-
-    if (p[0] == NULL || p[1] == NULL)
-        goto end;
+    FAIL_IF_NULL(p[1]);
 
     const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
@@ -231,19 +221,16 @@ static int DetectAsn1TestReal01(void)
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
-
     uint32_t results[2][3] = {
                               /* packet 0 match sid 1 */
                               {1, 0, 0},
                               /* packet 1 match sid 2 */
                               {0, 1, 0}};
     /* None of the packets should match sid 3 */
-
-    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
+    FAIL_IF_NOT(UTHGenericTest(p, 2, sigs, sid, (uint32_t *)results, 3) == 1);
 
     UTHFreePackets(p, 2);
-end:
-    return result;
+    PASS;
 }
 
 /**

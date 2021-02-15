@@ -463,6 +463,7 @@ void SigParseApplyDsizeToContent(Signature *s)
             }
 
             if (cd->depth == 0 || cd->depth >= dsize) {
+                cd->flags |= DETECT_CONTENT_DEPTH;
                 cd->depth = (uint16_t)dsize;
                 SCLogDebug("updated %u, content %u to have depth %u "
                         "because of dsize.", s->id, cd->id, cd->depth);

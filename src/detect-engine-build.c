@@ -617,11 +617,14 @@ static int RuleMpmIsNegated(const Signature *s)
     return (cd->flags & DETECT_CONTENT_NEGATED);
 }
 
-static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
-                                const int add_rules, const int add_mpm_stats)
+static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
+        const int add_rules, const int add_mpm_stats)
 {
+    uint32_t prefilter_cnt = 0;
     uint32_t mpm_cnt = 0;
     uint32_t nonmpm_cnt = 0;
+    uint32_t mpm_depth_cnt = 0;
+    uint32_t mpm_endswith_cnt = 0;
     uint32_t negmpm_cnt = 0;
     uint32_t any5_cnt = 0;
     uint32_t payload_no_mpm_cnt = 0;
@@ -682,6 +685,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             any5_cnt++;
         }
 
+        prefilter_cnt += (s->init_data->prefilter_sm != 0);
         if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
@@ -710,9 +714,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
-            if (s->alproto != ALPROTO_UNKNOWN) {
-                alproto_mpm_bufs[s->alproto][mpm_list]++;
-            }
+            alproto_mpm_bufs[s->alproto][mpm_list]++;
 
             if (mpm_list == DETECT_SM_LIST_PMATCH) {
                 if (size == 1) {
@@ -764,6 +766,12 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
                 SCLogDebug("SGH %p MPM Pattern on %s, is negated. Rule %u", sgh, DetectListToString(mpm_list), s->id);
                 negmpm_cnt++;
             }
+            if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                mpm_endswith_cnt++;
+            }
+            if (cd->flags & DETECT_CONTENT_DEPTH) {
+                mpm_depth_cnt++;
+            }
         }
 
         if (RuleInspectsPayloadHasNoMpm(s)) {
@@ -771,9 +779,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             payload_no_mpm_cnt++;
         }
 
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            alstats[s->alproto]++;
-        }
+        alstats[s->alproto]++;
 
         if (add_rules) {
             json_t *js_sig = json_object();
@@ -792,14 +798,16 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     json_t *types = json_object();
     json_object_set_new(types, "mpm", json_integer(mpm_cnt));
     json_object_set_new(types, "non_mpm", json_integer(nonmpm_cnt));
+    json_object_set_new(types, "mpm_depth", json_integer(mpm_depth_cnt));
+    json_object_set_new(types, "mpm_endswith", json_integer(mpm_endswith_cnt));
     json_object_set_new(types, "negated_mpm", json_integer(negmpm_cnt));
     json_object_set_new(types, "payload_but_no_mpm", json_integer(payload_no_mpm_cnt));
+    json_object_set_new(types, "prefilter", json_integer(prefilter_cnt));
     json_object_set_new(types, "syn", json_integer(syn_cnt));
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    int i;
-    for (i = 0; i < ALPROTO_MAX; i++) {
+    for (int i = 0; i < ALPROTO_MAX; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
@@ -807,18 +815,25 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             for (int y = 0; y < max_buffer_type_id; y++) {
                 if (alproto_mpm_bufs[i][y] == 0)
                     continue;
-                json_object_set_new(
-                        app, DetectListToHumanString(y), json_integer(alproto_mpm_bufs[i][y]));
+
+                const char *name;
+                if (y < DETECT_SM_LIST_DYNAMIC_START)
+                    name = DetectListToHumanString(y);
+                else
+                    name = DetectBufferTypeGetNameById(de_ctx, y);
+
+                json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
             }
 
-            json_object_set_new(stats, AppProtoToString(i), app);
+            const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
+            json_object_set_new(stats, proto_name, app);
         }
     }
 
     if (add_mpm_stats) {
         json_t *mpm_js = json_object();
 
-        for (i = 0; i < max_buffer_type_id; i++) {
+        for (int i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
 
                 json_t *mpm_sizes_array = json_array();
@@ -840,7 +855,13 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
 
                 json_object_set_new(buf, "sizes", mpm_sizes_array);
 
-                json_object_set_new(mpm_js, DetectListToHumanString(i), buf);
+                const char *name;
+                if (i < DETECT_SM_LIST_DYNAMIC_START)
+                    name = DetectListToHumanString(i);
+                else
+                    name = DetectBufferTypeGetNameById(de_ctx, i);
+
+                json_object_set_new(mpm_js, name, buf);
             }
         }
 
@@ -876,8 +897,8 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_ts = RulesGroupPrintSghStats(list->sh,
-                        add_rules, add_mpm_stats);
+                json_t *tcp_ts =
+                        RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_ts);
                 json_array_append_new(ts_array, port);
 
@@ -893,8 +914,8 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_tc = RulesGroupPrintSghStats(list->sh,
-                        add_rules, add_mpm_stats);
+                json_t *tcp_tc =
+                        RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_tc);
                 json_array_append_new(tc_array, port);
 
@@ -903,8 +924,26 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
             json_object_set_new(tcp, "toclient", tc_array);
 
             json_object_set_new(js, name, tcp);
-        }
+        } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
+            const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
+            json_t *o = json_object();
+            json_t *ts = json_object();
+            json_t *tc = json_object();
 
+            if (de_ctx->flow_gh[1].sgh[p]) {
+                json_t *group_ts = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(ts, "rulegroup", group_ts);
+                json_object_set_new(o, "toserver", ts);
+            }
+            if (de_ctx->flow_gh[0].sgh[p]) {
+                json_t *group_tc = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(tc, "rulegroup", group_tc);
+                json_object_set_new(o, "toclient", tc);
+            }
+            json_object_set_new(js, name, o);
+        }
     }
 
     const char *filename = "rule_group.json";

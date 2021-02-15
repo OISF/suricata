@@ -112,12 +112,13 @@ typedef struct MpmCtx_ {
  * we should supply this as the key */
 #define MPM_CTX_FACTORY_UNIQUE_CONTEXT -1
 
-typedef struct MpmCtxFactoryItem_ {
+typedef struct MpmCtxFactoryItem {
     const char *name;
     MpmCtx *mpm_ctx_ts;
     MpmCtx *mpm_ctx_tc;
     int32_t id;
     int32_t sm_list;
+    struct MpmCtxFactoryItem *next;
 } MpmCtxFactoryItem;
 
 typedef struct MpmCtxFactoryContainer_ {

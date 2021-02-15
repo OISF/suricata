@@ -14,3 +14,4 @@ Performance
    rule-profiling
    tcmalloc
    analysis
+   rules-analyzer

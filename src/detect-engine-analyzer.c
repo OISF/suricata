@@ -608,6 +608,31 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
     return false;
 }
 
+static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
+{
+    jb_set_string_from_bytes(js, "pattern", cd->content, cd->content_len);
+    jb_set_uint(js, "length", cd->content_len);
+    jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
+    jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
+    jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
+    jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
+    jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
+    jb_set_bool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
+    if (cd->flags & DETECT_CONTENT_OFFSET) {
+        jb_set_uint(js, "offset", cd->offset);
+    }
+    if (cd->flags & DETECT_CONTENT_DEPTH) {
+        jb_set_uint(js, "depth", cd->depth);
+    }
+    if (cd->flags & DETECT_CONTENT_DISTANCE) {
+        jb_set_uint(js, "distance", cd->distance);
+    }
+    if (cd->flags & DETECT_CONTENT_WITHIN) {
+        jb_set_uint(js, "within", cd->within);
+    }
+    jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+}
+
 static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *smd)
 {
     if (smd == NULL)
@@ -624,38 +649,20 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 const DetectContentData *cd = (const DetectContentData *)smd->ctx;
 
                 jb_open_object(js, "content");
-                jb_set_string_from_bytes(js, "pattern", cd->content, cd->content_len);
-                jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
-                jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
-                jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
-                jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
-                jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
-                if (cd->flags & DETECT_CONTENT_OFFSET) {
-                    jb_set_uint(js, "offset", cd->offset);
-                }
-                if (cd->flags & DETECT_CONTENT_DEPTH) {
-                    jb_set_uint(js, "depth", cd->depth);
-                }
-                if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                    jb_set_uint(js, "distance", cd->distance);
-                }
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    jb_set_uint(js, "within", cd->within);
-                }
-                jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+                DumpContent(js, cd);
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and "
                                               "is interpreted as regular 'fast_pattern'");
                 }
                 if (LooksLikeHTTPMethod(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_request_line or "
-                                    "http_method and http_uri instead for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.request_line or "
+                                    "http.method and http.uri instead for improved performance");
                 }
                 if (LooksLikeHTTPUA(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_user_agent "
-                                    "or http_header for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.user_agent "
+                                    "or http.header for improved performance");
                 }
                 jb_close(js);
                 break;
@@ -783,6 +790,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
+    const DetectEnginePktInspectionEngine *pkt_mpm = NULL;
+    const DetectEngineAppInspectionEngine *app_mpm = NULL;
+
     jb_open_array(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
@@ -805,6 +815,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_set_bool(ctx.js, "is_mpm", pkt->mpm);
         DumpMatches(&ctx, ctx.js, pkt->smd);
         jb_close(ctx.js);
+        if (pkt->mpm) {
+            pkt_mpm = pkt;
+        }
     }
     jb_close(ctx.js);
 
@@ -845,6 +858,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             jb_set_uint(ctx.js, "progress", app->progress);
             DumpMatches(&ctx, ctx.js, app->smd);
             jb_close(ctx.js);
+            if (app->mpm) {
+                app_mpm = app;
+            }
         }
         jb_close(ctx.js);
 
@@ -864,12 +880,59 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
+    if (pkt_mpm || app_mpm) {
+        jb_open_object(ctx.js, "mpm");
+
+        int mpm_list = pkt_mpm ? DETECT_SM_LIST_PMATCH : app_mpm->sm_list;
+        const char *name;
+        if (mpm_list < DETECT_SM_LIST_DYNAMIC_START)
+            name = DetectListToHumanString(mpm_list);
+        else
+            name = DetectBufferTypeGetNameById(de_ctx, mpm_list);
+        jb_set_string(ctx.js, "buffer", name);
+
+        SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
+        if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
+            smd = s->sm_arrays[mpm_list];
+        }
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+                    if (cd->flags & DETECT_CONTENT_MPM) {
+                        DumpContent(ctx.js, cd);
+                    }
+                    break;
+                }
+            }
+
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+        jb_close(ctx.js);
+    } else if (s->init_data->prefilter_sm) {
+        jb_open_object(ctx.js, "prefilter");
+        int prefilter_list = SigMatchListSMBelongsTo(s, s->init_data->prefilter_sm);
+        const char *name;
+        if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
+            name = DetectListToHumanString(prefilter_list);
+        else
+            name = DetectBufferTypeGetNameById(de_ctx, prefilter_list);
+        jb_set_string(ctx.js, "buffer", name);
+        const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
+        jb_set_string(ctx.js, "name", mname);
+        jb_close(ctx.js);
+    }
+
     if (ctx.js_warnings) {
+        jb_close(ctx.js_warnings);
         jb_set_object(ctx.js, "warnings", ctx.js_warnings);
         jb_free(ctx.js_warnings);
         ctx.js_warnings = NULL;
     }
     if (ctx.js_notes) {
+        jb_close(ctx.js_notes);
         jb_set_object(ctx.js, "notes", ctx.js_notes);
         jb_free(ctx.js_notes);
         ctx.js_notes = NULL;
