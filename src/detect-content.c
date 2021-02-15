@@ -652,20 +652,21 @@ static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
     return true;
 }
 
-#define TEST_RUN(sig, o, d)                                                                 \
-{                                                                                           \
-    SCLogDebug("TEST_RUN start: '%s'", (sig));                                              \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                        \
-    FAIL_IF_NULL(de_ctx);                                                                   \
-    char rule[2048];                                                                        \
-    snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig)); \
-    Signature *s = DetectEngineAppendSig(de_ctx, rule);                                     \
-    FAIL_IF_NULL(s);                                                                        \
-    SigAddressPrepareStage1(de_ctx);                                                        \
-    bool res = TestLastContent(s, (o), (d));                                                \
-    FAIL_IF(res == false);                                                                  \
-    DetectEngineCtxFree(de_ctx);                                                            \
-}
+#define TEST_RUN(sig, o, d)                                                                        \
+    {                                                                                              \
+        SCLogDebug("TEST_RUN start: '%s'", (sig));                                                 \
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                           \
+        FAIL_IF_NULL(de_ctx);                                                                      \
+        de_ctx->flags |= DE_QUIET;                                                                 \
+        char rule[2048];                                                                           \
+        snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig));    \
+        Signature *s = DetectEngineAppendSig(de_ctx, rule);                                        \
+        FAIL_IF_NULL(s);                                                                           \
+        SigAddressPrepareStage1(de_ctx);                                                           \
+        bool res = TestLastContent(s, (o), (d));                                                   \
+        FAIL_IF(res == false);                                                                     \
+        DetectEngineCtxFree(de_ctx);                                                               \
+    }
 
 #define TEST_DONE \
     PASS
@@ -677,6 +678,8 @@ static int DetectContentDepthTest01(void)
     TEST_RUN("content:\"abc\"; offset:1; depth:3;", 1, 4);
     // dsize applied as depth
     TEST_RUN("dsize:10; content:\"abc\";", 0, 10);
+    TEST_RUN("dsize:<10; content:\"abc\";", 0, 10);
+    TEST_RUN("dsize:5<>10; content:\"abc\";", 0, 10);
 
     // relative match, directly following anchored content
     TEST_RUN("content:\"abc\"; depth:3; content:\"xyz\"; distance:0; within:3; ", 3, 6);
