@@ -499,6 +499,7 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
     uint8_t dir = idir;
     uint16_t dp = f->protodetect_dp ? f->protodetect_dp : FLOW_GET_DP(f);
     uint16_t sp = FLOW_GET_SP(f);
+    bool probe_is_found = false;
 
 again_midstream:
     if (idir != dir) {
@@ -555,9 +556,9 @@ again_midstream:
     if (pe1 == NULL && pe2 == NULL) {
         SCLogDebug("%s - No probing parsers found for either port",
                 (dir == STREAM_TOSERVER) ? "toserver":"toclient");
-        if (dir == idir)
-            FLOW_SET_PP_DONE(f, dir);
         goto noparsers;
+    } else {
+        probe_is_found = true;
     }
 
     /* run the parser(s): always call with original direction */
@@ -590,8 +591,8 @@ again_midstream:
         }
     }
 
- noparsers:
-    if (stream_config.midstream == true && idir == dir) {
+noparsers:
+    if (stream_config.midstream && idir == dir) {
         if (idir == STREAM_TOSERVER) {
             dir = STREAM_TOCLIENT;
         } else {
@@ -600,6 +601,8 @@ again_midstream:
         SCLogDebug("no match + midstream, retry the other direction %s",
                 (dir == STREAM_TOSERVER) ? "toserver" : "toclient");
         goto again_midstream;
+    } else if (!probe_is_found) {
+        FLOW_SET_PP_DONE(f, idir);
     }
 
  end:
