@@ -99,7 +99,7 @@ Example::
   alert ssh any any -> any any (msg:"match hassh"; \
       ssh.hassh; content:"ec7378c1a92f5a8dde7e8b7a1ddf33d1";\
       sid:1000010;)
-      
+
 ``ssh.hassh`` is a 'sticky buffer'.
 
 ``ssh.hassh`` can be used as ``fast_pattern``.

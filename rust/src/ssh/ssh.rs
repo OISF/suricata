@@ -209,7 +209,7 @@ impl SSHState {
                         }
                         _ => {}
                     }
-                    
+
                     input = rem;
                     //header and complete data (not returned)
                 }
@@ -220,7 +220,7 @@ impl SSHState {
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
-                            match head.msg_code { 
+                            match head.msg_code {
                                 parser::MessageCode::SshMsgNewKeys => {
                                     hdr.flags = SSHConnectionState::SshStateFinished;
                                 }
@@ -592,15 +592,15 @@ pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
 #[no_mangle]
 pub extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
-    
+
     if rs_ssh_hassh_is_enabled() {
         if  tx.cli_hdr.flags == SSHConnectionState::SshStateFinished &&
             tx.srv_hdr.flags == SSHConnectionState::SshStateFinished {
-            return true; 
+            return true;
         }
     }
     else {
-        if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
+        if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone &&
             tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
             return true;
         }

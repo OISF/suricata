@@ -34,7 +34,7 @@ Common configure options
 
 .. option:: --disable-gccmarch-native
 
-    Do not optimize the binary for the hardware it is built on. Add this 
+    Do not optimize the binary for the hardware it is built on. Add this
     flag if the binary is meant to be portable or if Suricata is to be used in a VM.
 
 .. option:: --prefix=/usr/

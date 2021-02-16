@@ -154,7 +154,7 @@ in the app-layer tls section ::
         enabled: yes
         detection-ports:
           dp: 443
-  
+
         encryption-handling: bypass
 
 Another solution is to use a set of signatures using the ``bypass`` keyword to obtain
@@ -194,7 +194,7 @@ Then setup the `ebpf-filter-file` variable in af-packet section in ``suricata.ya
 
 You can then run Suricata normally ::
 
- /usr/bin/suricata --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv 
+ /usr/bin/suricata --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv
 
 Setup eBPF bypass
 -----------------
@@ -316,9 +316,9 @@ Use in tree kernel drivers: XDP support is not available in Intel drivers availa
 
 Enable symmetric hashing ::
 
- ifconfig eth3 down 
+ ifconfig eth3 down
  ethtool -L eth3 combined 16 # if you have at least 16 cores
- ethtool -K eth3 rxhash on 
+ ethtool -K eth3 rxhash on
  ethtool -K eth3 ntuple on
  ifconfig eth3 up
  ./set_irq_affinity 0-15 eth3
@@ -344,8 +344,8 @@ Balance as much as you can
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Try to use the network card's flow balancing as much as possible ::
- 
- for proto in tcp4 udp4 ah4 esp4 sctp4 tcp6 udp6 ah6 esp6 sctp6; do 
+
+ for proto in tcp4 udp4 ah4 esp4 sctp4 tcp6 udp6 ah6 esp6 sctp6; do
     /sbin/ethtool -N eth3 rx-flow-hash $proto sd
  done
 
@@ -407,7 +407,7 @@ Start Suricata with XDP
 
 You can now start Suricata with XDP bypass activated ::
 
- /usr/bin/suricata -c /etc/suricata/xdp-suricata.yaml --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv 
+ /usr/bin/suricata -c /etc/suricata/xdp-suricata.yaml --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv
 
 Confirm you have the XDP filter engaged in the output (example)::
 

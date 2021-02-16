@@ -269,7 +269,7 @@ static int DetectMetadataParseTest01(void)
                                            "alert tcp any any -> any any "
                                            "(metadata: toto 1; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
-    FAIL_IF(sig->metadata); 
+    FAIL_IF(sig->metadata);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -286,12 +286,12 @@ static int DetectMetadataParseTest02(void)
                                            "metadata: titi 2, jaivu gros_minet;"
                                            "sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
-    FAIL_IF_NULL(sig->metadata); 
-    FAIL_IF_NULL(sig->metadata->list); 
-    FAIL_IF_NULL(sig->metadata->list->key); 
+    FAIL_IF_NULL(sig->metadata);
+    FAIL_IF_NULL(sig->metadata->list);
+    FAIL_IF_NULL(sig->metadata->list->key);
     FAIL_IF(strcmp("jaivu", sig->metadata->list->key));
     FAIL_IF(strcmp("gros_minet", sig->metadata->list->value));
-    FAIL_IF_NULL(sig->metadata->list->next); 
+    FAIL_IF_NULL(sig->metadata->list->next);
     DetectMetadata *dm = sig->metadata->list->next;
     FAIL_IF(strcmp("titi", dm->key));
     dm = dm->next;

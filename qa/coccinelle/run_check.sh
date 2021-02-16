@@ -6,7 +6,7 @@ if [ $1 ]; then
 		LIST=$@;
 		PREFIX=$(git rev-parse --show-toplevel)/
 		;;
-        *..*) 
+        *..*)
         	LIST=$(git diff --pretty="format:" --name-only $1 | grep -E '[ch]$')
 		PREFIX=$(git rev-parse --show-toplevel)/
 		;;

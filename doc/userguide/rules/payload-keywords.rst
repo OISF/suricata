@@ -306,9 +306,9 @@ and the final result will be right shifted one bit for each trailing ``0`` in
 the ``<bitmask value>``.
 
 Format::
-  
+
   byte_test:<num of bytes>, [!]<operator>, <test value>, <offset> [,relative] \
-  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>]; 
+  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>];
 
 
 +----------------+------------------------------------------------------------------------------+
@@ -330,7 +330,7 @@ Format::
 +----------------+------------------------------------------------------------------------------+
 | [relative]	 | Offset relative to last content match					|
 +----------------+------------------------------------------------------------------------------+
-| [endian]	 | Type of number being read:							|	
+| [endian]	 | Type of number being read:							|
 |		 | - big (Most significant byte at lowest address)				|
 |		 | - little (Most significant byte at the highest address)			|
 +----------------+------------------------------------------------------------------------------+
@@ -359,7 +359,7 @@ Example::
 	 (msg:"Byte_Test Example - Num != Value"; content:"|00 01 00 02|"; \
 	 byte_test:2,!=,0x06;)
 
-  alert tcp any any -> any any \ 
+  alert tcp any any -> any any \
          (msg:"Byte_Test Example - Detect Large Values"; content:"|00 01 00 02|"; \
          byte_test:2,>,1000,relative;)
 
@@ -449,7 +449,7 @@ The ``byte_jump`` keyword allows for the ability to select a ``<num of bytes>`` 
 Format::
 
   byte_jump:<num of bytes>, <offset> [, relative][, multiplier <mult_value>] \
-	[, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \ 
+	[, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \
         [, post_offset <value>][, dce][, bitmask <value>];
 
 +-----------------------+-----------------------------------------------------------------------+
@@ -542,13 +542,13 @@ Format::
 
 
 ==============	==================================
- Keyword	Modifier 
+ Keyword	Modifier
 ============== 	==================================
- content	offset,depth,distance,within	
- byte_test	offset,value		     	
+ content	offset,depth,distance,within
+ byte_test	offset,value
  byte_math	rvalue
- byte_jump	offset			     	
- isdataat	offset				
+ byte_jump	offset
+ isdataat	offset
 ==============	==================================
 
 Example::

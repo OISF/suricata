@@ -201,7 +201,7 @@ static int HasshGet(lua_State *luastate)
 /** *\brief Register Hassh Lua extensions */
 int LuaRegisterHasshFunctions(lua_State *luastate)
 {
-    
+
     lua_pushcfunction(luastate, HasshGet);
     lua_setglobal(luastate, "HasshGet");
 
@@ -213,7 +213,7 @@ int LuaRegisterHasshFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, HasshServerGetString);
     lua_setglobal(luastate, "HasshServerGetString");
-    
+
     return 0;
 }
 

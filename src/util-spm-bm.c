@@ -42,7 +42,7 @@
 static int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs);
 static void PreBmBc(const uint8_t *x, uint16_t m, uint16_t *bmBc);
 static void PreBmBcNocase(const uint8_t *x, uint16_t m, uint16_t *bmBc);
-static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m, 
+static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m,
                                      uint16_t *suff);
 static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs);
 
@@ -225,7 +225,7 @@ static void PreBmBcNocase(const uint8_t *x, uint16_t m, uint16_t *bmBc)
     }
 }
 
-static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m, 
+static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m,
                                      uint16_t *suff)
 {
     int32_t f = 0, g, i;

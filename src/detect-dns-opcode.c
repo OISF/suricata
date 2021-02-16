@@ -50,7 +50,7 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_DNS_OPCODE;
     sm->ctx = (void *)detect;
     SigMatchAppendSMToList(s, sm, dns_opcode_list_id);
-    
+
     SCReturnInt(0);
 
 error:
