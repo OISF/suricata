@@ -796,6 +796,7 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sgh_hash_table;
 
     HashListTable *mpm_hash_table;
+    HashListTable *pattern_hash_table;
 
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
@@ -1499,6 +1500,8 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
 AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id,
                              AppLayerEventType *event_type);
+
+void DumpPatterns(DetectEngineCtx *de_ctx);
 
 #include "detect-engine-build.h"
 #include "detect-engine-register.h"
