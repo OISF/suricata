@@ -1912,7 +1912,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         s->init_data = NULL;
     }
 
-
+    DumpPatterns(de_ctx);
     SCReturnInt(0);
 }
 
