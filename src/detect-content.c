@@ -2567,7 +2567,7 @@ static int SigTest42TestNegatedContent(void)
 /**
  * \test A negative test that checks that the content string doesn't contain
  *       the negated content within the specified depth, and also after the
- *       specified offset. Since the content is there, the match fails. 
+ *       specified offset. Since the content is there, the match fails.
  *
  *       Match is at offset:23, depth:34
  */

@@ -61,7 +61,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t flow_flags, void *txv, const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -102,7 +102,7 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-            
+
     /* try to enable Hassh */
     rs_ssh_enable_hassh();
 
@@ -147,8 +147,7 @@ static _Bool DetectSshHasshServerHashValidateCallback(const Signature *s,
         }
         for (size_t i = 0; i < cd->content_len; ++i)
         {
-            if(!isxdigit(cd->content[i])) 
-            {
+            if (!isxdigit(cd->content[i])) {
                 *sigerror = "Invalid ssh.hassh.server string (should be string of hexademical characters)."
                             "This rule will therefore never match.";
                 SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
@@ -188,7 +187,7 @@ static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx,
 /**
  * \brief Registration function for hasshServer keyword.
  */
-void DetectSshHasshServerRegister(void) 
+void DetectSshHasshServerRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].alias = KEYWORD_ALIAS;
@@ -197,12 +196,10 @@ void DetectSshHasshServerRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].Setup = DetectSshHasshServerSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, 
-            PrefilterGenericMpmRegister, GetSshData, 
-            ALPROTO_SSH, SshStateBannerDone);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOCLIENT, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

@@ -22,7 +22,7 @@
  *
  * Implements cryptographic functions.
  * Based on the libtomcrypt library ( http://libtom.org/?page=features&newsitems=5&whatfile=crypt )
- * 
+ *
  * Implementation of function using NSS is not linked with libtomcrypt.
  */
 

@@ -21,7 +21,7 @@ int main() {
         printf("PRE : a %d b %d c %d, flag %s\n", a,b,c, flag & 0x01 ? "SET":"NOT SET");
 
         a = dosomething(PASS_A(a));
-        
+
         printf("POST: a %d b %d c %d, flag %s\n", a,b,c, flag & 0x01 ? "SET":"NOT SET");
 
 //        a = ntohs(a);
