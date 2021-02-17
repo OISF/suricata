@@ -2427,6 +2427,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_compression_bomb_limit(cfg_prec->cfg,
                                           HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT);
 #endif
+#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
+    htp_config_set_compression_time_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT);
+#endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2770,6 +2773,23 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP compression bomb limit to %"PRIu32" bytes", limit);
             htp_config_set_compression_bomb_limit(cfg_prec->cfg, (size_t)limit);
+#endif
+#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
+        } else if (strcasecmp("decompression-time-limit", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                FatalError(SC_ERR_SIZE_PARSE,
+                        "failed to parse 'decompression-time-limit' "
+                        "from conf file - %s.",
+                        p->val);
+            }
+            // between 1 usec and 1 second
+            if (limit < 1 || limit > 1000000) {
+                FatalError(SC_ERR_SIZE_PARSE,
+                        "'decompression-time-limit' %s out of range. Min value: 1, max value: 1000000.", p->val);
+            }
+            SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
+            htp_config_set_compression_time_limit(cfg_prec->cfg, (size_t)limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {

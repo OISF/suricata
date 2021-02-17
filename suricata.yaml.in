@@ -895,6 +895,8 @@ app-layer:
            # Maximum decompressed size with a compression ratio
            # above 2048 (only LZMA can reach this ratio, deflate cannot)
            #compression-bomb-limit: 1mb
+           # Maximum time spent decompressing a single transaction in usec
+           #decompression-time-limit: 100000
 
          server-config:
 
