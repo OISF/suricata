@@ -950,7 +950,6 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         /* get window of data that is acked */
         const uint32_t delta = stream->last_ack - stream->base_seq;
-        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
 
@@ -1063,7 +1062,6 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             if (STREAM_LASTACK_GT_BASESEQ(*stream)) {
                 /* get window of data that is acked */
                 uint32_t delta = (*stream)->last_ack - (*stream)->base_seq;
-                DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > (*stream)->window);
                 /* get max absolute offset */
                 last_ack_abs += delta;
             }
@@ -1483,7 +1481,6 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             uint32_t delta = stream->last_ack - stream->base_seq;
-            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
         }
@@ -1580,7 +1577,6 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
         uint32_t delta = stream->last_ack - stream->base_seq;
-        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
         SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
