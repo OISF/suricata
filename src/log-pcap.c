@@ -575,17 +575,11 @@ static void PcapLogDumpSegments(
         PcapLogThreadData *td, PcapLogCompressionData *connp, const Packet *p)
 {
     uint8_t flag;
-    /*  check which side is packet */
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
-        flag = STREAM_DUMP_TOCLIENT;
-    } else {
-        flag = STREAM_DUMP_TOSERVER;
-    }
-    flag |= STREAM_DUMP_HEADERS;
+    flag = STREAM_DUMP_HEADERS;
 
     /* Loop on segment from this side */
     struct PcapLogCallbackContext data = { td->pcap_log, connp, td->buf };
-    StreamSegmentForEach(p, flag, PcapLogSegmentCallback, (void *)&data);
+    StreamSegmentForSession(p, flag, PcapLogSegmentCallback, (void *)&data);
 }
 
 /**
@@ -702,6 +696,21 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 #else
             PcapLogDumpSegments(td, NULL, p);
 #endif
+            /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
+            pl->h->ts.tv_sec = p->ts.tv_sec;
+            pl->h->ts.tv_usec = p->ts.tv_usec;
+            if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+                rp = p->root;
+                SCMutexLock(&rp->tunnel_mutex);
+                pl->h->caplen = GET_PKT_LEN(rp);
+                pl->h->len = GET_PKT_LEN(rp);
+                len = sizeof(*pl->h) + GET_PKT_LEN(rp);
+                SCMutexUnlock(&rp->tunnel_mutex);
+            } else {
+                pl->h->caplen = GET_PKT_LEN(p);
+                pl->h->len = GET_PKT_LEN(p);
+                len = sizeof(*pl->h) + GET_PKT_LEN(p);
+            }
         }
     }
 
