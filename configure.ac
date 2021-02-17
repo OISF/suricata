@@ -1694,6 +1694,7 @@
         AC_CHECK_LIB([htp], [htp_config_set_lzma_memlimit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Found htp_config_set_lzma_memlimit function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_lzma_layers],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Found htp_config_set_lzma_layers function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_compression_bomb_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Found htp_config_set_compression_bomb_limit function in libhtp]) ,,[-lhtp])
+        AC_CHECK_LIB([htp], [htp_config_set_compression_time_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Found htp_config_set_compression_time_limit function in libhtp]) ,,[-lhtp])
     ])
 
     if test "x$enable_non_bundled_htp" = "xno"; then
@@ -1717,6 +1718,7 @@
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Assuming htp_config_set_lzma_memlimit function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_LAYERS],[1],[Assuming htp_config_set_lzma_layers function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Assuming htp_config_set_compression_bomb_limit function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Assuming htp_config_set_compression_time_limit function in bundled libhtp])
         else
             echo
             echo "  ERROR: Libhtp is not bundled. Get libhtp by doing:"
