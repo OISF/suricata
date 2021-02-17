@@ -56,6 +56,8 @@
 /* default libhtp lzma limit, taken from libhtp. */
 #define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT                1048576U
 #define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT       1048576U
+// 100000 usec is 0.1 sec
+#define HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT 100000
 
 #define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
 #define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
