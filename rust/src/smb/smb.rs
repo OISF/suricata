@@ -1990,9 +1990,28 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
             if hdr.is_smb() {
                 SCLogDebug!("smb found");
                 return 1;
-            } else if hdr.is_valid() {
-                SCLogDebug!("nbss found, assume smb");
-                return 1;
+            } else if hdr.needs_more(){
+                return 0;
+            } else if hdr.is_valid() &&
+                hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
+                //we accept a first small netbios message before real SMB
+                let hl = hdr.length as usize;
+                if hdr.data.len() >= hl + 8 {
+                    // 8 is 4 bytes NBSS + 4 bytes SMB0xFX magic
+                    match parse_nbss_record_partial(&hdr.data[hl..]) {
+                        Ok((_, ref hdr2)) => {
+                            if hdr2.is_smb() {
+                                SCLogDebug!("smb found");
+                                return 1;
+                            }
+                        }
+                        _ => {}
+                    }
+                } else if hdr.length < 256 {
+                    // we want more data, 256 is some random value
+                    return 0;
+                }
+                // default is failure
             }
         },
         _ => { },
