@@ -741,7 +741,6 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             /* get window of data that is acked */
             const uint32_t delta = stream->last_ack - stream->base_seq;
-            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
         }
