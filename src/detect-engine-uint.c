@@ -75,6 +75,33 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
     return 0;
 }
 
+static int DetectU32Validate(DetectU32Data *du32)
+{
+    switch (du32->mode) {
+        case DETECT_UINT_LT:
+            if (du32->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GT:
+            if (du32->arg1 == UINT32_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_RA:
+            if (du32->arg1 >= du32->arg2) {
+                return 1;
+            }
+            // we need at least one value that can match parg > du32->arg1 && parg < du32->arg2
+            if (du32->arg1 + 1 >= du32->arg2) {
+                return 1;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
 
 /**
  * \brief This function is used to parse u32 options passed via some u32 keyword
@@ -211,6 +238,10 @@ DetectU32Data *DetectU32Parse (const char *u32str)
             return NULL;
         }
     }
+    if (DetectU32Validate(&u32da)) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint32 condition : %s", u32str);
+        return NULL;
+    }
     u32d = SCCalloc(1, sizeof (DetectU32Data));
     if (unlikely(u32d == NULL))
         return NULL;
@@ -288,6 +319,34 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
             return 0;
         default:
             BUG_ON("unknown mode");
+    }
+    return 0;
+}
+
+static int DetectU8Validate(DetectU8Data *du8)
+{
+    switch (du8->mode) {
+        case DETECT_UINT_LT:
+            if (du8->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GT:
+            if (du8->arg1 == UINT8_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_RA:
+            if (du8->arg1 >= du8->arg2) {
+                return 1;
+            }
+            // we need at least one value that can match parg > du8->arg1 && parg < du8->arg2
+            if (du8->arg1 + 1 >= du8->arg2) {
+                return 1;
+            }
+            break;
+        default:
+            break;
     }
     return 0;
 }
@@ -416,6 +475,10 @@ DetectU8Data *DetectU8Parse (const char *u8str)
             SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
             return NULL;
         }
+    }
+    if (DetectU8Validate(&u8da)) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint8 condition : %s", u8str);
+        return NULL;
     }
     u8d = SCCalloc(1, sizeof (DetectU8Data));
     if (unlikely(u8d == NULL))
