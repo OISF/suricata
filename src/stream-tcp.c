@@ -6296,12 +6296,13 @@ void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Pack
 }
 
 /**
- * \brief Run callback function on each TCP segment
+ * \brief Run callback function on each TCP segment in a single direction.
  *
  * \note when stream engine is running in inline mode all segments are used,
  *       in IDS/non-inline mode only ack'd segments are iterated.
  *
  * \note Must be called under flow lock.
+ * \var flag determines the direction to run callback on (either to server or to client).
  *
  * \return -1 in case of error, the number of segment in case of success
  *
@@ -6347,6 +6348,100 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             return -1;
+        }
+
+        cnt++;
+    }
+    return cnt;
+}
+
+/**
+ * \brief Run callback function on each TCP segment in both directions of a session.
+ *
+ * \note when stream engine is running in inline mode all segments are used,
+ *       in IDS/non-inline mode only ack'd segments are iterated.
+ *
+ * \note Must be called under flow lock.
+ *
+ * \return -1 in case of error, the number of segment in case of success
+ *
+ */
+int StreamTcpSegmentForSession(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+{
+    int ret = 0;
+    int cnt = 0;
+
+    if (p->flow == NULL)
+        return 0;
+
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+
+    if (ssn == NULL) {
+        return -1;
+    }
+
+    TcpStream *server_stream = &(ssn->server);
+    TcpStream *client_stream = &(ssn->client);
+
+    TcpSegment *server_node = RB_ROOT(&(server_stream->seg_tree));
+    TcpSegment *client_node = RB_ROOT(&(client_stream->seg_tree));
+    if (server_node == NULL && client_node == NULL) {
+        return cnt;
+    }
+
+    while (server_node != NULL || client_node != NULL) {
+        const uint8_t *seg_data;
+        uint32_t seg_datalen;
+        if (server_node == NULL) {
+            /*
+             * This means the server side RB Tree has been completely searched,
+             * thus all that remains is to dump the TcpSegments on the client
+             * side.
+             */
+            StreamingBufferSegmentGetData(
+                    &client_stream->sb, &client_node->sbseg, &seg_data, &seg_datalen);
+            ret = CallbackFunc(p, client_node, data, seg_data, seg_datalen);
+            if (ret != 1) {
+                SCLogDebug("Callback function has failed");
+                return -1;
+            }
+            client_node = TCPSEG_RB_NEXT(client_node);
+        } else if (client_node == NULL) {
+            /*
+             * This means the client side RB Tree has been completely searched,
+             * thus all that remains is to dump the TcpSegments on the server
+             * side.
+             */
+            StreamingBufferSegmentGetData(
+                    &server_stream->sb, &server_node->sbseg, &seg_data, &seg_datalen);
+            ret = CallbackFunc(p, server_node, data, seg_data, seg_datalen);
+            if (ret != 1) {
+                SCLogDebug("Callback function has failed");
+                return -1;
+            }
+            server_node = TCPSEG_RB_NEXT(server_node);
+        } else {
+            if (TIMEVAL_EARLIER(
+                        client_node->pcap_hdr_storage->ts, server_node->pcap_hdr_storage->ts)) {
+                StreamingBufferSegmentGetData(
+                        &client_stream->sb, &client_node->sbseg, &seg_data, &seg_datalen);
+                ret = CallbackFunc(p, client_node, data, seg_data, seg_datalen);
+                if (ret != 1) {
+                    SCLogDebug("Callback function has failed");
+                    return -1;
+                }
+                client_node = TCPSEG_RB_NEXT(client_node);
+            } else {
+                StreamingBufferSegmentGetData(
+                        &server_stream->sb, &server_node->sbseg, &seg_data, &seg_datalen);
+                ret = CallbackFunc(p, server_node, data, seg_data, seg_datalen);
+                if (ret != 1) {
+                    SCLogDebug("Callback function has failed");
+                    return -1;
+                }
+                server_node = TCPSEG_RB_NEXT(server_node);
+            }
         }
 
         cnt++;
