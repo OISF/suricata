@@ -1366,6 +1366,8 @@ use of libhtp.
        # Maximum decompressed size with a compression ratio
        # above 2048 (only reachable by LZMA)
        #compression-bomb-limit: 1 Mb
+       # Maximum time spent decompressing a single transaction in usec
+       #decompression-time-limit: 100000
 
 Other parameters are customizable from Suricata.
 ::
