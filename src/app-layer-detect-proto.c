@@ -477,7 +477,7 @@ static inline AppProto PPGetProto(const AppLayerProtoDetectProbingParserElement 
         AppProto alproto = ALPROTO_UNKNOWN;
         if (flags & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
             alproto = pe->ProbingParserTs(f, flags, buf, buflen, rdir);
-        } else if (pe->ProbingParserTc != NULL) {
+        } else if (flags & STREAM_TOCLIENT && pe->ProbingParserTc != NULL) {
             alproto = pe->ProbingParserTc(f, flags, buf, buflen, rdir);
         }
         if (AppProtoIsValid(alproto)) {
