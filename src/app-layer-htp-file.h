@@ -34,7 +34,8 @@ typedef struct HtpContentRange_ {
 int HTPFileOpen(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *, uint32_t,
         uint64_t, uint8_t);
 int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range);
-int HTPFileSetRange(HtpState *, bstr *rawvalue);
+int HTPFileOpenWithRange(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *,
+        uint32_t, uint64_t, bstr *rawvalue, HtpTxUserData *htud);
 int HTPFileStoreChunk(HtpState *, const uint8_t *, uint32_t, uint8_t);
 int HTPFileClose(HtpState *, const uint8_t *, uint32_t, uint8_t, uint8_t);
 
