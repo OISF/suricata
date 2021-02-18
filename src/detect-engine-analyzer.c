@@ -610,7 +610,10 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
 
 static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
 {
-    jb_set_string_from_bytes(js, "pattern", cd->content, cd->content_len);
+    char pattern_str[1024] = "";
+    DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
+
+    jb_set_string(js, "pattern", pattern_str);
     jb_set_uint(js, "length", cd->content_len);
     jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
     jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
