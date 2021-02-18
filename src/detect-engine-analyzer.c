@@ -1052,47 +1052,6 @@ error:
     return -1;
 }
 
-static inline bool NeedsAsHex(uint8_t c)
-{
-    if (!isprint(c))
-        return true;
-
-    switch (c) {
-        case '/':
-        case ';':
-        case ':':
-        case '\\':
-        case ' ':
-        case '|':
-        case '"':
-        case '`':
-        case '\'':
-            return true;
-    }
-    return false;
-}
-
-static void PatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len)
-{
-    bool hex = false;
-    for (uint16_t i = 0; i < cd->content_len; i++) {
-        if (NeedsAsHex(cd->content[i])) {
-            char hex_str[4];
-            snprintf(hex_str, sizeof(hex_str), "%s%02X", !hex ? "|" : " ", cd->content[i]);
-            strlcat(str, hex_str, str_len);
-            hex = true;
-        } else {
-            char p_str[3];
-            snprintf(p_str, sizeof(p_str), "%s%c", hex ? "|" : "", cd->content[i]);
-            strlcat(str, p_str, str_len);
-            hex = false;
-        }
-    }
-    if (hex) {
-        strlcat(str, "|", str_len);
-    }
-}
-
 void DumpPatterns(DetectEngineCtx *de_ctx)
 {
     if (de_ctx->buffer_type_map_elements == 0 || de_ctx->pattern_hash_table == NULL)
@@ -1108,7 +1067,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
             htb != NULL; htb = HashListTableGetListNext(htb)) {
         char str[1024] = "";
         struct PatternItem *p = HashListTableGetListData(htb);
-        PatternPrettyPrint(p->cd, str, sizeof(str));
+        DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
 
         JsonBuilder *jb = arrays[p->sm_list];
         if (arrays[p->sm_list] == NULL) {
