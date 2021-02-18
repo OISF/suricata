@@ -418,7 +418,9 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream \"memcap\": %"PRIu64, SC_ATOMIC_GET(stream_config.memcap));
     }
 
-    ConfGetBool("stream.midstream", &stream_config.midstream);
+    int imidstream;
+    ConfGetBool("stream.midstream", &imidstream);
+    stream_config.midstream = imidstream != 0;
 
     if (!quiet) {
         SCLogConfig("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
@@ -919,8 +921,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
     /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        if (stream_config.midstream == FALSE &&
-                stream_config.async_oneside == FALSE)
+        if (!stream_config.midstream && stream_config.async_oneside == FALSE)
             return 0;
 
         if (ssn == NULL) {
@@ -1079,7 +1080,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 ssn->client.last_ack);
 
     } else if (p->tcph->th_flags & TH_ACK) {
-        if (stream_config.midstream == FALSE)
+        if (!stream_config.midstream)
             return 0;
 
         if (ssn == NULL) {
@@ -5049,7 +5050,7 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
         return 1;
     }
 
-    if (stream_config.midstream == TRUE || stream_config.async_oneside == TRUE) {
+    if (stream_config.midstream || stream_config.async_oneside == TRUE) {
         if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
             SCLogDebug("packet %"PRIu64" is a midstream stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
             return 1;
@@ -5170,7 +5171,7 @@ static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSe
         return TcpSessionReuseDoneEnoughSyn(p, f, ssn);
     }
 
-    if (stream_config.midstream == TRUE || stream_config.async_oneside == TRUE) {
+    if (stream_config.midstream || stream_config.async_oneside == TRUE) {
         if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
             return TcpSessionReuseDoneEnoughSynAck(p, f, ssn);
         }
