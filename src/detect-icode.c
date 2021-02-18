@@ -352,6 +352,21 @@ static int DetectICodeParseTest08(void)
 }
 
 /**
+ * \test DetectICodeParseTest09 is a test for setting a valid icode value
+ *       with "<<" operator
+ */
+static int DetectICodeParseTest09(void)
+{
+    DetectU8Data *icd = NULL;
+    icd = DetectU8Parse("8<<20");
+    if (icd == NULL)
+        return 1;
+    DetectICodeFree(NULL, icd);
+    return 0;
+
+}
+
+/**
  * \test DetectICodeMatchTest01 is a test for checking the working of icode
  *       keyword by creating 5 rules and matching a crafted packet against
  *       them. 4 out of 5 rules shall trigger.
