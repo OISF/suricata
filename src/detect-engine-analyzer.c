@@ -897,6 +897,29 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     SCReturn;
 }
 
+struct PatternItem {
+    const DetectContentData *cd;
+    int sm_list;
+    uint32_t cnt;
+    uint32_t mpm;
+};
+
+static inline uint32_t ContentFlagsForHash(const DetectContentData *cd)
+{
+    return cd->flags & (DETECT_CONTENT_NOCASE | DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH |
+                               DETECT_CONTENT_NEGATED | DETECT_CONTENT_ENDS_WITH);
+}
+
+/** \internal
+ *  \brief The hash function for Pattern
+ *
+ *  \param ht      Pointer to the hash table.
+ *  \param data    Pointer to the Pattern.
+ *  \param datalen Not used in our case.
+ *
+ *  \retval hash The generated hash value.
+ */
+
 void DumpPatterns(DetectEngineCtx *de_ctx)
 {
     if (de_ctx->buffer_type_map_elements == 0 || de_ctx->pattern_hash_table == NULL)
@@ -911,7 +934,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->pattern_hash_table);
             htb != NULL; htb = HashListTableGetListNext(htb)) {
         char str[1024] = "";
-        DetectPatternTracker *p = HashListTableGetListData(htb);
+        struct PatternItem *p = HashListTableGetListData(htb);
         DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
 
         JsonBuilder *jb = arrays[p->sm_list];
