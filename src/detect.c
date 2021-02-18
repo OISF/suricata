@@ -1419,7 +1419,10 @@ static void DetectRunTx(ThreadVars *tv,
                         tx.tx_ptr, tx.tx_id, array_idx - old);
             }
         }
-
+#ifdef PROFILING
+        if (array_idx >= de_ctx->profile_match_logging_threshold)
+            RulesDumpTxMatchArray(det_ctx, scratch->sgh, p, tx.tx_id, array_idx, x);
+#endif
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = 1;
         det_ctx->p = p;
