@@ -637,6 +637,20 @@
         exit 1
     fi
 
+    PCRE2=""
+    #AC_CHECK_HEADER(pcre2.h,,[AC_MSG_ERROR(pcre2.h not found ...)])
+    AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,PCRE2="no")
+    if test "$PCRE2" = "no"; then
+        echo
+        echo "   ERROR!  pcre2 library not found, go get it"
+        echo "   from www.pcre.org. Or from packages:"
+        echo "   Debian/Ubuntu: apt install libpcre2-dev"
+        echo "   Fedora: dnf install pcre2-devel"
+        echo "   CentOS/RHEL: yum install pcre2-devel"
+        echo
+        exit 1
+    fi
+
     # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
     # see https://redmine.openinfosecfoundation.org/issues/1693
     if test "$with_libpcre_libraries" = "no"; then
