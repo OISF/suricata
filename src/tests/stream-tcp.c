@@ -214,7 +214,7 @@ static int StreamTcpTest03(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -281,7 +281,7 @@ static int StreamTcpTest04(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -379,7 +379,7 @@ static int StreamTcpTest05(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -1226,7 +1226,7 @@ static int StreamTcpTest14(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -1616,7 +1616,7 @@ static int StreamTcpTest15(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -1778,7 +1778,7 @@ static int StreamTcpTest16(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
@@ -1941,7 +1941,7 @@ static int StreamTcpTest17(void)
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
-    if (stream_config.midstream != TRUE) {
+    if (!stream_config.midstream) {
         ret = 1;
         goto end;
     }
