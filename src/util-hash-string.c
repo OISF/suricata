@@ -19,17 +19,20 @@
 #include "util-hash-string.h"
 
 /* djb2 string hashing */
-uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
+uint32_t StringHashDjb2(uint8_t *data, uint32_t datalen)
 {
     uint32_t hash = 5381;
-    int c;
-
-    while ((c = *(char *)data++))
+    for (uint32_t i = 0; i < datalen; i++) {
+        uint32_t c = data[i];
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    hash = hash % ht->array_size;
-
+    }
     return hash;
+}
+
+/* djb2 string hashing */
+uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    return StringHashDjb2(data, datalen) % ht->array_size;
 }
 
 char StringHashCompareFunc(void *data1, uint16_t datalen1,
