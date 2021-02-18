@@ -338,6 +338,19 @@ static int DetectICodeParseTest08(void)
 }
 
 /**
+ * \test DetectICodeParseTest09 is a test for setting an invalid icode value
+ *       with "<<" operator
+ */
+static int DetectICodeParseTest09(void)
+{
+    DetectU8Data *icd = DetectU8Parse("8<<20");
+    FAIL_IF_NOT_NULL(icd);
+
+    DetectICodeFree(NULL, icd);
+    PASS;
+}
+
+/**
  * \test DetectICodeMatchTest01 is a test for checking the working of icode
  *       keyword by creating 5 rules and matching a crafted packet against
  *       them. 4 out of 5 rules shall trigger.
@@ -407,6 +420,7 @@ void DetectICodeRegisterTests(void)
     UtRegisterTest("DetectICodeParseTest06", DetectICodeParseTest06);
     UtRegisterTest("DetectICodeParseTest07", DetectICodeParseTest07);
     UtRegisterTest("DetectICodeParseTest08", DetectICodeParseTest08);
+    UtRegisterTest("DetectICodeParseTest09", DetectICodeParseTest09);
     UtRegisterTest("DetectICodeMatchTest01", DetectICodeMatchTest01);
 }
 #endif /* UNITTESTS */
