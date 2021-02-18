@@ -38,6 +38,7 @@
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
 #include "util-streaming-buffer.h"
+#include "app-layer-htp-range.h"
 #include "rust.h"
 
 #include <htp/htp.h>
@@ -131,6 +132,8 @@ enum {
 
     HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED,
     HTTP_DECODER_EVENT_COMPRESSION_BOMB,
+
+    HTTP_DECODER_EVENT_RANGE_INVALID,
 
     /* suricata errors/warnings */
     HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR,
@@ -257,6 +260,7 @@ typedef struct HtpState_ {
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
+    HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
 } HtpState;
