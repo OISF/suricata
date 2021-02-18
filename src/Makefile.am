@@ -57,6 +57,7 @@ noinst_HEADERS = \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \
+	containers.h \
 	counters.h \
 	datasets.h \
 	datasets-md5.h \
@@ -636,6 +637,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-tftp.c \
 	conf.c \
 	conf-yaml-loader.c \
+	containers.c \
 	counters.c \
 	datasets.c \
 	datasets-md5.c \
