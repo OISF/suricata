@@ -27,6 +27,7 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "debug.h"
+#include "util-validate.h"
 #include "decode.h"
 #include "threads.h"
 
@@ -114,6 +115,8 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
 
         sbcfg = &s->cfg->response.sbcfg;
 
+        // we shall not open a new file if there is a current one
+        DEBUG_VALIDATE_BUG_ON(s->file_range_container != NULL);
     } else {
         if (s->files_ts == NULL) {
             s->files_ts = FileContainerAlloc();
@@ -215,6 +218,39 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
 }
 
 /**
+ * Performs parsing + checking of the content-range value
+ *
+ * @param[in] rawvalue
+ * @param[out] range
+ *
+ * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
+ */
+static int HTPParseAndCheckContentRange(
+        bstr *rawvalue, HtpContentRange *range, HtpState *s, HtpTxUserData *htud)
+{
+    int r = HTPParseContentRange(rawvalue, range);
+    if (r != 0) {
+        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        s->events++;
+        SCLogDebug("parsing range failed, going back to normal file");
+        return r;
+    }
+    /* crparsed.end <= 0 means a range with only size
+     * this is the answer to an unsatisfied range with the whole file
+     * crparsed.size <= 0 means an unknown size, so we do not know
+     * when to close it...
+     */
+    if (range->end <= 0 || range->size <= 0) {
+        SCLogDebug("range without all information");
+        return -2;
+    } else if (range->end == range->size - 1 && range->start == 0) {
+        SCLogDebug("range without all information");
+        return -3;
+    }
+    return r;
+}
+
+/**
  *  \brief Sets range for a file
  *
  *  \param s http state
@@ -225,34 +261,91 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
  *  \retval -2 error parsing
  *  \retval -3 error negative end in range
  */
-int HTPFileSetRange(HtpState *s, bstr *rawvalue)
+int HTPFileOpenWithRange(HtpState *s, const uint8_t *filename, uint16_t filename_len,
+        const uint8_t *data, uint32_t data_len, uint64_t txid, bstr *rawvalue, HtpTxUserData *htud)
 {
     SCEnter();
+    uint16_t flags;
 
     if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    FileContainer * files = s->files_tc;
-    if (files == NULL) {
-        SCLogDebug("no files in state");
-        SCReturnInt(-1);
+    // This function is only called STREAM_TOCLIENT from HtpResponseBodyHandle
+    HtpContentRange crparsed;
+    if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
+        return HTPFileOpen(
+                s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+    }
+    flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
+    if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
+            ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
+        flags |= FILE_STORE;
+        flags &= ~FILE_NOSTORE;
+    } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
+        flags |= FILE_NOSTORE;
     }
 
-    HtpContentRange crparsed;
-    if (HTPParseContentRange(rawvalue, &crparsed) != 0) {
-        SCLogDebug("parsing range failed");
-        SCReturnInt(-2);
+    FileContainer * files = s->files_tc;
+    if (files == NULL) {
+        s->files_tc = FileContainerAlloc();
+        if (s->files_tc == NULL) {
+            SCReturnInt(-1);
+        }
+        files = s->files_tc;
     }
-    if (crparsed.end <= 0) {
-        SCLogDebug("negative end in range");
-        SCReturnInt(-3);
+
+    if (FileOpenFileWithId(files, &s->cfg->response.sbcfg, s->file_track_id++, filename,
+                filename_len, data, data_len, flags) != 0) {
+        SCReturnInt(-1);
     }
-    int retval = FileSetRange(files, crparsed.start, crparsed.end);
-    if (retval == -1) {
+    FileSetTx(files->tail, txid);
+
+    if (FileSetRange(files, crparsed.start, crparsed.end) < 0) {
         SCLogDebug("set range failed");
     }
-    SCReturnInt(retval);
+    htp_tx_t *tx = htp_list_get(s->conn->transactions, txid);
+    if (!tx) {
+        SCReturnInt(-1);
+    }
+    uint8_t *keyurl;
+    size_t keylen;
+    if (tx->request_hostname != NULL) {
+        keylen = bstr_len(tx->request_hostname) + filename_len + 1;
+        keyurl = SCMalloc(keylen);
+        if (keyurl == NULL) {
+            SCReturnInt(-1);
+        }
+        memcpy(keyurl, bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
+        memcpy(keyurl + bstr_len(tx->request_hostname), filename, filename_len);
+        keyurl[keylen - 1] = 0;
+    } else {
+        // do not reassemble file without host info
+        return HTPFileOpen(
+                s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+    }
+    s->file_range_container = ContainerUrlRangeGet(keyurl, keylen, &s->f->lastts);
+    SCFree(keyurl);
+    if (s->file_range_container == NULL) {
+        // probably reached memcap
+        SCReturnInt(0);
+    }
+    if (s->file_range_container->files->tail == NULL) {
+        if (FileOpenFileWithId(s->file_range_container->files, &s->cfg->response.sbcfg, 0, filename,
+                    filename_len, NULL, 0, flags) != 0) {
+            SCLogDebug("open file for range failed");
+            SCReturnInt(-1);
+        }
+    }
+    if (ContainerUrlRangeSetRange(
+                s->file_range_container, crparsed.start, crparsed.end, crparsed.size) < 0) {
+        SCLogDebug("Set range failed");
+    }
+    if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+        SCLogDebug("Failed to append data");
+    }
+
+    SCReturnInt(0);
 }
 
 /**
@@ -292,6 +385,11 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         goto end;
     }
 
+    if (s->file_range_container != NULL) {
+        if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
+    }
     result = FileAppendData(files, data, data_len);
     if (result == -1) {
         SCLogDebug("appending data failed");
@@ -349,6 +447,16 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         retval = -1;
     } else if (result == -2) {
         retval = -2;
+    }
+    if (s->file_range_container != NULL) {
+        if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
+        File *ranged = ContainerUrlRangeClose(s->file_range_container, flags);
+        if (ranged) {
+            FileContainerAdd(files, ranged);
+        }
+        s->file_range_container = NULL;
     }
 
 end:
