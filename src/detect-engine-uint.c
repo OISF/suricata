@@ -165,32 +165,39 @@ DetectU32Data *DetectU32Parse (const char *u32str)
         switch(arg2[0]) {
             case '<':
             case '>':
-                if (strlen(arg3) == 0)
-                    return NULL;
+                if (strlen(arg2) == 1) {
+                    if (strlen(arg3) == 0)
+                        return NULL;
 
-                if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg3), arg3) < 0) {
-                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
-                    return NULL;
-                }
-
-                SCLogDebug("u32 is %"PRIu32"",u32da.arg1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                if (arg2[0] == '<') {
-                    if (arg2[1] == '=') {
-                        u32da.mode = DETECT_UINT_LTE;
-                    } else {
-                        u32da.mode = DETECT_UINT_LT;
+                    if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg3), arg3) < 0) {
+                        SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
+                        return NULL;
                     }
-                } else { // arg2[0] == '>'
-                    if (arg2[1] == '=') {
-                        u32da.mode = DETECT_UINT_GTE;
-                    } else {
+
+                    SCLogDebug("u32 is %" PRIu32 "", u32da.arg1);
+                    if (strlen(arg1) > 0)
+                        return NULL;
+
+                    if (arg2[0] == '<') {
+                        u32da.mode = DETECT_UINT_LT;
+                    } else { // arg2[0] == '>'
                         u32da.mode = DETECT_UINT_GT;
                     }
+                    break;
+                } else if (strlen(arg2) == 2) {
+                    if (arg2[0] == '<' && arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_LTE;
+                        break;
+                    } else if (arg2[0] == '>' || arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_GTE;
+                        break;
+                    } else if (arg2[0] != '<' || arg2[1] != '>') {
+                        return NULL;
+                    }
+                } else {
+                    return NULL;
                 }
-                break;
+                // fall through
             case '-':
                 if (strlen(arg1)== 0)
                     return NULL;
@@ -413,29 +420,36 @@ DetectU8Data *DetectU8Parse (const char *u8str)
         switch(arg2[0]) {
             case '<':
             case '>':
-                if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
-                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
-                    return NULL;
-                }
-
-                SCLogDebug("u8 is %"PRIu8"",u8da.arg1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                if (arg2[0] == '<') {
-                    if (arg2[1] == '=') {
-                        u8da.mode = DETECT_UINT_LTE;
-                    } else {
-                        u8da.mode = DETECT_UINT_LT;
+                if (strlen(arg2) == 1) {
+                    if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
+                        SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
+                        return NULL;
                     }
-                } else { // arg2[0] == '>'
-                    if (arg2[1] == '=') {
-                        u8da.mode = DETECT_UINT_GTE;
-                    } else {
+
+                    SCLogDebug("u8 is %" PRIu8 "", u8da.arg1);
+                    if (strlen(arg1) > 0)
+                        return NULL;
+
+                    if (arg2[0] == '<') {
+                        u8da.mode = DETECT_UINT_LT;
+                    } else { // arg2[0] == '>'
                         u8da.mode = DETECT_UINT_GT;
                     }
+                    break;
+                } else if (strlen(arg2) == 2) {
+                    if (arg2[0] == '<' && arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_LTE;
+                        break;
+                    } else if (arg2[0] == '>' || arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_GTE;
+                        break;
+                    } else if (arg2[0] != '<' || arg2[1] != '>') {
+                        return NULL;
+                    }
+                } else {
+                    return NULL;
                 }
-                break;
+                // fall through
             case '-':
                 u8da.mode = DETECT_UINT_RA;
                 if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
