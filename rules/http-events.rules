@@ -83,4 +83,6 @@ alert http any any -> any any (msg:"SURICATA HTTP compression bomb"; flow:establ
 
 alert http any any -> any any (msg:"SURICATA HTTP too many warnings"; flow:established; app-layer-event:http.too_many_warnings; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221050; rev:1;)
 
-# next sid 2221051
+alert http any any -> any any (msg:"SURICATA HTTP invalid Range header value"; flow:established; app-layer-event:http.range_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221051; rev:1;)
+
+# next sid 2221052

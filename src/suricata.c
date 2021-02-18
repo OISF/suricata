@@ -73,6 +73,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "app-layer-htp-range.h"
 #include "datasets.h"
 
 #include "stream-tcp.h"
@@ -391,6 +392,7 @@ static void GlobalsDestroy(SCInstance *suri)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
+    HttpRangeContainersDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -2106,6 +2108,7 @@ void PreRunPostPrivsDropInit(const int runmode)
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
     DatasetsInit();
+    HttpRangeContainersInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {
         /* As the above did some necessary startup initialization, it

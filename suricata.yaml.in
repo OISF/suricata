@@ -830,6 +830,13 @@ app-layer:
           dp: 53
     http:
       enabled: yes
+
+      # Range Containers default settings
+      # urlrange:
+      #   memcap: 100mb
+      #   timeout: 60
+
+
       # memcap:                   Maximum memory capacity for HTTP
       #                           Default is unlimited, values can be 64mb, e.g.
 

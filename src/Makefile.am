@@ -34,6 +34,7 @@ app-layer-htp.c app-layer-htp.h \
 app-layer-htp-file.c app-layer-htp-file.h \
 app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
+app-layer-htp-range.c app-layer-htp-range.h \
 app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-http2.c app-layer-http2.h \
 app-layer-modbus.c app-layer-modbus.h \
