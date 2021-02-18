@@ -63,7 +63,7 @@ Dependencies
 
 For Suricata's compilation you'll need the following libraries and their development headers installed::
 
-  libjansson, libpcap, libpcre, libmagic, zlib, libyaml
+  libjansson, libpcap, libpcre, libpcre2, libmagic, zlib, libyaml
 
 The following tools are required::
 
@@ -89,7 +89,7 @@ Minimal::
 
     apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
                     libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
-                    make libmagic-dev libjansson libjansson-dev
+                    make libmagic-dev libjansson libjansson-dev libpcre2-dev
 
 Recommended::
 
@@ -97,7 +97,7 @@ Recommended::
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
                     libcap-ng-dev libcap-ng0 make libmagic-dev         \
                     libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
-                    python-yaml rustc cargo
+                    python-yaml rustc cargo libpcre2-dev
 
 Extra for iptables/nftables IPS integration::
 
