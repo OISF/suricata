@@ -66,6 +66,7 @@
 #include "host-timeout.h"
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
+#include "containers.h"
 
 #include "output-flow.h"
 #include "util-validate.h"
@@ -987,6 +988,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             //uint32_t hosts_pruned =
             HostTimeoutHash(&ts);
             IPPairTimeoutHash(&ts);
+            ContainersTimeoutHash(&ts);
             other_last_sec = (uint32_t)ts.tv_sec;
         }
 

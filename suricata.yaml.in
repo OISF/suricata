@@ -986,6 +986,12 @@ asn1-max-frames: 256
 #     hashsize: 2048
 
 ##############################################################################
+# Containers default settings
+# containers:
+#   urlrange:
+#     memcap: 100mb
+#     timeout: 60
+
 ##
 ## Advanced settings below
 ##
