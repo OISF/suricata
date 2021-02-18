@@ -195,9 +195,11 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                 }
 
                 SCLogDebug("u32 is %"PRIu32" to %"PRIu32"", u32da.arg1, u32da.arg2);
-                if (u32da.arg1 >= u32da.arg2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u32 range. ");
-                    return NULL;
+                if (u32da.arg1 > u32da.arg2) {
+                    uint32_t temp = u32da.arg1;
+                    u32da.arg1 = u32da.arg2;
+                    u32da.arg2 = temp;
+                    SCLogWarning(SC_WARN_POOR_RULE, "Reversed u32 range. ");
                 }
                 break;
             default:
@@ -422,9 +424,11 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                 }
 
                 SCLogDebug("u8 is %"PRIu8" to %"PRIu8"", u8da.arg1, u8da.arg2);
-                if (u8da.arg1 >= u8da.arg2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u8 range. ");
-                    return NULL;
+                if (u8da.arg1 > u8da.arg2) {
+                    uint8_t temp = u8da.arg1;
+                    u8da.arg1 = u8da.arg2;
+                    u8da.arg2 = temp;
+                    SCLogWarning(SC_WARN_POOR_RULE, "Reversed u8 range. ");
                 }
                 break;
             default:
