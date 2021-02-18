@@ -123,4 +123,6 @@ void DetectContentFree(DetectEngineCtx *, void *);
 bool DetectContentPMATCHValidateCallback(const Signature *s);
 void DetectContentPropagateLimits(Signature *s);
 
+void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len);
+
 #endif /* __DETECT_CONTENT_H__ */

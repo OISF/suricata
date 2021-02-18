@@ -627,6 +627,47 @@ void DetectContentPropagateLimits(Signature *s)
     }
 }
 
+static inline bool NeedsAsHex(uint8_t c)
+{
+    if (!isprint(c))
+        return true;
+
+    switch (c) {
+        case '/':
+        case ';':
+        case ':':
+        case '\\':
+        case ' ':
+        case '|':
+        case '"':
+        case '`':
+        case '\'':
+            return true;
+    }
+    return false;
+}
+
+void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len)
+{
+    bool hex = false;
+    for (uint16_t i = 0; i < cd->content_len; i++) {
+        if (NeedsAsHex(cd->content[i])) {
+            char hex_str[4];
+            snprintf(hex_str, sizeof(hex_str), "%s%02X", !hex ? "|" : " ", cd->content[i]);
+            strlcat(str, hex_str, str_len);
+            hex = true;
+        } else {
+            char p_str[3];
+            snprintf(p_str, sizeof(p_str), "%s%c", hex ? "|" : "", cd->content[i]);
+            strlcat(str, p_str, str_len);
+            hex = false;
+        }
+    }
+    if (hex) {
+        strlcat(str, "|", str_len);
+    }
+}
+
 #ifdef UNITTESTS /* UNITTESTS */
 
 static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
