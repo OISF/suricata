@@ -624,10 +624,11 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 
 int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
-    const int nlists = s->init_data->smlists_array_size;
-    int list = 0;
+    if (key_sm == NULL)
+        return -1;
 
-    for (list = 0; list < nlists; list++) {
+    const int nlists = s->init_data->smlists_array_size;
+    for (int list = 0; list < nlists; list++) {
         const SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm == key_sm)
