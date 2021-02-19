@@ -72,6 +72,7 @@
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
+#include "output-json-modbus.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -548,6 +549,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_RDP:
             AlertJsonRDP(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_MODBUS:
+            jb_get_mark(jb, &mark);
+            if (!JsonModbusAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
             break;
         default:
             break;
