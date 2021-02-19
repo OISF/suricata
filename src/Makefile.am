@@ -143,7 +143,6 @@ noinst_HEADERS = \
 	detect-engine.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
-	detect-engine-modbus.h \
 	detect-engine-mpm.h \
 	detect-engine-payload.h \
 	detect-engine-port.h \
@@ -722,7 +721,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-file.c \
 	detect-engine-iponly.c \
 	detect-engine-loader.c \
-	detect-engine-modbus.c \
 	detect-engine-mpm.c \
 	detect-engine-payload.c \
 	detect-engine-port.c \

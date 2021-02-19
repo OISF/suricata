@@ -34,32 +34,6 @@
 #ifndef __APP_LAYER_MODBUS_H__
 #define __APP_LAYER_MODBUS_H__
 
-/* Modbus Function Code Categories. */
-#define MODBUS_CAT_NONE                 0x0
-#define MODBUS_CAT_PUBLIC_ASSIGNED      (1<<0)
-#define MODBUS_CAT_PUBLIC_UNASSIGNED    (1<<1)
-#define MODBUS_CAT_USER_DEFINED         (1<<2)
-#define MODBUS_CAT_RESERVED             (1<<3)
-#define MODBUS_CAT_ALL                  0xFF
-
-/* Modbus Read/Write function and Access Types. */
-#define MODBUS_TYP_NONE                 0x0
-#define MODBUS_TYP_ACCESS_MASK          0x03
-#define MODBUS_TYP_READ                 (1<<0)
-#define MODBUS_TYP_WRITE                (1<<1)
-#define MODBUS_TYP_ACCESS_FUNCTION_MASK 0x3C
-#define MODBUS_TYP_BIT_ACCESS_MASK      0x0C
-#define MODBUS_TYP_DISCRETES            (1<<2)
-#define MODBUS_TYP_COILS                (1<<3)
-#define MODBUS_TYP_WORD_ACCESS_MASK     0x30
-#define MODBUS_TYP_INPUT                (1<<4)
-#define MODBUS_TYP_HOLDING              (1<<5)
-#define MODBUS_TYP_SINGLE               (1<<6)
-#define MODBUS_TYP_MULTIPLE             (1<<7)
-#define MODBUS_TYP_WRITE_SINGLE         (MODBUS_TYP_WRITE | MODBUS_TYP_SINGLE)
-#define MODBUS_TYP_WRITE_MULTIPLE       (MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
-#define MODBUS_TYP_READ_WRITE_MULTIPLE  (MODBUS_TYP_READ | MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
-
 void RegisterModbusParsers(void);
 
 #endif /* __APP_LAYER_MODBUS_H__ */
