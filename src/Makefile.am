@@ -397,6 +397,7 @@ noinst_HEADERS = \
 	output-json-ike.h \
 	output-json-krb5.h \
 	output-json-metadata.h \
+	output-json-modbus.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
@@ -973,6 +974,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-ike.c \
 	output-json-krb5.c \
 	output-json-metadata.c \
+	output-json-modbus.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
