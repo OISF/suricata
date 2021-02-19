@@ -118,8 +118,8 @@ SetupEngineForPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         return -1;
     }
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
         if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)
@@ -230,8 +230,8 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
         return 0;
     }
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
         if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)
@@ -357,8 +357,8 @@ static int PrefilterSetupPacketHeaderCommon(DetectEngineCtx *de_ctx,
     if (hash_table == NULL)
         return -1;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
         if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)

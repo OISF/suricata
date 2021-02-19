@@ -661,8 +661,8 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
 
     const Signature *s;
     uint32_t x;
-    for (x = 0; x < sgh->sig_cnt; x++) {
-        s = sgh->match_array[x];
+    for (x = 0; x < sgh->init->sig_cnt; x++) {
+        s = sgh->init->match_array[x];
         if (s == NULL)
             continue;
 
@@ -794,7 +794,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(js, "rules", js_array);
 
     json_t *stats = json_object();
-    json_object_set_new(stats, "total", json_integer(sgh->sig_cnt));
+    json_object_set_new(stats, "total", json_integer(sgh->init->sig_cnt));
 
     json_t *types = json_object();
     json_object_set_new(types, "mpm", json_integer(mpm_cnt));
@@ -929,16 +929,15 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
         } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
             const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
             json_t *o = json_object();
-            json_t *ts = json_object();
-            json_t *tc = json_object();
-
             if (de_ctx->flow_gh[1].sgh[p]) {
+                json_t *ts = json_object();
                 json_t *group_ts = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
                 json_object_set_new(ts, "rulegroup", group_ts);
                 json_object_set_new(o, "toserver", ts);
             }
             if (de_ctx->flow_gh[0].sgh[p]) {
+                json_t *tc = json_object();
                 json_t *group_tc = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
                 json_object_set_new(tc, "rulegroup", group_tc);
@@ -1481,32 +1480,32 @@ static int PortGroupWhitelist(const DetectPort *a)
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
     if (PortGroupWhitelist(a) && !PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 1;
     } else if (!PortGroupWhitelist(a) && PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 0;
     } else if (PortGroupWhitelist(a) > PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 1;
     } else if (PortGroupWhitelist(a) == PortGroupWhitelist(b)) {
-        if (a->sh->sig_cnt > b->sh->sig_cnt) {
-            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                    a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                    b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        if (a->sh->init->sig_cnt > b->sh->init->sig_cnt) {
+            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port,
+                    a->port2, a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                    b->sh->init->sig_cnt, PortGroupWhitelist(b));
             return 1;
         }
     }
 
-    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
-            a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-            b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+            a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2, b->sh->init->sig_cnt,
+            PortGroupWhitelist(b));
     return 0;
 }
 
@@ -1822,9 +1821,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
-        SigGroupHeadInitDataFree(sgh->init);
-        sgh->init = NULL;
-
         sgh->id = idx;
         cnt++;
     }
@@ -1837,10 +1833,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
          * signature not decode event only. */
     }
 
-    /* cleanup the hashes now since we won't need them
-     * after the initialization phase. */
-    SigGroupHeadHashFree(de_ctx);
-
     int dump_grouping = 0;
     (void)ConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
 
@@ -1852,6 +1844,17 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         RulesDumpGrouping(de_ctx, add_rules, add_mpm_stats);
     }
+
+    for (uint32_t idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+        SigGroupHead *sgh = de_ctx->sgh_array[idx];
+        if (sgh == NULL)
+            continue;
+        SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
+    }
+    /* cleanup the hashes now since we won't need them
+     * after the initialization phase. */
+    SigGroupHeadHashFree(de_ctx);
 
 #ifdef PROFILING
     SCProfilingSghInitCounters(de_ctx);
