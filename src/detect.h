@@ -1333,6 +1333,12 @@ typedef struct SigGroupHeadInitData_ {
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
 
+    /** number of sigs in this group */
+    SigIntId sig_cnt;
+
+    /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
+    Signature **match_array;
+
     /* port ptr */
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
@@ -1341,9 +1347,6 @@ typedef struct SigGroupHeadInitData_ {
 typedef struct SigGroupHead_ {
     uint32_t flags;
     /* coccinelle: SigGroupHead:flags:SIG_GROUP_HEAD_ */
-
-    /* number of sigs in this head */
-    SigIntId sig_cnt;
 
     /* non prefilter list excluding SYN rules */
     uint32_t non_pf_other_store_cnt;
@@ -1361,9 +1364,6 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
-
-    /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
-    Signature **match_array;
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

@@ -1344,8 +1344,8 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             break;
     }
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1436,8 +1436,8 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1513,8 +1513,8 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx,
     SCLogDebug("handling %s for list %d", am->name,
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1576,8 +1576,8 @@ static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     const Signature *s = NULL;
     uint32_t sig;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
