@@ -57,6 +57,10 @@ int SigGroupHeadClearSigs(SigGroupHead *);
 
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
 {
+    if (sghid->match_array != NULL) {
+        SCFree(sghid->match_array);
+        sghid->match_array = NULL;
+    }
     if (sghid->sig_array != NULL) {
         SCFree(sghid->sig_array);
         sghid->sig_array = NULL;
@@ -158,11 +162,6 @@ void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
     SCLogDebug("sgh %p", sgh);
 
-    if (sgh->match_array != NULL) {
-        SCFree(sgh->match_array);
-        sgh->match_array = NULL;
-    }
-
     if (sgh->non_pf_other_store_array != NULL) {
         SCFree(sgh->non_pf_other_store_array);
         sgh->non_pf_other_store_array = NULL;
@@ -174,8 +173,6 @@ void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         sgh->non_pf_syn_store_array = NULL;
         sgh->non_pf_syn_store_cnt = 0;
     }
-
-    sgh->sig_cnt = 0;
 
     if (sgh->init != NULL) {
         SigGroupHeadInitDataFree(sgh->init);
@@ -372,7 +369,7 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
     if (sgh->init->sig_array != NULL)
         memset(sgh->init->sig_array, 0, sgh->init->sig_size);
 
-    sgh->sig_cnt = 0;
+    sgh->init->sig_cnt = 0;
 
     return 0;
 }
@@ -426,10 +423,10 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     uint32_t sig;
 
-    sgh->sig_cnt = 0;
+    sgh->init->sig_cnt = 0;
     for (sig = 0; sig < max_idx + 1; sig++) {
         if (sgh->init->sig_array[sig / 8] & (1 << (sig % 8)))
-            sgh->sig_cnt++;
+            sgh->init->sig_cnt++;
     }
 
     return;
@@ -494,13 +491,13 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     if (sgh == NULL)
         return 0;
 
-    BUG_ON(sgh->match_array != NULL);
+    BUG_ON(sgh->init->match_array != NULL);
 
-    sgh->match_array = SCMalloc(sgh->sig_cnt * sizeof(Signature *));
-    if (sgh->match_array == NULL)
+    sgh->init->match_array = SCMalloc(sgh->init->sig_cnt * sizeof(Signature *));
+    if (sgh->init->match_array == NULL)
         return -1;
 
-    memset(sgh->match_array,0, sgh->sig_cnt * sizeof(Signature *));
+    memset(sgh->init->match_array, 0, sgh->init->sig_cnt * sizeof(Signature *));
 
     for (sig = 0; sig < max_idx + 1; sig++) {
         if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))) )
@@ -510,7 +507,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         if (s == NULL)
             continue;
 
-        sgh->match_array[idx] = s;
+        sgh->init->match_array[idx] = s;
         idx++;
     }
 
@@ -532,8 +529,8 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh == NULL)
         return;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -560,8 +557,8 @@ void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh == NULL)
         return;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -588,8 +585,8 @@ void SigGroupHeadSetFileHashFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh == NULL)
         return;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -629,8 +626,8 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh == NULL)
         return;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -657,8 +654,8 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
 
     BUG_ON(sgh->non_pf_other_store_array != NULL);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -688,8 +685,8 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         memset(sgh->non_pf_syn_store_array, 0, non_pf_syn * sizeof(SignatureNonPrefilterStore));
     }
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -865,7 +862,7 @@ static int SigGroupHeadTest06(void)
 
     SigGroupHeadSetSigCnt(sh, 4);
 
-    result &= (sh->sig_cnt == 3);
+    result &= (sh->init->sig_cnt == 3);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 1);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 1);
@@ -949,7 +946,7 @@ static int SigGroupHeadTest07(void)
 
     SigGroupHeadSetSigCnt(sh, 4);
 
-    result &= (sh->sig_cnt == 3);
+    result &= (sh->init->sig_cnt == 3);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 1);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 1);
@@ -958,7 +955,7 @@ static int SigGroupHeadTest07(void)
 
     SigGroupHeadClearSigs(sh);
 
-    result &= (sh->sig_cnt == 0);
+    result &= (sh->init->sig_cnt == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 0);
@@ -1041,7 +1038,7 @@ static int SigGroupHeadTest08(void)
 
     SigGroupHeadSetSigCnt(src_sh, 4);
 
-    result &= (src_sh->sig_cnt == 3);
+    result &= (src_sh->init->sig_cnt == 3);
     result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 1) == 1);
     result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 3) == 1);
@@ -1052,7 +1049,7 @@ static int SigGroupHeadTest08(void)
 
     SigGroupHeadSetSigCnt(dst_sh, 4);
 
-    result &= (dst_sh->sig_cnt == 3);
+    result &= (dst_sh->init->sig_cnt == 3);
     result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 1) == 1);
     result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 3) == 1);
@@ -1136,9 +1133,9 @@ static int SigGroupHeadTest09(void)
     SigGroupHeadSetSigCnt(sh, 4);
     SigGroupHeadBuildMatchArray(de_ctx, sh, 4);
 
-    result &= (sh->match_array[0] == de_ctx->sig_list);
-    result &= (sh->match_array[1] == de_ctx->sig_list->next->next);
-    result &= (sh->match_array[2] == de_ctx->sig_list->next->next->next->next);
+    result &= (sh->init->match_array[0] == de_ctx->sig_list);
+    result &= (sh->init->match_array[1] == de_ctx->sig_list->next->next);
+    result &= (sh->init->match_array[2] == de_ctx->sig_list->next->next->next->next);
 
     SigGroupHeadFree(de_ctx, sh);
 
