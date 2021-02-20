@@ -102,11 +102,27 @@ static int RustDCERPCUDPGetAlstateProgress(void *tx, uint8_t direction)
     return rs_dcerpc_get_alstate_progress(tx, direction);
 }
 
+static uint16_t DCERPCUDPProbe(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    SCLogDebug("DCERPCUDPProbe");
+
+    const int r = rs_dcerpc_probe_udp(direction, input, len, rdir);
+    switch (r) {
+        case 1:
+            return ALPROTO_DCERPC;
+        case 0:
+            return ALPROTO_UNKNOWN;
+        case -1:
+        default:
+            return ALPROTO_FAILED;
+    }
+}
+
 static int DCERPCUDPRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_DCERPC,
-            "|04 00|", 2, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_UDP, ALPROTO_DCERPC, "|04 00|", 2, 0,
+                STREAM_TOSERVER, DCERPCUDPProbe, 0, 0) < 0) {
         return -1;
     }
 
