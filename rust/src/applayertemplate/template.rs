@@ -327,7 +327,7 @@ pub extern "C" fn rs_template_parse_request(
     _flags: u8,
 ) -> AppLayerResult {
     let eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
+        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             true
         } else {
             false
@@ -363,7 +363,7 @@ pub extern "C" fn rs_template_parse_response(
     _flags: u8,
 ) -> AppLayerResult {
     let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
+        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             true
         } else {
             false

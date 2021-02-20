@@ -303,7 +303,8 @@ extern {
 }
 
 // Defined in app-layer-parser.h
-pub const APP_LAYER_PARSER_EOF : u8 = 0b0;
+pub const APP_LAYER_PARSER_EOF_TS : u8 = 0b0101;
+pub const APP_LAYER_PARSER_EOF_TC : u8 = 0b0110;
 pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = 0b1;
 pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
 pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
