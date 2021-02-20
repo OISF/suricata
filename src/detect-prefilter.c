@@ -75,13 +75,6 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter needs preceding match");
         SCReturnInt(-1);
     }
-    if (sigmatch_table[sm->type].SupportsPrefilter == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter is not supported for %s",
-                sigmatch_table[sm->type].name);
-        SCReturnInt(-1);
-    }
-
-    s->init_data->prefilter_sm = sm;
 
     /* if the sig match is content, prefilter should act like
      * 'fast_pattern' w/o options. */
@@ -99,11 +92,18 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
     } else {
+        if (sigmatch_table[sm->type].SupportsPrefilter == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter is not supported for %s",
+                    sigmatch_table[sm->type].name);
+            SCReturnInt(-1);
+        }
         s->flags |= SIG_FLAG_PREFILTER;
 
         /* make sure setup function runs for this type. */
         de_ctx->sm_types_prefilter[sm->type] = true;
     }
+
+    s->init_data->prefilter_sm = sm;
 
     SCReturnInt(0);
 }
