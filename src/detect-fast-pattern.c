@@ -1069,6 +1069,24 @@ static int DetectFastPatternTest671(void)
     PASS;
 }
 
+static int DetectFastPatternPrefilter(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    const char *string = "alert tcp any any -> any any "
+                         "(content:\"one\"; prefilter; sid:1;)";
+    Signature *s = DetectEngineAppendSig(de_ctx, string);
+    FAIL_IF_NULL(s);
+    SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    FAIL_IF_NOT(DETECT_CONTENT_IS_SINGLE(cd));
+    FAIL_IF_NOT((cd->flags & DETECT_CONTENT_FAST_PATTERN) == DETECT_CONTENT_FAST_PATTERN);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 static void DetectFastPatternRegisterTests(void)
 {
     UtRegisterTest("DetectFastPatternTest01", DetectFastPatternTest01);
@@ -1080,5 +1098,7 @@ static void DetectFastPatternRegisterTests(void)
      * - if 2 duplicate patterns, with no chop set get unique ids.
      */
     UtRegisterTest("DetectFastPatternTest671", DetectFastPatternTest671);
+
+    UtRegisterTest("DetectFastPatternPrefilter", DetectFastPatternPrefilter);
 }
 #endif
