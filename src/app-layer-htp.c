@@ -691,7 +691,7 @@ static int Setup(Flow *f, HtpState *hstate)
         goto error;
     }
 
-    hstate->conn = htp_connp_connection(hstate->connp);
+    hstate->conn = (htp_conn_t *) htp_connp_connection(hstate->connp);
 
     htp_connp_set_user_data(hstate->connp, (void *)hstate);
     hstate->cfg = htp_cfg_rec;
@@ -807,7 +807,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
     struct timeval ts = { f->lastts.tv_sec, f->lastts.tv_usec };
-    htp_tx_t *tx = NULL;
+    const htp_tx_t *tx = NULL;
     size_t consumed = 0;
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
@@ -2760,7 +2760,7 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
     HtpState *http_state = (HtpState *)alstate;
 
     if (http_state != NULL && http_state->connp != NULL)
-        return htp_connp_tx(http_state->connp, tx_id);
+        return (void *)htp_connp_tx(http_state->connp, tx_id);
     else
         return NULL;
 }
@@ -2772,7 +2772,7 @@ void *HtpGetTxForH2(void *alstate)
     if (http_state != NULL && http_state->connp != NULL) {
         size_t txid = htp_connp_tx_size(http_state->connp);
         if (txid > 0) {
-            return htp_connp_tx(http_state->connp, txid - 1);
+            return (void *)htp_connp_tx(http_state->connp, txid - 1);
         }
     }
     return NULL;
@@ -5808,7 +5808,7 @@ static int HTPBodyReassemblyTest01(void)
     BUG_ON(cfg == NULL);
     htp_connp_t *connp = htp_connp_create(cfg);
     BUG_ON(connp == NULL);
-    htp_tx_t *tx = htp_connp_get_request_tx(connp);
+    const htp_tx_t *tx = htp_connp_get_request_tx(connp);
     BUG_ON(tx == NULL);
 
     hstate.f = &flow;
