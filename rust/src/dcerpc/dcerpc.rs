@@ -350,6 +350,7 @@ pub struct DCERPCState {
     pub tc_ssn_gap: bool,
     pub ts_ssn_trunc: bool, /// true if Truncated in this direction
     pub tc_ssn_trunc: bool,
+    pub flow: Option<*const core::Flow>,
 }
 
 impl DCERPCState {
@@ -376,6 +377,7 @@ impl DCERPCState {
             tc_ssn_gap: false,
             ts_ssn_trunc: false,
             tc_ssn_trunc: false,
+            flow: None,
         };
     }
 
@@ -618,6 +620,8 @@ impl DCERPCState {
                     tx.req_lost = true;
                 }
                 tx.req_done = true;
+                let flow = self.flow.unwrap();
+                trigger_raw_stream_reassembly(flow, dir);
             }
         } else if self.tc_ssn_gap && dir == core::STREAM_TOCLIENT {
             for tx in &mut self.transactions {
@@ -633,6 +637,8 @@ impl DCERPCState {
                 }
                 tx.req_done = true;
                 tx.resp_done = true;
+                let flow = self.flow.unwrap();
+                trigger_raw_stream_reassembly(flow, dir);
             }
         }
     }
@@ -745,6 +751,8 @@ impl DCERPCState {
                 let mut tx = self.create_tx(call_id);
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
+                let flow = self.flow.unwrap();
+                trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER);
                 tx.frag_cnt_ts = 1;
                 self.transactions.push(tx);
                 // Bytes parsed with `parse_dcerpc_bind` + (bytes parsed per bindctxitem [44] * number
@@ -827,6 +835,8 @@ impl DCERPCState {
                     );
                     tx.req_done = true;
                     tx.frag_cnt_ts = 1;
+                    let flow = self.flow.unwrap();
+                    trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER);
                 }
                 DCERPC_TYPE_RESPONSE => {
                     retval = evaluate_stub_params(
@@ -839,6 +849,8 @@ impl DCERPCState {
                     );
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
+                    let flow = self.flow.unwrap();
+                    trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT);
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
@@ -1069,6 +1081,8 @@ impl DCERPCState {
                     };
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
+                    let flow = self.flow.unwrap();
+                    trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT);
                     self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_REQUEST => {
@@ -1145,6 +1159,12 @@ fn evaluate_stub_params(
     stub_len
 }
 
+pub fn trigger_raw_stream_reassembly(flow: *const core::Flow, dir: u8) {
+    unsafe {
+        AppLayerParserTriggerRawStreamReassembly(flow, dir);
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn rs_parse_dcerpc_request_gap(
     state: &mut DCERPCState,
@@ -1163,7 +1183,7 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_request(
-    _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
+    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
@@ -1177,6 +1197,7 @@ pub extern "C" fn rs_dcerpc_parse_request(
     }
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
+        state.flow = Some(flow);
         return state.handle_input_data(buf, core::STREAM_TOSERVER);
     }
     AppLayerResult::err()
@@ -1184,7 +1205,7 @@ pub extern "C" fn rs_dcerpc_parse_request(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_response(
-    _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
+    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1197,6 +1218,7 @@ pub extern "C" fn rs_dcerpc_parse_response(
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = build_slice!(input, input_len as usize);
+            state.flow = Some(flow);
             return state.handle_input_data(buf, core::STREAM_TOCLIENT);
         }
     }
@@ -1225,16 +1247,23 @@ pub extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_v
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
     let dce_state = cast_pointer!(state, DCERPCState);
+    let flow = dce_state.flow.unwrap();
     if direction & core::STREAM_TOSERVER != 0 {
         dce_state.ts_ssn_trunc = true;
         for tx in &mut dce_state.transactions {
             tx.req_done = true;
+            unsafe {
+                AppLayerParserTriggerRawStreamReassembly(flow, core::STREAM_TOSERVER);
+            }
         }
         SCLogDebug!("dce_state.ts_ssn_trunc = true; txs {}", dce_state.transactions.len());
     } else if direction & core::STREAM_TOCLIENT != 0 {
         dce_state.tc_ssn_trunc = true;
         for tx in &mut dce_state.transactions {
             tx.resp_done = true;
+            unsafe {
+                AppLayerParserTriggerRawStreamReassembly(flow, core::STREAM_TOCLIENT);
+            }
         }
         SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());
     }
