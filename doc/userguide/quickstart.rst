@@ -130,7 +130,7 @@ can be triggered quite easy. Before we trigger it, start ``tail`` to see updates
 Rule trigger::
 
     sudo tail -f /var/log/suricata/fast.log
-    curl http://testmyids.com/
+    curl http://testmynids.org/uid/index.html
 
 The following output should now be seen in the log::
 
