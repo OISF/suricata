@@ -350,6 +350,8 @@ pub struct DCERPCState {
     pub tc_ssn_gap: bool,
     pub ts_ssn_trunc: bool, /// true if Truncated in this direction
     pub tc_ssn_trunc: bool,
+    pub req_done: bool,
+    pub resp_done: bool,
 }
 
 impl DCERPCState {
@@ -376,6 +378,8 @@ impl DCERPCState {
             tc_ssn_gap: false,
             ts_ssn_trunc: false,
             tc_ssn_trunc: false,
+            req_done: false,
+            resp_done: false,
         };
     }
 
@@ -618,6 +622,7 @@ impl DCERPCState {
                     tx.req_lost = true;
                 }
                 tx.req_done = true;
+                self.req_done = true;
             }
         } else if self.tc_ssn_gap && dir == core::STREAM_TOCLIENT {
             for tx in &mut self.transactions {
@@ -633,6 +638,8 @@ impl DCERPCState {
                 }
                 tx.req_done = true;
                 tx.resp_done = true;
+                self.req_done = true;
+                self.resp_done = true;
             }
         }
     }
@@ -745,6 +752,7 @@ impl DCERPCState {
                 let mut tx = self.create_tx(call_id);
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
+                self.req_done = true;
                 tx.frag_cnt_ts = 1;
                 self.transactions.push(tx);
                 // Bytes parsed with `parse_dcerpc_bind` + (bytes parsed per bindctxitem [44] * number
@@ -827,6 +835,7 @@ impl DCERPCState {
                     );
                     tx.req_done = true;
                     tx.frag_cnt_ts = 1;
+                    self.req_done = true;
                 }
                 DCERPC_TYPE_RESPONSE => {
                     retval = evaluate_stub_params(
@@ -839,6 +848,7 @@ impl DCERPCState {
                     );
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
+                    self.resp_done = true;
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
@@ -1069,6 +1079,7 @@ impl DCERPCState {
                     };
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
+                    self.resp_done = true;
                     self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_REQUEST => {
