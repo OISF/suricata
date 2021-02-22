@@ -538,6 +538,7 @@ static void SetBpfStringFromFile(char *filename)
 
 static void PrintUsage(const char *progname)
 {
+    // clang-format off
 #ifdef REVISION
     printf("%s %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #else
@@ -637,6 +638,7 @@ static void PrintUsage(const char *progname)
             "interface eth0 with signature file \"signatures.rules\", run the "
             "command as:\n\n%s -c suricata.yaml -s signatures.rules -i eth0 \n\n",
             progname);
+    // clang-format on
 }
 
 static void PrintBuildInfo(void)
