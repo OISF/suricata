@@ -81,6 +81,8 @@ pub type SCLogMessageFunc =
 pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
+pub type AppLayerParserTriggerRawStreamReassemblyFunc =
+    extern "C" fn (flow: *const Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
                    event: u8);
@@ -133,6 +135,7 @@ pub struct SuricataContext {
     DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
+    pub AppLayerParserTriggerRawStreamReassembly: AppLayerParserTriggerRawStreamReassemblyFunc,
 
     pub FileOpenFile: SCFileOpenFileWithId,
     pub FileCloseFile: SCFileCloseFileById,
@@ -178,6 +181,15 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
     unsafe {
         if let Some(c) = SC {
             (c.DetectEngineStateFree)(state);
+        }
+    }
+}
+
+/// AppLayerParserTriggerRawStreamReassembly wrapper
+pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, direction: i32) {
+    unsafe {
+        if let Some(c) = SC {
+            (c.AppLayerParserTriggerRawStreamReassembly)(flow, direction);
         }
     }
 }
