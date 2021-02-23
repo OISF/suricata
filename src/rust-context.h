@@ -32,6 +32,7 @@ typedef struct SuricataContext_ {
     void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **,
             uint8_t);
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
+    void (*AppLayerParserTriggerRawStreamReassembly)(Flow *, int direction);
 
     int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
