@@ -621,7 +621,7 @@ impl DCERPCState {
                 }
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir.into());
                 }
             }
         } else if self.tc_ssn_gap && dir == core::STREAM_TOCLIENT {
@@ -639,7 +639,7 @@ impl DCERPCState {
                 tx.req_done = true;
                 tx.resp_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir.into());
                 }
             }
         }
@@ -754,7 +754,7 @@ impl DCERPCState {
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
                 }
                 tx.frag_cnt_ts = 1;
                 self.transactions.push(tx);
@@ -839,7 +839,7 @@ impl DCERPCState {
                     tx.req_done = true;
                     tx.frag_cnt_ts = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
@@ -854,7 +854,7 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
                     }
                 }
                 _ => {
@@ -1087,7 +1087,7 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
                     }
                     self.handle_bind_cache(current_call_id, false);
                 }
@@ -1252,7 +1252,7 @@ pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direct
         for tx in &mut dce_state.transactions {
             tx.req_done = true;
             if let Some(flow) = dce_state.flow {
-                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER);
+                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
             }
         }
         SCLogDebug!("dce_state.ts_ssn_trunc = true; txs {}", dce_state.transactions.len());
@@ -1261,7 +1261,7 @@ pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direct
         for tx in &mut dce_state.transactions {
             tx.resp_done = true;
             if let Some(flow) = dce_state.flow {
-                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT);
+                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
             }
         }
         SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());

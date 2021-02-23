@@ -186,7 +186,7 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
 }
 
 /// AppLayerParserTriggerRawStreamReassembly wrapper
-pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, direction: u8) {
+pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, direction: i32) {
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerParserTriggerRawStreamReassembly)(flow, direction);
