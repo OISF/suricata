@@ -891,17 +891,6 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
      ((p)->action |= a)); \
 } while (0)
 
-#define PKT_MAX_DECODED_LAYERS 16
-
-static inline bool PacketIncreaseCheckLayers(Packet *p)
-{
-    p->nb_decoded_layers++;
-    if (p->nb_decoded_layers > PKT_MAX_DECODED_LAYERS) {
-        return false;
-    }
-    return true;
-}
-
 #define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
     } while (0)
@@ -1174,6 +1163,18 @@ void DecodeUnregisterCounters(void);
     ((p)->flags & (PKT_PSEUDO_STREAM_END|PKT_PSEUDO_DETECTLOG_FLUSH))
 
 #define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
+
+#define PKT_MAX_DECODED_LAYERS 16
+
+static inline bool PacketIncreaseCheckLayers(Packet *p)
+{
+    p->nb_decoded_layers++;
+    if (p->nb_decoded_layers > PKT_MAX_DECODED_LAYERS) {
+        ENGINE_SET_INVALID_EVENT(p, GENERIC_TOO_MANY_LAYERS);
+        return false;
+    }
+    return true;
+}
 
 /** \brief return true if *this* packet needs to trigger a verdict.
  *
