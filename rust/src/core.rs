@@ -82,7 +82,7 @@ pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
 pub type AppLayerParserTriggerRawStreamReassemblyFunc =
-    extern "C" fn (flow: *const Flow, direction: u8);
+    extern "C" fn (flow: *const Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
                    event: u8);
