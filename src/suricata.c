@@ -2678,6 +2678,8 @@ int InitGlobal(void) {
     suricata_context.DetectEngineStateFree = DetectEngineStateFree;
     suricata_context.AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw;
     suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+    suricata_context.AppLayerParserTriggerRawStreamReassembly =
+            AppLayerParserTriggerRawStreamReassembly;
 
     suricata_context.FileOpenFileWithId = FileOpenFileWithId;
     suricata_context.FileCloseFileById = FileCloseFileById;
