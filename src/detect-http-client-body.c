@@ -59,9 +59,6 @@
 #include "detect-http-client-body.h"
 #include "stream-tcp.h"
 
-static int DetectEngineInspectBufferHttpRequest(DetectEngineCtx *, DetectEngineThreadCtx *,
-        const DetectEngineAppInspectionEngine *, const Signature *, Flow *, uint8_t, void *, void *,
-        uint64_t);
 static int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
@@ -103,7 +100,7 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectEngineInspectBufferHttpRequest, HttpClientBodyGetDataCallback);
+            HTP_REQUEST_BODY, DetectEngineInspectBufferGeneric, HttpClientBodyGetDataCallback);
 
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, HttpClientBodyGetDataCallback, ALPROTO_HTTP1,
@@ -263,71 +260,10 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *de
             &data, &data_len, offset);
     InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
-    buffer->inspect_offset = offset;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static int DetectEngineInspectBufferHttpRequest(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    const int list_id = engine->sm_list;
-    const InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    bool eof = false;
-    SCLogDebug("[list_id %d]: signature: %s", list_id, s->sig_str);
-    if (buffer->inspect == NULL) {
-        SCLogDebug("running inspect on %d", list_id);
-
-        eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
-
-        SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
-                engine->v2.transforms);
-
-        /* if prefilter didn't already run, we need to consider transformations */
-        const DetectEngineTransforms *transforms = NULL;
-        if (!engine->mpm) {
-            transforms = engine->v2.transforms;
-        }
-
-        buffer = engine->v2.GetData(det_ctx, transforms, f, flags, txv, list_id);
-        if (unlikely(buffer == NULL)) {
-            return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-        }
-    }
-
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-    const uint64_t offset = buffer->inspect_offset;
-
-    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
-    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
-    ci_flags |= buffer->flags;
-
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
-    /* Inspect all the uricontents fetched on each
-     * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
-            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-
-    /* Set to move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-
-    HtpBody *body = GetRequestBody(txv);
     det_ctx->http_body_progress_updated = true;
     det_ctx->http_body_progress = body->content_len_so_far;
 
-    if (r == 1) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    }
-
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) > HTP_REQUEST_BODY)
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    SCReturnPtr(buffer, "InspectionBuffer");
 }
 
 #ifdef UNITTESTS
