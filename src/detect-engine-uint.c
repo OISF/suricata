@@ -173,10 +173,10 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                     if (arg2[0] != '<' && arg2[1] != '>') {
                         return NULL;
                     }
-                    //fallthrough
                 } else {
                     return NULL;
                 }
+                //fall through
             case '-':
                 if (strlen(arg1)== 0)
                     return NULL;
@@ -406,10 +406,10 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                     if (arg2[0] != '<' && arg2[1] != '>') {
                         return NULL;
                     }
-                    //fallthrough
                 } else {
                     return NULL;
                 }
+                //fallthrough
             case '-':
                 u8da.mode = DETECT_UINT_RA;
                 if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
