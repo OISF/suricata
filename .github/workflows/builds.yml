@@ -10,7 +10,7 @@ env:
   DEFAULT_LIBHTP_PR:
 
   DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
-  DEFAULT_SU_BRANCH: master
+  DEFAULT_SU_BRANCH: master-1.2.x
   DEFAULT_SU_PR:
 
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
