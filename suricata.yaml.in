@@ -872,8 +872,8 @@ app-layer:
            swf-decompression:
              enabled: yes
              type: both
-             compress-depth: 0
-             decompress-depth: 0
+             compress-depth: 100kb
+             decompress-depth: 100kb
 
            # Use a random value for inspection sizes around the specified value.
            # This lowers the risk of some evasion techniques but could lead
