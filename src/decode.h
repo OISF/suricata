@@ -1222,6 +1222,7 @@ void DecodeUnregisterCounters(void);
 
 /** We had no alert on flow before this packet */
 #define PKT_FIRST_ALERTS BIT_U32(29)
+#define PKT_FIRST_TAG    BIT_U32(30)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
