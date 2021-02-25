@@ -276,6 +276,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
          * to log it (the alert will log it) */
         if (!(iter->flags & TAG_ENTRY_FLAG_SKIPPED_FIRST)) {
             iter->flags |= TAG_ENTRY_FLAG_SKIPPED_FIRST;
+            p->flags |= PKT_FIRST_TAG;
         } else {
             /* Update metrics; remove if tag expired; and set alerts */
             switch (iter->metric) {
