@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -354,19 +354,27 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(
 }
 
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, uint8_t flow_flags, File *cur_file,
-        int list_id, int local_file_id, bool first)
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
+        const int list_id, const int base_id, int local_file_id, bool first)
 {
     SCEnter();
+    SCLogDebug(
+            "starting: list_id %d base_id %d first %s", list_id, base_id, first ? "true" : "false");
 
     InspectionBuffer *buffer =
-        InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
+        InspectionBufferMultipleForListGet(det_ctx, base_id, local_file_id);
     SCLogDebug("base: buffer %p", buffer);
     if (buffer == NULL)
         return NULL;
-    if (!first && buffer->inspect != NULL)
+    if (base_id != list_id && buffer->inspect != NULL) {
+        SCLogDebug("handle xform %s", (list_id != base_id) ? "true" : "false");
+        return FiledataWithXformsGetDataCallback(
+                det_ctx, transforms, list_id, local_file_id, buffer, first);
+    }
+    if (!first && buffer->inspect != NULL) {
+        SCLogDebug("base_id: %d, not first: use %p", base_id, buffer);
         return buffer;
+    }
 
     const uint64_t file_size = FileDataSize(cur_file);
     const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
@@ -422,7 +430,16 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("file_data buffer %p, data %p len %u offset %"PRIu64,
         buffer, buffer->inspect, buffer->inspect_len, buffer->inspect_offset);
 
-    SCReturnPtr(buffer, "InspectionBuffer");
+    /* get buffer for the list id if it is different from the base id */
+    if (list_id != base_id) {
+        SCLogDebug("regular %d has been set up: now handle xforms id %d", base_id, list_id);
+        InspectionBuffer *tbuffer = FiledataWithXformsGetDataCallback(
+                det_ctx, transforms, list_id, local_file_id, buffer, first);
+        SCReturnPtr(tbuffer, "InspectionBuffer");
+    } else {
+        SCLogDebug("regular buffer %p size %u", buffer, buffer->inspect_len);
+        SCReturnPtr(buffer, "InspectionBuffer");
+    }
 }
 
 static int DetectEngineInspectFiledata(
@@ -456,8 +473,8 @@ static int DetectEngineInspectFiledata(
         if (file->txid != tx_id)
             continue;
 
-        InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx,
-            transforms, f, flags, file, engine->sm_list, local_file_id, false);
+        InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
+                engine->sm_list, engine->sm_list_base, local_file_id, false);
         if (buffer == NULL)
             continue;
 
@@ -490,6 +507,7 @@ static int DetectEngineInspectFiledata(
 
 typedef struct PrefilterMpmFiledata {
     int list_id;
+    int base_list_id;
     const MpmCtx *mpm_ctx;
     const DetectEngineTransforms *transforms;
 } PrefilterMpmFiledata;
@@ -522,8 +540,8 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
             if (file->txid != idx)
                 continue;
 
-            InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx,
-                    ctx->transforms, f, flags, file, list_id, local_file_id, true);
+            InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
+                    file, list_id, ctx->base_list_id, local_file_id, true);
             if (buffer == NULL)
                 continue;
 
@@ -550,6 +568,7 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
     if (pectx == NULL)
         return -1;
     pectx->list_id = list_id;
+    pectx->base_list_id = mpm_reg->sm_list_base;
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
