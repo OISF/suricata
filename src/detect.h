@@ -403,9 +403,10 @@ typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
     uint8_t id;     /**< per sig id used in state keeping */
-    uint16_t mpm:1;
-    uint16_t stream:1;
-    uint16_t sm_list:14;
+    bool mpm;
+    bool stream;
+    uint16_t sm_list;
+    uint16_t sm_list_base; /**< base buffer being transformed */
     int16_t progress;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
@@ -460,8 +461,9 @@ typedef InspectionBuffer *(*InspectionBufferGetPktDataPtr)(
 
 typedef struct DetectEnginePktInspectionEngine {
     SigMatchData *smd;
-    uint16_t mpm:1;
-    uint16_t sm_list:15;
+    bool mpm;
+    uint16_t sm_list;
+    uint16_t sm_list_base;
     struct {
         InspectionBufferGetPktDataPtr GetData;
         InspectionBufferPktInspectFunc Callback;
@@ -612,7 +614,8 @@ typedef struct DetectBufferMpmRegistery_ {
     const char *name;
     char pname[32];             /**< name used in profiling */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
-    int sm_list;
+    int16_t sm_list;
+    int16_t sm_list_base;
     int priority;
     int id;                     /**< index into this array and result arrays */
     enum DetectBufferMpmType type;

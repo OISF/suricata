@@ -116,6 +116,7 @@ void DetectAppLayerMpmRegister2(const char *name,
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
     am->sm_list = sm_list;
+    am->sm_list_base = sm_list;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_APP;
 
@@ -155,6 +156,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             am->direction = t->direction;
             am->sm_list = id; // use new id
+            am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_APP;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
             am->app_v2.GetData = t->app_v2.GetData;
@@ -350,6 +352,7 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             am->sm_list = id; // use new id
+            am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_PKT;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
             am->pkt_v1.GetData = t->pkt_v1.GetData;
