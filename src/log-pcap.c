@@ -252,7 +252,7 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
             }
             break;
         case LOGMODE_COND_TAG:
-            if (p->flags & PKT_HAS_TAG) {
+            if (p->flags & (PKT_HAS_TAG | PKT_FIRST_TAG)) {
                 return TRUE;
             } else {
                 return FALSE;
