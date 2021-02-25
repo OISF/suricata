@@ -62,10 +62,8 @@ static int g_file_data_buffer_id = 0;
 static inline HtpBody *GetResponseBody(htp_tx_t *tx);
 
 /* HTTP */
-static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
+static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 /* file API */
 static int DetectEngineInspectFiledata(
@@ -99,10 +97,8 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMTP, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister,
-            HttpServerBodyGetDataCallback,
-            ALPROTO_HTTP, HTP_RESPONSE_BODY);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmHTTPFiledataRegister,
+            NULL, ALPROTO_HTTP, HTP_RESPONSE_BODY);
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
@@ -115,9 +111,8 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_HTTP2, HTTP2StateDataServer);
-
     DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, HttpServerBodyGetDataCallback);
+            HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata, NULL);
@@ -165,73 +160,6 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
 
     de_ctx->filedata_config_initialized = true;
-}
-
-static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    const int list_id = engine->sm_list;
-    const InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    bool eof = false;
-    if (buffer->inspect == NULL) {
-        SCLogDebug("running inspect on %d", list_id);
-
-        eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
-
-        SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
-                engine->v2.transforms);
-
-        /* if prefilter didn't already run, we need to consider transformations */
-        const DetectEngineTransforms *transforms = NULL;
-        if (!engine->mpm) {
-            transforms = engine->v2.transforms;
-        }
-
-        buffer = engine->v2.GetData(det_ctx, transforms, f, flags, txv, list_id);
-        if (unlikely(buffer == NULL)) {
-            return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-        }
-    }
-
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-    const uint64_t offset = buffer->inspect_offset;
-
-    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
-    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
-    ci_flags |= buffer->flags;
-
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
-    /* Inspect all the uricontents fetched on each
-     * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
-            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-    htp_tx_t *tx = txv;
-    HtpBody *body = GetResponseBody(tx);
-    body->body_inspected = body->content_len_so_far;
-    SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
-
-    if (r == 1) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    }
-
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
-                HTP_REQUEST_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
-                HTP_RESPONSE_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /**
@@ -293,6 +221,20 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
     SCLogDebug("callback invoked by %u", s->id);
 }
 
+/* common */
+
+typedef struct PrefilterMpmFiledata {
+    int list_id;
+    int base_list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmFiledata;
+
+static void PrefilterMpmFiledataFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
 /* HTTP based detection */
 
 static inline HtpBody *GetResponseBody(htp_tx_t *tx)
@@ -306,15 +248,30 @@ static inline HtpBody *GetResponseBody(htp_tx_t *tx)
     return &htud->response_body;
 }
 
+static inline InspectionBuffer *HttpServerBodyXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, const int list_id, InspectionBuffer *base_buffer)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect != NULL)
+        return buffer;
+
+    InspectionBufferSetup(det_ctx, list_id, buffer, base_buffer->inspect, base_buffer->inspect_len);
+    buffer->inspect_offset = base_buffer->inspect_offset;
+    InspectionBufferApplyTransforms(buffer, transforms);
+    SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
+    SCReturnPtr(buffer, "InspectionBuffer");
+}
+
 static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, const int base_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect != NULL)
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, base_id);
+    if (base_id != list_id && buffer->inspect != NULL)
+        return HttpServerBodyXformsGetDataCallback(det_ctx, transforms, list_id, buffer);
+    else if (buffer->inspect != NULL)
         return buffer;
 
     htp_tx_t *tx = txv;
@@ -390,6 +347,8 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
             &data, &data_len, offset);
     InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
+    body->body_inspected = body->content_len_so_far;
+    SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
 
     /* built-in 'transformation' */
     if (htp_state->cfg->swf_decompression_enabled) {
@@ -406,9 +365,100 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
         }
     }
 
-    InspectionBufferApplyTransforms(buffer, transforms);
-
+    if (base_id != list_id) {
+        buffer = HttpServerBodyXformsGetDataCallback(det_ctx, transforms, list_id, buffer);
+    }
     SCReturnPtr(buffer, "InspectionBuffer");
+}
+
+static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    bool eof =
+            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    const InspectionBuffer *buffer = HttpServerBodyGetDataCallback(
+            det_ctx, engine->v2.transforms, f, flags, txv, engine->sm_list, engine->sm_list_base);
+    if (buffer == NULL || buffer->inspect == NULL) {
+        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
+    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
+    ci_flags |= buffer->flags;
+
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+
+    /* Inspect all the uricontents fetched on each
+     * transaction at the app layer */
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
+            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    }
+
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+                HTP_REQUEST_BODY)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) >
+                HTP_RESPONSE_BODY)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+/** \brief Filedata Filedata Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param pectx inspection context
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param idx transaction id
+ *  \param flags STREAM_* flags including direction
+ */
+static void PrefilterTxHTTPFiledata(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmFiledata *ctx = (const PrefilterMpmFiledata *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    const int list_id = ctx->list_id;
+
+    InspectionBuffer *buffer = HttpServerBodyGetDataCallback(
+            det_ctx, ctx->transforms, f, flags, txv, list_id, ctx->base_list_id);
+    if (buffer == NULL)
+        return;
+
+    if (buffer->inspect_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(
+                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
+    }
+}
+
+static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    PrefilterMpmFiledata *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->base_list_id = mpm_reg->sm_list_base;
+    SCLogDebug("list_id %d base_list_id %d", list_id, pectx->base_list_id);
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHTTPFiledata, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
 }
 
 /* file API based inspection */
@@ -576,13 +626,6 @@ static int DetectEngineInspectFiledata(
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-typedef struct PrefilterMpmFiledata {
-    int list_id;
-    int base_list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmFiledata;
-
 /** \brief Filedata Filedata Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
@@ -625,11 +668,6 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
             local_file_id++;
         }
     }
-}
-
-static void PrefilterMpmFiledataFree(void *ptr)
-{
-    SCFree(ptr);
 }
 
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
