@@ -1161,6 +1161,7 @@ void DecodeUnregisterCounters(void);
 #define PKT_STREAM_NO_EVENTS            (1<<28)
 /** We had no alert on flow before this packet */
 #define PKT_FIRST_ALERTS (1 << 29)
+#define PKT_FIRST_TAG    (1 << 30)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
