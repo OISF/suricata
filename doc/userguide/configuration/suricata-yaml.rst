@@ -547,6 +547,11 @@ The following shows the configuration options for version 2 of the
       # file naming scheme.
       #force-hash: [sha1, md5]
 
+      # Limit the number of bytes used for generating the file hash.
+      # If not provided, or set to 0, the hashing function will use
+      # up to the stream-depth value.
+      #hash-byte-limit: 5000
+
 Detection engine
 ----------------
 
