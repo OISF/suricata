@@ -154,6 +154,7 @@ void DetectPktInspectEngineRegister(const char *name,
             "failed to register inspect engine %s: %s", name, strerror(errno));
     }
     new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
     new_engine->v1.Callback = Callback;
     new_engine->v1.GetData = GetPktData;
 
@@ -274,6 +275,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     new_engine->alproto = alproto;
     new_engine->dir = direction;
     new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
     new_engine->progress = progress;
     new_engine->v2.Callback = Callback2;
     new_engine->v2.GetData = GetData;
@@ -306,6 +308,7 @@ static void DetectAppLayerInspectEngineCopy(
             new_engine->alproto = t->alproto;
             new_engine->dir = t->dir;
             new_engine->sm_list = new_list;         /* use new list id */
+            new_engine->sm_list_base = sm_list;
             new_engine->progress = t->progress;
             new_engine->Callback = t->Callback;
             new_engine->v2 = t->v2;
@@ -338,6 +341,7 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
         new_engine->progress = t->progress;
         new_engine->Callback = t->Callback;
         new_engine->v2 = t->v2;
@@ -371,6 +375,7 @@ static void DetectPktInspectEngineCopy(
                 exit(EXIT_FAILURE);
             }
             new_engine->sm_list = new_list;         /* use new list id */
+            new_engine->sm_list_base = sm_list;
             new_engine->v1 = t->v1;
             new_engine->v1.transforms = transforms; /* assign transforms */
 
@@ -400,6 +405,7 @@ static void DetectPktInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
         new_engine->v1 = t->v1;
 
         if (de_ctx->pkt_inspect_engines == NULL) {
@@ -439,6 +445,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     new_engine->dir = direction;
     new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
+    new_engine->sm_list_base = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
     new_engine->Callback = DetectEngineInspectStream;
     new_engine->progress = 0;
@@ -508,6 +515,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             }
 
             new_engine->sm_list = e->sm_list;
+            new_engine->sm_list_base = e->sm_list_base;
             new_engine->smd = ptrs[new_engine->sm_list];
             new_engine->v1 = e->v1;
             SCLogDebug("sm_list %d new_engine->v1 %p/%p/%p",
@@ -571,6 +579,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list_base;
         new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
         new_engine->progress = t->progress;
@@ -1500,12 +1509,14 @@ bool DetectEnginePktInspectionRun(ThreadVars *tv,
  */
 static int DetectEnginePktInspectionAppend(Signature *s,
         InspectionBufferPktInspectFunc Callback,
-        SigMatchData *data)
+        SigMatchData *data, const int list_id)
 {
     DetectEnginePktInspectionEngine *e = SCCalloc(1, sizeof(*e));
     if (e == NULL)
         return -1;
 
+    e->sm_list = list_id;
+    e->sm_list_base = list_id;
     e->v1.Callback = Callback;
     e->smd = data;
 
@@ -1526,14 +1537,14 @@ int DetectEnginePktInspectionSetup(Signature *s)
     /* only handle PMATCH here if we're not an app inspect rule */
     if (s->sm_arrays[DETECT_SM_LIST_PMATCH] && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) == 0) {
         if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePayloadMatches,
-                NULL) < 0)
+                NULL, DETECT_SM_LIST_PMATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
     }
 
     if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
         if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePacketMatches,
-                NULL) < 0)
+                NULL, DETECT_SM_LIST_MATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePacketMatches appended", s->id);
     }
