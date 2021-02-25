@@ -2024,8 +2024,14 @@ void PreRunPostPrivsDropInit(const int runmode)
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
 
-    if (runmode == RUNMODE_UNIX_SOCKET)
+    if (runmode == RUNMODE_UNIX_SOCKET) {
+        /* As the above did some necessary startup initialization, it
+         * also setup some outputs where only one is allowed, so
+         * deinitialize to the state that unix-mode does after every
+         * pcap. */
+        PostRunDeinit(RUNMODE_PCAP_FILE, NULL);
         return;
+    }
 
     StatsSetupPostConfigPostOutput();
 }
