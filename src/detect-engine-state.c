@@ -255,6 +255,19 @@ void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags,
     return;
 }
 
+static inline void ResetTxState(DetectEngineState *s)
+{
+    if (s) {
+        s->dir_state[0].cnt = 0;
+        s->dir_state[0].filestore_cnt = 0;
+        s->dir_state[0].flags = 0;
+
+        s->dir_state[1].cnt = 0;
+        s->dir_state[1].filestore_cnt = 0;
+        s->dir_state[1].flags = 0;
+    }
+}
+
 /** \brief Reset de state for active tx'
  *  To be used on detect engine reload.
  *  \param f write LOCKED flow
@@ -277,17 +290,7 @@ void DetectEngineStateResetTxs(Flow *f)
         void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
             DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
-            if (tx_de_state == NULL) {
-                continue;
-            }
-
-            tx_de_state->dir_state[0].cnt = 0;
-            tx_de_state->dir_state[0].filestore_cnt = 0;
-            tx_de_state->dir_state[0].flags = 0;
-
-            tx_de_state->dir_state[1].cnt = 0;
-            tx_de_state->dir_state[1].filestore_cnt = 0;
-            tx_de_state->dir_state[1].flags = 0;
+            ResetTxState(tx_de_state);
         }
     }
 }
