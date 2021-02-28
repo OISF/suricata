@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -368,6 +368,7 @@ typedef enum {
     SC_ERR_LOG_OUTPUT,
     SC_ERR_RULE_INVALID_UTF8,
     SC_ERR_HASHING_DISABLED,
+    SC_WARN_THRESH_CONFIG,
 
     SC_ERR_MAX
 } SCError;
