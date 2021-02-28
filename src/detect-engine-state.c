@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -131,28 +131,32 @@ static void DeStateSignatureAppend(DetectEngineState *state,
     BUG_ON(DeStateSearchState(state, direction, s->num));
 #endif
     DeStateStore *store = dir_state->tail;
-
     if (store == NULL) {
         store = DeStateStoreAlloc();
         dir_state->head = store;
+        dir_state->cur = store;
         dir_state->tail = store;
+    } else if (dir_state->cur) {
+        store = dir_state->cur;
     } else {
-        SCLogDebug("dir_state->cnt %u mod chunksize %u", dir_state->cnt,
-                dir_state->cnt % DE_STATE_CHUNK_SIZE);
-        if (dir_state->cnt && dir_state->cnt % DE_STATE_CHUNK_SIZE == 0) {
-            store = DeStateStoreAlloc();
-            if (store != NULL) {
-                dir_state->tail->next = store;
-                dir_state->tail = store;
-            }
+        store = DeStateStoreAlloc();
+        if (store != NULL) {
+            dir_state->tail->next = store;
+            dir_state->tail = store;
+            dir_state->cur = store;
         }
     }
     if (store == NULL)
         SCReturn;
 
-    SigIntId idx = dir_state->cnt++ % DE_STATE_CHUNK_SIZE;
+    SigIntId idx = dir_state->cnt % DE_STATE_CHUNK_SIZE;
     store->store[idx].sid = s->num;
     store->store[idx].flags = inspect_flags;
+    dir_state->cnt++;
+    /* if current chunk is full, progress cur */
+    if (dir_state->cnt % DE_STATE_CHUNK_SIZE == 0) {
+        dir_state->cur = dir_state->cur->next;
+    }
 
     SCReturn;
 }
@@ -261,10 +265,14 @@ static inline void ResetTxState(DetectEngineState *s)
         s->dir_state[0].cnt = 0;
         s->dir_state[0].filestore_cnt = 0;
         s->dir_state[0].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[0].cur = s->dir_state[0].head;
 
         s->dir_state[1].cnt = 0;
         s->dir_state[1].filestore_cnt = 0;
         s->dir_state[1].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[1].cur = s->dir_state[1].head;
     }
 }
 
@@ -313,13 +321,13 @@ static int DeStateTest01(void)
 
 static int DeStateTest02(void)
 {
+    uint8_t direction = STREAM_TOSERVER;
     DetectEngineState *state = DetectEngineStateAlloc();
     FAIL_IF_NULL(state);
+    FAIL_IF_NOT_NULL(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head);
 
     Signature s;
     memset(&s, 0x00, sizeof(s));
-
-    uint8_t direction = STREAM_TOSERVER;
 
     s.num = 0;
     DeStateSignatureAppend(state, &s, 0, direction);
@@ -349,10 +357,23 @@ static int DeStateTest02(void)
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 133;
     DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
     s.num = 144;
     DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+            state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur == NULL);
+
     s.num = 155;
     DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
     s.num = 166;
     DeStateSignatureAppend(state, &s, 0, direction);
 
@@ -365,6 +386,10 @@ static int DeStateTest02(void)
 
     ResetTxState(state);
 
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
     s.num = 0;
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 11;
@@ -393,8 +418,15 @@ static int DeStateTest02(void)
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 133;
     DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
     s.num = 144;
     DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+            state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
     s.num = 155;
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 166;
