@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -358,6 +358,7 @@ typedef enum {
     SC_ERR_PCRE_COPY_SUBSTRING,
     SC_ERR_SIGNAL,
     SC_WARN_CHOWN,
+    SC_WARN_THRESH_CONFIG,
 
     SC_ERR_MAX
 } SCError;
