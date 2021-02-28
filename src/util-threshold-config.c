@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -237,6 +237,7 @@ static const char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 {
     const char *filename = NULL;
+    int ret = 0;
 #ifndef UNITTESTS
     FILE *fd = NULL;
 #else
@@ -252,7 +253,15 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
     }
 #endif
 
-    SCThresholdConfParseFile(de_ctx, fd);
+    if (SCThresholdConfParseFile(de_ctx, fd) < 0) {
+        SCLogWarning(
+                SC_WARN_THRESH_CONFIG, "Error loading threshold configuration from %s", filename);
+        /* maintain legacy behavior so no errors unless config testing */
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
+            ret = -1;
+        }
+        goto error;
+    }
     SCThresholdConfDeInitContext(de_ctx, fd);
 
 #ifdef UNITTESTS
@@ -263,7 +272,8 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 
 error:
     SCThresholdConfDeInitContext(de_ctx, fd);
-    return -1;
+
+return ret;
 }
 
 /**
@@ -1082,7 +1092,7 @@ static int SCThresholdConfLineIsMultiline(char *line)
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param fd Pointer to file descriptor.
  */
-void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
+int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 {
     char line[8192] = "";
     int rule_num = 0;
@@ -1091,7 +1101,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
     int esc_pos = 0;
 
     if (fp == NULL)
-        return;
+        return -1;
 
     while (fgets(line + esc_pos, (int)sizeof(line) - esc_pos, fp) != NULL) {
         if (SCThresholdConfIsLineBlankOrComment(line)) {
@@ -1100,15 +1110,19 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 
         esc_pos = SCThresholdConfLineIsMultiline(line);
         if (esc_pos == 0) {
-            rule_num++;
-            SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
-            SCThresholdConfAddThresholdtype(line, de_ctx);
+            if (SCThresholdConfAddThresholdtype(line, de_ctx) < 0) {
+                if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+                    return -1;
+            } else {
+                SCLogDebug("Adding threshold.config rule num %" PRIu32 "( %s )", rule_num, line);
+                rule_num++;
+            }
         }
     }
 
     SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
 
-    return;
+    return 0;
 }
 
 #ifdef UNITTESTS
@@ -1352,7 +1366,7 @@ static int SCThresholdConfTest01(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD01();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
@@ -1385,7 +1399,7 @@ static int SCThresholdConfTest02(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD01();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
@@ -1418,7 +1432,7 @@ static int SCThresholdConfTest03(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD01();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
@@ -1451,7 +1465,7 @@ static int SCThresholdConfTest04(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateInValidDummyFD02();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
@@ -1487,7 +1501,7 @@ static int SCThresholdConfTest05(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD03();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     Signature *s = de_ctx->sig_list;
     SigMatch *m = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
@@ -1535,7 +1549,7 @@ static int SCThresholdConfTest06(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD04();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
@@ -1568,7 +1582,7 @@ static int SCThresholdConfTest07(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD05();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_DETECTION_FILTER, -1);
@@ -1602,7 +1616,7 @@ static int SCThresholdConfTest08(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD06();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
             DETECT_DETECTION_FILTER, -1);
@@ -1649,7 +1663,7 @@ static int SCThresholdConfTest09(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD07();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1743,7 +1757,7 @@ static int SCThresholdConfTest10(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD08();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1836,7 +1850,7 @@ static int SCThresholdConfTest11(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD09();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1945,7 +1959,7 @@ static int SCThresholdConfTest12(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD10();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2035,7 +2049,7 @@ static int SCThresholdConfTest13(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigMatch *m = DetectGetLastSMByListId(sig,
             DETECT_SM_LIST_SUPPRESS, DETECT_THRESHOLD, -1);
@@ -2091,7 +2105,7 @@ static int SCThresholdConfTest14(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2147,7 +2161,7 @@ static int SCThresholdConfTest15(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2199,7 +2213,7 @@ static int SCThresholdConfTest16(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2250,7 +2264,7 @@ static int SCThresholdConfTest17(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2307,7 +2321,7 @@ static int SCThresholdConfTest18(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateInvalidDummyFD12();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
     SigGroupBuild(de_ctx);
 
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
@@ -2358,7 +2372,7 @@ static int SCThresholdConfTest19(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateInvalidDummyFD13();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
     SigGroupBuild(de_ctx);
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
     SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_SUPPRESS];
@@ -2408,7 +2422,7 @@ static int SCThresholdConfTest20(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD20();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
     SigGroupBuild(de_ctx);
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
 
@@ -2453,7 +2467,7 @@ static int SCThresholdConfTest21(void)
     FAIL_IF_NULL(s);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD20();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
     SigGroupBuild(de_ctx);
     FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
 
@@ -2540,7 +2554,7 @@ static int SCThresholdConfTest22(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD22();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2676,7 +2690,7 @@ static int SCThresholdConfTest23(void)
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD23();
     FAIL_IF_NULL(g_ut_threshold_fp);
-    SCThresholdConfInitContext(de_ctx);
+    FAIL_IF(-1 == SCThresholdConfInitContext(de_ctx));
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
