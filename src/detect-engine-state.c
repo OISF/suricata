@@ -363,6 +363,50 @@ static int DeStateTest02(void)
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[0].sid != 155);
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[1].sid != 166);
 
+    ResetTxState(state);
+
+    s.num = 0;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 11;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 22;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 33;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 44;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 55;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 66;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 77;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 88;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 99;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 100;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 111;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 122;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 133;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 144;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 155;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 166;
+    DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 11);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next == NULL);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[0].sid != 155);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[1].sid != 166);
+
     DetectEngineStateFree(state);
 
     PASS;
