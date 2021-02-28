@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -378,6 +378,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ERR_LOG_OUTPUT);
         CASE_CODE(SC_ERR_RULE_INVALID_UTF8);
         CASE_CODE(SC_ERR_HASHING_DISABLED);
+        CASE_CODE(SC_WARN_THRESH_CONFIG);
 
         CASE_CODE (SC_ERR_MAX);
     }
