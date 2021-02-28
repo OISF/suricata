@@ -24,7 +24,7 @@
 #ifndef __UTIL_THRESHOLD_CONFIG_H__
 #define __UTIL_THRESHOLD_CONFIG_H__
 
-void SCThresholdConfParseFile(DetectEngineCtx *, FILE *);
+int SCThresholdConfParseFile(DetectEngineCtx *, FILE *);
 int SCThresholdConfInitContext(DetectEngineCtx *);
 
 void SCThresholdConfRegisterTests(void);
