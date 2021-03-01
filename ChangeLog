@@ -1,3 +1,43 @@
+6.0.2 -- 2021-03-02
+
+Bug #4209: Suricata crashes with multi-threaded eve logger and HTTP/2 traffic
+Bug #4219: Suricata 6.0.1 segfault
+Bug #4229: tcp/async: incorrect flagging of ACK values as invalid
+Bug #4255: tcp/fastopen: false positive on "invalid option"
+Bug #4263: Leak in signature parsing with urilen
+Bug #4264: SMTP/Email Body md5: Only logs the md5 of the first part in a multi-part mime message
+Bug #4266: lua: flowint/flowvar API naming consistency
+Bug #4288: Mismatch between capture and outputs in rules leads to seg fault
+Bug #4290: datasets: reference counter issue in string lookup
+Bug #4292: Suricata crashes at exit in NFQ mode
+Bug #4294: ftp-data: support for file.name keyword is incomplete
+Bug #4296: detect: NOOPT flag not enforced correctly
+Bug #4298: ssl : Integer underflow in ssl parsing SSLV3_HANDSHAKE_PROTOCOL
+Bug #4300: modbus: Request flood leads to CPU exhaustion
+Bug #4302: 5.0.5 in socket mode crashes when using file-store due to uninitialized stats_ctx
+Bug #4304: Not all manpages are built by docs Makefile
+Bug #4306: dns: output flags not set correctly on 32 bit systems
+Bug #4308: eve: Memory leak from jsonbuilder in @MetadataJson@
+Bug #4310: Wrong stream side after direction change
+Bug #4311: Transformation keyword can’t trigger an alert
+Bug #4312: dcerpc: no alert triggered with dce opnum in 6.0
+Bug #4313: fatal error: 'gnu/stubs-32.h' file not found
+Bug #4314: flow manager: 200% CPU in KVM host with no activity with Suricata 6
+Bug #4315: DCERPCUDPState handle fragmented data functions pegging certain CPU cores/threads
+Bug #4323: Heap use after free in parsing signatures with ip_proto and prefilter
+Bug #4329: Suricata is not fully reading or loading the iprep files
+Bug #4336: ICMPv6 failed assert p->icmpv6h == NULL with icmpv6.hdr
+Bug #4338: Stack-buffer-overflow READ 4 in SetupU8Hash
+Bug #4342: Assertion failed in AdjustToAcked delta > 10000000ULL && delta > stream->window
+Bug #4344: Protocol detection evasion enip-SMB
+Bug #4353: rs_dcerpc_udp_get_tx takes out unusual amount of CPU
+Bug #4363: detect: file.data performance regression
+Feature #4340: Makes libhtp decompression time limit configurable from Suricata
+Optimization #4354: dcerpc: improve protocol detection
+Optimization #4365: Ideal integration into oss-fuzz
+Optimization #4368: decoder: limit number of decoding layers
+Task #4257: libhtp 0.5.37
+
 6.0.1 -- 2020-12-04
 
 Feature #2689: http: Normalized HTTP client body buffer 
