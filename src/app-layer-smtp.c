@@ -65,7 +65,7 @@
 #define FILEDATA_CONTENT_INSPECT_WINDOW 4096
 
 /* raw extraction default value */
-#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE 0
+#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE      false
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
@@ -237,7 +237,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, NULL, false, 0, 0 }, 0, 0, 0, 0,
+SMTPConfig smtp_config = { false, { false, false, false, NULL, false, false, 0 }, 0, 0, 0, false,
     STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
@@ -396,7 +396,7 @@ static void SMTPConfigure(void) {
     smtp_config.sbcfg.buf_size = content_limit ? content_limit : 256;
 
     if (ConfGetBool("app-layer.protocols.smtp.raw-extraction",
-            &smtp_config.raw_extraction) != 1) {
+                (int *)&smtp_config.raw_extraction) != 1) {
         smtp_config.raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE;
     }
     if (smtp_config.raw_extraction && smtp_config.decode_mime) {
@@ -4201,9 +4201,9 @@ static int SMTPParserTest14(void)
     }
 
     /* Enable mime decoding */
-    smtp_config.decode_mime = 1;
-    smtp_config.mime_config.decode_base64 = 1;
-    smtp_config.mime_config.decode_quoted_printable = 1;
+    smtp_config.decode_mime = true;
+    smtp_config.mime_config.decode_base64 = true;
+    smtp_config.mime_config.decode_quoted_printable = true;
     MimeDecSetConfig(&smtp_config.mime_config);
 
     FLOWLOCK_WRLOCK(&f);
