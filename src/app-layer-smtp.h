@@ -93,13 +93,13 @@ typedef struct SMTPTransaction_ {
 
 typedef struct SMTPConfig {
 
-    int decode_mime;
+    bool decode_mime;
     MimeDecConfig mime_config;
     uint32_t content_limit;
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
 
-    int raw_extraction;
+    bool raw_extraction;
 
     StreamingBufferConfig sbcfg;
 } SMTPConfig;
