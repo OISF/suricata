@@ -79,7 +79,7 @@
 #define MAX_IP6_CHARS  39
 
 /* Globally hold configuration data */
-static MimeDecConfig mime_dec_config = { 1, 1, 1, NULL, false, 0, MAX_HEADER_VALUE };
+static MimeDecConfig mime_dec_config = { true, true, true, NULL, false, false, MAX_HEADER_VALUE };
 
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
@@ -2758,9 +2758,9 @@ static int MimeDecParseLineTest02(void)
     FAIL_IF_NULL(scheme->val);
     TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = url_schemes;
 
     /* Init parser */
@@ -2827,7 +2827,7 @@ static int MimeFindUrlStringsTest01(void)
     int ret = MIME_DEC_OK;
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = NULL;
     MimeDecGetConfig()->log_url_scheme = false;
 
@@ -2867,7 +2867,7 @@ static int MimeFindUrlStringsTest02(void)
     FAIL_IF_NULL(scheme->val);
     TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
 
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = url_schemes;
     MimeDecGetConfig()->log_url_scheme = false;
 
@@ -2923,7 +2923,7 @@ static int MimeFindUrlStringsTest03(void)
     FAIL_IF_NULL(scheme2->val);
     TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
 
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = url_schemes;
     MimeDecGetConfig()->log_url_scheme = false;
 
@@ -2987,7 +2987,7 @@ static int MimeFindUrlStringsTest04(void)
     FAIL_IF_NULL(scheme2->val);
     TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
 
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = url_schemes;
     MimeDecGetConfig()->log_url_scheme = true;
 
@@ -3046,7 +3046,7 @@ static int MimeFindUrlStringsTest05(void)
     FAIL_IF_NULL(scheme->val);
     TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
 
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->extract_urls = true;
     MimeDecGetConfig()->extract_urls_schemes = url_schemes;
     MimeDecGetConfig()->log_url_scheme = true;
 
@@ -3270,9 +3270,9 @@ static int MimeDecParseLongFilename01(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -3334,9 +3334,9 @@ static int MimeDecParseLongFilename02(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
