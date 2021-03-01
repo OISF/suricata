@@ -1,3 +1,26 @@
+5.0.6 -- 2021-03-02
+
+Bug #4230: tcp/async: incorrect flagging of ACK values as invalid
+Bug #4256: tcp/fastopen: false positive on "invalid option"
+Bug #4287: Mismatch between capture and outputs in rules leads to seg fault
+Bug #4289: datasets: reference counter issue in string lookup
+Bug #4291: Suricata crashes at exit in NFQ mode
+Bug #4293: ftp-data: support for file.name keyword is incomplete
+Bug #4295: detect: NOOPT flag not enforced correctly
+Bug #4297: ssl : Integer underflow in ssl parsing SSLV3_HANDSHAKE_PROTOCOL
+Bug #4299: modbus: Request flood leads to CPU exhaustion
+Bug #4301: 5.0.5 in socket mode crashes when using file-store due to uninitialized stats_ctx
+Bug #4303: Not all manpages are built by docs Makefile
+Bug #4305: dns: output flags not set correctly on 32 bit systems
+Bug #4307: eve: Memory leak from jsonbuilder in @MetadataJson@
+Bug #4309: Wrong stream side after direction change
+Bug #4322: Heap use after free in parsing signatures with ip_proto and prefilter
+Bug #4328: Suricata is not fully reading or loading the iprep files
+Bug #4337: Stack-buffer-overflow READ 4 in SetupU8Hash
+Bug #4341: Assertion failed in AdjustToAcked delta > 10000000ULL && delta > stream->window
+Feature #4339: Makes libhtp decompression time limit configurable from Suricata
+Optimization #4367: decoder: limit number of decoding layers
+
 5.0.5 -- 2020-12-04
 
 Bug #4077: smb: post-GAP file handling
