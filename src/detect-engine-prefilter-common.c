@@ -211,8 +211,8 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
     if (ctx == NULL)
         return -1;
 
-    int i;
-    for (i = 0; i < 256; i++) {
+    int set_cnt = 0;
+    for (int i = 0; i < 256; i++) {
         if (counts[i] == 0)
             continue;
         ctx->array[i] = SCCalloc(1, sizeof(SigsArray));
@@ -221,6 +221,12 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
         ctx->array[i]->cnt = counts[i];
         ctx->array[i]->sigs = SCCalloc(ctx->array[i]->cnt, sizeof(SigIntId));
         BUG_ON(ctx->array[i]->sigs == NULL);
+        set_cnt++;
+    }
+    if (set_cnt == 0) {
+        /* not an error */
+        PrefilterPacketU8HashCtxFree(ctx);
+        return 0;
     }
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
