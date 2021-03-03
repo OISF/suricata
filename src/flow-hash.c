@@ -53,6 +53,11 @@
 
 extern TcpStreamCnf stream_config;
 
+/* If there's ever a case whereby the FlowDoPeriodicLog() function is called while 
+ * iterating a full hash bucket, we'll need to ensure the order is preserved.
+ * For now, it's okay, as this function call breaks the iteration of the bucket.
+ */
+#define PERIODIC_LOG_PRESERVE_HASH_ORDER (0)
 
 FlowBucket *flow_hash;
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
@@ -738,11 +743,26 @@ static Flow *FlowDoPeriodicLog(ThreadVars *tv,
         return old_f;
     }
 
+    BUG_ON( prev_f && (prev_f->next != old_f) );
+    BUG_ON( prev_f && (prev_f->fb != fb) );
+
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
 
     /* new Flow is locked */
 
+#if PERIODIC_LOG_PRESERVE_HASH_ORDER
+    /* Replace old_f w/ new_f, in the same position in the hash bucket... */
+    new_f->fb = fb;
+    new_f->next = old_f->next;
+    if(prev_f) {
+        prev_f->next = new_f;
+    } else {
+        fb->head = new_f;
+    }
+
+    old_f->fb = NULL;
+#else
     /* remove old Flow from the hash; NOTE: we *must* do this before adding the new flow 
      * to the bucket, as adding the new flow modifies the list and potentially the relationship 
      * between old_f -> prev_f (i.e., in the 1-flow-in-the-bucket case new_f would become prev_f
@@ -753,6 +773,7 @@ static Flow *FlowDoPeriodicLog(ThreadVars *tv,
     new_f->next = fb->head;
     fb->head = new_f;
     new_f->fb = fb;
+#endif
 
     /* initialize new flow */
     FlowInitFromFlow(new_f, old_f, p);
@@ -838,6 +859,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         Flow *next_f = NULL;
         const bool timedout =
             (fb_nextts < (uint32_t)p->ts.tv_sec && FlowIsTimedOut(f, (uint32_t)p->ts.tv_sec, emerg));
+        
         if (timedout) {
             FromHashLockTO(f);//FLOWLOCK_WRLOCK(f);
             if (likely(f->use_cnt == 0)) {
@@ -863,10 +885,11 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
                     FBLOCK_UNLOCK(fb);
                     return NULL;
                 }
-                f = new_f;
-            }
-
-            if (unlikely(FlowShouldPeriodicLog(f) == 1)) {
+		f = new_f;
+            } else if (unlikely(FlowShouldPeriodicLog(f) == 1)) {
+                /* If we *just* create a new flow, due to TCP 5-tuple re-use, then don't
+                 * bother to check if we need to perform a periodic log; we shouldn't!
+                 */
                 f = FlowDoPeriodicLog(tv, fls, fb, f, prev_f, hash, p);
             }
             
