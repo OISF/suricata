@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
+#include "util-validate.h"
 
 typedef struct PrefilterPacketHeaderHashCtx_ {
     PrefilterPacketHeaderValue v1;
@@ -224,6 +225,7 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
         BUG_ON(ctx->array[i]->sigs == NULL);
         set_cnt++;
     }
+    DEBUG_VALIDATE_BUG_ON(set_cnt == 0);
     if (set_cnt == 0) {
         PrefilterPacketU8HashCtxFree(ctx);
         return -1;
