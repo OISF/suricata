@@ -191,8 +191,25 @@ static DetectITypeData *DetectITypeParse(DetectEngineCtx *de_ctx, const char *it
                                                 "valid", args[1]);
             goto error;
         }
-        if ((strcmp(args[0], ">")) == 0) itd->mode = DETECT_ITYPE_GT;
-        else itd->mode = DETECT_ITYPE_LT;
+        if ((strcmp(args[0], ">")) == 0) {
+            if (itd->type1 == 255) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "specified icmp type >%s is not "
+                        "valid",
+                        args[1]);
+                goto error;
+            }
+            itd->mode = DETECT_ITYPE_GT;
+        } else {
+            if (itd->type1 == 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "specified icmp type <%s is not "
+                        "valid",
+                        args[1]);
+                goto error;
+            }
+            itd->mode = DETECT_ITYPE_LT;
+        }
     } else { /* no "<", ">" */
         /* we have a range ("<>") */
         if (args[2] != NULL) {

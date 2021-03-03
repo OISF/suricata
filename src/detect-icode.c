@@ -191,8 +191,25 @@ static DetectICodeData *DetectICodeParse(DetectEngineCtx *de_ctx, const char *ic
                                         "valid", args[1]);
             goto error;
         }
-        if ((strcmp(args[0], ">")) == 0) icd->mode = DETECT_ICODE_GT;
-        else icd->mode = DETECT_ICODE_LT;
+        if ((strcmp(args[0], ">")) == 0) {
+            if (icd->code1 == 255) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "specified icmp code >%s is not "
+                        "valid",
+                        args[1]);
+                goto error;
+            }
+            icd->mode = DETECT_ICODE_GT;
+        } else {
+            if (icd->code1 == 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "specified icmp code <%s is not "
+                        "valid",
+                        args[1]);
+                goto error;
+            }
+            icd->mode = DETECT_ICODE_LT;
+        }
     } else { /* no "<", ">" */
         /* we have a range ("<>") */
         if (args[2] != NULL) {
