@@ -1431,6 +1431,7 @@ static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInsp
     if (e == NULL)
         return -1;
 
+    e->mpm = (SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == list_id);
     e->sm_list = list_id;
     e->sm_list_base = list_id;
     e->v1.Callback = Callback;
