@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2020 Open Information Security Foundation
+/* Copyright (C) 2013-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -263,6 +263,25 @@ static void AlertJsonRDP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
             JsonBuilderMark mark = { 0, 0, 0 };
             jb_get_mark(js, &mark);
             if (!rs_rdp_to_json(tx, js)) {
+                jb_restore_mark(js, &mark);
+            }
+        }
+    }
+}
+
+static void AlertJsonBitTorrentDHT(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
+{
+    void *bittorrent_dht_state = (void *)FlowGetAppState(f);
+    if (bittorrent_dht_state != NULL) {
+        void *tx =
+                AppLayerParserGetTx(f->proto, ALPROTO_BITTORRENT_DHT, bittorrent_dht_state, tx_id);
+        if (tx != NULL) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "bittorrent-dht");
+            if (rs_bittorrent_dht_logger_log(tx, js)) {
+                jb_close(js);
+            } else {
                 jb_restore_mark(js, &mark);
             }
         }
@@ -541,6 +560,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_RDP:
             AlertJsonRDP(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_BITTORRENT_DHT:
+            AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
             break;
         default:
             break;
