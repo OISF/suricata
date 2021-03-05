@@ -638,11 +638,17 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
 
     ConfNode *type = NULL;
     TAILQ_FOREACH(type, &types->head, next) {
-        SCLogConfig("enabling 'eve-log' module '%s'", type->val);
-
         int sub_count = 0;
         char subname[256];
-        snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
+
+        if (strcmp(type->val, "ikev2") == 0) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "eve module 'ikev2' has been replaced by 'ike'");
+            strlcpy(subname, "eve-log.ike", sizeof(subname));
+        } else {
+            snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
+        }
+
+        SCLogConfig("enabling 'eve-log' module '%s'", type->val);
 
         ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
         if (sub_output_config != NULL) {
