@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -226,6 +226,19 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     return 0;
 }
 
+static inline void RuleActionToFlow(const uint8_t action, Flow *f)
+{
+    if (action & ACTION_DROP)
+        f->flags |= FLOW_ACTION_DROP;
+
+    if (action & ACTION_REJECT_ANY)
+        f->flags |= FLOW_ACTION_DROP;
+
+    if (action & ACTION_PASS) {
+        FlowSetNoPacketInspectionFlag(f);
+    }
+}
+
 /**
  * \brief Check the threshold of the sigs that match, set actions, break on pass action
  *        This function iterate the packet alerts array, removing those that didn't match
@@ -264,17 +277,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             if (s->flags & SIG_FLAG_IPONLY) {
                 if (p->flow != NULL) {
-                    if (s->action & ACTION_DROP)
-                        p->flow->flags |= FLOW_ACTION_DROP;
-                    if (s->action & ACTION_REJECT)
-                        p->flow->flags |= FLOW_ACTION_DROP;
-                    if (s->action & ACTION_REJECT_DST)
-                        p->flow->flags |= FLOW_ACTION_DROP;
-                    if (s->action & ACTION_REJECT_BOTH)
-                        p->flow->flags |= FLOW_ACTION_DROP;
-                    if (s->action & ACTION_PASS) {
-                        FlowSetNoPacketInspectionFlag(p->flow);
-                    }
+                    RuleActionToFlow(s->action, p->flow);
                 }
             }
 
