@@ -218,9 +218,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
-
-    MemBufferReset(buffer);
+    MemBufferReset(thread->buffer);
     if (tx->has_request && tx->request_done) {
         JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
         if (unlikely(js == NULL)) {
@@ -232,7 +230,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
         jb_free(js);
     }
 
@@ -246,9 +244,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
-
-    MemBufferReset(buffer);
+    MemBufferReset(thread->buffer);
     if (tx->has_response && tx->response_done) {
         JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
         if (unlikely(js == NULL)) {
@@ -259,7 +255,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
         jb_free(js);
     }
 
