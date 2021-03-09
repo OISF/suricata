@@ -701,23 +701,45 @@ impl DNSState {
     }
 }
 
+fn probe_header_validity(header : DNSHeader, rlen: usize) -> (bool, bool, bool) {
+    let opcode = ((header.flags >> 11) & 0xf) as u8;
+    if opcode >= 7 {
+        //unassigned opcode
+        return (false, false, false);
+    }
+    if header.additional_rr as usize > rlen {
+        //not enough data for additional records
+        return (false, false, false);
+    }
+    let is_request = header.flags & 0x8000 == 0;
+    return (true, is_request, false);
+}
+
 /// Probe input to see if it looks like DNS.
-fn probe(input: &[u8]) -> (bool, bool) {
-    match parser::dns_parse_request(input) {
-        Ok((_, request)) => {
-            let is_request = request.header.flags & 0x8000 == 0;
-            return (true, is_request);
+fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
+    let i2 = if input.len() <= dlen { input } else { &input[..dlen] };
+    match parser::dns_parse_request(i2) {
+        Ok((rem, request)) => {
+            return probe_header_validity(request.header, rem.len());
         },
-        Err(_) => (false, false),
+        Err(nom::Err::Incomplete(_)) => {
+            match parser::dns_parse_header(input) {
+                Ok((rem, header)) => {
+                    return probe_header_validity(header, rem.len());
+                }
+                Err(nom::Err::Incomplete(_)) => (false, false, true),
+                Err(_) => (false, false, false),
+            }
+        }
+        Err(_) => (false, false, false),
     }
 }
 
 /// Probe TCP input to see if it looks like DNS.
 pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
-    match be_u16(input) as IResult<&[u8],_> {
-        Ok((rem, _)) => {
-            let r = probe(rem);
-            return (r.0, r.1, false);
+    match be_u16(input) as IResult<&[u8],u16> {
+        Ok((rem, dlen)) => {
+            return probe(rem, dlen as usize);
         },
         Err(nom::Err::Incomplete(_)) => {
             return (false, false, true);
@@ -1003,7 +1025,7 @@ pub extern "C" fn rs_dns_probe(
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    let (is_dns, is_request) = probe(slice);
+    let (is_dns, is_request, _) = probe(slice, slice.len());
     if is_dns {
         let dir = if is_request {
             core::STREAM_TOSERVER
