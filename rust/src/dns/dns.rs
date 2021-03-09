@@ -23,6 +23,7 @@ use std::mem::transmute;
 use crate::applayer::LoggerFlags;
 use crate::core;
 use crate::dns::parser;
+use nom::{be_u16, IResult};
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
@@ -434,8 +435,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            let (is_dns, _) = probe_tcp(input);
-            if is_dns {
+            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            if is_dns || is_incomplete {
                 self.gap = false;
             } else {
                 return 0
@@ -475,8 +476,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            let (is_dns, _) = probe_tcp(input);
-            if is_dns {
+            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            if is_dns || is_incomplete {
                 self.gap = false;
             } else {
                 return 0
@@ -523,26 +524,60 @@ impl DNSState {
     }
 }
 
+const DNS_HEADER_SIZE: usize = 12;
+
+fn probe_header_validity(header: DNSHeader, rlen: usize) -> (bool, bool, bool) {
+    let opcode = ((header.flags >> 11) & 0xf) as u8;
+    if opcode >= 7 {
+        //unassigned opcode
+        return (false, false, false);
+    }
+    if 2 * (header.additional_rr as usize
+        + header.answer_rr as usize
+        + header.authority_rr as usize
+        + header.questions as usize)
+        + DNS_HEADER_SIZE
+        > rlen
+    {
+        //not enough data for such a DNS record
+        return (false, false, false);
+    }
+    let is_request = header.flags & 0x8000 == 0;
+    return (true, is_request, false);
+}
+
 /// Probe input to see if it looks like DNS.
-fn probe(input: &[u8]) -> (bool, bool) {
-    match parser::dns_parse_request(input) {
+fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
+    let i2 = if input.len() <= dlen { input } else { &input[..dlen] };
+    match parser::dns_parse_request(i2) {
         Ok((_, request)) => {
-            let is_request = request.header.flags & 0x8000 == 0;
-            return (true, is_request);
+            return probe_header_validity(request.header, dlen);
         },
-        Err(_) => (false, false),
+        Err(nom::Err::Incomplete(_)) => {
+            match parser::dns_parse_header(input) {
+                Ok((_, header)) => {
+                    return probe_header_validity(header, dlen);
+                }
+                Err(nom::Err::Incomplete(_)) => (false, false, true),
+                Err(_) => (false, false, false),
+            }
+        }
+        Err(_) => (false, false, false),
     }
 }
 
 /// Probe TCP input to see if it looks like DNS.
-pub fn probe_tcp(input: &[u8]) -> (bool, bool) {
-    match nom::be_u16(input) {
-        Ok((rem, _)) => {
-            return probe(rem);
+pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
+    match be_u16(input) as IResult<&[u8],u16> {
+        Ok((rem, dlen)) => {
+            return probe(rem, dlen as usize);
         },
+        Err(nom::Err::Incomplete(_)) => {
+            return (false, false, true);
+        }
         _ => {}
     }
-    return (false, false);
+    return (false, false, false);
 }
 
 /// Returns *mut DNSState
@@ -830,7 +865,7 @@ pub extern "C" fn rs_dns_probe(input: *const u8, len: u32, rdir: *mut u8)
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    let (is_dns, is_request) = probe(slice);
+    let (is_dns, is_request, _) = probe(slice, slice.len());
     if is_dns {
         let dir = if is_request {
             core::STREAM_TOSERVER
@@ -854,7 +889,7 @@ pub extern "C" fn rs_dns_probe_tcp(direction: u8,
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    let (is_dns, is_request) = probe_tcp(slice);
+    let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
         let dir = if is_request {
             core::STREAM_TOSERVER
