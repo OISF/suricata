@@ -263,25 +263,17 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
 
             if (s->flags & SIG_FLAG_IPONLY) {
-                if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-                    ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-                    SCLogDebug("testing against \"ip-only\" signatures");
-
-                    if (p->flow != NULL) {
-                        /* Update flow flags for iponly */
-                        FlowSetIPOnlyFlag(p->flow, (p->flowflags & FLOW_PKT_TOSERVER) ? 1 : 0);
-
-                        if (s->action & ACTION_DROP)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_DST)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_BOTH)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_PASS) {
-                            FlowSetNoPacketInspectionFlag(p->flow);
-                        }
+                if (p->flow != NULL) {
+                    if (s->action & ACTION_DROP)
+                        p->flow->flags |= FLOW_ACTION_DROP;
+                    if (s->action & ACTION_REJECT)
+                        p->flow->flags |= FLOW_ACTION_DROP;
+                    if (s->action & ACTION_REJECT_DST)
+                        p->flow->flags |= FLOW_ACTION_DROP;
+                    if (s->action & ACTION_REJECT_BOTH)
+                        p->flow->flags |= FLOW_ACTION_DROP;
+                    if (s->action & ACTION_PASS) {
+                        FlowSetNoPacketInspectionFlag(p->flow);
                     }
                 }
             }
