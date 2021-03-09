@@ -360,6 +360,7 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
 }
 
 
+#define ENIP_LEN_REGISTER_SESSION 4 //protocol u16, options u16
 
 static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
         const uint8_t *input, uint32_t input_len, uint8_t *rdir)
@@ -371,12 +372,34 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
         return ALPROTO_UNKNOWN;
     }
     uint16_t cmd;
+    uint16_t enip_len;
     uint32_t status;
+    uint32_t option;
     int ret = ByteExtractUint16(&cmd, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
                                 (const uint8_t *) (input));
     if(ret < 0) {
         return ALPROTO_FAILED;
     }
+    ret = ByteExtractUint16(&enip_len, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+                                (const uint8_t *) (input + 2));
+    if(ret < 0) {
+        return ALPROTO_FAILED;
+    }
+    ret = ByteExtractUint32(&option, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
+                            (const uint8_t *) (input + 20));
+    if(ret < 0) {
+        return ALPROTO_FAILED;
+    }
+    if (enip_len < sizeof(ENIPEncapHdr)) {
+        return ALPROTO_FAILED;
+    }
+    if (cmd == REGISTER_SESSION && enip_len != ENIP_LEN_REGISTER_SESSION) {
+        return ALPROTO_FAILED;
+    }
+    if (cmd == NOP && option != 0) {
+        return ALPROTO_FAILED;
+    }
+
     //ok for all the known commands
     switch(cmd) {
         case NOP:
