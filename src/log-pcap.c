@@ -236,10 +236,6 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     PcapLogThreadData *ptd = (PcapLogThreadData *)thread_data;
 
-    if (p->flags & PKT_PSEUDO_STREAM_END) {
-        return FALSE;
-    }
-
     /* Log alerted flow or tagged flow */
     switch (ptd->pcap_log->conditional) {
         case LOGMODE_COND_ALL:
@@ -258,6 +254,10 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
                 return FALSE;
             }
             break;
+    }
+
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        return FALSE;
     }
 
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
@@ -602,11 +602,8 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     PcapLogThreadData *td = (PcapLogThreadData *)thread_data;
     PcapLogData *pl = td->pcap_log;
 
-    if ((p->flags & PKT_PSEUDO_STREAM_END) ||
-        ((p->flags & PKT_STREAM_NOPCAPLOG) &&
-         (pl->use_stream_depth == USE_STREAM_DEPTH_ENABLED)) ||
-        (pl->honor_pass_rules && (p->flags & PKT_NOPACKET_INSPECTION)))
-    {
+    if (((p->flags & PKT_STREAM_NOPCAPLOG) && (pl->use_stream_depth == USE_STREAM_DEPTH_ENABLED)) ||
+            (pl->honor_pass_rules && (p->flags & PKT_NOPACKET_INSPECTION))) {
         return TM_ECODE_OK;
     }
 
@@ -696,6 +693,11 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 #else
             PcapLogDumpSegments(td, NULL, p);
 #endif
+            if (p->flags & PKT_PSEUDO_STREAM_END) {
+                PcapLogUnlock(pl);
+                return TM_ECODE_OK;
+            }
+
             /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
             pl->h->ts.tv_sec = p->ts.tv_sec;
             pl->h->ts.tv_usec = p->ts.tv_usec;
