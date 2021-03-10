@@ -115,7 +115,7 @@ starting lb::
 yaml::
 
     netmap:
-      - interface: suricata
+      - interface: netmap:suricata
         threads: 6
 
 startup::
