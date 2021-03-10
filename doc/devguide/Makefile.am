@@ -7,6 +7,7 @@ EXTRA_DIST = \
 	extending/index.rst \
 	extending/app-layer/index.rst \
 	extending/app-layer/parser.rst \
+	extending/app-layer/transactions.rst \
 	extending/capture/index.rst \
 	extending/output/index.rst \
 	internals/engines/index.rst \
