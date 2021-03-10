@@ -1,0 +1,15 @@
+# MSC Sequence Diagram Example: DNS Query Transaction
+
+msc {
+    # Chart Options
+    arcgradient = "10";
+
+    # Entities
+    a [ label = "Client" ], b [ label = "Server" ];
+
+    # Message Flow
+    a =>> b [ label = "DNS Request" ];
+    b =>> a [ label = "DNS Response" ];
+    |||;
+    --- [ label = "Transaction Completed" ];
+}

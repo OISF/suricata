@@ -7,6 +7,7 @@ EXTRA_DIST = \
 	extending/index.rst \
 	extending/app-layer/index.rst \
 	extending/app-layer/parser.rst \
+	extending/app-layer/transactions.rst \
 	extending/capture/index.rst \
 	extending/output/index.rst \
 	internals/engines/index.rst \
@@ -22,6 +23,7 @@ EXTRA_DIST = \
 	codebase/fuzz-testing.rst
 
 if HAVE_SPHINXBUILD
+if HAVE_MSCGEN
 
 if HAVE_PDFLATEX
 EXTRA_DIST += devguide.pdf
@@ -30,6 +32,7 @@ endif
 SPHINX_BUILD = sphinx-build -q
 
 html:
+	$(top_srcdir)/doc/devguide/tools/generate-images.sh
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
@@ -37,6 +40,7 @@ html:
 		$(top_srcdir)/doc/devguide _build/html
 
 _build/latex/Suricata.pdf:
+	$(top_srcdir)/doc/devguide/tools/generate-images.sh
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
@@ -62,4 +66,5 @@ clean-local:
 	rm -f $(top_builddir)/doc/devguide/suricata.1
 	rm -f $(top_builddir)/doc/devguide/devguide.pdf
 
+endif # HAVE_MSCGEN
 endif # HAVE_SPHINXBUILD
