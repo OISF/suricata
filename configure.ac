@@ -2298,6 +2298,18 @@ fi
         AC_DEFINE([CLS],[64],[L1 cache line size])
     fi
 
+# mscgen for devguide images
+    AC_PATH_PROG([HAVE_MSCGEN], mscgen, "no")
+    if test "$HAVE_MSCGEN" = "no"; then
+        enable_mscgen=no
+        echo "WARNING! mscgen package not installed."
+        echo "    Devguide images won't be generated!"
+        echo "    Get mscgen package:"
+        echo "    https://www.mcternan.me.uk/mscgen/"
+        echo "    or install it from your distribution"
+    fi
+    AM_CONDITIONAL([HAVE_MSCGEN], [test "x$enable_mscgen" != "xno" ])
+
 # sphinx for documentation
     AC_PATH_PROG(HAVE_SPHINXBUILD, sphinx-build, "no")
     if test "$HAVE_SPHINXBUILD" = "no"; then
