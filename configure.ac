@@ -1628,19 +1628,24 @@
 
     # Test to see if suricata-update can be installed.
     if test "x$have_suricata_update" != "xyes"; then
-        install_suricata_update="not bundled"
+        install_suricata_update="no, "
+        install_suricata_update_reason="not bundled"
     elif test "x$enable_python" != "xyes"; then
-        install_suricata_update="no, requires python"
+        install_suricata_update="no, "
+        install_suricata_update_reason="requires python"
     elif test "x$have_python_distutils" != "xyes"; then
-        install_suricata_update="no, requires distutils"
+        install_suricata_update="no, "
+        install_suricata_update_reason="requires distutils"
     elif test "x$have_python_yaml" != "xyes"; then
-        install_suricata_update="no, requires pyyaml"
+        install_suricata_update="no, "
+        install_suricata_update_reason="requires pyyaml"
     else
         install_suricata_update="yes"
     fi
 
     AM_CONDITIONAL([INSTALL_SURICATA_UPDATE],
         [test "x$install_suricata_update" = "xyes"])
+    AC_SUBST([install_suricata_update_reason])
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
@@ -2740,7 +2745,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Python yaml                              ${have_python_yaml}
   Install suricatactl:                     ${install_suricatactl}
   Install suricatasc:                      ${install_suricatactl}
-  Install suricata-update:                 ${install_suricata_update}
+  Install suricata-update:                 ${install_suricata_update}${install_suricata_update_reason}
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
