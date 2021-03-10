@@ -275,7 +275,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            if (s->flags & SIG_FLAG_IPONLY) {
+            /* IP-only and PD-only matches should apply to the flow */
+            if (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY)) {
                 if (p->flow != NULL) {
                     RuleActionToFlow(s->action, p->flow);
                 }
