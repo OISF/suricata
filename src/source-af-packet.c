@@ -44,6 +44,7 @@
 #include "tm-threads-common.h"
 #include "conf.h"
 #include "util-cpu.h"
+#include "util-datalink.h"
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-ebpf.h"
@@ -1687,6 +1688,8 @@ int AFPGetLinkType(const char *ifname)
 
     ltype =  AFPGetDevLinktype(fd, ifname);
     close(fd);
+
+    DatalinkSetGlobalType(ltype);
 
     return ltype;
 }
