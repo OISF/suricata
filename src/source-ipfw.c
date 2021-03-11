@@ -37,6 +37,7 @@
 #include "conf.h"
 #include "util-byte.h"
 #include "util-privs.h"
+#include "util-datalink.h"
 #include "util-device.h"
 #include "runmodes.h"
 
@@ -371,6 +372,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
 
     ntv->datalink = DLT_RAW;
+    DatalinkSetGlobalType(DLT_RAW);
 
     *data = (void *)ntv;
 

@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "threadvars.h"
+#include "util-datalink.h"
 #include "util-optimize.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
@@ -656,6 +657,9 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
     ntv->stream_id = stream_id;
     ntv->tv = tv;
     ntv->hba = conf->hba;
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
+
     SCLogDebug("Started processing packets from NAPATECH  Stream: %lu", ntv->stream_id);
 
     *data = (void *) ntv;
