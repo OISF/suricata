@@ -2764,9 +2764,8 @@ static int SSLStateGetEventInfoById(int event_id, const char **event_name,
 
 static int SSLRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 00 02|", 5, 2, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2,
+                STREAM_TOSERVER, SSLProbingParser, 0, 3) < 0) {
         return -1;
     }
 
