@@ -43,6 +43,7 @@
 #include "conf.h"
 #include "util-bpf.h"
 #include "util-debug.h"
+#include "util-datalink.h"
 #include "util-device.h"
 #include "util-error.h"
 #include "util-privs.h"
@@ -490,6 +491,8 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
             goto error_dst;
         }
     }
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
     *data = (void *)ntv;
     aconf->DerefFunc(aconf);

@@ -41,6 +41,7 @@
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
 
+#include "util-datalink.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-byte.h"
@@ -730,6 +731,8 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
     ntv->datalen = T_DATA_SIZE;
 #undef T_DATA_SIZE
+
+    DatalinkSetGlobalType(DLT_RAW);
 
     *data = (void *)ntv;
 
