@@ -36,6 +36,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-privs.h"
+#include "util-datalink.h"
 #include "util-device.h"
 #include "util-optimize.h"
 #include "util-checksum.h"
@@ -540,6 +541,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
     (void)GetIfaceOffloading(pcapconfig->iface, 1, 1);
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
+    DatalinkSetGlobalType(ptv->datalink);
 
     pcapconfig->DerefFunc(pcapconfig);
 
