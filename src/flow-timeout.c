@@ -53,6 +53,7 @@
 
 #include "util-debug.h"
 #include "util-privs.h"
+#include "util-datalink.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -82,7 +83,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
 {
     const int orig_dir = direction;
     p->tenant_id = f->tenant_id;
-    p->datalink = DLT_RAW;
+    p->datalink = DatalinkGetGlobalType();
     p->proto = IPPROTO_TCP;
     FlowReference(&p->flow, f);
     p->flags |= PKT_STREAM_EST;
