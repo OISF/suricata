@@ -24,6 +24,7 @@
  */
 
 #include "source-pcap-file-helper.h"
+#include "util-datalink.h"
 #include "util-checksum.h"
 #include "util-profiling.h"
 #include "source-pcap-file.h"
@@ -223,6 +224,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pfv->datalink);
+    DatalinkSetGlobalType(pfv->datalink);
 
     if (!PeekFirstPacketTimestamp(pfv))
         SCReturnInt(TM_ECODE_FAILED);
