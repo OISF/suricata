@@ -445,7 +445,7 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
             // Kerberos messages start with an APPLICATION header
             if hdr.class != 0b01 { return unsafe{ALPROTO_FAILED}; }
             // Tag number should be <= 30
-            if hdr.tag >= 30 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.tag > 30 { return unsafe{ALPROTO_FAILED}; }
             // Kerberos messages contain sequences
             if rem.is_empty() || rem[0] != 0x30 { return unsafe{ALPROTO_FAILED}; }
             // Check kerberos version
