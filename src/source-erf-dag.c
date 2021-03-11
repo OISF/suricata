@@ -31,6 +31,7 @@
 #include "tm-threads.h"
 
 #include "util-privs.h"
+#include "util-datalink.h"
 #include "util-device.h"
 #include "tmqh-packetpool.h"
 #include "source-erf-dag.h"
@@ -304,6 +305,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ewtn->tv = tv;
     *data = (void *)ewtn;
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
     SCLogInfo("Starting processing packets from stream: %d on DAG: %s",
         ewtn->dagstream, ewtn->dagname);
