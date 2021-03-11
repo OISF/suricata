@@ -40,6 +40,7 @@
 #include "util-bpf.h"
 #include "util-privs.h"
 #include "util-validate.h"
+#include "util-datalink.h"
 
 #include "source-netmap.h"
 
@@ -572,6 +573,8 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     }
 
     SCLogDebug("thread: %s polling on fd: %d", tv->name, ntv->ifsrc->nmd->fd);
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
     *data = (void *)ntv;
     aconf->DerefFunc(aconf);

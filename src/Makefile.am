@@ -502,6 +502,7 @@ noinst_HEADERS = \
 	util-cpu.h \
 	util-crypt.h \
 	util-daemon.h \
+	util-datalink.h \
 	util-debug-filters.h \
 	util-debug.h \
 	util-decode-mime.h \
@@ -1070,6 +1071,7 @@ libsuricata_c_a_SOURCES = \
 	util-cpu.c \
 	util-crypt.c \
 	util-daemon.c \
+	util-datalink.c \
 	util-debug.c \
 	util-debug-filters.c \
 	util-decode-mime.c \
