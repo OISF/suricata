@@ -564,6 +564,7 @@ jobs:
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
+                libnet1-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
