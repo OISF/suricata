@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-fmemopen.h"
+#include "util-datalink.h"
 #include "stream-tcp-util.h"
 
 #ifdef HAVE_LIBLZ4
@@ -1073,6 +1074,30 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
     else
         td->pcap_log = pl;
     BUG_ON(td->pcap_log == NULL);
+
+    if (DatalinkHasMultipleValues()) {
+        if (pl->mode != LOGMODE_MULTI) {
+            FatalError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT,
+                    "Pcap logging with multiple link type is not supported.");
+        } else {
+            /* In multi mode, only pcap conditional is not supported as a flow timeout
+             * will trigger packet logging with potentially invalid datalink. In regular
+             * pcap logging, the logging should be done in the same thread if we
+             * have a proper load balancing. So no mix of datalink should occur. But we need a
+             * proper load balancing so this needs at least a warning.
+             */
+            switch (pl->conditional) {
+                case LOGMODE_COND_ALERTS:
+                case LOGMODE_COND_TAG:
+                    FatalError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT,
+                            "Can't have multiple link types in pcap conditional mode.");
+                    break;
+                default:
+                    SCLogWarning(SC_WARN_COMPATIBILITY,
+                            "Using multiple link types can result in invalid pcap output");
+            }
+        }
+    }
 
     PcapLogLock(td->pcap_log);
 
