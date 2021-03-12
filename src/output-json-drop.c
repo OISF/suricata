@@ -162,6 +162,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             {
                 AlertJsonHeader(NULL, p, pa, js, 0);
                 logged = 1;
+                break;
             }
         }
         if (logged == 0) {
