@@ -1351,7 +1351,10 @@ fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_header(input) {
         Ok((_, hdr)) => {
             let is_request = hdr.hdrtype == 0x00;
-            let is_dcerpc = hdr.rpc_vers == 0x05 && hdr.rpc_vers_minor == 0x00;
+            let is_dcerpc = hdr.rpc_vers == 0x05 &&
+                hdr.rpc_vers_minor == 0x00 &&
+                hdr.packed_drep[0] & 0xee == 0 &&
+                hdr.packed_drep[1] <= 3;
             return (is_dcerpc, is_request);
         },
         Err(_) => (false, false),
