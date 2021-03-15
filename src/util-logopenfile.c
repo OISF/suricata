@@ -46,8 +46,9 @@
 #endif /* HAVE_LIBHIREDIS */
 
 #define LOGFILE_NAME_MAX 255
-
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
+        ThreadLogFileHashEntry *entry);
+static bool LogSocketNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
         ThreadLogFileHashEntry *entry);
 
 // Threaded eve.json identifier
@@ -579,13 +580,6 @@ int SCConfLogOpenGeneric(
             log_ctx->json_flags &= ~(JSON_ESCAPE_SLASH);
     }
 
-#ifdef BUILD_WITH_UNIXSOCKET
-    if (log_ctx->threaded) {
-        if (strcasecmp(filetype, "unix_stream") == 0 || strcasecmp(filetype, "unix_dgram") == 0) {
-            FatalError("Socket file types do not support threaded output");
-        }
-    }
-#endif
     if (!(strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0 || strcasecmp(filetype, "file") == 0)) {
         SCLogConfig("buffering setting ignored for %s output types", filetype);
     }
@@ -605,7 +599,13 @@ int SCConfLogOpenGeneric(
         /* Don't bail. May be able to connect later. */
         log_ctx->is_sock = 1;
         log_ctx->sock_type = SOCK_DGRAM;
-        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
+        if (!log_ctx->threaded) {
+            log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
+        } else {
+            if (!SCLogOpenThreadedFile(log_path, append, log_ctx)) {
+                return -1;
+            }
+        }
 #else
         return -1;
 #endif
@@ -759,14 +759,29 @@ LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *parent_ctx)
     if (!new) {
         SCLogDebug("%s: Opening new file for thread/id %d to file %s [ctx %p]", t_thread_name,
                 thread_id, parent_ctx->filename, parent_ctx);
-        if (LogFileNewThreadedCtx(
+        if (parent_ctx->is_sock)
+        {
+            if (LogSocketNewThreadedCtx(
                     parent_ctx, parent_ctx->filename, parent_ctx->threads->append, entry)) {
-            entry->isopen = true;
-            ret_ctx = entry->ctx;
-        } else {
-            SCLogDebug(
+                entry->isopen = true;
+                ret_ctx = entry->ctx;
+            } else {
+                SCLogDebug(
                     "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
-            (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+                (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+            }
+        }
+        else 
+        {
+            if (LogFileNewThreadedCtx(
+                    parent_ctx, parent_ctx->filename, parent_ctx->threads->append, entry)) {
+                entry->isopen = true;
+                ret_ctx = entry->ctx;
+            } else {
+                SCLogDebug(
+                    "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
+                (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+            }
         }
     } else {
         ret_ctx = entry->ctx;
@@ -842,6 +857,7 @@ static bool LogFileThreadedName(
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
         ThreadLogFileHashEntry *entry)
 {
+    assert(!parent_ctx->is_sock);
     LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
     if (!thread) {
         SCLogError("Unable to allocate thread file context entry %p", entry);
@@ -898,6 +914,64 @@ error:
     }
     return false;
 }
+
+/** \brief LogSocketNewThreadedCtx() Create socket context for threaded output
+ * \param parent_ctx
+ * \param log_path
+ * \param append
+ * \param entry
+ */
+static bool LogSocketNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
+        ThreadLogFileHashEntry *entry)
+{
+    LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
+    if (!thread) {
+        SCLogError("Unable to allocate thread file context entry %p", entry);
+        return false;
+    }
+
+    *thread = *parent_ctx;
+    char fname[NAME_MAX];
+    uint32_t unique_id = SC_ATOMIC_ADD(eve_file_id, 1);
+    if (!LogFileThreadedName(log_path, fname, sizeof(fname), unique_id)) {
+        SCLogError("Unable to create threaded filename for log (%s, %u)", log_path, unique_id);
+        goto error;
+    }
+    SCLogDebug("%s: thread open -- using name %s [replaces %s] - thread %d [slot %d]",
+                t_thread_name, fname, log_path, entry->internal_thread_id, entry->slot_number);
+    thread->fp = SCLogOpenUnixSocketFp(fname, parent_ctx->sock_type, 1);
+    if (thread->fp == NULL) {
+        /* error is logged by SCLogOpenUnixSocketFp; we will attempt to retry opening the socket later */
+        goto error;
+    }
+    thread->filename = SCStrdup(fname);
+    if (!thread->filename) {
+        SCLogError("Unable to duplicate filename for context entry %p", entry);
+        goto error;
+    }
+    thread->is_regular = true;
+    thread->Write = SCLogFileWriteSocket;
+    thread->Close = SCLogFileCloseNoLock;
+    OutputRegisterFileRotationFlag(&thread->rotation_flag);
+
+    thread->threaded = false;
+    thread->parent = parent_ctx;
+    thread->entry = entry;
+    entry->ctx = thread;
+    return true;
+
+error:
+    SC_ATOMIC_SUB(eve_file_id, 1);
+    if (thread->fp) {
+        thread->Close(thread);
+    }
+    if (thread) {
+        SCFree(thread);
+    }
+    return false;
+}
+
+
 
 /** \brief LogFileFreeCtx() Destroy a LogFileCtx (Close the file and free memory)
  *  \param lf_ctx pointer to the OutputCtx

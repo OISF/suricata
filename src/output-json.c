@@ -1303,9 +1303,8 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
     if (logfile_ctx->dropped) {
-        SCLogWarning("%" PRIu64 " events were dropped due to slow or "
-                     "disconnected socket",
-                logfile_ctx->dropped);
+        SCLogWarning("%" PRIu64 " events from %s were dropped due to slow or "
+                     "disconnected socket", logfile_ctx->dropped, logfile_ctx->filename);
     }
     if (json_ctx->xff_cfg != NULL) {
         SCFree(json_ctx->xff_cfg);
