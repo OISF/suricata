@@ -17,9 +17,10 @@
 use uuid::Uuid;
 
 use crate::dcerpc::dcerpc::*;
+use crate::dcerpc::dcerpc_udp::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-fn log_dcerpc_header(
+fn log_dcerpc_header_tcp(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
 ) -> Result<(), JsonError> {
     if tx.req_done == true && tx.req_lost == false {
@@ -29,7 +30,7 @@ fn log_dcerpc_header(
                 jsb.open_object("req")?;
                 jsb.set_uint("opnum", tx.opnum as u64)?;
                 jsb.set_uint("frag_cnt", tx.frag_cnt_ts as u64)?;
-                jsb.set_uint("stub_data_size", tx.stub_data_buffer_len_ts as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_ts.len() as u64)?;
                 jsb.close()?;
             }
             DCERPC_TYPE_BIND => match &state.bind {
@@ -61,7 +62,7 @@ fn log_dcerpc_header(
             DCERPC_TYPE_RESPONSE => {
                 jsb.open_object("res")?;
                 jsb.set_uint("frag_cnt", tx.frag_cnt_tc as u64)?;
-                jsb.set_uint("stub_data_size", tx.stub_data_buffer_len_tc as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_tc.len() as u64)?;
                 jsb.close()?;
             }
             _ => {} // replicating behavior from smb
@@ -70,8 +71,8 @@ fn log_dcerpc_header(
         jsb.set_string("response", "UNREPLIED")?;
     }
 
-    jsb.set_uint("call_id", tx.call_id as u64)?;
     if let Some(ref hdr) = state.header {
+        jsb.set_uint("call_id", tx.call_id as u64)?;
         let vstr = format!("{}.{}", hdr.rpc_vers, hdr.rpc_vers_minor);
         jsb.set_string("rpc_version", &vstr)?;
     }
@@ -79,9 +80,57 @@ fn log_dcerpc_header(
     return Ok(());
 }
 
+fn log_dcerpc_header_udp(
+    jsb: &mut JsonBuilder, _state: &DCERPCUDPState, tx: &DCERPCTransaction,
+) -> Result<(), JsonError> {
+    if tx.req_done == true && tx.req_lost == false {
+        jsb.set_string("request", &dcerpc_type_string(tx.req_cmd))?;
+        match tx.req_cmd {
+            DCERPC_TYPE_REQUEST => {
+                jsb.open_object("req")?;
+                jsb.set_uint("opnum", tx.opnum as u64)?;
+                jsb.set_uint("frag_cnt", tx.frag_cnt_ts as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_ts.len() as u64)?;
+                jsb.close()?;
+            }
+            _ => {}
+        }
+    } else {
+        jsb.set_string("request", "REQUEST_LOST")?;
+    }
+
+    if tx.resp_done == true && tx.resp_lost == false {
+        jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
+        match tx.resp_cmd {
+            DCERPC_TYPE_RESPONSE => {
+                jsb.open_object("res")?;
+                jsb.set_uint("frag_cnt", tx.frag_cnt_tc as u64)?;
+                jsb.set_uint("stub_data_size", tx.stub_data_buffer_tc.len() as u64)?;
+                jsb.close()?;
+            }
+            _ => {} // replicating behavior from smb
+        }
+    } else {
+        jsb.set_string("response", "UNREPLIED")?;
+    }
+    let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
+    let activityuuid = activityuuid.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+    jsb.set_string("activityuuid", &activityuuid)?;
+    jsb.set_uint("seqnum", tx.seqnum as u64)?;
+    jsb.set_string("rpc_version", "4.0")?;
+    return Ok(());
+}
+
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_record(
+pub extern "C" fn rs_dcerpc_log_json_record_tcp(
     state: &DCERPCState, tx: &DCERPCTransaction, mut jsb: &mut JsonBuilder,
 ) -> bool {
-    log_dcerpc_header(&mut jsb, state, tx).is_ok()
+    log_dcerpc_header_tcp(&mut jsb, state, tx).is_ok()
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dcerpc_log_json_record_udp(
+    state: &DCERPCUDPState, tx: &DCERPCTransaction, mut jsb: &mut JsonBuilder,
+) -> bool {
+    log_dcerpc_header_udp(&mut jsb, state, tx).is_ok()
 }

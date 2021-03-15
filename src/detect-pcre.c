@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -483,7 +483,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_uri");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'V': {
@@ -493,7 +493,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_user_agent");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'W': {
@@ -503,7 +503,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_host");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     check_host_header = 1;
                     break;
                 }
@@ -514,7 +514,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_raw_host");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'H': { /* snort's option */
@@ -524,7 +524,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_header");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 } case 'I': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
@@ -533,13 +533,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_raw_uri");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'D': { /* snort's option */
                     int list = DetectBufferTypeGetByName("http_raw_header");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'M': { /* snort's option */
@@ -549,7 +549,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_method");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'C': { /* snort's option */
@@ -559,35 +559,35 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     }
                     int list = DetectBufferTypeGetByName("http_cookie");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'P': {
                     /* snort's option (http request body inspection) */
                     int list = DetectBufferTypeGetByName("http_client_body");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'Q': {
                     int list = DetectBufferTypeGetByName("file_data");
                     /* suricata extension (http response body inspection) */
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'Y': {
                     /* snort's option */
                     int list = DetectBufferTypeGetByName("http_stat_msg");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 case 'S': {
                     /* snort's option */
                     int list = DetectBufferTypeGetByName("http_stat_code");
                     *sm_list = DetectPcreSetList(*sm_list, list);
-                    *alproto = ALPROTO_HTTP;
+                    *alproto = ALPROTO_HTTP1;
                     break;
                 }
                 default:
@@ -723,7 +723,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     {
         char *ptr = NULL;
         while ((name_array[name_idx] = strtok_r(name_idx == 0 ? capture_names : NULL, " ,", &ptr))){
-            if (name_idx > capture_cnt) {
+            if (name_idx > (capture_cnt - 1)) {
                 SCLogError(SC_ERR_VAR_LIMIT, "more pkt/flow "
                         "var capture names than capturing substrings");
                 return -1;
@@ -904,8 +904,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                 if (alproto != ALPROTO_UNKNOWN) {
                     /* see if the proto doesn't conflict
                      * with what we already have. */
-                    if (s->alproto != ALPROTO_UNKNOWN &&
-                            alproto != s->alproto) {
+                    if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
                         goto error;
                     }
                     if (DetectSignatureSetAppProto(s, alproto) < 0)
@@ -1014,7 +1013,7 @@ static int DetectPcreParseTest02 (void)
 
     pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false, &alproto);
     FAIL_IF_NOT_NULL(pd);
-    FAIL_IF_NOT(alproto == ALPROTO_HTTP);
+    FAIL_IF_NOT(alproto == ALPROTO_HTTP1);
 
     DetectEngineCtxFree(de_ctx);
     return result;
@@ -1121,7 +1120,7 @@ static int DetectPcreParseTest07 (void)
 
     pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false, &alproto);
     FAIL_IF_NULL(pd);
-    FAIL_IF_NOT(alproto == ALPROTO_HTTP);
+    FAIL_IF_NOT(alproto == ALPROTO_HTTP1);
 
     DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
@@ -1697,7 +1696,7 @@ static int DetectPcreTestSig01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 
@@ -1709,8 +1708,8 @@ static int DetectPcreTestSig01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, buf, buflen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, buf, buflen);
     FAIL_IF(r != 0);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1879,7 +1878,7 @@ static int DetectPcreModifPTest04(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1901,8 +1900,8 @@ static int DetectPcreModifPTest04(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -1991,7 +1990,7 @@ static int DetectPcreModifPTest05(void)
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2013,8 +2012,8 @@ static int DetectPcreModifPTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2029,8 +2028,7 @@ static int DetectPcreModifPTest05(void)
     FAIL_IF(PacketAlertCheck(p1, 2));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2140,7 +2138,7 @@ static int DetectPcreTestSig09(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2158,8 +2156,8 @@ static int DetectPcreTestSig09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2219,7 +2217,7 @@ static int DetectPcreTestSig10(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2237,8 +2235,8 @@ static int DetectPcreTestSig10(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2298,7 +2296,7 @@ static int DetectPcreTestSig11(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2316,8 +2314,8 @@ static int DetectPcreTestSig11(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2377,7 +2375,7 @@ static int DetectPcreTestSig12(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2395,8 +2393,8 @@ static int DetectPcreTestSig12(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2456,7 +2454,7 @@ static int DetectPcreTestSig13(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2474,8 +2472,8 @@ static int DetectPcreTestSig13(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2535,7 +2533,7 @@ static int DetectPcreTestSig14(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2553,8 +2551,8 @@ static int DetectPcreTestSig14(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2614,7 +2612,7 @@ static int DetectPcreTestSig15(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2633,8 +2631,8 @@ static int DetectPcreTestSig15(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2694,7 +2692,7 @@ static int DetectPcreTestSig16(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2713,8 +2711,8 @@ static int DetectPcreTestSig16(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2778,40 +2776,33 @@ static int DetectPcreTxBodyChunksTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
     AppLayerHtpEnableRequestBodyCallback();
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf6, httplen6);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf7, httplen7);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
 
     /* Now we should have 2 transactions, each with it's own list
@@ -2823,8 +2814,8 @@ static int DetectPcreTxBodyChunksTest01(void)
     /* hardcoded check of the transactions and it's client body chunks */
     FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
-    htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 1);
+    htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
+    htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 1);
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(t1);
     FAIL_IF(htud == NULL);
@@ -2890,7 +2881,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2908,8 +2899,8 @@ static int DetectPcreTxBodyChunksTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2919,8 +2910,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2930,8 +2920,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2941,8 +2930,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2952,8 +2940,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2963,8 +2950,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf6, httplen6);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2976,8 +2962,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     SCLogDebug("sending data chunk 7");
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf7, httplen7);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -2992,8 +2977,8 @@ static int DetectPcreTxBodyChunksTest02(void)
     /* hardcoded check of the transactions and it's client body chunks */
     FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
-    htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 1);
+    htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
+    htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 1);
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_user_data(t1);
 
@@ -3065,7 +3050,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3083,8 +3068,8 @@ static int DetectPcreTxBodyChunksTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3094,8 +3079,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3105,8 +3089,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3116,8 +3099,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3127,8 +3109,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3138,8 +3119,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->alerts.cnt = 0;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf6, httplen6);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3151,8 +3131,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     SCLogDebug("sending data chunk 7");
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf7, httplen7);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3221,7 +3200,7 @@ static int DetectPcreFlowvarCapture01(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3246,8 +3225,8 @@ static int DetectPcreFlowvarCapture01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3322,7 +3301,7 @@ static int DetectPcreFlowvarCapture02(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3360,8 +3339,8 @@ static int DetectPcreFlowvarCapture02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3438,7 +3417,7 @@ static int DetectPcreFlowvarCapture03(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3473,8 +3452,8 @@ static int DetectPcreFlowvarCapture03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -3552,6 +3531,11 @@ static int DetectPcreParseCaptureTest(void)
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
             "(content:\"Server: \"; http_header; pcre:\"/([a-z]+)([0-9]+)\\r\\n/HR, flow:somecapture, pkt:anothercap\"; content:\"xyz\"; http_header; sid:3;)");
     FAIL_IF(s == NULL);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(content:\"Server: \"; http_header; pcre:\"/([a-z]+)\\r\\n/HR, flow:somecapture, "
+            "pkt:anothercap\"; content:\"xyz\"; http_header; sid:3;)");
+    FAIL_IF_NOT_NULL(s);
 
     SigGroupBuild(de_ctx);
 

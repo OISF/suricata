@@ -513,7 +513,7 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
         SCLogDebug("k='%s', v='%s'", k, v);
 
         if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
-            options->alproto = ALPROTO_HTTP;
+            options->alproto = ALPROTO_HTTP1;
         else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
             options->alproto = ALPROTO_DNS;
         else if (strcmp(k,"protocol") == 0 && strcmp(v, "tls") == 0)
@@ -783,25 +783,25 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
         om->ThreadInit = LuaLogThreadInit;
         om->ThreadDeinit = LuaLogThreadDeinit;
 
-        if (opts.alproto == ALPROTO_HTTP && opts.streaming) {
+        if (opts.alproto == ALPROTO_HTTP1 && opts.streaming) {
             om->StreamingLogFunc = LuaStreamingLogger;
             om->stream_type = STREAMING_HTTP_BODIES;
-            om->alproto = ALPROTO_HTTP;
+            om->alproto = ALPROTO_HTTP1;
             AppLayerHtpEnableRequestBodyCallback();
             AppLayerHtpEnableResponseBodyCallback();
-        } else if (opts.alproto == ALPROTO_HTTP) {
+        } else if (opts.alproto == ALPROTO_HTTP1) {
             om->TxLogFunc = LuaTxLogger;
-            om->alproto = ALPROTO_HTTP;
+            om->alproto = ALPROTO_HTTP1;
             om->ts_log_progress = -1;
             om->tc_log_progress = -1;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_TLS;
             om->tc_log_progress = TLS_HANDSHAKE_DONE;
             om->ts_log_progress = TLS_HANDSHAKE_DONE;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
-       } else if (opts.alproto == ALPROTO_DNS) {
+        } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_DNS;
             om->ts_log_progress = -1;

@@ -270,6 +270,8 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
+static bool v1_deprecation_warned = false;
+
 JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
 {
     JsonBuilder *queryjb = jb_new_array();
@@ -381,6 +383,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
                 break;
             }
             jb_set_object(jb, "dns", answer);
+            jb_free(answer);
 
             MemBufferReset(td->buffer);
             OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
@@ -401,6 +404,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
                 break;
             }
             jb_set_object(jb, "dns", answer);
+            jb_free(answer);
 
             MemBufferReset(td->buffer);
             OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
@@ -564,12 +568,18 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
                 version);
     }
 
+    if (!v1_deprecation_warned && version == DNS_VERSION_1) {
+        SCLogWarning(SC_WARN_DEPRECATED, "DNS EVE v1 style logs have been "
+                                         "deprecated and will be removed by May 2022");
+        v1_deprecation_warned = true;
+    }
+
     return version;
 }
 
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
-    dnslog_ctx->flags = ~0UL;
+    dnslog_ctx->flags = ~0ULL;
 
     if (conf) {
         if (dnslog_ctx->version == DNS_VERSION_1) {

@@ -14,3 +14,5 @@ alert smb any any -> any any (msg:"SURICATA SMB malformed response data"; flow:t
 alert smb any any -> any any (msg:"SURICATA SMB malformed NTLMSSP record"; flow:to_server; app-layer-event:smb.malformed_ntlmssp_request; classtype:protocol-command-decode; sid:2225004; rev:1;)
 
 alert smb any any -> any any (msg:"SURICATA SMB malformed request dialects"; flow:to_server; app-layer-event:smb.negotiate_malformed_dialects; classtype:protocol-command-decode; sid:2225005; rev:1;)
+
+alert smb any any -> any any (msg:"SURICATA SMB file overlap"; app-layer-event:smb.file_overlap; classtype:protocol-command-decode; sid:2225006; rev:1;)

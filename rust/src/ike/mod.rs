@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,9 @@
 
 extern crate ipsec_parser;
 
-pub mod ikev2;
-pub mod state;
-pub mod log;
+mod detect;
+pub mod ike;
+mod ikev1;
+mod ikev2;
+pub mod logger;
+mod parser;

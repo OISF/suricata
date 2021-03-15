@@ -29,59 +29,19 @@
 
 #include "suricata-common.h"
 
-typedef enum {
-    SC_SHA_1_OK,
-    SC_SHA_1_NOK,
-    SC_SHA_1_INVALID_ARG,
+/* Ratio of output bytes to input bytes for Base64 Encoding is 4:3, hence the
+ * required output bytes are 4 * ceil(input_len / 3) and an additional byte
+ * for storing the NULL pointer.
+ * */
+#define BASE64_BUFFER_SIZE(x)  ((4 * ((x) + 2) / 3) + 1)
 
+typedef enum {
     SC_BASE64_OK,
     SC_BASE64_INVALID_ARG,
     SC_BASE64_OVERFLOW,
 
 } CryptId;
 
-#ifndef HAVE_NSS
-
-#define SHA1_LENGTH 20
-
-#define LOAD32H(x, y)                            \
-     { x = ((unsigned long)((y)[0] & 255)<<24) | \
-           ((unsigned long)((y)[1] & 255)<<16) | \
-           ((unsigned long)((y)[2] & 255)<<8)  | \
-           ((unsigned long)((y)[3] & 255)); }
-
-#define STORE64H(x, y)                                                                     \
-   { (y)[0] = (unsigned char)(((x)>>56)&255); (y)[1] = (unsigned char)(((x)>>48)&255);     \
-     (y)[2] = (unsigned char)(((x)>>40)&255); (y)[3] = (unsigned char)(((x)>>32)&255);     \
-     (y)[4] = (unsigned char)(((x)>>24)&255); (y)[5] = (unsigned char)(((x)>>16)&255);     \
-     (y)[6] = (unsigned char)(((x)>>8)&255); (y)[7] = (unsigned char)((x)&255); }
-
-#define STORE32H(x, y)                                                                     \
-     { (y)[0] = (unsigned char)(((x)>>24)&255); (y)[1] = (unsigned char)(((x)>>16)&255);   \
-       (y)[2] = (unsigned char)(((x)>>8)&255); (y)[3] = (unsigned char)((x)&255); }
-
-#define ROL(x, y) ( (((unsigned long)(x)<<(unsigned long)((y)&31)) | (((unsigned long)(x)&0xFFFFFFFFUL)>>(unsigned long)(32-((y)&31)))) & 0xFFFFFFFFUL)
-#define ROLc(x, y) ( (((unsigned long)(x)<<(unsigned long)((y)&31)) | (((unsigned long)(x)&0xFFFFFFFFUL)>>(unsigned long)(32-((y)&31)))) & 0xFFFFFFFFUL)
-#ifndef MIN
-#define MIN(x, y) ( ((x)<(y))?(x):(y) )
-#endif
-
-typedef struct Sha1State_ {
-    uint64_t length;
-    uint32_t state[5], curlen;
-    unsigned char buf[64];
-} Sha1State;
-
-typedef union HashState_ {
-    char dummy[1];
-    Sha1State sha1;
-    void *data;
-} HashState;
-
-#endif /* don't HAVE_NSS */
-
-int ComputeSHA1(const uint8_t * inbuf, size_t inbuf_len,
-        uint8_t *outbuf, size_t outbuf_len);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
 
 #endif /* UTIL_CRYPT_H_ */

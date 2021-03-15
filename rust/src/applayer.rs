@@ -22,6 +22,7 @@ use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
+use crate::core::SC;
 
 #[repr(C)]
 #[derive(Debug,PartialEq)]
@@ -193,8 +194,9 @@ pub struct RustParser {
     pub get_tx:             StateGetTxFn,
     /// Function called to free a transaction
     pub tx_free:            StateTxFreeFn,
-    /// Function returning the current transaction completion status
-    pub tx_get_comp_st:     StateGetTxCompletionStatusFn,
+    /// Progress values at which the tx is considered complete in a direction
+    pub tx_comp_st_ts:      c_int,
+    pub tx_comp_st_tc:      c_int,
     /// Function returning the current transaction progress
     pub tx_get_progress:    StateGetProgressFn,
 
@@ -230,6 +232,10 @@ pub struct RustParser {
     pub apply_tx_config: Option<ApplyTxConfigFn>,
 
     pub flags: u32,
+
+    /// Function to handle the end of data coming on one of the sides
+    /// due to the stream reaching its 'depth' limit.
+    pub truncate: Option<TruncateFn>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -255,13 +261,12 @@ pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        input_len: u32,
                                        data: *const c_void,
                                        flags: u8) -> AppLayerResult;
-pub type ProbeFn      = extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
+pub type ProbeFn      = extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = extern "C" fn (*mut c_void) -> u64;
-pub type StateGetTxCompletionStatusFn = extern "C" fn (u8) -> c_int;
 pub type StateGetProgressFn = extern "C" fn (*mut c_void, u8) -> c_int;
 pub type GetDetectStateFn   = extern "C" fn (*mut c_void) -> *mut DetectEngineState;
 pub type SetDetectStateFn   = extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
@@ -279,11 +284,18 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              -> AppLayerGetTxIterTuple;
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
+pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
+
 
 // Defined in app-layer-register.h
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
-    pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
+    pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
+}
+
+#[allow(non_snake_case)]
+pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int {
+    (SC.unwrap().AppLayerRegisterParser)(parser, alproto)
 }
 
 // Defined in app-layer-detect-proto.h
@@ -292,7 +304,8 @@ extern {
 }
 
 // Defined in app-layer-parser.h
-pub const APP_LAYER_PARSER_EOF : u8 = 0b0;
+pub const APP_LAYER_PARSER_EOF_TS : u8 = 0b0101;
+pub const APP_LAYER_PARSER_EOF_TC : u8 = 0b0110;
 pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = 0b1;
 pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
 pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;

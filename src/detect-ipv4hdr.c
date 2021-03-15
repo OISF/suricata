@@ -100,6 +100,10 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
+        if (p->ip4h == NULL) {
+            // DETECT_PROTO_IPV4 does not prefilter
+            return NULL;
+        }
         uint32_t hlen = IPV4_GET_HLEN(p);
         if (((uint8_t *)p->ip4h + (ptrdiff_t)hlen) >
                 ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
@@ -113,7 +117,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = hlen;
         const uint8_t *data = (const uint8_t *)p->ip4h;
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

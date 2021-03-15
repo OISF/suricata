@@ -48,6 +48,7 @@
    flow state between files.
 
 .. option:: --pcap-file-recursive
+
    Used with the -r option when the path provided is a directory.  This option
    enables recursive traversal into subdirectories to a maximum depth of 255.
    This option cannot be combined with --pcap-file-continuous.  Symlinks are
@@ -153,9 +154,31 @@
 
    Exit with a failure when errors are encountered loading signatures.
 
+.. option:: --strict-rule-keywords[=all|<keyword>|<keywords(csv)]
+
+   Applies to: classtype, reference and app-layer-event.
+
+   By default missing reference or classtype values are warnings and
+   not errors. Additionally, loading outdated app-layer-event events are
+   also not treated as errors, but as warnings instead.
+
+   If this option is enabled these warnings are considered errors.
+
+   If no value, or the value 'all', is specified, the option applies to
+   all of the keywords above. Alternatively, a comma separated list can
+   be supplied with the keyword names it should apply to.
+
 .. option:: --disable-detection
 
    Disable the detection engine.
+
+.. option:: --disable-hashing
+
+   Disable support for hash algorithms such as md5, sha1 and sha256.
+
+   By default hashing is enabled. Disabling hashing will also disable some
+   Suricata features such as the filestore, ja3, and rule keywords that use hash
+   algorithms.
 
 .. Information options.
    
@@ -192,10 +215,25 @@
 .. option:: --set <key>=<value>
 
    Set a configuration value. Useful for overriding basic
-   configuration parameters in the configuration. For example, to
-   change the default log directory::
+   configuration parameters. For example, to change the default log
+   directory::
 
      --set default-log-dir=/var/tmp
+
+   This option cannot be used to add new entries to a list in the
+   configuration file, such as a new output. It can only be used to
+   modify a value in a list that already exists.
+
+   For example, to disable the ``eve-log`` in the default
+   configuration file::
+
+     --set outputs.1.eve-log.enabled=no
+
+   Also note that the index values may change as the ``suricata.yaml``
+   is updated.
+
+   See the output of ``--dump-config`` for existing values that could
+   be modified with their index.
 
 .. option:: --engine-analysis
 

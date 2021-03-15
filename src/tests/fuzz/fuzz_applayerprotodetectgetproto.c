@@ -55,8 +55,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     f->protomap = FlowGetProtoMapping(f->proto);
 
     alproto = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, size-HEADER_LEN, f->proto, data[0], &reverse);
-    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
-        /* If we find a valid protocol :
+    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP &&
+            (data[0] & STREAM_MIDSTREAM) == 0) {
+        /* If we find a valid protocol at the start of a stream :
          * check that with smaller input
          * we find the same protocol or ALPROTO_UNKNOWN.
          * Otherwise, we have evasion with TCP splitting
@@ -64,7 +65,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         for (size_t i = 0; i < size-HEADER_LEN && i < PROTO_DETECT_MAX_LEN; i++) {
             alproto2 = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, i, f->proto, data[0], &reverse);
             if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
-                printf("Assertion failure : With input length %"PRIuMAX", found %s instead of %s\n", (uintmax_t) i, AppProtoToString(alproto2), AppProtoToString(alproto));
+                printf("Failed with input length %" PRIuMAX " versus %" PRIuMAX
+                       ", found %s instead of %s\n",
+                        (uintmax_t)i, (uintmax_t)size - HEADER_LEN, AppProtoToString(alproto2),
+                        AppProtoToString(alproto));
+                printf("Assertion failure: %s-%s\n", AppProtoToString(alproto2),
+                        AppProtoToString(alproto));
+                fflush(stdout);
                 abort();
             }
         }

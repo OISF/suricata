@@ -2,73 +2,79 @@ HTTP Keywords
 =============
 .. role:: example-rule-emphasis
 
-There are additional content modifiers that can provide protocol-specific
-capabilities at the application layer. More information can be found at
-:doc:`payload-keywords` These keywords make sure the signature checks only
-specific parts of the network traffic. For instance, to check specifically on
-the request URI, cookies, or the HTTP request or response body, etc.
+Using the HTTP specific sticky buffers provides a way to efficiently
+inspect specific fields of the HTTP protocol. After specifying a
+sticky buffer in a rule it should be followed by one or more doc:`payload-keywords`.
 
-All HTTP keywords are modifiers. Note the difference between content modifiers
-and sticky buffers. See :ref:`rules-modifiers` for more information. As a
+Many of the sticky buffers have legacy variants in the older "content modifier"
+notation. See :ref:`rules-modifiers` for more information. As a
 refresher:
 
 * **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
 
       alert http any any -> any any (http.response_line; content:"403 Forbidden"; sid:1;)
 
+  Sticky buffers apply to all "payload" keywords following it. E.g. `content`, `isdataat`, `byte_test`, `pcre`.
+
 * **'content modifiers'** look back in the rule, e.g.::
 
       alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
 
+  Content modifiers only apply to the preceding `content` keyword.
+
 The following **request** keywords are available:
 
 ============================== ======================== ==================
-Keyword                        Sticky or Modifier       Direction
+Keyword                        Legacy Content Modifier  Direction
 ============================== ======================== ==================
-http.uri                       Sticky Buffer            Request
-http.uri.raw                   Sticky Buffer            Request
-http.method                    Sticky Buffer            Request
-http.request_line              Sticky Buffer            Request
-http.request_body              Sticky Buffer            Request
-http.header                    Sticky Buffer            Both
-http.header.raw                Sticky Buffer            Both
-http.cookie                    Sticky Buffer            Both
-http.user_agent                Sticky Buffer            Request
-http.host                      Sticky Buffer            Request
-http.host.raw                  Sticky Buffer            Request
-http.accept                    Sticky Buffer            Request
-http.accept_lang               Sticky Buffer            Request
-http.accept_enc                Sticky Buffer            Request
-http.referer                   Sticky Buffer            Request
-http.connection                Sticky Buffer            Request
-http.content_type              Sticky Buffer            Both
-http.content_len               Sticky Buffer            Both
-http.start                     Sticky Buffer            Both
-http.protocol                  Sticky Buffer            Both
-http.header_names              Sticky Buffer            Both
+http.uri                       http_uri                 Request
+http.uri.raw                   http_raw_uri             Request
+http.method                    http_method              Request
+http.request_line              http_request_line (*)    Request
+http.request_body              http_client_body         Request
+http.header                    http_header              Both
+http.header.raw                http_raw_header          Both
+http.cookie                    http_cookie              Both
+http.user_agent                http_user_agent          Request
+http.host                      http_host                Request
+http.host.raw                  http_raw_host            Request
+http.accept                    http_accept (*)          Request
+http.accept_lang               http_accept_lang (*)     Request
+http.accept_enc                http_accept_enc (*)      Request
+http.referer                   http_referer (*)         Request
+http.connection                http_connection (*)      Request
+http.content_type              http_content_type (*)    Both
+http.content_len               http_content_len (*)     Both
+http.start                     http_start (*)           Both
+http.protocol                  http_protocol (*)        Both
+http.header_names              http_header_names (*)    Both
 ============================== ======================== ==================
+
+\*) sticky buffer
 
 The following **response** keywords are available:
 
 ============================== ======================== ==================
-Keyword                        Sticky or Modifier       Direction
+Keyword                        Legacy Content Modifier  Direction
 ============================== ======================== ==================
-http.stat_msg                  Sticky Buffer            Response
-http.stat_code                 Sticky Buffer            Response
-http.response_line             Sticky Buffer            Response
-http.header                    Sticky Buffer            Both
-http.header.raw                Sticky Buffer            Both
-http.cookie                    Sticky Buffer            Both
-http.response_body             Sticky Buffer            Response
-http.server                    Sticky Buffer            Response
-http.location                  Sticky Buffer            Response
-file_data                      Sticky Buffer            Response
-http.content_type              Sticky Buffer            Both
-http.content_len               Sticky Buffer            Both
-http.start                     Sticky Buffer            Both
-http.protocol                  Sticky Buffer            Both
-http.header_names              Sticky Buffer            Both
+http.stat_msg                  http_stat_msg            Response
+http.stat_code                 http_stat_code           Response
+http.response_line             http_response_line (*)   Response
+http.header                    http_header              Both
+http.header.raw                http_raw_header          Both
+http.cookie                    http_cookie              Both
+http.response_body             http_server_body         Response
+http.server                    N/A                      Response
+http.location                  N/A                      Response
+file.data                      file_data (*)            Response
+http.content_type              http_content_type (*)    Both
+http.content_len               http_content_len (*)     Both
+http.start                     http_start (*)           Both
+http.protocol                  http_protocol (*)        Both
+http.header_names              http_header_names (*)    Both
 ============================== ======================== ==================
+
+\*) sticky buffer
 
 HTTP Primer
 -----------
@@ -81,11 +87,39 @@ responses. A simple example of a HTTP request and response follows:
 
    GET /index.html HTTP/1.0\r\n
 
-GET is a request **method**.  Examples of methods are: GET, POST, PUT,
+GET is the request **method**.  Examples of methods are: GET, POST, PUT,
 HEAD, etc. The URI path is ``/index.html`` and the HTTP version is
 ``HTTP/1.0``. Several HTTP versions have been used over the years; of
 the versions 0.9, 1.0 and 1.1, 1.0 and 1.1 are the most commonly used
 today.
+
+Example request with keywords:
+
++--------------------------------+------------------+
+| HTTP                           | Keyword          |
++--------------------------------+------------------+
+| GET /index.html HTTP/1.1\\r\\n | http.request_line|
++--------------------------------+------------------+
+| Host: www.oisf.net\\r\\n       | http.header      |
++--------------------------------+------------------+
+| Cookie: **<cookie data>**      | http.cookie      |
++--------------------------------+------------------+
+
+Example request with finer grained keywords:
+
++------------------------------------------+---------------------+
+| HTTP                                     | Keyword             |
++------------------------------------------+---------------------+
+| **GET** */index.html* **HTTP/1.1**\\r\\n | **http.method**     |
+|                                          | *http.uri*          |
+|                                          | **http.protocol**   |
++------------------------------------------+---------------------+
+| Host: **www.oisf.net**\\r\\n             | **http.host**       |
+|                                          +---------------------+
+| User-Agent: **Mozilla/5.0**\\r\\n        | **http.user_agent** |
++------------------------------------------+---------------------+
+| Cookie: **<cookie data>**                | **http.cookie**     |
++------------------------------------------+---------------------+
 
 **HTTP response**
 
@@ -98,20 +132,6 @@ today.
 
 In this example, HTTP/1.0 is the HTTP version, 200 the response status
 code and OK the response status message.
-
-Another more detailed example:
-
-Request:
-
-.. image:: http-keywords/request.png
-
-Response:
-
-.. image:: http-keywords/response1.png
-
-Request:
-
-.. image:: http-keywords/request2.png
 
 Although cookies are sent in an HTTP header, you can not match on them
 with the ``http.header`` keyword. Cookies are matched with their own
@@ -169,6 +189,12 @@ normalizing it. It is possible though to match specific on the
 characters %20 in a uri. This means matching on the uri.raw. The
 uri.raw and the normalized uri are separate buffers. So, the uri.raw
 inspects the uri.raw buffer and can not inspect the normalized buffer.
+
+.. note:: uri.raw never has any spaces in it.
+          With this request line ``GET /uid=0(root) gid=0(root) HTTP/1.1``,
+          the ``http.uri.raw`` will match ``/uid=0(root)``
+          and ``http.protocol`` will match ``gid=0(root) HTTP/1.1``
+          Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
 
 Example of the URI in a HTTP request:
 
@@ -277,6 +303,9 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
     https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
+    If there are multiple values for the same header name, they are
+    concatenated with a comma and space (", ") between each of them.
+    See RFC 2616 4.2 Message Headers.
     To avoid that, use the ``http.header.raw`` keyword.
 
 Example of a header in a HTTP request:

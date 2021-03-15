@@ -582,6 +582,45 @@ static int LuaCallbackRuleIds(lua_State *luastate)
  *  \param pa pointer to packet alert struct
  *  \retval cnt number of data items placed on the stack
  *
+ *  Places: action (string)
+ */
+static int LuaCallbackRuleActionPushToStackFromPacketAlert(
+        lua_State *luastate, const PacketAlert *pa)
+{
+    const char *action = "";
+    if (pa->s->action & ACTION_PASS) {
+        action = "pass";
+    } else if ((pa->s->action & ACTION_REJECT) || (pa->s->action & ACTION_REJECT_BOTH) ||
+               (pa->s->action & ACTION_REJECT_DST)) {
+        action = "reject";
+    } else if (pa->s->action & ACTION_DROP) {
+        action = "drop";
+    } else if (pa->s->action & ACTION_ALERT) {
+        action = "alert";
+    }
+    lua_pushstring(luastate, action);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackRuleAction(lua_State *luastate)
+{
+    const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
+    if (pa == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackRuleActionPushToStackFromPacketAlert(luastate, pa);
+}
+
+/** \internal
+ *  \brief fill lua stack with alert info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
  *  Places: msg (string)
  */
 static int LuaCallbackRuleMsgPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
@@ -715,9 +754,12 @@ static int LuaCallbackLogError(lua_State *luastate)
  */
 static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const File *file)
 {
-#ifdef HAVE_NSS
+    char *md5ptr = NULL;
+    char *sha1ptr = NULL;
+    char *sha256ptr = NULL;
+
     char md5[33] = "";
-    char *md5ptr = md5;
+    md5ptr = md5;
     if (file->flags & FILE_MD5) {
         size_t x;
         for (x = 0; x < sizeof(file->md5); x++) {
@@ -727,7 +769,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
         }
     }
     char sha1[41] = "";
-    char *sha1ptr = sha1;
+    sha1ptr = sha1;
     if (file->flags & FILE_SHA1) {
         size_t x;
         for (x = 0; x < sizeof(file->sha1); x++) {
@@ -737,7 +779,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
         }
     }
     char sha256[65] = "";
-    char *sha256ptr = sha256;
+    sha256ptr = sha256;
     if (file->flags & FILE_SHA256) {
         size_t x;
         for (x = 0; x < sizeof(file->sha256); x++) {
@@ -746,11 +788,6 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
             strlcat(sha256, one, sizeof(sha256));
         }
     }
-#else
-    char *md5ptr = NULL;
-    char *sha1ptr = NULL;
-    char *sha256ptr = NULL;
-#endif
 
     lua_pushnumber(luastate, file->file_store_id);
     lua_pushnumber(luastate, file->txid);
@@ -908,6 +945,8 @@ int LuaRegisterFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, LuaCallbackRuleIds);
     lua_setglobal(luastate, "SCRuleIds");
+    lua_pushcfunction(luastate, LuaCallbackRuleAction);
+    lua_setglobal(luastate, "SCRuleAction");
     lua_pushcfunction(luastate, LuaCallbackRuleMsg);
     lua_setglobal(luastate, "SCRuleMsg");
     lua_pushcfunction(luastate, LuaCallbackRuleClass);

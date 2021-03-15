@@ -95,13 +95,11 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_HTTP_METHOD].Setup = DetectHttpMethodSetupSticky;
     sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_LINE,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_method", SIG_FLAG_TOSERVER, 4,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_LINE);
+    DetectAppLayerMpmRegister2("http_method", SIG_FLAG_TOSERVER, 4, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");
@@ -127,10 +125,8 @@ void DetectHttpMethodRegister(void)
  */
 static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
-                                                  DETECT_AL_HTTP_METHOD,
-                                                  g_http_method_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, str, DETECT_AL_HTTP_METHOD, g_http_method_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -147,7 +143,7 @@ static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
     if (DetectBufferSetActiveList(s, g_http_method_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
 
     return 0;
@@ -201,7 +197,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = bstr_len(htp_tx_request_method(tx));
         const uint8_t *data = bstr_ptr(htp_tx_request_method(tx));
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

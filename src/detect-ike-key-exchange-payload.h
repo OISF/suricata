@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,26 +16,13 @@
  */
 
 /**
- * \file
  *
- * \author Pierre Chifflier <chifflier@wzdftpd.net>
- *
- * Parser for IKEv2 application layer running on UDP port 500.
+ * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
+#ifndef __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_H__
+#define __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_H__
 
-#include "util-unittest.h"
+void DetectIkeKeyExchangeRegister(void);
 
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-
-#include "app-layer-ikev2.h"
-#include "rust.h"
-
-void RegisterIKEV2Parsers(void)
-{
-    rs_register_ikev2_parser();
-}
+#endif /* __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_H__ */

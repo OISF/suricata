@@ -154,11 +154,8 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     break;
                 case TCP_OPT_TFO:
                     SCLogDebug("TFO option, len %u", olen);
-                    if ((olen != 2) &&
-                           (olen < TCP_OPT_TFO_MIN_LEN ||
-                            olen > TCP_OPT_TFO_MAX_LEN ||
-                            !((olen - 2) % 8 == 0)))
-                    {
+                    if ((olen != 2) && (olen < TCP_OPT_TFO_MIN_LEN || olen > TCP_OPT_TFO_MAX_LEN ||
+                                               !(((olen - 2) & 0x1) == 0))) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.tfo.type != 0) {

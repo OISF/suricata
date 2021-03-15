@@ -38,8 +38,9 @@ if INSTALL_SURICATA_UPDATE
 		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
 		--no-test --no-reload
 else
-	@echo "error: rules not installed as suricata-update not available"
-	@exit 1
+	@echo ""
+	@echo "Warning: No rules will be downloaded as suricata-update"
+	@echo "   is not available: ${install_suricata_update_reason}"
 endif
 	@echo ""
 	@echo "You can now start suricata by running as root something like:"
@@ -54,3 +55,11 @@ endif
 	@echo "For more information please see:"
 	@echo "  https://suricata.readthedocs.io/en/latest/rule-management/index.html"
 	@echo ""
+
+install-library:
+	cd src && $(MAKE) $@
+	cd rust && $(MAKE) $@
+	$(INSTALL) libsuricata-config "$(DESTDIR)$(bindir)/libsuricata-config"
+
+install-headers:
+	cd src && $(MAKE) $@

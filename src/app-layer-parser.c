@@ -61,7 +61,7 @@
 #include "app-layer-nfs-udp.h"
 #include "app-layer-ntp.h"
 #include "app-layer-tftp.h"
-#include "app-layer-ikev2.h"
+#include "app-layer-ike.h"
 #include "app-layer-krb5.h"
 #include "app-layer-snmp.h"
 #include "app-layer-sip.h"
@@ -113,7 +113,8 @@ typedef struct AppLayerParserProtoCtx_
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     AppLayerGetTxIteratorFunc StateGetTxIterator;
-    int (*StateGetProgressCompletionStatus)(uint8_t direction);
+    int complete_ts;
+    int complete_tc;
     int (*StateGetEventInfoById)(int event_id, const char **event_name,
                                  AppLayerEventType *event_type);
     int (*StateGetEventInfo)(const char *event_name,
@@ -524,15 +525,19 @@ void AppLayerParserRegisterGetTxIterator(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
-    int (*StateGetProgressCompletionStatus)(uint8_t direction))
+void AppLayerParserRegisterStateProgressCompletionStatus(
+        AppProto alproto, const int ts, const int tc)
 {
-    SCEnter();
+    BUG_ON(ts == 0);
+    BUG_ON(tc == 0);
+    BUG_ON(!AppProtoIsValid(alproto));
+    BUG_ON(alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_ts != 0 &&
+            alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_ts != ts);
+    BUG_ON(alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc != 0 &&
+            alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc != tc);
 
-    alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
-        StateGetProgressCompletionStatus = StateGetProgressCompletionStatus;
-
-    SCReturn;
+    alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_ts = ts;
+    alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc = tc;
 }
 
 void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
@@ -870,6 +875,9 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
     SCReturnPtr(ptr, "FileContainer *");
 }
 
+#define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
+
+extern int g_detect_disabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -882,7 +890,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxData != NULL);
+    const bool has_tx_detect_flags = (p->GetTxData != NULL && !g_detect_disabled);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -896,6 +904,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
     const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
+    const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
+    const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
@@ -904,51 +914,77 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     uint64_t new_min = min;
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
+    const bool is_unidir =
+            AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
         if (ires.tx_ptr == NULL)
             break;
 
+        bool tx_skipped = false;
         void *tx = ires.tx_ptr;
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
 
-        const int tx_progress_tc = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOCLIENT);
+        const int tx_progress_tc =
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
         if (tx_progress_tc < tx_end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
             skipped = true;
             goto next;
         }
-        const int tx_progress_ts = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOSERVER);
+        const int tx_progress_ts =
+                AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
         if (tx_progress_ts < tx_end_state_ts) {
             SCLogDebug("%p/%"PRIu64" skipping: ts parser not done", tx, i);
             skipped = true;
             goto next;
         }
+
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        bool inspected = false;
         if (txd && has_tx_detect_flags) {
-            if (f->sgh_toserver != NULL) {
+            if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
                 uint64_t detect_flags_ts = GetTxDetectFlags(txd, STREAM_TOSERVER);
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
-                    skipped = true;
-                    goto next;
+                    tx_skipped = skipped = true;
+                } else {
+                    inspected = true;
                 }
             }
-            if (f->sgh_toclient != NULL) {
+            if (!IS_DISRUPTED(tc_disrupt_flags) && f->sgh_toclient != NULL) {
                 uint64_t detect_flags_tc = GetTxDetectFlags(txd, STREAM_TOCLIENT);
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
-                    skipped = true;
-                    goto next;
+                    tx_skipped = skipped = true;
+                } else {
+                    inspected = true;
                 }
             }
         }
-        if (txd &&logger_expectation != 0) {
+
+        // If not a unidirectional transaction both sides are required to have
+        // been inspected.
+        if (!is_unidir && tx_skipped) {
+            SCLogDebug("%p/%" PRIu64 " !is_unidir && tx_skipped", tx, i);
+            goto next;
+        }
+
+        // If this is a unidirectional transaction require only one side to be
+        // inspected, which the inspected flag tells us. This is also guarded
+        // with skip to limit this check to transactions that actually had the
+        // tx inspected flag checked.
+        if (is_unidir && tx_skipped && !inspected) {
+            SCLogDebug("%p/%" PRIu64 " is_unidir && tx_skipped && !inspected", tx, i);
+            goto next;
+        }
+
+        if (txd && logger_expectation != 0) {
             LoggerId tx_logged = GetTxLogged(txd);
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
@@ -997,8 +1033,17 @@ next:
     SCReturn;
 }
 
-#define IS_DISRUPTED(flags) \
-    ((flags) & (STREAM_DEPTH|STREAM_GAP))
+static inline int StateGetProgressCompletionStatus(const AppProto alproto, const uint8_t flags)
+{
+    if (flags & STREAM_TOSERVER) {
+        return alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_ts;
+    } else if (flags & STREAM_TOCLIENT) {
+        return alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc;
+    } else {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return 0;
+    }
+}
 
 /**
  *  \brief get the progress value for a tx/protocol
@@ -1011,8 +1056,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
     SCEnter();
     int r = 0;
     if (unlikely(IS_DISRUPTED(flags))) {
-        r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
-            StateGetProgressCompletionStatus(flags);
+        r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
         r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
             StateGetProgress(alstate, flags);
@@ -1042,8 +1086,7 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
                                                    uint8_t direction)
 {
     SCEnter();
-    int r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
-                StateGetProgressCompletionStatus(direction);
+    int r = StateGetProgressCompletionStatus(alproto, direction);
     SCReturnInt(r);
 }
 
@@ -1097,6 +1140,11 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
 
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
 {
+    // Custom case for only signature-only protocol so far
+    if (alproto == ALPROTO_HTTP) {
+        return AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP1) ||
+               AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP2);
+    }
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles != NULL)
         return TRUE;
     return FALSE;
@@ -1196,7 +1244,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (flags & STREAM_GAP) {
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
-            if (f->alstate != NULL) {
+            if (f->alstate != NULL && !FlowChangeProto(f)) {
                 AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
                         flags);
             }
@@ -1378,8 +1426,12 @@ bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate)
  */
 int AppLayerParserIsEnabled(AppProto alproto)
 {
-    return (alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto]
-            .StateGetProgressCompletionStatus != NULL);
+    for (int i = 0; i < FLOW_PROTO_APPLAYER_MAX; i++) {
+        if (alp_ctx.ctxs[i][alproto].StateGetProgress != NULL) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto)
@@ -1475,7 +1527,6 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
 {
     uint8_t map = FlowGetProtoMapping(ipproto);
     const AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[map][alproto];
-    const AppLayerParserProtoCtx *ctx_def = &alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto];
     printf("ERROR: incomplete app-layer registration\n");
     printf("AppLayer protocol %s ipproto %u\n", AppProtoToString(alproto), ipproto);
     printf("- option flags %"PRIx32"\n", ctx->option_flags);
@@ -1486,7 +1537,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateGetTx %p StateGetTxCnt %p StateTransactionFree %p\n",
             ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree);
     printf("- GetTxData %p\n", ctx->GetTxData);
-    printf("- StateGetProgress %p StateGetProgressCompletionStatus %p\n", ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus);
+    printf("- StateGetProgress %p\n", ctx->StateGetProgress);
     printf("- GetTxDetectState %p SetTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState);
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
@@ -1503,7 +1554,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
 {
     uint8_t map = FlowGetProtoMapping(ipproto);
     const AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[map][alproto];
-    const AppLayerParserProtoCtx *ctx_def = &alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto];
 
     if (ctx->Parser[0] == NULL && ctx->Parser[1] == NULL)
         return;
@@ -1517,8 +1567,7 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(THREE_SET(ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree))) {
         goto bad;
     }
-    /* special case: StateGetProgressCompletionStatus is used from 'default'. */
-    if (!(BOTH_SET(ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus))) {
+    if (ctx->StateGetProgress == NULL) {
         goto bad;
     }
     /* local storage is optional, but needs both set if used */
@@ -1580,7 +1629,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterNFSUDPParsers();
     RegisterNTPParsers();
     RegisterTFTPParsers();
-    RegisterIKEV2Parsers();
+    RegisterIKEParsers();
     RegisterKRB5Parsers();
     rs_dhcp_register_parser();
     RegisterSNMPParsers();
@@ -1751,7 +1800,6 @@ static int AppLayerParserTest01(void)
 {
     AppLayerParserBackupParserTable();
 
-    int result = 0;
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1770,37 +1818,24 @@ static int AppLayerParserTest01(void)
     AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
                                 testlen);
-    if (r != -1) {
-        printf("returned %" PRId32 ", expected -1: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != -1);
 
-    if (!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        printf("flag should have been set, but is not: ");
-        goto end;
-    }
+    FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
 
-    result = 1;
- end:
     AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(TRUE);
-
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /**
@@ -1811,7 +1846,6 @@ static int AppLayerParserTest02(void)
 {
     AppLayerParserBackupParserTable();
 
-    int result = 1;
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1827,31 +1861,22 @@ static int AppLayerParserTest02(void)
     AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_UDP;
     f->protomap = FlowGetProtoMapping(f->proto);
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
                                 testlen);
-    if (r != -1) {
-        printf("returned %" PRId32 ", expected -1: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != -1);
 
- end:
     AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 

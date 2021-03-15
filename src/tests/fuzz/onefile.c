@@ -1,25 +1,13 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "autoconf.h"
+#include "suricata-common.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size);
 
-int main(int argc, char** argv)
+static int runOneFile(const char *fname)
 {
-    FILE * fp;
+    // opens the file, get its size, and reads it into a buffer
     uint8_t *data;
     size_t size;
-
-    if (argc != 2) {
-        return 1;
-    }
-#ifdef AFLFUZZ_PERSISTANT_MODE
-    while (__AFL_LOOP(1000)) {
-#endif /* AFLFUZZ_PERSISTANT_MODE */
-
-    //opens the file, get its size, and reads it into a buffer
-    fp = fopen(argv[1], "rb");
+    FILE *fp = fopen(fname, "rb");
     if (fp == NULL) {
         return 2;
     }
@@ -51,10 +39,50 @@ int main(int argc, char** argv)
     LLVMFuzzerTestOneInput(data, size);
     free(data);
     fclose(fp);
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    DIR *d;
+    struct dirent *dir;
+    int r;
+
+    if (argc != 2) {
+        return 1;
+    }
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
+        d = opendir(argv[1]);
+        if (d == NULL) {
+            // run one file
+            r = runOneFile(argv[1]);
+            if (r != 0) {
+                return r;
+            }
+        } else {
+            // run every file in one directory
+            if (chdir(argv[1]) != 0) {
+                closedir(d);
+                printf("Invalid directory\n");
+                return 2;
+            }
+            while ((dir = readdir(d)) != NULL) {
+                if (dir->d_type != DT_REG) {
+                    continue;
+                }
+                r = runOneFile(dir->d_name);
+                if (r != 0) {
+                    return r;
+                }
+            }
+            closedir(d);
+        }
 #ifdef AFLFUZZ_PERSISTANT_MODE
     }
 #endif /* AFLFUZZ_PERSISTANT_MODE */
 
     return 0;
 }
-

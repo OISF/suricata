@@ -220,13 +220,15 @@ error:
     if (urilend)
         SCFree(urilend);
     if (arg1 != NULL)
-        SCFree(arg1);
+        pcre_free_substring(arg1);
     if (arg2 != NULL)
-        SCFree(arg2);
+        pcre_free_substring(arg2);
     if (arg3 != NULL)
-        SCFree(arg3);
+        pcre_free_substring(arg3);
     if (arg4 != NULL)
-        SCFree(arg4);
+        pcre_free_substring(arg4);
+    if (arg5 != NULL)
+        pcre_free_substring(arg5);
     return NULL;
 }
 
@@ -246,7 +248,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     DetectUrilenData *urilend = NULL;
     SigMatch *sm = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) != 0)
         return -1;
 
     urilend = DetectUrilenParse(urilenstr);
@@ -655,7 +657,7 @@ static int DetectUrilenSigTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -686,8 +688,8 @@ static int DetectUrilenSigTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);

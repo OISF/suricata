@@ -52,10 +52,12 @@ int mpm_default_matcher;
  * \brief Register a new Mpm Context.
  *
  * \param name A new profile to be registered to store this MpmCtx.
+ * \param sm_list sm_list for this name (might be variable with xforms)
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
-int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name)
+int32_t MpmFactoryRegisterMpmCtxProfile(
+        DetectEngineCtx *de_ctx, const char *name, const int sm_list)
 {
     void *ptmp;
     /* the very first entry */
@@ -65,6 +67,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
         memset(de_ctx->mpm_ctx_factory_container, 0, sizeof(MpmCtxFactoryContainer));
+        de_ctx->mpm_ctx_factory_container->max_id = ENGINE_SGH_MPM_FACTORY_CONTEXT_START_ID_RANGE;
 
         MpmCtxFactoryItem *item = SCMalloc(sizeof(MpmCtxFactoryItem));
         if (unlikely(item == NULL)) {
@@ -72,6 +75,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         }
 
         item[0].name = name;
+        item[0].sm_list = sm_list;
 
         /* toserver */
         item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -88,10 +92,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         }
         memset(item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
         item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
-
-        /* our id starts from 0 always.  Helps us with the ctx retrieval from
-         * the array */
-        item[0].id = 0;
+        item[0].id = de_ctx->mpm_ctx_factory_container->max_id++;
 
         /* store the newly created item */
         de_ctx->mpm_ctx_factory_container->items = item;
@@ -103,7 +104,8 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         int i;
         MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
         for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-            if (items[i].name != NULL && strcmp(items[i].name, name) == 0) {
+            if (items[i].sm_list == sm_list && items[i].name != NULL &&
+                    strcmp(items[i].name, name) == 0) {
                 /* looks like we have this mpm_ctx freed */
                 if (items[i].mpm_ctx_ts == NULL) {
                     items[i].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -139,6 +141,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
 
         MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
         new_item[0].name = name;
+        new_item[0].sm_list = sm_list;
 
         /* toserver */
         new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -156,7 +159,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         memset(new_item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
         new_item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
-        new_item[0].id = de_ctx->mpm_ctx_factory_container->no_of_items;
+        new_item[0].id = de_ctx->mpm_ctx_factory_container->max_id++;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
 
         /* the newly created id */
@@ -195,13 +198,17 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id,
     } else if (id < -1) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument - %d\n", id);
         return NULL;
-    } else if (id >= de_ctx->mpm_ctx_factory_container->no_of_items) {
+    } else if (id >= de_ctx->mpm_ctx_factory_container->max_id) {
         /* this id does not exist */
         return NULL;
     } else {
-        return (direction == 0) ?
-            de_ctx->mpm_ctx_factory_container->items[id].mpm_ctx_ts :
-            de_ctx->mpm_ctx_factory_container->items[id].mpm_ctx_tc;
+        for (int i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
+            if (id == de_ctx->mpm_ctx_factory_container->items[i].id) {
+                return (direction == 0) ? de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_ts
+                                        : de_ctx->mpm_ctx_factory_container->items[i].mpm_ctx_tc;
+            }
+        }
+        return NULL;
     }
 }
 

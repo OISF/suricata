@@ -215,12 +215,16 @@ static void JsonTlsLogJa3String(JsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogJa3(JsonBuilder *js, SSLState *ssl_state)
 {
-    jb_open_object(js, "ja3");
+    if ((ssl_state->client_connp.ja3_hash != NULL) ||
+            ((ssl_state->client_connp.ja3_str != NULL) &&
+                    ssl_state->client_connp.ja3_str->data != NULL)) {
+        jb_open_object(js, "ja3");
 
-    JsonTlsLogJa3Hash(js, ssl_state);
-    JsonTlsLogJa3String(js, ssl_state);
+        JsonTlsLogJa3Hash(js, ssl_state);
+        JsonTlsLogJa3String(js, ssl_state);
 
-    jb_close(js);
+        jb_close(js);
+    }
 }
 
 static void JsonTlsLogJa3SHash(JsonBuilder *js, SSLState *ssl_state)
@@ -242,12 +246,16 @@ static void JsonTlsLogJa3SString(JsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogJa3S(JsonBuilder *js, SSLState *ssl_state)
 {
-    jb_open_object(js, "ja3s");
+    if ((ssl_state->server_connp.ja3_hash != NULL) ||
+            ((ssl_state->server_connp.ja3_str != NULL) &&
+                    ssl_state->server_connp.ja3_str->data != NULL)) {
+        jb_open_object(js, "ja3s");
 
-    JsonTlsLogJa3SHash(js, ssl_state);
-    JsonTlsLogJa3SString(js, ssl_state);
+        JsonTlsLogJa3SHash(js, ssl_state);
+        JsonTlsLogJa3SString(js, ssl_state);
 
-    jb_close(js);
+        jb_close(js);
+    }
 }
 
 static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
@@ -261,7 +269,7 @@ static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
         return;
     }
 
-    unsigned long len = cert->cert_len * 2;
+    unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
     uint8_t encoded[len];
     if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                      SC_BASE64_OK) {
@@ -279,7 +287,7 @@ static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
 
     SSLCertsChain *cert;
     TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
-        unsigned long len = cert->cert_len * 2;
+        unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
         uint8_t encoded[len];
         if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                          SC_BASE64_OK) {

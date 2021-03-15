@@ -24,6 +24,41 @@ use crate::core::*;
 extern {
     pub fn FileFlowToFlags(flow: *const Flow, flags: u8) -> u16;
 }
+pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
+
+
+// Generic file structure, so it can be used by different protocols
+#[derive(Debug)]
+pub struct Files {
+    pub files_ts: FileContainer,
+    pub files_tc: FileContainer,
+    pub flags_ts: u16,
+    pub flags_tc: u16,
+}
+
+impl Files {
+    pub fn new() -> Files {
+        Files {
+            files_ts:FileContainer::default(),
+            files_tc:FileContainer::default(),
+            flags_ts:0,
+            flags_tc:0,
+        }
+    }
+    pub fn free(&mut self) {
+        self.files_ts.free();
+        self.files_tc.free();
+    }
+
+    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
+    {
+        if direction == STREAM_TOSERVER {
+            (&mut self.files_ts, self.flags_ts)
+        } else {
+            (&mut self.files_tc, self.flags_tc)
+        }
+    }
+}
 
 pub struct File;
 #[repr(C)]

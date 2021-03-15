@@ -27,8 +27,8 @@ Output types::
 
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
-      # Enable for multi-threaded eve.json output; output files are suffixed
-      # with an identifier, e.g., eve.json.9.. Default: off
+      # Enable for multi-threaded eve.json output; output files are amended
+      # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -309,7 +309,10 @@ Threaded file output
 ~~~~~~~~~~~~~~~~~~~~
 
 By default, all output is written to the named filename in the outputs section. The ``threaded`` option enables
-each output thread to write to individual files prefixed with the configured ``filenmae``.
+each output thread to write to individual files. In this case, the ``filename`` will include a unique identifier.
+
+With ``threaded`` enabled, the output will be split among many files -- and
+the aggregate of each file's contents must be treated together.
 
 ::
 
@@ -319,10 +322,8 @@ each output thread to write to individual files prefixed with the configured ``f
          threaded: on
 
 This example will cause each Suricata thread to write to its own "eve.json" file. Filenames are constructed
-by adding a suffix with the thread id. For example, the thread with id 7 would write to `eve.json.7`.
+by adding a unique identifier to the filename.  For example, ``eve.7.json``.
 
-With ``threaded`` enabled, the output will be split among many files -- each having the same prefix and a unique suffix -- and
-the aggregate of each file's contents must be treated together.
 
 Rotate log file
 ~~~~~~~~~~~~~~~
@@ -500,5 +501,12 @@ YAML::
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
 
+Multi Tenancy
+-------------
+
+Suricata can be configured to support multiple tenants with different detection
+engine configurations. When these tenants are configured and the detection
+engine is running then all EVE logging will also report the ``tenant_id`` field
+for traffic matching a specific tenant.
 
 .. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/

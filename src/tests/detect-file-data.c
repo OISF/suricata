@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,11 +55,8 @@ static int DetectEngineSMTPFiledataTest01(void)
     TcpSession ssn;
     Packet *p;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
-    SMTPState *smtp_state = NULL;
     Flow f;
-    int result = 0;
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -79,8 +76,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
 
-    if (SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0)
-        goto end;
+    FAIL_IF(SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0);
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -90,92 +86,49 @@ static int DetectEngineSMTPFiledataTest01(void)
 
     StreamTcpInitConfig(TRUE);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert smtp any any -> any any "
-                               "(msg:\"file_data smtp test\"; "
-                               "file_data; content:\"message\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
+                                                 "(msg:\"file_data smtp test\"; "
+                                                 "file_data; content:\"message\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                mimemsg,
-                                mimemsg_len);
-    if (r != 0) {
-        printf("AppLayerParse for smtp failed. Returned %d", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    smtp_state = f.alstate;
-    if (smtp_state == NULL) {
-        printf("no smtp state: ");
-        goto end;
-    }
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, mimemsg, mimemsg_len);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have\n");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 static int DetectEngineSMTPFiledataTest02(void)
 {
-    Signature *s = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NOT(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
-                              "(msg:\"file_data smtp test\"; "
-                              "file_data; content:\"message\"; sid:1;)");
-    if (s == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
+                                                 "(msg:\"file_data smtp test\"; "
+                                                 "file_data; content:\"message\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    if (s->flags & SIG_FLAG_TOSERVER)
-        result = 1;
-    else if (s->flags & SIG_FLAG_TOCLIENT)
-        printf("s->flags & SIG_FLAG_TOCLIENT");
-
-end:
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(s->flags & SIG_FLAG_TOSERVER);
     DetectEngineCtxFree(de_ctx);
-    return result;
-
+    PASS;
 }
 
 static int DetectEngineSMTPFiledataTest03(void)
@@ -187,11 +140,8 @@ static int DetectEngineSMTPFiledataTest03(void)
     TcpSession ssn;
     Packet *p;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
-    SMTPState *smtp_state = NULL;
     Flow f;
-    int result = 1;
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -211,11 +161,8 @@ static int DetectEngineSMTPFiledataTest03(void)
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
 
-    if (SMTPProcessDataChunk((uint8_t *)mimemsg1, sizeof(mimemsg1), state) != 0)
-        goto end;
-
-    if (SMTPProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0)
-        goto end;
+    FAIL_IF(SMTPProcessDataChunk((uint8_t *)mimemsg1, sizeof(mimemsg1), state) != 0);
+    FAIL_IF(SMTPProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0);
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -225,179 +172,82 @@ static int DetectEngineSMTPFiledataTest03(void)
 
     StreamTcpInitConfig(TRUE);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert smtp any any -> any any "
-                               "(msg:\"file_data smtp test\"; "
-                               "file_data; content:\"evil\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
+                                                 "(msg:\"file_data smtp test\"; "
+                                                 "file_data; content:\"evil\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
-    int r = 0;
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, mimemsg1, mimemsg1_len);
-    if (r != 0) {
-        printf("AppLayerParse for smtp failed. Returned %d", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg1, mimemsg1_len);
+    FAIL_IF_NOT(r == 0);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
                             STREAM_TOSERVER, mimemsg2, mimemsg2_len);
-    if (r != 0) {
-        printf("AppLayerParse for smtp failed. Returned %d", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    smtp_state = f.alstate;
-    if (smtp_state == NULL) {
-        printf("no smtp state: ");
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
 
-    result = 0;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result == 0;
+    PASS;
 }
 
 static int DetectFiledataParseTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in FILEDATA list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
+                                          "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NULL(s->sm_lists[g_file_data_buffer_id]);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 static int DetectFiledataParseTest02(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NULL(s->sm_lists[g_file_data_buffer_id]);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 static int DetectFiledataParseTest03(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any 25 "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 25 "
+            "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NULL(s->sm_lists[g_file_data_buffer_id]);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -405,27 +255,15 @@ end:
  */
 static int DetectFiledataParseTest04(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 1;
-    }
-
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert smtp any any -> any any "
+            "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -433,27 +271,15 @@ end:
  */
 static int DetectFiledataParseTest05(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 1;
-    }
-
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 static int DetectFiledataIsdataatParseTest1(void)

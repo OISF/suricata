@@ -96,13 +96,11 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_LINE,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_RESPONSE_PROGRESS_LINE);
+    DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");
@@ -123,10 +121,8 @@ void DetectHttpStatCodeRegister (void)
 
 static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_STAT_CODE,
-                                                  g_http_stat_code_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_STAT_CODE, g_http_stat_code_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -142,7 +138,7 @@ static int DetectHttpStatCodeSetupSticky(DetectEngineCtx *de_ctx, Signature *s, 
 {
     if (DetectBufferSetActiveList(s, g_http_stat_code_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
     return 0;
 }
@@ -163,7 +159,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = bstr_len(htp_tx_response_status(tx));
         const uint8_t *data = bstr_ptr(htp_tx_response_status(tx));
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

@@ -67,7 +67,7 @@ pub mod smb;
 pub mod krb;
 pub mod dcerpc;
 
-pub mod ikev2;
+pub mod ike;
 pub mod snmp;
 
 pub mod ntp;
@@ -84,3 +84,4 @@ pub mod ssh;
 pub mod http2;
 pub mod plugin;
 pub mod util;
+pub mod ffi;

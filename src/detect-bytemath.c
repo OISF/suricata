@@ -72,17 +72,18 @@
 /* the max no of bytes that can be extracted in non-string mode */
 #define NO_STRING_MAX_BYTES_TO_EXTRACT 4
 
-#define PARSE_REGEX "^" \
-    "\\s*(bytes)\\s*(\\d+)\\s*" \
-    ",\\s*(offset)\\s*(\\d+)\\s*" \
-    ",\\s*(oper)\\s*([-+\\/]{1}|<<|>>)\\s*" \
-    ",\\s*(rvalue)\\s*(\\w+)\\s*" \
-    ",\\s*(result)\\s*(\\w+)\\s*" \
-    "(?:,\\s*(relative)\\s*)?" \
-    "(?:,\\s*(endian)\\s*(big|little)\\s*)?" \
-    "(?:,\\s*(string)\\s*(hex|dec|oct)\\s*)?" \
-    "(?:,\\s*(dce)\\s*)?" \
-    "(?:,\\s*(bitmask)\\s*(0?[xX]?[0-9a-fA-F]{2,8})\\s*)?" \
+#define PARSE_REGEX                                                                                \
+    "^"                                                                                            \
+    "\\s*(bytes)\\s*(\\d+)\\s*"                                                                    \
+    ",\\s*(offset)\\s*([-]?\\d+)\\s*"                                                              \
+    ",\\s*(oper)\\s*([-+\\/]{1}|<<|>>)\\s*"                                                        \
+    ",\\s*(rvalue)\\s*(\\w+)\\s*"                                                                  \
+    ",\\s*(result)\\s*(\\w+)\\s*"                                                                  \
+    "(?:,\\s*(relative)\\s*)?"                                                                     \
+    "(?:,\\s*(endian)\\s*(big|little)\\s*)?"                                                       \
+    "(?:,\\s*(string)\\s*(hex|dec|oct)\\s*)?"                                                      \
+    "(?:,\\s*(dce)\\s*)?"                                                                          \
+    "(?:,\\s*(bitmask)\\s*(0?[xX]?[0-9a-fA-F]{2,8})\\s*)?"                                         \
     "$"
 
 /* Mandatory value group numbers -- kw values not needed */
@@ -151,8 +152,9 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
      * the packet from that point.
      */
     if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
-        SCLogDebug("relative, working with det_ctx->buffer_offset %"PRIu32", "
-                   "data->offset %"PRIu32"", det_ctx->buffer_offset, data->offset);
+        SCLogDebug("relative, working with det_ctx->buffer_offset %" PRIu32 ", "
+                   "data->offset %" PRIi32 "",
+                det_ctx->buffer_offset, data->offset);
 
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
@@ -165,7 +167,7 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
             return 0;
         }
     } else {
-        SCLogDebug("absolute, data->offset %"PRIu32"", data->offset);
+        SCLogDebug("absolute, data->offset %" PRIi32 "", data->offset);
 
         ptr = payload + data->offset;
         len = payload_len - data->offset;
@@ -260,7 +262,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 #undef MAX_SUBSTRINGS
 #define MAX_SUBSTRINGS 100
     int ov[MAX_SUBSTRINGS];
-    char tmp_str[128];
+    char tmp_str[128] = "";
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < MIN_GROUP || ret > MAX_GROUP) {
@@ -300,7 +302,8 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         goto error;
     }
 
-    if (ByteExtractStringUint16(&bmd->offset, 10, strlen(tmp_str), (const char *)tmp_str) < 0) {
+    if (StringParseI32RangeCheck(
+                &bmd->offset, 10, strlen(tmp_str), (const char *)tmp_str, -65535, 65535) < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math invalid offset "
                    "value \"%s\"", tmp_str);
         goto error;
@@ -1020,6 +1023,35 @@ static int DetectByteMathParseTest15(void)
     PASS;
 }
 
+static int DetectByteMathParseTest16(void)
+{
+    uint8_t flags = DETECT_BYTEMATH_FLAG_STRING | DETECT_BYTEMATH_FLAG_RELATIVE |
+                    DETECT_BYTEMATH_FLAG_BITMASK;
+
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset -2, oper +, "
+            "rvalue 39, result bar, "
+            "relative,  string dec, bitmask "
+            "0x8f40",
+            NULL);
+
+    FAIL_IF(bmd == NULL);
+    FAIL_IF_NOT(bmd->nbytes == 4);
+    FAIL_IF_NOT(bmd->offset == -2);
+    FAIL_IF_NOT(bmd->oper == DETECT_BYTEMATH_OPERATOR_PLUS);
+    FAIL_IF_NOT(bmd->rvalue == 39);
+    FAIL_IF_NOT(strcmp(bmd->result, "bar") == 0);
+    FAIL_IF_NOT(bmd->bitmask_val == 0x8f40);
+    FAIL_IF_NOT(bmd->bitmask_shift_count == 6);
+    FAIL_IF_NOT(bmd->flags == flags);
+    FAIL_IF_NOT(bmd->endian == DETECT_BYTEMATH_ENDIAN_BIG);
+    FAIL_IF_NOT(bmd->base == DETECT_BYTEMATH_BASE_DEC);
+
+    DetectByteMathFree(NULL, bmd);
+
+    PASS;
+}
+
 static int DetectByteMathPacket01(void)
 {
     uint8_t buf[] = { 0x38, 0x35, 0x6d, 0x00, 0x00, 0x01,
@@ -1122,6 +1154,107 @@ static int DetectByteMathPacket01(void)
     PASS;
 }
 
+static int DetectByteMathPacket02(void)
+{
+    uint8_t buf[] = { 0x38, 0x35, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x70, 0x00, 0x01, 0x00 };
+    Flow f;
+    void *dns_state = NULL;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
+    FAIL_IF_NULL(p);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    f.alproto = ALPROTO_DNS;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->mpm_matcher = mpm_default_matcher;
+    de_ctx->flags |= DE_QUIET;
+
+    /*
+     * byte_extract: Extract 1 byte from offset 0 --> 0x38
+     * byte_math: Extract 1 byte from offset 1 (0x38)
+     *            Add 0x38 + 0x38 = 112 (0x70)
+     * byte_test: Compare 2 bytes at offset 13 bytes from last
+     *            match and compare with 0x70
+     */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset -1, oper +, rvalue extracted_val, result var, relative;"
+            "byte_test: 2, =, var, 13;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:1;)");
+    FAIL_IF_NULL(s);
+
+    /* this rule should not alert */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset -1, oper +,  rvalue extracted_val, result var, relative;"
+            "byte_test: 2, !=, var, 13;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:2;)");
+    FAIL_IF_NULL(s);
+
+    /*
+     * this rule should alert:
+     * compares offset 15 with var ... 1 (offset 15) < 0x70 (var)
+     */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset -1, oper +, rvalue extracted_val, result var, relative;"
+            "byte_test: 2, <, var, 15;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:3;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf, sizeof(buf));
+    FAIL_IF_NOT(r == 0);
+
+    dns_state = f.alstate;
+    FAIL_IF_NULL(dns_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    /* ensure sids 1 & 3 alerted */
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+
+    PASS;
+}
+
 static int DetectByteMathContext01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -1191,7 +1324,9 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest13", DetectByteMathParseTest13);
     UtRegisterTest("DetectByteMathParseTest14", DetectByteMathParseTest14);
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
+    UtRegisterTest("DetectByteMathParseTest16", DetectByteMathParseTest16);
     UtRegisterTest("DetectByteMathPacket01",    DetectByteMathPacket01);
+    UtRegisterTest("DetectByteMathPacket02", DetectByteMathPacket02);
     UtRegisterTest("DetectByteMathContext01", DetectByteMathContext01);
 }
 #endif /* UNITTESTS */

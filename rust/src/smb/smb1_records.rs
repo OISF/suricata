@@ -22,6 +22,8 @@ use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 
+pub const SMB1_HEADER_SIZE: usize = 32;
+
 fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
 {
     do_parse!(i,
@@ -39,6 +41,28 @@ pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<
         smb_get_ascii_string(i)
     }
 }
+
+
+#[derive(Debug,PartialEq)]
+pub struct SmbParamBlockAndXHeader {
+    pub wct: u8,
+    pub andx_command: u8,
+    pub andx_offset: u16,
+}
+
+named!(pub smb1_parse_andx_header<SmbParamBlockAndXHeader>,
+    do_parse!(
+            wct: le_u8
+        >>  andx_command: le_u8
+        >>  take!(1)    // reserved
+        >>  andx_offset: le_u16
+        >>  (SmbParamBlockAndXHeader {
+                wct: wct,
+                andx_command: andx_command,
+                andx_offset: andx_offset,
+            }))
+
+);
 
 #[derive(Debug,PartialEq)]
 pub struct Smb1WriteRequestRecord<'a> {
@@ -67,8 +91,9 @@ named!(pub parse_smb1_write_request_record<Smb1WriteRequestRecord>,
             }))
 );
 
-named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
-    do_parse!(
+pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IResult<&[u8], Smb1WriteRequestRecord> {
+    let ax = andx_offset as u16;
+    do_parse!(i,
             wct: le_u8
         >>  _andx_command: le_u8
         >>  take!(1)    // reserved
@@ -80,11 +105,12 @@ named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
         >>  _remaining: le_u16
         >>  data_len_high: le_u16
         >>  data_len_low: le_u16
-        >>  _data_offset: le_u16
+        >>  data_offset: le_u16
         >>  high_offset: cond!(wct==14,le_u32)
         >>  bcc: le_u16
-        //>>  padding: cond!(data_offset > 32, take!(data_offset - 32))
+        //spec [MS-CIFS].pdf says always take one byte padding
         >>  _padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding_evasion: cond!(data_offset > ax+4+2*(wct as u16), take!(data_offset - (ax+4+2*(wct as u16))))
         >>  file_data: rest
         >> (Smb1WriteRequestRecord {
                 offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
@@ -92,7 +118,7 @@ named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
                 fid,
                 data:file_data,
             }))
-);
+}
 
 named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
     do_parse!(
@@ -370,7 +396,7 @@ named!(pub parse_smb_trans_response_error_record<SmbRecordTransResponse>,
 
 named!(pub parse_smb_trans_response_regular_record<SmbRecordTransResponse>,
     do_parse!(
-          _wct: le_u8
+          wct: le_u8
        >> _total_param_cnt: le_u16
        >> _total_data_count: le_u16
        >> take!(2) // reserved
@@ -378,12 +404,13 @@ named!(pub parse_smb_trans_response_regular_record<SmbRecordTransResponse>,
        >> _param_offset: le_u16
        >> _param_displacement: le_u16
        >> data_cnt: le_u16
-       >> _data_offset: le_u16
+       >> data_offset: le_u16
        >> _data_displacement: le_u16
        >> _setup_cnt: le_u8
        >> take!(1) // reserved
        >> bcc: le_u16
        >> take!(1) // padding
+       >> _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
        >> data: take!(data_cnt)
        >> (SmbRecordTransResponse {
                 data_cnt,
@@ -491,17 +518,18 @@ pub struct SmbResponseReadAndXRecord<'a> {
 
 named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
     do_parse!(
-            _wct: le_u8
+            wct: le_u8
         >>  _andx_command: le_u8
         >>  take!(1)    // reserved
         >>  _andx_offset: le_u16
         >>  take!(6)
         >>  data_len_low: le_u16
-        >>  _data_offset: le_u16
+        >>  data_offset: le_u16
         >>  data_len_high: le_u32
         >>  take!(6)    // reserved
         >>  bcc: le_u16
         >>  _padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
         >>  file_data: rest
 
         >> (SmbResponseReadAndXRecord {
@@ -671,6 +699,7 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
         >>  subcmd: le_u16
         >>  _bcc: le_u16
         >>  _padding: take!(3)
+        //TODO test and use _param_offset and _data_offset
         >>  setup_blob: take!(param_cnt)
         >>  data_blob: take!(data_cnt)
 

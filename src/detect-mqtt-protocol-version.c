@@ -32,7 +32,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int mqtt_protocol_version_id = 0;
 
@@ -44,11 +44,9 @@ static int DetectMQTTProtocolVersionSetup (DetectEngineCtx *, Signature *, const
 void MQTTProtocolVersionRegisterTests(void);
 void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTProtocolVersionGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for mqtt.protocol_version: keyword
@@ -65,21 +63,18 @@ void DetectMQTTProtocolVersionRegister (void)
     sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].RegisterTests = MQTTProtocolVersionRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister("mqtt.protocol_version",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTProtocolVersionGeneric);
+    DetectAppLayerInspectEngineRegister2("mqtt.protocol_version", ALPROTO_MQTT, SIG_FLAG_TOSERVER,
+            1, DetectEngineInspectMQTTProtocolVersionGeneric, NULL);
 
     mqtt_protocol_version_id = DetectBufferTypeGetByName("mqtt.protocol_version");
 }
 
-static int DetectEngineInspectMQTTProtocolVersionGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectMQTTProtocolVersionGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

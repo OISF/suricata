@@ -72,9 +72,13 @@ uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
+uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 
-int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
+static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
+        enum DecodeTunnelProto) WARN_UNUSED;
+
+static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt,
+        uint32_t len, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -92,6 +96,8 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_NSH:
+            return DecodeNSH(tv, dtv, p, pkt, len);
         default:
             SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
@@ -222,6 +228,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
+        SET_PKT_LEN(p, 0);
         return -1;
     }
 
@@ -497,6 +504,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_tcp = StatsRegisterCounter("decoder.tcp", tv);
     dtv->counter_udp = StatsRegisterCounter("decoder.udp", tv);
     dtv->counter_sctp = StatsRegisterCounter("decoder.sctp", tv);
+    dtv->counter_esp = StatsRegisterCounter("decoder.esp", tv);
     dtv->counter_icmpv4 = StatsRegisterCounter("decoder.icmpv4", tv);
     dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", tv);
     dtv->counter_ppp = StatsRegisterCounter("decoder.ppp", tv);
@@ -516,6 +524,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
     dtv->counter_max_mac_addrs_dst = StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", tv);
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
+    dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
 
     dtv->counter_flow_tcp = StatsRegisterCounter("flow.tcp", tv);
@@ -759,6 +768,14 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    intmax_t value = 0;
+    if (ConfGetInt("decoder.max-layers", &value) == 1) {
+        if (value < 0 || value > UINT8_MAX) {
+            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for decoder.max-layers");
+        } else {
+            decoder_max_layers = value;
+        }
+    }
 }
 
 /**

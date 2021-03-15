@@ -345,8 +345,8 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     }
 
     det_ctx->match_array_cnt = match_array - det_ctx->match_array;
-
     DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
+    PMQ_RESET(&det_ctx->pmq);
 }
 
 /** \internal
@@ -361,7 +361,8 @@ DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx,
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
         const uint8_t rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
-        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto)) {
+        if ((rule_mask & mask) == rule_mask &&
+                (rule_alproto == 0 || AppProtoEquals(rule_alproto, alproto))) {
             det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
         }
     }
@@ -411,7 +412,6 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
             flow_file_flags |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
         }
 #endif
-#ifdef HAVE_NSS
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMD5)) {
             SCLogDebug("requesting disabling md5 for flow");
             flow_file_flags |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);
@@ -424,7 +424,6 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
             SCLogDebug("requesting disabling sha256 for flow");
             flow_file_flags |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
         }
-#endif
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILESIZE)) {
             SCLogDebug("requesting disabling filesize for flow");
             flow_file_flags |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
@@ -684,6 +683,11 @@ static inline void DetectRunPrefilterPkt(
     Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
     /* create match list if we have non-pf and/or pf */
     if (det_ctx->non_pf_store_cnt || det_ctx->pmq.rule_id_array_cnt) {
+#ifdef PROFILING
+        if (tv) {
+            StatsAddUI64(tv, det_ctx->counter_mpm_list, (uint64_t)det_ctx->pmq.rule_id_array_cnt);
+        }
+#endif
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
         DetectPrefilterMergeSort(de_ctx, det_ctx);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
@@ -691,8 +695,6 @@ static inline void DetectRunPrefilterPkt(
 
 #ifdef PROFILING
     if (tv) {
-        StatsAddUI64(tv, det_ctx->counter_mpm_list,
-                             (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         StatsAddUI64(tv, det_ctx->counter_nonmpm_list,
                              (uint64_t)det_ctx->non_pf_store_cnt);
         /* non mpm sigs after mask prefilter */
@@ -774,7 +776,7 @@ static inline void DetectRulePacketRules(
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
-            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != scratch->alproto) {
+            if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, scratch->alproto)) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     if (scratch->alproto != ALPROTO_SMB) {
                         SCLogDebug("DCERPC sig, alproto not SMB");
@@ -944,15 +946,12 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow)
 {
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
-    /* cleanup pkt specific part of the patternmatcher */
-    PacketPatternCleanup(det_ctx);
     InspectionBufferClean(det_ctx);
 
     if (pflow != NULL) {
         /* update inspected tracker for raw reassembly */
         if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
-            (p->flags & PKT_STREAM_EST))
-        {
+                (p->flags & PKT_DETECT_HAS_STREAMDATA)) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
         }
@@ -1008,8 +1007,13 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
     return 1;
 }
 
-
-/* TODO maybe let one with flags win if equal? */
+/** \internal
+ *  \brief sort helper for sorting match candidates by id: ascending
+ *
+ *  The id field is set from Signature::num, so we sort the candidates to match the signature
+ *  sort order (ascending).
+ *
+ *  \todo maybe let one with flags win if equal? */
 static int
 DetectRunTxSortHelper(const void *a, const void *b)
 {
@@ -1018,7 +1022,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
     if (s1->id == s0->id)
         return 0;
     else
-        return s0->id > s1->id ? -1 : 1;
+        return s0->id > s1->id ? 1 : -1;
 }
 
 #if 0
@@ -1085,7 +1089,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             return false;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
-        if (!(f->alproto == s->alproto || s->alproto == ALPROTO_UNKNOWN)) {
+        if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
             return false;
         }
@@ -1127,14 +1131,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                if (engine->Callback) {
-                    match = engine->Callback(tv, de_ctx, det_ctx,
-                            s, engine->smd, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
-                } else {
-                    BUG_ON(engine->v2.Callback == NULL);
-                    match = engine->v2.Callback(de_ctx, det_ctx, engine,
-                            s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
-                }
+                DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
+                match = engine->v2.Callback(
+                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
@@ -1345,6 +1344,7 @@ static void DetectRunTx(ThreadVars *tv,
                 det_ctx->tx_candidates[array_idx].stream_reset = 0;
                 array_idx++;
             }
+            PMQ_RESET(&det_ctx->pmq);
         } else {
             if (!(RuleMatchCandidateTxArrayHasSpace(det_ctx, total_rules))) {
                 RuleMatchCandidateTxArrayExpand(det_ctx, total_rules);

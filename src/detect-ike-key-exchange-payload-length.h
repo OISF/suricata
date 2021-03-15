@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,18 +16,13 @@
  */
 
 /**
- * \file
  *
- * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __APP_LAYER_IKEV2_H__
-#define __APP_LAYER_IKEV2_H__
+#ifndef __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__
+#define __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__
 
-void RegisterIKEV2Parsers(void);
+void DetectIkeKeyExchangePayloadLengthRegister(void);
 
-/** Opaque Rust types. */
-typedef struct IKEV2State_ IKEV2State;
-typedef struct IKEV2Transaction_ IKEV2Transaction;
-
-#endif /* __APP_LAYER_IKEV2_H__ */
+#endif /* __DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH_H__ */

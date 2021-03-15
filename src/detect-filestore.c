@@ -152,7 +152,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
         FileStoreFileById(fc, file_id);
     } else if (this_tx) {
         /* flag tx all files will be stored */
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+        if (f->alproto == ALPROTO_HTTP1 && f->alstate != NULL) {
             HtpState *htp_state = f->alstate;
             if (toserver_dir) {
                 htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TS;
@@ -166,7 +166,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
         }
     } else if (this_flow) {
         /* flag flow all files will be stored */
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+        if (f->alproto == ALPROTO_HTTP1 && f->alstate != NULL) {
             HtpState *htp_state = f->alstate;
             if (toserver_dir) {
                 htp_state->flags |= HTP_FLAG_STORE_FILES_TS;
@@ -455,7 +455,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         sm->ctx = (SigMatchCtx*)NULL;
     }
 
-    if (s->alproto == ALPROTO_HTTP) {
+    if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) {
         AppLayerHtpNeedFileInspection();
     }
 

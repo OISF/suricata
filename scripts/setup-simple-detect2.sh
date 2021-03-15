@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Script to setup a new 'simple' detect module.
 # Written by Victor Julien <victor@inliniac.net>

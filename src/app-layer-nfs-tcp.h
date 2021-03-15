@@ -24,9 +24,6 @@
 #ifndef __APP_LAYER_NFS_TCP_H__
 #define __APP_LAYER_NFS_TCP_H__
 
-#include "app-layer-events.h"
-
 void RegisterNFSTCPParsers(void);
-void NFSTCPParserRegisterTests(void);
 
 #endif /* __APP_LAYER_NFS_TCP_H__ */

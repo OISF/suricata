@@ -101,6 +101,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
+        if (p->tcph == NULL) {
+            // may happen when DecodeTCPPacket fails
+            // for instance with invalid header length
+            return NULL;
+        }
         uint32_t hlen = TCP_GET_HLEN(p);
         if (((uint8_t *)p->tcph + (ptrdiff_t)hlen) >
                 ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
@@ -114,7 +119,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = hlen;
         const uint8_t *data = (const uint8_t *)p->tcph;
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

@@ -45,7 +45,8 @@ typedef struct AppLayerParser {
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     void (*StateTransactionFree)(void *, uint64_t);
 
-    int (*StateGetProgressCompletionStatus)(uint8_t direction);
+    const int complete_ts;
+    const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
     DetectEngineState *(*GetTxDetectState)(void *tx);
@@ -70,6 +71,9 @@ typedef struct AppLayerParser {
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     uint32_t flags;
+
+    void (*Truncate)(void *state, uint8_t direction);
+
 } AppLayerParser;
 
 /**
@@ -91,5 +95,7 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *parser, 
  * \retval 0 if successful. On error, this function never returns.
  */
 int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto);
+
+int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias);
 
 #endif /* __APP_LAYER_REGISTER_H__ */

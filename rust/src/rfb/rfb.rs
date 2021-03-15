@@ -594,14 +594,6 @@ pub extern "C" fn rs_rfb_state_get_tx_count(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_progress_completion_status(
-    _direction: u8,
-) -> std::os::raw::c_int {
-    // This parser uses 1 to signal transaction completion status.
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_rfb_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
@@ -686,7 +678,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         parse_tc: rs_rfb_parse_response,
         get_tx_count: rs_rfb_state_get_tx_count,
         get_tx: rs_rfb_state_get_tx,
-        tx_get_comp_st: rs_rfb_state_progress_completion_status,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
         get_de_state: rs_rfb_tx_get_detect_state,
         set_de_state: rs_rfb_tx_set_detect_state,
@@ -700,6 +693,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx_data: rs_rfb_get_tx_data,
         apply_tx_config: None,
         flags: 0,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

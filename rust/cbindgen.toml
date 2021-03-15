@@ -43,7 +43,7 @@ include_version = true
 
 # A list of headers to #include (with quotes)
 # default: []
-includes = ["rust.h"]
+includes = []
 
 # The desired length of a line to use when formatting lines
 # default: 100
@@ -88,8 +88,8 @@ exclude = [
     "Flow",
     "FileContainer",
     "JsonT",
-    "IKEV2State",
-    "IKEV2Transaction",
+    "IKEState",
+    "IKETransaction",
     "KRB5State",
     "KRB5Transaction",
     "NTPState",

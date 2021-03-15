@@ -126,10 +126,10 @@ void DetectFilemagicRegister(void)
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
-    AppProto protos_ts[] = {
-        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
-    AppProto protos_tc[] = {
-        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
+    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS,
+        ALPROTO_HTTP2, 0 };
+    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2,
+        0 };
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],
@@ -361,13 +361,10 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (filemagic == NULL)
         return -1;
 
-    if (g_magic_thread_ctx_id == -1) {
-        g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
-                DetectFilemagicThreadInit, (void *)filemagic,
-                DetectFilemagicThreadFree, 1);
-        if (g_magic_thread_ctx_id == -1)
-            goto error;
-    }
+    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
+            DetectFilemagicThreadInit, (void *)filemagic, DetectFilemagicThreadFree, 1);
+    if (g_magic_thread_ctx_id == -1)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -464,7 +461,7 @@ static InspectionBuffer *FilemagicGetDataCallback(DetectEngineThreadCtx *det_ctx
     const uint8_t *data = (const uint8_t *)cur_file->magic;
     uint32_t data_len = (uint32_t)strlen(cur_file->magic);
 
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

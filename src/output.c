@@ -69,7 +69,7 @@
 #include "output-json-ftp.h"
 #include "output-json-tftp.h"
 #include "output-json-smb.h"
-#include "output-json-ikev2.h"
+#include "output-json-ike.h"
 #include "output-json-krb5.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
@@ -1096,8 +1096,8 @@ void OutputRegisterLoggers(void)
     JsonFTPLogRegister();
     /* SMB JSON logger. */
     JsonSMBLogRegister();
-    /* IKEv2 JSON logger. */
-    JsonIKEv2LogRegister();
+    /* IKE JSON logger. */
+    JsonIKELogRegister();
     /* KRB5 JSON logger. */
     JsonKRB5LogRegister();
     /* DHCP JSON logger. */

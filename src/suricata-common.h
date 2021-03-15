@@ -257,11 +257,6 @@ typedef unsigned char u_char
 #ifndef JSON_ESCAPE_SLASH
 #define JSON_ESCAPE_SLASH 0
 #endif
-/* Appears not all current distros have jansson that defines this. */
-#ifndef json_boolean
-#define json_boolean(val)      SCJsonBool((val))
-//#define json_boolean(val)      ((val) ? json_true() : json_false())
-#endif
 
 #ifdef HAVE_MAGIC
 #include <magic.h>
@@ -388,7 +383,9 @@ typedef unsigned char u_char
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
-#if defined(__GNUC__)
+#if defined(__MINGW32__)
+#define ATTR_FMT_PRINTF(x, y) __attribute__((format(__MINGW_PRINTF_FORMAT, (x), (y))))
+#elif defined(__GNUC__)
 #define ATTR_FMT_PRINTF(x, y) __attribute__((format(printf, (x), (y))))
 #else
 #define ATTR_FMT_PRINTF(x, y)
@@ -457,7 +454,7 @@ typedef enum {
     LOGGER_JSON_DNP3_TC,
     LOGGER_JSON_SSH,
     LOGGER_JSON_SMB,
-    LOGGER_JSON_IKEV2,
+    LOGGER_JSON_IKE,
     LOGGER_JSON_KRB5,
     LOGGER_JSON_DHCP,
     LOGGER_JSON_SNMP,

@@ -111,12 +111,12 @@ static int g_http2_match_buffer_id = 0;
 static int g_http2_header_name_buffer_id = 0;
 static int g_http2_header_buffer_id = 0;
 
-static int DetectEngineInspectHTTP2(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd,
-                                   Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static int DetectEngineInspectHTTP2(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -238,12 +238,10 @@ void DetectHttp2Register(void)
     DetectBufferTypeRegisterValidateCallback("http2_header", DetectHttp2HeaderValidateCallback);
     g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header");
 
-    DetectAppLayerInspectEngineRegister("http2",
-                                        ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
-                                        DetectEngineInspectHTTP2);
-    DetectAppLayerInspectEngineRegister("http2",
-                                        ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0,
-                                        DetectEngineInspectHTTP2);
+    DetectAppLayerInspectEngineRegister2(
+            "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectHTTP2, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectHTTP2, NULL);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
     DetectUintRegister();
@@ -708,7 +706,7 @@ static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(buffer, b, b_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");
@@ -842,7 +840,7 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(buffer, b, b_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
     SCReturnPtr(buffer, "InspectionBuffer");

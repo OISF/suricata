@@ -142,15 +142,6 @@ static void *TFTPGetTx(void *state, uint64_t tx_id)
 }
 
 /**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int TFTPGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return 1;
-}
-
-/**
  * \brief Return the state of a transaction in a given direction.
  *
  * In the case of the echo protocol, the existence of a transaction
@@ -244,8 +235,7 @@ void RegisterTFTPParsers(void)
                                        TFTPGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TFTP,
-            TFTPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_TFTP, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP,
                                                    ALPROTO_TFTP,
                                                    TFTPGetStateProgress);

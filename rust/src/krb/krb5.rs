@@ -317,14 +317,6 @@ pub extern "C" fn rs_krb5_state_tx_free(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
@@ -423,7 +415,7 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
             // Kerberos messages start with an APPLICATION header
             if hdr.class != BerClass::Application { return unsafe{ALPROTO_FAILED}; }
             // Tag number should be <= 30
-            if hdr.tag.0 >= 30 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.tag.0 > 30 { return unsafe{ALPROTO_FAILED}; }
             // Kerberos messages contain sequences
             if rem.is_empty() || rem[0] != 0x30 { return unsafe{ALPROTO_FAILED}; }
             // Check kerberos version
@@ -643,7 +635,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         parse_tc           : rs_krb5_parse_response,
         get_tx_count       : rs_krb5_state_get_tx_count,
         get_tx             : rs_krb5_state_get_tx,
-        tx_get_comp_st     : rs_krb5_state_progress_completion_status,
+        tx_comp_st_ts      : 1,
+        tx_comp_st_tc      : 1,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
         get_de_state       : rs_krb5_state_get_tx_detect_state,
         set_de_state       : rs_krb5_state_set_tx_detect_state,
@@ -656,7 +649,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx_iterator    : None,
         get_tx_data        : rs_krb5_get_tx_data,
         apply_tx_config    : None,
-        flags              : 0,
+        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate           : None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();

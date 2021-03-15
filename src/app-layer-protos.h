@@ -27,7 +27,7 @@
 
 enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
-    ALPROTO_HTTP,
+    ALPROTO_HTTP1,
     ALPROTO_FTP,
     ALPROTO_SMTP,
     ALPROTO_TLS, /* SSLv2, SSLv3 & TLSv1 */
@@ -46,7 +46,7 @@ enum AppProtoEnum {
     ALPROTO_NTP,
     ALPROTO_FTPDATA,
     ALPROTO_TFTP,
-    ALPROTO_IKEV2,
+    ALPROTO_IKE,
     ALPROTO_KRB5,
     ALPROTO_DHCP,
     ALPROTO_SNMP,
@@ -57,6 +57,10 @@ enum AppProtoEnum {
     ALPROTO_TEMPLATE_RUST,
     ALPROTO_RDP,
     ALPROTO_HTTP2,
+
+    // signature-only (ie not seen in flow)
+    // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)
+    ALPROTO_HTTP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
@@ -75,6 +79,17 @@ typedef uint16_t AppProto;
 static inline bool AppProtoIsValid(AppProto a)
 {
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
+}
+
+// wether a signature AppProto matches a flow (or signature) AppProto
+static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
+{
+    switch (sigproto) {
+        case ALPROTO_HTTP:
+            return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2) ||
+                   (alproto == ALPROTO_HTTP);
+    }
+    return (sigproto == alproto);
 }
 
 /**

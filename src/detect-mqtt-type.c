@@ -30,7 +30,7 @@
 #include "detect-mqtt-type.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 static int mqtt_type_id = 0;
 
@@ -42,11 +42,9 @@ static int DetectMQTTTypeSetup (DetectEngineCtx *, Signature *, const char *);
 void MQTTTypeRegisterTests(void);
 void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *);
 
-static int DetectEngineInspectMQTTTypeGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for ipopts: keyword
@@ -63,21 +61,18 @@ void DetectMQTTTypeRegister (void)
     sigmatch_table[DETECT_AL_MQTT_TYPE].RegisterTests = MQTTTypeRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister("mqtt.type",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTTypeGeneric);
+    DetectAppLayerInspectEngineRegister2("mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectMQTTTypeGeneric, NULL);
 
     mqtt_type_id = DetectBufferTypeGetByName("mqtt.type");
 }
 
-static int DetectEngineInspectMQTTTypeGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectMQTTTypeGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

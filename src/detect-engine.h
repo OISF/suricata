@@ -29,7 +29,8 @@
 #include "flow-private.h"
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
-void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
 void InspectionBufferFree(InspectionBuffer *buffer);
 void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
@@ -114,11 +115,8 @@ int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
 int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
 
-int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
-                                   DetectEngineThreadCtx *,
-                                   const Signature *, const SigMatchData *,
-                                   Flow *, const uint8_t, void *, void *,
-                                   uint64_t);
+int DetectEngineInspectGenericList(const DetectEngineCtx *, DetectEngineThreadCtx *,
+        const Signature *, const SigMatchData *, Flow *, const uint8_t, void *, void *, uint64_t);
 
 int DetectEngineInspectBufferGeneric(
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -141,9 +139,6 @@ int DetectEngineInspectPktBufferGeneric(
  * \param progress Minimal progress value for inspect engine to run
  * \param Callback The engine callback.
  */
-void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback);
 void DetectAppLayerInspectEngineRegister2(const char *name,
         AppProto alproto, uint32_t dir, int progress,
         InspectEngineFuncPtr2 Callback2,

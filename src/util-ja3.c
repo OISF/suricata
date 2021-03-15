@@ -216,8 +216,6 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
  */
 char *Ja3GenerateHash(JA3Buffer *buffer)
 {
-
-#ifdef HAVE_NSS
     if (buffer == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
         return NULL;
@@ -235,19 +233,9 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
         return NULL;
     }
 
-    unsigned char md5[MD5_LENGTH];
-    HASH_HashBuf(HASH_AlgMD5, md5, (unsigned char *)buffer->data, buffer->used);
-
-    int i, x;
-    for (i = 0, x = 0; x < MD5_LENGTH; x++) {
-        i += snprintf(ja3_hash + i, MD5_STRING_LENGTH - i, "%02x", md5[x]);
-    }
-
+    SCMd5HashBufferToHex((unsigned char *)buffer->data, buffer->used, ja3_hash,
+            MD5_STRING_LENGTH * sizeof(char));
     return ja3_hash;
-#else
-    return NULL;
-#endif /* HAVE_NSS */
-
 }
 
 /**
@@ -270,17 +258,6 @@ int Ja3IsDisabled(const char *type)
         }
         return 1;
     }
-
-#ifndef HAVE_NSS
-    else {
-        if (strcmp(type, "rule") != 0) {
-            SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                    "no MD5 calculation support built in (LibNSS), skipping %s",
-                    type);
-        }
-        return 1;
-    }
-#endif /* HAVE_NSS */
 
     return 0;
 }

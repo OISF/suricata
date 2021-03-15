@@ -20,10 +20,9 @@ use std::mem::transmute;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::dcerpc::{
-    DCERPCTransaction, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFC_FIRST_FRAG,
+    DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
 use crate::dcerpc::parser;
-use std::cmp;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
@@ -53,63 +52,62 @@ pub struct DCERPCHdrUdp {
 
 #[derive(Debug)]
 pub struct DCERPCUDPState {
-    pub tx_id: u32,
-    pub header: Option<DCERPCHdrUdp>,
+    pub tx_id: u64,
     pub transactions: Vec<DCERPCTransaction>,
-    pub fraglenleft: u16,
-    pub uuid_entry: Option<DCERPCUuidEntry>,
-    pub uuid_list: Vec<DCERPCUuidEntry>,
-    pub de_state: Option<*mut core::DetectEngineState>,
-    pub tx_data: AppLayerTxData,
 }
 
 impl DCERPCUDPState {
     pub fn new() -> DCERPCUDPState {
         return DCERPCUDPState {
             tx_id: 0,
-            header: None,
             transactions: Vec::new(),
-            fraglenleft: 0,
-            uuid_entry: None,
-            uuid_list: Vec::new(),
-            de_state: None,
-            tx_data: AppLayerTxData::new(),
         };
     }
 
-    fn create_tx(&mut self, serial_no: u16) -> DCERPCTransaction {
+    fn create_tx(&mut self,  hdr: &DCERPCHdrUdp) -> DCERPCTransaction {
         let mut tx = DCERPCTransaction::new();
-        let endianness = self.get_hdr_drep_0() & 0x10;
         tx.id = self.tx_id;
-        tx.call_id = serial_no as u32;
-        tx.endianness = endianness;
+        tx.endianness = hdr.drep[0] & 0x10;
+        tx.activityuuid = hdr.activityuuid.to_vec();
+        tx.seqnum = hdr.seqnum;
         self.tx_id += 1;
         tx
     }
 
-
-    fn evaluate_serial_no(&mut self) -> u16 {
-        let mut serial_no: u16;
-        let mut serial_hi: u8 = 0;
-        let mut serial_lo: u8 = 0;
-        let endianness = self.get_hdr_drep_0();
-        if let Some(ref hdr) = &self.header {
-            serial_hi = hdr.serial_hi;
-            serial_lo = hdr.serial_lo;
+    pub fn free_tx(&mut self, tx_id: u64) {
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        let len = self.transactions.len();
+        let mut found = false;
+        let mut index = 0;
+        for i in 0..len {
+            let tx = &self.transactions[i];
+            if tx.id as u64 == tx_id { //+ 1 {
+                found = true;
+                index = i;
+                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
+                break;
+            }
         }
-        if endianness & 0x10 == 0 {
-            serial_no = serial_lo as u16;
-            serial_no = serial_no.rotate_left(8) | serial_hi as u16;
-        } else {
-            serial_no = serial_hi as u16;
-            serial_no = serial_no.rotate_left(8) | serial_lo as u16;
+        if found {
+            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.transactions.remove(index);
         }
-        serial_no
     }
 
-    fn find_tx(&mut self, serial_no: u16) -> Option<&mut DCERPCTransaction> {
+    /// Get transaction as per the given transaction ID. Transaction ID with
+    /// which the lookup is supposed to be done as per the calls from AppLayer
+    /// parser in C. This requires an internal transaction ID to be maintained.
+    ///
+    /// Arguments:
+    /// * `tx_id`:
+    ///    description: internal transaction ID to track transactions
+    ///
+    /// Return value:
+    /// Option mutable reference to DCERPCTransaction
+    pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
-            let found = tx.call_id == (serial_no as u32);
+            let found = tx.id == tx_id;
             if found {
                 return Some(tx);
             }
@@ -117,120 +115,59 @@ impl DCERPCUDPState {
         None
     }
 
-    fn get_hdr_pkt_type(&self) -> Option<u8> {
-        debug_validate_bug_on!(self.header.is_none());
-        if let Some(ref hdr) = &self.header {
-            return Some(hdr.pkt_type);
-        }
-        // Shouldn't happen
-        None
-    }
-
-    fn get_hdr_flags1(&self) -> Option<u8> {
-        debug_validate_bug_on!(self.header.is_none());
-        if let Some(ref hdr) = &self.header {
-            return Some(hdr.flags1);
-        }
-        // Shouldn't happen
-        None
-    }
-
-    fn get_hdr_drep_0(&self) -> u8 {
-        debug_validate_bug_on!(self.header.is_none());
-        if let Some(ref hdr) = &self.header {
-            return hdr.drep[0];
-        }
-        0
-    }
-
-    pub fn get_hdr_fraglen(&self) -> Option<u16> {
-        debug_validate_bug_on!(self.header.is_none());
-        if let Some(ref hdr) = &self.header {
-            return Some(hdr.fraglen);
-        }
-        // Shouldn't happen
-        None
-    }
-
-    pub fn handle_fragment_data(&mut self, input: &[u8], input_len: u16) -> u16 {
-        let retval: u16;
-        let hdrflags1 = self.get_hdr_flags1().unwrap_or(0);
-        let fraglenleft = self.fraglenleft;
-        let hdrtype = self.get_hdr_pkt_type().unwrap_or(0);
-        let serial_no = self.evaluate_serial_no();
-        let tx;
-        if let Some(transaction) = self.find_tx(serial_no) {
-            tx = transaction;
-        } else {
-            SCLogDebug!(
-                "No transaction found matching the serial number: {:?}",
-                serial_no
-            );
-            return 0;
-        }
-
-        // Update the stub params based on the packet type
-        match hdrtype {
-            DCERPC_TYPE_REQUEST => {
-                retval = evaluate_stub_params(
-                    input,
-                    input_len,
-                    hdrflags1,
-                    fraglenleft,
-                    &mut tx.stub_data_buffer_ts,
-                    &mut tx.stub_data_buffer_len_ts,
-                );
-                tx.req_done = true;
-                tx.frag_cnt_ts += 1;
-            }
-            DCERPC_TYPE_RESPONSE => {
-                retval = evaluate_stub_params(
-                    input,
-                    input_len,
-                    hdrflags1,
-                    fraglenleft,
-                    &mut tx.stub_data_buffer_tc,
-                    &mut tx.stub_data_buffer_len_tc,
-                );
-                tx.resp_done = true;
-                tx.frag_cnt_tc += 1;
-            }
-            _ => {
-                SCLogDebug!("Unrecognized packet type");
-                return 0;
-            }
-        }
-        // Update the remaining fragment length
-        self.fraglenleft -= retval;
-
-        retval
-    }
-
-    pub fn process_header(&mut self, input: &[u8]) -> i32 {
-        match parser::parse_dcerpc_udp_header(input) {
-            Ok((leftover_bytes, header)) => {
-                if header.rpc_vers != 4 {
-                    SCLogDebug!("DCERPC UDP Header did not validate.");
-                    return -1;
+    fn find_incomplete_tx(&mut self, hdr: &DCERPCHdrUdp) -> Option<&mut DCERPCTransaction> {
+        for tx in &mut self.transactions {
+            if tx.seqnum == hdr.seqnum && tx.activityuuid == hdr.activityuuid {
+                if (hdr.pkt_type == DCERPC_TYPE_REQUEST && !tx.req_done) ||
+                   (hdr.pkt_type == DCERPC_TYPE_RESPONSE && !tx.resp_done) {
+                    SCLogDebug!("found tx id {}, last tx_id {}, {} {}", tx.id, self.tx_id, tx.seqnum, tx.activityuuid[0]);
+                    return Some(tx);
                 }
-                let mut uuidentry = DCERPCUuidEntry::new();
-                let auuid = header.activityuuid.to_vec();
-                uuidentry.uuid = auuid;
-                self.uuid_list.push(uuidentry);
-                self.header = Some(header);
-                (input.len() - leftover_bytes.len()) as i32
-            }
-            Err(nom::Err::Incomplete(_)) => {
-                // Insufficient data.
-                SCLogDebug!("Insufficient data while parsing DCERPC request");
-                -1
-            }
-            Err(_) => {
-                // Error, probably malformed data.
-                SCLogDebug!("An error occurred while parsing DCERPC request");
-                -1
             }
         }
+        None
+    }
+
+    pub fn handle_fragment_data(&mut self, hdr: &DCERPCHdrUdp, input: &[u8]) -> bool {
+        if hdr.pkt_type != DCERPC_TYPE_REQUEST && hdr.pkt_type != DCERPC_TYPE_RESPONSE {
+            SCLogDebug!("Unrecognized packet type");
+            return false;
+        }
+
+        let mut otx = self.find_incomplete_tx(hdr);
+        if otx.is_none() {
+            let ntx = self.create_tx(hdr);
+            SCLogDebug!("new tx id {}, last tx_id {}, {} {}", ntx.id, self.tx_id, ntx.seqnum, ntx.activityuuid[0]);
+            self.transactions.push(ntx);
+            otx = self.transactions.last_mut();
+        }
+
+        if let Some(tx) = otx {
+            let done = (hdr.flags1 & PFCL1_FRAG) == 0 || (hdr.flags1 & PFCL1_LASTFRAG) != 0;
+
+            match hdr.pkt_type {
+                DCERPC_TYPE_REQUEST => {
+                    tx.stub_data_buffer_ts.extend_from_slice(&input);
+                    tx.frag_cnt_ts += 1;
+                    if done {
+                        tx.req_done = true;
+                    }
+                    return true;
+                }
+                DCERPC_TYPE_RESPONSE => {
+                    tx.stub_data_buffer_tc.extend_from_slice(&input);
+                    tx.frag_cnt_tc += 1;
+                    if done {
+                        tx.resp_done = true;
+                    }
+                    return true;
+                }
+                _ => {
+                    // unreachable
+                }
+            }
+        }
+        return false; // unreachable
     }
 
     pub fn handle_input_data(&mut self, input: &[u8]) -> AppLayerResult {
@@ -238,56 +175,35 @@ impl DCERPCUDPState {
         if (input.len() as i32) < DCERPC_UDP_HDR_LEN {
             return AppLayerResult::err();
         }
-        // Call header parser first
-        let mut parsed = self.process_header(input);
-        if parsed == -1 {
-            return AppLayerResult::err();
-        }
 
-        let mut input_left = input.len() as i32 - parsed;
-        let fraglen = self.get_hdr_fraglen().unwrap_or(0);
-        self.fraglenleft = fraglen;
-        let serial_no = self.evaluate_serial_no();
-        let tx = self.create_tx(serial_no);
-        self.transactions.push(tx);
-        // Parse rest of the body
-        while parsed >= DCERPC_UDP_HDR_LEN && parsed < fraglen as i32 && input_left > 0 {
-            let retval = self.handle_fragment_data(&input[parsed as usize..], input_left as u16);
-            if retval > 0 && retval <= input_left as u16 {
-                parsed += retval as i32;
-                input_left -= retval as i32;
-            } else if input_left > 0 {
-                SCLogDebug!("Error parsing DCERPC UDP Fragment Data");
-                parsed -= input_left;
-                input_left = 0;
+        // Call header parser first
+        match parser::parse_dcerpc_udp_header(input) {
+            Ok((leftover_bytes, header)) => {
+                if header.rpc_vers != 4 {
+                    SCLogDebug!("DCERPC UDP Header did not validate.");
+                    return AppLayerResult::err();
+                }
+                if leftover_bytes.len() < header.fraglen as usize {
+                    SCLogDebug!("Insufficient data: leftover_bytes {}, fraglen {}", leftover_bytes.len(), header.fraglen);
+                    return AppLayerResult::err();
+                }
+                if !self.handle_fragment_data(&header, &leftover_bytes[..header.fraglen as usize]) {
+                    return AppLayerResult::err();
+                }
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                // Insufficient data.
+                SCLogDebug!("Insufficient data while parsing DCERPC request");
+                return AppLayerResult::err();
+            }
+            Err(_) => {
+                // Error, probably malformed data.
+                SCLogDebug!("An error occurred while parsing DCERPC request");
+                return AppLayerResult::err();
             }
         }
         return AppLayerResult::ok();
     }
-}
-
-fn evaluate_stub_params(
-    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
-    stub_data_buffer_len: &mut u16,
-) -> u16 {
-    let stub_len: u16;
-    stub_len = cmp::min(lenleft, input_len);
-    if stub_len == 0 {
-        return 0;
-    }
-    // If the UDP frag is the the first frag irrespective of it being a part of
-    // a multi frag PDU or not, it indicates the previous PDU's stub would
-    // have been buffered and processed and we can use the buffer to hold
-    // frags from a fresh request/response
-    if hdrflags & PFC_FIRST_FRAG > 0 {
-        *stub_data_buffer_len = 0;
-    }
-
-    let input_slice = &input[..stub_len as usize];
-    stub_data_buffer.extend_from_slice(&input_slice);
-    *stub_data_buffer_len += stub_len;
-
-    stub_len
 }
 
 #[no_mangle]
@@ -316,16 +232,18 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw:
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
-    _state: *mut std::os::raw::c_void, _tx_id: u64,
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
-    // do nothing
+    let dce_state = cast_pointer!(state, DCERPCUDPState);
+    SCLogDebug!("freeing tx {}", tx_id as u64);
+    dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
     vtx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
-    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     match dce_state.de_state {
         Some(ds) => ds,
         None => std::ptr::null_mut(),
@@ -336,7 +254,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
     vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
 ) -> u8 {
-    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     dce_state.de_state = Some(de_state);
     0
 }
@@ -346,39 +264,80 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
-    let tx = cast_pointer!(tx, DCERPCUDPState);
+    let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_tx(
-    state: *mut std::os::raw::c_void, _tx_id: u64,
-) -> *mut DCERPCUDPState {
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut DCERPCTransaction {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
-    dce_state
+    match dce_state.get_tx(tx_id) {
+        Some(tx) => {
+            return unsafe{&mut *(tx as *mut DCERPCTransaction)};
+        },
+        None => {
+            return std::ptr::null_mut();
+        }
+    } 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(_state: *mut std::os::raw::c_void) -> u8 {
-    1
+pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+    let dce_state = cast_pointer!(vtx, DCERPCUDPState);
+    dce_state.tx_id
+}
+
+/// Probe input to see if it looks like DCERPC.
+fn probe(input: &[u8]) -> (bool, bool) {
+    match parser::parse_dcerpc_udp_header(input) {
+        Ok((_, hdr)) => {
+            let is_request = hdr.pkt_type == 0x00;
+            let is_dcerpc = hdr.rpc_vers == 0x04 &&
+                (hdr.flags2 & 0xfc == 0) &&
+                (hdr.drep[0] & 0xee == 0) &&
+                (hdr.drep[1] <= 3);
+            return (is_dcerpc, is_request);
+        },
+        Err(_) => (false, false),
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void, _direction: u8,
-) -> u8 {
-    0
+pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
+                                      len: u32, rdir: *mut u8) -> i32
+{
+    SCLogDebug!("Probing the packet for DCERPC/UDP");
+    if len == 0 {
+        return core::ALPROTO_UNKNOWN;
+    }
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    //is_incomplete is checked by caller
+    let (is_dcerpc, is_request) = probe(slice);
+    if is_dcerpc {
+        let dir = if is_request {
+            core::STREAM_TOSERVER
+        } else {
+            core::STREAM_TOCLIENT
+        };
+        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
+            unsafe { *rdir = dir };
+        }
+        return 1;
+    }
+    return 0;
+
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_alstate_progress_completion_status(_direction: u8) -> u8 {
-    1
-}
 
 #[cfg(test)]
 mod tests {
     use crate::applayer::AppLayerResult;
     use crate::dcerpc::dcerpc_udp::DCERPCUDPState;
+    use crate::dcerpc::parser;
 
     #[test]
     fn test_process_header_udp_incomplete_hdr() {
@@ -388,8 +347,12 @@ mod tests {
             0x1c, 0x7d, 0xcf, 0x11,
         ];
 
-        let mut dcerpcudp_state = DCERPCUDPState::new();
-        assert_eq!(-1, dcerpcudp_state.process_header(request));
+        match parser::parse_dcerpc_udp_header(request) {
+            Ok((_rem, _header)) => {
+                { assert!(false); }
+            }
+            _ => {}
+        }
     }
 
     #[test]
@@ -402,8 +365,13 @@ mod tests {
             0x79, 0xbe, 0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
-        let mut dcerpcudp_state = DCERPCUDPState::new();
-        assert_eq!(80, dcerpcudp_state.process_header(request));
+        match parser::parse_dcerpc_udp_header(request) {
+            Ok((rem, header)) => {
+                assert_eq!(4, header.rpc_vers);
+                assert_eq!(80, request.len() - rem.len());
+            }
+            _ => { assert!(false); }
+        }
     }
 
     #[test]
@@ -416,12 +384,14 @@ mod tests {
             0x79, 0xbe, 0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
-        let mut dcerpcudp_state = DCERPCUDPState::new();
-        assert_eq!(80, dcerpcudp_state.process_header(request));
-        assert_eq!(
-            0,
-            dcerpcudp_state.handle_fragment_data(request, request.len() as u16)
-        );
+        match parser::parse_dcerpc_udp_header(request) {
+            Ok((rem, header)) => {
+                assert_eq!(4, header.rpc_vers);
+                assert_eq!(80, request.len() - rem.len());
+                assert_eq!(0, rem.len());
+            }
+            _ => { assert!(false); }
+        }
     }
 
     #[test]
@@ -539,10 +509,9 @@ mod tests {
             AppLayerResult::ok(),
             dcerpcudp_state.handle_input_data(request)
         );
-        assert_eq!(0, dcerpcudp_state.fraglenleft);
         assert_eq!(
             1392,
-            dcerpcudp_state.transactions[0].stub_data_buffer_len_ts
+            dcerpcudp_state.transactions[0].stub_data_buffer_ts.len()
         );
     }
 }

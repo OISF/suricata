@@ -49,11 +49,9 @@ static void DetectKrb5MsgTypeFree (DetectEngineCtx *, void *);
 static void DetectKrb5MsgTypeRegisterTests (void);
 #endif
 
-static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id);
 
 static int g_krb5_msg_type_list_id = 0;
 
@@ -74,13 +72,12 @@ void DetectKrb5MsgTypeRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister("krb5_msg_type",
-            ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectKRB5Generic);
 
-    DetectAppLayerInspectEngineRegister("krb5_msg_type",
-            ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectKRB5Generic);
+    DetectAppLayerInspectEngineRegister2("krb5_msg_type", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectKRB5Generic, NULL);
+
+    DetectAppLayerInspectEngineRegister2("krb5_msg_type", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectKRB5Generic, NULL);
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -89,14 +86,12 @@ void DetectKrb5MsgTypeRegister(void)
     SCLogDebug("g_krb5_msg_type_list_id %d", g_krb5_msg_type_list_id);
 }
 
-static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectKRB5Generic(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

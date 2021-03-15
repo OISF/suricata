@@ -521,6 +521,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     /* do the actual decoding */
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {
         SCLogDebug("decoding IPv4 packet failed");
@@ -575,6 +578,11 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             DecodeSCTP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                       IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
+
+        case IPPROTO_ESP:
+            DecodeESP(tv, dtv, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            break;
+
         case IPPROTO_IPV6:
             {
                 /* spawn off tunnel packet */

@@ -71,6 +71,9 @@ static int g_http_stat_msg_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static int DetectHttpStatMsgSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 
 /**
@@ -96,13 +99,17 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_RESPONSE_PROGRESS_LINE,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_stat_msg", SIG_FLAG_TOCLIENT, 3,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_RESPONSE_PROGRESS_LINE);
+    DetectAppLayerMpmRegister2("http_stat_msg", SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
+
+    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
+
+    DetectAppLayerMpmRegister2("http_stat_msg", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_stat_msg",
             "http response status message");
@@ -123,10 +130,8 @@ void DetectHttpStatMsgRegister (void)
 
 static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_STAT_MSG,
-                                                  g_http_stat_msg_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_STAT_MSG, g_http_stat_msg_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -163,7 +168,30 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = bstr_len(htp_tx_response_message(tx));
         const uint8_t *data = bstr_ptr(htp_tx_response_message(tx));
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_status(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

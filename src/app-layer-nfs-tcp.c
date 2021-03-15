@@ -47,25 +47,6 @@
  * be the size of a header. TODO actual min size is likely larger */
 #define NFSTCP_MIN_FRAME_LEN 32
 
-/* Enum of app-layer events for an echo protocol. Normally you might
- * have events for errors in parsing data, like unexpected data being
- * received. For echo we'll make something up, and log an app-layer
- * level alert if an empty message is received.
- *
- * Example rule:
- *
- * alert nfs any any -> any any (msg:"SURICATA NFS empty message"; \
- *    app-layer-event:nfs.empty_message; sid:X; rev:Y;)
- */
-enum {
-    NFSTCP_DECODER_EVENT_EMPTY_MESSAGE,
-};
-
-SCEnumCharMap nfs_decoder_event_table[] = {
-    {"EMPTY_MESSAGE", NFSTCP_DECODER_EVENT_EMPTY_MESSAGE},
-    { NULL, 0 }
-};
-
 static void *NFSTCPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     return rs_nfs_state_new(orig_state, proto_orig);
@@ -209,15 +190,6 @@ static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
 }
 
 /**
- * \brief Called by the application layer.
- *
- * In most cases 1 can be returned here.
- */
-static int NFSTCPGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs_state_progress_completion_status(direction);
-}
-
-/**
  * \brief Return the state of a transaction in a given direction.
  *
  * In the case of the echo protocol, the existence of a transaction
@@ -338,8 +310,7 @@ void RegisterNFSTCPParsers(void)
             NFSTCPGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_NFS,
-            NFSTCPGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_NFS, 1, 1);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP,
             ALPROTO_NFS, NFSTCPGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_NFS,
@@ -372,18 +343,4 @@ void RegisterNFSTCPParsers(void)
     else {
         SCLogDebug("NFSTCP protocol parsing disabled.");
     }
-
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_NFS,
-        NFSTCPParserRegisterTests);
-#endif
-}
-
-#ifdef UNITTESTS
-#endif
-
-void NFSTCPParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
 }

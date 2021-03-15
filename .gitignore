@@ -1,5 +1,6 @@
 *.o
 *.lo
+*.a
 *.in
 *.[ch]e
 *.log
@@ -64,3 +65,5 @@ test.sh
 .vscode/*
 /suricata-update/*
 !/suricata-update/Makefile.am
+/libsuricata-config
+!/libsuricata-config.in

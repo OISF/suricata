@@ -807,9 +807,7 @@ int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
     int use_app = 1;
     int use_raw = 1;
 
-    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-          (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
         // app is dead
         use_app = 0;
     }
@@ -988,7 +986,6 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         /* get window of data that is acked */
         const uint32_t delta = stream->last_ack - stream->base_seq;
-        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
 
@@ -1045,24 +1042,23 @@ static inline uint32_t AdjustToAcked(const Packet *p,
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == FALSE) {
         SCLogDebug("ssn->state %s", StreamTcpStateAsString(ssn->state));
-        if ((ssn->state < TCP_CLOSED ||
-                    (ssn->state == TCP_CLOSED &&
-                     (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
-                (p->flags & PKT_PSEUDO_STREAM_END))
-        {
+        if (data_len == 0 || ((ssn->state < TCP_CLOSED ||
+                                      (ssn->state == TCP_CLOSED &&
+                                              (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) != 0)) &&
+                                     (p->flags & PKT_PSEUDO_STREAM_END))) {
             // fall through, we use all available data
         } else {
             uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
             if (STREAM_LASTACK_GT_BASESEQ(stream)) {
                 /* get window of data that is acked */
                 uint32_t delta = stream->last_ack - stream->base_seq;
-                DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
                 /* get max absolute offset */
                 last_ack_abs += delta;
             }
+            DEBUG_VALIDATE_BUG_ON(app_progress > last_ack_abs);
 
             /* see if the buffer contains unack'd data as well */
-            if (app_progress + data_len > last_ack_abs) {
+            if (app_progress <= last_ack_abs && app_progress + data_len > last_ack_abs) {
                 uint32_t check = data_len;
                 adjusted = last_ack_abs - app_progress;
                 BUG_ON(adjusted > check);
@@ -1092,12 +1088,18 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     const uint8_t *mydata;
     uint32_t mydata_len;
     bool gap_ahead = false;
-    const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
+    bool last_was_gap = false;
 
     while (1) {
+        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         bool check_for_gap_ahead = ((*stream)->data_required > 0);
         gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
                 app_progress, check_for_gap_ahead);
+        if (last_was_gap && mydata_len == 0) {
+            break;
+        }
+        last_was_gap = false;
+
         /* make sure to only deal with ACK'd data */
         mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
@@ -1129,7 +1131,11 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 return 0;
             if (no_progress_update)
                 break;
+            last_was_gap = true;
             continue;
+
+        } else if (flags & STREAM_DEPTH) {
+            // we're just called once with this flag, so make sure we pass it on
 
         } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
@@ -1171,6 +1177,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;
+        if (flags & STREAM_DEPTH)
+            break;
     }
 
     SCReturnInt(0);
@@ -1360,11 +1368,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     /* if app is active and beyond raw, sync raw to app */
-    } else if (progress == 0 &&
-            STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
-            !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
-            !(stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-    {
+    } else if (progress == 0 && STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
+               !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         /* if trigger raw is set we sync the 2 trackers */
         if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
         {
@@ -1571,7 +1576,6 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             uint32_t delta = stream->last_ack - stream->base_seq;
-            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
         }
@@ -1668,7 +1672,6 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
         uint32_t delta = stream->last_ack - stream->base_seq;
-        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
         SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
@@ -1816,15 +1819,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
 
-    /* we need to update the opposing stream in
-     * StreamTcpReassembleHandleSegmentUpdateACK */
-    TcpStream *opposing_stream = NULL;
-    if (stream == &ssn->client) {
-        opposing_stream = &ssn->server;
-    } else {
-        opposing_stream = &ssn->client;
-    }
-
     /* default IDS: update opposing side (triggered by ACK) */
     enum StreamUpdateDir dir = UPDATE_DIR_OPPOSING;
     /* inline and stream end and flow timeout packets trigger same dir handling */
@@ -1841,13 +1835,32 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
 
     /* handle ack received */
-    if ((dir == UPDATE_DIR_OPPOSING || dir == UPDATE_DIR_BOTH) &&
-        StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
-    {
-        SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
-        SCReturnInt(-1);
-    }
+    if ((dir == UPDATE_DIR_OPPOSING || dir == UPDATE_DIR_BOTH)) {
+        /* we need to update the opposing stream in
+         * StreamTcpReassembleHandleSegmentUpdateACK */
+        TcpStream *opposing_stream = NULL;
+        if (stream == &ssn->client) {
+            opposing_stream = &ssn->server;
+        } else {
+            opposing_stream = &ssn->client;
+        }
 
+        const bool reversed_before_ack_handling = (p->flow->flags & FLOW_DIR_REVERSED) != 0;
+
+        if (StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0) {
+            SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
+            SCReturnInt(-1);
+        }
+
+        /* StreamTcpReassembleHandleSegmentUpdateACK
+         * may swap content of ssn->server and ssn->client structures.
+         * We have to continue with initial content of the stream in such case */
+        const bool reversed_after_ack_handling = (p->flow->flags & FLOW_DIR_REVERSED) != 0;
+        if (reversed_before_ack_handling != reversed_after_ack_handling) {
+            SCLogDebug("TCP streams were swapped");
+            stream = opposing_stream;
+        }
+    }
     /* if this segment contains data, insert it */
     if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
@@ -2552,8 +2565,8 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
     FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
@@ -2576,9 +2589,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2601,9 +2614,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2626,9 +2639,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2650,9 +2663,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2676,9 +2689,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2702,9 +2715,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2727,9 +2740,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2754,9 +2767,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
@@ -2780,9 +2793,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(f.alproto != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP1);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP1);
 
     StreamTcpPruneSession(&f, STREAM_TOSERVER);
     StreamTcpPruneSession(&f, STREAM_TOCLIENT);
@@ -2938,7 +2951,7 @@ static int StreamTcpReassembleTest40 (void)
     ssn.server.last_ack = 16;
     SCLogDebug("8 -- start");
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
-    FAIL_IF(f->alproto != ALPROTO_HTTP);
+    FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
@@ -3117,7 +3130,7 @@ static int StreamTcpReassembleTest47 (void)
         FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
     }
 
-    FAIL_IF(f->alproto != ALPROTO_HTTP);
+    FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
@@ -3379,7 +3392,6 @@ static int StreamTcpReassembleInlineTest08(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 15;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
     f.protoctx = &ssn;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
@@ -3431,7 +3443,6 @@ static int StreamTcpReassembleInlineTest09(void)
     FLOW_INITIALIZE(&f);
 
     stream_config.reassembly_toserver_chunk_size = 20;
-    ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);

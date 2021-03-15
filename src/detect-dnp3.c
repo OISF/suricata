@@ -170,18 +170,18 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         SCLogDebug("tx %p data %p data_len %u", tx, data, data_len);
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;
 }
 
-static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static int DetectEngineInspectDNP3(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-        f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -601,12 +601,10 @@ void DetectDNP3Register(void)
     DetectDNP3ObjRegister();
 
     /* Register the list of func, ind and obj. */
-    DetectAppLayerInspectEngineRegister("dnp3",
-            ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectDNP3);
-    DetectAppLayerInspectEngineRegister("dnp3",
-            ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectDNP3);
+    DetectAppLayerInspectEngineRegister2(
+            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectDNP3, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "dnp3", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectDNP3, NULL);
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
 

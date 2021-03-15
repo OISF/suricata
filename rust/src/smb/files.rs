@@ -47,39 +47,6 @@ impl SMBTransactionFile {
     }
 }
 
-/// Wrapper around Suricata's internal file container logic.
-#[derive(Debug)]
-pub struct SMBFiles {
-    pub files_ts: FileContainer,
-    pub files_tc: FileContainer,
-    pub flags_ts: u16,
-    pub flags_tc: u16,
-}
-
-impl SMBFiles {
-    pub fn new() -> SMBFiles {
-        SMBFiles {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
-        if direction == STREAM_TOSERVER {
-            (&mut self.files_ts, self.flags_ts)
-        } else {
-            (&mut self.files_tc, self.flags_tc)
-        }
-    }
-}
-
 /// little wrapper around the FileTransferTracker::new_chunk method
 pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
@@ -89,7 +56,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
         Some(sfcm) => {
             ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
-        None => panic!("BUG"),
+        None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
 }
 

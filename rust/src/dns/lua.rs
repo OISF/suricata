@@ -176,7 +176,9 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 },
                 DNSRData::CNAME(ref bytes) |
                 DNSRData::MX(ref bytes) |
+                DNSRData::NS(ref bytes) |
                 DNSRData::TXT(ref bytes) |
+                DNSRData::NULL(ref bytes) |
                 DNSRData::PTR(ref bytes) |
                 DNSRData::Unknown(ref bytes) => {
                     if bytes.len() > 0 {
@@ -195,6 +197,11 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                 DNSRData::SSHFP(ref sshfp) => {
                     lua.pushstring("addr");
                     lua.pushstring(&String::from_utf8_lossy(&sshfp.fingerprint));
+                    lua.settable(-3);
+                },
+                DNSRData::SRV(ref srv) => {
+                    lua.pushstring("addr");
+                    lua.pushstring(&String::from_utf8_lossy(&srv.target));
                     lua.settable(-3);
                 },
             }

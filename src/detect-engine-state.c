@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,7 +71,7 @@
 static inline int StateIsValid(uint16_t alproto, void *alstate)
 {
     if (alstate != NULL) {
-        if (alproto == ALPROTO_HTTP) {
+        if (alproto == ALPROTO_HTTP1) {
             HtpState *htp_state = (HtpState *)alstate;
             if (htp_state->conn != NULL) {
                 return 1;
@@ -123,43 +123,42 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
 static void DeStateSignatureAppend(DetectEngineState *state,
         const Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
-    int jump = 0;
-    int i = 0;
+    SCEnter();
+
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
     BUG_ON(DeStateSearchState(state, direction, s->num));
 #endif
-    DeStateStore *store = dir_state->head;
-
+    DeStateStore *store = dir_state->tail;
     if (store == NULL) {
         store = DeStateStoreAlloc();
-        if (store != NULL) {
-            dir_state->head = store;
-            dir_state->tail = store;
-        }
+        dir_state->head = store;
+        dir_state->cur = store;
+        dir_state->tail = store;
+    } else if (dir_state->cur) {
+        store = dir_state->cur;
     } else {
-        jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
-        for (i = 0; i < jump; i++) {
-            store = store->next;
-        }
-        if (store == NULL) {
-            store = DeStateStoreAlloc();
-            if (store != NULL) {
-                dir_state->tail->next = store;
-                dir_state->tail = store;
-            }
+        store = DeStateStoreAlloc();
+        if (store != NULL) {
+            dir_state->tail->next = store;
+            dir_state->tail = store;
+            dir_state->cur = store;
         }
     }
-
     if (store == NULL)
-        return;
+        SCReturn;
 
-    SigIntId idx = dir_state->cnt++ % DE_STATE_CHUNK_SIZE;
+    SigIntId idx = dir_state->cnt % DE_STATE_CHUNK_SIZE;
     store->store[idx].sid = s->num;
     store->store[idx].flags = inspect_flags;
+    dir_state->cnt++;
+    /* if current chunk is full, progress cur */
+    if (dir_state->cnt % DE_STATE_CHUNK_SIZE == 0) {
+        dir_state->cur = dir_state->cur->next;
+    }
 
-    return;
+    SCReturn;
 }
 
 DetectEngineState *DetectEngineStateAlloc(void)
@@ -260,6 +259,23 @@ void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags,
     return;
 }
 
+static inline void ResetTxState(DetectEngineState *s)
+{
+    if (s) {
+        s->dir_state[0].cnt = 0;
+        s->dir_state[0].filestore_cnt = 0;
+        s->dir_state[0].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[0].cur = s->dir_state[0].head;
+
+        s->dir_state[1].cnt = 0;
+        s->dir_state[1].filestore_cnt = 0;
+        s->dir_state[1].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[1].cur = s->dir_state[1].head;
+    }
+}
+
 /** \brief Reset de state for active tx'
  *  To be used on detect engine reload.
  *  \param f write LOCKED flow
@@ -282,17 +298,7 @@ void DetectEngineStateResetTxs(Flow *f)
         void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
             DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
-            if (tx_de_state == NULL) {
-                continue;
-            }
-
-            tx_de_state->dir_state[0].cnt = 0;
-            tx_de_state->dir_state[0].filestore_cnt = 0;
-            tx_de_state->dir_state[0].flags = 0;
-
-            tx_de_state->dir_state[1].cnt = 0;
-            tx_de_state->dir_state[1].filestore_cnt = 0;
-            tx_de_state->dir_state[1].flags = 0;
+            ResetTxState(tx_de_state);
         }
     }
 }
@@ -315,13 +321,13 @@ static int DeStateTest01(void)
 
 static int DeStateTest02(void)
 {
+    uint8_t direction = STREAM_TOSERVER;
     DetectEngineState *state = DetectEngineStateAlloc();
     FAIL_IF_NULL(state);
+    FAIL_IF_NOT_NULL(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head);
 
     Signature s;
     memset(&s, 0x00, sizeof(s));
-
-    uint8_t direction = STREAM_TOSERVER;
 
     s.num = 0;
     DeStateSignatureAppend(state, &s, 0, direction);
@@ -351,8 +357,76 @@ static int DeStateTest02(void)
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 133;
     DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
     s.num = 144;
     DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+            state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur == NULL);
+
+    s.num = 155;
+    DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
+    s.num = 166;
+    DeStateSignatureAppend(state, &s, 0, direction);
+
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 11);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next == NULL);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[0].sid != 155);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[1].sid != 166);
+
+    ResetTxState(state);
+
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+
+    s.num = 0;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 11;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 22;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 33;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 44;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 55;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 66;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 77;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 88;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 99;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 100;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 111;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 122;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    s.num = 133;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+    s.num = 144;
+    DeStateSignatureAppend(state, &s, 0, direction);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
+            state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
+    FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
+                state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
     s.num = 155;
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 166;
@@ -425,7 +499,7 @@ static int DeStateSigTest01(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -445,26 +519,23 @@ static int DeStateSigTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     FAIL_IF_NULL(det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF_NOT(r == 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF_NOT(r == 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF_NOT(r == 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF_NOT(r == 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -518,7 +589,7 @@ static int DeStateSigTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -536,54 +607,48 @@ static int DeStateSigTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     FAIL_IF_NULL(det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, f.alstate, 0);
+    void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f.alstate, 0);
     FAIL_IF_NULL(tx);
 
-    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP, tx);
+    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP1, tx);
     FAIL_IF_NULL(tx_de_state);
     FAIL_IF(tx_de_state->dir_state[0].cnt != 1);
     /* http_header(mpm): 5, uri: 3, method: 6, cookie: 7 */
     uint32_t expected_flags = (BIT_U32(5) | BIT_U32(3) | BIT_U32(6) |BIT_U32(7));
     FAIL_IF(tx_de_state->dir_state[0].head->store[0].flags != expected_flags);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf5, httplen5);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf6, httplen6);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf6, httplen6);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2)));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf7, httplen7);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf7, httplen7);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 2)));
@@ -637,7 +702,7 @@ static int DeStateSigTest03(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -649,10 +714,8 @@ static int DeStateSigTest03(void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
     HtpState *http_state = f->alstate;
@@ -717,7 +780,7 @@ static int DeStateSigTest04(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -728,9 +791,8 @@ static int DeStateSigTest04(void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -792,7 +854,7 @@ static int DeStateSigTest05(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -803,10 +865,8 @@ static int DeStateSigTest05(void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     FAIL_IF_NOT(r == 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -869,7 +929,7 @@ static int DeStateSigTest06(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -880,10 +940,8 @@ static int DeStateSigTest06(void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
-                                httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -946,7 +1004,7 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -957,15 +1015,14 @@ static int DeStateSigTest07(void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -1041,7 +1098,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1054,15 +1111,13 @@ static int DeStateSigTest08(void)
 
     /* HTTP request with 1st part of the multipart body */
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -1079,14 +1134,13 @@ static int DeStateSigTest08(void)
 
     /* 2nd multipart body file */
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
@@ -1164,7 +1218,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1177,15 +1231,13 @@ static int DeStateSigTest09(void)
 
     /* HTTP request with 1st part of the multipart body */
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -1202,14 +1254,13 @@ static int DeStateSigTest09(void)
 
     /* 2nd multipart body file */
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
@@ -1285,7 +1336,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    f->alproto = ALPROTO_HTTP1;
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1298,15 +1349,13 @@ static int DeStateSigTest10(void)
 
     /* HTTP request with 1st part of the multipart body */
 
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START, httpbuf1,
-                                httplen1);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
@@ -1323,14 +1372,13 @@ static int DeStateSigTest10(void)
 
     /* 2nd multipart body file */
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
     FAIL_IF(r != 0);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1));

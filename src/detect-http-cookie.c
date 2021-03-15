@@ -102,19 +102,15 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
-            DetectEngineInspectBufferGeneric, GetRequestData);
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP,
-            SIG_FLAG_TOCLIENT, HTP_REQUEST_PROGRESS_HEADERS,
-            DetectEngineInspectBufferGeneric, GetResponseData);
+    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
+    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
 
-    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetRequestData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_HEADERS);
-    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetResponseData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_HEADERS);
+    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRequestData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
+    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
@@ -135,10 +131,8 @@ void DetectHttpCookieRegister(void)
 
 static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
-                                                  DETECT_AL_HTTP_COOKIE,
-                                                  g_http_cookie_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, str, DETECT_AL_HTTP_COOKIE, g_http_cookie_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -155,7 +149,7 @@ static int DetectHttpCookieSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
     if (DetectBufferSetActiveList(s, g_http_cookie_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
 
     return 0;
@@ -181,7 +175,7 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = htp_header_value_len(h);
         const uint8_t *data = htp_header_value_ptr(h);
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -208,7 +202,7 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = htp_header_value_len(h);
         const uint8_t *data = htp_header_value_ptr(h);
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

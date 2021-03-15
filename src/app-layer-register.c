@@ -129,8 +129,8 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         p->StateGetTxCnt);
 
     /* Transaction handling. */
-    AppLayerParserRegisterGetStateProgressCompletionStatus(alproto,
-        p->StateGetProgressCompletionStatus);
+    AppLayerParserRegisterStateProgressCompletionStatus(alproto, p->complete_ts, p->complete_tc);
+
     AppLayerParserRegisterGetStateProgressFunc(p->ip_proto, alproto,
         p->StateGetProgress);
     AppLayerParserRegisterGetTx(p->ip_proto, alproto,
@@ -181,6 +181,17 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->flags);
 
     }
+
+    if (p->Truncate) {
+        AppLayerParserRegisterTruncateFunc(p->ip_proto, alproto, p->Truncate);
+    }
+
+    return 0;
+}
+
+int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias)
+{
+    AppLayerProtoDetectRegisterAlias(proto_name, proto_alias);
 
     return 0;
 }

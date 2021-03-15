@@ -69,6 +69,9 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_user_agent" keyword.
@@ -95,13 +98,17 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_user_agent", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_HEADERS);
+    DetectAppLayerMpmRegister2("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
+
+    DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
+
+    DetectAppLayerMpmRegister2("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
@@ -124,10 +131,8 @@ void DetectHttpUARegister(void)
  */
 int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_USER_AGENT,
-                                                  g_http_ua_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_USER_AGENT, g_http_ua_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -168,7 +173,30 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = htp_header_value_len(h);
         const uint8_t *data = htp_header_value_ptr(h);
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_useragent(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

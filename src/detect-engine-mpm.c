@@ -116,6 +116,7 @@ void DetectAppLayerMpmRegister2(const char *name,
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
     am->sm_list = sm_list;
+    am->sm_list_base = sm_list;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_APP;
 
@@ -155,6 +156,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             am->direction = t->direction;
             am->sm_list = id; // use new id
+            am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_APP;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
             am->app_v2.GetData = t->app_v2.GetData;
@@ -162,6 +164,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->app_v2.tx_min_progress = t->app_v2.tx_min_progress;
             am->priority = t->priority;
             am->sgh_mpm_context = t->sgh_mpm_context;
+            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list);
             am->next = t->next;
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
@@ -226,7 +229,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         }
 
         /* default to whatever the global setting is */
-        int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+        int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
         /* see if we use a unique or shared mpm ctx for this type */
         int confshared = 0;
@@ -245,7 +248,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
             if (!(de_ctx->flags & DE_QUIET)) {
                 SCLogPerf("using shared mpm ctx' for %s", n->name);
             }
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name);
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
         list = list->next;
@@ -349,6 +352,7 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             am->sm_list = id; // use new id
+            am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_PKT;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
             am->pkt_v1.GetData = t->pkt_v1.GetData;
@@ -393,7 +397,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
         }
 
         /* default to whatever the global setting is */
-        int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+        int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
         /* see if we use a unique or shared mpm ctx for this type */
         int confshared = 0;
@@ -412,7 +416,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
             if (!(de_ctx->flags & DE_QUIET)) {
                 SCLogPerf("using shared mpm ctx' for %s", n->name);
             }
-            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name);
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
         }
 
         list = list->next;
@@ -451,7 +455,7 @@ int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx)
 static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
 {
     /* default to whatever the global setting is */
-    int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+    int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
     /* see if we use a unique or shared mpm ctx for this type */
     int confshared = 0;
@@ -466,7 +470,7 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
         ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         SCLogPerf("using unique mpm ctx' for %s", name);
     } else {
-        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name);
+        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name, DETECT_SM_LIST_PMATCH);
         SCLogPerf("using shared mpm ctx' for %s", name);
     }
     return ctx;
@@ -652,12 +656,6 @@ uint16_t PatternMatchDefaultMatcher(void)
 
  done:
     return mpm_algo_val;
-}
-
-/** \brief cleans up the mpm instance after a match */
-void PacketPatternCleanup(DetectEngineThreadCtx *det_ctx)
-{
-    PmqReset(&det_ctx->pmq);
 }
 
 void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)

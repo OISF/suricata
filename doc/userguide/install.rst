@@ -71,7 +71,7 @@ The following tools are required::
 
 For full features, also add::
 
-  libnss, libgeoip, liblua5.1, libhiredis, libevent
+  libgeoip, liblua5.1, libhiredis, libevent
 
 Rust support::
 
@@ -96,7 +96,7 @@ Recommended::
     apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
                     libcap-ng-dev libcap-ng0 make libmagic-dev         \
-                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
+                    libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
                     python-yaml rustc cargo
 
 Extra for iptables/nftables IPS integration::
@@ -149,20 +149,24 @@ For Debian 10 (buster), for instance, run the following as ``root``::
 Fedora
 ^^^^^^
 
+The following is an example of installing Suricata 6.0 on Fedora. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
+
 ::
 
+    dnf install dnf-plugins-core
+    dnf copr enable @oisf/suricata-6.0
     dnf install suricata
 
-RHEL/CentOS
-^^^^^^^^^^^
+RHEL/CentOS 8 and 7
+^^^^^^^^^^^^^^^^^^^
 
-For RedHat Enterprise Linux 7 and CentOS 7 the EPEL repository can be used.
+The following is an example of installing Suricata 6.0 on CentOS. If you wish to install 5.0 instead, change the version in *@oisf/suricata-6.0*.
 
 ::
 
-    yum install epel-release
+    yum install epel-release yum-plugin-copr
+    yum copr enable @oisf/suricata-6.0
     yum install suricata
-
 
 .. _install-advanced:
 

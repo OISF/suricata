@@ -422,6 +422,13 @@ More complex DNS record types may log additional fields for resource data:
   * "algo": Algorithm number (ex: 1 for RSA, 2 for DSS)
   * "type": Fingerprint type (ex: 1 for SHA-1)
 
+* "srv": section containing fields for the SRV (location of services) record type
+
+  * "target": Domain name of the target host (ex: ``foo.bar.baz``)
+  * "priority": Target priority (ex: 20)
+  * "weight": Weight for target selection (ex: 1)
+  * "port": Port on this target host of this service (ex: 5060)
+
 One can control which RR types are logged by using the "types" field in the
 suricata.yaml file. If this field is not specified, all RR types are logged.
 More than 50 values can be specified with this field as shown below:
@@ -1803,4 +1810,113 @@ Example of HTTP2 logging, of a request and response:
         }
       ]
     }
+  }
+
+Event type: IKE
+---------------
+
+The parser implementations for IKEv1 and IKEv2 have a slightly different feature
+set. They can be distinguished using the "version_major" field (which equals
+either 1 or 2).
+The unique properties are contained within a separate "ikev1" and "ikev2" sub-object.
+
+Fields
+~~~~~~
+
+* "init_spi", "resp_spi": The Security Parameter Index (SPI) of the initiator and responder.
+* "version_major": Major version of the ISAKMP header.
+* "version_minor": Minor version of the ISAKMP header.
+* "payload": List of payload types in the current packet.
+* "exchange_type": Type of the exchange, as numeric values.
+* "exchange_type_verbose": Type of the exchange, in human-readable form. Needs ``extended: yes`` set in the ``ike`` EVE output option.
+* "alg_enc", "alg_hash", "alg_auth", "alg_dh", "alg_esn": Properties of the chosen security association by the server.
+* "ikev1.encrypted_payloads": Set to ``true`` if the payloads in the packet are encrypted.
+* "ikev1.doi": Value of the domain of interpretation (DOI).
+* "ikev1.server.key_exchange_payload", "ikev1.client.key_exchange_payload": Public key exchange payloads of the server and client.
+* "ikev1.server.key_exchange_payload_length", "ikev1.client.key_exchange_payload_length": Length of the public key exchange payload.
+* "ikev1.server.nonce_payload", "ikev1.client.nonce_payload": Nonce payload of the server and client.
+* "ikev1.server.nonce_payload_length", "ikev1.client.nonce_payload_length": Length of the nonce payload.
+* "ikev1.client.client_proposals": List of the security associations proposed to the server.
+* "ikev1.vendor_ids": List of the vendor IDs observed in the communication.
+
+
+
+Examples
+~~~~~~~~
+
+Example of IKE logging:
+
+::
+
+  "ike": {
+    "version_major": 1,
+    "version_minor": 0,
+    "init_spi": "8511617bfea2f172",
+    "resp_spi": "c0fc6bae013de0f5",
+    "message_id": 0,
+    "exchange_type": 2,
+    "exchange_type_verbose": "Identity Protection",
+    "sa_life_type": "LifeTypeSeconds",
+    "sa_life_type_raw": 1,
+    "sa_life_duration": "Unknown",
+    "sa_life_duration_raw": 900,
+    "alg_enc": "EncAesCbc",
+    "alg_enc_raw": 7,
+    "alg_hash": "HashSha2_256",
+    "alg_hash_raw": 4,
+    "alg_auth": "AuthPreSharedKey",
+    "alg_auth_raw": 1,
+    "alg_dh": "GroupModp2048Bit",
+    "alg_dh_raw": 14,
+    "sa_key_length": "Unknown",
+    "sa_key_length_raw": 256,
+    "alg_esn": "NoESN",
+    "payload": [
+      "VendorID",
+      "Transform",
+      "Proposal",
+      "SecurityAssociation"
+    ],
+    "ikev1": {
+      "doi": 1,
+      "encrypted_payloads": false,
+      "client": {
+        "key_exchange_payload": "0bf7907681a656aabed38fb1ba8918b10d707a8e635a...",
+        "key_exchange_payload_length": 256,
+        "nonce_payload": "1427d158fc1ed6bbbc1bd81e6b74960809c87d18af5f0abef14d5274ac232904",
+        "nonce_payload_length": 32,
+        "proposals": [
+          {
+            "sa_life_type": "LifeTypeSeconds",
+            "sa_life_type_raw": 1,
+            "sa_life_duration": "Unknown",
+            "sa_life_duration_raw": 900,
+            "alg_enc": "EncAesCbc",
+            "alg_enc_raw": 7,
+            "alg_hash": "HashSha2_256",
+            "alg_hash_raw": 4,
+            "alg_auth": "AuthPreSharedKey",
+            "alg_auth_raw": 1,
+            "alg_dh": "GroupModp2048Bit",
+            "alg_dh_raw": 14,
+            "sa_key_length": "Unknown",
+            "sa_key_length_raw": 256
+          }
+        ]
+      },
+      "server": {
+        "key_exchange_payload": "1e43be52b088ec840ff81865074b6d459b5ca7813b46...",
+        "key_exchange_payload_length": 256,
+        "nonce_payload": "04d78293ead007bc1a0f0c6c821a3515286a935af12ca50e08905b15d6c8fcd4",
+        "nonce_payload_length": 32
+      },
+      "vendor_ids": [
+        "4048b7d56ebce88525e7de7f00d6c2d3",
+        "4a131c81070358455c5728f20e95452f",
+        "afcad71368a1f1c96b8696fc77570100",
+        "7d9419a65310ca6f2c179d9215529d56",
+        "cd60464335df21f87cfdb2fc68b6a448",
+        "90cb80913ebb696e086381b5ec427b1f"
+      ]
+    },
   }

@@ -19,8 +19,9 @@
  * \file
  *
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ * \author Frank Honza <frank.honza@dcso.de>
  *
- * Implement JSON/eve logging app-layer IKEv2.
+ * Implement JSON/eve logging app-layer IKE.
  */
 
 #include "suricata-common.h"
@@ -44,40 +45,51 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ikev2.h"
-#include "output-json-ikev2.h"
+#include "app-layer-ike.h"
+#include "output-json-ike.h"
 
 #include "rust.h"
 
-typedef struct LogIKEv2FileCtx_ {
-    LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
-} LogIKEv2FileCtx;
+#define LOG_IKE_DEFAULT  0
+#define LOG_IKE_EXTENDED (1 << 0)
 
-typedef struct LogIKEv2LogThread_ {
+typedef struct LogIKEFileCtx_ {
     LogFileCtx *file_ctx;
-    LogIKEv2FileCtx *ikev2log_ctx;
-    MemBuffer          *buffer;
-} LogIKEv2LogThread;
+    uint32_t flags;
+} LogIKEFileCtx;
 
-static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+typedef struct LogIKELogThread_ {
+    LogFileCtx *file_ctx;
+    LogIKEFileCtx *ikelog_ctx;
+    MemBuffer *buffer;
+} LogIKELogThread;
+
+bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 {
-    IKEV2Transaction *ikev2tx = tx;
-    LogIKEv2LogThread *thread = thread_data;
+    IKEState *state = FlowGetAppState(f);
+    if (state) {
+        IKETransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
+        if (tx) {
+            return rs_ike_logger_log(state, tx, LOG_IKE_EXTENDED, js);
+        }
+    }
 
-    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ikev2", NULL);
+    return false;
+}
+
+static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
+{
+    LogIKELogThread *thread = thread_data;
+    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, jb);
-
-    jb_open_object(jb, "ikev2");
-    if (unlikely(!rs_ikev2_log_json_response(state, ikev2tx, jb))) {
+    LogIKEFileCtx *ike_ctx = thread->ikelog_ctx;
+    if (!rs_ike_logger_log(state, tx, ike_ctx->flags, jb)) {
         goto error;
     }
-    jb_close(jb);
 
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
@@ -90,52 +102,57 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static void OutputIKEv2LogDeInitCtxSub(OutputCtx *output_ctx)
+static void OutputIKELogDeInitCtxSub(OutputCtx *output_ctx)
 {
-    LogIKEv2FileCtx *ikev2log_ctx = (LogIKEv2FileCtx *)output_ctx->data;
-    SCFree(ikev2log_ctx);
+    LogIKEFileCtx *ikelog_ctx = (LogIKEFileCtx *)output_ctx->data;
+    SCFree(ikelog_ctx);
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputIKEv2LogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
 
-    LogIKEv2FileCtx *ikev2log_ctx = SCCalloc(1, sizeof(*ikev2log_ctx));
-    if (unlikely(ikev2log_ctx == NULL)) {
+    LogIKEFileCtx *ikelog_ctx = SCCalloc(1, sizeof(*ikelog_ctx));
+    if (unlikely(ikelog_ctx == NULL)) {
         return result;
     }
-    ikev2log_ctx->file_ctx = ajt->file_ctx;
-    ikev2log_ctx->cfg = ajt->cfg;
+    ikelog_ctx->file_ctx = ajt->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
-        SCFree(ikev2log_ctx);
+        SCFree(ikelog_ctx);
         return result;
     }
-    output_ctx->data = ikev2log_ctx;
-    output_ctx->DeInit = OutputIKEv2LogDeInitCtxSub;
 
-    SCLogDebug("IKEv2 log sub-module initialized.");
+    ikelog_ctx->flags = LOG_IKE_DEFAULT;
+    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    if (extended) {
+        if (ConfValIsTrue(extended)) {
+            ikelog_ctx->flags = LOG_IKE_EXTENDED;
+        }
+    }
 
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKEV2);
+    output_ctx->data = ikelog_ctx;
+    output_ctx->DeInit = OutputIKELogDeInitCtxSub;
+
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKE);
 
     result.ctx = output_ctx;
     result.ok = true;
     return result;
 }
 
-static TmEcode JsonIKEv2LogThreadInit(ThreadVars *t, const void *initdata, void **data)
+static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogIKEv2LogThread *thread = SCCalloc(1, sizeof(*thread));
+    LogIKELogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {
         return TM_ECODE_FAILED;
     }
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogIKEv2.  \"initdata\" is NULL.");
+        SCLogDebug("Error getting context for EveLogIKE.  \"initdata\" is NULL.");
         goto error_exit;
     }
 
@@ -144,8 +161,8 @@ static TmEcode JsonIKEv2LogThreadInit(ThreadVars *t, const void *initdata, void 
         goto error_exit;
     }
 
-    thread->ikev2log_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ikev2log_ctx->file_ctx, t->id);
+    thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
     }
@@ -161,9 +178,9 @@ error_exit:
     return TM_ECODE_FAILED;
 }
 
-static TmEcode JsonIKEv2LogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode JsonIKELogThreadDeinit(ThreadVars *t, void *data)
 {
-    LogIKEv2LogThread *thread = (LogIKEv2LogThread *)data;
+    LogIKELogThread *thread = (LogIKELogThread *)data;
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
@@ -174,13 +191,10 @@ static TmEcode JsonIKEv2LogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void JsonIKEv2LogRegister(void)
+void JsonIKELogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_IKEV2, "eve-log", "JsonIKEv2Log",
-        "eve-log.ikev2", OutputIKEv2LogInitSub, ALPROTO_IKEV2,
-        JsonIKEv2Logger, JsonIKEv2LogThreadInit,
-        JsonIKEv2LogThreadDeinit, NULL);
-
-    SCLogDebug("IKEv2 JSON logger registered.");
+    OutputRegisterTxSubModule(LOGGER_JSON_IKE, "eve-log", "JsonIKELog", "eve-log.ike",
+            OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELogThreadInit,
+            JsonIKELogThreadDeinit, NULL);
 }

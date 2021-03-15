@@ -299,7 +299,7 @@ int AppLayerExpectationGetDataId(void)
  * \return an AppProto value if found
  * \return ALPROTO_UNKNOWN if not found
  */
-AppProto AppLayerExpectationHandle(Flow *f, int direction)
+AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
     IPPair *ipp = NULL;
@@ -319,9 +319,8 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
     time_t ctime = f->lastts.tv_sec;
 
     CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, lexp) {
-        if ((exp->direction & direction) &&
-             ((exp->sp == 0) || (exp->sp == f->sp)) &&
-             ((exp->dp == 0) || (exp->dp == f->dp))) {
+        if ((exp->direction & flags) && ((exp->sp == 0) || (exp->sp == f->sp)) &&
+                ((exp->dp == 0) || (exp->dp == f->dp))) {
             alproto = exp->alproto;
             f->alproto_ts = alproto;
             f->alproto_tc = alproto;

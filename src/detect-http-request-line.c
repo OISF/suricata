@@ -86,14 +86,11 @@ void DetectHttpRequestLineRegister(void)
 #endif
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_request_line",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_LINE,
-            DetectEngineInspectBufferGeneric,
-            GetData);
+    DetectAppLayerInspectEngineRegister2("http_request_line", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2("http_request_line", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData,
-            ALPROTO_HTTP, HTP_REQUEST_PROGRESS_LINE);
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");
@@ -119,7 +116,7 @@ static int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (DetectBufferSetActiveList(s, g_http_request_line_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
         return -1;
 
     return 0;
@@ -139,7 +136,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = bstr_len(htp_tx_request_line(tx));
         const uint8_t *data = bstr_ptr(htp_tx_request_line(tx));
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;
@@ -210,7 +207,7 @@ static int DetectHttpRequestLineTest02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -227,7 +224,8 @@ static int DetectHttpRequestLineTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_len);
+    int r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;
@@ -283,7 +281,7 @@ static int DetectHttpRequestLineWrapper(const char *sig, const int expectation)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(TRUE);
 
@@ -299,7 +297,8 @@ static int DetectHttpRequestLineWrapper(const char *sig, const int expectation)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_len);
+    int r = AppLayerParserParse(
+            &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     FAIL_IF(r != 0);
 
     http_state = f.alstate;

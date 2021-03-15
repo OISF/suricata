@@ -32,29 +32,6 @@
 
 #include "detect-filesha1.h"
 
-#ifndef HAVE_NSS
-
-static int DetectFileSha1SetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
-{
-    SCLogError(SC_ERR_NO_SHA1_SUPPORT, "no SHA-1 calculation support built in, needed for filesha1 keyword");
-    return -1;
-}
-
-/**
- * \brief Registration function for keyword: filesha1
- */
-void DetectFileSha1Register(void)
-{
-    sigmatch_table[DETECT_FILESHA1].name = "filesha1";
-    sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1SetupNoSupport;
-    sigmatch_table[DETECT_FILESHA1].flags = SIGMATCH_NOT_BUILT;
-
-    SCLogDebug("registering filesha1 rule option");
-    return;
-}
-
-#else /* HAVE_NSS */
-
 static int DetectFileSha1Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha1RegisterTests(void);
@@ -88,9 +65,6 @@ void DetectFileSha1Register(void)
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
  * \param str pointer to the user provided "filesha1" option
- *
- * \retval 0 on Success
- * \retval -1 on Failure
  */
 static int DetectFileSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
@@ -114,44 +88,33 @@ static int SHA1MatchLookupString(ROHashTable *hash, const char *string)
 static int SHA1MatchTest01(void)
 {
     ROHashTable *hash = ROHashInit(4, 20);
-    if (hash == NULL) {
-        return 0;
-    }
-    if (LoadHashTable(hash, "447661c5de965bd4d837b50244467e37bddc184d", "file", 1, DETECT_FILESHA1) != 1)
-        return 0;
-    if (LoadHashTable(hash, "75a9af1e34dc0bb2f7fcde9d56b2503072ac35dd", "file", 2, DETECT_FILESHA1) != 1)
-        return 0;
-    if (LoadHashTable(hash, "53224a297bbb30631670fdcd2d295d87a1d328e9", "file", 3, DETECT_FILESHA1) != 1)
-        return 0;
-    if (LoadHashTable(hash, "3395856ce81f2b7382dee72602f798b642f14140", "file", 4, DETECT_FILESHA1) != 1)
-        return 0;
-    if (LoadHashTable(hash, "65559245709fe98052eb284577f1fd61c01ad20d", "file", 5, DETECT_FILESHA1) != 1)
-        return 0;
-    if (LoadHashTable(hash, "0931fd4e05e6ea81c75f8488ecc1db9e66f22cbb", "file", 6, DETECT_FILESHA1) != 1)
-        return 0;
+    FAIL_IF_NULL(hash);
+    FAIL_IF(LoadHashTable(hash, "447661c5de965bd4d837b50244467e37bddc184d", "file", 1,
+                    DETECT_FILESHA1) != 1);
+    FAIL_IF(LoadHashTable(hash, "75a9af1e34dc0bb2f7fcde9d56b2503072ac35dd", "file", 2,
+                    DETECT_FILESHA1) != 1);
+    FAIL_IF(LoadHashTable(hash, "53224a297bbb30631670fdcd2d295d87a1d328e9", "file", 3,
+                    DETECT_FILESHA1) != 1);
+    FAIL_IF(LoadHashTable(hash, "3395856ce81f2b7382dee72602f798b642f14140", "file", 4,
+                    DETECT_FILESHA1) != 1);
+    FAIL_IF(LoadHashTable(hash, "65559245709fe98052eb284577f1fd61c01ad20d", "file", 5,
+                    DETECT_FILESHA1) != 1);
+    FAIL_IF(LoadHashTable(hash, "0931fd4e05e6ea81c75f8488ecc1db9e66f22cbb", "file", 6,
+                    DETECT_FILESHA1) != 1);
 
-    if (ROHashInitFinalize(hash) != 1) {
-        return 0;
-    }
+    FAIL_IF(ROHashInitFinalize(hash) != 1);
 
-    if (SHA1MatchLookupString(hash, "447661c5de965bd4d837b50244467e37bddc184d") != 1)
-        return 0;
-    if (SHA1MatchLookupString(hash, "75a9af1e34dc0bb2f7fcde9d56b2503072ac35dd") != 1)
-        return 0;
-    if (SHA1MatchLookupString(hash, "53224a297bbb30631670fdcd2d295d87a1d328e9") != 1)
-        return 0;
-    if (SHA1MatchLookupString(hash, "3395856ce81f2b7382dee72602f798b642f14140") != 1)
-        return 0;
-    if (SHA1MatchLookupString(hash, "65559245709fe98052eb284577f1fd61c01ad20d") != 1)
-        return 0;
-    if (SHA1MatchLookupString(hash, "0931fd4e05e6ea81c75f8488ecc1db9e66f22cbb") != 1)
-        return 0;
+    FAIL_IF(SHA1MatchLookupString(hash, "447661c5de965bd4d837b50244467e37bddc184d") != 1);
+    FAIL_IF(SHA1MatchLookupString(hash, "75a9af1e34dc0bb2f7fcde9d56b2503072ac35dd") != 1);
+    FAIL_IF(SHA1MatchLookupString(hash, "53224a297bbb30631670fdcd2d295d87a1d328e9") != 1);
+    FAIL_IF(SHA1MatchLookupString(hash, "3395856ce81f2b7382dee72602f798b642f14140") != 1);
+    FAIL_IF(SHA1MatchLookupString(hash, "65559245709fe98052eb284577f1fd61c01ad20d") != 1);
+    FAIL_IF(SHA1MatchLookupString(hash, "0931fd4e05e6ea81c75f8488ecc1db9e66f22cbb") != 1);
     /* Shouldn't match */
-    if (SHA1MatchLookupString(hash, "3333333333333333333333333333333333333333") == 1)
-        return 0;
+    FAIL_IF(SHA1MatchLookupString(hash, "3333333333333333333333333333333333333333") == 1);
 
     ROHashFree(hash);
-    return 1;
+    PASS;
 }
 
 static void DetectFileSha1RegisterTests(void)
@@ -159,4 +122,3 @@ static void DetectFileSha1RegisterTests(void)
     UtRegisterTest("SHA1MatchTest01", SHA1MatchTest01);
 }
 #endif
-#endif /* HAVE_NSS */

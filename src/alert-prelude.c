@@ -667,7 +667,7 @@ static int JsonToAdditionalData(const char * key, json_t * value, idmef_alert_t 
 }
 
 /**
- * \brief Handle ALPROTO_HTTP JSON information
+ * \brief Handle ALPROTO_HTTP1 JSON information
  * \param p Packet where to extract data
  * \param pa Packet alert information
  * \param alert IDMEF alert
@@ -828,7 +828,7 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
     if (p->flow != NULL) {
         uint16_t proto = FlowGetAppProtocol(p->flow);
         switch (proto) {
-            case ALPROTO_HTTP:
+            case ALPROTO_HTTP1:
                 PacketToDataProtoHTTP(p, pa, alert);
                 break;
             case ALPROTO_HTTP2:

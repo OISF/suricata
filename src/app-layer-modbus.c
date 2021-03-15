@@ -235,13 +235,6 @@ static int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction)
     return 0;
 }
 
-/** \brief Get value for 'complete' status in Modbus
- */
-static int ModbusGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return 1;
-}
-
 static void *ModbusGetTx(void *alstate, uint64_t tx_id)
 {
     ModbusState         *modbus = (ModbusState *) alstate;
@@ -316,18 +309,19 @@ static ModbusTransaction *ModbusTxFindByTransaction(const ModbusState   *modbus,
 static ModbusTransaction *ModbusTxAlloc(ModbusState *modbus) {
     ModbusTransaction *tx;
 
+    /* Check flood limit */
+    if ((request_flood != 0) && (modbus->unreplied_cnt >= request_flood)) {
+        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_FLOODED);
+        modbus->givenup = 1;
+        return NULL;
+    }
+
     tx = (ModbusTransaction *) SCCalloc(1, sizeof(ModbusTransaction));
     if (unlikely(tx == NULL))
         return NULL;
 
     modbus->transaction_max++;
     modbus->unreplied_cnt++;
-
-    /* Check flood limit */
-    if ((request_flood != 0) && (modbus->unreplied_cnt > request_flood)) {
-        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_FLOODED);
-        modbus->givenup = 1;
-    }
 
     modbus->curr = tx;
 
@@ -1529,8 +1523,7 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateTxFree);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_MODBUS,
-                                                                ModbusGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_MODBUS, 1, 1);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfoById);

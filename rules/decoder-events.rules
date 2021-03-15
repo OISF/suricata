@@ -146,5 +146,7 @@ alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-eve
 # Cisco HDLC
 alert pkthdr any any -> any any (msg:"SURICATA CHDLC packet too small"; decode-event:chdlc.pkt_too_small; classtype:protocol-command-decode; sid:2200115; rev:1;)
 
-# next sid is 2200116
+alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; decode-event:too_many_layers; classtype:protocol-command-decode; sid:2200116; rev:1;)
+
+# next sid is 2200117
 

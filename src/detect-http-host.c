@@ -99,13 +99,11 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
     sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_HEADERS);
+    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
@@ -130,13 +128,11 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
     sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
-            SIG_FLAG_TOSERVER, HTP_REQUEST_PROGRESS_HEADERS,
-            DetectEngineInspectBufferGeneric, GetRawData);
+    DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetRawData);
 
-    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetRawData, ALPROTO_HTTP,
-            HTP_REQUEST_PROGRESS_HEADERS);
+    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRawData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
@@ -159,10 +155,8 @@ void DetectHttpHHRegister(void)
  */
 static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_HOST,
-                                                  g_http_host_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_HOST, g_http_host_buffer_id, ALPROTO_HTTP1);
 }
 
 static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
@@ -214,8 +208,8 @@ static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     if (DetectBufferSetActiveList(s, g_http_host_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
-       return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+        return -1;
     return 0;
 }
 
@@ -233,7 +227,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = bstr_len(htp_tx_request_hostname(tx));
         const uint8_t *data = bstr_ptr(htp_tx_request_hostname(tx));
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -255,10 +249,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
  */
 int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
-                                                  DETECT_AL_HTTP_RAW_HOST,
-                                                  g_http_raw_host_buffer_id,
-                                                  ALPROTO_HTTP);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_AL_HTTP_RAW_HOST, g_http_raw_host_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -274,8 +266,8 @@ static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, c
 {
     if (DetectBufferSetActiveList(s, g_http_raw_host_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
-       return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+        return -1;
     return 0;
 }
 
@@ -305,7 +297,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             data_len = bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
         }
 
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 

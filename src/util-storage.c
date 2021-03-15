@@ -44,7 +44,7 @@ typedef struct StorageList_ {
 
 static StorageList *storage_list = NULL;
 static int storage_max_id[STORAGE_MAX];
-static int storage_registraton_closed = 0;
+static int storage_registration_closed = 0;
 static StorageMapping **storage_map = NULL;
 
 static const char *StoragePrintType(StorageEnum type)
@@ -69,7 +69,7 @@ void StorageInit(void)
     memset(&storage_max_id, 0x00, sizeof(storage_max_id));
     storage_list = NULL;
     storage_map = NULL;
-    storage_registraton_closed = 0;
+    storage_registration_closed = 0;
 }
 
 void StorageCleanup(void)
@@ -98,7 +98,7 @@ void StorageCleanup(void)
 
 int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *))
 {
-    if (storage_registraton_closed)
+    if (storage_registration_closed)
         return -1;
 
     if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 ||
@@ -141,7 +141,7 @@ int StorageFinalize(void)
     int count = 0;
     int i;
 
-    storage_registraton_closed = 1;
+    storage_registration_closed = 1;
 
     for (i = 0; i < STORAGE_MAX; i++) {
         if (storage_max_id[i] > 0)
@@ -216,7 +216,7 @@ unsigned int StorageGetSize(StorageEnum type)
 void *StorageGetById(const Storage *storage, const StorageEnum type, const int id)
 {
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
@@ -227,7 +227,7 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
 int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr)
 {
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
@@ -239,7 +239,7 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
 void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id)
 {
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
     SCLogDebug("storage %p id %d", storage, id);
 
@@ -257,7 +257,7 @@ void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id)
 void *StorageAllocById(Storage **storage, StorageEnum type, int id)
 {
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
     SCLogDebug("storage %p id %d", storage, id);
 
@@ -288,7 +288,7 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
 void StorageFreeById(Storage *storage, StorageEnum type, int id)
 {
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
 #ifdef UNITTESTS
     if (storage_map == NULL)
@@ -312,7 +312,7 @@ void StorageFreeAll(Storage *storage, StorageEnum type)
     if (storage == NULL)
         return;
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
 #ifdef UNITTESTS
     if (storage_map == NULL)
@@ -336,7 +336,7 @@ void StorageFree(Storage **storage, StorageEnum type)
         return;
 
 #ifdef DEBUG
-    BUG_ON(!storage_registraton_closed);
+    BUG_ON(!storage_registration_closed);
 #endif
 #ifdef UNITTESTS
     if (storage_map == NULL)

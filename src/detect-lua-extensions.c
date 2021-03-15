@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -77,7 +77,7 @@
 static const char luaext_key_ld[] = "suricata:luadata";
 
 /* hack to please scan-build. Even though LuaCallbackError *always*
- * returns 2, scan-build doesn't accept it and and generates false
+ * returns 2, scan-build doesn't accept it and generates false
  * positives */
 #define LUA_ERROR(msg)                  \
     LuaCallbackError(luastate, (msg));  \
@@ -516,20 +516,38 @@ int LuaRegisterExtensions(lua_State *lua_state)
     lua_pushcfunction(lua_state, LuaGetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarGet");
 
+    lua_pushcfunction(lua_state, LuaGetFlowvar);
+    lua_setglobal(lua_state, "SCFlowvarGet");
+
     lua_pushcfunction(lua_state, LuaSetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarSet");
+
+    lua_pushcfunction(lua_state, LuaSetFlowvar);
+    lua_setglobal(lua_state, "SCFlowvarSet");
 
     lua_pushcfunction(lua_state, LuaGetFlowint);
     lua_setglobal(lua_state, "ScFlowintGet");
 
+    lua_pushcfunction(lua_state, LuaGetFlowint);
+    lua_setglobal(lua_state, "SCFlowintGet");
+
     lua_pushcfunction(lua_state, LuaSetFlowint);
     lua_setglobal(lua_state, "ScFlowintSet");
+
+    lua_pushcfunction(lua_state, LuaSetFlowint);
+    lua_setglobal(lua_state, "SCFlowintSet");
 
     lua_pushcfunction(lua_state, LuaIncrFlowint);
     lua_setglobal(lua_state, "ScFlowintIncr");
 
+    lua_pushcfunction(lua_state, LuaIncrFlowint);
+    lua_setglobal(lua_state, "SCFlowintIncr");
+
     lua_pushcfunction(lua_state, LuaDecrFlowint);
     lua_setglobal(lua_state, "ScFlowintDecr");
+
+    lua_pushcfunction(lua_state, LuaDecrFlowint);
+    lua_setglobal(lua_state, "SCFlowintDecr");
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);

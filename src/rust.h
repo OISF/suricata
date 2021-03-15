@@ -21,6 +21,15 @@
 #include "rust-context.h"
 #include "rust-bindings.h"
 
+/* Some manual exports from Rust as we are not yet exporting constants with
+ * cbindgen. */
+#define SC_MD5_LEN    16
+#define SC_SHA1_LEN   20
+#define SC_SHA256_LEN 32
+
+/* Length of an MD5 hex string, not including a trailing NUL. */
+#define SC_MD5_HEX_LEN 32
+
 #define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
 #define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
 #define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")

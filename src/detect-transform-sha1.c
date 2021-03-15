@@ -34,13 +34,13 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
+#include "rust.h"
+
 static int DetectTransformToSha1Setup (DetectEngineCtx *, Signature *, const char *);
-#ifdef HAVE_NSS
 #ifdef UNITTESTS
 static void DetectTransformToSha1RegisterTests(void);
 #endif
 static void TransformToSha1(InspectionBuffer *buffer, void *options);
-#endif
 
 void DetectTransformSha1Register(void)
 {
@@ -51,25 +51,15 @@ void DetectTransformSha1Register(void)
         "/rules/transforms.html#to-sha1";
     sigmatch_table[DETECT_TRANSFORM_SHA1].Setup =
         DetectTransformToSha1Setup;
-#ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_SHA1].Transform =
         TransformToSha1;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests =
         DetectTransformToSha1RegisterTests;
 #endif
-#endif
     sigmatch_table[DETECT_TRANSFORM_SHA1].flags |= SIGMATCH_NOOPT;
 }
 
-#ifndef HAVE_NSS
-static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
-{
-    SCLogError(SC_ERR_NO_SHA1_SUPPORT, "no SHA-1 calculation support built in, "
-            "needed for to_sha1 keyword");
-    return -1;
-}
-#else
 /**
  *  \internal
  *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
@@ -82,6 +72,11 @@ static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, co
 static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
+    if (g_disable_hashing) {
+        SCLogError(SC_ERR_HASHING_DISABLED, "SHA1 hashing has been disabled, "
+                                            "needed for to_sha1 keyword");
+        SCReturnInt(-1);
+    }
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA1, NULL);
     SCReturnInt(r);
 }
@@ -90,20 +85,11 @@ static void TransformToSha1(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
-    uint8_t output[SHA1_LENGTH];
+    uint8_t output[SC_SHA1_LEN];
 
     //PrintRawDataFp(stdout, input, input_len);
-
-    HASHContext *sha1_ctx = HASH_Create(HASH_AlgSHA1);
-    if (sha1_ctx) {
-        HASH_Begin(sha1_ctx);
-        HASH_Update(sha1_ctx, input, input_len);
-        unsigned int len = 0;
-        HASH_End(sha1_ctx, output, &len, sizeof(output));
-        HASH_Destroy(sha1_ctx);
-
-        InspectionBufferCopy(buffer, output, sizeof(output));
-    }
+    SCSha1HashBuffer(input, input_len, output, sizeof(output));
+    InspectionBufferCopy(buffer, output, sizeof(output));
 }
 
 #ifdef UNITTESTS
@@ -114,7 +100,7 @@ static int DetectTransformToSha1Test01(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 8);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformToSha1(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -127,5 +113,4 @@ static void DetectTransformToSha1RegisterTests(void)
     UtRegisterTest("DetectTransformToSha1Test01",
             DetectTransformToSha1Test01);
 }
-#endif
 #endif

@@ -143,6 +143,7 @@
 #include "detect-icode.h"
 #include "detect-icmp-id.h"
 #include "detect-icmp-seq.h"
+#include "detect-icmpv4hdr.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -255,6 +256,14 @@
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
 #include "detect-dnp3.h"
+#include "detect-ike-exch-type.h"
+#include "detect-ike-spi.h"
+#include "detect-ike-vendor.h"
+#include "detect-ike-chosen-sa.h"
+#include "detect-ike-key-exchange-payload-length.h"
+#include "detect-ike-nonce-payload-length.h"
+#include "detect-ike-nonce-payload.h"
+#include "detect-ike-key-exchange-payload.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -350,7 +359,7 @@ static void SigMultilinePrint(int i, const char *prefix)
     printf("\n");
 }
 
-void SigTableList(const char *keyword)
+int SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
     size_t i;
@@ -413,14 +422,16 @@ void SigTableList(const char *keyword)
                 printf("= %s =\n", sigmatch_table[i].name);
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     printf("Not built-in\n");
-                    return;
+                    return TM_ECODE_FAILED;
                 }
                 SigMultilinePrint(i, "");
-                return;
+                return TM_ECODE_DONE;
             }
         }
+        printf("Non existing keyword\n");
+        return TM_ECODE_FAILED;
     }
-    return;
+    return TM_ECODE_DONE;
 }
 
 void SigTableSetup(void)
@@ -482,6 +493,15 @@ void SigTableSetup(void)
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
     DetectDNP3Register();
+
+    DetectIkeExchTypeRegister();
+    DetectIkeSpiRegister();
+    DetectIkeVendorRegister();
+    DetectIkeChosenSaRegister();
+    DetectIkeKeyExchangePayloadLengthRegister();
+    DetectIkeNoncePayloadLengthRegister();
+    DetectIkeNonceRegister();
+    DetectIkeKeyExchangeRegister();
 
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();
@@ -546,6 +566,7 @@ void SigTableSetup(void)
     DetectICodeRegister();
     DetectIcmpIdRegister();
     DetectIcmpSeqRegister();
+    DetectIcmpv4HdrRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();

@@ -46,6 +46,7 @@ enum DetectKeywordId {
     DETECT_ICODE,
     DETECT_ICMP_ID,
     DETECT_ICMP_SEQ,
+    DETECT_ICMPV4HDR,
     DETECT_DSIZE,
 
     DETECT_FLOW,
@@ -298,11 +299,21 @@ enum DetectKeywordId {
     DETECT_TRANSFORM_PCREXFORM,
     DETECT_TRANSFORM_URL_DECODE,
 
+    DETECT_AL_IKE_EXCH_TYPE,
+    DETECT_AL_IKE_SPI_INITIATOR,
+    DETECT_AL_IKE_SPI_RESPONDER,
+    DETECT_AL_IKE_VENDOR,
+    DETECT_AL_IKE_CHOSEN_SA,
+    DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH,
+    DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH,
+    DETECT_AL_IKE_NONCE,
+    DETECT_AL_IKE_KEY_EXCHANGE,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
 
-void SigTableList(const char *keyword);
+int SigTableList(const char *keyword);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
 

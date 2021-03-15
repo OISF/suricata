@@ -37,6 +37,7 @@ use nom;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::filecontainer::*;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -755,7 +756,7 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    pub files: SMBFiles,
+    pub files: Files,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -808,7 +809,7 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: SMBFiles::new(),
+            files: Files::new(),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -1318,7 +1319,7 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_write_request_record(self, r);
+                                            smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
@@ -1560,7 +1561,7 @@ impl SMBState {
                                             if is_pipe {
                                                 return 0;
                                             }
-                                            smb1_read_response_record(self, r);
+                                            smb1_read_response_record(self, r, SMB1_HEADER_SIZE);
                                             let consumed = input.len() - output.len();
                                             return consumed;
                                         }
@@ -1905,15 +1906,8 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
-// probing parser
-// return 1 if found, 0 is not found
-#[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(direction: u8,
-        input: *const u8, len: u32,
-        rdir: *mut u8)
-    -> i8
+fn rs_smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
 {
-    let slice = build_slice!(input, len as usize);
     match search_smb_record(slice) {
         Ok((_, ref data)) => {
             SCLogDebug!("smb found");
@@ -1972,14 +1966,50 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
             SCLogDebug!("no dice");
         },
     }
+    return 0;
+}
+
+// probing parser
+// return 1 if found, 0 is not found
+#[no_mangle]
+pub extern "C" fn rs_smb_probe_tcp(flags: u8,
+        input: *const u8, len: u32,
+        rdir: *mut u8)
+    -> i8
+{
+    let slice = build_slice!(input, len as usize);
+    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
+        if rs_smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
+            return 1;
+        }
+    }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {
             if hdr.is_smb() {
                 SCLogDebug!("smb found");
                 return 1;
-            } else if hdr.is_valid() {
-                SCLogDebug!("nbss found, assume smb");
-                return 1;
+            } else if hdr.needs_more(){
+                return 0;
+            } else if hdr.is_valid() &&
+                hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
+                //we accept a first small netbios message before real SMB
+                let hl = hdr.length as usize;
+                if hdr.data.len() >= hl + 8 {
+                    // 8 is 4 bytes NBSS + 4 bytes SMB0xFX magic
+                    match parse_nbss_record_partial(&hdr.data[hl..]) {
+                        Ok((_, ref hdr2)) => {
+                            if hdr2.is_smb() {
+                                SCLogDebug!("smb found");
+                                return 1;
+                            }
+                        }
+                        _ => {}
+                    }
+                } else if hdr.length < 256 {
+                    // we want more data, 256 is some random value
+                    return 0;
+                }
+                // default is failure
             }
         },
         _ => { },
@@ -2037,14 +2067,6 @@ pub extern "C" fn rs_smb_state_tx_free(state: &mut SMBState,
 {
     SCLogDebug!("freeing tx {}", tx_id as u64);
     state.free_tx(tx_id);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_state_progress_completion_status(
-    _direction: u8)
-    -> std::os::raw::c_int
-{
-    return 1;
 }
 
 #[no_mangle]
@@ -2131,6 +2153,7 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::MalformedNtlmsspResponse => { "malformed_ntlmssp_response\0" },
             SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
+            SMBEvent::FileOverlap => { "file_overlap\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

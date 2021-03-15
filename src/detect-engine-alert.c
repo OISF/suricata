@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -226,6 +226,19 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     return 0;
 }
 
+static inline void RuleActionToFlow(const uint8_t action, Flow *f)
+{
+    if (action & ACTION_DROP)
+        f->flags |= FLOW_ACTION_DROP;
+
+    if (action & ACTION_REJECT_ANY)
+        f->flags |= FLOW_ACTION_DROP;
+
+    if (action & ACTION_PASS) {
+        FlowSetNoPacketInspectionFlag(f);
+    }
+}
+
 /**
  * \brief Check the threshold of the sigs that match, set actions, break on pass action
  *        This function iterate the packet alerts array, removing those that didn't match
@@ -262,27 +275,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            if (s->flags & SIG_FLAG_IPONLY) {
-                if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-                    ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-                    SCLogDebug("testing against \"ip-only\" signatures");
-
-                    if (p->flow != NULL) {
-                        /* Update flow flags for iponly */
-                        FlowSetIPOnlyFlag(p->flow, (p->flowflags & FLOW_PKT_TOSERVER) ? 1 : 0);
-
-                        if (s->action & ACTION_DROP)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_DST)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_REJECT_BOTH)
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_PASS) {
-                            FlowSetNoPacketInspectionFlag(p->flow);
-                        }
-                    }
+            /* IP-only and PD-only matches should apply to the flow */
+            if (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY)) {
+                if (p->flow != NULL) {
+                    RuleActionToFlow(s->action, p->flow);
                 }
             }
 

@@ -293,7 +293,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     SigMatch *sm = NULL;
     char cmd_str[16] = "", name[64] = "";
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
-    char load[PATH_MAX];
+    char load[PATH_MAX] = "";
     uint16_t value = 0;
     uint64_t memcap = 0;
     uint32_t hashsize = 0;

@@ -30,7 +30,7 @@
 #include "detect-rfb-secresult.h"
 #include "util-unittest.h"
 
-#include "rust-bindings.h"
+#include "rust.h"
 
 #define PARSE_REGEX "\\S[A-z]"
 static DetectParseRegex parse_regex;
@@ -47,11 +47,9 @@ static void RfbSecresultRegisterTests(void);
 #endif
 void DetectRfbSecresultFree(DetectEngineCtx *, void *);
 
-static int DetectEngineInspectRfbSecresultGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 typedef struct DetectRfbSecresultData_ {
     uint32_t result; /** result code */
@@ -73,21 +71,18 @@ void DetectRfbSecresultRegister (void)
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister("rfb.secresult",
-            ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectRfbSecresultGeneric);
+    DetectAppLayerInspectEngineRegister2("rfb.secresult", ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectRfbSecresultGeneric, NULL);
 
     rfb_secresult_id = DetectBufferTypeGetByName("rfb.secresult");
 }
 
-static int DetectEngineInspectRfbSecresultGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectRfbSecresultGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 enum {

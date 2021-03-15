@@ -33,7 +33,7 @@ const char *AppProtoToString(AppProto alproto)
     enum AppProtoEnum proto = alproto;
 
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             proto_name = "http";
             break;
         case ALPROTO_FTP:
@@ -87,8 +87,8 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_TFTP:
             proto_name = "tftp";
             break;
-        case ALPROTO_IKEV2:
-            proto_name = "ikev2";
+        case ALPROTO_IKE:
+            proto_name = "ike";
             break;
         case ALPROTO_KRB5:
             proto_name = "krb5";
@@ -120,6 +120,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_HTTP2:
             proto_name = "http2";
             break;
+        case ALPROTO_HTTP:
+            proto_name = "http_any";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
@@ -138,8 +141,13 @@ AppProto StringToAppProto(const char *proto_name)
 {
     if (proto_name == NULL) return ALPROTO_UNKNOWN;
 
-    if (strcmp(proto_name,"http")==0) return ALPROTO_HTTP;
+    if (strcmp(proto_name, "http") == 0)
+        return ALPROTO_HTTP;
+    if (strcmp(proto_name, "http1") == 0)
+        return ALPROTO_HTTP1;
     if (strcmp(proto_name,"ftp")==0) return ALPROTO_FTP;
+    if (strcmp(proto_name, "ftp-data") == 0)
+        return ALPROTO_FTPDATA;
     if (strcmp(proto_name,"smtp")==0) return ALPROTO_SMTP;
     if (strcmp(proto_name,"tls")==0) return ALPROTO_TLS;
     if (strcmp(proto_name,"ssh")==0) return ALPROTO_SSH;
@@ -154,7 +162,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"dnp3")==0) return ALPROTO_DNP3;
     if (strcmp(proto_name,"nfs")==0) return ALPROTO_NFS;
     if (strcmp(proto_name,"ntp")==0) return ALPROTO_NTP;
-    if (strcmp(proto_name,"ikev2")==0) return ALPROTO_IKEV2;
+    if (strcmp(proto_name, "ike") == 0)
+        return ALPROTO_IKE;
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;

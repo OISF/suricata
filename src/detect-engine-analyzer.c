@@ -560,8 +560,7 @@ typedef struct RuleAnalyzer {
     JsonBuilder *js_notes;
 } RuleAnalyzer;
 
-static void __attribute__ ((format (printf, 2, 3)))
-AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
+static void ATTR_FMT_PRINTF(2, 3) AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
 {
     va_list ap;
     char str[1024];
@@ -576,8 +575,7 @@ AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
         jb_append_string(ctx->js_notes, str);
 }
 
-static void __attribute__ ((format (printf, 2, 3)))
-AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
+static void ATTR_FMT_PRINTF(2, 3) AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
 {
     va_list ap;
     char str[1024];
@@ -651,13 +649,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 }
                 if (LooksLikeHTTPMethod(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_request_line or "
-                                    "http_method and http_uri instead for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.request_line or "
+                                    "http.method and http.uri instead for improved performance");
                 }
                 if (LooksLikeHTTPUA(cd->content, cd->content_len)) {
                     AnalyzerWarning(ctx,
-                            (char *)"pattern looks like it inspects HTTP, use http_user_agent "
-                                    "or http_header for improved performance");
+                            (char *)"pattern looks like it inspects HTTP, use http.user_agent "
+                                    "or http.header for improved performance");
                 }
                 jb_close(js);
                 break;
@@ -867,11 +865,13 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_close(ctx.js);
 
     if (ctx.js_warnings) {
+        jb_close(ctx.js_warnings);
         jb_set_object(ctx.js, "warnings", ctx.js_warnings);
         jb_free(ctx.js_warnings);
         ctx.js_warnings = NULL;
     }
     if (ctx.js_notes) {
+        jb_close(ctx.js_notes);
         jb_set_object(ctx.js, "notes", ctx.js_notes);
         jb_free(ctx.js_notes);
         ctx.js_notes = NULL;
@@ -1099,8 +1099,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     if (rule_content_http > 0 && rule_pcre > 0 && rule_pcre_http == 0) {
         rule_warning += 1;
         warn_pcre_http_content = 1;
-    }
-    else if (s->alproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0) {
+    } else if (s->alproto == ALPROTO_HTTP1 && rule_pcre > 0 && rule_pcre_http == 0) {
         rule_warning += 1;
         warn_pcre_http = 1;
     }
@@ -1109,7 +1108,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_content_http_content = 1;
     }
-    if (s->alproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0) {
+    if (s->alproto == ALPROTO_HTTP1 && rule_content > 0 && rule_content_http == 0) {
         rule_warning += 1;
         warn_content_http = 1;
     }
@@ -1157,8 +1156,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
-    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
-        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP1 &&
+            SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
@@ -1218,7 +1217,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses content options with http_* and pcre options without http modifiers.\n"
                                              "             -Consider adding http pcre modifier.\n");
         }
-        else if (warn_pcre_http /*s->alproto == ALPROTO_HTTP && rule_pcre > 0 && rule_pcre_http == 0*/) {
+        else if (warn_pcre_http /*s->alproto == ALPROTO_HTTP1 && rule_pcre > 0 && rule_pcre_http == 0*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but pcre options do not have http modifiers.\n"
                                              "             -Consider adding http pcre modifiers.\n");
         }
@@ -1226,7 +1225,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    Warning: Rule contains content with http_* and content without http_*.\n"
                                          "             -Consider adding http content modifiers.\n");
         }
-        if (warn_content_http /*s->alproto == ALPROTO_HTTP && rule_content > 0 && rule_content_http == 0*/) {
+        if (warn_content_http /*s->alproto == ALPROTO_HTTP1 && rule_content > 0 && rule_content_http == 0*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but content options do not have http_* modifiers.\n"
                                              "             -Consider adding http content modifiers.\n");
         }

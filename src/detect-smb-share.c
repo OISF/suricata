@@ -69,7 +69,7 @@ static InspectionBuffer *GetNamedPipeData(DetectEngineThreadCtx *det_ctx,
         if (b == NULL || b_len == 0)
             return NULL;
 
-        InspectionBufferSetup(buffer, b, b_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;
@@ -132,7 +132,7 @@ static InspectionBuffer *GetShareData(DetectEngineThreadCtx *det_ctx,
         if (b == NULL || b_len == 0)
             return NULL;
 
-        InspectionBufferSetup(buffer, b, b_len);
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
     return buffer;

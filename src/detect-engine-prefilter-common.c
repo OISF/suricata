@@ -212,8 +212,8 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
     if (ctx == NULL)
         return -1;
 
-    int i;
-    for (i = 0; i < 256; i++) {
+    int set_cnt = 0;
+    for (int i = 0; i < 256; i++) {
         if (counts[i] == 0)
             continue;
         ctx->array[i] = SCCalloc(1, sizeof(SigsArray));
@@ -222,6 +222,12 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
         ctx->array[i]->cnt = counts[i];
         ctx->array[i]->sigs = SCCalloc(ctx->array[i]->cnt, sizeof(SigIntId));
         BUG_ON(ctx->array[i]->sigs == NULL);
+        set_cnt++;
+    }
+    if (set_cnt == 0) {
+        /* not an error */
+        PrefilterPacketU8HashCtxFree(ctx);
+        return 0;
     }
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
@@ -291,29 +297,34 @@ static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
                 break;
             case PREFILTER_U8HASH_MODE_LT:
             {
-                uint8_t v = ctx->v1.u8[1] - 1;
-                do {
+                uint8_t v = ctx->v1.u8[1];
+                while (v > 0) {
+                    v--;
                     counts[v] += ctx->cnt;
-                } while (v--);
+                }
 
                 break;
             }
             case PREFILTER_U8HASH_MODE_GT:
             {
-                int v = ctx->v1.u8[1] + 1;
-                do {
+                uint8_t v = ctx->v1.u8[1];
+                while (v < UINT8_MAX) {
+                    v++;
                     counts[v] += ctx->cnt;
-                } while (++v < 256);
+                }
 
                 break;
             }
             case PREFILTER_U8HASH_MODE_RA:
             {
-                int v = ctx->v1.u8[1] + 1;
-                do {
-                    counts[v] += ctx->cnt;
-                } while (++v < ctx->v1.u8[2]);
-
+                if (ctx->v1.u8[1] < ctx->v1.u8[2]) {
+                    // ctx->v1.u8[1] is not UINT8_MAX
+                    uint8_t v = ctx->v1.u8[1] + 1;
+                    while (v < ctx->v1.u8[2]) {
+                        counts[v] += ctx->cnt;
+                        v++;
+                    }
+                }
                 break;
             }
         }

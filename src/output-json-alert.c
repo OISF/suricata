@@ -71,6 +71,7 @@
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
+#include "output-json-ike.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -167,13 +168,15 @@ static void AlertJsonHttp2(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
     void *h2_state = FlowGetAppState(f);
     if (h2_state) {
         void *tx_ptr = rs_http2_state_get_tx(h2_state, tx_id);
-        JsonBuilderMark mark = { 0, 0, 0 };
-        jb_get_mark(js, &mark);
-        jb_open_object(js, "http");
-        if (rs_http2_log_json(tx_ptr, js)) {
-            jb_close(js);
-        } else {
-            jb_restore_mark(js, &mark);
+        if (tx_ptr) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "http");
+            if (rs_http2_log_json(tx_ptr, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
+            }
         }
     }
 
@@ -421,7 +424,7 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
 static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js, const Packet *p)
 {
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-        unsigned long len = p->payload_len * 2 + 1;
+        unsigned long len = BASE64_BUFFER_SIZE(p->payload_len);
         uint8_t encoded[len];
         if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
             jb_set_string(js, "payload", (char *)encoded);
@@ -445,7 +448,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
     const AppProto proto = FlowGetAppProtocol(p->flow);
     JsonBuilderMark mark = { 0, 0, 0 };
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             // TODO: Could result in an empty http object being logged.
             jb_open_object(jb, "http");
             if (EveHttpAddMetadata(p->flow, tx_id, jb)) {
@@ -528,6 +531,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
         case ALPROTO_DNS:
             AlertJsonDns(p->flow, tx_id, jb);
             break;
+        case ALPROTO_IKE:
+            jb_get_mark(jb, &mark);
+            if (!EveIKEAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
         case ALPROTO_MQTT:
             jb_get_mark(jb, &mark);
             if (!JsonMQTTAddMetadata(p->flow, tx_id, jb)) {
@@ -556,7 +565,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
             if (tx_id == file->txid) {
                 if (!isopen) {
                     isopen = true;
-                    jb_open_array(jb, "fileinfo");
+                    jb_open_array(jb, "files");
                 }
                 jb_start_object(jb);
                 EveFileInfo(jb, file, file->flags & FILE_STORED);
@@ -594,7 +603,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         int have_xff_ip = 0;
         char xff_buffer[XFF_MAXLEN];
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
-            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg,
                             xff_buffer, XFF_MAXLEN);
@@ -671,7 +680,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                     (void *)payload);
                 if (payload->offset) {
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = json_output_ctx->payload_buffer_size * 2;
+                        unsigned long len = BASE64_BUFFER_SIZE(json_output_ctx->payload_buffer_size);
                         uint8_t encoded[len];
                         Base64Encode(payload->buffer, payload->offset, encoded, &len);
                         jb_set_string(jb, "payload", (char *)encoded);

@@ -197,10 +197,9 @@ typedef struct MimeDecParseState {
     uint8_t bvremain[B64_BLOCK];  /**< Remainder from base64-decoded line */
     uint8_t bvr_len;  /**< Length of remainder from base64-decoded line */
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
-#ifdef HAVE_NSS
-    HASHContext *md5_ctx;
-    uint8_t md5[MD5_LENGTH];
-#endif
+    SCMd5 *md5_ctx;
+    uint8_t md5[SC_MD5_LEN];
+    bool has_md5;
     uint8_t state_flag;  /**<  Flag representing current state of parser */
     uint32_t data_chunk_len;  /**< Length of data chunk */
     int found_child;  /**< Flag indicating a child entity was found */

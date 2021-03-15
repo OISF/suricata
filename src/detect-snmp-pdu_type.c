@@ -49,11 +49,9 @@ static void DetectSNMPPduTypeRegisterTests(void);
 #endif
 static int g_snmp_pdu_type_buffer_id = 0;
 
-static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id);
+static int DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
@@ -74,25 +72,21 @@ void DetectSNMPPduTypeRegister(void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister("snmp.pdu_type",
-            ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSNMPRequestGeneric);
+    DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectSNMPRequestGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("snmp.pdu_type",
-            ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectSNMPRequestGeneric);
+    DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectSNMPRequestGeneric, NULL);
 
     g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp.pdu_type");
 }
 
-static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *txv, uint64_t tx_id)
+static int DetectEngineInspectSNMPRequestGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
 /**

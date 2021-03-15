@@ -1,9 +1,8 @@
 /**
  * @file
  * @author Philippe Antoine <contact@catenacyber.fr>
- * fuzz target for AppLayerProtoDetectGetProto
+ * fuzz target for AppLayerParserParse
  */
-
 
 #include "suricata-common.h"
 #include "app-layer-detect-proto.h"
@@ -11,12 +10,15 @@
 #include "app-layer-parser.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
+#include "conf-yaml-loader.h"
 
 #define HEADER_LEN 6
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 AppLayerParserThreadCtx *alp_tctx = NULL;
+
+#include "confyaml.c"
 
 /* input buffer is structured this way :
  * 6 bytes header,
@@ -58,6 +60,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         //redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
+        // disables checksums validation for fuzzing
+        if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
+            abort();
+        }
 
         PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -66,6 +72,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             if (ByteExtractStringUint64(&forceLayer, 10, 0, forceLayerStr) < 0) {
                 forceLayer = 0;
                 printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
+            } else {
+                printf("Forcing %s\n", AppProtoToString(forceLayer));
             }
         }
     }

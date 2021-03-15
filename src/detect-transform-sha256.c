@@ -34,13 +34,13 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
+#include "rust.h"
+
 static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
-#ifdef HAVE_NSS
 #ifdef UNITTESTS
 static void DetectTransformToSha256RegisterTests(void);
 #endif
 static void TransformToSha256(InspectionBuffer *buffer, void *options);
-#endif
 
 void DetectTransformSha256Register(void)
 {
@@ -51,25 +51,15 @@ void DetectTransformSha256Register(void)
         "/rules/transforms.html#to-sha256";
     sigmatch_table[DETECT_TRANSFORM_SHA256].Setup =
         DetectTransformToSha256Setup;
-#ifdef HAVE_NSS
     sigmatch_table[DETECT_TRANSFORM_SHA256].Transform =
         TransformToSha256;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_SHA256].RegisterTests =
         DetectTransformToSha256RegisterTests;
 #endif
-#endif
     sigmatch_table[DETECT_TRANSFORM_SHA256].flags |= SIGMATCH_NOOPT;
 }
 
-#ifndef HAVE_NSS
-static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
-{
-    SCLogError(SC_ERR_NO_SHA256_SUPPORT, "no SHA-256 calculation support built in, "
-            "needed for to_sha256 keyword");
-    return -1;
-}
-#else
 /**
  *  \internal
  *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
@@ -82,6 +72,11 @@ static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, 
 static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
+    if (g_disable_hashing) {
+        SCLogError(SC_ERR_HASHING_DISABLED, "SHA256 hashing has been disabled, "
+                                            "needed for to_sha256 keyword");
+        SCReturnInt(-1);
+    }
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA256, NULL);
     SCReturnInt(r);
 }
@@ -90,20 +85,11 @@ static void TransformToSha256(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
-    uint8_t output[SHA256_LENGTH];
+    uint8_t output[SC_SHA256_LEN];
 
     //PrintRawDataFp(stdout, input, input_len);
-
-    HASHContext *sha256_ctx = HASH_Create(HASH_AlgSHA256);
-    if (sha256_ctx) {
-        HASH_Begin(sha256_ctx);
-        HASH_Update(sha256_ctx, input, input_len);
-        unsigned int len = 0;
-        HASH_End(sha256_ctx, output, &len, sizeof(output));
-        HASH_Destroy(sha256_ctx);
-
-        InspectionBufferCopy(buffer, output, sizeof(output));
-    }
+    SCSha256HashBuffer(input, input_len, output, sizeof(output));
+    InspectionBufferCopy(buffer, output, sizeof(output));
 }
 
 #ifdef UNITTESTS
@@ -114,7 +100,7 @@ static int DetectTransformToSha256Test01(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 8);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformToSha256(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -127,5 +113,4 @@ static void DetectTransformToSha256RegisterTests(void)
     UtRegisterTest("DetectTransformToSha256Test01",
             DetectTransformToSha256Test01);
 }
-#endif
 #endif

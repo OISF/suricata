@@ -36,8 +36,7 @@ int ListKeywords(const char *keyword_info)
     SpmTableSetup();
     AppLayerSetup();
     SigTableSetup(); /* load the rule keywords */
-    SigTableList(keyword_info);
-    exit(EXIT_SUCCESS);
+    return SigTableList(keyword_info);
 }
 
 int ListAppLayerProtocols(const char *conf_filename)
@@ -49,6 +48,6 @@ int ListAppLayerProtocols(const char *conf_filename)
     AppLayerSetup();
     AppLayerListSupportedProtocols();
 
-    exit(EXIT_SUCCESS);
+    return TM_ECODE_DONE;
 }
 

@@ -81,8 +81,9 @@ typedef struct DeStateStore_ {
 } DeStateStore;
 
 typedef struct DetectEngineStateDirection_ {
-    DeStateStore *head;
-    DeStateStore *tail;
+    DeStateStore *head; /**< head of the list */
+    DeStateStore *cur;  /**< current active store */
+    DeStateStore *tail; /**< tail of the list */
     SigIntId cnt;
     uint16_t filestore_cnt;
     uint8_t flags;

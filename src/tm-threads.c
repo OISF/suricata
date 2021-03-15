@@ -1900,8 +1900,11 @@ void TmThreadCheckThreadState(void)
  */
 TmEcode TmThreadWaitOnThreadInit(void)
 {
-    uint16_t mgt_num = 0;
-    uint16_t ppt_num = 0;
+    uint16_t RX_num = 0;
+    uint16_t W_num = 0;
+    uint16_t FM_num = 0;
+    uint16_t FR_num = 0;
+    uint16_t TX_num = 0;
 
     struct timeval start_ts;
     struct timeval cur_ts;
@@ -1951,18 +1954,54 @@ again:
                 return TM_ECODE_FAILED;
             }
 
-            if (i == TVT_MGMT)
-                mgt_num++;
-            else if (i == TVT_PPT)
-                ppt_num++;
+            if (strncmp(thread_name_autofp, tv->name, strlen(thread_name_autofp)) == 0)
+                RX_num++;
+            else if (strncmp(thread_name_workers, tv->name, strlen(thread_name_workers)) == 0)
+                W_num++;
+            else if (strncmp(thread_name_verdict, tv->name, strlen(thread_name_verdict)) == 0)
+                TX_num++;
+            else if (strncmp(thread_name_flow_mgr, tv->name, strlen(thread_name_flow_mgr)) == 0)
+                FM_num++;
+            else if (strncmp(thread_name_flow_rec, tv->name, strlen(thread_name_flow_rec)) == 0)
+                FR_num++;
 
             tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
 
-    SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
-              "threads initialized, engine started.", ppt_num, mgt_num);
+    /* Construct a welcome string displaying
+     * initialized thread types and counts */
+    uint16_t app_len = 32;
+    uint16_t buf_len = 256;
+
+    char append_str[app_len];
+    char thread_counts[buf_len];
+
+    strlcpy(thread_counts, "Threads created -> ", strlen("Threads created -> ") + 1);
+    if (RX_num > 0) {
+        snprintf(append_str, app_len, "RX: %u ", RX_num);
+        strlcat(thread_counts, append_str, buf_len);
+    }
+    if (W_num > 0) {
+        snprintf(append_str, app_len, "W: %u ", W_num);
+        strlcat(thread_counts, append_str, buf_len);
+    }
+    if (TX_num > 0) {
+        snprintf(append_str, app_len, "TX: %u ", TX_num);
+        strlcat(thread_counts, append_str, buf_len);
+    }
+    if (FM_num > 0) {
+        snprintf(append_str, app_len, "FM: %u ", FM_num);
+        strlcat(thread_counts, append_str, buf_len);
+    }
+    if (FR_num > 0) {
+        snprintf(append_str, app_len, "FR: %u ", FR_num);
+        strlcat(thread_counts, append_str, buf_len);
+    }
+    snprintf(append_str, app_len, "  Engine started.");
+    strlcat(thread_counts, append_str, buf_len);
+    SCLogNotice("%s", thread_counts);
 
     return TM_ECODE_OK;
 }

@@ -7,12 +7,12 @@ if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
 endif
 
-if RUST_BUILD_STD
-RELEASE = -Z build-std
-else
 if !DEBUG
 RELEASE = --release
 endif
+
+if RUST_BUILD_STD
+NIGHTLY_ARGS = -Z build-std
 endif
 
 if HAVE_LUA
@@ -31,7 +31,7 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
-all-local:
+all-local: Cargo.toml
 if HAVE_CYGPATH
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
@@ -42,10 +42,21 @@ else
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		$(CARGO) build $(RELEASE) \
+		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
+	if test -e $(RUST_SURICATA_LIBDIR)/suricata_rust.lib; then \
+		cp $(RUST_SURICATA_LIBDIR)/suricata_rust.lib \
+			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
+	fi
 	$(MAKE) gen/rust-bindings.h
+
+install-library:
+	$(MKDIR_P) "$(DESTDIR)$(libdir)"
+	$(INSTALL_DATA) $(RUST_SURICATA_LIB) "$(DESTDIR)$(libdir)"
+
+uninstall-local:
+	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
 
 clean-local:
 	rm -rf target

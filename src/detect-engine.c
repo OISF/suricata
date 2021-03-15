@@ -150,6 +150,7 @@ void DetectPktInspectEngineRegister(const char *name,
             "failed to register inspect engine %s: %s", name, strerror(errno));
     }
     new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
     new_engine->v1.Callback = Callback;
     new_engine->v1.GetData = GetPktData;
 
@@ -157,67 +158,6 @@ void DetectPktInspectEngineRegister(const char *name,
         g_pkt_inspect_engines = new_engine;
     } else {
         DetectEnginePktInspectionEngine *t = g_pkt_inspect_engines;
-        while (t->next != NULL) {
-            t = t->next;
-        }
-
-        t->next = new_engine;
-    }
-}
-
-/** \brief register inspect engine at start up time
- *
- *  \note errors are fatal */
-void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback)
-{
-    if (AppLayerParserIsEnabled(alproto)) {
-        if (!AppLayerParserSupportsTxDetectFlags(alproto)) {
-            FatalError(SC_ERR_INITIALIZATION,
-                "Inspect engine registered for app-layer protocol without "
-                "TX detect flag support: %s", AppProtoToString(alproto));
-        }
-    }
-    DetectBufferTypeRegister(name);
-    const int sm_list = DetectBufferTypeGetByName(name);
-    if (sm_list == -1) {
-        FatalError(SC_ERR_INITIALIZATION,
-            "failed to register inspect engine %s", name);
-    }
-
-    if ((alproto >= ALPROTO_FAILED) ||
-        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-        (progress < 0 || progress >= SHRT_MAX) ||
-        (Callback == NULL))
-    {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
-        BUG_ON(1);
-    }
-
-    int direction;
-    if (dir == SIG_FLAG_TOSERVER) {
-        direction = 0;
-    } else {
-        direction = 1;
-    }
-
-    DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
-    if (unlikely(new_engine == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(new_engine, 0, sizeof(*new_engine));
-    new_engine->alproto = alproto;
-    new_engine->dir = direction;
-    new_engine->sm_list = sm_list;
-    new_engine->progress = progress;
-    new_engine->Callback = Callback;
-
-    if (g_app_inspect_engines == NULL) {
-        g_app_inspect_engines = new_engine;
-    } else {
-        DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -270,6 +210,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     new_engine->alproto = alproto;
     new_engine->dir = direction;
     new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
     new_engine->progress = progress;
     new_engine->v2.Callback = Callback2;
     new_engine->v2.GetData = GetData;
@@ -302,8 +243,8 @@ static void DetectAppLayerInspectEngineCopy(
             new_engine->alproto = t->alproto;
             new_engine->dir = t->dir;
             new_engine->sm_list = new_list;         /* use new list id */
+            new_engine->sm_list_base = sm_list;
             new_engine->progress = t->progress;
-            new_engine->Callback = t->Callback;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
 
@@ -334,8 +275,8 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
         new_engine->progress = t->progress;
-        new_engine->Callback = t->Callback;
         new_engine->v2 = t->v2;
 
         if (de_ctx->app_inspect_engines == NULL) {
@@ -367,6 +308,7 @@ static void DetectPktInspectEngineCopy(
                 exit(EXIT_FAILURE);
             }
             new_engine->sm_list = new_list;         /* use new list id */
+            new_engine->sm_list_base = sm_list;
             new_engine->v1 = t->v1;
             new_engine->v1.transforms = transforms; /* assign transforms */
 
@@ -396,6 +338,7 @@ static void DetectPktInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
         new_engine->v1 = t->v1;
 
         if (de_ctx->pkt_inspect_engines == NULL) {
@@ -435,8 +378,9 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     new_engine->dir = direction;
     new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
+    new_engine->sm_list_base = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
-    new_engine->Callback = DetectEngineInspectStream;
+    new_engine->v2.Callback = DetectEngineInspectStream;
     new_engine->progress = 0;
 
     /* append */
@@ -504,6 +448,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             }
 
             new_engine->sm_list = e->sm_list;
+            new_engine->sm_list_base = e->sm_list_base;
             new_engine->smd = ptrs[new_engine->sm_list];
             new_engine->v1 = e->v1;
             SCLogDebug("sm_list %d new_engine->v1 %p/%p/%p",
@@ -543,7 +488,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
-        } else if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
+        } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, t->alproto))
             goto next;
 
         if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
@@ -567,8 +512,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list_base;
         new_engine->smd = ptrs[new_engine->sm_list];
-        new_engine->Callback = t->Callback;
         new_engine->progress = t->progress;
         new_engine->v2 = t->v2;
         SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p",
@@ -1060,11 +1005,7 @@ void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
 
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id)
 {
-    InspectionBuffer *buffer = &det_ctx->inspect.buffers[list_id];
-    if (buffer->inspect == NULL) {
-        det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
-    }
-    return buffer;
+    return &det_ctx->inspect.buffers[list_id];
 }
 
 /** \brief for a InspectionBufferMultipleForList get a InspectionBuffer
@@ -1117,8 +1058,15 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
+    if (buffer->inspect == NULL) {
+#ifdef UNITTESTS
+        if (det_ctx && list_id != -1)
+#endif
+            det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
+    }
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
@@ -1476,14 +1424,16 @@ bool DetectEnginePktInspectionRun(ThreadVars *tv,
 /**
  * \param data pointer to SigMatchData. Allowed to be NULL.
  */
-static int DetectEnginePktInspectionAppend(Signature *s,
-        InspectionBufferPktInspectFunc Callback,
-        SigMatchData *data)
+static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInspectFunc Callback,
+        SigMatchData *data, const int list_id)
 {
     DetectEnginePktInspectionEngine *e = SCCalloc(1, sizeof(*e));
     if (e == NULL)
         return -1;
 
+    e->mpm = (SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == list_id);
+    e->sm_list = list_id;
+    e->sm_list_base = list_id;
     e->v1.Callback = Callback;
     e->smd = data;
 
@@ -1503,15 +1453,15 @@ int DetectEnginePktInspectionSetup(Signature *s)
 {
     /* only handle PMATCH here if we're not an app inspect rule */
     if (s->sm_arrays[DETECT_SM_LIST_PMATCH] && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) == 0) {
-        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePayloadMatches,
-                NULL) < 0)
+        if (DetectEnginePktInspectionAppend(
+                    s, DetectEngineInspectRulePayloadMatches, NULL, DETECT_SM_LIST_PMATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
     }
 
     if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
-        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePacketMatches,
-                NULL) < 0)
+        if (DetectEnginePktInspectionAppend(
+                    s, DetectEngineInspectRulePacketMatches, NULL, DETECT_SM_LIST_MATCH) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePacketMatches appended", s->id);
     }
@@ -1593,12 +1543,9 @@ int DetectEngineReloadIsIdle(void)
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectGenericList(ThreadVars *tv,
-                                   const DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, const SigMatchData *smd,
-                                   Flow *f, const uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id)
+int DetectEngineInspectGenericList(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Flow *f, const uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
@@ -2233,15 +2180,15 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             de_ctx->mpm_matcher == MPM_HS ||
 #endif
             de_ctx->mpm_matcher == MPM_AC_BS) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         }
     } else {
         if (strcmp(sgh_mpm_context, "single") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+            de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
                       "invalid conf value for detect-engine.sgh-mpm-context-"
@@ -2251,7 +2198,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     if (run_mode == RUNMODE_UNITTEST) {
-        de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+        de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
     }
 
     /* parse profile custom-values */

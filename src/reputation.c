@@ -431,9 +431,6 @@ static int SRepLoadFile(SRepCIDRTree *cidr_ctx, char *filename)
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
 {
     char line[8192] = "";
-    Address a;
-    memset(&a, 0x00, sizeof(a));
-    a.family = AF_INET;
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
@@ -454,6 +451,10 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
         if (line[len - 1] == '\n' || line[len - 1] == '\r') {
             line[len - 1] = '\0';
         }
+
+        Address a;
+        memset(&a, 0x00, sizeof(a));
+        a.family = AF_INET;
 
         uint8_t cat = 0, value = 0;
         int r = SRepSplitLine(cidr_ctx, line, &a, &cat, &value);

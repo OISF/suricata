@@ -407,6 +407,27 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
     return 0;
 }
 
+/**
+ *  \brief See if a IP-ESP packet belongs to a flow by comparing the SPI
+ *
+ *  \param f flow
+ *  \param p ESP packet
+ *
+ *  \retval 1 match
+ *  \retval 0 no match
+ */
+static inline int FlowCompareESP(Flow *f, const Packet *p)
+{
+    const uint32_t *f_src = f->src.address.address_un_data32;
+    const uint32_t *f_dst = f->dst.address.address_un_data32;
+    const uint32_t *p_src = p->src.address.address_un_data32;
+    const uint32_t *p_dst = p->dst.address.address_un_data32;
+
+    return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
+           f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&
+           f->esp.spi == ESP_GET_SPI(p);
+}
+
 void FlowSetupPacket(Packet *p)
 {
     p->flags |= PKT_WANTS_FLOW;
@@ -417,6 +438,8 @@ static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
+    } else if (p->proto == IPPROTO_ESP) {
+        return FlowCompareESP(f, p);
     } else {
         return CmpFlowPacket(f, p);
     }

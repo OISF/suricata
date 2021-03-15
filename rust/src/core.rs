@@ -48,6 +48,10 @@ pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 pub const IPPROTO_TCP : i32 = 6;
 pub const IPPROTO_UDP : i32 = 17;
 
+macro_rules!BIT_U16 {
+    ($x:expr) => (1 << $x);
+}
+
 macro_rules!BIT_U32 {
     ($x:expr) => (1 << $x);
 }
@@ -77,6 +81,8 @@ pub type SCLogMessageFunc =
 pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
+pub type AppLayerParserTriggerRawStreamReassemblyFunc =
+    extern "C" fn (flow: *const Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
                    event: u8);
@@ -129,6 +135,7 @@ pub struct SuricataContext {
     DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
+    pub AppLayerParserTriggerRawStreamReassembly: AppLayerParserTriggerRawStreamReassemblyFunc,
 
     pub FileOpenFile: SCFileOpenFileWithId,
     pub FileCloseFile: SCFileCloseFileById,
@@ -137,6 +144,8 @@ pub struct SuricataContext {
     pub FileContainerRecycle: SCFileContainerRecycle,
     pub FilePrune: SCFilePrune,
     pub FileSetTx: SCFileSetTx,
+
+    pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
 
 #[allow(non_snake_case)]
@@ -172,6 +181,15 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
     unsafe {
         if let Some(c) = SC {
             (c.DetectEngineStateFree)(state);
+        }
+    }
+}
+
+/// AppLayerParserTriggerRawStreamReassembly wrapper
+pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, direction: i32) {
+    unsafe {
+        if let Some(c) = SC {
+            (c.AppLayerParserTriggerRawStreamReassembly)(flow, direction);
         }
     }
 }

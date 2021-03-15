@@ -792,6 +792,15 @@ SCRuleIds
 
   sid, rev, gid = SCRuleIds()
 
+SCRuleAction
+~~~~~~~~~~~~
+
+::
+
+  action = SCRuleAction()
+
+returns one of 'pass', 'reject', 'drop' or 'alert'
+
 SCRuleMsg
 ~~~~~~~~~
 
@@ -870,39 +879,39 @@ index so in our case we need to use 0.
 ::
 
  function match(args)
-     a = ScFlowintGet(0);
+     a = SCFlowintGet(0);
      if a then
-         ScFlowintSet(0, a + 1)
+         SCFlowintSet(0, a + 1)
      else
-         ScFlowintSet(0, 1)
+         SCFlowintSet(0, 1)
      end 
 
-ScFlowintGet
+SCFlowintGet
 ~~~~~~~~~~~~
 
 Get the Flowint at index given by the parameter.
 
-ScFlowintSet
+SCFlowintSet
 ~~~~~~~~~~~~
 
 Set the Flowint at index given by the first parameter. The second parameter is the value.
 
-ScFlowintIncr
+SCFlowintIncr
 ~~~~~~~~~~~~~
 
 Increment Flowint at index given by the first parameter.
 
-ScFlowintDecr
+SCFlowintDecr
 ~~~~~~~~~~~~~
 
 Decrement Flowint at index given by the first parameter.
 
-ScFlowvarGet
+SCFlowvarGet
 ~~~~~~~~~~~~
 
 Get the Flowvar at index given by the parameter.
 
-ScFlowvarSet
+SCFlowvarSet
 ~~~~~~~~~~~~
 
 Set a Flowvar. First parameter is the index, second is the data
@@ -920,13 +929,13 @@ You can use it to set string
  end
  
  function match(args)
-     a = ScFlowvarGet(0);
+     a = SCFlowvarGet(0);
      if a then
          a = tostring(tonumber(a)+1)
-         ScFlowvarSet(0, a, #a)
+         SCFlowvarSet(0, a, #a)
      else
          a = tostring(1)
-         ScFlowvarSet(0, a, #a)
+         SCFlowvarSet(0, a, #a)
      end 
 
 Misc
