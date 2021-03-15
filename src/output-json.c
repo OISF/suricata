@@ -1105,7 +1105,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ||
             json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM)
         {
-            if (json_ctx->json_out == LOGFILE_TYPE_FILE) {
+            if (json_ctx->json_out == LOGFILE_TYPE_FILE ||
+                json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ) {
                 /* Threaded file output */
                 const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
                 if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
@@ -1273,8 +1274,8 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
     if (logfile_ctx->dropped) {
         SCLogWarning(SC_WARN_EVENT_DROPPED,
-                "%"PRIu64" events were dropped due to slow or "
-                "disconnected socket", logfile_ctx->dropped);
+                "%"PRIu64" events from %s were dropped due to slow or "
+                "disconnected socket", logfile_ctx->dropped, logfile_ctx->filename);
     }
     if (json_ctx->xff_cfg != NULL) {
         SCFree(json_ctx->xff_cfg);
