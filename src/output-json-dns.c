@@ -410,6 +410,17 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     SCReturnInt(TM_ECODE_OK);
 }
 
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
+        void *txptr, uint64_t tx_id)
+{
+    if (rs_dns_tx_is_request(txptr)) {
+        return JsonDnsLoggerToServer(tv, thread_data, p, f, alstate, txptr, tx_id);
+    } else if (rs_dns_tx_is_response(txptr)) {
+        return JsonDnsLoggerToClient(tv, thread_data, p, f, alstate, txptr, tx_id);
+    }
+    return TM_ECODE_OK;
+}
+
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDnsLogThread *aft = SCCalloc(1, sizeof(LogDnsLogThread));
@@ -649,15 +660,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
 #define MODULE_NAME "JsonDnsLog"
 void JsonDnsLogRegister (void)
 {
-    /* Sub-logger for requests. */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS_TS, "eve-log",
-        MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,
-        JsonDnsLoggerToServer, 0, 1, LogDnsLogThreadInit,
-        LogDnsLogThreadDeinit, NULL);
-
-    /* Sub-logger for replies. */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS_TC, "eve-log",
-        MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,
-        JsonDnsLoggerToClient, 1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
-        NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_DNS, "eve-log", MODULE_NAME, "eve-log.dns",
+            JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
+            LogDnsLogThreadDeinit, NULL);
 }
