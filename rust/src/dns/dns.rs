@@ -876,6 +876,16 @@ pub extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
+pub extern "C" fn rs_dns_tx_is_request(tx: &mut DNSTransaction) -> bool {
+    tx.request.is_some()
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
+    tx.response.is_some()
+}
+
+#[no_mangle]
 pub extern "C" fn rs_dns_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
