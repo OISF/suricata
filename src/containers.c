@@ -98,7 +98,8 @@ static void ContainerUrlRangeFree(void *s)
 
 static bool ContainerValueRangeTimeout(ContainerUrlRange *cu, struct timeval *ts)
 {
-    return ((uint32_t)ts->tv_sec > cu->expire);
+    // we only timeout if we have no flow referencing us
+    return ((uint32_t)ts->tv_sec > cu->expire && cu->nbref == 0);
 }
 
 static void ContainerUrlRangeUpdate(ContainerUrlRange *cu, uint32_t expire)
@@ -194,6 +195,12 @@ void *ContainerUrlRangeGet(const uint8_t *key, size_t keylen, struct timeval *ts
         // nothing more to do if (res.is_new)
         ContainerUrlRangeUpdate(res.data->data, ts->tv_sec + ContainerUrlRangeList.timeout);
         THashDecrUsecnt(res.data);
+        ContainerUrlRange *c = res.data->data;
+        if (c->nbref == UINT16_MAX) {
+            THashDataUnlock(res.data);
+            return NULL;
+        }
+        c->nbref++;
         THashDataUnlock(res.data);
         return res.data->data;
     }
@@ -274,6 +281,16 @@ int ContainerUrlRangeAppendData(ContainerUrlRange *c, const uint8_t *data, size_
     return FileAppendData(c->files, data, len);
 }
 
+static void ContainerUrlRangeFileClose(ContainerUrlRange *c, uint16_t flags)
+{
+    FileCloseFile(c->files, NULL, 0, c->flags | flags);
+    c->files->head = NULL;
+    c->files->tail = NULL;
+    DEBUG_VALIDATE_BUG_ON(c->nbref == 0);
+    c->nbref--;
+    THashRemoveFromHash(ContainerUrlRangeList.ht, c);
+}
+
 File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
 {
     if (c->toskip > 0) {
@@ -292,10 +309,7 @@ File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
     while (range && f->size >= range->start) {
         if (f->size == range->start) {
             if (FileAppendData(c->files, range->buffer, range->offset) != 0) {
-                FileCloseFile(c->files, NULL, 0, c->flags | flags);
-                c->files->head = NULL;
-                c->files->tail = NULL;
-                THashRemoveFromHash(ContainerUrlRangeList.ht, c);
+                ContainerUrlRangeFileClose(c, flags);
                 return f;
             }
         } else {
@@ -304,10 +318,7 @@ File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
             if (overlap > range->offset) {
                 if (FileAppendData(c->files, range->buffer + overlap, range->offset - overlap) !=
                         0) {
-                    FileCloseFile(c->files, NULL, 0, c->flags | flags);
-                    c->files->head = NULL;
-                    c->files->tail = NULL;
-                    THashRemoveFromHash(ContainerUrlRangeList.ht, c);
+                    ContainerUrlRangeFileClose(c, flags);
                     return f;
                 }
             }
@@ -321,12 +332,8 @@ File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
     }
 
     if (f->size + 1 >= c->totalsize) {
-        FileCloseFile(c->files, NULL, 0, c->flags | flags);
+        ContainerUrlRangeFileClose(c, flags);
         // move ownership to caller
-        DEBUG_VALIDATE_BUG_ON(c->files->head != c->files->tail);
-        c->files->head = NULL;
-        c->files->tail = NULL;
-        THashRemoveFromHash(ContainerUrlRangeList.ht, c);
         return f;
     }
     return NULL;
