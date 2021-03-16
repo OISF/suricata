@@ -52,6 +52,8 @@ typedef struct ContainerUrlRange {
     uint64_t toskip;
     // file flags
     uint16_t flags;
+    // number of flows referencing this structure
+    uint16_t nbref;
     // file container, with only one file
     FileContainer *files;
     // linked list of ranges which came out of order
