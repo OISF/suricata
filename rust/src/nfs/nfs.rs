@@ -1791,7 +1791,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                    rpc.program == 100003 &&
                    rpc.procedure <= NFSPROC3_COMMIT
                 {
-                    return 1;
+                    return rpc_auth_type_known(rpc.creds_flavor);
                 } else {
                     return -1;
                 }

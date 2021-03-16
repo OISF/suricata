@@ -177,6 +177,14 @@ pub fn rpc_auth_type_string(auth_type: u32) -> String {
     }.to_string()
 }
 
+pub fn rpc_auth_type_known(auth_type: u32) -> i8 {
+    // RPCAUTH_GSS is the maximum
+    if auth_type <= RPCAUTH_GSS {
+        return 1;
+    }
+    return -1;
+}
+
 /* http://www.iana.org/assignments/rpc-authentication-numbers/rpc-authentication-numbers.xhtml */
 pub const RPCAUTH_OK:                   u32 = 0;  // success/failed at remote end    [RFC5531]
 pub const RPCAUTH_BADCRED:              u32 = 1;  // bad credential (seal broken)    [RFC5531]
