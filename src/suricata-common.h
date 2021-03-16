@@ -437,8 +437,6 @@ typedef enum {
     LOGGER_UNDEFINED,
 
     /* TX loggers first for low logger IDs */
-    LOGGER_DNS_TS,
-    LOGGER_DNS_TC,
     LOGGER_HTTP,
     LOGGER_TLS_STORE,
     LOGGER_TLS,
@@ -473,9 +471,7 @@ typedef enum {
 
     LOGGER_ALERT_DEBUG,
     LOGGER_ALERT_FAST,
-    LOGGER_UNIFIED2,
     LOGGER_ALERT_SYSLOG,
-    LOGGER_DROP,
     LOGGER_JSON_ALERT,
     LOGGER_JSON_ANOMALY,
     LOGGER_JSON_DROP,
