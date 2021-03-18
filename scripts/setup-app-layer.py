@@ -90,7 +90,7 @@ def patch_makefile_am(protoname):
     output = io.StringIO()
     with open("src/Makefile.am") as infile:
         for line in infile:
-            if line.startswith("app-layer-template.c"):
+            if line.startswith("	app-layer-template.c"):
                 output.write(line.replace("template", protoname.lower()))
             output.write(line)
     open("src/Makefile.am", "w").write(output.getvalue())
@@ -277,7 +277,7 @@ def logger_patch_makefile_am(protoname):
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
-            if line.startswith("output-json-template.c"):
+            if line.startswith("	output-json-template.c"):
                 output.write(line.replace("template", protoname.lower()))
             output.write(line)
     open(filename, "w").write(output.getvalue())
@@ -545,7 +545,7 @@ The following files have been created and linked into the build:
 
     if parser or logger:
         print("""
-Suricata should now build cleanly. Try running "make".
+Suricata should now build cleanly. Try running "./configure" and "make".
 """)
 
 if __name__ == "__main__":
