@@ -168,18 +168,25 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END) &&
-            (p->flowflags & FLOW_PKT_TOSERVER));
-    const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END) &&
-            (p->flowflags & FLOW_PKT_TOCLIENT));
-    const bool file_trunc = StreamTcpReassembleDepthReached(p);
-
-    FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
-    FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
-
-    OutputFileLogFfc(tv, op_thread_data, p, ffc_ts, file_close_ts, file_trunc, STREAM_TOSERVER);
-    OutputFileLogFfc(tv, op_thread_data, p, ffc_tc, file_close_tc, file_trunc, STREAM_TOCLIENT);
-
+    if (p->proto == IPPROTO_TCP) {
+        const bool file_trunc = StreamTcpReassembleDepthReached(p);
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END));
+            FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
+            OutputFileLogFfc(
+                    tv, op_thread_data, p, ffc_ts, file_close_ts, file_trunc, STREAM_TOSERVER);
+        } else {
+            const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END));
+            FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
+            OutputFileLogFfc(
+                    tv, op_thread_data, p, ffc_tc, file_close_tc, file_trunc, STREAM_TOCLIENT);
+        }
+    } else if (p->proto == IPPROTO_UDP) {
+        FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
+        OutputFileLogFfc(tv, op_thread_data, p, ffc_ts, false, false, STREAM_TOSERVER);
+        FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
+        OutputFileLogFfc(tv, op_thread_data, p, ffc_tc, false, false, STREAM_TOCLIENT);
+    }
     return TM_ECODE_OK;
 }
 
