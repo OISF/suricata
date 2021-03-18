@@ -380,6 +380,7 @@ static void SMTPNewFile(SMTPTransaction *tx, File *file)
 #endif
     FlagDetectStateNewFile(tx);
     FileSetTx(file, tx->tx_id);
+    tx->tx_data.files_opened++;
 
     /* set inspect sizes used in file pruning logic.
      * TODO consider moving this to the file.data code that
