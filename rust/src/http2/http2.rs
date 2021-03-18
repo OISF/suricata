@@ -809,6 +809,7 @@ impl HTTP2State {
                                     let mut tx_same = &mut self.transactions[index - 1];
                                     tx_same.ft.tx_id = tx_same.tx_id - 1;
                                     let (files, flags) = self.files.get(dir);
+                                    tx_same.tx_data.init_files_opened(); // TODO do we have a place for doing this once?
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
                                         dir,
