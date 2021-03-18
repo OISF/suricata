@@ -840,11 +840,13 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let mut tx_same = &mut self.transactions[index - 1];
-                                    if dir == STREAM_TOCLIENT {
+                                    let is_open = if dir == STREAM_TOCLIENT {
                                         tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
+                                        tx_same.ft_tc.file_open
                                     } else {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
-                                    }
+                                        tx_same.ft_ts.file_open
+                                    };
                                     let (files, flags) = self.files.get(dir);
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
@@ -857,7 +859,17 @@ impl HTTP2State {
                                         Err(_e) => {
                                             self.set_event(HTTP2Event::FailedDecompression);
                                         }
-                                        _ => {}
+                                        _ => {
+                                            if dir == STREAM_TOCLIENT {
+                                                if !is_open && tx_same.ft_tc.file_open {
+                                                    tx_same.tx_data.incr_files_opened();
+                                                }
+                                            } else {
+                                                if !is_open && tx_same.ft_ts.file_open {
+                                                    tx_same.tx_data.incr_files_opened();
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
