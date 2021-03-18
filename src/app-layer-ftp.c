@@ -1097,6 +1097,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             ret = -1;
         }
         FlowFreeStorageById(f, AppLayerExpectationGetDataId());
+        ftpdata_state->tx_data.files_opened = 1;
     } else {
         if (input_len != 0) {
             ret = FileAppendData(ftpdata_state->files, input, input_len);
