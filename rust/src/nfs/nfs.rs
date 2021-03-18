@@ -168,6 +168,7 @@ pub struct NFSTransaction {
 
     /// is a special file tx that we look up by file_handle instead of XID
     pub is_file_tx: bool,
+    pub is_file_closed: bool,
     /// file transactions are unidirectional in the sense that they track
     /// a single file on one direction
     pub file_tx_direction: u8, // STREAM_TOCLIENT or STREAM_TOSERVER
@@ -203,6 +204,7 @@ impl NFSTransaction {
             response_done: false,
             nfs_version:0,
             is_file_tx: false,
+            is_file_closed: false,
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
@@ -602,7 +604,7 @@ impl NFSState {
     {
         let fh = file_handle.to_vec();
         for tx in &mut self.transactions {
-            if tx.is_file_tx &&
+            if tx.is_file_tx && !tx.is_file_closed &&
                 direction == tx.file_tx_direction &&
                 tx.file_handle == fh
             {
@@ -645,6 +647,7 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.response_done = true;
+                        tx.is_file_closed = true;
                     }
                     true
                 } else {
@@ -667,6 +670,7 @@ impl NFSState {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
+                    tx.is_file_closed = true;
                 }
             }
         }
@@ -824,9 +828,11 @@ impl NFSState {
                     if tdf.file_tracker.is_done() {
                         if direction == STREAM_TOCLIENT {
                             tx.response_done = true;
+                            tx.is_file_closed = true;
                             SCLogDebug!("TX {} response is done now that the file track is ready", tx.id);
                         } else {
                             tx.request_done = true;
+                            tx.is_file_closed = true;
                             SCLogDebug!("TX {} request is done now that the file track is ready", tx.id);
                         }
                     }
