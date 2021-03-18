@@ -1401,7 +1401,9 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data && s->init_data->transforms.cnt) {
         for(i = 0; i < s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
-                SCFree(s->init_data->transforms.transforms[i].options);
+                int transform = s->init_data->transforms.transforms[i].transform;
+                sigmatch_table[transform].Free(
+                        de_ctx, s->init_data->transforms.transforms[i].options);
                 s->init_data->transforms.transforms[i].options = NULL;
             }
         }
