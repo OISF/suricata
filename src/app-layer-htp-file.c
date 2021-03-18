@@ -76,7 +76,8 @@
  *  \retval -1 error
  *  \retval -2 not handling files on this flow
  */
-int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
+int HTPFileOpen(HtpState *s, HtpTxUserData *tx,
+        const uint8_t *filename, uint16_t filename_len,
         const uint8_t *data, uint32_t data_len,
         uint64_t txid, uint8_t direction)
 {
@@ -145,6 +146,7 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
     }
 
     FileSetTx(files->tail, txid);
+    tx->tx_data.files_opened++;
 
 end:
     SCReturnInt(retval);
