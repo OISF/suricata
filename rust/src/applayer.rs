@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,6 +57,10 @@ pub struct AppLayerTxData {
     /// logger flags for tx logging api
     logged: LoggerFlags,
 
+    /// track file open/logs so we can know how long to keep the tx
+    pub files_opened: u32,
+    pub files_logged: u32,
+
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
@@ -67,9 +71,17 @@ impl AppLayerTxData {
         Self {
             config: AppLayerTxConfig::new(),
             logged: LoggerFlags::new(),
+            files_opened: 0,
+            files_logged: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
         }
+    }
+    pub fn init_files_opened(&mut self) {
+        self.files_opened = 1;
+    }
+    pub fn incr_files_opened(&mut self) {
+        self.files_opened += 1;
     }
 }
 

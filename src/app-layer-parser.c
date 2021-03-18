@@ -879,6 +879,8 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 #define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
 
 extern int g_detect_disabled;
+extern bool g_file_logger_enabled;
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -992,6 +994,15 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
                         tx, i, logger_expectation, tx_logged);
+                skipped = true;
+                goto next;
+            }
+        }
+
+        /* if file logging is enabled, we keep a tx active while some of the files aren't
+         * logged yet. */
+        if (txd && txd->files_opened && g_file_logger_enabled) {
+            if (txd->files_opened != txd->files_logged) {
                 skipped = true;
                 goto next;
             }

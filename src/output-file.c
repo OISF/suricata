@@ -34,6 +34,8 @@
 #include "util-validate.h"
 #include "util-magic.h"
 
+bool g_file_logger_enabled = false;
+
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
     struct OutputLoggerThreadStore_ *next;
@@ -92,7 +94,20 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
     }
 
     SCLogDebug("OutputRegisterFileLogger happy");
+
+    g_file_logger_enabled = true;
     return 0;
+}
+
+static void CloseFile(const Packet *p, Flow *f, File *file)
+{
+    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    if (txv) {
+        AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+        if (txd)
+            txd->files_logged++;
+    }
+    file->flags |= FILE_LOGGED;
 }
 
 static void OutputFileLogFfc(ThreadVars *tv,
@@ -144,7 +159,7 @@ static void OutputFileLogFfc(ThreadVars *tv,
                 }
 
                 if (file_logged) {
-                    ff->flags |= FILE_LOGGED;
+                    CloseFile(p, p->flow, ff);
                 }
             }
         }
