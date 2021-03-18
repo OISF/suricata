@@ -1536,9 +1536,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 printf("FILEDATA END: \n");
 #endif
 
-                result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
-                            STREAM_TOSERVER);
+                result = HTPFileOpen(hstate, htud, filename, filename_len, filedata, filedata_len,
+                        HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
@@ -1589,9 +1588,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                         filedata = NULL;
                         filedata_len = 0;
                     }
-                    result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
-                            STREAM_TOSERVER);
+                    result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
+                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1605,9 +1603,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     filedata_len = header_next - filedata - 2;
                     SCLogDebug("filedata_len %u", filedata_len);
 
-                    result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
-                            STREAM_TOSERVER);
+                    result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
+                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1678,7 +1675,7 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
+            result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
                     HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
@@ -1749,8 +1746,8 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
-                    data, data_len, HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+                    HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
