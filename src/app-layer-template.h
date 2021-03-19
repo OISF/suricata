@@ -66,7 +66,7 @@ typedef struct TemplateState {
     TAILQ_HEAD(, TemplateTransaction) tx_list;
 
     /** A count of the number of transactions created. The
-     *  transaction ID for each transaction is allocted
+     *  transaction ID for each transaction is allocated
      *  by incrementing this value. */
     uint64_t transaction_max;
 } TemplateState;

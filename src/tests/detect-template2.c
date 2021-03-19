@@ -80,7 +80,7 @@ static int DetectTemplate2ParseTest03 (void)
 
 /**
  * \test DetectTemplate2ParseTest04 is a test for setting up an valid template2 value with
- *       ">" operator and include spaces arround the given values.
+ *       ">" operator and include spaces around the given values.
  */
 
 static int DetectTemplate2ParseTest04 (void)
@@ -98,7 +98,7 @@ static int DetectTemplate2ParseTest04 (void)
 
 /**
  * \test DetectTemplate2ParseTest05 is a test for setting up an valid template2 values with
- *       "-" operator and include spaces arround the given values.
+ *       "-" operator and include spaces around the given values.
  */
 
 static int DetectTemplate2ParseTest05 (void)
@@ -117,7 +117,7 @@ static int DetectTemplate2ParseTest05 (void)
 
 /**
  * \test DetectTemplate2ParseTest06 is a test for setting up an valid template2 values with
- *       invalid "=" operator and include spaces arround the given values.
+ *       invalid "=" operator and include spaces around the given values.
  */
 
 static int DetectTemplate2ParseTest06 (void)
@@ -129,7 +129,7 @@ static int DetectTemplate2ParseTest06 (void)
 
 /**
  * \test DetectTemplate2ParseTest07 is a test for setting up an valid template2 values with
- *       invalid "<>" operator and include spaces arround the given values.
+ *       invalid "<>" operator and include spaces around the given values.
  */
 
 static int DetectTemplate2ParseTest07 (void)

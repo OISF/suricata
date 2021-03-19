@@ -59,7 +59,7 @@ void DetectTemplateBufferRegister(void)
     /* TEMPLATE_END_REMOVE */
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
-        "Template content modififier to match on the template buffers";
+        "Template content modifier to match on the template buffers";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].Setup = DetectTemplateBufferSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].RegisterTests =
