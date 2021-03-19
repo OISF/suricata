@@ -44,7 +44,6 @@
 #include "detect-reference.h"
 #include "app-layer-parser.h"
 #include "util-classification-config.h"
-#include "util-syslog.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -71,9 +70,6 @@
 #include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
-#define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
-#define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
-#define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "OutputJSON"
 
 #define MAX_JSON_SIZE 2048
@@ -1010,8 +1006,6 @@ static inline enum LogFileType FileTypeFromConf(const char *typestr)
         log_filetype = LOGFILE_TYPE_FILE;
     } else if (strcmp(typestr, "file") == 0 || strcmp(typestr, "regular") == 0) {
         log_filetype = LOGFILE_TYPE_FILE;
-    } else if (strcmp(typestr, "syslog") == 0) {
-        log_filetype = LOGFILE_TYPE_SYSLOG;
     } else if (strcmp(typestr, "unix_dgram") == 0) {
         log_filetype = LOGFILE_TYPE_UNIX_DGRAM;
     } else if (strcmp(typestr, "unix_stream") == 0) {
@@ -1033,54 +1027,11 @@ static int LogFileTypePrepare(
 
     if (log_filetype == LOGFILE_TYPE_FILE || log_filetype == LOGFILE_TYPE_UNIX_DGRAM ||
             log_filetype == LOGFILE_TYPE_UNIX_STREAM) {
-        if (log_filetype == LOGFILE_TYPE_FILE) {
-            /* Threaded file output */
-            const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
-            if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
-                SCLogConfig("Enabling threaded eve logging.");
-                json_ctx->file_ctx->threaded = true;
-            } else {
-                json_ctx->file_ctx->threaded = false;
-            }
-        }
-
         if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
             return -1;
         }
         OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
-
     }
-#ifndef OS_WIN32
-    else if (log_filetype == LOGFILE_TYPE_SYSLOG) {
-        const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
-        if (facility_s == NULL) {
-            facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
-        }
-
-        int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
-        if (facility == -1) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                    "Invalid syslog facility: \"%s\","
-                    " now using \"%s\" as syslog facility",
-                    facility_s, DEFAULT_ALERT_SYSLOG_FACILITY_STR);
-            facility = DEFAULT_ALERT_SYSLOG_FACILITY;
-        }
-
-        const char *level_s = ConfNodeLookupChildValue(conf, "level");
-        if (level_s != NULL) {
-            int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
-            if (level != -1) {
-                json_ctx->file_ctx->syslog_setup.alert_syslog_level = level;
-            }
-        }
-
-        const char *ident = ConfNodeLookupChildValue(conf, "identity");
-        /* if null we just pass that to openlog, which will then
-         * figure it out by itself. */
-
-        openlog(ident, LOG_PID | LOG_NDELAY, facility);
-    }
-#endif
 #ifdef HAVE_LIBHIREDIS
     else if (log_filetype == LOGFILE_TYPE_REDIS) {
         SCLogRedisInit();

@@ -886,13 +886,8 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 {
-    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
-        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s",
-                (const char *)MEMBUFFER_BUFFER(buffer));
-    } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
-               file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
-               file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
-    {
+    if (file_ctx->type == LOGFILE_TYPE_FILE || file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+            file_ctx->type == LOGFILE_TYPE_UNIX_STREAM) {
         /* append \n for files only */
         MemBufferWriteString(buffer, "\n");
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
