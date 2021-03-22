@@ -61,7 +61,7 @@ void DetectTemplateRustBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].name =
         "template_rust_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].desc =
-        "Template content modififier to match on the template buffers";
+            "Template content modifier to match on the template buffers";
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].Setup =
         DetectTemplateRustBufferSetup;
 #ifdef UNITTESTS

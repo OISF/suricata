@@ -25,7 +25,7 @@
 #define __DETECT_TEMPLATE_H__
 
 /** Per keyword data. This is set up by the DetectTemplateSetup() function.
- *  Each signature will have an instance of DetectTemplateData per occurence
+ *  Each signature will have an instance of DetectTemplateData per occurrence
  *  of the keyword.
  *  The structure should be considered static/readonly after initialization.
  */
