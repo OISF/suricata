@@ -56,6 +56,7 @@
 typedef struct LogIKEFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags;
+    OutputJsonCommonSettings cfg;
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
@@ -85,6 +86,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
+    EveAddCommonOptions(&thread->ikelog_ctx->cfg, p, f, jb);
 
     LogIKEFileCtx *ike_ctx = thread->ikelog_ctx;
     if (!rs_ike_logger_log(state, tx, ike_ctx->flags, jb)) {
@@ -119,6 +121,7 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
         return result;
     }
     ikelog_ctx->file_ctx = ajt->file_ctx;
+    ikelog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
