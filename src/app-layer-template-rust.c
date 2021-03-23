@@ -27,7 +27,7 @@
  * \author FirstName LastName <yourname@domain>
  *
  * TemplateRust application layer detector and parser for learning and
- * templaterust pruposes.
+ * templaterust purposes.
  *
  * This templaterust implements a simple application layer for something
  * like the echo protocol running on port 7.
