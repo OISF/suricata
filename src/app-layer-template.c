@@ -27,7 +27,7 @@
  * \author FirstName LastName <yourname@domain>
  *
  * Template application layer detector and parser for learning and
- * template pruposes.
+ * template purposes.
  *
  * This template implements a simple application layer for something
  * like the echo protocol running on port 7.
@@ -280,7 +280,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
      *
      * But note that if a "protocol data unit" is not received in one
      * chunk of data, and the buffering is done on the transaction, we
-     * may need to look for the transaction that this newly recieved
+     * may need to look for the transaction that this newly received
      * data belongs to.
      */
     TemplateTransaction *tx = TemplateTxAlloc(state);
@@ -416,7 +416,7 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
  * considered complete.
  *
  * For the response to be considered done, the response for a request
- * needs to be seen.  The response_done flag is set on response for
+ * needs to be seen. The response_done flag is set on response for
  * checking here.
  */
 static int TemplateGetStateProgress(void *txv, uint8_t direction)
@@ -486,7 +486,7 @@ void RegisterTemplateParsers(void)
 
         if (RunmodeIsUnittests()) {
 
-            SCLogNotice("Unittest mode, registeringd default configuration.");
+            SCLogNotice("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
                 TemplateProbingParserTs, TemplateProbingParserTc);
@@ -511,7 +511,7 @@ void RegisterTemplateParsers(void)
     }
 
     else {
-        SCLogNotice("Protocol detecter and parser disabled for Template.");
+        SCLogNotice("Protocol detector and parser disabled for Template.");
         return;
     }
 
@@ -561,7 +561,7 @@ void RegisterTemplateParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetEvents);
 
-        /* Leave this is if you parser can handle gaps, otherwise
+        /* Leave this is if your parser can handle gaps, otherwise
          * remove. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_TEMPLATE,
             APP_LAYER_PARSER_OPT_ACCEPT_GAPS);

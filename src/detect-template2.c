@@ -281,7 +281,7 @@ error:
 }
 
 /**
- * \brief this function is used to atemplate2d the parsed template2 data into the current signature
+ * \brief this function is used to add the parsed template2 data into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
