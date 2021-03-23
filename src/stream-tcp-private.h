@@ -178,7 +178,8 @@ enum TcpState
 #define STREAMTCP_FLAG_CLIENT_SACKOK                0x0200
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
 #define STREAMTCP_FLAG_SACKOK                       0x0400
-// vacancy
+/** Flag to indicate that we have seen gap on the session */
+#define STREAMTCP_FLAG_HAS_GAP                      0x0800
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
