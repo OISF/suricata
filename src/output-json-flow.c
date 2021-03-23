@@ -272,6 +272,8 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     jb_set_bool(jb, "alerted", FlowHasAlerts(f));
     if (f->flags & FLOW_WRONG_THREAD)
         JB_SET_TRUE(jb, "wrong_thread");
+    if (FlowHasGaps(f))
+        JB_SET_TRUE(jb, "had_gap");
 
     /* Close flow. */
     jb_close(jb);
