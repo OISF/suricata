@@ -60,6 +60,7 @@ pub struct AppLayerTxData {
     /// track file open/logs so we can know how long to keep the tx
     pub files_opened: u32,
     pub files_logged: u32,
+    pub files_stored: u32,
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -73,6 +74,7 @@ impl AppLayerTxData {
             logged: LoggerFlags::new(),
             files_opened: 0,
             files_logged: 0,
+            files_stored: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
         }

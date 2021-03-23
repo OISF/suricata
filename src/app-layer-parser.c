@@ -880,6 +880,7 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 
 extern int g_detect_disabled;
 extern bool g_file_logger_enabled;
+extern bool g_filedata_logger_enabled;
 
 /**
  * \brief remove obsolete (inspected and logged) transactions
@@ -1001,8 +1002,12 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         /* if file logging is enabled, we keep a tx active while some of the files aren't
          * logged yet. */
-        if (txd && txd->files_opened && g_file_logger_enabled) {
-            if (txd->files_opened != txd->files_logged) {
+        if (txd && txd->files_opened) {
+            if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
+                skipped = true;
+                goto next;
+            }
+            if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
                 skipped = true;
                 goto next;
             }
