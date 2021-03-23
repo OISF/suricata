@@ -454,6 +454,7 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         if (ranged) {
             FileContainerAdd(files, ranged);
         }
+        SCFree(s->file_range);
         s->file_range = NULL;
     }
 
