@@ -36,6 +36,8 @@ typedef struct RangeContainer {
     uint64_t start;
     // offset of bytes written in buffer (relative to the start of the range)
     uint64_t offset;
+    // to be freed by the flow thread
+    bool tofree;
 } RangeContainer;
 
 // Item in hash table for a file in multiple ranges
@@ -48,8 +50,6 @@ typedef struct ContainerUrlRange {
     uint32_t expire;
     // total size of the file in ranges
     uint64_t totalsize;
-    // state where we skip content
-    uint64_t toskip;
     // file flags
     uint16_t flags;
     // number of flows referencing this structure
@@ -58,12 +58,26 @@ typedef struct ContainerUrlRange {
     FileContainer *files;
     // linked list of ranges which came out of order
     RangeContainer *ranges;
-    // current out of order range to write into
-    RangeContainer *current;
+    // mutex
+    SCMutex mutex;
+    // wether a range file is currently appending
+    bool appending;
 } ContainerUrlRange;
 
-int ContainerUrlRangeSetRange(ContainerUrlRange *c, uint64_t start, uint64_t end, uint64_t total);
-int ContainerUrlRangeAppendData(ContainerUrlRange *c, const uint8_t *data, size_t len);
-File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags);
+typedef struct ContainerUrlRangeFile {
+    // state where we skip content
+    uint64_t toskip;
+    // current out of order range to write into
+    RangeContainer *current;
+    // file container, with only one file
+    ContainerUrlRange *container;
+} ContainerUrlRangeFile;
+
+int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, size_t len);
+File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags);
+
+ContainerUrlRangeFile *ContainerUrlRangeOpenFile(ContainerUrlRange *c, uint64_t start, uint64_t end,
+        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
+        uint16_t flags);
 
 #endif /* __CONTAINERS_H__ */
