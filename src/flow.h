@@ -556,6 +556,7 @@ void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
 void FlowSetHasAlertsFlag(Flow *);
 int FlowHasAlerts(const Flow *);
+int FlowHasGaps(const Flow *);
 void FlowSetChangeProtoFlag(Flow *);
 void FlowUnsetChangeProtoFlag(Flow *);
 int FlowChangeProto(Flow *);
