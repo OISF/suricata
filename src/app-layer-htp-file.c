@@ -116,7 +116,7 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         sbcfg = &s->cfg->response.sbcfg;
 
         // we shall not open a new file if there is a current one
-        DEBUG_VALIDATE_BUG_ON(s->file_range_container != NULL);
+        DEBUG_VALIDATE_BUG_ON(s->file_range != NULL);
     } else {
         if (s->files_ts == NULL) {
             s->files_ts = FileContainerAlloc();
@@ -324,24 +324,22 @@ int HTPFileOpenWithRange(HtpState *s, const uint8_t *filename, uint16_t filename
         return HTPFileOpen(
                 s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    s->file_range_container = ContainerUrlRangeGet(keyurl, keylen, &s->f->lastts);
+    ContainerUrlRange *file_range_container = ContainerUrlRangeGet(keyurl, keylen, &s->f->lastts);
     SCFree(keyurl);
-    if (s->file_range_container == NULL) {
+    if (file_range_container == NULL) {
         // probably reached memcap
-        SCReturnInt(0);
+        return HTPFileOpen(
+                s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    if (s->file_range_container->files->tail == NULL) {
-        if (FileOpenFileWithId(s->file_range_container->files, &s->cfg->response.sbcfg, 0, filename,
-                    filename_len, NULL, 0, flags) != 0) {
-            SCLogDebug("open file for range failed");
-            SCReturnInt(-1);
-        }
+    s->file_range = ContainerUrlRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
+            crparsed.size, &s->cfg->response.sbcfg, filename, filename_len, flags);
+    if (s->file_range == NULL) {
+        // probably reached memcap
+        return HTPFileOpen(
+                s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    if (ContainerUrlRangeSetRange(
-                s->file_range_container, crparsed.start, crparsed.end, crparsed.size) < 0) {
-        SCLogDebug("Set range failed");
-    }
-    if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+
+    if (ContainerUrlRangeAppendData(s->file_range, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
 
@@ -385,8 +383,8 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         goto end;
     }
 
-    if (s->file_range_container != NULL) {
-        if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+    if (s->file_range != NULL) {
+        if (ContainerUrlRangeAppendData(s->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
@@ -448,15 +446,15 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
     } else if (result == -2) {
         retval = -2;
     }
-    if (s->file_range_container != NULL) {
-        if (ContainerUrlRangeAppendData(s->file_range_container, data, data_len) < 0) {
+    if (s->file_range != NULL) {
+        if (ContainerUrlRangeAppendData(s->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
-        File *ranged = ContainerUrlRangeClose(s->file_range_container, flags);
+        File *ranged = ContainerUrlRangeClose(s->file_range, flags);
         if (ranged) {
             FileContainerAdd(files, ranged);
         }
-        s->file_range_container = NULL;
+        s->file_range = NULL;
     }
 
 end:
