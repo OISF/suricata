@@ -1209,6 +1209,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+            (*stream)->flags |= STREAMTCP_STREAM_FLAG_HAS_GAP;
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
             ssn->lossy_be_liberal = true;
 
