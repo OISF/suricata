@@ -309,6 +309,12 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
             const char *tcp_state = StreamTcpStateAsString(ssn->state);
             if (tcp_state != NULL)
                 jb_set_string(jb, "state", tcp_state);
+            if (FlowHasGaps(f, STREAM_TOCLIENT)) {
+                JB_SET_TRUE(jb, "tc_gap");
+            }
+            if (FlowHasGaps(f, STREAM_TOSERVER)) {
+                JB_SET_TRUE(jb, "ts_gap");
+            }
         }
 
         /* Close tcp. */
