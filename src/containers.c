@@ -50,10 +50,9 @@ static int ContainerUrlRangeSet(void *dst, void *src)
     dst_s->files = FileContainerAlloc();
     BUG_ON(dst_s->files == NULL);
     dst_s->ranges = NULL;
-    dst_s->current = NULL;
-    dst_s->toskip = 0;
     dst_s->flags = 0;
     dst_s->totalsize = 0;
+    SCMutexInit(&dst_s->mutex, NULL);
 
     return 0;
 }
@@ -93,6 +92,7 @@ static void ContainerUrlRangeFree(void *s)
     ContainerUrlRange *cu = s;
     SCFree(cu->key);
     FileContainerFree(cu->files);
+    SCMutexDestroy(&cu->mutex);
     RangeContainerFree(cu);
 }
 
@@ -207,29 +207,58 @@ void *ContainerUrlRangeGet(const uint8_t *key, size_t keylen, struct timeval *ts
     return NULL;
 }
 
-int ContainerUrlRangeSetRange(ContainerUrlRange *c, uint64_t start, uint64_t end, uint64_t total)
+ContainerUrlRangeFile *ContainerUrlRangeOpenFile(ContainerUrlRange *c, uint64_t start, uint64_t end,
+        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
+        uint16_t flags)
 {
+    SCMutexLock(&c->mutex);
+    if (c->files->tail == NULL) {
+        if (FileOpenFileWithId(c->files, sbcfg, 0, name, name_len, NULL, 0, flags) != 0) {
+            SCLogDebug("open file for range failed");
+            SCMutexUnlock(&c->mutex);
+            return NULL;
+        }
+    }
+    ContainerUrlRangeFile *curf = SCCalloc(1, sizeof(ContainerUrlRangeFile));
+    if (curf == NULL) {
+        SCMutexUnlock(&c->mutex);
+        return NULL;
+    }
     if (total > c->totalsize) {
         // TODOask add checks about totalsize remaining the same
         c->totalsize = total;
     }
-    if (start == c->files->tail->size) {
+    uint64_t buflen = end - start + 1;
+    if (start == c->files->tail->size && !c->appending) {
         // easy case : append to current file
-        return 0;
-    } else if (start < c->files->tail->size) {
-        // skip first overlap
-        c->toskip = c->files->tail->size - start;
-        return 0;
+        curf->container = c;
+        c->appending = true;
+        SCMutexUnlock(&c->mutex);
+        return curf;
+    } else if (start < c->files->tail->size && c->files->tail->size - start >= buflen) {
+        // only overlap
+        curf->toskip = buflen;
+        SCMutexUnlock(&c->mutex);
+        return curf;
+    } else if (start < c->files->tail->size && c->files->tail->size - start < buflen &&
+               !c->appending) {
+        // skip first overlap, then append
+        curf->toskip = c->files->tail->size - start;
+        c->appending = true;
+        curf->container = c;
+        SCMutexUnlock(&c->mutex);
+        return curf;
     }
     // else {
     // insert range in ordered linked list, if we have enough memcap
-    uint64_t buflen = end - start + 1;
     if (!(THASH_CHECK_MEMCAP(ContainerUrlRangeList.ht, buflen))) {
         // TODOask release memory for others RangeContainerFree(c);
         // skips this range
-        c->toskip = buflen;
-        return -1;
+        curf->toskip = buflen;
+        SCMutexUnlock(&c->mutex);
+        return curf;
     }
+    curf->container = c;
     (void)SC_ATOMIC_ADD(ContainerUrlRangeList.ht->memuse, buflen);
     RangeContainer *range = SCCalloc(1, sizeof(RangeContainer));
     BUG_ON(range == NULL);
@@ -249,12 +278,16 @@ int ContainerUrlRangeSetRange(ContainerUrlRange *c, uint64_t start, uint64_t end
         range->next = next->next;
         next->next = range;
     }
-    c->current = range;
-    return 0;
+    curf->current = range;
+    SCMutexUnlock(&c->mutex);
+    return curf;
 }
 
-int ContainerUrlRangeAppendData(ContainerUrlRange *c, const uint8_t *data, size_t len)
+int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, size_t len)
 {
+    if (len == 0) {
+        return 0;
+    }
     // first check if we have a current allocated buffer to copy to
     // in the case of an unordered range being handled
     if (c->current) {
@@ -273,12 +306,14 @@ int ContainerUrlRangeAppendData(ContainerUrlRange *c, const uint8_t *data, size_
             c->toskip -= len;
             return 0;
         } // else
-        int r = FileAppendData(c->files, data + c->toskip, len - c->toskip);
+        DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+        int r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
         c->toskip = 0;
         return r;
     } // else {
     // last we are ordered, simply append
-    return FileAppendData(c->files, data, len);
+    DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+    return FileAppendData(c->container->files, data, len);
 }
 
 static void ContainerUrlRangeFileClose(ContainerUrlRange *c, uint16_t flags)
@@ -288,10 +323,20 @@ static void ContainerUrlRangeFileClose(ContainerUrlRange *c, uint16_t flags)
     c->files->tail = NULL;
     DEBUG_VALIDATE_BUG_ON(c->nbref == 0);
     c->nbref--;
+
+    // move ownership to flow
+    RangeContainer *range = c->ranges;
+    while (range) {
+        RangeContainer *next = range->next;
+        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
+        range->tofree = true;
+        range = next;
+    }
+
     THashRemoveFromHash(ContainerUrlRangeList.ht, c);
 }
 
-File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
+File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags)
 {
     if (c->toskip > 0) {
         // was only an overlapping range
@@ -299,26 +344,41 @@ File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
         return NULL;
     } else if (c->current) {
         // a stored range
+        SCMutexLock(&c->container->mutex);
+        if (c->current->tofree) {
+            SCFree(c->current->buffer);
+            SCFree(c->current);
+        }
+        SCMutexUnlock(&c->container->mutex);
         c->current = NULL;
         return NULL;
     } // else {
-    File *f = c->files->tail;
+    if (c->container == NULL) {
+        // everything was skipped
+        return NULL;
+    }
+    SCMutexLock(&c->container->mutex);
+    c->container->appending = false;
+    DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
+    File *f = c->container->files->tail;
 
     // just finished appending to a file, have we reached a saved range ?
-    RangeContainer *range = c->ranges;
+    RangeContainer *range = c->container->ranges;
     while (range && f->size >= range->start) {
         if (f->size == range->start) {
-            if (FileAppendData(c->files, range->buffer, range->offset) != 0) {
-                ContainerUrlRangeFileClose(c, flags);
+            if (FileAppendData(c->container->files, range->buffer, range->offset) != 0) {
+                ContainerUrlRangeFileClose(c->container, flags);
+                SCMutexUnlock(&c->container->mutex);
                 return f;
             }
         } else {
             // in case of overlap, only add the extra data (if any)
             uint64_t overlap = f->size + 1 - range->start;
             if (overlap > range->offset) {
-                if (FileAppendData(c->files, range->buffer + overlap, range->offset - overlap) !=
-                        0) {
-                    ContainerUrlRangeFileClose(c, flags);
+                if (FileAppendData(c->container->files, range->buffer + overlap,
+                            range->offset - overlap) != 0) {
+                    ContainerUrlRangeFileClose(c->container, flags);
+                    SCMutexUnlock(&c->container->mutex);
                     return f;
                 }
             }
@@ -328,13 +388,15 @@ File *ContainerUrlRangeClose(ContainerUrlRange *c, uint16_t flags)
         (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
         SCFree(range);
         range = next;
-        c->ranges = range;
+        c->container->ranges = range;
     }
 
-    if (f->size + 1 >= c->totalsize) {
-        ContainerUrlRangeFileClose(c, flags);
+    if (f->size + 1 >= c->container->totalsize) {
+        ContainerUrlRangeFileClose(c->container, flags);
         // move ownership to caller
-        return f;
+    } else {
+        f = NULL;
     }
-    return NULL;
+    SCMutexUnlock(&c->container->mutex);
+    return f;
 }
