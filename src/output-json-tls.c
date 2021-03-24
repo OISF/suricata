@@ -98,10 +98,9 @@ TlsFields tls_fields[] = {
 };
 
 typedef struct OutputTlsCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t flags;  /** Store mode */
     uint64_t fields; /** Store fields */
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } OutputTlsCtx;
 
 
@@ -414,12 +413,10 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL, aft->tlslog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return 0;
     }
-
-    EveAddCommonOptions(&tls_ctx->cfg, p, f, js);
 
     jb_open_object(js, "tls");
 
@@ -475,7 +472,7 @@ static TmEcode JsonTlsLogThreadInit(ThreadVars *t, const void *initdata, void **
     /* use the Output Context (file pointer and mutex) */
     aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(aft->tlslog_ctx->file_ctx, t->id);
+    aft->file_ctx = LogFileEnsureExists(aft->tlslog_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
         goto error_exit;
     }
@@ -586,8 +583,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
         return result;
     }
 
-    tls_ctx->file_ctx = ojc->file_ctx;
-    tls_ctx->cfg = ojc->cfg;
+    tls_ctx->eve_ctx = ojc;
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {

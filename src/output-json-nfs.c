@@ -81,11 +81,10 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (rs_nfs_tx_logging_is_filtered(state, nfstx))
         return TM_ECODE_OK;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL);
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
-    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
 
     jb_open_object(jb, "rpc");
     rs_rpc_log_json_response(tx, jb);

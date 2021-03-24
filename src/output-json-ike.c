@@ -54,8 +54,8 @@
 #define LOG_IKE_EXTENDED (1 << 0)
 
 typedef struct LogIKEFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t flags;
+    OutputJsonCtx *eve_ctx;
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
@@ -81,7 +81,8 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         void *tx, uint64_t tx_id)
 {
     LogIKELogThread *thread = thread_data;
-    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL);
+    JsonBuilder *jb =
+            CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL, thread->ikelog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -118,7 +119,7 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
     if (unlikely(ikelog_ctx == NULL)) {
         return result;
     }
-    ikelog_ctx->file_ctx = ajt->file_ctx;
+    ikelog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -162,7 +163,7 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
     }
 
     thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->eve_ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
     }

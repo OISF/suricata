@@ -38,7 +38,7 @@ SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
 void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, const Packet *p)
 {
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL, NULL);
     if (js == NULL)
         return;
 

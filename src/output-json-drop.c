@@ -64,6 +64,7 @@ typedef struct JsonDropOutputCtx_ {
     LogFileCtx *file_ctx;
     uint8_t flags;
     OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
@@ -91,7 +92,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr, drop_ctx->eve_ctx);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

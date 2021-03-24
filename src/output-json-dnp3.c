@@ -47,7 +47,7 @@ typedef struct LogDNP3FileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
     uint8_t     include_object_data;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
@@ -222,12 +222,11 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
+        JsonBuilder *js =
+                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
 
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
@@ -250,12 +249,12 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
+        JsonBuilder *js =
+                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);
@@ -286,7 +285,7 @@ static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
     dnp3log_ctx->file_ctx = json_ctx->file_ctx;
-    dnp3log_ctx->cfg = json_ctx->cfg;
+    dnp3log_ctx->eve_ctx = json_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {

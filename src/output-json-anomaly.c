@@ -72,9 +72,8 @@
 #define TX_ID_UNUSED UINT64_MAX
 
 typedef struct AnomalyJsonOutputCtx_ {
-    LogFileCtx* file_ctx;
     uint16_t flags;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } AnomalyJsonOutputCtx;
 
 typedef struct JsonAnomalyLogThread_ {
@@ -108,7 +107,6 @@ static void OutputAnomalyLoggerDisable(void)
 static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                   const Packet *p)
 {
-    const bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
     const uint16_t log_type = aft->json_output_ctx->flags;
     const bool log_stream = log_type & LOG_JSON_STREAM_TYPE;
     const bool log_decode = log_type & LOG_JSON_DECODE_TYPE;
@@ -123,13 +121,10 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
         MemBufferReset(aft->json_buffer);
 
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
+        JsonBuilder *js = CreateEveHeader(
+                p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
-        }
-
-        if (is_ip_pkt) {
-            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
@@ -179,14 +174,15 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
         if (tx_id != TX_ID_UNUSED) {
             js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET,
                                           ANOMALY_EVENT_TYPE, NULL, tx_id);
+            EveAddCommonOptions(&aft->json_output_ctx->eve_ctx->cfg, p, p->flow, js);
         } else {
-            js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
+            js = CreateEveHeader(
+                    p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         }
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
 
@@ -319,7 +315,7 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
     /** Use the Output Context (file pointer and mutex) */
     AnomalyJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
+    aft->file_ctx = LogFileEnsureExists(json_output_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
         goto error_exit;
     }
@@ -431,9 +427,8 @@ static OutputInitResult JsonAnomalyLogInitCtxHelper(ConfNode *conf, OutputCtx *p
         goto error;
     }
 
-    json_output_ctx->file_ctx = ajt->file_ctx;
     JsonAnomalyLogConf(json_output_ctx, conf);
-    json_output_ctx->cfg = ajt->cfg;
+    json_output_ctx->eve_ctx = ajt;
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAnomalyLogDeInitCtxSubHelper;
