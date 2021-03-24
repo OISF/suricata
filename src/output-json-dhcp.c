@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,10 +47,8 @@
 
 
 typedef struct LogDHCPFileCtx_ {
-    LogFileCtx *file_ctx;
-    uint32_t    flags;
     void       *rs_logger;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogDHCPFileCtx;
 
 typedef struct LogDHCPLogThread_ {
@@ -69,12 +67,10 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL);
+    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL, ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
-
-    EveAddCommonOptions(&thread->dhcplog_ctx->cfg, p, f, js);
 
     rs_dhcp_logger_log(ctx->rs_logger, tx, js);
 
@@ -97,14 +93,12 @@ static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
-    OutputJsonCtx *ajt = parent_ctx->data;
 
     LogDHCPFileCtx *dhcplog_ctx = SCCalloc(1, sizeof(*dhcplog_ctx));
     if (unlikely(dhcplog_ctx == NULL)) {
         return result;
     }
-    dhcplog_ctx->file_ctx = ajt->file_ctx;
-    dhcplog_ctx->cfg = ajt->cfg;
+    dhcplog_ctx->eve_ctx = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -142,7 +136,7 @@ static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, const void *initdata, void *
     }
 
     thread->dhcplog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->dhcplog_ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->dhcplog_ctx->eve_ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
     }

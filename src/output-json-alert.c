@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2020 Open Information Security Foundation
+/* Copyright (C) 2013-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -109,7 +109,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -625,10 +625,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "alert", &addr);
+        JsonBuilder *jb =
+                CreateEveHeader(p, LOG_DIR_PACKET, "alert", &addr, json_output_ctx->eve_ctx);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
-        EveAddCommonOptions(&json_output_ctx->cfg, p, p->flow, jb);
 
         MemBufferReset(aft->json_buffer);
 
@@ -722,7 +722,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
             LOG_JSON_TAGGED_PACKETS)) {
         MemBufferReset(aft->json_buffer);
-        JsonBuilder *packetjs = CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL);
+        JsonBuilder *packetjs =
+                CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
             EvePacket(p, packetjs, 0);
             OutputJsonBuilderBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
@@ -996,7 +997,7 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
-    json_output_ctx->cfg = ajt->cfg;
+    json_output_ctx->eve_ctx = ajt;
 
     JsonAlertLogSetupMetadata(json_output_ctx, conf);
     json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);

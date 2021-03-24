@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,8 +54,8 @@
 #include "output-json-template.h"
 
 typedef struct LogTemplateFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCtx *eve_ctx;
 } LogTemplateFileCtx;
 
 typedef struct LogTemplateLogThread_ {
@@ -72,7 +72,8 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 
     SCLogNotice("Logging template transaction %"PRIu64".", templatetx->tx_id);
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "template", NULL);
+    JsonBuilder *js =
+            CreateEveHeader(p, LOG_DIR_PACKET, "template", NULL, thread->templatelog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -118,7 +119,7 @@ static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf,
     if (unlikely(templatelog_ctx == NULL)) {
         return result;
     }
-    templatelog_ctx->file_ctx = ajt->file_ctx;
+    templatelog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -155,7 +156,7 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, const void *initdata, vo
     }
 
     thread->templatelog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->templatelog_ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->templatelog_ctx->eve_ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
     }

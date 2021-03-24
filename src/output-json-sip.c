@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,17 +49,6 @@
 
 #include "rust.h"
 
-typedef struct LogSIPFileCtx_ {
-    LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
-} LogSIPFileCtx;
-
-typedef struct LogSIPLogThread_ {
-    LogFileCtx *file_ctx;
-    LogSIPFileCtx *siplog_ctx;
-    MemBuffer          *buffer;
-} LogSIPLogThread;
-
 void JsonSIPAddMetadata(JsonBuilder *js, const Flow *f, uint64_t tx_id)
 {
     SIPState *state = FlowGetAppState(f);
@@ -75,13 +64,12 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SIPTransaction *siptx = tx;
-    LogSIPLogThread *thread = thread_data;
+    OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *js = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "sip", NULL);
+    JsonBuilder *js = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "sip", NULL, thread->ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
-    EveAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
 
     if (!rs_sip_log_json(siptx, js)) {
         goto error;
@@ -98,100 +86,19 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static void OutputSIPLogDeInitCtxSub(OutputCtx *output_ctx)
-{
-    LogSIPFileCtx *siplog_ctx = (LogSIPFileCtx *)output_ctx->data;
-    SCFree(siplog_ctx);
-    SCFree(output_ctx);
-}
-
 static OutputInitResult OutputSIPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
-    OutputInitResult result = { NULL, false };
-    OutputJsonCtx *ajt = parent_ctx->data;
-
-    LogSIPFileCtx *siplog_ctx = SCCalloc(1, sizeof(*siplog_ctx));
-    if (unlikely(siplog_ctx == NULL)) {
-        return result;
-    }
-    siplog_ctx->file_ctx = ajt->file_ctx;
-    siplog_ctx->cfg = ajt->cfg;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
-    if (unlikely(output_ctx == NULL)) {
-        SCFree(siplog_ctx);
-        return result;
-    }
-    output_ctx->data = siplog_ctx;
-    output_ctx->DeInit = OutputSIPLogDeInitCtxSub;
-
-    SCLogDebug("SIP log sub-module initialized.");
-
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
-#define OUTPUT_BUFFER_SIZE 65535
-
-static TmEcode JsonSIPLogThreadInit(ThreadVars *t, const void *initdata, void **data)
-{
-    LogSIPLogThread *thread = SCCalloc(1, sizeof(*thread));
-    if (unlikely(thread == NULL)) {
-        return TM_ECODE_FAILED;
-    }
-
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogSIP.  \"initdata\" is NULL.");
-        goto error_exit;
-    }
-
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
-    thread->siplog_ctx = ((OutputCtx *)initdata)->data;
-
-    thread->file_ctx = LogFileEnsureExists(thread->siplog_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
-        goto error_exit;
-    }
-    *data = (void *)thread;
-
-    return TM_ECODE_OK;
-
-error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
-    return TM_ECODE_FAILED;
-}
-
-static TmEcode JsonSIPLogThreadDeinit(ThreadVars *t, void *data)
-{
-    LogSIPLogThread *thread = (LogSIPLogThread *)data;
-    if (thread == NULL) {
-        return TM_ECODE_OK;
-    }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
-    return TM_ECODE_OK;
+    return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
 void JsonSIPLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_SIP, "eve-log", "JsonSIPLog",
-        "eve-log.sip", OutputSIPLogInitSub, ALPROTO_SIP,
-        JsonSIPLogger, JsonSIPLogThreadInit,
-        JsonSIPLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_SIP, "eve-log", "JsonSIPLog", "eve-log.sip",
+            OutputSIPLogInitSub, ALPROTO_SIP, JsonSIPLogger, JsonLogThreadInit, JsonLogThreadDeinit,
+            NULL);
 
     SCLogDebug("SIP JSON logger registered.");
 }

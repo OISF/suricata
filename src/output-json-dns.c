@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -257,10 +257,9 @@ static struct {
 };
 
 typedef struct LogDnsFileCtx_ {
-    LogFileCtx *file_ctx;
     uint64_t flags; /** Store mode */
     DnsVersion version;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogDnsFileCtx;
 
 typedef struct LogDnsLogThread_ {
@@ -319,11 +318,10 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
-        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
         jb_open_object(jb, "dns");
         if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
@@ -354,11 +352,10 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     if (td->dnslog_ctx->version == DNS_VERSION_2) {
         if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
             jb_open_object(jb, "dns");
             rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
@@ -370,11 +367,10 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     } else {
         /* Log answers. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
             JsonBuilder *answer = rs_dns_log_json_answer_v1(txptr, i,
                     td->dnslog_ctx->flags);
@@ -391,11 +387,10 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         }
         /* Log authorities. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
             JsonBuilder *answer = rs_dns_log_json_authority_v1(txptr, i,
                     td->dnslog_ctx->flags);
@@ -434,7 +429,7 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->file_ctx, t->id);
+    aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
         goto error_exit;
     }
@@ -626,8 +621,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
-    dnslog_ctx->file_ctx = ojc->file_ctx;
-    dnslog_ctx->cfg = ojc->cfg;
+    dnslog_ctx->eve_ctx = ojc;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {

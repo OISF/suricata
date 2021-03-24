@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,7 +46,7 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
 {
     OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dcerpc", NULL);
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dcerpc", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2020 Open Information Security Foundation
+/* Copyright (C) 2016-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,7 @@ SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
 void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, const Packet *p)
 {
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL, NULL);
     if (js == NULL)
         return;
 

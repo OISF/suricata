@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -398,7 +398,7 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
     }
 }
 
-static void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
+void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         JsonBuilder *js_vars = jb_new_object();
@@ -836,7 +836,7 @@ int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
 }
 
 JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
-        const char *event_type, JsonAddrInfo *addr)
+        const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx)
 {
     char timebuf[64];
     const Flow *f = (const Flow *)p->flow;
@@ -909,13 +909,17 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
             break;
     }
 
+    if (eve_ctx != NULL) {
+        EveAddCommonOptions(&eve_ctx->cfg, p, f, js);
+    }
+
     return js;
 }
 
 JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
                                  const char *event_type, JsonAddrInfo *addr, uint64_t tx_id)
 {
-    JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr);
+    JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr, NULL);
     if (unlikely(js == NULL))
         return NULL;
 

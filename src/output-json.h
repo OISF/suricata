@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,26 +68,6 @@ typedef struct OutputJSONMemBufferWrapper_ {
     size_t expand_by;   /**< expand by this size */
 } OutputJSONMemBufferWrapper;
 
-int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
-
-void CreateEveFlowId(JsonBuilder *js, const Flow *f);
-void EveFileInfo(JsonBuilder *js, const File *file, const bool stored);
-void EveTcpFlags(uint8_t flags, JsonBuilder *js);
-void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);
-JsonBuilder *CreateEveHeader(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type,
-        JsonAddrInfo *addr);
-JsonBuilder *CreateEveHeaderWithTxId(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type, JsonAddrInfo *addr,
-        uint64_t tx_id);
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
-int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer);
-OutputInitResult OutputJsonInitCtx(ConfNode *);
-
-OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
-TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
-TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
-
 typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
@@ -114,7 +94,26 @@ typedef struct OutputJsonThreadCtx_ {
 
 json_t *SCJsonString(const char *val);
 
+void CreateEveFlowId(JsonBuilder *js, const Flow *f);
+void EveFileInfo(JsonBuilder *js, const File *file, const bool stored);
+void EveTcpFlags(uint8_t flags, JsonBuilder *js);
+void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);
+JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
+        const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx);
+JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
+        const char *event_type, JsonAddrInfo *addr, uint64_t tx_id);
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
+int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer);
+OutputInitResult OutputJsonInitCtx(ConfNode *);
+
+OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
+TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
+TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
+
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js);
+void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js);
+
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 #endif /* __OUTPUT_JSON_H__ */
