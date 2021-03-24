@@ -149,6 +149,7 @@ outputs:
         header: X-Forwarded-For
 
       types:
+        - postgresql
         - alert:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
@@ -714,6 +715,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    postgresql:
+      enabled: yes
     rfb:
       enabled: yes
       detection-ports:
