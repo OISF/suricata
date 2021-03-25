@@ -34,6 +34,7 @@
 
 #include "flow-manager.h"
 #include "flow-timeout.h"
+#include "flow-hash.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
 #include "source-pcap-file-directory-helper.h"
@@ -1539,6 +1540,42 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
     }
 
     json_object_set_new(answer, "message", jmemcaps);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixSocketGetFlowStatsById(json_t *cmd, json_t *answer, void *data)
+{
+    /* Input: we need the IP tuple including VLAN/tenant and the flow ID */
+    json_t *jarg = json_object_get(cmd, "flow_id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("flow_id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int64_t flow_id = json_integer_value(jarg);
+
+    Flow *f = FlowGetExistingFlowFromFlowId(flow_id);
+    if (f == NULL) {
+        json_object_set_new(answer, "message", json_string("Not found"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    uint32_t tosrcpktcnt = f->tosrcpktcnt;
+    uint32_t todstpktcnt = f->todstpktcnt;
+    uint64_t tosrcbytecnt = f->tosrcbytecnt;
+    uint64_t todstbytecnt = f->todstbytecnt;
+    uint64_t age = f->lastts.tv_sec - f->startts.tv_sec;
+    FLOWLOCK_UNLOCK(f);
+
+    json_t *flow_info = json_object();
+    if (flow_info == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    json_object_set_new(flow_info, "pkts_toclient", json_integer(tosrcpktcnt));
+    json_object_set_new(flow_info, "pkts_toserver", json_integer(todstpktcnt));
+    json_object_set_new(flow_info, "bytes_toclient", json_integer(tosrcbytecnt));
+    json_object_set_new(flow_info, "bytes_toserver", json_integer(todstbytecnt));
+    json_object_set_new(flow_info, "age", json_integer(age));
+    json_object_set_new(answer, "message", flow_info);
     SCReturnInt(TM_ECODE_OK);
 }
 #endif /* BUILD_UNIX_SOCKET */
