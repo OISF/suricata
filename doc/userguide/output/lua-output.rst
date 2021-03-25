@@ -34,7 +34,7 @@ Example:
   end
 
   function setup (args)
-      filename = SCLogPath() .. "/" .. name
+      filename = SCLogPath() .. "example.log"
       file = assert(io.open(filename, "a"))
       SCLogInfo("HTTP Log Filename " .. filename)
       http = 0
