@@ -58,6 +58,7 @@ typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
     uint32_t        count;
     MemBuffer      *buffer;
+    LogFileCtx *file_ctx;
 } LogMQTTLogThread;
 
 bool JsonMQTTAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -94,7 +95,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         goto error;
 
     MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->mqttlog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -174,6 +175,8 @@ static TmEcode JsonMQTTLogThreadInit(ThreadVars *t, const void *initdata, void *
     }
 
     thread->mqttlog_ctx = ((OutputCtx *)initdata)->data;
+    thread->file_ctx = LogFileEnsureExists(thread->mqttlog_ctx->file_ctx, t->id);
+
     *data = (void *)thread;
 
     return TM_ECODE_OK;
