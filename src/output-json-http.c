@@ -519,9 +519,9 @@ static void JsonHttpLogJSONAWN(JsonBuilder *js, htp_tx_t *tx, Flow *f, uint64_t 
                 }
             }
 
-	    jb_close(js);
         }
     }
+    jb_close(js);
 }
 
 /* JSON format logging */
