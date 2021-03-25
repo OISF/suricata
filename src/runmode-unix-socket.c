@@ -1523,6 +1523,33 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(answer, "message", jmemcaps);
     SCReturnInt(TM_ECODE_OK);
 }
+
+TmEcode UnixSocketGetFlow(json_t *cmd, json_t *answer, void *data)
+{
+    /* Input: we need the IP tuple including VLAN/tenant and the flow ID */
+    json_t *jarg = json_object_get(cmd, "flow_id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("flow_id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int64_t flow_id = json_integer_value(jarg);
+
+    Flow *f = FlowGetExistingFlowFromFlowId(flow_id);
+    if (f == NULL) {
+        json_object_set_new(answer, "message", json_string("Not found"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    json_t *flow_info = json_object();
+    json_object_set_new(flow_info, "pkts_toclient", json_integer(f->tosrcpktcnt));
+    json_object_set_new(flow_info, "pkts_toserver", json_integer(f->todstpktcnt));
+    json_object_set_new(flow_info, "bytes_toclient", json_integer(f->tosrcbytecnt));
+    json_object_set_new(flow_info, "bytes_toserver", json_integer(f->todstbytecnt));
+    json_object_set_new(flow_info, "age", json_integer(f->lastts.tv_sec - f->startts.tv_sec));
+    FLOWLOCK_UNLOCK(f);
+    json_object_set_new(answer, "message", flow_info);
+    SCReturnInt(TM_ECODE_OK);
+}
 #endif /* BUILD_UNIX_SOCKET */
 
 #ifdef BUILD_UNIX_SOCKET
