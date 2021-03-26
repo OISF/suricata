@@ -42,7 +42,6 @@
 #endif /* HAVE_LIBHIREDIS */
 
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
-static bool SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
 // Threaded eve.json identifier
 static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint32_t, eve_file_id, 1);
@@ -321,8 +320,8 @@ static void SCLogFileClose(LogFileCtx *log_ctx)
     SCMutexUnlock(&log_ctx->fp_mutex);
 }
 
-static bool
-SCLogOpenThreadedFileFp(const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count)
+bool SCLogOpenThreadedFile(
+        const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count)
 {
         parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
         if (!parent_ctx->threads) {
@@ -530,6 +529,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
             log_ctx->json_flags &= ~(JSON_ESCAPE_SLASH);
     }
 
+#ifdef BUILD_WITH_UNIXSOCKET
+    if (log_ctx->threaded) {
+        if (strcasecmp(filetype, "unix_stream") == 0 || strcasecmp(filetype, "unix_dgram") == 0) {
+            FatalError(SC_ERR_FATAL, "Socket file types do not support threaded output");
+        }
+    }
+#endif
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
 #ifdef BUILD_WITH_UNIXSOCKET
@@ -557,22 +563,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
             if (log_ctx->fp == NULL)
                 return -1; // Error already logged by Open...Fp routine
         } else {
-            if (!SCLogOpenThreadedFileFp(log_path, append, log_ctx, 1)) {
+            if (!SCLogOpenThreadedFile(log_path, append, log_ctx, 1)) {
                 return -1;
             }
         }
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
-#ifdef HAVE_LIBHIREDIS
-    } else if (strcasecmp(filetype, "redis") == 0) {
-        ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
-        if (SCConfLogOpenRedis(redis_node, log_ctx) < 0) {
-            SCLogError(SC_ERR_REDIS, "failed to open redis output");
-            return -1;
-        }
-        log_ctx->type = LOGFILE_TYPE_REDIS;
-#endif
     } else {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
@@ -671,8 +668,8 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
             SCLogDebug("Opening new file for %d reference to file ctx %p", thread_id, parent_ctx);
             LogFileNewThreadedCtx(parent_ctx, parent_ctx->filename, parent_ctx->threads->append, thread_id);
         }
-        SCLogDebug("Existing file for %d reference to file ctx %p", thread_id, parent_ctx);
         SCMutexUnlock(&parent_ctx->threads->mutex);
+        SCLogDebug("Existing file for %d reference to file ctx %p", thread_id, parent_ctx);
         return parent_ctx->threads->lf_slots[thread_id];
     }
 
@@ -690,8 +687,8 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx, int thread_id)
     }
 
     if (new_array == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to increase file context array size to %d", new_size);
         SCMutexUnlock(&parent_ctx->threads->mutex);
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to increase file context array size to %d", new_size);
         return NULL;
     }
 
@@ -767,37 +764,44 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     }
 
     *thread = *parent_ctx;
-    char fname[NAME_MAX];
-    if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
-        goto error;
+    if (parent_ctx->type == LOGFILE_TYPE_FILE) {
+        char fname[NAME_MAX];
+        if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
+            goto error;
+        }
+        SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
+        thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
+        if (thread->fp == NULL) {
+            goto error;
+        }
+        thread->filename = SCStrdup(fname);
+        if (!thread->filename) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate filename for context slot %d",
+                    thread_id);
+            goto error;
+        }
+        thread->is_regular = true;
+        thread->Write = SCLogFileWriteNoLock;
+        thread->Close = SCLogFileCloseNoLock;
+        OutputRegisterFileRotationFlag(&thread->rotation_flag);
+    } else if (parent_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        thread->plugin.plugin->ThreadInit(
+                thread->plugin.init_data, thread_id, &thread->plugin.thread_data);
     }
-    SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
-    thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
-    if (thread->fp == NULL) {
-        goto error;
-    }
-    thread->filename = SCStrdup(fname);
-    if (!thread->filename) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate filename for context slot %d", thread_id);
-        goto error;
-    }
-
     thread->threaded = false;
     thread->parent = parent_ctx;
     thread->id = thread_id;
-    thread->is_regular = true;
-    thread->Write = SCLogFileWriteNoLock;
-    thread->Close = SCLogFileCloseNoLock;
-    OutputRegisterFileRotationFlag(&thread->rotation_flag);
 
     parent_ctx->threads->lf_slots[thread_id] = thread;
     return true;
 
 error:
-    SC_ATOMIC_SUB(eve_file_id, 1);
-    if (thread->fp) {
-        thread->Close(thread);
+    if (parent_ctx->type == LOGFILE_TYPE_FILE) {
+        SC_ATOMIC_SUB(eve_file_id, 1);
+        if (thread->fp) {
+            thread->Close(thread);
+        }
     }
     if (thread) {
         SCFree(thread);
@@ -817,32 +821,44 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     }
 
     if (lf_ctx->threaded) {
+        BUG_ON(lf_ctx->threads == NULL);
         SCMutexDestroy(&lf_ctx->threads->mutex);
         for(int i = 0; i < lf_ctx->threads->slot_count; i++) {
-            if (lf_ctx->threads->lf_slots[i]) {
-                OutputUnregisterFileRotationFlag(&lf_ctx->threads->lf_slots[i]->rotation_flag);
-                lf_ctx->threads->lf_slots[i]->Close(lf_ctx->threads->lf_slots[i]);
-                SCFree(lf_ctx->threads->lf_slots[i]->filename);
-                SCFree(lf_ctx->threads->lf_slots[i]);
+            if (!lf_ctx->threads->lf_slots[i]) {
+                continue;
             }
+            LogFileCtx *this_ctx = lf_ctx->threads->lf_slots[i];
+
+            if (lf_ctx->type != LOGFILE_TYPE_PLUGIN) {
+                OutputUnregisterFileRotationFlag(&this_ctx->rotation_flag);
+                this_ctx->Close(this_ctx);
+            } else {
+                lf_ctx->plugin.plugin->ThreadDeinit(
+                        this_ctx->plugin.init_data, this_ctx->plugin.thread_data);
+            }
+            SCFree(lf_ctx->threads->lf_slots[i]->filename);
+            SCFree(lf_ctx->threads->lf_slots[i]);
         }
         SCFree(lf_ctx->threads->lf_slots);
-        SCFree(lf_ctx->threads->append);
+        if (lf_ctx->threads->append)
+            SCFree(lf_ctx->threads->append);
         SCFree(lf_ctx->threads);
     } else {
-        if (lf_ctx->type == LOGFILE_TYPE_PLUGIN) {
-            if (lf_ctx->plugin->Deinit != NULL) {
-                lf_ctx->plugin->Deinit(lf_ctx->plugin_data);
+        if (lf_ctx->type != LOGFILE_TYPE_PLUGIN) {
+            if (lf_ctx->fp != NULL) {
+                lf_ctx->Close(lf_ctx);
             }
-        } else if (lf_ctx->fp != NULL) {
-            lf_ctx->Close(lf_ctx);
-        }
-        if (lf_ctx->parent) {
-            SCMutexLock(&lf_ctx->parent->threads->mutex);
-            lf_ctx->parent->threads->lf_slots[lf_ctx->id] = NULL;
-            SCMutexUnlock(&lf_ctx->parent->threads->mutex);
+            if (lf_ctx->parent) {
+                SCMutexLock(&lf_ctx->parent->threads->mutex);
+                lf_ctx->parent->threads->lf_slots[lf_ctx->id] = NULL;
+                SCMutexUnlock(&lf_ctx->parent->threads->mutex);
+            }
         }
         SCMutexDestroy(&lf_ctx->fp_mutex);
+    }
+
+    if (lf_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        lf_ctx->plugin.plugin->Deinit(lf_ctx->plugin.init_data);
     }
 
     if (lf_ctx->prefix != NULL) {
@@ -860,6 +876,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
     }
 
+    memset(lf_ctx, 0, sizeof(*lf_ctx));
     SCFree(lf_ctx);
 
     SCReturnInt(1);
@@ -878,6 +895,9 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         MemBufferWriteString(buffer, "\n");
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
                         MEMBUFFER_OFFSET(buffer), file_ctx);
+    } else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        file_ctx->plugin.plugin->Write((const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer), file_ctx->plugin.init_data, file_ctx->plugin.thread_data);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
@@ -887,10 +907,6 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
-    else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
-        file_ctx->plugin->Write((const char *)MEMBUFFER_BUFFER(buffer),
-                        MEMBUFFER_OFFSET(buffer), file_ctx->plugin_data, NULL);
-    }
 
     return 0;
 }
