@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -76,10 +76,10 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
 
-    JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "smtp", NULL, tx_id);
+    JsonBuilder *jb = CreateEveHeaderWithTxId(
+            p, LOG_DIR_FLOW, "smtp", NULL, tx_id, jhl->emaillog_ctx->eve_ctx);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
-    EveAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, jb);
 
     /* reset */
     MemBufferReset(jhl->buffer);
@@ -137,8 +137,7 @@ static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
 
-    email_ctx->file_ctx = ojc->file_ctx;
-    email_ctx->cfg = ojc->cfg;
+    email_ctx->eve_ctx = ojc;
 
     OutputEmailInitConf(conf, email_ctx);
 
@@ -172,7 +171,7 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    aft->file_ctx = LogFileEnsureExists(aft->emaillog_ctx->file_ctx, t->id);
+    aft->file_ctx = LogFileEnsureExists(aft->emaillog_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
         goto error_exit;
     }

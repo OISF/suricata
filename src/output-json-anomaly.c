@@ -172,9 +172,8 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         JsonBuilder *js;
         if (tx_id != TX_ID_UNUSED) {
-            js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET,
-                                          ANOMALY_EVENT_TYPE, NULL, tx_id);
-            EveAddCommonOptions(&aft->json_output_ctx->eve_ctx->cfg, p, p->flow, js);
+            js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, tx_id,
+                    aft->json_output_ctx->eve_ctx);
         } else {
             js = CreateEveHeader(
                     p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);

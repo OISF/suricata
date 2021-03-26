@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,8 +49,7 @@
 #include "output-json-ftp.h"
 
 typedef struct LogFTPFileCtx_ {
-    LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogFTPFileCtx;
 
 typedef struct LogFTPLogThread_ {
@@ -161,9 +160,9 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     LogFTPLogThread *thread = thread_data;
     LogFTPFileCtx *ftp_ctx = thread->ftplog_ctx;
 
-    JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id);
+    JsonBuilder *jb = CreateEveHeaderWithTxId(
+            p, LOG_DIR_FLOW, event_type, NULL, tx_id, thread->ftplog_ctx->eve_ctx);
     if (likely(jb)) {
-        EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb);
         jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
             EveFTPDataAddMetadata(f, jb);
@@ -205,8 +204,7 @@ static OutputInitResult OutputFTPLogInitSub(ConfNode *conf,
     if (unlikely(ftplog_ctx == NULL)) {
         return result;
     }
-    ftplog_ctx->file_ctx = ajt->file_ctx;
-    ftplog_ctx->cfg = ajt->cfg;
+    ftplog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -244,7 +242,7 @@ static TmEcode JsonFTPLogThreadInit(ThreadVars *t, const void *initdata, void **
     }
 
     thread->ftplog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ftplog_ctx->file_ctx, t->id);
+    thread->file_ctx = LogFileEnsureExists(thread->ftplog_ctx->eve_ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
     }

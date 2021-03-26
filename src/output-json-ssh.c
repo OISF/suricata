@@ -62,11 +62,9 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "ssh", NULL, tx_id);
+    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "ssh", NULL, tx_id, thread->ctx);
     if (unlikely(js == NULL))
         return 0;
-
-    EveAddCommonOptions(&thread->ctx->cfg, p, f, js);
 
     /* reset */
     MemBufferReset(thread->buffer);

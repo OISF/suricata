@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,12 +56,11 @@
 #include "util-byte.h"
 
 typedef struct LogHttpFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -484,10 +483,10 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     htp_tx_t *tx = txptr;
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
 
-    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "http", NULL, tx_id);
+    JsonBuilder *js = CreateEveHeaderWithTxId(
+            p, LOG_DIR_FLOW, "http", NULL, tx_id, jhl->httplog_ctx->eve_ctx);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
-    EveAddCommonOptions(&jhl->httplog_ctx->cfg, p, f, js);
 
     SCLogDebug("got a HTTP request and now logging !!");
 
@@ -567,9 +566,8 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
 
-    http_ctx->file_ctx = ojc->file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
-    http_ctx->cfg = ojc->cfg;
+    http_ctx->eve_ctx = ojc;
 
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");
@@ -656,7 +654,7 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    aft->file_ctx = LogFileEnsureExists(aft->httplog_ctx->file_ctx, t->id);
+    aft->file_ctx = LogFileEnsureExists(aft->httplog_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
         goto error_exit;
     }

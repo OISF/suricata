@@ -917,9 +917,9 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
 }
 
 JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
-                                 const char *event_type, JsonAddrInfo *addr, uint64_t tx_id)
+        const char *event_type, JsonAddrInfo *addr, uint64_t tx_id, OutputJsonCtx *eve_ctx)
 {
-    JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr, NULL);
+    JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr, eve_ctx);
     if (unlikely(js == NULL))
         return NULL;
 
