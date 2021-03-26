@@ -1,3 +1,6 @@
 [submodule "libhtp"]
 	path = libhtp
 	url = git@github.com:rtkwlf/libhtp.git
+[submodule "suricata-verify"]
+	path = suricata-verify
+	url = git@github.com:rtkwlf/suricata-verify.git
