@@ -1113,20 +1113,19 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->file_ctx->prefix_len = strlen(prefix);
         }
 
+        /* Threaded file output */
+        const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
+        if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
+            SCLogConfig("Threaded EVE logging configured");
+            json_ctx->file_ctx->threaded = true;
+        } else {
+            json_ctx->file_ctx->threaded = false;
+        }
+
         if (json_ctx->json_out == LOGFILE_TYPE_FILE ||
             json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ||
             json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM)
         {
-            if (json_ctx->json_out == LOGFILE_TYPE_FILE) {
-                /* Threaded file output */
-                const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
-                if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
-                    SCLogConfig("Enabling threaded eve logging.");
-                    json_ctx->file_ctx->threaded = true;
-                } else {
-                    json_ctx->file_ctx->threaded = false;
-                }
-            }
 
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
@@ -1183,6 +1182,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
 
             if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
+                SCFree(json_ctx->file_ctx->sensor_name);
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
@@ -1190,20 +1190,39 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 #endif
+#ifdef HAVE_PLUGINS
         else if (json_ctx->json_out == LOGFILE_TYPE_PLUGIN) {
-            ConfNode *plugin_conf = ConfNodeLookupChild(conf,
-                json_ctx->plugin->name);
-            void *plugin_data = NULL;
-            if (json_ctx->plugin->Init(plugin_conf, false, &plugin_data) < 0) {
+            if (json_ctx->file_ctx->threaded) {
+                /* Prepare for storing per-thread data */
+                if (!SCLogOpenThreadedFile(NULL, NULL, json_ctx->file_ctx, 1)) {
+                    SCFree(json_ctx);
+                    SCFree(output_ctx);
+                    return result;
+                }
+            }
+
+            void *init_data = NULL;
+            if (json_ctx->plugin->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
                 return result;
-            } else {
-                json_ctx->file_ctx->plugin = json_ctx->plugin;
-                json_ctx->file_ctx->plugin_data = plugin_data;
             }
+
+            /* Now that initialization completed successfully, if threaded, make sure
+             * that ThreadInit and ThreadDeInit exist
+             */
+            if (json_ctx->file_ctx->threaded) {
+                if (!json_ctx->plugin->ThreadInit || !json_ctx->plugin->ThreadDeinit) {
+                    FatalError(SC_ERR_LOG_OUTPUT, "Output logger must supply ThreadInit and "
+                                                  "ThreadDeinit functions for threaded mode");
+                }
+            }
+
+            json_ctx->file_ctx->plugin.plugin = json_ctx->plugin;
+            json_ctx->file_ctx->plugin.init_data = init_data;
         }
+#endif
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
