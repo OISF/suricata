@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -177,6 +177,7 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
+    LogFileDeInitCtx(thread->templatelog_ctx->file_ctx, t->id);
     if (thread->buffer != NULL) {
         MemBufferFree(thread->buffer);
     }

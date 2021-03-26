@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -384,6 +384,7 @@ static TmEcode JsonNetFlowLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    LogFileDeInitCtx(aft->flowlog_ctx->file_ctx, t->id);
     MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(JsonNetFlowLogThread));

@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -344,6 +344,8 @@ static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->json_buffer);
+
+    LogFileDeInitCtx(aft->json_output_ctx->file_ctx, t->id);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAnomalyLogThread));
