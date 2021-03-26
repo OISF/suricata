@@ -1,5 +1,5 @@
 /* vi: set et ts=4: */
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,7 +53,7 @@ void SCLogRedisInit()
 #endif /* HAVE_LIBEVENT_PTHREADS */
 }
 
-/** \brief SCLogRedisContextAlloc() - Allocates and initalizes redis context
+/** \brief SCLogRedisContextAlloc() - Allocates and initializes redis context
  */
 static SCLogRedisContext *SCLogRedisContextAlloc(void)
 {
@@ -430,7 +430,7 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
  * \param log_ctx Log file context allocated by caller
  * \param string buffer with data to write
  * \param string_len data length
- * \retval 0 on sucess;
+ * \retval 0 on success;
  * \retval -1 on failure;
  */
 int LogFileWriteRedis(void *lf_ctx, const char *string, size_t string_len)
@@ -461,6 +461,10 @@ int LogFileWriteRedis(void *lf_ctx, const char *string, size_t string_len)
 int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
 {
     LogFileCtx *log_ctx = lf_ctx;
+
+    if (log_ctx->threaded) {
+        FatalError(SC_ERR_FATAL, "redis does not support threaded output");
+    }
 
     const char *redis_port = NULL;
     const char *redis_mode = NULL;
