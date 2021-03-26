@@ -221,6 +221,7 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->buffer);
+    LogFileDeInitCtx(aft->drop_ctx->eve_ctx->file_ctx, t->id);
 
     /* clear memory */
     memset(aft, 0, sizeof(*aft));

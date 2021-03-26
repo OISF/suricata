@@ -170,6 +170,7 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
+    LogFileDeInitCtx(thread->templatelog_ctx->eve_ctx->file_ctx, t->id);
     if (thread->buffer != NULL) {
         MemBufferFree(thread->buffer);
     }

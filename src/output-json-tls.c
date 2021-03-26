@@ -494,6 +494,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    LogFileDeInitCtx(aft->tlslog_ctx->eve_ctx->file_ctx, t->id);
     MemBufferFree(aft->buffer);
 
     /* clear memory */

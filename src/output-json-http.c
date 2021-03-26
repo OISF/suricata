@@ -677,6 +677,8 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    LogFileDeInitCtx(aft->httplog_ctx->eve_ctx->file_ctx, t->id);
+
     MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(JsonHttpLogThread));

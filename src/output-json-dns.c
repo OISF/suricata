@@ -427,7 +427,7 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
         goto error_exit;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* Use the Output Context (file pointer and mutex) */
     aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
     aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->eve_ctx->file_ctx, t->id);
     if (!aft->file_ctx) {
@@ -451,6 +451,8 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+
+    LogFileDeInitCtx(aft->dnslog_ctx->eve_ctx->file_ctx, t->id);
 
     MemBufferFree(aft->buffer);
     /* clear memory */

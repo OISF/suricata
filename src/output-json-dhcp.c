@@ -158,6 +158,7 @@ static TmEcode JsonDHCPLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
+    LogFileDeInitCtx(thread->dhcplog_ctx->eve_ctx->file_ctx, t->id);
     if (thread->buffer != NULL) {
         MemBufferFree(thread->buffer);
     }

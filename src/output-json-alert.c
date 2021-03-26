@@ -844,6 +844,8 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
     MemBufferFree(aft->json_buffer);
     MemBufferFree(aft->payload_buffer);
 
+    LogFileDeInitCtx(aft->json_output_ctx->file_ctx, t->id);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
 
