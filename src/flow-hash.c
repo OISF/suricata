@@ -856,6 +856,61 @@ static inline int FlowCompareKey(Flow *f, FlowKey *key)
     return CmpFlowKey(f, key);
 }
 
+/** \brief Look for existing Flow using a flow id value
+ *
+ * Hash retrieval function for flows. Looks up the hash bucket containing the
+ * flow pointer. Then compares the packet with the found flow to see if it is
+ * the flow we need. If it isn't, walk the list until the right flow is found.
+ *
+ *
+ *  \param flow_id Flow ID of the flow to look for
+ *  \retval f *LOCKED* flow or NULL
+ */
+
+Flow *FlowGetExistingFlowFromFlowId(int64_t flow_id)
+{
+    uint32_t hash = flow_id & 0x0000FFFF;
+    /* get our hash bucket and lock it */
+    FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
+    FBLOCK_LOCK(fb);
+
+    SCLogDebug("fb %p fb->head %p", fb, fb->head);
+
+    /* return if the bucket don't have a flow */
+    if (fb->head == NULL) {
+        FBLOCK_UNLOCK(fb);
+        return NULL;
+    }
+
+    /* ok, we have a flow in the bucket. Let's find out if it is our flow */
+    Flow *f = fb->head;
+
+    /* see if this is the flow we are looking for */
+    if (FlowGetId(f) != flow_id) {
+        while (f) {
+            f = f->next;
+
+            if (f == NULL) {
+                FBLOCK_UNLOCK(fb);
+                return NULL;
+            }
+            if (FlowGetId(f) != flow_id) {
+                /* found our flow, lock & return */
+                FLOWLOCK_WRLOCK(f);
+
+                FBLOCK_UNLOCK(fb);
+                return f;
+            }
+        }
+    }
+
+    /* lock & return */
+    FLOWLOCK_WRLOCK(f);
+
+    FBLOCK_UNLOCK(fb);
+    return f;
+}
+
 /** \brief Get or create a Flow using a FlowKey
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
