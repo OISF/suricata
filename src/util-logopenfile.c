@@ -830,8 +830,8 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCFree(lf_ctx->threads);
     } else {
         if (lf_ctx->type == LOGFILE_TYPE_PLUGIN) {
-            if (lf_ctx->plugin->Close != NULL) {
-                lf_ctx->plugin->Close(lf_ctx->plugin_data);
+            if (lf_ctx->plugin->Deinit != NULL) {
+                lf_ctx->plugin->Deinit(lf_ctx->plugin_data);
             }
         } else if (lf_ctx->fp != NULL) {
             lf_ctx->Close(lf_ctx);
@@ -888,7 +888,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 #endif
     else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
         file_ctx->plugin->Write((const char *)MEMBUFFER_BUFFER(buffer),
-                        MEMBUFFER_OFFSET(buffer), file_ctx->plugin_data);
+                        MEMBUFFER_OFFSET(buffer), file_ctx->plugin_data, NULL);
     }
 
     return 0;

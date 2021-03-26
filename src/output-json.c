@@ -1186,7 +1186,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             ConfNode *plugin_conf = ConfNodeLookupChild(conf,
                 json_ctx->plugin->name);
             void *plugin_data = NULL;
-            if (json_ctx->plugin->Open(plugin_conf, &plugin_data) < 0) {
+            if (json_ctx->plugin->Init(plugin_conf, false, &plugin_data) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
