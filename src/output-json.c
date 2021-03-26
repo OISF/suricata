@@ -1182,7 +1182,6 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
 
             if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
-                SCFree(json_ctx->file_ctx->sensor_name);
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
