@@ -21,7 +21,7 @@ function-macro = []
 
 [dependencies]
 nom = "~5.1.2"
-bitflags = "~1.0.4"
+bitflags = "~1.2.1"
 byteorder = "~1.4.2"
 uuid = "~0.8.2"
 crc = "~1.8.1"
