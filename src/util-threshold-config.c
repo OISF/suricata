@@ -385,8 +385,8 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         }
     } else if (id > 0 && gid == 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
-                   "sid > 0 and gid == 0. Please fix this "
-                   "in your threshold.conf file");
+                                         "sid > 0 and gid == 0. Please fix this "
+                                         "in your threshold.config file");
         goto error;
     } else {
         s = SigFindSignatureBySidGid(de_ctx, id, gid);
