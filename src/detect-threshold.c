@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -275,6 +275,53 @@ static void DetectThresholdFree(void *de_ptr)
         DetectAddressHeadCleanup(&de->addrs);
         SCFree(de);
     }
+}
+
+/**
+ * \brief Make a deep-copy of an extant DetectTHresholdData object.
+ *
+ * \param de pointer to DetectThresholdData
+ */
+DetectThresholdData *DetectThresholdDataCopy(DetectThresholdData *de)
+{
+    DetectThresholdData *new_de = SCCalloc(1, sizeof(DetectThresholdData));
+    if (unlikely(new_de == NULL))
+        return NULL;
+
+    *new_de = *de;
+    new_de->addrs.ipv4_head = NULL;
+    new_de->addrs.ipv6_head = NULL;
+
+    for (DetectAddress *last = NULL, *tmp_ad = de->addrs.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
+        DetectAddress *n_addr = DetectAddressCopy(tmp_ad);
+        if (n_addr == NULL)
+            goto error;
+        if (last == NULL) {
+            new_de->addrs.ipv4_head = n_addr;
+        } else {
+            last->next = n_addr;
+            n_addr->prev = last;
+        }
+        last = n_addr;
+    }
+    for (DetectAddress *last = NULL, *tmp_ad = de->addrs.ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+        DetectAddress *n_addr = DetectAddressCopy(tmp_ad);
+        if (n_addr == NULL)
+            goto error;
+        if (last == NULL) {
+            new_de->addrs.ipv6_head = n_addr;
+        } else {
+            last->next = n_addr;
+            n_addr->prev = last;
+        }
+        last = n_addr;
+    }
+
+    return new_de;
+
+error:
+    DetectThresholdFree(new_de);
+    return NULL;
 }
 
 /*
