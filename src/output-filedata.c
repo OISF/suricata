@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,8 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-magic.h"
+
+bool g_filedata_logger_enabled = false;
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -97,6 +99,7 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     }
 
     SCLogDebug("OutputRegisterFiledataLogger happy");
+    g_filedata_logger_enabled = true;
     return 0;
 }
 
@@ -127,6 +130,17 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
         DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     }
     return file_logged;
+}
+
+static void CloseFile(const Packet *p, Flow *f, File *file)
+{
+    void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, file->txid);
+    if (txv) {
+        AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+        if (txd)
+            txd->files_stored++;
+    }
+    file->flags |= FILE_STORED;
 }
 
 static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadData *td,
@@ -162,7 +176,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadData *td,
                     FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
                 }
                 CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE, dir);
-                ff->flags |= FILE_STORED;
+                CloseFile(p, p->flow, ff);
                 continue;
             }
 
@@ -201,7 +215,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadData *td,
 
                 /* all done */
                 if (file_flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-                    ff->flags |= FILE_STORED;
+                    CloseFile(p, p->flow, ff);
                 }
             }
         }
@@ -225,18 +239,20 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END) &&
-            (p->flowflags & FLOW_PKT_TOSERVER));
-    const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END) &&
-            (p->flowflags & FLOW_PKT_TOCLIENT));
     const bool file_trunc = StreamTcpReassembleDepthReached(p);
-
-    FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
-    FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
-    SCLogDebug("ffc_ts %p", ffc_ts);
-    OutputFiledataLogFfc(tv, op_thread_data, p, ffc_ts, STREAM_TOSERVER, file_close_ts, file_trunc, STREAM_TOSERVER);
-    SCLogDebug("ffc_tc %p", ffc_tc);
-    OutputFiledataLogFfc(tv, op_thread_data, p, ffc_tc, STREAM_TOCLIENT, file_close_tc, file_trunc, STREAM_TOCLIENT);
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END));
+        FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
+        SCLogDebug("ffc_ts %p", ffc_ts);
+        OutputFiledataLogFfc(tv, op_thread_data, p, ffc_ts, STREAM_TOSERVER, file_close_ts,
+                file_trunc, STREAM_TOSERVER);
+    } else {
+        const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END));
+        FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
+        SCLogDebug("ffc_tc %p", ffc_tc);
+        OutputFiledataLogFfc(tv, op_thread_data, p, ffc_tc, STREAM_TOCLIENT, file_close_tc,
+                file_trunc, STREAM_TOCLIENT);
+    }
 
     return TM_ECODE_OK;
 }

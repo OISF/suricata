@@ -168,6 +168,7 @@ pub struct NFSTransaction {
 
     /// is a special file tx that we look up by file_handle instead of XID
     pub is_file_tx: bool,
+    pub is_file_closed: bool,
     /// file transactions are unidirectional in the sense that they track
     /// a single file on one direction
     pub file_tx_direction: u8, // STREAM_TOCLIENT or STREAM_TOSERVER
@@ -203,6 +204,7 @@ impl NFSTransaction {
             response_done: false,
             nfs_version:0,
             is_file_tx: false,
+            is_file_closed: false,
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
@@ -213,6 +215,8 @@ impl NFSTransaction {
     }
 
     pub fn free(&mut self) {
+        debug_validate_bug_on!(self.tx_data.files_opened > 1);
+        debug_validate_bug_on!(self.tx_data.files_logged > 1);
         if self.events != std::ptr::null_mut() {
             sc_app_layer_decoder_events_free_events(&mut self.events);
         }
@@ -589,6 +593,7 @@ impl NFSState {
         if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
             d.file_tracker.tx_id = tx.id - 1;
         }
+        tx.tx_data.init_files_opened();
         SCLogDebug!("new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
@@ -602,7 +607,7 @@ impl NFSState {
     {
         let fh = file_handle.to_vec();
         for tx in &mut self.transactions {
-            if tx.is_file_tx &&
+            if tx.is_file_tx && !tx.is_file_closed &&
                 direction == tx.file_tx_direction &&
                 tx.file_handle == fh
             {
@@ -645,6 +650,7 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.response_done = true;
+                        tx.is_file_closed = true;
                     }
                     true
                 } else {
@@ -667,6 +673,7 @@ impl NFSState {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
+                    tx.is_file_closed = true;
                 }
             }
         }
@@ -824,9 +831,11 @@ impl NFSState {
                     if tdf.file_tracker.is_done() {
                         if direction == STREAM_TOCLIENT {
                             tx.response_done = true;
+                            tx.is_file_closed = true;
                             SCLogDebug!("TX {} response is done now that the file track is ready", tx.id);
                         } else {
                             tx.request_done = true;
+                            tx.is_file_closed = true;
                             SCLogDebug!("TX {} request is done now that the file track is ready", tx.id);
                         }
                     }

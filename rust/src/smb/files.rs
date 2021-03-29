@@ -75,6 +75,7 @@ impl SMBState {
             },
             _ => { },
         }
+        tx.tx_data.init_files_opened();
         SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);

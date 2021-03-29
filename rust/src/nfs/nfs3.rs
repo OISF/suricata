@@ -126,6 +126,7 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;
+                        tx.is_file_closed = true;
                     }
                 }
             } else {

@@ -91,12 +91,18 @@ impl NFSState {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
+                    tx.is_file_closed = true;
                 }
             }
         }
         self.ts_chunk_xid = r.hdr.xid;
         let file_data_len = w.data.len() as u32 - fill_bytes as u32;
         self.ts_chunk_left = w.write_len as u32 - file_data_len as u32;
+    }
+
+    fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b[u8])
+    {
+        self.commit_v4(r, fh)
     }
 
     fn commit_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b[u8])
@@ -110,6 +116,7 @@ impl NFSState {
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
+                tx.is_file_closed = true;
             }
         }
     }
@@ -188,6 +195,9 @@ impl NFSState {
                 }
                 &Nfs4RequestContent::Close(ref rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", rd);
+                    if let Some(fh) = last_putfh {
+                        self.close_v4(r, fh);
+                    }
                 }
                 &Nfs4RequestContent::Create(ref rd) => {
                     SCLogDebug!("CREATEv4: {:?}", rd);
