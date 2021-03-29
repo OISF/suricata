@@ -85,5 +85,6 @@ typedef struct DetectThresholdEntry_ {
  */
 
 void DetectThresholdRegister(void);
+DetectThresholdData *DetectThresholdDataCopy(DetectThresholdData *);
 
 #endif /*__DETECT_THRESHOLD_H__ */
