@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -296,6 +296,24 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
     BUG_ON(parsed_type != TYPE_SUPPRESS);
 
+    DetectThresholdData *orig_de = NULL;
+    if (parsed_track != TRACK_RULE) {
+        orig_de = SCCalloc(1, sizeof(DetectThresholdData));
+        if (unlikely(orig_de == NULL))
+            goto error;
+
+        orig_de->type = TYPE_SUPPRESS;
+        orig_de->track = parsed_track;
+        orig_de->count = parsed_count;
+        orig_de->seconds = parsed_seconds;
+        orig_de->new_action = parsed_new_action;
+        orig_de->timeout = parsed_timeout;
+        if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &orig_de->addrs, (char *)th_ip) < 0) {
+            SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
+            goto error;
+        }
+    }
+
     /* Install it */
     if (id == 0 && gid == 0) {
         if (parsed_track == TRACK_RULE) {
@@ -310,24 +328,9 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                 continue;
             }
 
-            de = SCMalloc(sizeof(DetectThresholdData));
+            de = DetectThresholdDataCopy(orig_de);
             if (unlikely(de == NULL))
                 goto error;
-            memset(de,0,sizeof(DetectThresholdData));
-
-            de->type = TYPE_SUPPRESS;
-            de->track = parsed_track;
-            de->count = parsed_count;
-            de->seconds = parsed_seconds;
-            de->new_action = parsed_new_action;
-            de->timeout = parsed_timeout;
-
-            if (parsed_track != TRACK_RULE) {
-                if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
-                    goto error;
-                }
-            }
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
@@ -354,25 +357,9 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                 continue;
             }
 
-            de = SCMalloc(sizeof(DetectThresholdData));
+            de = DetectThresholdDataCopy(orig_de);
             if (unlikely(de == NULL))
                 goto error;
-
-            memset(de,0,sizeof(DetectThresholdData));
-
-            de->type = TYPE_SUPPRESS;
-            de->track = parsed_track;
-            de->count = parsed_count;
-            de->seconds = parsed_seconds;
-            de->new_action = parsed_new_action;
-            de->timeout = parsed_timeout;
-
-            if (parsed_track != TRACK_RULE) {
-                if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
-                    goto error;
-                }
-            }
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
@@ -401,22 +388,9 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                 goto end;
             }
 
-            de = SCMalloc(sizeof(DetectThresholdData));
+            de = DetectThresholdDataCopy(orig_de);
             if (unlikely(de == NULL))
                 goto error;
-            memset(de,0,sizeof(DetectThresholdData));
-
-            de->type = TYPE_SUPPRESS;
-            de->track = parsed_track;
-            de->count = parsed_count;
-            de->seconds = parsed_seconds;
-            de->new_action = parsed_new_action;
-            de->timeout = parsed_timeout;
-
-            if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) < 0) {
-                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
-                goto error;
-            }
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
@@ -432,8 +406,16 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
     }
 
 end:
+    if (orig_de != NULL) {
+        DetectAddressHeadCleanup(&orig_de->addrs);
+        SCFree(orig_de);
+    }
     return 0;
 error:
+    if (orig_de != NULL) {
+        DetectAddressHeadCleanup(&orig_de->addrs);
+        SCFree(orig_de);
+    }
     if (de != NULL) {
         DetectAddressHeadCleanup(&de->addrs);
         SCFree(de);
