@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -120,7 +120,7 @@ static void DetectAddressHeadFree(DetectAddressHead *gh)
  * \retval ag Pointer to the new instance of DetectAddress that contains the
  *            copied address.
  */
-static DetectAddress *DetectAddressCopy(DetectAddress *orig)
+DetectAddress *DetectAddressCopy(DetectAddress *orig)
 {
     DetectAddress *ag = DetectAddressInit();
     if (ag == NULL)
@@ -829,7 +829,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     }
                     DetectAddressHeadCleanup(&tmp_ghn);
 
-                    SCLogDebug("merged succesfully");
+                    SCLogDebug("merged successfully");
 
                     /* insert the IPv4 addresses into the negated list */
                     for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
@@ -1501,7 +1501,7 @@ void DetectAddressHeadCleanup(DetectAddressHead *gh)
  *        explanations on what these functions do.
  *
  * \param de_ctx Pointer to the DetectEngineCtx.
- * \param a      Pointer the the first address to be cut.
+ * \param a      Pointer to the first address to be cut.
  * \param b      Pointer to the second address to be cut.
  * \param c      Pointer to a pointer to a third DetectAddressData, in case the
  *               ranges from a and b, demand a third address range.
