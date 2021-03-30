@@ -219,6 +219,13 @@ typedef struct HtpTxUserData_ {
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
 
+    uint8_t boundary_len;
+
+    uint8_t tsflags;
+    uint8_t tcflags;
+
+    uint8_t request_body_type;
+
     HtpBody request_body;
     HtpBody response_body;
 
@@ -233,12 +240,6 @@ typedef struct HtpTxUserData_ {
      *  multipart/form-data only)
      */
     uint8_t *boundary;
-    uint8_t boundary_len;
-
-    uint8_t tsflags;
-    uint8_t tcflags;
-
-    uint8_t request_body_type;
 
     AppLayerTxData tx_data;
 } HtpTxUserData;
