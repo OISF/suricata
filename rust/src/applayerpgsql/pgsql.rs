@@ -259,6 +259,7 @@ impl PgsqlState {
 ///
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_ts(input: &[u8]) -> bool {
+    // TODO would it be useful to add a is_valid function?
     parser::pgsql_parse_request(input).is_ok()
 }
 
@@ -608,17 +609,39 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_probes() {
+    fn test_request_probe() {
 
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
         assert!(probe_ts(&buf));
-        // incomplete messages
+
+        // incomplete messages, probe must return false
         assert!(!probe_ts(&buf[0..6]));
         assert!(!probe_ts(&buf[0..3]));
 
-        // length is wrong (7)
+        // length is wrong (7), probe must return false
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x07, 0x04, 0xd2, 0x16, 0x2f];
         assert!(!probe_ts(&buf));
+
+        // A valid startup message/request
+        let buf: &[u8] = &[ 0x00, 0x00, 0x00, 0x26, 0x00, 0x03, 0x00, 0x00,
+                            0x75, 0x73, 0x65, 0x72, 0x00, 0x6f, 0x72, 0x79,
+                            0x78, 0x00, 0x64, 0x61, 0x74, 0x61, 0x62, 0x61,
+                            0x73, 0x65, 0x00, 0x6d, 0x61, 0x69, 0x6c, 0x73,
+                            0x74, 0x6f, 0x72, 0x65, 0x00, 0x00];
+        assert!(probe_ts(&buf));
+
+        // A non valid startup message/request (length is shorter by one. Would `exact!` help?)
+        let buf: &[u8] = &[ 0x00, 0x00, 0x00, 0x25, 0x00, 0x03, 0x00, 0x00,
+                            0x75, 0x73, 0x65, 0x72, 0x00, 0x6f, 0x72, 0x79,
+                            0x78, 0x00, 0x64, 0x61, 0x74, 0x61, 0x62, 0x61,
+                            0x73, 0x65, 0x00, 0x6d, 0x61, 0x69, 0x6c, 0x73,
+                            0x74, 0x6f, 0x72, 0x65, 0x00, 0x00];
+        assert!(!probe_ts(&buf));
+
+    }
+
+    #[test]
+    fn test_response_probe() {
 
         // 'S' - valid
         let buf: &[u8] = &[0x53];
@@ -628,12 +651,12 @@ mod test {
         let buf: &[u8] = &[0x4e];
         assert!(probe_tc(&buf));
 
+        // not a valid response
         let buf: &[u8] = &[0x44];
         assert!(!probe_tc(&buf));
     }
-
     #[test]
-    fn test_incomplete() {
+    fn test_incomplete_request() {
         let mut state = PgsqlState::new();
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
 
