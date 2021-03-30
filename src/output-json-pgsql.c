@@ -71,7 +71,8 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
     SCLogNotice("JsonPgsqlLogger");
     LogPgsqlLogThread *thread = thread_data;
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL);
+    // TODO must figure out the best way to pass that new argument
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL, NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
