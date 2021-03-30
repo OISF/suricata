@@ -1054,7 +1054,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t flags)
 {
     SCEnter();
-    int r = 0;
+    int r;
     if (unlikely(IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
@@ -1067,18 +1067,14 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
 uint64_t AppLayerParserGetTxCnt(const Flow *f, void *alstate)
 {
     SCEnter();
-    uint64_t r = 0;
-    r = alp_ctx.ctxs[f->protomap][f->alproto].
-               StateGetTxCnt(alstate);
+    uint64_t r = alp_ctx.ctxs[f->protomap][f->alproto].StateGetTxCnt(alstate);
     SCReturnCT(r, "uint64_t");
 }
 
 void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id)
 {
     SCEnter();
-    void * r = NULL;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetTx(alstate, tx_id);
+    void *r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTx(alstate, tx_id);
     SCReturnPtr(r, "void *");
 }
 
@@ -1094,7 +1090,7 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
                     int *event_id, AppLayerEventType *event_type)
 {
     SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo == NULL) ?
                 -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo(event_name, event_id, event_type);
     SCReturnInt(r);
@@ -1104,7 +1100,7 @@ int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_
                     const char **event_name, AppLayerEventType *event_type)
 {
     SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
     *event_name = (const char *)NULL;
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById == NULL) ?
                 -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById(event_id, event_name, event_type);
@@ -1114,9 +1110,7 @@ int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
-    uint8_t r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-               first_data_dir;
+    uint8_t r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].first_data_dir;
     SCReturnCT(r, "uint8_t");
 }
 
@@ -1126,11 +1120,10 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
     SCEnter();
 
     uint64_t active_id;
-
     uint64_t log_id = pstate->log_id;
     uint64_t inspect_id = pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
     if (alp_ctx.ctxs[f->protomap][f->alproto].logger == true) {
-        active_id = (log_id < inspect_id) ? log_id : inspect_id;
+        active_id = MIN(log_id, inspect_id);
     } else {
         active_id = inspect_id;
     }
@@ -1153,8 +1146,7 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
-    DetectEngineState *s;
-    s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx);
+    DetectEngineState *s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx);
     SCReturnPtr(s, "DetectEngineState");
 }
 
@@ -1177,8 +1169,9 @@ void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig config)
 {
     SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig(state, tx, mode, config);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
+    if (alp_ctx.ctxs[ipproto_map][alproto].ApplyTxConfig) {
+        alp_ctx.ctxs[ipproto_map][alproto].ApplyTxConfig(state, tx, mode, config);
     }
     SCReturn;
 }
