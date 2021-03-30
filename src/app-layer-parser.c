@@ -890,7 +890,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxData != NULL && !g_detect_disabled);
+    const bool has_tx_detect_flags = !g_detect_disabled;
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -1150,13 +1150,6 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
-int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
-{
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState != NULL)
-        return TRUE;
-    return FALSE;
-}
-
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
@@ -1168,33 +1161,16 @@ DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alpr
 int AppLayerParserSetTxDetectState(const Flow *f,
                                    void *tx, DetectEngineState *s)
 {
-    int r;
     SCEnter();
-    if ((alp_ctx.ctxs[f->protomap][f->alproto].GetTxDetectState(tx) != NULL))
-        SCReturnInt(-EBUSY);
-    r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(tx, s);
+    int r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(tx, s);
     SCReturnInt(r);
-}
-
-bool AppLayerParserSupportsTxDetectFlags(AppProto alproto)
-{
-    SCEnter();
-    for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
-        if (alp_ctx.ctxs[p][alproto].GetTxData != NULL) {
-            SCReturnBool(true);
-        }
-    }
-    SCReturnBool(false);
 }
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData) {
-        AppLayerTxData *d = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData(tx);
-        SCReturnPtr(d, "AppLayerTxData");
-    }
-    SCReturnPtr(NULL, "AppLayerTxData");
+    AppLayerTxData *d = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData(tx);
+    SCReturnPtr(d, "AppLayerTxData");
 }
 
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
@@ -1575,9 +1551,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
         goto bad;
     }
     if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
-        goto bad;
-    }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
     if (ctx->GetTxData == NULL) {
