@@ -63,6 +63,7 @@ outputs:\n\
             enabled: yes\n\
             extended: yes\n\
         - ssh\n\
+        - pgsql\n\
         - flow\n\
         - netflow\n\
         - metadata\n\
@@ -101,6 +102,8 @@ app-layer:\n\
       enabled: yes\n\
       hassh: yes\n\
     mqtt:\n\
+      enabled: yes\n\
+    pgsql:\n\
       enabled: yes\n\
     http2:\n\
       enabled: yes\n\

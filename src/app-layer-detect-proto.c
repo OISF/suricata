@@ -906,6 +906,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_RFB\n");
                     else if (pp_pe->alproto == ALPROTO_MQTT)
                         printf("            alproto: ALPROTO_MQTT\n");
+                    else if (pp_pe->alproto == ALPROTO_PGSQL)
+                        printf("            alproto: ALPROTO_PGSQL\n");
                     else if (pp_pe->alproto == ALPROTO_TELNET)
                         printf("            alproto: ALPROTO_TELNET\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
@@ -985,6 +987,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_RFB\n");
                 else if (pp_pe->alproto == ALPROTO_MQTT)
                     printf("            alproto: ALPROTO_MQTT\n");
+                else if (pp_pe->alproto == ALPROTO_PGSQL)
+                    printf("            alproto: ALPROTO_PGSQL\n");
                 else if (pp_pe->alproto == ALPROTO_TELNET)
                     printf("            alproto: ALPROTO_TELNET\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)

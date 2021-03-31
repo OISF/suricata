@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -122,6 +122,7 @@ pub mod dhcp;
 pub mod sip;
 pub mod rfb;
 pub mod mqtt;
+pub mod pgsql;
 pub mod telnet;
 pub mod applayertemplate;
 pub mod rdp;
