@@ -108,6 +108,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_MQTT:
             proto_name = "mqtt";
             break;
+        case ALPROTO_PGSQL:
+            proto_name = "pgsql";
+            break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;
@@ -170,6 +173,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"sip")==0) return ALPROTO_SIP;
     if (strcmp(proto_name,"rfb")==0) return ALPROTO_RFB;
     if (strcmp(proto_name,"mqtt")==0) return ALPROTO_MQTT;
+    if (strcmp(proto_name, "pgsql") == 0)
+        return ALPROTO_PGSQL;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;

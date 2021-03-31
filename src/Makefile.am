@@ -40,6 +40,7 @@ noinst_HEADERS = \
 	app-layer-nfs-udp.h \
 	app-layer-ntp.h \
 	app-layer-parser.h \
+	app-layer-pgsql.h \
 	app-layer-protos.h \
 	app-layer-rdp.h \
 	app-layer-register.h \
@@ -398,6 +399,7 @@ noinst_HEADERS = \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
+	output-json-pgsql.h \
 	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
@@ -620,6 +622,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-nfs-udp.c \
 	app-layer-ntp.c \
 	app-layer-parser.c \
+	app-layer-pgsql.c \
 	app-layer-protos.c \
 	app-layer-rdp.c \
 	app-layer-register.c \
@@ -973,6 +976,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
+	output-json-pgsql.c \
 	output-json-rdp.c \
 	output-json-rfb.c \
 	output-json-sip.c \

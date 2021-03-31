@@ -98,6 +98,8 @@ app-layer:\n\
       hassh: yes\n\
     mqtt:\n\
       enabled: yes\n\
+    postgresql:\n\
+      enabled: yes\n\
     http2:\n\
       enabled: yes\n\
 ";
