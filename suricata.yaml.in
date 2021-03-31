@@ -287,6 +287,9 @@ outputs:
         - mqtt:
             # passwords: yes           # enable output of passwords
         - http2
+        - pgsql:
+            enabled: no
+            # passwords: yes           # enable output of passwords. Disabled by default
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -807,6 +810,10 @@ app-layer:
       #
       #encryption-handling: default
 
+    pgsql:
+      enabled: no
+      # Stream reassembly size for PostgreSQL. By default, track it completely.
+      stream-depth: 0
     dcerpc:
       enabled: yes
     ftp:
