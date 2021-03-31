@@ -342,7 +342,7 @@ function HelpCommand {
 # on master. If our branch has not been rebased on the latest master, this
 # would result in including all new commits on master!
 function FirstCommitOfBranch {
-    local first_commit=$(git rev-list origin/master..HEAD | tail -n 1)
+    local first_commit=$(git rev-list origin/master-6.0.x..HEAD | tail -n 1)
     echo $first_commit
 }
 
