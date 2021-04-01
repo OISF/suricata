@@ -467,6 +467,11 @@ typedef enum {
     LOGGER_JSON_DCERPC,
     LOGGER_JSON_HTTP2,
 
+    /** \warning when we exceed what we can express as a u32 flag here we need to update
+     *           LoggerFlags::flags (u32) and `tx_logged` in src/output-tx.c */
+
+    /* non-tx loggers below */
+
     LOGGER_ALERT_DEBUG,
     LOGGER_ALERT_FAST,
     LOGGER_UNIFIED2,
