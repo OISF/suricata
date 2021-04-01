@@ -2487,6 +2487,12 @@ fi
 	[RUST_FEATURES="$RUST_FEATURES function-macro"],
 	[RUST_FEATURES="$RUST_FEATURES function-macro"])
 
+    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
+        [NOM_VERSION="5.1.1"],
+        [NOM_VERSION="5.1.2"],
+        [NOM_VERSION="5.1.2"])
+    AC_SUBST(NOM_VERSION)
+
     rust_vendor_comment="# "
     have_rust_vendor="no"
 
