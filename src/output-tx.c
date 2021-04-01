@@ -189,6 +189,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         goto end;
     }
 
+    const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
+    const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
+    const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC) != 0;
     const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
     const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
@@ -236,10 +239,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             goto next_tx;
         }
 
-        int tx_progress_ts = AppLayerParserGetStateProgress(p->proto, alproto,
-                tx, ts_disrupt_flags);
-        int tx_progress_tc = AppLayerParserGetStateProgress(p->proto, alproto,
-                tx, tc_disrupt_flags);
+        const int tx_progress_ts =
+                AppLayerParserGetStateProgress(p->proto, alproto, tx, ts_disrupt_flags);
+        const int tx_progress_tc =
+                AppLayerParserGetStateProgress(p->proto, alproto, tx, tc_disrupt_flags);
         SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
                 tx_progress_ts, tx_progress_tc);
 
@@ -260,11 +263,6 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             if ((tx_logged_old & (1<<logger->logger_id)) == 0) {
                 SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
-                const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
-                const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser,
-                        APP_LAYER_PARSER_EOF_TS) != 0;
-                const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser,
-                        APP_LAYER_PARSER_EOF_TC) != 0;
                 SCLogDebug("pcap_cnt %"PRIu64", tx_id %"PRIu64" logger %d. "
                         "EOFs TS %s TC %s LAST PSEUDO %s",
                         p->pcap_cnt, tx_id, logger->logger_id,
