@@ -20,7 +20,7 @@ function-macro = []
 
 [dependencies]
 nom = "= @NOM_VERSION@"
-bitflags = "1.0"
+bitflags = "1.2"
 byteorder = "1.3"
 uuid = "0.8"
 crc = "1.8"
