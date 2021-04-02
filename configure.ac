@@ -2625,6 +2625,7 @@ fi
     AC_SUBST(RUST_FEATURES)
 
     NOM_VERSION="5.1.1"
+    AC_SUBST(NOM_VERSION)
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
@@ -2633,6 +2634,7 @@ fi
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
         AS_IF([test "x$CARGO_BUILD_TARGET" = "x" && echo "$rust_compiler_version" | grep -q nightly], [
             NOM_VERSION="5.1.2"
+            AC_SUBST(NOM_VERSION)
             CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu
             AC_SUBST(CARGO_BUILD_TARGET)
         ])
@@ -2670,7 +2672,6 @@ return 0;
     ])
 
     AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
-    AC_SUBST(NOM_VERSION)
 
 
 # get revision
