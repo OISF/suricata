@@ -802,11 +802,10 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx(void)
 {
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
-    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+    if ((iface_ctx = SCCalloc(1, sizeof(SCLogOPIfaceCtx))) == NULL) {
         FatalError(SC_ERR_FATAL,
                    "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
     }
-    memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
 
     return iface_ctx;
 }
@@ -1251,11 +1250,8 @@ SCLogInitData *SCLogAllocLogInitData(void)
 {
     SCLogInitData *sc_lid = NULL;
 
-    /* not using SCMalloc here because if it fails we can't log */
-    if ( (sc_lid = SCMalloc(sizeof(SCLogInitData))) == NULL)
+    if ((sc_lid = SCCalloc(1, sizeof(SCLogInitData))) == NULL)
         return NULL;
-
-    memset(sc_lid, 0, sizeof(SCLogInitData));
 
     return sc_lid;
 }
@@ -1408,11 +1404,10 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 #endif /* OS_WIN32 */
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
+    if ((sc_log_config = SCCalloc(1, sizeof(SCLogConfig))) == NULL) {
         FatalError(SC_ERR_FATAL,
                    "Fatal error encountered in SCLogInitLogModule. Exiting...");
     }
-    memset(sc_log_config, 0, sizeof(SCLogConfig));
 
     SCLogSetLogLevel(sc_lid, sc_log_config);
     SCLogSetLogFormat(sc_lid, sc_log_config);
