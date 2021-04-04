@@ -189,7 +189,7 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
 }
 
 /**
- * \brief Output function that logs a character string throught the syslog iface
+ * \brief Output function that logs a character string through the syslog iface
  *
  * \param syslog_log_level Holds the syslog_log_level that the message should be
  *                         logged as
@@ -349,11 +349,14 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
  *
  * \retval SC_OK on success; else an error code
  */
-static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPType type,
-        char *buffer, size_t buffer_size, const char *log_format,
-
-        const SCLogLevel log_level, const char *file, const unsigned int line, const char *function,
-        const char *module, const SCError error_code, const char *message)
+static SCError SCLogMessageGetBuffer(
+        struct timeval *tval, int color, SCLogOPType type,
+                     char *buffer, size_t buffer_size,
+                     const char *log_format,
+                     const SCLogLevel log_level, const char *file,
+                     const unsigned int line, const char *function,
+                     const char *module, const SCError error_code,
+                     const char *message)
 {
     if (_sc_subsystem[0] == '\0') {
         if (SCGetThreadName(_sc_subsystem, 16) < 0) {
@@ -1238,7 +1241,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
 /**
  * \brief Returns a pointer to a new SCLogInitData.  This is a public interface
- *        intended to be used after the logging paramters are read from the
+ *        intended to be used after the logging parameters are read from the
  *        conf file
  *
  * \retval sc_lid Pointer to the newly created SCLogInitData
