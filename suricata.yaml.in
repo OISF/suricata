@@ -543,7 +543,7 @@ logging:
   # something reasonable if not provided.  Can be overridden in an
   # output section.  You can leave this out to get the default.
   #
-  # This value is overridden by the SC_LOG_FORMAT env var.
+  # This console log format value can be  overridden by the SC_LOG_FORMAT env var.
   #default-log-format: "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 
   # A regex to filter output.  Can be overridden in an output section.
