@@ -214,36 +214,34 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
         SCLogLevel log_level, const char *file, unsigned line, const char *function,
         const char *module, SCError error_code, const char *message)
 {
-    json_t *js = json_object();
+    JsonBuilder *js = jb_new_object();
     if (unlikely(js == NULL))
-        goto error;
-    json_t *ejs = json_object();
-    if (unlikely(ejs == NULL))
         goto error;
 
     char timebuf[64];
     CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
-    json_object_set_new(js, "timestamp", json_string(timebuf));
+    jb_set_string(js, "timestamp", timebuf);
 
     const char *s = SCMapEnumValueToName(log_level, sc_log_level_map);
     if (s != NULL) {
-        json_object_set_new(js, "log_level", json_string(s));
+        jb_set_string(js, "log_level", s);
     } else {
-        json_object_set_new(js, "log_level", json_string("INVALID"));
+        JB_SET_STRING(js, "log_level", "INVALID");
     }
 
-    json_object_set_new(js, "event_type", json_string("engine"));
+    JB_SET_STRING(js, "event_type", "engine");
+    jb_open_object(js, "engine");
 
     if (error_code > 0) {
-        json_object_set_new(ejs, "error_code", json_integer(error_code));
-        json_object_set_new(ejs, "error", json_string(SCErrorToString(error_code)));
+        jb_set_uint(js, "error_code", error_code);
+        jb_set_string(js, "error", SCErrorToString(error_code));
     }
 
     if (message)
-        json_object_set_new(ejs, "message", json_string(message));
+        jb_set_string(js, "message", message);
 
-    if (_sc_subsystem) {
-        json_object_set_new(ejs, "subsystem", json_string(_sc_subsystem));
+    if (_sc_subsystem[0] != '\0') {
+        jb_set_string(js, "subsystem", _sc_subsystem);
     }
 
     if (module) {
@@ -251,33 +249,28 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
         int dn_len = 0;
         const char *dn_name;
         dn_name = SCTransformModule(module, &dn_len);
-        json_object_set_new(ejs, "module", json_string(dn_name));
+        jb_set_string(js, "module", dn_name);
     }
 
     if (log_level >= SC_LOG_DEBUG) {
         if (function)
-            json_object_set_new(ejs, "function", json_string(function));
+            jb_set_string(js, "function", function);
 
         if (file)
-            json_object_set_new(ejs, "file", json_string(file));
+            jb_set_string(js, "file", file);
 
         if (line > 0)
-            json_object_set_new(ejs, "line", json_integer(line));
+            jb_set_uint(js, "line", line);
     }
+    jb_close(js); // engine
 
-    json_object_set_new(js, "engine", ejs);
+    jb_close(js);
+    memcpy(buffer, jb_ptr(js), MIN(buffer_size, jb_len(js)));
 
-    char *js_s = json_dumps(js,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
-    snprintf(buffer, buffer_size, "%s", js_s);
-    free(js_s);
-
-    json_object_del(js, "engine");
-    json_object_clear(js);
-    json_decref(js);
+    jb_free(js);
 
     return 0;
+
 error:
     return -1;
 }
