@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -80,7 +80,11 @@ typedef enum {
 
 /* The default log_format, if it is not supplied by the user */
 #define SC_LOG_DEF_LOG_FORMAT_REL "%t [%S] - <%d> - "
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
+#ifdef DEBUG
+#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - (%f:%l) <%d> (%n) -- %E"
+#else
+#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - <%d> -- %E"
+#endif
 
 /* The maximum length of the log message */
 #define SC_LOG_MAX_LOG_MSG_LEN 2048
@@ -195,6 +199,7 @@ typedef struct SCLogConfig_ {
 #define SC_LOG_FMT_LINE             'l' /* Line number */
 #define SC_LOG_FMT_FUNCTION         'n' /* Function */
 #define SC_LOG_FMT_SUBSYSTEM        'S' /* Subsystem name */
+#define SC_LOG_FMT_ERRCODE          'E' /* Error code */
 
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'
@@ -227,9 +232,9 @@ extern int sc_log_module_initialized;
 extern int sc_log_module_cleaned;
 
 void SCLog(int x, const char *file, const char *func, const int line,
-        const char *fmt, ...) ATTR_FMT_PRINTF(5,6);
+        const char *module, const char *fmt, ...) ATTR_FMT_PRINTF(6,7);
 void SCLogErr(int x, const char *file, const char *func, const int line,
-        const int err, const char *fmt, ...) ATTR_FMT_PRINTF(6,7);
+        const char *module, const int err, const char *fmt, ...) ATTR_FMT_PRINTF(7,8);
 
 /**
  * \brief Macro used to log INFORMATIONAL messages.
@@ -237,14 +242,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  * \retval ... Takes as argument(s), a printf style format message
  */
 #define SCLogInfo(...) SCLog(SC_LOG_INFO, \
-        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+        __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 #define SCLogInfoRaw(file, func, line, ...) SCLog(SC_LOG_INFO, \
-        (file), (func), (line), __VA_ARGS__)
+        (file), (func), (line), _sc_module, __VA_ARGS__)
 
 #define SCLogConfig(...) SCLog(SC_LOG_CONFIG, \
-        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+        __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 #define SCLogPerf(...) SCLog(SC_LOG_PERF, \
-        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+        __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 
 /**
  * \brief Macro used to log NOTICE messages.
@@ -252,9 +257,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  * \retval ... Takes as argument(s), a printf style format message
  */
 #define SCLogNotice(...) SCLog(SC_LOG_NOTICE, \
-        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+        __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
 #define SCLogNoticeRaw(file, func, line, ... ) SCLog(SC_LOG_NOTICE, \
-        (file), (func), (line), __VA_ARGS__)
+        (file), (func), (line), _sc_module, __VA_ARGS__)
 
 /**
  * \brief Macro used to log WARNING messages.
@@ -264,10 +269,10 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  * \retval ...      Takes as argument(s), a printf style format message
  */
 #define SCLogWarning(err_code, ...) SCLogErr(SC_LOG_WARNING, \
-        __FILE__, __FUNCTION__, __LINE__, \
+        __FILE__, __FUNCTION__, __LINE__, _sc_module, \
         err_code, __VA_ARGS__)
 #define SCLogWarningRaw(err_code, file, func, line, ...) \
-    SCLogErr(SC_LOG_WARNING, (file), (func), (line), err_code, __VA_ARGS__)
+    SCLogErr(SC_LOG_WARNING, (file), (func), (line), _sc_module, err_code, __VA_ARGS__)
 
 /**
  * \brief Macro used to log ERROR messages.
@@ -278,9 +283,9 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  */
 #define SCLogError(err_code, ...) SCLogErr(SC_LOG_ERROR, \
         __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
+        _sc_module, err_code,  __VA_ARGS__)
 #define SCLogErrorRaw(err_code, file, func, line, ...) SCLogErr(SC_LOG_ERROR, \
-        (file), (func), (line), err_code, __VA_ARGS__)
+        (file), (func), (line), _sc_module, err_code, __VA_ARGS__)
 
 /**
  * \brief Macro used to log CRITICAL messages.
@@ -291,7 +296,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  */
 #define SCLogCritical(err_code, ...) SCLogErr(SC_LOG_CRITICAL, \
         __FILE__, __FUNCTION__, __LINE__, \
-        err_code, __VA_ARGS__)
+        _sc_module, err_code, __VA_ARGS__)
 /**
  * \brief Macro used to log ALERT messages.
  *

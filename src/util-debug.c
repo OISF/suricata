@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -242,6 +242,18 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
 
     if (message)
         json_object_set_new(ejs, "message", json_string(message));
+
+    if (_sc_subsystem) {
+        json_object_set_new(ejs, "subsystem", json_string(_sc_subsystem));
+    }
+
+    if (module) {
+        /* Determine how much of module name to display */
+        int dn_len = 0;
+        const char *dn_name;
+        dn_name = SCTransformModule(module, &dn_len);
+        json_object_set_new(ejs, "module", json_string(dn_name));
+    }
 
     if (log_level >= SC_LOG_DEBUG) {
         if (function)
@@ -532,6 +544,26 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_ERRCODE:
+                temp_fmt[0] = '\0';
+                if (SC_OK != error_code) {
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                "%s[%sERRCODE%s: %s%s%s(%s%d%s)] - ", substr, yellow, reset,
+                                red, SCErrorToString(error_code), reset, yellow, error_code, reset);
+                    if (cw < 0)
+                        return SC_ERR_SPRINTF;
+                } else {
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                "%s", substr);
+                    if (cw < 0)
+                        return SC_ERR_SPRINTF;
+                }
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
         }
         temp_fmt++;
 	}
@@ -545,18 +577,6 @@ static SCError SCLogMessageGetBuffer(
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
         return SC_OK;
-    }
-
-    if (error_code != SC_OK) {
-        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                "[%sERRCODE%s: %s%s%s(%s%d%s)] - ", yellow, reset, red, SCErrorToString(error_code), reset, yellow, error_code, reset);
-        if (cw < 0) {
-            return SC_ERR_SPRINTF;
-        }
-        temp += cw;
-        if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-            return SC_OK;
-        }
     }
 
     const char *hi = "";
@@ -699,7 +719,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
 }
 
 void SCLog(int x, const char *file, const char *func, const int line,
-        const char *fmt, ...)
+        const char *module, const char *fmt, ...)
 {
     if (sc_log_global_log_level >= x &&
             (sc_log_fg_filters_present == 0 ||
@@ -713,12 +733,12 @@ void SCLog(int x, const char *file, const char *func, const int line,
         va_start(ap, fmt);
         vsnprintf(msg, sizeof(msg), fmt, ap);
         va_end(ap);
-        SCLogMessage(x, file, line, func, _sc_module, SC_OK, msg);
+        SCLogMessage(x, file, line, func, module, SC_OK, msg);
     }
 }
 
 void SCLogErr(int x, const char *file, const char *func, const int line,
-        const int err, const char *fmt, ...)
+        const char *module, const int err, const char *fmt, ...)
 {
     if (sc_log_global_log_level >= x &&
             (sc_log_fg_filters_present == 0 ||
@@ -732,7 +752,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
         va_start(ap, fmt);
         vsnprintf(msg, sizeof(msg), fmt, ap);
         va_end(ap);
-        SCLogMessage(x, file, line, func, _sc_module, err, msg);
+        SCLogMessage(x, file, line, func, module, err, msg);
     }
 }
 
