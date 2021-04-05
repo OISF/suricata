@@ -172,10 +172,24 @@ impl HTTP2DecoderHalf {
     ) -> io::Result<&'a [u8]> {
         match self.decoder {
             HTTP2Decompresser::GZIP(ref mut gzip_decoder) => {
-                return http2_decompress(gzip_decoder, input, output);
+                let r = http2_decompress(gzip_decoder, input, output);
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    }
+                    _ => {}
+                }
+                return r;
             }
             HTTP2Decompresser::BROTLI(ref mut br_decoder) => {
-                return http2_decompress(br_decoder, input, output);
+                let r = http2_decompress(br_decoder, input, output);
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    }
+                    _ => {}
+                }
+                return r;
             }
             _ => {}
         }
