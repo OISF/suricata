@@ -42,9 +42,6 @@ enum {
 typedef struct DetectParseRegex_ {
     pcre *regex;
     pcre_extra *study;
-#ifdef PCRE_HAVE_JIT_EXEC
-    pcre_jit_stack *jit_stack;
-#endif
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
