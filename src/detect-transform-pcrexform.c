@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 
-#define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include "detect.h"
 #include "detect-engine.h"
@@ -34,6 +33,7 @@
 
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;
+    pcre2_match_data *match_data;
 } DetectTransformPcrexformData;
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
@@ -66,6 +66,7 @@ static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
     if (ptr != NULL) {
         DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *) ptr;
         pcre2_code_free(pxd->regex);
+        pcre2_match_data_free(pxd->match_data);
         SCFree(pxd);
     }
 }
@@ -116,6 +117,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
+    pxd->match_data = pcre2_match_data_create_from_pattern(pxd->regex, NULL);
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
@@ -130,22 +132,19 @@ static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
     const char *input = (const char *)buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
     DetectTransformPcrexformData *pxd = options;
-    pcre2_match_data *match_data;
 
-    match_data = pcre2_match_data_create_from_pattern(pxd->regex, NULL);
-    int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, match_data, NULL);
+    int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, pxd->match_data, NULL);
 
     if (ret > 0) {
         const char *str;
         PCRE2_SIZE caplen;
-        ret = pcre2_substring_get_bynumber(match_data, 0, (PCRE2_UCHAR8 **)&str, &caplen);
+        ret = pcre2_substring_get_bynumber(pxd->match_data, 0, (PCRE2_UCHAR8 **)&str, &caplen);
 
         if (ret >= 0) {
             InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
             pcre2_substring_free((PCRE2_UCHAR8 *)str);
         }
     }
-    pcre2_match_data_free(match_data);
 }
 
 #ifdef UNITTESTS
