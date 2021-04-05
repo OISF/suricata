@@ -690,8 +690,10 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
 #endif
-#ifdef PCRE_HAVE_JIT
+#ifdef PCRE2_HAVE_JIT
+    // TODOpcre2ask keep for backwards compatibility ?
     strlcat(features, "PCRE_JIT ", sizeof(features));
+    strlcat(features, "PCRE2_JIT ", sizeof(features));
 #endif
     /* For compatibility, just say we have HAVE_NSS. */
     strlcat(features, "HAVE_NSS ", sizeof(features));
