@@ -36,14 +36,19 @@
 
 #define DETECT_PCRE_CAPTURE_MAX         8
 
+#include <pcre2.h>
+
+typedef struct DetectParseRegex2 {
+    pcre2_code *regex;
+    pcre2_match_context *context;
+    pcre2_match_data *match;
+    // struct DetectParseRegex2 *next;
+} DetectParseRegex2;
+
 typedef struct DetectPcreData_ {
     /* pcre options */
-    DetectParseRegex parse_regex;
+    DetectParseRegex2 parse_regex;
 
-#ifdef PCRE_HAVE_JIT_EXEC
-    /* JIT stack thread context id */
-    int thread_ctx_jit_stack_id;
-#endif
     int opts;
     uint16_t flags;
     uint8_t idx;
