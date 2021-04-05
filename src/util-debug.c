@@ -342,14 +342,10 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
  *
  * \retval SC_OK on success; else an error code
  */
-static SCError SCLogMessageGetBuffer(
-        struct timeval *tval, int color, SCLogOPType type,
-                     char *buffer, size_t buffer_size,
-                     const char *log_format,
-                     const SCLogLevel log_level, const char *file,
-                     const unsigned int line, const char *function,
-                     const char *module, const SCError error_code,
-                     const char *message)
+static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPType type,
+        char *buffer, size_t buffer_size, const char *log_format, const SCLogLevel log_level,
+        const char *file, const unsigned int line, const char *function, const char *module,
+        const SCError error_code, const char *message)
 {
     if (type == SC_LOG_OP_TYPE_JSON)
         return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, module,
