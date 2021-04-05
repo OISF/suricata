@@ -602,7 +602,13 @@ static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent
                 http_ctx->flags = LOG_HTTP_EXTENDED;
             }
         }
+        FileForceHashParseCfg(conf);
 
+        const char *force_magic = SCConfNodeLookupChildValue(conf, "force-magic");
+        if (force_magic != NULL && SCConfValIsTrue(force_magic)) {
+            FileForceMagicEnable();
+            SCLogInfo("forcing magic lookup for logged files");
+        }
         const char *all_headers = SCConfNodeLookupChildValue(conf, "dump-all-headers");
         if (all_headers != NULL) {
             if (strncmp(all_headers, "both", 4) == 0) {
