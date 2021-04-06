@@ -2430,8 +2430,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
-            htp_config_set_response_decompression_layer_limit(cfg_prec->cfg, value);
+#ifdef HAVE_HTP_CONFIG_SET_DECOMPRESSION_LAYER_LIMIT
+            htp_config_set_decompression_layer_limit(cfg_prec->cfg, value);
 #else
             SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "can't set response-body-decompress-layer-limit "
                     "to %u, libhtp version too old", value);
