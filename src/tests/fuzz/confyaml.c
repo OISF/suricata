@@ -8,6 +8,7 @@ pcap-file:\n\
 stream:\n\
 \n\
   checksum-validation: no\n\
+  midstream: true\n\
 outputs:\n\
   - fast:\n\
       enabled: yes\n\
