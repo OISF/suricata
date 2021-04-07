@@ -45,6 +45,15 @@ typedef struct DetectParseRegex_ {
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
+#include <pcre2.h>
+
+typedef struct DetectParseRegex2 {
+    pcre2_code *regex;
+    pcre2_match_context *context;
+    pcre2_match_data *match;
+    struct DetectParseRegex2 *next;
+} DetectParseRegex2;
+
 /* prototypes */
 Signature *SigAlloc(void);
 void SigFree(DetectEngineCtx *de_ctx, Signature *s);
@@ -85,6 +94,8 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
+void DetectParseFreePCRE2(DetectParseRegex2 *r);
+DetectParseRegex2 *DetectSetupPCRE2(const char *parse_str, int opts);
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
