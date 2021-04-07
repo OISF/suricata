@@ -2536,6 +2536,9 @@ static void DetectPCRE2AddToFreeList(DetectParseRegex2 *detect_parse)
         g_detect_pcre2_list_size += 32;
         g_detect_pcre2_list = SCRealloc(
                 g_detect_pcre2_list, g_detect_pcre2_list_size * sizeof(DetectParseRegex2 *));
+        if (g_detect_pcre2_list == NULL) {
+            FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre2 free list");
+        }
     }
     g_detect_pcre2_list[g_detect_pcre2_list_offset] = detect_parse;
     g_detect_pcre2_list_offset++;
