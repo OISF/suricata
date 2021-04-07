@@ -2534,11 +2534,12 @@ static void DetectPCRE2AddToFreeList(DetectParseRegex2 *detect_parse)
 {
     if (g_detect_pcre2_list_offset >= g_detect_pcre2_list_size) {
         g_detect_pcre2_list_size += 32;
-        g_detect_pcre2_list = SCRealloc(
+        void *ptr = = SCRealloc(
                 g_detect_pcre2_list, g_detect_pcre2_list_size * sizeof(DetectParseRegex2 *));
-        if (g_detect_pcre2_list == NULL) {
+        if (ptr == NULL) {
             FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre2 free list");
         }
+        g_detect_pcre2_list = ptr;
     }
     g_detect_pcre2_list[g_detect_pcre2_list_offset] = detect_parse;
     g_detect_pcre2_list_offset++;
