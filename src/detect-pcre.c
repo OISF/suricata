@@ -71,8 +71,8 @@
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
 
-static DetectParseRegex parse_regex;
-static DetectParseRegex parse_capture_regex;
+static DetectParseRegex2 *parse_regex;
+static DetectParseRegex2 *parse_capture_regex;
 
 #ifdef PCRE2_HAVE_JIT
 static int pcre2_use_jit = 1;
@@ -80,14 +80,13 @@ static int pcre2_use_jit = 1;
 
 // TODOpcre2 pcre2_jit_stack_create ?
 
-/* \brief Helper function for using pcre_exec with/without JIT
+/* \brief Helper function for using pcre2_match with/without JIT
  */
 static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectPcreData *pd,
         const char *str, const size_t strlen, int start_offset, int options)
 {
-    /* Fallback if registration during setup failed */
     return pcre2_match(pd->parse_regex.regex, (PCRE2_SPTR8)str, strlen, start_offset, options,
-            pd->parse_regex.match, NULL);
+            pd->parse_regex.match, pd->parse_regex.context);
 }
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
@@ -139,12 +138,16 @@ void DetectPcreRegister (void)
         }
     }
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
+    parse_regex = DetectSetupPCRE2(PARSE_REGEX, 0);
+    if (parse_regex == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre2 compile failed for parse_regex");
+    }
 
-    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
+    /* setup the capture regex, as it needs PCRE2_UNGREEDY we do it manually */
     /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
-    if (!DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, PCRE_UNGREEDY)) {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile and study failed");
+    parse_capture_regex = DetectSetupPCRE2(PARSE_CAPTURE_REGEX, PCRE2_UNGREEDY);
+    if (parse_capture_regex == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre2 compile failed for parse_capture_regex");
     }
 
 #ifdef PCRE2_HAVE_JIT
@@ -280,6 +283,9 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                         (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
                                 (uint8_t *)str_ptr, capture_len,
                                 DETECT_VAR_TYPE_FLOW_POSTMATCH);
+                    } else {
+                        BUG_ON("Impossible captype");
+                        SCFree(str_ptr);
                     }
                 }
             }
@@ -351,7 +357,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     DetectPcreData *pd = NULL;
     char *op = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
     int check_host_header = 0;
     char op_str[64] = "";
 
@@ -396,23 +401,23 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-    ret = pcre_exec(parse_regex.regex, parse_regex.study, regexstr,
-            slen, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre2_match(
+            parse_regex->regex, (PCRE2_SPTR8)regexstr, slen, 0, 0, parse_regex->match, NULL);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
     }
 
-    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS,
-            1, re, slen);
+    res = pcre2_substring_copy_bynumber(parse_regex->match, 1, (PCRE2_UCHAR8 *)re, &slen);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         return NULL;
     }
 
     if (ret > 2) {
-        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS,
-                2, op_str, sizeof(op_str));
+        size_t copylen = sizeof(op_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex->match, 2, (PCRE2_UCHAR8 *)op_str, &copylen);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             return NULL;
@@ -675,7 +680,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         }
     } else {
         pcre2_set_match_limit(pd->parse_regex.context, SC_MATCH_LIMIT_DEFAULT);
-        pcre2_set_recursion_limit(pd->parse_regex.context, PCRE_EXTRA_MATCH_LIMIT_RECURSION);
+        pcre2_set_recursion_limit(pd->parse_regex.context, SC_MATCH_LIMIT_RECURSION_DEFAULT);
     }
     return pd;
 
@@ -691,14 +696,13 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     char *capture_names)
 {
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
-    memset(&ov, 0, sizeof(ov));
     char type_str[16] = "";
     const char *orig_right_edge = regexstr + strlen(regexstr);
     char *name_array[DETECT_PCRE_CAPTURE_MAX] = { NULL };
     int name_idx = 0;
     int capture_cnt = 0;
     int key = 0;
+    size_t copylen;
 
     SCLogDebug("regexstr %s, pd %p", regexstr, pd);
 
@@ -768,19 +772,22 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     while (1) {
         SCLogDebug("\'%s\'", regexstr);
 
-        ret = pcre_exec(parse_capture_regex.regex, parse_capture_regex.study, regexstr,
-                strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+        ret = pcre2_match(parse_capture_regex->regex, (PCRE2_SPTR8)regexstr, strlen(regexstr), 0, 0,
+                parse_capture_regex->match, NULL);
         if (ret < 3) {
             return 0;
         }
-
-        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, type_str, sizeof(type_str));
-        if (res < 0) {
+        copylen = sizeof(type_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_capture_regex->match, 1, (PCRE2_UCHAR8 *)type_str, &copylen);
+        if (res != 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, capture_str, cap_buffer_len);
-        if (res < 0) {
+        cap_buffer_len = strlen(regexstr) + 1;
+        res = pcre2_substring_copy_bynumber(
+                parse_capture_regex->match, 2, (PCRE2_UCHAR8 *)capture_str, &cap_buffer_len);
+        if (res != 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
@@ -809,6 +816,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         }
 
         //SCLogNotice("pd->capname %s", pd->capname);
+        PCRE2_SIZE *ov = pcre2_get_ovector_pointer(parse_capture_regex->match);
         regexstr += ov[1];
 
         if (regexstr >= orig_right_edge)
@@ -923,9 +931,7 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
-    pcre2_code_free(pd->parse_regex.regex);
-    pcre2_match_context_free(pd->parse_regex.context);
-    pcre2_match_data_free(pd->parse_regex.match);
+    DetectParseFreePCRE2(&pd->parse_regex);
     SCFree(pd);
 
     return;
