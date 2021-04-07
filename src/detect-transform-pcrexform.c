@@ -85,7 +85,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     SCEnter();
 
     // Create pxd from regexstr
-    DetectTransformPcrexformData *pxd = SCCalloc(sizeof(*pxd), 1);
+    DetectTransformPcrexformData *pxd = SCCalloc(1, sizeof(*pxd));
     if (pxd == NULL) {
         SCLogDebug("pxd allocation failed");
         SCReturnInt(-1);

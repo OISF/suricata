@@ -638,7 +638,6 @@
     fi
 
     PCRE2=""
-    #AC_CHECK_HEADER(pcre2.h,,[AC_MSG_ERROR(pcre2.h not found ...)])
     AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,PCRE2="no")
     if test "$PCRE2" = "no"; then
         echo
