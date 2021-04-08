@@ -324,7 +324,7 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
             alproto = exp->alproto;
             f->alproto_ts = alproto;
             f->alproto_tc = alproto;
-            void *fdata = FlowGetStorageById(f, g_expectation_id);
+            void *fdata = FlowGetStorageById(f, g_expectation_data_id);
             if (fdata) {
                 /* We already have an expectation so let's clean this one */
                 ExpectationDataFree(exp->data);
