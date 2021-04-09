@@ -29,17 +29,22 @@
 #include "util-storage.h"
 #include "flow.h"
 
+typedef struct FlowStorageId {
+    int id;
+} FlowStorageId;
+
 unsigned int FlowStorageSize(void);
 
-void *FlowGetStorageById(Flow *h, int id);
-int FlowSetStorageById(Flow *h, int id, void *ptr);
-void *FlowAllocStorageById(Flow *h, int id);
+void *FlowGetStorageById(Flow *h, FlowStorageId id);
+int FlowSetStorageById(Flow *h, FlowStorageId id, void *ptr);
+void *FlowAllocStorageById(Flow *h, FlowStorageId id);
 
-void FlowFreeStorageById(Flow *h, int id);
+void FlowFreeStorageById(Flow *h, FlowStorageId id);
 void FlowFreeStorage(Flow *h);
 
 void RegisterFlowStorageTests(void);
 
-int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
+FlowStorageId FlowStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __FLOW_STORAGE_H__ */

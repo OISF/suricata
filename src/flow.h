@@ -24,6 +24,9 @@
 #ifndef __FLOW_H__
 #define __FLOW_H__
 
+/* forward declaration for macset include */
+typedef struct FlowStorageId FlowStorageId;
+
 #include "decode.h"
 #include "util-var.h"
 #include "util-atomic.h"
@@ -578,7 +581,7 @@ int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
 
-int GetFlowBypassInfoID(void);
+FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
 void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);

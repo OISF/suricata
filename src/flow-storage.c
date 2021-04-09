@@ -36,24 +36,24 @@ unsigned int FlowStorageSize(void)
     return StorageGetSize(STORAGE_FLOW);
 }
 
-void *FlowGetStorageById(Flow *f, int id)
+void *FlowGetStorageById(Flow *f, FlowStorageId id)
 {
-    return StorageGetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
+    return StorageGetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
 }
 
-int FlowSetStorageById(Flow *f, int id, void *ptr)
+int FlowSetStorageById(Flow *f, FlowStorageId id, void *ptr)
 {
-    return StorageSetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id, ptr);
+    return StorageSetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id, ptr);
 }
 
-void *FlowAllocStorageById(Flow *f, int id)
+void *FlowAllocStorageById(Flow *f, FlowStorageId id)
 {
-    return StorageAllocByIdPrealloc((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
+    return StorageAllocByIdPrealloc((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
 }
 
-void FlowFreeStorageById(Flow *f, int id)
+void FlowFreeStorageById(Flow *f, FlowStorageId id)
 {
-    StorageFreeById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
+    StorageFreeById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
 }
 
 void FlowFreeStorage(Flow *f)
@@ -62,8 +62,12 @@ void FlowFreeStorage(Flow *f)
         StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
 }
 
-int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_FLOW, name, size, Alloc, Free);
+FlowStorageId FlowStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *))
+{
+    int id = StorageRegister(STORAGE_FLOW, name, size, Alloc, Free);
+    FlowStorageId fsi = { .id = id };
+    return fsi;
 }
 
 #ifdef UNITTESTS
@@ -85,14 +89,15 @@ static int FlowStorageTest01(void)
 
     StorageInit();
 
-    int id1 = FlowStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
-    if (id1 < 0)
+    FlowStorageId id1 = FlowStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = FlowStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
-    if (id2 < 0)
+    FlowStorageId id2 = FlowStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = FlowStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    FlowStorageId id3 =
+            FlowStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -165,8 +170,8 @@ static int FlowStorageTest02(void)
 
     StorageInit();
 
-    int id1 = FlowStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    FlowStorageId id1 = FlowStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -216,14 +221,14 @@ static int FlowStorageTest03(void)
 
     StorageInit();
 
-    int id1 = FlowStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    FlowStorageId id1 = FlowStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = FlowStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
-    if (id2 < 0)
+    FlowStorageId id2 = FlowStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = FlowStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    FlowStorageId id3 = FlowStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)

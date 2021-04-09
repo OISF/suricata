@@ -56,7 +56,7 @@ struct MacSet_ {
         last[2];
 };
 
-int g_macset_storage_id = -1;
+FlowStorageId g_macset_storage_id = { .id = -1 };
 
 void MacSetRegisterFlowStorage(void)
 {
@@ -83,7 +83,7 @@ void MacSetRegisterFlowStorage(void)
 
 bool MacSetFlowStorageEnabled(void)
 {
-    return (g_macset_storage_id != -1);
+    return (g_macset_storage_id.id != -1);
 }
 
 
@@ -110,7 +110,7 @@ MacSet *MacSetInit(int size)
     return ms;
 }
 
-int MacSetGetFlowStorageID(void)
+FlowStorageId MacSetGetFlowStorageID(void)
 {
     return g_macset_storage_id;
 }

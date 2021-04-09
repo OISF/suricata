@@ -46,7 +46,7 @@ SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */
 static int host_tag_id = -1;                /**< Host storage id for tags */
-static int flow_tag_id = -1;                /**< Flow storage id for tags */
+static FlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
 
 void TagInitCtx(void)
 {
@@ -57,7 +57,7 @@ void TagInitCtx(void)
         FatalError(SC_ERR_FATAL, "Can't initiate host storage for tag");
     }
     flow_tag_id = FlowStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
-    if (flow_tag_id == -1) {
+    if (flow_tag_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate flow storage for tag");
     }
 }

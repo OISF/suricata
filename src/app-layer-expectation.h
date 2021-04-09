@@ -24,11 +24,13 @@
 #ifndef __APP_LAYER_EXPECTATION__H__
 #define __APP_LAYER_EXPECTATION__H__
 
+#include "flow-storage.h"
+
 void AppLayerExpectationSetup(void);
 int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
                               AppProto alproto, void *data);
 AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags);
-int AppLayerExpectationGetFlowId(void);
+FlowStorageId AppLayerExpectationGetFlowId(void);
 
 void AppLayerExpectationClean(Flow *f);
 

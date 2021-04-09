@@ -213,9 +213,9 @@ void FlowInit(Flow *f, const Packet *p)
     SCReturn;
 }
 
-int g_bypass_info_id = -1;
+FlowStorageId g_bypass_info_id = { .id = -1 };
 
-int GetFlowBypassInfoID(void)
+FlowStorageId GetFlowBypassInfoID(void)
 {
     return g_bypass_info_id;
 }

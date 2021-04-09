@@ -41,7 +41,7 @@ int     MacSetSize(const MacSet*);
 void    MacSetReset(MacSet*);
 void    MacSetFree(MacSet*);
 void    MacSetRegisterFlowStorage(void);
-int     MacSetGetFlowStorageID(void);
+FlowStorageId MacSetGetFlowStorageID(void);
 bool    MacSetFlowStorageEnabled(void);
 void    MacSetRegisterTests(void);
 
