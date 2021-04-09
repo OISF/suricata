@@ -40,8 +40,8 @@
 /* Hashing initval */
 #define INITVAL 15485863
 
-/* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
-#define CPUMAP_MAX_CPUS     64
+/* Increase CPUMAP_MAX_CPUS if ever you have more than 128 CPUs */
+#define CPUMAP_MAX_CPUS 128
 
 struct vlan_hdr {
     __u16	h_vlan_TCI;
@@ -134,7 +134,7 @@ static int __always_inline hash_ipv6(void *data, void *data_end)
 static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;
-    __be16 proto;
+    __u16 proto;
     struct gre_hdr {
         __be16 flags;
         __be16 proto;
@@ -158,6 +158,11 @@ static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_o
     if (grhdr->flags & GRE_SEQ)
         nh_off += 4;
 
+    /* Update offset to skip ERPSAN header if we have one */
+    if (proto == __constant_htons(ETH_P_ERSPAN)) {
+        nh_off += 8;
+    }
+
     if (data + nh_off > data_end)
         return XDP_PASS;
     if (bpf_xdp_adjust_head(ctx, 0 + nh_off))
@@ -166,18 +171,32 @@ static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_o
     data = (void *)(long)ctx->data;
     data_end = (void *)(long)ctx->data_end;
 
+    /* we have now data starting at Ethernet header */
+    struct ethhdr *eth = data;
+    proto = eth->h_proto;
+    /* we want to hash on IP so we need to get to ip hdr */
+    nh_off = sizeof(*eth);
+
+    if (data + nh_off > data_end)
+        return XDP_PASS;
+
+    /* we need to increase offset and update protocol
+     * in the case we have VLANs */
     if (proto == __constant_htons(ETH_P_8021Q)) {
-        struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
+        struct vlan_hdr *vhdr = (struct vlan_hdr *)(data + nh_off);
         if ((void *)(vhdr + 1) > data_end)
             return XDP_PASS;
         proto = vhdr->h_vlan_encapsulated_proto;
         nh_off += sizeof(struct vlan_hdr);
     }
 
+    if (data + nh_off > data_end)
+        return XDP_PASS;
+    /* proto should now be IP style */
     if (proto == __constant_htons(ETH_P_IP)) {
-        return hash_ipv4(data, data_end);
+        return hash_ipv4(data + nh_off, data_end);
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
-        return hash_ipv6(data, data_end);
+        return hash_ipv6(data + nh_off, data_end);
     } else
         return XDP_PASS;
 }
