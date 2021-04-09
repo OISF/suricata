@@ -1054,14 +1054,15 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
     if (ftpdata_state->files == NULL) {
-        struct FtpTransferCmd *data = (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
+        struct FtpTransferCmd *data =
+                (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
         }
 
         ftpdata_state->files = FileContainerAlloc();
         if (ftpdata_state->files == NULL) {
-            FlowFreeStorageById(f, AppLayerExpectationGetDataId());
+            FlowFreeStorageById(f, AppLayerExpectationGetFlowId());
             SCReturnStruct(APP_LAYER_ERROR);
         }
 
@@ -1091,7 +1092,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             SCLogDebug("Can't open file");
             ret = -1;
         }
-        FlowFreeStorageById(f, AppLayerExpectationGetDataId());
+        FlowFreeStorageById(f, AppLayerExpectationGetFlowId());
     } else {
         if (input_len != 0) {
             ret = FileAppendData(ftpdata_state->files, input, input_len);
