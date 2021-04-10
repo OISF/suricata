@@ -143,7 +143,7 @@ void DetectPcreRegister (void)
         FatalError(SC_ERR_PCRE_COMPILE, "pcre2 compile failed for parse_regex");
     }
 
-    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
+    /* setup the capture regex, as it needs PCRE2_UNGREEDY we do it manually */
     /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
     parse_capture_regex = DetectSetupPCRE2(PARSE_CAPTURE_REGEX, PCRE2_UNGREEDY);
     if (parse_capture_regex == NULL) {
@@ -677,7 +677,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         }
     } else {
         pcre2_set_match_limit(pd->parse_regex.context, SC_MATCH_LIMIT_DEFAULT);
-        pcre2_set_recursion_limit(pd->parse_regex.context, PCRE_EXTRA_MATCH_LIMIT_RECURSION);
+        pcre2_set_recursion_limit(pd->parse_regex.context, SC_MATCH_LIMIT_RECURSION_DEFAULT);
     }
     return pd;
 
