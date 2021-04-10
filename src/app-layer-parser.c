@@ -93,10 +93,11 @@ typedef struct AppLayerParserFileKeywordHandlerNode_ {
     DetectAppLayerParserKeywordEntry *keyword_list;
     int keyword_list_size;
     const char *keyword;
-    //void (*callback)(const char **, AppProto);
+    // void (*callback)(const char **, AppProto);
     TAILQ_ENTRY(AppLayerParserFileKeywordHandlerNode_) entries;
 } AppLayerParserFileKeywordHandlerNode;
-static TAILQ_HEAD(, AppLayerParserFileKeywordHandlerNode_) keyword_handler_node_list = TAILQ_HEAD_INITIALIZER(keyword_handler_node_list);
+static TAILQ_HEAD(, AppLayerParserFileKeywordHandlerNode_)
+        keyword_handler_node_list = TAILQ_HEAD_INITIALIZER(keyword_handler_node_list);
 
 /**
  * \brief App layer protocol parser context.
@@ -1159,46 +1160,37 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
-void AppLayerParserRegisterFileKeywordEntry(const char *name, DetectAppLayerParserKeywordEntry *entry)
+void AppLayerParserRegisterFileKeywordEntry(
+        const char *name, DetectAppLayerParserKeywordEntry *entry)
 {
-	SCLogNotice("Registering %s %s (%s%s)",
-            name,
-            AppProtoToString(entry->alproto),
+    SCLogNotice("Registering %s %s (%s%s)", name, AppProtoToString(entry->alproto),
             entry->directions & SIG_FLAG_TOSERVER ? "server " : "",
-            entry->directions & SIG_FLAG_TOCLIENT ? "client" : ""
-            );
-     if (entry->directions & SIG_FLAG_TOSERVER) {
-        DetectAppLayerInspectEngineRegister2(name,
-            entry->alproto, SIG_FLAG_TOSERVER, entry->inspect.progress,
-            entry->inspect.Callback, entry->inspect.Getdata);
+            entry->directions & SIG_FLAG_TOCLIENT ? "client" : "");
+    if (entry->directions & SIG_FLAG_TOSERVER) {
+        DetectAppLayerInspectEngineRegister2(name, entry->alproto, SIG_FLAG_TOSERVER,
+                entry->inspect.progress, entry->inspect.Callback, entry->inspect.Getdata);
     }
     if (entry->directions & SIG_FLAG_TOCLIENT) {
-        DetectAppLayerInspectEngineRegister2(name,
-                entry->alproto, SIG_FLAG_TOCLIENT, entry->inspect.progress,
-                entry->inspect.Callback, entry->inspect.Getdata);
+        DetectAppLayerInspectEngineRegister2(name, entry->alproto, SIG_FLAG_TOCLIENT,
+                entry->inspect.progress, entry->inspect.Callback, entry->inspect.Getdata);
     }
 
     if (entry->mpm.PrefilterRegister) {
         if (entry->directions & SIG_FLAG_TOSERVER) {
-            DetectAppLayerMpmRegister2(name,
-                    SIG_FLAG_TOSERVER, entry->mpm.priority,
-                    entry->mpm.PrefilterRegister,
-                    entry->mpm.Getdata,
-                    entry->alproto,
+            DetectAppLayerMpmRegister2(name, SIG_FLAG_TOSERVER, entry->mpm.priority,
+                    entry->mpm.PrefilterRegister, entry->mpm.Getdata, entry->alproto,
                     entry->mpm.tx_min_progress);
         }
         if (entry->directions & SIG_FLAG_TOCLIENT) {
-            DetectAppLayerMpmRegister2(name,
-                    SIG_FLAG_TOCLIENT, entry->mpm.priority,
-                    entry->mpm.PrefilterRegister,
-                    entry->mpm.Getdata,
-                    entry->alproto,
+            DetectAppLayerMpmRegister2(name, SIG_FLAG_TOCLIENT, entry->mpm.priority,
+                    entry->mpm.PrefilterRegister, entry->mpm.Getdata, entry->alproto,
                     entry->mpm.tx_min_progress);
         }
     }
 }
 
-void AppLayerParserRegisterFileKeywordHandler(const char *keyword, DetectAppLayerParserKeywordEntry *keyword_list, size_t keyword_list_len )
+void AppLayerParserRegisterFileKeywordHandler(const char *keyword,
+        DetectAppLayerParserKeywordEntry *keyword_list, size_t keyword_list_len)
 {
     AppLayerParserFileKeywordHandlerNode *node = SCCalloc(1, sizeof(*node));
     if (node == NULL) {
@@ -1212,7 +1204,7 @@ void AppLayerParserRegisterFileKeywordHandler(const char *keyword, DetectAppLaye
         return;
     }
 
-    node->keyword_list_size = (int) keyword_list_len;
+    node->keyword_list_size = (int)keyword_list_len;
     node->keyword_list = keyword_list;
     TAILQ_INSERT_TAIL(&keyword_handler_node_list, node, entries);
 }
@@ -1221,17 +1213,18 @@ void AppLayerParserRegisterFileHandlers(void)
 {
     for (int ipproto = IPPROTO_IP; ipproto < IPPROTO_MAX; ipproto++) {
         for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-            if (!AppLayerParserSupportsFiles((uint8_t) ipproto, alproto)) {
+            if (!AppLayerParserSupportsFiles((uint8_t)ipproto, alproto)) {
                 continue;
             }
             AppLayerParserFileKeywordHandlerNode *node = NULL;
-            TAILQ_FOREACH(node, &keyword_handler_node_list, entries) {
+            TAILQ_FOREACH (node, &keyword_handler_node_list, entries) {
                 for (int i = 0; i < node->keyword_list_size; i++) {
                     DetectAppLayerParserKeywordEntry entry = node->keyword_list[i];
                     if (entry.alproto != alproto) {
                         continue;
                     }
-                    SCLogNotice("FILES: ip proto: %d application layer proto %s", ipproto, AppProtoToString(alproto));
+                    SCLogNotice("FILES: ip proto: %d application layer proto %s", ipproto,
+                            AppProtoToString(alproto));
                     AppLayerParserRegisterFileKeywordEntry(node->keyword, &entry);
                 }
             }

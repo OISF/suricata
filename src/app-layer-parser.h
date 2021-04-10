@@ -124,7 +124,7 @@ typedef struct AppLayerGetTxIterState {
 
 typedef struct DetectAppLayerParserRegisterKeywordEntry_ {
     AppProto alproto;
-    uint32_t    directions;
+    uint32_t directions;
     struct {
         int progress;
         InspectEngineFuncPtr2 Callback;
@@ -133,8 +133,7 @@ typedef struct DetectAppLayerParserRegisterKeywordEntry_ {
     /* MPM */
     struct {
         int priority;
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-                SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
                 const DetectBufferMpmRegistery *mpm_reg, int list_id);
         InspectionBufferGetDataPtr Getdata;
         int tx_min_progress;
@@ -213,7 +212,8 @@ void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
         bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
 
-void AppLayerParserRegisterFileKeywordHandler(const char *, DetectAppLayerParserKeywordEntry *, size_t);
+void AppLayerParserRegisterFileKeywordHandler(
+        const char *, DetectAppLayerParserKeywordEntry *, size_t);
 
 /***** Get and transaction functions *****/
 
