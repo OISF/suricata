@@ -81,16 +81,14 @@ static int DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 
 DetectAppLayerParserKeywordEntry filedata_list[] = {
         {
-            .alproto = ALPROTO_HTTP, .directions = SIG_FLAG_TOCLIENT,
+            .alproto = ALPROTO_HTTP1, .directions = SIG_FLAG_TOCLIENT,
             .inspect =  {
                 .progress = HTP_RESPONSE_BODY,
                 .Callback = DetectEngineInspectBufferHttpBody,
-                .Getdata = HttpServerBodyGetDataCallback
             },
             .mpm =  {
                 .priority = 2,
-                .PrefilterRegister = PrefilterGenericMpmRegister,
-                .Getdata = HttpServerBodyGetDataCallback,
+                .PrefilterRegister = PrefilterMpmHTTPFiledataRegister,
                 .tx_min_progress = HTP_RESPONSE_BODY,
             }
         },
@@ -158,16 +156,6 @@ DetectAppLayerParserKeywordEntry filedata_list[] = {
                 .PrefilterRegister = PrefilterMpmFiledataRegister
             }
         },
-        {
-            .alproto = ALPROTO_FTP, .directions = SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER,
-            .inspect =  {
-                .Callback = DetectEngineInspectFiledata
-            },
-            .mpm =  {
-                .priority = 2,
-                .PrefilterRegister = PrefilterMpmFiledataRegister
-            }
-        },
 };
 /**
  * \brief Registration function for keyword: file_data
@@ -184,37 +172,6 @@ void DetectFiledataRegister(void)
 #endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMTP, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmHTTPFiledataRegister,
-            NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMB, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMB, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataClient);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataServer);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
-            NULL, ALPROTO_FTPDATA, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
-            NULL, ALPROTO_FTPDATA, 0);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_FTP, 0);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_FTP, 0);
-
-    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
     AppLayerParserRegisterFileKeywordHandler("file_data", filedata_list, ARRAY_SIZE(filedata_list));
@@ -222,7 +179,7 @@ void DetectFiledataRegister(void)
     DetectBufferTypeSetDescriptionByName("file_data",
             "http response body, smb files or smtp attachments data");
 
-    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_file_data_buffer_id = DetectBufferTypeRegister("file_data");
 }
 
 #define FILEDATA_CONTENT_LIMIT 100000
