@@ -492,16 +492,10 @@ static SCError SCLogMessageGetBuffer(
     }
 
     if (sc_log_config->op_filter_regex != NULL) {
-#define MAX_SUBSTRINGS 30
-        int ov[MAX_SUBSTRINGS];
-
-        if (pcre_exec(sc_log_config->op_filter_regex,
-                      sc_log_config->op_filter_regex_study,
-                      buffer, strlen(buffer), 0, 0, ov, MAX_SUBSTRINGS) < 0)
-        {
+        if (pcre2_match(sc_log_config->op_filter_regex, (PCRE2_SPTR8)buffer, strlen(buffer), 0, 0,
+                    sc_log_config->op_filter_regex_match, NULL) < 0) {
             return SC_ERR_LOG_FG_FILTER_MATCH; // bit hacky, but just return !0
         }
-#undef MAX_SUBSTRINGS
     }
 
     return SC_OK;
@@ -1109,8 +1103,8 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     const char *filter = NULL;
 
     int opts = 0;
-    const char *ep;
-    int eo = 0;
+    int en;
+    PCRE2_SIZE eo = 0;
 
     /* envvar overrides */
     filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
@@ -1126,20 +1120,18 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
             printf("pcre filter alloc failed\n");
             return;
         }
-        sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
+        sc_lc->op_filter_regex =
+                pcre2_compile((PCRE2_SPTR8)filter, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
         if (sc_lc->op_filter_regex == NULL) {
             SCFree(sc_lc->op_filter);
-            printf("pcre compile of \"%s\" failed at offset %d : %s\n", filter,
-                   eo, ep);
+            PCRE2_UCHAR errbuffer[256];
+            pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+            printf("pcre2 compile of \"%s\" failed at offset %d : %s\n", filter, (int)eo,
+                    errbuffer);
             return;
         }
-
-        sc_lc->op_filter_regex_study = pcre_study(sc_lc->op_filter_regex, 0,
-                                                  &ep);
-        if (ep != NULL) {
-            printf("pcre study failed: %s\n", ep);
-            return;
-        }
+        sc_lc->op_filter_regex_match =
+                pcre2_match_data_create_from_pattern(sc_lc->op_filter_regex, NULL);
     }
 
     return;
@@ -1199,9 +1191,9 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
             SCFree(sc_lc->op_filter);
 
         if (sc_lc->op_filter_regex != NULL)
-            pcre_free(sc_lc->op_filter_regex);
-        if (sc_lc->op_filter_regex_study)
-            pcre_free_study(sc_lc->op_filter_regex_study);
+            pcre2_code_free(sc_lc->op_filter_regex);
+        if (sc_lc->op_filter_regex_match)
+            pcre2_match_data_free(sc_lc->op_filter_regex_match);
 
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
         SCFree(sc_lc);
