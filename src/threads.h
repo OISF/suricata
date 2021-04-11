@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -276,15 +276,23 @@ enum {
     pthread_set_name_np(pthread_self(), tname); \
     0; \
 })
+#define SCGetThreadName(tname, tnlen)                                                              \
+    ({                                                                                             \
+        pthread_get_name_np(pthread_self(), tname, tnlen);                                         \
+        0;                                                                                         \
+    })
 #elif defined __OpenBSD__ /* OpenBSD */
 /** \todo Add implementation for OpenBSD */
 #define SCSetThreadName(n) (0)
+#define SCGetThreadName(n, l) (0)
 #elif defined OS_WIN32 /* Windows */
 /** \todo Add implementation for Windows */
 #define SCSetThreadName(n) (0)
+#define SCGetThreadName(n, l) (0)
 #elif defined OS_DARWIN /* Mac OS X */
 /** \todo Add implementation for MacOS */
 #define SCSetThreadName(n) (0)
+#define SCGetThreadName(n, l) (0)
 #elif defined PR_SET_NAME /* PR_SET_NAME */
 /**
  * \brief Set the threads name
@@ -299,6 +307,13 @@ enum {
         SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno)); \
     ret; \
 })
+#define SCGetThreadName(tname, tnlen)                                                              \
+    ({                                                                                             \
+        int ret = 0;                                                                               \
+        if ((ret = prctl(PR_GET_NAME, tname, 0, 0, 0)) < 0)                                        \
+            SCLogDebug("Error getting thread name : %s", strerror(errno));                         \
+        ret;                                                                                       \
+    })
 #else
 #define SCSetThreadName(n) (0)
 #endif
