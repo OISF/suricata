@@ -161,9 +161,9 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
     DetectIcmpIdData *iid = NULL;
     char *substr[3] = {NULL, NULL, NULL};
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, icmpidstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, icmpidstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", icmpidstr);
         goto error;
@@ -172,9 +172,10 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
     int i;
     const char *str_ptr;
     for (i = 1; i < ret; i++) {
-        res = pcre_get_substring((char *)icmpidstr, ov, MAX_SUBSTRINGS, i, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
         substr[i-1] = (char *)str_ptr;
@@ -206,13 +207,15 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
     iid->id = htons(id);
 
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) SCFree(substr[i]);
+        if (substr[i] != NULL)
+            pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
     }
     return iid;
 
 error:
     for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL) SCFree(substr[i]);
+        if (substr[i] != NULL)
+            pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
     }
     if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
     return NULL;
