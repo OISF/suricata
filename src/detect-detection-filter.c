@@ -97,7 +97,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
 {
     DetectThresholdData *df = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     const char *str_ptr = NULL;
     char *args[6] = { NULL, NULL, NULL, NULL, NULL, NULL};
     char *copy_str = NULL, *df_opt = NULL;
@@ -129,7 +129,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -144,9 +144,10 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     df->type = TYPE_DETECTION;
 
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, i + 1, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -183,14 +184,14 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
 
     for (i = 0; i < 6; i++){
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
     return df;
 
 error:
     for (i = 0; i < 6; i++){
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
     if (df != NULL)
         SCFree(df);

@@ -152,8 +152,6 @@ error:
     return -1;
 }
 
-#define MAX_SUBSTRINGS 30
-
 /** \brief List all registered unit tests.
  *
  *  \param regex_arg Regular expression to limit listed tests.

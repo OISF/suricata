@@ -105,6 +105,8 @@ static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
     }
 }
 
+#define PCRE2_ARG_LEN 30
+
 /** \internal
  *
  * \brief This function is used to parse Modbus parameters in access mode
@@ -119,16 +121,19 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
     SCEnter();
     DetectModbus *modbus = NULL;
 
-    char    arg[MAX_SUBSTRINGS];
-    int     ov[MAX_SUBSTRINGS], ret, res;
+    char arg[PCRE2_ARG_LEN];
+    int ret, res;
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&access_parse_regex, str, 0, 0);
     if (ret < 1)
         goto error;
 
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
+    pcre2len = PCRE2_ARG_LEN;
+    res = pcre2_substring_copy_bynumber(
+            access_parse_regex.match, 1, (PCRE2_UCHAR8 *)arg, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -145,9 +150,11 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
         goto error;
 
     if (ret > 2) {
-        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 2, arg, MAX_SUBSTRINGS);
+        pcre2len = PCRE2_ARG_LEN;
+        res = pcre2_substring_copy_bynumber(
+                access_parse_regex.match, 2, (PCRE2_UCHAR8 *)arg, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
 
@@ -178,9 +185,11 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
         }
 
         if (ret > 4) {
-            res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 4, arg, MAX_SUBSTRINGS);
+            pcre2len = PCRE2_ARG_LEN;
+            res = pcre2_substring_copy_bynumber(
+                    access_parse_regex.match, 4, (PCRE2_UCHAR8 *)arg, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
 
@@ -208,9 +217,11 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
             SCLogDebug("and min/equal address %d", modbus->address->min);
 
             if (ret > 5) {
-                res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 5, arg, MAX_SUBSTRINGS);
+                pcre2len = PCRE2_ARG_LEN;
+                res = pcre2_substring_copy_bynumber(
+                        access_parse_regex.match, 5, (PCRE2_UCHAR8 *)arg, &pcre2len);
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -226,9 +237,12 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
                 }
 
                 if (ret > 7) {
-                    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 7, arg, MAX_SUBSTRINGS);
+                    pcre2len = PCRE2_ARG_LEN;
+                    res = pcre2_substring_copy_bynumber(
+                            access_parse_regex.match, 7, (PCRE2_UCHAR8 *)arg, &pcre2len);
                     if (res < 0) {
-                        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                        SCLogError(
+                                SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                         goto error;
                     }
 
@@ -266,9 +280,12 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
                     SCLogDebug("and min/equal value %d", modbus->data->min);
 
                     if (ret > 8) {
-                        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 8, arg, MAX_SUBSTRINGS);
+                        pcre2len = PCRE2_ARG_LEN;
+                        res = pcre2_substring_copy_bynumber(
+                                access_parse_regex.match, 8, (PCRE2_UCHAR8 *)arg, &pcre2len);
                         if (res < 0) {
-                            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                                    "pcre2_substring_copy_bynumber failed");
                             goto error;
                         }
 
@@ -312,16 +329,19 @@ static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const ch
     SCEnter();
     DetectModbus *modbus = NULL;
 
-    char    arg[MAX_SUBSTRINGS], *ptr = arg;
-    int     ov[MAX_SUBSTRINGS], res, ret;
+    char arg[PCRE2_ARG_LEN], *ptr = arg;
+    int res, ret;
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&function_parse_regex, str, 0, 0);
     if (ret < 1)
         goto error;
 
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
+    pcre2len = PCRE2_ARG_LEN;
+    res = pcre2_substring_copy_bynumber(
+            function_parse_regex.match, 1, (PCRE2_UCHAR8 *)arg, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -347,9 +367,11 @@ static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const ch
         SCLogDebug("will look for modbus function %d", modbus->function);
 
         if (ret > 2) {
-            res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 3, arg, MAX_SUBSTRINGS);
+            pcre2len = PCRE2_ARG_LEN;
+            res = pcre2_substring_copy_bynumber(
+                    function_parse_regex.match, 3, (PCRE2_UCHAR8 *)arg, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
 
@@ -410,16 +432,19 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
     SCEnter();
     DetectModbus *modbus = NULL;
 
-    char    arg[MAX_SUBSTRINGS];
-    int     ov[MAX_SUBSTRINGS], ret, res;
+    char arg[PCRE2_ARG_LEN];
+    size_t pcre2_len;
+    int ret, res;
 
-    ret = DetectParsePcreExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&unit_id_parse_regex, str, 0, 0);
     if (ret < 1)
         goto error;
 
-    res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 1, arg, MAX_SUBSTRINGS);
+    pcre2_len = PCRE2_ARG_LEN;
+    res = pcre2_substring_copy_bynumber(
+            unit_id_parse_regex.match, 1, (PCRE2_UCHAR8 *)arg, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -427,18 +452,21 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
         /* We have more Modbus option */
         const char *str_ptr;
 
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                unit_id_parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
 
         if ((modbus = DetectModbusFunctionParse(de_ctx, str_ptr)) == NULL) {
             if ((modbus = DetectModbusAccessParse(de_ctx, str_ptr)) == NULL) {
                 SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
+                pcre2_substring_free((PCRE2_UCHAR8 *)str_ptr);
                 goto error;
             }
         }
+        pcre2_substring_free((PCRE2_UCHAR8 *)str_ptr);
     } else {
         /* We have only unit id Modbus option */
         modbus = (DetectModbus *) SCCalloc(1, sizeof(DetectModbus));
@@ -469,9 +497,11 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
     SCLogDebug("and min/equal unit id %d", modbus->unit_id->min);
 
     if (ret > 2) {
-        res = pcre_copy_substring(str, ov, MAX_SUBSTRINGS, 2, arg, MAX_SUBSTRINGS);
+        pcre2_len = PCRE2_ARG_LEN;
+        res = pcre2_substring_copy_bynumber(
+                unit_id_parse_regex.match, 2, (PCRE2_UCHAR8 *)arg, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
 

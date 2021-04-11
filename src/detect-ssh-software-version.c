@@ -164,9 +164,9 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
 {
     DetectSshSoftwareVersionData *ssh = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
 
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid ssh.softwareversion option");
@@ -175,9 +175,10 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
 
     if (ret > 1) {
         const char *str_ptr = NULL;
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -190,7 +191,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
         if (ssh->software_ver == NULL) {
             goto error;
         }
-        pcre_free_substring(str_ptr);
+        pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
         ssh->len = strlen((char *)ssh->software_ver);
 

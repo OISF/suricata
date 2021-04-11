@@ -753,7 +753,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                     goto error;
                 }
 
-                size_t copylen = sizeof(th_type);
+                copylen = sizeof(th_type);
                 ret = pcre2_substring_copy_bynumber(
                         regex_threshold_match, 1, (PCRE2_UCHAR8 *)th_type, &copylen);
                 if (ret < 0) {
@@ -811,7 +811,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                     goto error;
                 }
                 /* retrieve the track mode */
-                size_t copylen = sizeof(th_seconds);
+                copylen = sizeof(th_seconds);
                 ret = pcre2_substring_copy_bynumber(
                         regex_suppress_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
@@ -841,7 +841,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                     goto error;
                 }
 
-                size_t copylen = sizeof(th_track);
+                copylen = sizeof(th_track);
                 ret = pcre2_substring_copy_bynumber(
                         regex_rate_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {

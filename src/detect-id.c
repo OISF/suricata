@@ -125,9 +125,9 @@ static DetectIdData *DetectIdParse (const char *idstr)
     uint32_t temp;
     DetectIdData *id_d = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, idstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, idstr, 0, 0);
 
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
@@ -138,10 +138,10 @@ static DetectIdData *DetectIdParse (const char *idstr)
 
     char copy_str[128] = "";
     char *tmp_str;
-    res = pcre_copy_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
-            copy_str, sizeof(copy_str));
+    pcre2len = sizeof(copy_str);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     tmp_str = copy_str;
