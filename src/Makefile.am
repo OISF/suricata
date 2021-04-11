@@ -4,9 +4,9 @@ if BUILD_FUZZTARGETS
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
     fuzz_sigpcap fuzz_mimedecparseline
-endif
 if HAS_FUZZPCAP
     bin_PROGRAMS += fuzz_sigpcap_aware
+endif
 endif
 
 noinst_HEADERS = \
