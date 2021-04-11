@@ -172,7 +172,7 @@ void DetectFastPatternRegister(void)
 static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char arg_substr[128] = "";
     DetectContentData *cd = NULL;
 
@@ -237,7 +237,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     }
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     /* fast pattern only */
     if (ret == 2) {
         if ((cd->flags & DETECT_CONTENT_NEGATED) ||
@@ -256,11 +256,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
         /* fast pattern chop */
     } else if (ret == 4) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                 2, arg_substr, sizeof(arg_substr));
+        pcre2len = sizeof(arg_substr);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, 2, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
-                       "for fast_pattern offset");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for fast_pattern offset");
             goto error;
         }
         uint16_t offset;
@@ -271,11 +272,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
 
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                 3, arg_substr, sizeof(arg_substr));
+        pcre2len = sizeof(arg_substr);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, 3, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
-                       "for fast_pattern offset");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for fast_pattern offset");
             goto error;
         }
         uint16_t length;

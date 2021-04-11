@@ -63,18 +63,19 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     char copy_str[128] = "";
 
     int ret = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, 30);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Priority in Signature "
                      "- %s", rawstr);
         return -1;
     }
 
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, copy_str, sizeof(copy_str));
+    pcre2len = sizeof(copy_str);
+    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
