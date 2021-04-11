@@ -1,5 +1,5 @@
 /* vi: set et ts=4: */
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -304,6 +304,7 @@ static char *SCLogFilenameFromPattern(const char *pattern)
 
 static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
 {
+    SCLogDebug("Closing %s", log_ctx->filename);
     if (log_ctx->fp)
         fclose(log_ctx->fp);
 
@@ -821,6 +822,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         for(int i = 0; i < lf_ctx->threads->slot_count; i++) {
             if (lf_ctx->threads->lf_slots[i]) {
                 OutputUnregisterFileRotationFlag(&lf_ctx->threads->lf_slots[i]->rotation_flag);
+                lf_ctx->threads->lf_slots[i]->Close(lf_ctx->threads->lf_slots[i]);
                 SCFree(lf_ctx->threads->lf_slots[i]->filename);
                 SCFree(lf_ctx->threads->lf_slots[i]);
             }
