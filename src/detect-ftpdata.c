@@ -141,17 +141,18 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
 {
     DetectFtpdataData *ftpcommandd = NULL;
     char arg1[5] = "";
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    int ret = DetectParsePcreExec(&parse_regex, ftpcommandstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, ftpcommandstr, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
-    int res = pcre_copy_substring((char *) ftpcommandstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    pcre2len = sizeof(arg1);
+    int res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);

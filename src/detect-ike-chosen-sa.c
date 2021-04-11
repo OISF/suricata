@@ -143,11 +143,11 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
      */
     DetectIkeChosenSaData *dd = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char attribute[100];
     char value[100];
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH,
                 "pcre match for ike.chosen_sa_attribute failed, should be: <sa_attribute>=<type>, "
@@ -156,15 +156,17 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
         goto error;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, attribute, sizeof(attribute));
+    pcre2len = sizeof(attribute);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)attribute, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value, sizeof(value));
+    pcre2len = sizeof(value);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

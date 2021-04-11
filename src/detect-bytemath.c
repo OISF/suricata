@@ -259,12 +259,10 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 {
     DetectByteMathData *bmd = NULL;
     int ret, res;
-#undef MAX_SUBSTRINGS
-#define MAX_SUBSTRINGS 100
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char tmp_str[128] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     if (ret < MIN_GROUP || ret > MAX_GROUP) {
         SCLogError(SC_ERR_PCRE_PARSE, "byte_math parse error; invalid value: ret %" PRId32
                    ", string \"%s\"", ret, arg);
@@ -276,11 +274,14 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         goto error;
 
     /* no of bytes to extract */
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, BYTES_VAL, tmp_str, sizeof(tmp_str));
+    pcre2len = sizeof(tmp_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, BYTES_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for \"nbytes\" value: \"%s\"", tmp_str);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                "pcre2_substring_copy_bynumber failed "
+                "for \"nbytes\" value: \"%s\"",
+                tmp_str);
         goto error;
     }
 
@@ -294,11 +295,14 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     /* offset */
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, OFFSET_VAL, tmp_str, sizeof(tmp_str));
+    pcre2len = sizeof(tmp_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, OFFSET_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for \"offset\" value: \"%s\"", tmp_str);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                "pcre2_substring_copy_bynumber failed "
+                "for \"offset\" value: \"%s\"",
+                tmp_str);
         goto error;
     }
 
@@ -310,11 +314,14 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     /* operator */
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, OPER_VAL, tmp_str, sizeof(tmp_str));
+    pcre2len = sizeof(tmp_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, OPER_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for \"operator\" value of byte_math: \"%s\"", tmp_str);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                "pcre2_substring_copy_bynumber failed "
+                "for \"operator\" value of byte_math: \"%s\"",
+                tmp_str);
         goto error;
     }
 
@@ -333,11 +340,14 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     /* rvalue */
-    res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                              RVALUE_VAL, tmp_str, sizeof(tmp_str));
+    pcre2len = sizeof(tmp_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, RVALUE_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for \"rvalue\" to byte_math: \"%s\"", tmp_str);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                "pcre2_substring_copy_bynumber failed "
+                "for \"rvalue\" to byte_math: \"%s\"",
+                tmp_str);
         goto error;
     }
 
@@ -361,11 +371,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     /* result */
-    res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                              RESULT_VAL, tmp_str, sizeof(tmp_str));
+    pcre2len = sizeof(tmp_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, RESULT_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for \"result\" to byte_math");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                              "for \"result\" to byte_math");
         goto error;
     }
     if (!isalpha(*tmp_str)) {
@@ -387,12 +398,13 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
      */
 
     if (ret > RELATIVE_KW) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  RELATIVE_KW, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, RELATIVE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
 
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"relative\" arg");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"relative\" arg");
             goto error;
         }
 
@@ -402,11 +414,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     if (ret > ENDIAN_VAL) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  ENDIAN_KW, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, ENDIAN_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"endian\" arg");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"endian\" arg");
             goto error;
         }
 
@@ -414,11 +427,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
             bmd->flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
         }
 
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                 ENDIAN_VAL, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, ENDIAN_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"endian\" value");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"endian\" value");
             goto error;
         }
 
@@ -430,11 +444,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     if (ret > STRING_VAL) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  STRING_KW, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, STRING_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"string\" arg");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"string\" arg");
             goto error;
         }
 
@@ -442,11 +457,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
             bmd->flags |= DETECT_BYTEMATH_FLAG_STRING;
         }
 
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  STRING_VAL, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, STRING_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"string\" value");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"string\" value");
             goto error;
         }
 
@@ -461,11 +477,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     if (ret > DCE_KW) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  DCE_KW, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, DCE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"dce\" arg");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"dce\" arg");
             goto error;
         }
 
@@ -476,11 +493,12 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
     }
 
     if (ret > BITMASK_VAL) {
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  BITMASK_KW, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, BITMASK_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for byte_math \"bitmask\" arg");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                                  "for byte_math \"bitmask\" arg");
             goto error;
         }
 
@@ -489,11 +507,14 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         }
 
         /* bitmask value*/
-        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                  BITMASK_VAL, tmp_str, sizeof(tmp_str));
+        pcre2len = sizeof(tmp_str);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, BITMASK_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for bitmask value: \"%s\"", tmp_str);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                    "pcre2_substring_copy_bynumber failed "
+                    "for bitmask value: \"%s\"",
+                    tmp_str);
             goto error;
         }
 
