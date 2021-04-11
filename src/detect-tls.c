@@ -223,13 +223,13 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     const char *str_ptr;
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
@@ -238,9 +238,10 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     if (negate)
         flag = DETECT_CONTENT_NEGATED;
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(
+            subject_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -255,7 +256,7 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     if (unlikely(orig == NULL)) {
         goto error;
     }
-    pcre_free_substring(str_ptr);
+    pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
     tmp_str=orig;
 
@@ -414,13 +415,13 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     const char *str_ptr;
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
@@ -429,9 +430,10 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
     if (negate)
         flag = DETECT_CONTENT_NEGATED;
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(
+            issuerdn_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -446,7 +448,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
     if (unlikely(orig == NULL)) {
         goto error;
     }
-    pcre_free_substring(str_ptr);
+    pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
     tmp_str=orig;
 
@@ -546,13 +548,13 @@ static DetectTlsData *DetectTlsFingerprintParse (DetectEngineCtx *de_ctx, const 
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     const char *str_ptr;
     char *orig;
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectParsePcreExec(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&fingerprint_parse_regex, str, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
         goto error;
@@ -561,9 +563,10 @@ static DetectTlsData *DetectTlsFingerprintParse (DetectEngineCtx *de_ctx, const 
     if (negate)
         flag = DETECT_CONTENT_NEGATED;
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(
+            fingerprint_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -578,7 +581,7 @@ static DetectTlsData *DetectTlsFingerprintParse (DetectEngineCtx *de_ctx, const 
     if (unlikely(orig == NULL)) {
         goto error;
     }
-    pcre_free_substring(str_ptr);
+    pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
     tmp_str=orig;
 

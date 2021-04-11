@@ -150,9 +150,9 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
     DetectRpcData *rd = NULL;
     char *args[3] = {NULL,NULL,NULL};
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, rpcstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rpcstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, rpcstr);
         goto error;
@@ -160,25 +160,28 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
 
     if (ret > 1) {
         const char *str_ptr;
-        res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
         args[0] = (char *)str_ptr;
 
         if (ret > 2) {
-            res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+            res = pcre2_substring_get_bynumber(
+                    parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[1] = (char *)str_ptr;
         }
         if (ret > 3) {
-            res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+            res = pcre2_substring_get_bynumber(
+                    parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
             }
             args[2] = (char *)str_ptr;
@@ -230,14 +233,14 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
     }
     for (i = 0; i < (ret -1); i++){
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     return rd;
 
 error:
     for (i = 0; i < (ret -1) && i < 3; i++){
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     if (rd != NULL)
         DetectRpcFree(de_ctx, rd);
