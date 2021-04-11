@@ -189,32 +189,32 @@ static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, con
     char *value = NULL;
     char *mode = NULL;
     int res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    int ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0);
     if (ret != 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, streamstr);
         goto error;
     }
 
     const char *str_ptr;
-    res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     arg = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     mode = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)streamstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     value = (char *)str_ptr;
@@ -263,18 +263,18 @@ static DetectStreamSizeData *DetectStreamSizeParse (DetectEngineCtx *de_ctx, con
         goto error;
     }
 
-    SCFree(mode);
-    SCFree(arg);
-    SCFree(value);
+    pcre2_substring_free((PCRE2_UCHAR8 *)mode);
+    pcre2_substring_free((PCRE2_UCHAR8 *)arg);
+    pcre2_substring_free((PCRE2_UCHAR8 *)value);
     return sd;
 
 error:
     if (mode != NULL)
-        SCFree(mode);
+        pcre2_substring_free((PCRE2_UCHAR8 *)mode);
     if (arg != NULL)
-        SCFree(arg);
+        pcre2_substring_free((PCRE2_UCHAR8 *)arg);
     if (value != NULL)
-        SCFree(value);
+        pcre2_substring_free((PCRE2_UCHAR8 *)value);
     if (sd != NULL)
         DetectStreamSizeFree(de_ctx, sd);
     return NULL;

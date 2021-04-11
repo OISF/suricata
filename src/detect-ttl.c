@@ -133,36 +133,40 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 static DetectTtlData *DetectTtlParse (const char *ttlstr)
 {
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char arg1[6] = "";
     char arg2[6] = "";
     char arg3[6] = "";
 
-    int ret = DetectParsePcreExec(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, ttlstr, 0, 0);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;
     }
 
-    int res = pcre_copy_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    pcre2len = sizeof(arg1);
+    int res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     SCLogDebug("arg1 \"%s\"", arg1);
 
     if (ret >= 3) {
-        res = pcre_copy_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
+        pcre2len = sizeof(arg2);
+        res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             return NULL;
         }
         SCLogDebug("arg2 \"%s\"", arg2);
 
         if (ret >= 4) {
-            res = pcre_copy_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 3, arg3, sizeof(arg3));
+            pcre2len = sizeof(arg3);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 return NULL;
             }
             SCLogDebug("arg3 \"%s\"", arg3);

@@ -40,8 +40,8 @@ enum {
 };
 
 typedef struct DetectParseRegex_ {
-    pcre *regex;
-    pcre_extra *study;
+    pcre2_code *regex;
+    pcre2_match_data *match;
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
@@ -103,15 +103,8 @@ void DetectParseFreeRegexes(void);
 void DetectParseFreeRegex(DetectParseRegex *r);
 
 /* parse regex exec */
-int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
-                   int start_offset, int options,
-                   int *ovector, int ovector_size);
-int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
-                   int str_len, int start_offset, int options,
-                   int *ovector, int ovector_size);
-
-/* typical size of ovector */
-#define MAX_SUBSTRINGS 30
+int DetectParsePcreExec(
+        DetectParseRegex *parse_regex, const char *str, int start_offset, int options);
 
 #endif /* __DETECT_PARSE_H__ */
 

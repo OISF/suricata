@@ -161,9 +161,9 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
 {
     DetectSshVersionData *ssh = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid ssh.protoversion option");
         goto error;
@@ -171,16 +171,17 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
 
     if (ret > 1) {
         const char *str_ptr;
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
 
         /* We have a correct id option */
         ssh = SCMalloc(sizeof(DetectSshVersionData));
         if (unlikely(ssh == NULL)) {
-            pcre_free_substring(str_ptr);
+            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
         memset(ssh, 0x00, sizeof(DetectSshVersionData));
@@ -190,17 +191,17 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
         if (strcmp("2_compat", str_ptr) == 0) {
             ssh->flags |= SSH_FLAG_PROTOVERSION_2_COMPAT;
             SCLogDebug("will look for ssh protocol version 2 (2, 2.0, 1.99 that's considered as 2");
-            pcre_free_substring(str_ptr);
+            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             return ssh;
         }
 
         ssh->ver = (uint8_t *)SCStrdup((char*)str_ptr);
         if (ssh->ver == NULL) {
-            pcre_free_substring(str_ptr);
+            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
         ssh->len = strlen((char *) ssh->ver);
-        pcre_free_substring(str_ptr);
+        pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
         SCLogDebug("will look for ssh %s", ssh->ver);
     }

@@ -215,28 +215,28 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
     int name_len)
 {
-    const int max_substrings = 30;
     int count, rc;
-    int ov[max_substrings];
+    size_t pcre2len;
 
-    count = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, max_substrings);
+    count = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (count != 2 && count != 3) {
         SCLogError(SC_ERR_PCRE_MATCH,
             "\"%s\" is not a valid setting for flowbits.", str);
         return 0;
     }
 
-    rc = pcre_copy_substring((char *)str, ov, max_substrings, 1, cmd, cmd_len);
+    pcre2len = cmd_len;
+    rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
     if (rc < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return 0;
     }
 
     if (count == 3) {
-        rc = pcre_copy_substring((char *)str, ov, max_substrings, 2, name,
-            name_len);
+        pcre2len = name_len;
+        rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
         if (rc < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             return 0;
         }
 
