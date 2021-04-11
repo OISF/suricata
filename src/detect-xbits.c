@@ -197,34 +197,40 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
     uint32_t expire = DETECT_XBITS_EXPIRE_DEFAULT;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for xbits.", rawstr);
         return -1;
     }
     SCLogDebug("ret %d, %s", ret, rawstr);
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, fb_cmd_str, sizeof(fb_cmd_str));
+    pcre2len = sizeof(fb_cmd_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
     if (ret >= 3) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, fb_name, sizeof(fb_name));
+        pcre2len = sizeof(fb_name);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, 2, (PCRE2_UCHAR8 *)fb_name, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             return -1;
         }
         if (ret >= 4) {
-            res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, hb_dir_str, sizeof(hb_dir_str));
+            pcre2len = sizeof(hb_dir_str);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 3, (PCRE2_UCHAR8 *)hb_dir_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 return -1;
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
@@ -246,9 +252,11 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 
             if (ret >= 5) {
                 char expire_str[16] = "";
-                res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, expire_str, sizeof(expire_str));
+                pcre2len = sizeof(expire_str);
+                res = pcre2_substring_copy_bynumber(
+                        parse_regex.match, 4, (PCRE2_UCHAR8 *)expire_str, &pcre2len);
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     return -1;
                 }
                 SCLogDebug("expire_str %s", expire_str);
