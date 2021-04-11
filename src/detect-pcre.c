@@ -407,7 +407,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
     res = pcre2_substring_copy_bynumber(parse_regex->match, 1, (PCRE2_UCHAR8 *)re, &slen);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return NULL;
     }
 
@@ -416,7 +416,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(
                 parse_regex->match, 2, (PCRE2_UCHAR8 *)op_str, &copylen);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             return NULL;
         }
         op = op_str;
@@ -778,14 +778,14 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(
                 parse_capture_regex->match, 1, (PCRE2_UCHAR8 *)type_str, &copylen);
         if (res != 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         cap_buffer_len = strlen(regexstr) + 1;
         res = pcre2_substring_copy_bynumber(
                 parse_capture_regex->match, 2, (PCRE2_UCHAR8 *)capture_str, &cap_buffer_len);
         if (res != 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         if (strlen(capture_str) == 0 || strlen(type_str) == 0) {

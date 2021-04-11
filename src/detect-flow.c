@@ -174,35 +174,40 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
     DetectFlowData *fd = NULL;
     char *args[3] = {NULL,NULL,NULL};
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char str1[16] = "", str2[16] = "", str3[16] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, flowstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, flowstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;
     }
 
     if (ret > 1) {
-        res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
+        pcre2len = sizeof(str1);
+        res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         args[0] = (char *)str1;
 
         if (ret > 2) {
-            res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 2, str2, sizeof(str2));
+            pcre2len = sizeof(str2);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             args[1] = (char *)str2;
         }
         if (ret > 3) {
-            res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 3, str3, sizeof(str3));
+            pcre2len = sizeof(str3);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 3, (PCRE2_UCHAR8 *)str3, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             args[2] = (char *)str3;

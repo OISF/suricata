@@ -196,49 +196,49 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
 {
     DetectNfsVersionData *dd = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char mode[2] = "";
     char value1[20] = "";
     char value2[20] = "";
     char range[3] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, mode,
-                              sizeof(mode));
+    pcre2len = sizeof(mode);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("mode \"%s\"", mode);
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value1,
-                              sizeof(value1));
+    pcre2len = sizeof(value1);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
     SCLogDebug("value1 \"%s\"", value1);
 
     if (ret > 3) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3,
-                                  range, sizeof(range));
+        pcre2len = sizeof(range);
+        res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         SCLogDebug("range \"%s\"", range);
 
         if (ret > 4) {
-            res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4,
-                                      value2, sizeof(value2));
+            pcre2len = sizeof(value2);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
-                           "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
             SCLogDebug("value2 \"%s\"", value2);
