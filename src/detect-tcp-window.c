@@ -127,8 +127,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
     if (ret > 1) {
         char copy_str[128] = "";
         pcre2len = sizeof(copy_str);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
+        res = SC_pcre2_substring_copy(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;

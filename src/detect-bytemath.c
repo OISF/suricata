@@ -399,7 +399,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 
     if (ret > RELATIVE_KW) {
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, RELATIVE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
 
         if (res < 0) {
@@ -415,7 +415,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 
     if (ret > ENDIAN_VAL) {
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, ENDIAN_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
@@ -428,7 +428,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         }
 
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, ENDIAN_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
@@ -445,7 +445,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 
     if (ret > STRING_VAL) {
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, STRING_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
@@ -458,7 +458,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         }
 
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, STRING_VAL, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
@@ -478,7 +478,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
 
     if (ret > DCE_KW) {
         pcre2len = sizeof(tmp_str);
-        res = pcre2_substring_copy_bynumber(
+        res = SC_pcre2_substring_copy(
                 parse_regex.match, DCE_KW, (PCRE2_UCHAR8 *)tmp_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
