@@ -364,10 +364,6 @@ typedef unsigned char u_char
     #error "byte order: can't figure out big or little"
 #endif
 
-#ifndef HAVE_PCRE_FREE_STUDY
-#define pcre_free_study pcre_free
-#endif
-
 #ifndef MIN
 #define MIN(x, y) (((x)<(y))?(x):(y))
 #endif
