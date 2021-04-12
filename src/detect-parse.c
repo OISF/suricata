@@ -2560,6 +2560,30 @@ DetectParseRegex2 *DetectSetupPCRE2(const char *parse_str, int opts)
     return detect_parse;
 }
 
+int SC_pcre2_substring_copy(
+        pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen)
+{
+    int r = pcre2_substring_copy_bynumber(match_data, number, buffer, bufflen);
+    if (r == PCRE2_ERROR_UNSET) {
+        buffer[0] = 0;
+        *bufflen = 0;
+        return 0;
+    }
+    return r;
+}
+
+int SC_pcre2_substring_get(
+        pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr, PCRE2_SIZE *bufflen)
+{
+    int r = pcre2_substring_get_bynumber(match_data, number, bufferptr, bufflen);
+    if (r == PCRE2_ERROR_UNSET) {
+        *bufferptr = NULL;
+        *bufflen = 0;
+        return 0;
+    }
+    return r;
+}
+
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_parse)
 {
     if (!DetectSetupParseRegexesOpts(parse_str, detect_parse, 0)) {

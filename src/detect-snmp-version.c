@@ -188,7 +188,7 @@ static DetectSNMPVersionData *DetectSNMPVersionParse (const char *rawstr)
     }
 
     pcre2len = sizeof(mode);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
+    res = SC_pcre2_substring_copy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
