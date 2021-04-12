@@ -215,7 +215,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
-    while (res > 0) {
+    while (res >= 0 && strlen(str1) > 0) {
         ret = DetectParsePcreExec(&parse_regex2, str1, 0, 0);
         if (ret < 1) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
@@ -233,7 +233,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
 
         pcre2len = sizeof(str2);
         res = pcre2_substring_copy_bynumber(parse_regex2.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
-        if (res <= 0) {
+        if (res < 0) {
             SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }

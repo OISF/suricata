@@ -158,7 +158,7 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
 
     SCLogDebug("ret %d", ret);
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = SC_pcre2_substring_get(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
@@ -201,15 +201,15 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
     goto error;
     memset(fsd, 0, sizeof(DetectFilesizeData));
 
-    if (arg1[0] == '<')
+    if (arg1 != NULL && arg1[0] == '<')
         fsd->mode = DETECT_FILESIZE_LT;
-    else if (arg1[0] == '>')
+    else if (arg1 != NULL && arg1[0] == '>')
         fsd->mode = DETECT_FILESIZE_GT;
     else
         fsd->mode = DETECT_FILESIZE_EQ;
 
     if (arg3 != NULL && strcmp("<>", arg3) == 0) {
-        if (strlen(arg1) != 0) {
+        if (arg1 != NULL && strlen(arg1) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
