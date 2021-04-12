@@ -108,7 +108,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 
     SCLogDebug("ret %d", ret);
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = SC_pcre2_substring_get(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
@@ -125,8 +125,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     SCLogDebug("Arg2 \"%s\"", arg2);
 
     if (ret > 3) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_pcre2_substring_get(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
@@ -135,7 +134,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         SCLogDebug("Arg3 \"%s\"", arg3);
 
         if (ret > 4) {
-            res = pcre2_substring_get_bynumber(
+            res = SC_pcre2_substring_get(
                     parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
@@ -161,15 +160,15 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         goto error;
     memset(urilend, 0, sizeof(DetectUrilenData));
 
-    if (arg1[0] == '<')
+    if (arg1 != NULL && arg1[0] == '<')
         urilend->mode = DETECT_URILEN_LT;
-    else if (arg1[0] == '>')
+    else if (arg1 != NULL && arg1[0] == '>')
         urilend->mode = DETECT_URILEN_GT;
     else
         urilend->mode = DETECT_URILEN_EQ;
 
     if (arg3 != NULL && strcmp("<>", arg3) == 0) {
-        if (strlen(arg1) != 0) {
+        if (arg1 != NULL && strlen(arg1) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
