@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,7 @@
 #include "util-unittest.h"
 #include "ippair-storage.h"
 
-static int ippair_bit_id = -1;                /**< IPPair storage id for bits */
+static IPPairStorageId ippair_bit_id = { .id = -1 }; /**< IPPair storage id for bits */
 
 static void XBitFreeAll(void *store)
 {
@@ -49,7 +49,7 @@ static void XBitFreeAll(void *store)
 void IPPairBitInitCtx(void)
 {
     ippair_bit_id = IPPairStorageRegister("bit", sizeof(void *), NULL, XBitFreeAll);
-    if (ippair_bit_id == -1) {
+    if (ippair_bit_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate ippair storage for bits");
     }
 }
