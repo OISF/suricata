@@ -286,11 +286,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
         pcre2len = sizeof(opt_str);
         res = pcre2_substring_copy_bynumber(
                 parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
-        if (res < 0) {
+        if (res == PCRE2_ERROR_UNSET) {
+            opt_str[0] = 0;
+        } else if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
                     "pcre2_substring_copy_bynumber failed "
-                    "for arg %d for byte_extract",
-                    i);
+                    "for arg %d for byte_extract with %d",
+                    i, res);
             goto error;
         }
 
