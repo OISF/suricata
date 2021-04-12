@@ -1012,7 +1012,7 @@ impl DCERPCState {
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
-        if (buffer.len() as u16) < fraglen {
+        if (buffer.len()) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
             self.extend_buffer(buffer, direction);
             return AppLayerResult::ok();
