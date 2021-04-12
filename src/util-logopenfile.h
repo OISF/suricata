@@ -33,10 +33,6 @@
 
 #include "suricata-plugin.h"
 
-typedef struct {
-    uint16_t fileno;
-} PcieFile;
-
 enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
@@ -60,7 +56,6 @@ typedef struct LogThreadedFileCtx_ {
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
-        PcieFile *pcie_fp;
         LogThreadedFileCtx *threads;
         void *plugin_data;
 #ifdef HAVE_LIBHIREDIS
