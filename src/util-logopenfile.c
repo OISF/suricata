@@ -576,7 +576,6 @@ SCConfLogOpenGeneric(ConfNode *conf,
     } else {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
-                   "\"pcie\" "
                    "or \"unix_dgram\"",
                    conf->name);
     }
