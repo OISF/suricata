@@ -87,104 +87,108 @@ static FILE *g_ut_threshold_fp = NULL;
 #define THRESHOLD_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/threshold.config"
 #endif
 
-static pcre *regex_base = NULL;
-static pcre_extra *regex_base_study = NULL;
+static pcre2_code *regex_base = NULL;
+static pcre2_match_data *regex_base_match = NULL;
 
-static pcre *regex_threshold = NULL;
-static pcre_extra *regex_threshold_study = NULL;
+static pcre2_code *regex_threshold = NULL;
+static pcre2_match_data *regex_threshold_match = NULL;
 
-static pcre *regex_rate = NULL;
-static pcre_extra *regex_rate_study = NULL;
+static pcre2_code *regex_rate = NULL;
+static pcre2_match_data *regex_rate_match = NULL;
 
-static pcre *regex_suppress = NULL;
-static pcre_extra *regex_suppress_study = NULL;
+static pcre2_code *regex_suppress = NULL;
+static pcre2_match_data *regex_suppress_match = NULL;
 
 static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
 
 void SCThresholdConfGlobalInit(void)
 {
-    const char *eb = NULL;
-    int eo;
+    int en;
+    PCRE2_SIZE eo;
     int opts = 0;
+    PCRE2_UCHAR errbuffer[256];
 
-    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
+    regex_base = pcre2_compile(
+            (PCRE2_SPTR8)DETECT_BASE_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_base == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        FatalError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                DETECT_BASE_REGEX, (int)eo, errbuffer);
     }
+    regex_base_match = pcre2_match_data_create_from_pattern(regex_base, NULL);
 
-    regex_base_study = pcre_study(regex_base, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
+    regex_threshold = pcre2_compile(
+            (PCRE2_SPTR8)DETECT_THRESHOLD_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_threshold == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        FatalError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                DETECT_THRESHOLD_REGEX, (int)eo, errbuffer);
     }
+    regex_threshold_match = pcre2_match_data_create_from_pattern(regex_threshold, NULL);
 
-    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
+    regex_rate = pcre2_compile(
+            (PCRE2_SPTR8)DETECT_RATE_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_rate == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        FatalError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                DETECT_RATE_REGEX, (int)eo, errbuffer);
     }
+    regex_rate_match = pcre2_match_data_create_from_pattern(regex_rate, NULL);
 
-    regex_rate_study = pcre_study(regex_rate, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
+    regex_suppress = pcre2_compile(
+            (PCRE2_SPTR8)DETECT_SUPPRESS_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex_suppress == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        FatalError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                DETECT_SUPPRESS_REGEX, (int)eo, errbuffer);
     }
-
-    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
+    regex_suppress_match = pcre2_match_data_create_from_pattern(regex_suppress, NULL);
 }
 
 void SCThresholdConfGlobalFree(void)
 {
     if (regex_base != NULL) {
-        pcre_free(regex_base);
+        pcre2_code_free(regex_base);
         regex_base = NULL;
     }
-    if (regex_base_study != NULL) {
-        pcre_free(regex_base_study);
-        regex_base_study = NULL;
+    if (regex_base_match != NULL) {
+        pcre2_match_data_free(regex_base_match);
+        regex_base_match = NULL;
     }
 
     if (regex_threshold != NULL) {
-        pcre_free(regex_threshold);
+        pcre2_code_free(regex_threshold);
         regex_threshold = NULL;
     }
-    if (regex_threshold_study != NULL) {
-        pcre_free(regex_threshold_study);
-        regex_threshold_study = NULL;
+    if (regex_threshold_match != NULL) {
+        pcre2_match_data_free(regex_threshold_match);
+        regex_threshold_match = NULL;
     }
 
     if (regex_rate != NULL) {
-        pcre_free(regex_rate);
+        pcre2_code_free(regex_rate);
         regex_rate = NULL;
     }
-    if (regex_rate_study != NULL) {
-        pcre_free(regex_rate_study);
-        regex_rate_study = NULL;
+    if (regex_rate_match != NULL) {
+        pcre2_match_data_free(regex_rate_match);
+        regex_rate_match = NULL;
     }
 
     if (regex_suppress != NULL) {
-        pcre_free(regex_suppress);
+        pcre2_code_free(regex_suppress);
         regex_suppress = NULL;
     }
-    if (regex_suppress_study != NULL) {
-        pcre_free(regex_suppress_study);
-        regex_suppress_study = NULL;
+    if (regex_suppress_match != NULL) {
+        pcre2_match_data_free(regex_suppress_match);
+        regex_suppress_match = NULL;
     }
 }
 
@@ -648,43 +652,49 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     uint32_t parsed_timeout = 0;
 
     int ret = 0;
-    int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;
     ThresholdRuleType rule_type;
 
     if (de_ctx == NULL)
         return -1;
 
-    ret = pcre_exec(regex_base, regex_base_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre2_match(
+            regex_base, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_base_match, NULL);
     if (ret < 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                rawstr);
         goto error;
     }
 
     /* retrieve the classtype name */
-    ret = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, th_rule_type, sizeof(th_rule_type));
+    size_t copylen = sizeof(th_rule_type);
+    ret = pcre2_substring_copy_bynumber(
+            regex_base_match, 1, (PCRE2_UCHAR8 *)th_rule_type, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     /* retrieve the classtype name */
-    ret = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, th_gid, sizeof(th_gid));
+    copylen = sizeof(th_gid);
+    ret = pcre2_substring_copy_bynumber(regex_base_match, 2, (PCRE2_UCHAR8 *)th_gid, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
-    ret = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, th_sid, sizeof(th_sid));
+    copylen = sizeof(th_sid);
+    ret = pcre2_substring_copy_bynumber(regex_base_match, 3, (PCRE2_UCHAR8 *)th_sid, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     /* Use "get" for heap allocation */
-    ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &rule_extend);
+    ret = pcre2_substring_get_bynumber(
+            regex_base_match, 4, (PCRE2_UCHAR8 **)&rule_extend, &copylen);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
 
@@ -707,37 +717,44 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
         case THRESHOLD_TYPE_EVENT_FILTER:
         case THRESHOLD_TYPE_THRESHOLD:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_threshold, regex_threshold_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = pcre2_match(regex_threshold, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0,
+                        0, regex_threshold_match, NULL);
                 if (ret < 4) {
                     SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre_exec parse error, ret %" PRId32 ", string %s",
-                            ret, rule_extend);
+                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                            rule_extend);
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 1, th_type, sizeof(th_type));
+                copylen = sizeof(th_type);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_threshold_match, 1, (PCRE2_UCHAR8 *)th_type, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 2, th_track, sizeof(th_track));
+                copylen = sizeof(th_track);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_threshold_match, 2, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 3, th_count, sizeof(th_count));
+                copylen = sizeof(th_count);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_threshold_match, 3, (PCRE2_UCHAR8 *)th_count, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 4, th_seconds, sizeof(th_seconds));
+                copylen = sizeof(th_seconds);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_threshold_match, 4, (PCRE2_UCHAR8 *)th_seconds, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -758,25 +775,27 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
             break;
         case THRESHOLD_TYPE_SUPPRESS:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_suppress, regex_suppress_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = pcre2_match(regex_suppress, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0,
+                        0, regex_suppress_match, NULL);
                 if (ret < 2) {
                     SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre_exec parse error, ret %" PRId32 ", string %s",
-                            ret, rule_extend);
+                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                            rule_extend);
                     goto error;
                 }
                 /* retrieve the track mode */
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 1, th_track, sizeof(th_track));
+                copylen = sizeof(th_seconds);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_suppress_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
                 /* retrieve the IP; use "get" for heap allocation */
-                ret = pcre_get_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 2, &th_ip);
+                ret = pcre2_substring_get_bynumber(
+                        regex_suppress_match, 2, (PCRE2_UCHAR8 **)&th_ip, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                     goto error;
                 }
             } else {
@@ -786,43 +805,52 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
             break;
         case THRESHOLD_TYPE_RATE:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_rate, regex_rate_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = pcre2_match(regex_rate, (PCRE2_SPTR8)rule_extend, strlen(rule_extend), 0, 0,
+                        regex_rate_match, NULL);
                 if (ret < 5) {
                     SCLogError(SC_ERR_PCRE_MATCH,
-                            "pcre_exec parse error, ret %" PRId32 ", string %s",
-                            ret, rule_extend);
+                            "pcre2_match parse error, ret %" PRId32 ", string %s", ret,
+                            rule_extend);
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 1, th_track, sizeof(th_track));
+                copylen = sizeof(th_track);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_rate_match, 1, (PCRE2_UCHAR8 *)th_track, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 2, th_count, sizeof(th_count));
+                copylen = sizeof(th_count);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_rate_match, 2, (PCRE2_UCHAR8 *)th_count, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 3, th_seconds, sizeof(th_seconds));
+                copylen = sizeof(th_seconds);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_rate_match, 3, (PCRE2_UCHAR8 *)th_seconds, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 4, th_new_action, sizeof(th_new_action));
+                copylen = sizeof(th_new_action);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_rate_match, 4, (PCRE2_UCHAR8 *)th_new_action, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
-                ret = pcre_copy_substring((char *)rule_extend, ov, MAX_SUBSTRINGS, 5, th_timeout, sizeof(th_timeout));
+                copylen = sizeof(th_timeout);
+                ret = pcre2_substring_copy_bynumber(
+                        regex_rate_match, 5, (PCRE2_UCHAR8 *)th_timeout, &copylen);
                 if (ret < 0) {
-                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     goto error;
                 }
 
@@ -926,18 +954,16 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     *ret_th_ip = NULL;
     if (th_ip != NULL) {
         *ret_th_ip = (char *)th_ip;
-    } else {
-        SCFree((char *)th_ip);
     }
-    SCFree((char *)rule_extend);
+    pcre2_substring_free((PCRE2_UCHAR8 *)rule_extend);
     return 0;
 
 error:
     if (rule_extend != NULL) {
-        SCFree((char *)rule_extend);
+        pcre2_substring_free((PCRE2_UCHAR8 *)rule_extend);
     }
     if (th_ip != NULL) {
-        SCFree((char *)th_ip);
+        pcre2_substring_free((PCRE2_UCHAR8 *)th_ip);
     }
     return -1;
 }
@@ -983,11 +1009,11 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
         goto error;
     }
 
-    SCFree(th_ip);
+    pcre2_substring_free((PCRE2_UCHAR8 *)th_ip);
     return 0;
 error:
     if (th_ip != NULL)
-        SCFree(th_ip);
+        pcre2_substring_free((PCRE2_UCHAR8 *)th_ip);
     return -1;
 }
 
