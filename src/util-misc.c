@@ -27,47 +27,44 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-misc.h"
+#include <pcre2.h>
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
-static pcre *parse_regex = NULL;
-static pcre_extra *parse_regex_study = NULL;
+static pcre2_code *parse_regex = NULL;
+static pcre2_match_data *parse_regex_match = NULL;
 
 void ParseSizeInit(void)
 {
-    const char *eb = NULL;
-    int eo;
+    int en;
+    PCRE2_SIZE eo;
     int opts = 0;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
+    parse_regex =
+            pcre2_compile((PCRE2_SPTR8)PARSE_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset "
-                   "%" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                PARSE_REGEX, (int)eo, errbuffer);
         exit(EXIT_FAILURE);
     }
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        exit(EXIT_FAILURE);
-    }
+    parse_regex_match = pcre2_match_data_create_from_pattern(parse_regex, NULL);
 }
 
 void ParseSizeDeinit(void)
 {
-
-    if (parse_regex != NULL)
-        pcre_free(parse_regex);
-    if (parse_regex_study != NULL)
-        pcre_free_study(parse_regex_study);
+    pcre2_code_free(parse_regex);
+    pcre2_match_data_free(parse_regex_match);
 }
 
 /* size string parsing API */
 
 static int ParseSizeString(const char *size, double *res)
 {
-#define MAX_SUBSTRINGS 30
-    int pcre_exec_ret;
+    int pcre2_match_ret;
     int r;
-    int ov[MAX_SUBSTRINGS];
     int retval = 0;
     char str[128];
     char str2[128];
@@ -86,9 +83,10 @@ static int ParseSizeString(const char *size, double *res)
         goto end;
     }
 
-    pcre_exec_ret = pcre_exec(parse_regex, parse_regex_study, size, strlen(size), 0, 0,
-                    ov, MAX_SUBSTRINGS);
-    if (!(pcre_exec_ret == 2 || pcre_exec_ret == 3)) {
+    pcre2_match_ret = pcre2_match(
+            parse_regex, (PCRE2_SPTR8)size, strlen(size), 0, 0, parse_regex_match, NULL);
+
+    if (!(pcre2_match_ret == 2 || pcre2_match_ret == 3)) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid size argument - %s. Valid size "
                    "argument should be in the format - \n"
                    "xxx <- indicates it is just bytes\n"
@@ -100,10 +98,10 @@ static int ParseSizeString(const char *size, double *res)
         goto end;
     }
 
-    r = pcre_copy_substring((char *)size, ov, MAX_SUBSTRINGS, 1,
-                             str, sizeof(str));
+    size_t copylen = sizeof(str);
+    r = pcre2_substring_copy_bynumber(parse_regex_match, 1, (PCRE2_UCHAR8 *)str, &copylen);
     if (r < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         retval = -2;
         goto end;
     }
@@ -121,11 +119,12 @@ static int ParseSizeString(const char *size, double *res)
         goto end;
     }
 
-    if (pcre_exec_ret == 3) {
-        r = pcre_copy_substring((char *)size, ov, MAX_SUBSTRINGS, 2,
-                                 str2, sizeof(str2));
+    if (pcre2_match_ret == 3) {
+        copylen = sizeof(str2);
+        r = pcre2_substring_copy_bynumber(parse_regex_match, 2, (PCRE2_UCHAR8 *)str2, &copylen);
+
         if (r < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             retval = -2;
             goto end;
         }

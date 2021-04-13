@@ -38,12 +38,13 @@
 #include "detect-tcp-flags.h"
 #include "feature.h"
 #include "util-print.h"
+#include <pcre2.h>
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
 static FILE *fp_engine_analysis_FD = NULL;
-static pcre *percent_re = NULL;
-static pcre_extra *percent_re_study = NULL;
+static pcre2_code *percent_re = NULL;
+static pcre2_match_data *percent_re_match = NULL;
 static char log_path[PATH_MAX];
 
 typedef struct FpPatternStats_ {
@@ -417,6 +418,10 @@ void CleanupRuleAnalyzer(void)
         fclose(rule_engine_analysis_FD);
         rule_engine_analysis_FD = NULL;
     }
+    if (percent_re != NULL) {
+        pcre2_code_free(percent_re);
+    }
+    pcre2_match_data_free(percent_re_match);
 }
 
 /**
@@ -427,22 +432,21 @@ void CleanupRuleAnalyzer(void)
 int PerCentEncodingSetup ()
 {
 #define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
-    const char *eb = NULL;
-    int eo = 0;
+    int en;
+    PCRE2_SIZE eo = 0;
     int opts = 0;    //PCRE_NEWLINE_ANY??
 
-    percent_re = pcre_compile(DETECT_PERCENT_ENCODING_REGEX, opts, &eb, &eo, NULL);
+    percent_re = pcre2_compile((PCRE2_SPTR8)DETECT_PERCENT_ENCODING_REGEX, PCRE2_ZERO_TERMINATED,
+            opts, &en, &eo, NULL);
     if (percent_re == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_PERCENT_ENCODING_REGEX, eo, eb);
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %d: %s",
+                DETECT_PERCENT_ENCODING_REGEX, (int)eo, errbuffer);
         return 0;
     }
 
-    percent_re_study = pcre_study(percent_re, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        return 0;
-    }
+    percent_re_match = pcre2_match_data_create_from_pattern(percent_re, NULL);
     return 1;
 }
 
@@ -455,11 +459,9 @@ int PerCentEncodingSetup ()
  */
 int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
 {
-#define MAX_ENCODED_CHARS 240
     int ret = 0;
-    int ov[MAX_ENCODED_CHARS];
 
-    ret = pcre_exec(percent_re, percent_re_study, (char *)content, content_len, 0, 0, ov, MAX_ENCODED_CHARS);
+    ret = pcre2_match(percent_re, (PCRE2_SPTR8)content, content_len, 0, 0, percent_re_match, NULL);
     if (ret == -1) {
         return 0;
     }

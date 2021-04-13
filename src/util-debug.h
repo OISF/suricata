@@ -31,6 +31,7 @@
 #include "util-error.h"
 #include "util-debug-filters.h"
 #include "util-atomic.h"
+#include <pcre2.h>
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module
@@ -176,8 +177,8 @@ typedef struct SCLogConfig_ {
 
     char *op_filter;
     /* compiled pcre filter expression */
-    pcre *op_filter_regex;
-    pcre_extra *op_filter_regex_study;
+    pcre2_code *op_filter_regex;
+    pcre2_match_data *op_filter_regex_match;
 
     /* op ifaces used */
     SCLogOPIfaceCtx *op_ifaces;
