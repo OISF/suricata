@@ -206,6 +206,7 @@ jobs:
                 make \
                 nss-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
@@ -281,6 +282,7 @@ jobs:
                 make \
                 nss-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python36-PyYAML \
                 rust \
@@ -357,6 +359,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -443,6 +446,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -515,6 +519,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -553,6 +558,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -630,6 +636,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -703,6 +710,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -803,6 +811,7 @@ jobs:
                 libpython2.7 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 make \
                 parallel \
                 python3-yaml \
@@ -878,6 +887,7 @@ jobs:
                 libpython2.7 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 make \
                 python3-yaml \
                 software-properties-common \
@@ -918,6 +928,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -990,6 +1001,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -1087,6 +1099,7 @@ jobs:
                 afl-clang \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -1156,6 +1169,7 @@ jobs:
                 libnfnetlink0 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev \
                 libyaml-0-2 \
                 libyaml-dev \
@@ -1209,6 +1223,7 @@ jobs:
                 libpcre3 \
                 libpcre3-dbg \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
                 libyaml-0-2 \
@@ -1275,6 +1290,7 @@ jobs:
                 libpcre3 \
                 libpcre3-dbg \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
                 libyaml-0-2 \
@@ -1379,7 +1395,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
