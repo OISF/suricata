@@ -58,10 +58,29 @@ static int DetectTransformPcrexformParseTest02 (void)
 }
 
 /**
+ * \test signature with a pcrexform value without substring capture
+ */
+
+static int DetectTransformPcrexformParseTest03(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"HTTP with pcrexform\"; http.request_line; "
+            "pcrexform:\"No-match\"; content:\"/no-match.jpg\"; sid:1;)");
+    FAIL_IF_NOT_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
  * \brief this function registers unit tests for DetectTransformPcrexform
  */
 void DetectTransformPcrexformRegisterTests(void)
 {
     UtRegisterTest("DetectTransformPcrexformParseTest01", DetectTransformPcrexformParseTest01);
     UtRegisterTest("DetectTransformPcrexformParseTest02", DetectTransformPcrexformParseTest02);
+    UtRegisterTest("DetectTransformPcrexformParseTest03", DetectTransformPcrexformParseTest03);
 }
