@@ -637,6 +637,34 @@
         exit 1
     fi
 
+    PCRE2=""
+    AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,PCRE2="no")
+    if test "$PCRE2" = "no"; then
+        echo
+        echo "   ERROR!  pcre2 library not found, go get it"
+        echo "   from www.pcre.org. Or from packages:"
+        echo "   Debian/Ubuntu: apt install libpcre2-dev"
+        echo "   Fedora: dnf install pcre2-devel"
+        echo "   CentOS/RHEL: yum install pcre2-devel"
+        echo
+        exit 1
+    fi
+
+    AC_DEFINE([PCRE2_CODE_UNIT_WIDTH], [8], [Pcre code unit width is 8 bits])
+    AC_MSG_CHECKING(for PCRE2 JIT support)
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre2.h> ]],
+        [[
+        int jit = 0;
+        pcre2_config(PCRE2_CONFIG_JIT, &jit);
+        ]])],[ pcre2_jit_available=yes ],[ pcre2_jit_available=no ]
+        )
+    if test "x$pcre2_jit_available" = "xyes"; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE([PCRE2_HAVE_JIT], [1], [Pcre2 with JIT compiler support enabled])
+    else
+        AC_MSG_RESULT(no)
+    fi
+
     # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
     # see https://redmine.openinfosecfoundation.org/issues/1693
     if test "$with_libpcre_libraries" = "no"; then
@@ -668,20 +696,6 @@
     fi
     LIBS="${TMPLIBS}"
 
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
-        [[ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ]])],
-        [ pcre_match_limit_recursion_available=yes ],[:]
-    )
-    if test "$pcre_match_limit_recursion_available" != "yes"; then
-        echo
-        echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
-        echo "   This could lead to potential DoS please upgrade to pcre >= 6.5"
-        echo "   from www.pcre.org."
-        echo "   Continuing for now...."
-        echo
-        AC_DEFINE([NO_PCRE_MATCH_RLIMIT],[1],[Pcre PCRE_EXTRA_MATCH_LIMIT_RECURSION not available])
-    fi
-
     TMPCFLAGS="${CFLAGS}"
     CFLAGS="-O0 -g -Werror -Wall"
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
@@ -689,104 +703,6 @@
         [ AC_DEFINE([HAVE_PCRE_FREE_STUDY], [1], [Pcre pcre_free_study supported])],[:]
     )
     CFLAGS="${TMPCFLAGS}"
-
-    #enable support for PCRE-jit available since pcre-8.20
-    AC_MSG_CHECKING(for PCRE JIT support)
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
-        [[
-        int jit = 0;
-        pcre_config(PCRE_CONFIG_JIT, &jit);
-        ]])],[ pcre_jit_available=yes ],[ pcre_jit_available=no ]
-        )
-
-    case $host in
-        *powerpc64*)
-            PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.39],[libpcre_ppc64_buggy_found1="yes"],[libprce_ppc64_buggy_found1="no"])
-            PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.40],[libpcre_ppc64_buggy_found2="yes"],[libprce_ppc64_buggy_found2="no"])
-
-            if test "$libprce_ppc64_buggy_found1" = "yes" || test "$libprce_ppc64_buggy_found2"; then
-                # on powerpc64, both gcc and clang lead to SIGILL in
-                # unittests when jit is enabled.
-                pcre_jit_available="no, pcre 8.39/8.40 jit disabled for powerpc64"
-            fi
-            # hack: use libatomic
-            LIBS="${LIBS} -latomic"
-        ;;
-        *)
-            # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
-            if test "$libpcre_buggy_found" = "yes"; then
-                pcre_jit_available="no, libpcre 8.35 blacklisted"
-            fi
-        ;;
-    esac
-
-    if test "x$pcre_jit_available" = "xyes"; then
-       AC_MSG_RESULT(yes)
-       AC_DEFINE([PCRE_HAVE_JIT], [1], [Pcre with JIT compiler support enabled])
-
-       AC_MSG_CHECKING(for PCRE JIT support usability)
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
-           [[
-           const char *error;
-           int err_offset;
-           pcre *re = pcre_compile("(a|b|c|d)",0, &error, &err_offset,NULL);
-           pcre_extra *extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
-           if (extra == NULL)
-               exit(EXIT_FAILURE);
-           int jit = 0;
-           int ret = pcre_fullinfo(re, extra, PCRE_INFO_JIT, &jit);
-           if (ret != 0 || jit != 1)
-               exit(EXIT_FAILURE);
-           exit(EXIT_SUCCESS);
-           ]])],[ pcre_jit_works=yes ],[:]
-       )
-       if test "x$pcre_jit_works" != "xyes"; then
-           AC_MSG_RESULT(no)
-           echo
-           echo "   PCRE JIT support detection worked but testing it failed"
-           echo "   something odd is going on, please file a bug report."
-           echo
-           exit 1
-       else
-           AC_MSG_RESULT(yes)
-       fi
-    else
-        AC_MSG_RESULT(no)
-    fi
-
-    if test "x$pcre_jit_works" = "xyes"; then
-
-       AC_MSG_CHECKING(for PCRE JIT exec availability)
-       AC_LINK_IFELSE(
-           [AC_LANG_PROGRAM(
-               [
-                  #include <pcre.h>
-                  #include <string.h>
-               ],
-               [
-                   const char *error;
-                   int err_offset;
-                   pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
-                   pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
-                   if (study == NULL)
-                       exit(EXIT_FAILURE);
-                   pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
-                   if (stack == 0)
-                       exit(EXIT_FAILURE);
-                   int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
-                   exit(ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
-               ])],
-           [pcre_jit_exec_available="yes" ],
-           [pcre_jit_exec_available="no" ])
-       if test "x$pcre_jit_exec_available" != "xyes"; then
-           AC_MSG_RESULT(no)
-       else
-           AC_MSG_RESULT(yes)
-           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [PCRE with JIT compiler support enabled supporting pcre_jit_exec])
-       fi
-    else
-        AC_MSG_RESULT(no)
-    fi
 
   # libhs
     enable_hyperscan="no"
