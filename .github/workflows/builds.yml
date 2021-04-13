@@ -203,7 +203,6 @@ jobs:
                 lz4-devel \
                 make \
                 nss-devel \
-                pcre-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -279,7 +278,6 @@ jobs:
                 lz4-devel \
                 make \
                 nss-devel \
-                pcre-devel \
                 pcre2-devel \
                 pkgconfig \
                 python36-PyYAML \
@@ -355,7 +353,6 @@ jobs:
                 lz4-devel \
                 make \
                 nss-softokn-devel \
-                pcre-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -442,7 +439,6 @@ jobs:
                 lz4-devel \
                 make \
                 nss-softokn-devel \
-                pcre-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -515,7 +511,6 @@ jobs:
                 lz4-devel \
                 make \
                 nss-softokn-devel \
-                pcre-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -553,8 +548,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -631,8 +624,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -705,8 +696,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -806,8 +795,6 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 make \
                 parallel \
@@ -882,8 +869,6 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 make \
                 python3-yaml \
@@ -923,8 +908,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -996,8 +979,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -1094,8 +1075,6 @@ jobs:
           apt -y install \
                 afl \
                 afl-clang \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -1164,8 +1143,6 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 libpcap-dev \
                 libyaml-0-2 \
@@ -1217,9 +1194,6 @@ jobs:
                 git \
                 gosu \
                 jq \
-                libpcre3 \
-                libpcre3-dbg \
-                libpcre3-dev \
                 libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
@@ -1281,9 +1255,6 @@ jobs:
                 git-core \
                 gosu \
                 jq \
-                libpcre3 \
-                libpcre3-dbg \
-                libpcre3-dev \
                 libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
@@ -1352,7 +1323,6 @@ jobs:
           libtool \
           libyaml \
           lua \
-          pcre \
           pkg-config \
           python \
           rust \
@@ -1389,7 +1359,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
