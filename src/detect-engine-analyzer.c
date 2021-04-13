@@ -433,7 +433,7 @@ int PerCentEncodingSetup ()
 #define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
     int en;
     PCRE2_SIZE eo = 0;
-    int opts = 0;    //PCRE_NEWLINE_ANY??
+    int opts = 0; // PCRE2_NEWLINE_ANY??
 
     percent_re = pcre2_compile((PCRE2_SPTR8)DETECT_PERCENT_ENCODING_REGEX, PCRE2_ZERO_TERMINATED,
             opts, &en, &eo, NULL);

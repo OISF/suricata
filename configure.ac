@@ -608,35 +608,6 @@
         LIBS="${TMPLIBS} -lz"
     fi
 
-  #libpcre
-    AC_ARG_WITH(libpcre_includes,
-            [  --with-libpcre-includes=DIR  libpcre include directory],
-            [with_libpcre_includes="$withval"],[with_libpcre_includes="no"])
-    AC_ARG_WITH(libpcre_libraries,
-            [  --with-libpcre-libraries=DIR    libpcre library directory],
-            [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
-
-    if test "$with_libpcre_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
-    fi
-    AC_CHECK_HEADER(pcre.h,,[AC_MSG_ERROR(pcre.h not found ...)])
-
-    if test "$with_libpcre_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS} -L${with_libpcre_libraries}"
-    fi
-    PCRE=""
-    AC_CHECK_LIB(pcre, pcre_get_substring,,PCRE="no")
-    if test "$PCRE" = "no"; then
-        echo
-        echo "   ERROR!  pcre library not found, go get it"
-        echo "   from www.pcre.org. Or from packages:"
-        echo "   Debian/Ubuntu: apt install libpcre3-dev"
-        echo "   Fedora: dnf install pcre-devel"
-        echo "   CentOS/RHEL: yum install pcre-devel"
-        echo
-        exit 1
-    fi
-
     PCRE2=""
     AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,PCRE2="no")
     if test "$PCRE2" = "no"; then
@@ -664,45 +635,6 @@
     else
         AC_MSG_RESULT(no)
     fi
-
-    # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
-    # see https://redmine.openinfosecfoundation.org/issues/1693
-    if test "$with_libpcre_libraries" = "no"; then
-        PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
-        if test "$libpcre_buggy_found" = "yes"; then
-            echo
-            echo "   Warning! vulnerable libpcre version 8.35 found"
-            echo "   This version has a known issue that could result in segfaults"
-            echo "   please upgrade to a newer version of pcre which you can get from"
-            echo "   www.pcre.org. For more information, see issue #1693"
-            echo
-            echo "   Continuing for now with JIT disabled..."
-            echo
-        fi
-    fi
-
-    # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    PCRE=""
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(pcre, pcre_dfa_exec,, PCRE="no")
-    if test "$PCRE" = "no"; then
-        echo
-        echo "   ERROR!  pcre library was found but version was < 6.0"
-        echo "   please upgrade to a newer version of pcre which you can get from"
-        echo "   www.pcre.org."
-        echo
-        exit 1
-    fi
-    LIBS="${TMPLIBS}"
-
-    TMPCFLAGS="${CFLAGS}"
-    CFLAGS="-O0 -g -Werror -Wall"
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
-        [[ pcre_extra *extra = NULL; pcre_free_study(extra); ]])],
-        [ AC_DEFINE([HAVE_PCRE_FREE_STUDY], [1], [Pcre pcre_free_study supported])],[:]
-    )
-    CFLAGS="${TMPCFLAGS}"
 
   # libhs
     enable_hyperscan="no"
@@ -2616,7 +2548,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
-  PCRE jit:                                ${pcre_jit_available}
+  PCRE jit:                                ${pcre2_jit_available}
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
