@@ -61,7 +61,7 @@
 #define BYPASSED_FLOW_TIMEOUT   60
 
 static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
-static int g_flow_storage_id = -1; // TODO change this in a different commit
+static FlowStorageId g_flow_storage_id = { .id = -1 };
 
 struct bpf_map_item {
     char iface[IFNAMSIZ];
