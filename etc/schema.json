@@ -1371,6 +1371,12 @@
                 },
                 "message": {
                     "type": "string"
+                },
+                "thread_name": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
