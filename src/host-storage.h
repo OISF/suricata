@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,17 +29,22 @@
 #include "util-storage.h"
 #include "host.h"
 
+typedef struct HostStorageId_ {
+    int id;
+} HostStorageId;
+
 unsigned int HostStorageSize(void);
 
-void *HostGetStorageById(Host *h, int id);
-int HostSetStorageById(Host *h, int id, void *ptr);
-void *HostAllocStorageById(Host *h, int id);
+void *HostGetStorageById(Host *h, HostStorageId id);
+int HostSetStorageById(Host *h, HostStorageId id, void *ptr);
+void *HostAllocStorageById(Host *h, HostStorageId id);
 
-void HostFreeStorageById(Host *h, int id);
+void HostFreeStorageById(Host *h, HostStorageId id);
 void HostFreeStorage(Host *h);
 
 void RegisterHostStorageTests(void);
 
-int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
+HostStorageId HostStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __HOST_STORAGE_H__ */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,7 +45,7 @@
 SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */
-static int host_tag_id = -1;                /**< Host storage id for tags */
+static HostStorageId host_tag_id = { .id = -1 }; /**< Host storage id for tags */
 static FlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
 
 void TagInitCtx(void)
@@ -53,7 +53,7 @@ void TagInitCtx(void)
     SC_ATOMIC_INIT(num_tags);
 
     host_tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
-    if (host_tag_id == -1) {
+    if (host_tag_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate host storage for tag");
     }
     flow_tag_id = FlowStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
