@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2016 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,7 +25,7 @@
 
 #define MAX_DEVNAME 10
 
-static int g_bypass_storage_id = -1;
+static LiveDevStorageId g_bypass_storage_id = { .id = -1 };
 
 /**
  * \file
@@ -590,7 +590,7 @@ void LiveDevAddBypassFail(LiveDevice *dev, uint64_t cnt, int family)
 }
 
 /**
- * Increase number of currently succesfully bypassed flows for a protocol family
+ * Increase number of currently successfully bypassed flows for a protocol family
  *
  * \param dev pointer to LiveDevice to set stats for
  * \param cnt number of flows to add

@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2019 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -60,8 +60,8 @@
 
 #define BYPASSED_FLOW_TIMEOUT   60
 
-static int g_livedev_storage_id = -1;
-static int g_flow_storage_id = -1;
+static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
+static int g_flow_storage_id = -1; // TODO change this in a different commit
 
 struct bpf_map_item {
     char iface[IFNAMSIZ];
