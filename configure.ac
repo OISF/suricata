@@ -2436,6 +2436,9 @@ if test "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${
   AC_DEFINE([CAPTURE_OFFLOAD], [1],[Building flow capture bypass code])
 fi
 
+# Add diagnostic filename
+CPPFLAGS="${CPPFLAGS} -D__SCFILENAME__=\\\"\$(*F)\\\""
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
