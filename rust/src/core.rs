@@ -129,6 +129,7 @@ pub type SCLogMessageFunc =
                   filename: *const std::os::raw::c_char,
                   line: std::os::raw::c_uint,
                   function: *const std::os::raw::c_char,
+                  subsystem: *const std::os::raw::c_char,
                   message: *const std::os::raw::c_char) -> std::os::raw::c_int;
 
 pub type DetectEngineStateFreeFunc =
