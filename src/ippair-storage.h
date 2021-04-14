@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,17 +29,22 @@
 #include "util-storage.h"
 #include "ippair.h"
 
+typedef struct IPPairStorageId {
+    int id;
+} IPPairStorageId;
+
 unsigned int IPPairStorageSize(void);
 
-void *IPPairGetStorageById(IPPair *h, int id);
-int IPPairSetStorageById(IPPair *h, int id, void *ptr);
-void *IPPairAllocStorageById(IPPair *h, int id);
+void *IPPairGetStorageById(IPPair *h, IPPairStorageId id);
+int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr);
+void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id);
 
-void IPPairFreeStorageById(IPPair *h, int id);
+void IPPairFreeStorageById(IPPair *h, IPPairStorageId id);
 void IPPairFreeStorage(IPPair *h);
 
 void RegisterIPPairStorageTests(void);
 
-int IPPairStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
+IPPairStorageId IPPairStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __IPPAIR_STORAGE_H__ */

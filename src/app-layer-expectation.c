@@ -63,7 +63,7 @@
 
 #include "util-print.h"
 
-static int g_ippair_expectation_id = -1;
+static IPPairStorageId g_ippair_expectation_id = { .id = -1 };
 static FlowStorageId g_flow_expectation_id = { .id = -1 };
 
 SC_ATOMIC_DECLARE(uint32_t, expectation_count);

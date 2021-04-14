@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,7 +70,7 @@
 #include "tm-threads.h"
 
 static int host_threshold_id = -1; /**< host storage id for thresholds */
-static int ippair_threshold_id = -1; /**< ip pair storage id for thresholds */
+static IPPairStorageId ippair_threshold_id = { .id = -1 }; /**< ip pair storage id for thresholds */
 
 int ThresholdHostStorageId(void)
 {
@@ -85,7 +85,7 @@ void ThresholdInit(void)
                    "Can't initiate host storage for thresholding");
     }
     ippair_threshold_id = IPPairStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
-    if (ippair_threshold_id == -1) {
+    if (ippair_threshold_id.id == -1) {
         FatalError(SC_ERR_FATAL,
                    "Can't initiate IP pair storage for thresholding");
     }

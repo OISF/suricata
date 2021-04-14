@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,7 @@
 #include "util-unittest.h"
 #include "ippair-storage.h"
 
-static int ippair_bit_id = -1;                /**< IPPair storage id for bits */
+static IPPairStorageId g_ippair_bit_storage_id = { .id = -1 }; /**< IPPair storage id for bits */
 
 static void XBitFreeAll(void *store)
 {
@@ -48,8 +48,8 @@ static void XBitFreeAll(void *store)
 
 void IPPairBitInitCtx(void)
 {
-    ippair_bit_id = IPPairStorageRegister("bit", sizeof(void *), NULL, XBitFreeAll);
-    if (ippair_bit_id == -1) {
+    g_ippair_bit_storage_id = IPPairStorageRegister("bit", sizeof(void *), NULL, XBitFreeAll);
+    if (g_ippair_bit_storage_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate ippair storage for bits");
     }
 }
@@ -59,14 +59,14 @@ int IPPairHasBits(IPPair *ippair)
 {
     if (ippair == NULL)
         return 0;
-    return IPPairGetStorageById(ippair, ippair_bit_id) ? 1 : 0;
+    return IPPairGetStorageById(ippair, g_ippair_bit_storage_id) ? 1 : 0;
 }
 
 /** \retval 1 ippair timed out wrt xbits
   * \retval 0 ippair still has active (non-expired) xbits */
 int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts)
 {
-    GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
+    GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
@@ -80,7 +80,7 @@ int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts)
 /* get the bit with idx from the ippair */
 static XBit *IPPairBitGet(IPPair *h, uint32_t idx)
 {
-    GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
+    GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS && gv->idx == idx) {
             return (XBit *)gv;
@@ -104,9 +104,9 @@ static void IPPairBitAdd(IPPair *h, uint32_t idx, uint32_t expire)
         fb->next = NULL;
         fb->expire = expire;
 
-        GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
+        GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
         GenericVarAppend(&gv, (GenericVar *)fb);
-        IPPairSetStorageById(h, ippair_bit_id, gv);
+        IPPairSetStorageById(h, g_ippair_bit_storage_id, gv);
 
     // bit already set, lets update it's timer
     } else {
@@ -120,11 +120,11 @@ static void IPPairBitRemove(IPPair *h, uint32_t idx)
     if (fb == NULL)
         return;
 
-    GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
+    GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
     if (gv) {
         GenericVarRemove(&gv, (GenericVar *)fb);
         XBitFree(fb);
-        IPPairSetStorageById(h, ippair_bit_id, gv);
+        IPPairSetStorageById(h, g_ippair_bit_storage_id, gv);
     }
 }
 
