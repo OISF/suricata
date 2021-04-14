@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,24 +32,24 @@ unsigned int IPPairStorageSize(void)
     return StorageGetSize(STORAGE_IPPAIR);
 }
 
-void *IPPairGetStorageById(IPPair *h, int id)
+void *IPPairGetStorageById(IPPair *h, IPPairStorageId id)
 {
-    return StorageGetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id);
+    return StorageGetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
 }
 
-int IPPairSetStorageById(IPPair *h, int id, void *ptr)
+int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr)
 {
-    return StorageSetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id, ptr);
+    return StorageSetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id, ptr);
 }
 
-void *IPPairAllocStorageById(IPPair *h, int id)
+void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id)
 {
-    return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id);
+    return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
 }
 
-void IPPairFreeStorageById(IPPair *h, int id)
+void IPPairFreeStorageById(IPPair *h, IPPairStorageId id)
 {
-    StorageFreeById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id);
+    StorageFreeById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
 }
 
 void IPPairFreeStorage(IPPair *h)
@@ -58,8 +58,12 @@ void IPPairFreeStorage(IPPair *h)
         StorageFreeAll((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR);
 }
 
-int IPPairStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_IPPAIR, name, size, Alloc, Free);
+IPPairStorageId IPPairStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *))
+{
+    int id = StorageRegister(STORAGE_IPPAIR, name, size, Alloc, Free);
+    IPPairStorageId ippsi = { .id = id };
+    return ippsi;
 }
 
 #ifdef UNITTESTS
@@ -79,14 +83,15 @@ static int IPPairStorageTest01(void)
 {
     StorageInit();
 
-    int id1 = IPPairStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
-    if (id1 < 0)
+    IPPairStorageId id1 = IPPairStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = IPPairStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
-    if (id2 < 0)
+    IPPairStorageId id2 = IPPairStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = IPPairStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    IPPairStorageId id3 =
+            IPPairStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -161,8 +166,8 @@ static int IPPairStorageTest02(void)
 {
     StorageInit();
 
-    int id1 = IPPairStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -214,14 +219,14 @@ static int IPPairStorageTest03(void)
 {
     StorageInit();
 
-    int id1 = IPPairStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = IPPairStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
-    if (id2 < 0)
+    IPPairStorageId id2 = IPPairStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = IPPairStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    IPPairStorageId id3 = IPPairStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
