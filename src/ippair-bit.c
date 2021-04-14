@@ -108,7 +108,7 @@ static void IPPairBitAdd(IPPair *h, uint32_t idx, uint32_t expire)
         GenericVarAppend(&gv, (GenericVar *)fb);
         IPPairSetStorageById(h, g_ippair_bit_storage_id, gv);
 
-    // bit already set, lets update it's timer
+        // bit already set, lets update it's timer
     } else {
         fb->expire = expire;
     }
