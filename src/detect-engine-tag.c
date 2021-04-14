@@ -117,7 +117,7 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
  * \param p pointer to the current packet
  * \param tde pointer to the new DetectTagDataEntry
  *
- * \retval 0 if the tde was added succesfuly
+ * \retval 0 if the tde was added successfully
  * \retval 1 if an entry of this sid/gid already exist and was updated
  */
 int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
