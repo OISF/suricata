@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,8 +56,12 @@ unsigned int HostStorageSize(void)
  * It has to be called once during the init of the sub system
  */
 
-int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
+HostStorageId HostStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *))
+{
+    int id = StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
+    HostStorageId hsi = { .id = id };
+    return hsi;
 }
 
 /**
@@ -68,9 +72,9 @@ int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc
  * \param ptr pointer to the data to store
  */
 
-int HostSetStorageById(Host *h, int id, void *ptr)
+int HostSetStorageById(Host *h, HostStorageId id, void *ptr)
 {
-    return StorageSetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id, ptr);
+    return StorageSetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id, ptr);
 }
 
 /**
@@ -81,9 +85,9 @@ int HostSetStorageById(Host *h, int id, void *ptr)
  *
  */
 
-void *HostGetStorageById(Host *h, int id)
+void *HostGetStorageById(Host *h, HostStorageId id)
 {
-    return StorageGetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
+    return StorageGetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id);
 }
 
 /**
@@ -92,14 +96,14 @@ void *HostGetStorageById(Host *h, int id)
 
 /* Start of "private" function */
 
-void *HostAllocStorageById(Host *h, int id)
+void *HostAllocStorageById(Host *h, HostStorageId id)
 {
-    return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
+    return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id);
 }
 
-void HostFreeStorageById(Host *h, int id)
+void HostFreeStorageById(Host *h, HostStorageId id)
 {
-    StorageFreeById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
+    StorageFreeById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id);
 }
 
 void HostFreeStorage(Host *h)
@@ -126,14 +130,15 @@ static int HostStorageTest01(void)
 {
     StorageInit();
 
-    int id1 = HostStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
-    if (id1 < 0)
+    HostStorageId id1 = HostStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = HostStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
-    if (id2 < 0)
+    HostStorageId id2 = HostStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = HostStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    HostStorageId id3 =
+            HostStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -205,8 +210,8 @@ static int HostStorageTest02(void)
 {
     StorageInit();
 
-    int id1 = HostStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
@@ -255,14 +260,14 @@ static int HostStorageTest03(void)
 {
     StorageInit();
 
-    int id1 = HostStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
-    if (id1 < 0)
+    HostStorageId id1 = HostStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    if (id1.id < 0)
         goto error;
-    int id2 = HostStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
-    if (id2 < 0)
+    HostStorageId id2 = HostStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    if (id2.id < 0)
         goto error;
-    int id3 = HostStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
-    if (id3 < 0)
+    HostStorageId id3 = HostStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    if (id3.id < 0)
         goto error;
 
     if (StorageFinalize() < 0)
