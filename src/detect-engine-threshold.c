@@ -69,10 +69,10 @@
 #include "util-var-name.h"
 #include "tm-threads.h"
 
-static int host_threshold_id = -1; /**< host storage id for thresholds */
+static HostStorageId host_threshold_id = { .id = -1 };     /**< host storage id for thresholds */
 static IPPairStorageId ippair_threshold_id = { .id = -1 }; /**< ip pair storage id for thresholds */
 
-int ThresholdHostStorageId(void)
+HostStorageId ThresholdHostStorageId(void)
 {
     return host_threshold_id;
 }
@@ -80,7 +80,7 @@ int ThresholdHostStorageId(void)
 void ThresholdInit(void)
 {
     host_threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
-    if (host_threshold_id == -1) {
+    if (host_threshold_id.id == -1) {
         FatalError(SC_ERR_FATAL,
                    "Can't initiate host storage for thresholding");
     }
