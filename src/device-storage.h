@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,17 +29,22 @@
 #include "util-storage.h"
 #include "util-device.h"
 
+typedef struct LiveDevStorageId_ {
+    int id;
+} LiveDevStorageId;
+
 unsigned int LiveDevStorageSize(void);
 
-void *LiveDevGetStorageById(LiveDevice *d, int id);
-int LiveDevSetStorageById(LiveDevice *d, int id, void *ptr);
-void *LiveDevAllocStorageById(LiveDevice *d, int id);
+void *LiveDevGetStorageById(LiveDevice *d, LiveDevStorageId id);
+int LiveDevSetStorageById(LiveDevice *d, LiveDevStorageId id, void *ptr);
+void *LiveDevAllocStorageById(LiveDevice *d, LiveDevStorageId id);
 
-void LiveDevFreeStorageById(LiveDevice *d, int id);
+void LiveDevFreeStorageById(LiveDevice *d, LiveDevStorageId id);
 void LiveDevFreeStorage(LiveDevice *d);
 
 void RegisterLiveDevStorageTests(void);
 
-int LiveDevStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
+LiveDevStorageId LiveDevStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __DEVICE_STORAGE_H__ */
