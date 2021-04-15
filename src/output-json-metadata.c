@@ -76,7 +76,7 @@ static int MetadataJson(ThreadVars *tv, OutputJsonThreadCtx *aft, const Packet *
     if (!aft->ctx->cfg.include_metadata) {
         EveAddMetadata(p, p->flow, js);
     }
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft);
 
     jb_free(js);
     return TM_ECODE_OK;

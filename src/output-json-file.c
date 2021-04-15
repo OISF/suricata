@@ -212,7 +212,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
-    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
     jb_free(js);
 }
 

@@ -82,7 +82,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     }
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, thread->ctx->file_ctx, &thread->ctx->buffer);
+    OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;

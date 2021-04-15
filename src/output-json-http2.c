@@ -95,7 +95,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         goto end;
     }
     jb_close(js);
-    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
 end:
     jb_free(js);
     return 0;

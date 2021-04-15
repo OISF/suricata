@@ -145,7 +145,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
             EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         }
 
-        OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx);
         jb_free(js);
     }
 
@@ -203,7 +203,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         /* anomaly */
         jb_close(js);
-        OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx);
         jb_free(js);
 
         /* Current implementation assumes a single owner for this value */

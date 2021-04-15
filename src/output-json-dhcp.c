@@ -73,7 +73,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 
     rs_dhcp_logger_log(ctx->rs_logger, tx, js);
 
-    OutputJsonBuilderBuffer(js, thread->thread->file_ctx, &thread->thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->thread);
     jb_free(js);
 
     return TM_ECODE_OK;

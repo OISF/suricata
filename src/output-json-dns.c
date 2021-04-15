@@ -328,7 +328,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
         jb_close(jb);
 
-        OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
+        OutputJsonBuilderBuffer(jb, td->ctx);
         jb_free(jb);
     }
 
@@ -357,7 +357,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_open_object(jb, "dns");
             rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
             jb_close(jb);
-            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx);
             jb_free(jb);
         }
     } else {
@@ -377,7 +377,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
             jb_free(answer);
 
-            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx);
             jb_free(jb);
         }
         /* Log authorities. */
@@ -396,7 +396,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
             jb_free(answer);
 
-            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx);
             jb_free(jb);
         }
     }

@@ -168,7 +168,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;

@@ -712,7 +712,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             jb_set_string(jb, "xff", xff_buffer);
         }
 
-        OutputJsonBuilderBuffer(jb, aft->ctx->file_ctx, &aft->ctx->buffer);
+        OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
     }
 
@@ -722,7 +722,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
             EvePacket(p, packetjs, 0);
-            OutputJsonBuilderBuffer(packetjs, aft->ctx->file_ctx, &aft->ctx->buffer);
+            OutputJsonBuilderBuffer(packetjs, aft->ctx);
             jb_free(packetjs);
         }
     }
@@ -756,7 +756,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL);
 
-        OutputJsonBuilderBuffer(jb, aft->ctx->file_ctx, &aft->ctx->buffer);
+        OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
     }
 

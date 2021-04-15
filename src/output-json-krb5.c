@@ -66,8 +66,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
     }
     jb_close(jb);
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread);
 
     jb_free(jb);
     return TM_ECODE_OK;

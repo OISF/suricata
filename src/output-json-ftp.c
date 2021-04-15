@@ -163,8 +163,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
             goto fail;
         }
 
-        MemBufferReset(thread->buffer);
-        OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+        OutputJsonBuilderBuffer(jb, thread);
 
         jb_free(jb);
     }

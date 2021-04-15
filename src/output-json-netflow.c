@@ -270,26 +270,22 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCEnter();
     OutputJsonThreadCtx *jhl = thread_data;
 
-    /* reset */
-    MemBufferReset(jhl->buffer);
     JsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jb, f);
     EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb);
-    OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
+    OutputJsonBuilderBuffer(jb, jhl);
     jb_free(jb);
 
     /* only log a response record if we actually have seen response packets */
     if (f->tosrcpktcnt) {
-        /* reset */
-        MemBufferReset(jhl->buffer);
         jb = CreateEveHeaderFromNetFlow(f, 1);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jb, f);
         EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb);
-        OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
+        OutputJsonBuilderBuffer(jb, jhl);
         jb_free(jb);
     }
     SCReturnInt(TM_ECODE_OK);

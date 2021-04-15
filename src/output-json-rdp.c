@@ -56,8 +56,7 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
         jb_free(js);
         return TM_ECODE_FAILED;
     }
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread);
 
     jb_free(js);
     return TM_ECODE_OK;

@@ -971,8 +971,10 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     return 0;
 }
 
-int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer)
+int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
 {
+    LogFileCtx *file_ctx = ctx->file_ctx;
+    MemBuffer **buffer = &ctx->buffer;
     if (file_ctx->sensor_name) {
         jb_set_string(js, "host", file_ctx->sensor_name);
     }

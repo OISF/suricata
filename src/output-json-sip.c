@@ -75,8 +75,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
         goto error;
     }
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread);
     jb_free(js);
 
     return TM_ECODE_OK;

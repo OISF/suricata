@@ -66,15 +66,12 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    /* reset */
-    MemBufferReset(thread->buffer);
-
     jb_open_object(js, "ssh");
     if (!rs_ssh_log_json(txptr, js)) {
         goto end;
     }
     jb_close(js);
-    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread);
 
 end:
     jb_free(js);

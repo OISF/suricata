@@ -93,7 +93,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     if (!rs_mqtt_logger_log(state, tx, thread->mqttlog_ctx->flags, js))
         goto error;
 
-    OutputJsonBuilderBuffer(js, thread->ctx->file_ctx, &thread->ctx->buffer);
+    OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
