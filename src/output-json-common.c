@@ -89,7 +89,6 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     }
 
     thread->ctx = ((OutputCtx *)initdata)->data;
-    LogFileEnsureExists(thread->ctx->file_ctx, t->id);
     thread->file_ctx = LogFileEnsureExists(thread->ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
