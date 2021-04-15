@@ -983,6 +983,8 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **b
 
     jb_close(js);
 
+    MemBufferReset(*buffer);
+
     if (file_ctx->prefix) {
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
