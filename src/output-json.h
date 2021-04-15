@@ -116,4 +116,7 @@ void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
+OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
+void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
+
 #endif /* __OUTPUT_JSON_H__ */
