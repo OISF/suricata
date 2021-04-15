@@ -59,9 +59,8 @@ typedef struct LogIKEFileCtx_ {
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
-    LogFileCtx *file_ctx;
     LogIKEFileCtx *ikelog_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogIKELogThread;
 
 bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -92,8 +91,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         goto error;
     }
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->ctx->file_ctx, &thread->ctx->buffer);
 
     jb_free(jb);
     return TM_ECODE_OK;
@@ -157,14 +155,9 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
         goto error_exit;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
     thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->eve_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
+    thread->ctx = CreateEveThreadCtx(t, thread->ikelog_ctx->eve_ctx);
+    if (!thread->ctx) {
         goto error_exit;
     }
 
@@ -172,9 +165,6 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
     return TM_ECODE_OK;
 
 error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
     SCFree(thread);
     return TM_ECODE_FAILED;
 }
@@ -185,9 +175,7 @@ static TmEcode JsonIKELogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

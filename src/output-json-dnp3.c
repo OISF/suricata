@@ -50,9 +50,8 @@ typedef struct LogDNP3FileCtx_ {
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
-    LogFileCtx *file_ctx;
     LogDNP3FileCtx *dnp3log_ctx;
-    MemBuffer      *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogDNP3LogThread;
 
 static void JsonDNP3LogLinkControl(JsonBuilder *js, uint8_t lc)
@@ -217,7 +216,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
+    MemBuffer *buffer = (MemBuffer *)thread->ctx->buffer;
 
     MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
@@ -230,7 +229,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->ctx->file_ctx, &buffer);
         jb_free(js);
     }
 
@@ -244,7 +243,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
+    MemBuffer *buffer = (MemBuffer *)thread->ctx->buffer;
 
     MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
@@ -257,7 +256,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->ctx->file_ctx, &buffer);
         jb_free(js);
     }
 
@@ -315,14 +314,9 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
     thread->dnp3log_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->dnp3log_ctx->eve_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
+    thread->ctx = CreateEveThreadCtx(t, thread->dnp3log_ctx->eve_ctx);
+    if (thread->ctx == NULL) {
         goto error_exit;
     }
 
@@ -331,9 +325,6 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
     SCFree(thread);
     return TM_ECODE_FAILED;
 }
@@ -344,9 +335,7 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

@@ -264,9 +264,7 @@ typedef struct LogDnsFileCtx_ {
 
 typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx *file_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
 static bool v1_deprecation_warned = false;
@@ -330,8 +328,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
         jb_close(jb);
 
-        MemBufferReset(td->buffer);
-        OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+        OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
         jb_free(jb);
     }
 
@@ -360,8 +357,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_open_object(jb, "dns");
             rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
             jb_close(jb);
-            MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
             jb_free(jb);
         }
     } else {
@@ -381,8 +377,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
             jb_free(answer);
 
-            MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
             jb_free(jb);
         }
         /* Log authorities. */
@@ -401,8 +396,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             jb_set_object(jb, "dns", answer);
             jb_free(answer);
 
-            MemBufferReset(td->buffer);
-            OutputJsonBuilderBuffer(jb, td->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->ctx->file_ctx, &td->ctx->buffer);
             jb_free(jb);
         }
     }
@@ -433,15 +427,10 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /* Use the Ouptut Context (file pointer and mutex) */
-    aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->dnslog_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->dnslog_ctx = ((OutputCtx *)initdata)->data;
+    aft->ctx = CreateEveThreadCtx(t, aft->dnslog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -449,9 +438,6 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -462,8 +448,8 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+    FreeEveThreadCtx(aft->ctx);
 
-    MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(LogDnsLogThread));
 

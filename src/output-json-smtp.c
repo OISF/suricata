@@ -81,15 +81,12 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
 
-    /* reset */
-    MemBufferReset(jhl->buffer);
-
     jb_open_object(jb, "smtp");
     EveSmtpDataLogger(f, state, tx, tx_id, jb);
     jb_close(jb);
 
     if (EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
+        OutputJsonBuilderBuffer(jb, jhl->ctx->file_ctx, &jhl->ctx->buffer);
     }
 
     jb_free(jb);
@@ -166,22 +163,15 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void *
     /* Use the Output Context (file pointer and mutex) */
     aft->emaillog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
+    aft->ctx = CreateEveThreadCtx(t, aft->emaillog_ctx->eve_ctx);
+    if (aft->ctx == NULL) {
         goto error_exit;
     }
 
-    aft->file_ctx = LogFileEnsureExists(aft->emaillog_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
-        goto error_exit;
-    }
     *data = (void *)aft;
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -192,8 +182,8 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+    FreeEveThreadCtx(aft->ctx);
 
-    MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(JsonEmailLogThread));
 

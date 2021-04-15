@@ -65,11 +65,8 @@ typedef struct LogHttpFileCtx_ {
 
 typedef struct JsonHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
-    LogFileCtx *file_ctx;
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
-
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonHttpLogThread;
 
 #define MAX_SIZE_HEADER_NAME 256
@@ -490,9 +487,6 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     SCLogDebug("got a HTTP request and now logging !!");
 
-    /* reset */
-    MemBufferReset(jhl->buffer);
-
     EveHttpLogJSON(jhl, js, tx, tx_id);
     HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
         jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
@@ -518,7 +512,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         }
     }
 
-    OutputJsonBuilderBuffer(js, jhl->file_ctx, &jhl->buffer);
+    OutputJsonBuilderBuffer(js, jhl->ctx->file_ctx, &jhl->ctx->buffer);
     jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);
@@ -649,13 +643,8 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
     /* Use the Output Context (file pointer and mutex) */
     aft->httplog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
-    aft->file_ctx = LogFileEnsureExists(aft->httplog_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->httplog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -663,9 +652,6 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -677,7 +663,8 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonHttpLogThread));
 

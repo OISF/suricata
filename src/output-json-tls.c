@@ -105,9 +105,8 @@ typedef struct OutputTlsCtx_ {
 
 
 typedef struct JsonTlsLogThread_ {
-    LogFileCtx *file_ctx;
     OutputTlsCtx *tlslog_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonTlsLogThread;
 
 static void JsonTlsLogSubject(JsonBuilder *js, SSLState *ssl_state)
@@ -420,9 +419,6 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     jb_open_object(js, "tls");
 
-    /* reset */
-    MemBufferReset(aft->buffer);
-
     /* log custom fields */
     if (tls_ctx->flags & LOG_TLS_CUSTOM) {
         JsonTlsLogJSONCustom(tls_ctx, js, ssl_state);
@@ -446,7 +442,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* Close the tls object. */
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
     jb_free(js);
 
     return 0;
@@ -464,25 +460,17 @@ static TmEcode JsonTlsLogThreadInit(ThreadVars *t, const void *initdata, void **
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /* use the Output Context (file pointer and mutex) */
     aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(aft->tlslog_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->tlslog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
     *data = (void *)aft;
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -494,7 +482,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonTlsLogThread));

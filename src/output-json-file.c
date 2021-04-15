@@ -78,8 +78,7 @@ typedef struct OutputFileCtx_ {
 
 typedef struct JsonFileLogThread_ {
     OutputFileCtx *filelog_ctx;
-    LogFileCtx *file_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonFileLogThread;
 
 JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool stored,
@@ -213,8 +212,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
-    MemBufferReset(aft->buffer);
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
     jb_free(js);
 }
 
@@ -245,15 +243,10 @@ static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->filelog_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->filelog_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->filelog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -261,9 +254,6 @@ static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -275,7 +265,8 @@ static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonFileLogThread));
 

@@ -60,8 +60,7 @@ typedef struct OutputHttp2Ctx_ {
 
 typedef struct JsonHttp2LogThread_ {
     OutputHttp2Ctx *http2log_ctx;
-    LogFileCtx *file_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonHttp2LogThread;
 
 
@@ -91,15 +90,12 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    /* reset */
-    MemBufferReset(aft->buffer);
-
     jb_open_object(js, "http");
     if (!rs_http2_log_json(txptr, js)) {
         goto end;
     }
     jb_close(js);
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
 end:
     jb_free(js);
     return 0;
@@ -119,13 +115,8 @@ static TmEcode JsonHttp2LogThreadInit(ThreadVars *t, const void *initdata, void 
 
     /* Use the Output Context (file pointer and mutex) */
     aft->http2log_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->http2log_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
-        goto error_exit;
-    }
-
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
+    aft->ctx = CreateEveThreadCtx(t, aft->http2log_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -133,9 +124,6 @@ static TmEcode JsonHttp2LogThreadInit(ThreadVars *t, const void *initdata, void 
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -147,7 +135,7 @@ static TmEcode JsonHttp2LogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
     /* clear memory */
     memset(aft, 0, sizeof(JsonHttp2LogThread));
 

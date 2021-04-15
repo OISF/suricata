@@ -113,11 +113,9 @@ typedef struct AlertJsonOutputCtx_ {
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
-    MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
     AlertJsonOutputCtx* json_output_ctx;
+    OutputJsonThreadCtx *ctx;
 } JsonAlertLogThread;
 
 /* Callback function to pack payload contents from a stream into a buffer
@@ -630,7 +628,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
 
-        MemBufferReset(aft->json_buffer);
 
         /* alert */
         AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags,
@@ -715,18 +712,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             jb_set_string(jb, "xff", xff_buffer);
         }
 
-        OutputJsonBuilderBuffer(jb, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(jb, aft->ctx->file_ctx, &aft->ctx->buffer);
         jb_free(jb);
     }
 
     if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
             LOG_JSON_TAGGED_PACKETS)) {
-        MemBufferReset(aft->json_buffer);
         JsonBuilder *packetjs =
                 CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
             EvePacket(p, packetjs, 0);
-            OutputJsonBuilderBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
+            OutputJsonBuilderBuffer(packetjs, aft->ctx->file_ctx, &aft->ctx->buffer);
             jb_free(packetjs);
         }
     }
@@ -745,8 +741,6 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     for (int i = 0; i < p->alerts.cnt; i++) {
-        MemBufferReset(aft->json_buffer);
-
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
@@ -762,7 +756,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL);
 
-        OutputJsonBuilderBuffer(jb, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(jb, aft->ctx->file_ctx, &aft->ctx->buffer);
         jb_free(jb);
     }
 
@@ -801,11 +795,6 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
         goto error_exit;
     }
 
-    aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->json_buffer == NULL) {
-        goto error_exit;
-    }
-
     /** Use the Output Context (file pointer and mutex) */
     AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
 
@@ -813,8 +802,8 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
     if (aft->payload_buffer == NULL) {
         goto error_exit;
     }
-    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, json_output_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -824,9 +813,6 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->json_buffer != NULL) {
-        MemBufferFree(aft->json_buffer);
-    }
     if (aft->payload_buffer != NULL) {
         MemBufferFree(aft->payload_buffer);
     }
@@ -841,8 +827,8 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->json_buffer);
     MemBufferFree(aft->payload_buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));

@@ -57,8 +57,7 @@ typedef struct LogMQTTFileCtx_ {
 typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
     uint32_t        count;
-    MemBuffer      *buffer;
-    LogFileCtx *file_ctx;
+    OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
 bool JsonMQTTAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -94,8 +93,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     if (!rs_mqtt_logger_log(state, tx, thread->mqttlog_ctx->flags, js))
         goto error;
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->mqttlog_ctx->eve_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->ctx->file_ctx, &thread->ctx->buffer);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -168,14 +166,12 @@ static TmEcode JsonMQTTLogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
+    thread->mqttlog_ctx = ((OutputCtx *)initdata)->data;
+    thread->ctx = CreateEveThreadCtx(t, thread->mqttlog_ctx->eve_ctx);
+    if (unlikely(thread->ctx == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;
     }
-
-    thread->mqttlog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->mqttlog_ctx->eve_ctx->file_ctx, t->id);
 
     *data = (void *)thread;
 
@@ -188,9 +184,7 @@ static TmEcode JsonMQTTLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

@@ -77,10 +77,8 @@ typedef struct AnomalyJsonOutputCtx_ {
 } AnomalyJsonOutputCtx;
 
 typedef struct JsonAnomalyLogThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
-    MemBuffer *json_buffer;
     AnomalyJsonOutputCtx* json_output_ctx;
+    OutputJsonThreadCtx *ctx;
 } JsonAnomalyLogThread;
 
 /*
@@ -119,8 +117,6 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_decode && !log_stream)
             continue;
 
-        MemBufferReset(aft->json_buffer);
-
         JsonBuilder *js = CreateEveHeader(
                 p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
@@ -149,7 +145,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
             EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         }
 
-        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
         jb_free(js);
     }
 
@@ -168,8 +164,6 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                 tx_id != TX_ID_UNUSED ? "tx" : "no-tx");
 
     for (int i = decoder_events->event_last_logged; i < decoder_events->cnt; i++) {
-        MemBufferReset(aft->json_buffer);
-
         JsonBuilder *js;
         if (tx_id != TX_ID_UNUSED) {
             js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, tx_id,
@@ -209,7 +203,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         /* anomaly */
         jb_close(js);
-        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx->file_ctx, &aft->ctx->buffer);
         jb_free(js);
 
         /* Current implementation assumes a single owner for this value */
@@ -306,16 +300,11 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
         goto error_exit;
     }
 
-    aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->json_buffer == NULL) {
-        goto error_exit;
-    }
-
     /** Use the Output Context (file pointer and mutex) */
     AnomalyJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(json_output_ctx->eve_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, json_output_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
     aft->json_output_ctx = json_output_ctx;
@@ -324,9 +313,6 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->json_buffer != NULL) {
-        MemBufferFree(aft->json_buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -338,7 +324,7 @@ static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->json_buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAnomalyLogThread));
