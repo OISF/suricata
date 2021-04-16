@@ -719,6 +719,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
 
             EveAddAppProto(p->flow, jb);
+
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                jb_set_string(jb, "direction", "to_server");
+            } else {
+                jb_set_string(jb, "direction", "to_client");
+            }
+
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 jb_open_object(jb, "flow");
                 EveAddFlow(p->flow, jb);
