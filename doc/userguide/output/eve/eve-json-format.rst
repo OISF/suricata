@@ -1838,6 +1838,7 @@ Fields
 * "ikev1.server.nonce_payload_length", "ikev1.client.nonce_payload_length": Length of the nonce payload.
 * "ikev1.client.client_proposals": List of the security associations proposed to the server.
 * "ikev1.vendor_ids": List of the vendor IDs observed in the communication.
+* "server_proposals": List of server proposals with parameters, if there are more than one. This is a non-standard case; this field is only present if such a situation was observed in the inspected traffic.
 
 
 

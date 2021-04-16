@@ -151,17 +151,16 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
 
     if let Ok(sa) = sa_type_s {
         if tx.ike_version == 1 {
-            'outer1: for (i, server_transform) in tx.hdr.ikev1_transforms.iter().enumerate() {
-                if i >= 1 {
-                    debug_validate_bug_on!(true);
-                    break;
-                }
-                for attr in server_transform {
-                    if attr.attribute_type.to_string() == sa {
-                        if let Some(numeric_value) = attr.numeric_value {
-                            ret_val = numeric_value;
-                            ret_code = 1;
-                            break 'outer1;
+            if tx.hdr.ikev1_transforms.len() >= 1 {
+                // there should be only one chosen server_transform, check event
+                if let Some(server_transform) = tx.hdr.ikev1_transforms.first() {
+                    for attr in server_transform {
+                        if attr.attribute_type.to_string() == sa {
+                            if let Some(numeric_value) = attr.numeric_value {
+                                ret_val = numeric_value;
+                                ret_code = 1;
+                                break
+                            }
                         }
                     }
                 }

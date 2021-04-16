@@ -47,6 +47,7 @@ pub enum IkeEvent {
     InvalidProposal,
     UnknownProposal,
     PayloadExtraData,
+    MultipleServerProposal,
 }
 
 impl IkeEvent {
@@ -63,6 +64,7 @@ impl IkeEvent {
             8 => Some(IkeEvent::InvalidProposal),
             9 => Some(IkeEvent::UnknownProposal),
             10 => Some(IkeEvent::PayloadExtraData),
+            11 => Some(IkeEvent::MultipleServerProposal),
             _ => None,
         }
     }
@@ -456,6 +458,7 @@ pub extern "C" fn rs_ike_state_get_event_info_by_id(
             IkeEvent::InvalidProposal => "invalid_proposal\0",
             IkeEvent::UnknownProposal => "unknown_proposal\0",
             IkeEvent::PayloadExtraData => "payload_extra_data\0",
+            IkeEvent::MultipleServerProposal => "multiple_server_proposal\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -490,6 +493,7 @@ pub extern "C" fn rs_ike_state_get_event_info(
                 "invalid_proposal" => IkeEvent::InvalidProposal as i32,
                 "unknown_proposal" => IkeEvent::UnknownProposal as i32,
                 "payload_extra_data" => IkeEvent::PayloadExtraData as i32,
+                "multiple_server_proposal" => IkeEvent::MultipleServerProposal as i32,
                 _ => -1, // unknown event
             }
         }
