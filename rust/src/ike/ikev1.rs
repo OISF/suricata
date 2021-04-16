@@ -130,6 +130,15 @@ pub fn handle_ikev1(
                         &tx.hdr.ikev1_transforms,
                     );
                 } else {
+                    if state.ikev1_container.server.transforms.len() <= 1
+                        && state.ikev1_container.server.transforms.len()
+                            + tx.hdr.ikev1_transforms.len()
+                            > 1
+                    {
+                        SCLogDebug!("More than one chosen server proposal");
+                        state.set_event(IkeEvent::MultipleServerProposal);
+                    }
+
                     state.ikev1_container.server.update(
                         &to_hex(tx.hdr.ikev1_header.key_exchange.as_ref()),
                         &to_hex(tx.hdr.ikev1_header.nonce.as_ref()),

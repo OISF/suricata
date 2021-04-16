@@ -17,3 +17,4 @@ alert ike any any -> any any (msg:"SURICATA IKE invalid proposal"; flow:to_serve
 alert ike any any -> any any (msg:"SURICATA IKE invalid proposal selected"; flow:to_client; app-layer-event:ike.invalid_proposal; classtype:protocol-command-decode; sid:2224010; rev:2;)
 alert ike any any -> any any (msg:"SURICATA IKE unknown proposal"; flow:to_server; app-layer-event:ike.unknown_proposal; classtype:protocol-command-decode; sid:2224011; rev:2;)
 alert ike any any -> any any (msg:"SURICATA IKE unknown proposal selected"; flow:to_client; app-layer-event:ike.unknown_proposal; classtype:protocol-command-decode; sid:2224012; rev:2;)
+alert ike any any -> any any (msg:"SURICATA IKE multiple server proposal"; flow:to_client; app-layer-event:ike.multiple_server_proposal; classtype:protocol-command-decode; sid:2224013; rev:1;)
