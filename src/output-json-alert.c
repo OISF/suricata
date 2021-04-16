@@ -94,6 +94,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_FLOW_IP           BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -652,7 +653,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             EveAddAppProto(p->flow, jb);
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 jb_open_object(jb, "flow");
-                EveAddFlow(p->flow, jb, FLOW_LOG_DIR_VERBOSE);
+                if (json_output_ctx->flags & LOG_JSON_FLOW_IP) {
+                    EveAddFlow(p->flow, jb, FLOW_LOG_DIR_VERBOSE);
+                } else {
+                    EveAddFlow(p->flow, jb, FLOW_LOG_NO_DIR);
+                }
                 jb_close(jb);
             }
         }
@@ -914,6 +919,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "flow-ip", LOG_JSON_FLOW_IP, &flags);
 
         /* Check for obsolete configuration flags to enable specific
          * protocols. These are now just aliases for enabling

@@ -157,6 +157,7 @@ outputs:
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
+            # flow-ip: no              # Requires metadata; enable dumping of IP info in flow subobject
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
