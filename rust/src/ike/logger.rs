@@ -73,14 +73,19 @@ fn log_ike(
     }
 
     if tx.ike_version == 1 {
-        let mut index = 0;
-        for server_transform in &state.ikev1_container.server.transforms {
-            if index >= 1 {
-                debug_validate_bug_on!(true);
-                break;
+        if state.ikev1_container.server.transforms.len() > 0 {
+            // log the first transform as the chosen one
+            add_attributes(&state.ikev1_container.server.transforms[0], jb)?;
+        }
+        if state.ikev1_container.server.transforms.len() > 1 {
+            // in case we have multiple server transforms log them in a list
+            jb.open_array("server_proposals")?;
+            for server_transform in &state.ikev1_container.server.transforms {
+                jb.start_object()?;
+                add_attributes(server_transform, jb)?;
+                jb.close()?;
             }
-            add_attributes(server_transform, jb)?;
-            index += 1;
+            jb.close()?;
         }
     } else if tx.ike_version == 2 {
         if tx.hdr.flags & IKEV2_FLAG_INITIATOR != 0 {

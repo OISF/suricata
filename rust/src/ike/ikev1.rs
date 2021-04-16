@@ -136,6 +136,11 @@ pub fn handle_ikev1(
                         &tx.hdr.ikev1_header.vendor_ids,
                         &tx.hdr.ikev1_transforms,
                     );
+
+                    if state.ikev1_container.server.transforms.len() > 1 {
+                        SCLogDebug!("More than one chosen server proposal");
+                        state.set_event(IkeEvent::MultipleServerProposal);
+                    }
                 }
 
                 if rem.len() > 0 {
