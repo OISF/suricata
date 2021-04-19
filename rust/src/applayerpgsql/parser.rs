@@ -351,8 +351,8 @@ named!(pub pgsql_parse_request<PgsqlRequestMessage>,
     do_parse!(
         tag: peek!(be_u8)
         >> message: switch!(value!(tag),
-                        b'\0' => call!(pgsql_parse_startup_packet) |
-                        b'p' =>  call!(pgsql_parse_password_message) // |
+                        b'\0' => call!(pgsql_parse_startup_packet) | // TODO this will probably be taken away from here.
+                        b'p' =>  call!(pgsql_parse_password_message)
                 )
         >> (message)
     ));
