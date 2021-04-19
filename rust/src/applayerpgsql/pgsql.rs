@@ -21,14 +21,35 @@ use std::mem::transmute;
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
+use parser::PgsqlMessageType;
 use super::parser::{self, PgsqlRequestMessage, PgsqlResponseMessage};
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+pub enum PgsqlTransactionState {
+    ConnectionStart = 0, // TODO [Doubt] or ConnectionRequest? Maybe we don't even need this
+    SslRequest = 1,
+    SslAccepted = 2,  // TODO [Doubt] Maybe we don't even need this
+    SimpleAuthentication = 3,
+    GssEncryptionRequest = 4,
+    AuthenticationGssApi = 5,
+    AuthenticationSasl = 6,
+    AuthenticationSspi = 7,
+    AuthenticationOk = 8,
+    BackendInitialization = 9,
+    ReadyForQuery = 10,
+    SimpleQueryProtocol = 11, // TODO not sure if necessary
+    Termination = 12, // TODO not sure if necessary
+    Finished = 13,
+}
+
 pub struct PgsqlTransaction {
     tx_id: u64,
-    pub request: Option<PgsqlRequestMessage>,
-    pub response: Option<PgsqlResponseMessage>,
+    pub state: PgsqlTransactionState,
+    pub request: Vec<PgsqlRequestMessage>,
+    pub response: Vec<PgsqlResponseMessage>,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
@@ -39,8 +60,9 @@ impl PgsqlTransaction {
     pub fn new() -> PgsqlTransaction {
         PgsqlTransaction {
             tx_id: 0,
-            request: None,
-            response: None,
+            state: PgsqlTransactionState::ConnectionStart, // TODO question is this the best initialization value?
+            request: Vec::<PgsqlRequestMessage>::new(),
+            response: Vec::<PgsqlResponseMessage>::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -114,13 +136,22 @@ impl PgsqlState {
         return tx;
     }
 
+    // TODO this will probably be replaced by find_or_create_tx
     fn find_request(&mut self) -> Option<&mut PgsqlTransaction> {
+        // TODO this must be changed, now. HTTP2 doesn't do this, as far as I could tell...
+        // So I may or may not keep it. I'll have to decide
         for tx in &mut self.transactions {
             if tx.response.is_none() {
                 return Some(tx);
             }
         }
         None
+    }
+
+    // find a transaction based on current message type and last transaction state
+    // TODO does that even make sense? find out...
+    fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
+
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -135,7 +166,7 @@ impl PgsqlState {
             if !probe_ts(input) {
                 // The parser now needs to decide what to do as we are not in sync.
                 // For this pgsql, we'll just try again next time.
-                SCLogNotice!("Suricata thinks there's a gap in the request");
+                SCLogNotice!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
 
@@ -146,20 +177,67 @@ impl PgsqlState {
 
         let mut start = input;
         while start.len() > 0 {
+            // I think this whole block must be redesigned. Already. lol.
+            // Lol, indeed. But let's face the facts:
+            /*
+                - there may be situations where, for the same flow, there will be more than one
+                startupmessage. So I can't assume that those will only happen when there aren't any
+                transactions in the State.
+                - It is probably cleaner to have a method that returns message type, instead of directly
+                trying to extract that from the message. hmmm....
+
+                - so, for the first issue, I can probably have just one match, and check message type
+                for whatever is the returned request...?
+            */
+            // if self.transactions.len() == 0 {
+            //     match parser::pgsql_parse_startup_packet(start) {
+            //         Ok((ram, request)) => {
+            //             start = rem;
+            //             SCLogNotice!("Request: {:?}", request);
+            //             let mut tx = self.new_tx();
+            //             tx.request = Some(request);
+            //             let mut e: PgsqlEvent;
+            //             let request_type = request.message_type;
+
+            //             if request_type {
+            //                 e = PgsqlEvent::SslAccepted;
+            //             } else if
+
+            //             self.transactions.push(tx);
+            //         }
+            //     }
+            // } // TODO clean this up, add logic for response, add tests!
             match parser::pgsql_parse_request(start) {
                 Ok((rem, request)) => {
                     start = rem;
 
                     SCLogNotice!("Request: {:?}", request);
-                    let mut tx = self.new_tx();
-                    tx.request = Some(request);
-                    self.transactions.push(tx);
+                    // TODO I can't simply create a new transaction without being sure that's what I need.
+                    // if we're in the middle of a transaction, I certainly will not create a new one.
+                    // let mut tx = self.new_tx();
+                    let mut tx: PgsqlTransaction;
+
+                    match request.message_type {
+                        PgsqlMessageType::SslRequest(_) => {
+                            tx = self.new_tx();
+                            tx.state = PgsqlTransactionState::SslRequest;
+                            tx.request.push(request);
+                            self.transactions.push(tx);
+                        }
+                        PgsqlMessageType::StartupMessage(_) => {
+                            tx = self.new_tx();
+                            tx.state = PgsqlTransactionState::ConnectionStart;
+                            tx.request.push(request);
+                            self.transactions.push(tx);
+                        }
+                        _ => {}
+                    }
                 },
                 Err(nom::Err::Incomplete(needed)) => {
                     // Not enough data. This parser doesn't give us a good indication
                     // of how much data is missing so just ask for one more byte so the
                     // parse is called as soon as more data is received.
-                    SCLogNotice!("Suricata thinks request is incomplete");
+                    SCLogNotice!("Suricata interprets request as incomplete");
                     let consumed = input.len() - start.len();
                     let needed_estimation = start.len() + 1;
                     SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
@@ -186,7 +264,7 @@ impl PgsqlState {
             if !probe_tc(input) {
                 // The parser now needs to decide what to do as we are not in sync.
                 // For this pgsql, we'll just try again next time.
-                SCLogNotice!("Suricata thinks there's a gap in the response");
+                SCLogNotice!("Suricata interprets there's a gap in the response");
                 return AppLayerResult::ok();
             }
 
@@ -200,12 +278,13 @@ impl PgsqlState {
                 Ok((rem, response)) => {
                     start = rem;
 
+                    // TODO the idea, I think, will be to replace find_request with find_or_create_tx
                     match self.find_request() {
                         Some(tx) => {
-                            tx.response = Some(response);
+                            tx.response.push(response);
                             SCLogNotice!("Found response for request:");
-                            SCLogNotice!("- Request: {:?}", tx.request);
-                            SCLogNotice!("- Response: {:?}", tx.response);
+                            SCLogNotice!("- Request: {:?}", tx.request); // TODO how will this work, now? -- make a copy?
+                            SCLogNotice!("- Response: {:?}", tx.response); // TODO how will this work, now? -- make a copy?
                         }
                         None => {}
                     }
@@ -213,7 +292,7 @@ impl PgsqlState {
                 Err(nom::Err::Incomplete(needed)) => {
                     let consumed = input.len() - start.len();
                     let needed_estimation = start.len() + 1;
-                    SCLogNotice!("Suricata thinks the response is incomplete");
+                    SCLogNotice!("Suricata interprets the response as incomplete");
                     SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
                     SCLogNotice!("start is: {:?}", &start);
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
@@ -434,17 +513,17 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(
 }
 
 #[no_mangle]
+pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
+    let tx = cast_pointer!(tx, PgsqlTransaction);
+    return tx.state;
+}
+
+#[no_mangle]
 pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, PgsqlTransaction);
-
-    // Transaction is done if we have a response.
-    if tx.response.is_some() {
-        return 1;
-    }
-    return 0;
+    return rs_pgsql_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
@@ -462,6 +541,7 @@ pub extern "C" fn rs_pgsql_state_get_event_info(
     _event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     return -1;
+    // TODO change this
 }
 
 #[no_mangle]
@@ -470,6 +550,7 @@ pub extern "C" fn rs_pgsql_state_get_event_info_by_id(_event_id: std::os::raw::c
                                                          _event_type: *mut core::AppLayerEventType
 ) -> i8 {
     return -1;
+    // TODO change this?
 }
 #[no_mangle]
 pub extern "C" fn rs_pgsql_state_get_tx_iterator(
@@ -567,8 +648,8 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         parse_tc: rs_pgsql_parse_response,
         get_tx_count: rs_pgsql_state_get_tx_count,
         get_tx: rs_pgsql_state_get_tx,
-        tx_comp_st_ts: 1, // TODO call function that says that tx is completed.
-        tx_comp_st_tc: 1, // TODO call function that says that tx is completed.
+        tx_comp_st_ts: PgsqlTransactionState::Finished as i32,
+        tx_comp_st_tc: PgsqlTransactionState::Finished as i32,
         tx_get_progress: rs_pgsql_tx_get_alstate_progress,
         get_de_state: rs_pgsql_tx_get_detect_state,
         set_de_state: rs_pgsql_tx_set_detect_state,
@@ -676,6 +757,24 @@ mod test {
 
         // incomplete
         assert!(!probe_tc(&buf[0..5]));
+    }
+
+    #[test]
+    fn test_request_events() {
+        let mut state = PgsqlState::new();
+        // an SSL Request
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
+        state.parse_request(buf);
+        let ok_state = PgsqlTransactionState::SslRequest;
+
+        match state.find_request() {
+            Some(tx) => {
+                assert_eq!(tx.state, ok_state)
+            }
+            _ => panic!("Expected {:?}", ok_state)
+        }
+
+        // TODO add test for startup request
     }
 
     #[test]
