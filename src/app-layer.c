@@ -214,6 +214,11 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
             STREAM_HAS_SEEN_DATA(&ssn->server) ? STREAM_COMPLETED_LEN(&ssn->server) : 0;
     SCLogDebug("size_ts %"PRIu64", size_tc %"PRIu64, size_ts, size_tc);
 
+    if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+        if (size_ts > 1000000UL || size_tc > 1000000UL) {
+            goto failure;
+        }
+    }
     DEBUG_VALIDATE_BUG_ON(size_ts > 1000000UL);
     DEBUG_VALIDATE_BUG_ON(size_tc > 1000000UL);
 
