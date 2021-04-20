@@ -75,6 +75,33 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
     return 0;
 }
 
+static int DetectU32Validate(DetectU32Data *du32)
+{
+    switch (du32->mode) {
+        case DETECT_UINT_LT:
+            if (du32->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GT:
+            if (du32->arg1 == UINT32_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_RA:
+            if (du32->arg1 >= du32->arg2) {
+                return 1;
+            }
+            // we need at least one value that can match parg > du32->arg1 && parg < du32->arg2
+            if (du32->arg1 + 1 >= du32->arg2) {
+                return 1;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
 
 /**
  * \brief This function is used to parse u32 options passed via some u32 keyword
@@ -134,32 +161,39 @@ DetectU32Data *DetectU32Parse (const char *u32str)
         switch(arg2[0]) {
             case '<':
             case '>':
-                if (strlen(arg3) == 0)
-                    return NULL;
+                if (strlen(arg2) == 1) {
+                    if (strlen(arg3) == 0)
+                        return NULL;
 
-                if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg3), arg3) < 0) {
-                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
-                    return NULL;
-                }
-
-                SCLogDebug("u32 is %"PRIu32"",u32da.arg1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                if (arg2[0] == '<') {
-                    if (arg2[1] == '=') {
-                        u32da.mode = DETECT_UINT_LTE;
-                    } else {
-                        u32da.mode = DETECT_UINT_LT;
+                    if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg3), arg3) < 0) {
+                        SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
+                        return NULL;
                     }
-                } else { // arg2[0] == '>'
-                    if (arg2[1] == '=') {
-                        u32da.mode = DETECT_UINT_GTE;
-                    } else {
+
+                    SCLogDebug("u32 is %" PRIu32 "", u32da.arg1);
+                    if (strlen(arg1) > 0)
+                        return NULL;
+
+                    if (arg2[0] == '<') {
+                        u32da.mode = DETECT_UINT_LT;
+                    } else { // arg2[0] == '>'
                         u32da.mode = DETECT_UINT_GT;
                     }
+                    break;
+                } else if (strlen(arg2) == 2) {
+                    if (arg2[0] == '<' && arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_LTE;
+                        break;
+                    } else if (arg2[0] == '>' || arg2[1] == '=') {
+                        u32da.mode = DETECT_UINT_GTE;
+                        break;
+                    } else if (arg2[0] != '<' || arg2[1] != '>') {
+                        return NULL;
+                    }
+                } else {
+                    return NULL;
                 }
-                break;
+                // fall through
             case '-':
                 if (strlen(arg1)== 0)
                     return NULL;
@@ -177,9 +211,11 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                 }
 
                 SCLogDebug("u32 is %"PRIu32" to %"PRIu32"", u32da.arg1, u32da.arg2);
-                if (u32da.arg1 >= u32da.arg2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u32 range. ");
-                    return NULL;
+                if (u32da.arg1 > u32da.arg2) {
+                    uint32_t temp = u32da.arg1;
+                    u32da.arg1 = u32da.arg2;
+                    u32da.arg2 = temp;
+                    SCLogWarning(SC_WARN_POOR_RULE, "Reversed u32 range. ");
                 }
                 break;
             default:
@@ -206,6 +242,10 @@ DetectU32Data *DetectU32Parse (const char *u32str)
             SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
             return NULL;
         }
+    }
+    if (DetectU32Validate(&u32da)) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint32 condition : %s", u32str);
+        return NULL;
     }
     u32d = SCCalloc(1, sizeof (DetectU32Data));
     if (unlikely(u32d == NULL))
@@ -288,6 +328,34 @@ int DetectU8Match(const uint8_t parg, const DetectU8Data *du8)
     return 0;
 }
 
+static int DetectU8Validate(DetectU8Data *du8)
+{
+    switch (du8->mode) {
+        case DETECT_UINT_LT:
+            if (du8->arg1 == 0) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_GT:
+            if (du8->arg1 == UINT8_MAX) {
+                return 1;
+            }
+            break;
+        case DETECT_UINT_RA:
+            if (du8->arg1 >= du8->arg2) {
+                return 1;
+            }
+            // we need at least one value that can match parg > du8->arg1 && parg < du8->arg2
+            if (du8->arg1 + 1 >= du8->arg2) {
+                return 1;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
 /**
  * \brief This function is used to parse u8 options passed via some u8 keyword
  *
@@ -346,29 +414,36 @@ DetectU8Data *DetectU8Parse (const char *u8str)
         switch(arg2[0]) {
             case '<':
             case '>':
-                if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
-                    SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
-                    return NULL;
-                }
-
-                SCLogDebug("u8 is %"PRIu8"",u8da.arg1);
-                if (strlen(arg1) > 0)
-                    return NULL;
-
-                if (arg2[0] == '<') {
-                    if (arg2[1] == '=') {
-                        u8da.mode = DETECT_UINT_LTE;
-                    } else {
-                        u8da.mode = DETECT_UINT_LT;
+                if (strlen(arg2) == 1) {
+                    if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
+                        SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
+                        return NULL;
                     }
-                } else { // arg2[0] == '>'
-                    if (arg2[1] == '=') {
-                        u8da.mode = DETECT_UINT_GTE;
-                    } else {
+
+                    SCLogDebug("u8 is %" PRIu8 "", u8da.arg1);
+                    if (strlen(arg1) > 0)
+                        return NULL;
+
+                    if (arg2[0] == '<') {
+                        u8da.mode = DETECT_UINT_LT;
+                    } else { // arg2[0] == '>'
                         u8da.mode = DETECT_UINT_GT;
                     }
+                    break;
+                } else if (strlen(arg2) == 2) {
+                    if (arg2[0] == '<' && arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_LTE;
+                        break;
+                    } else if (arg2[0] == '>' || arg2[1] == '=') {
+                        u8da.mode = DETECT_UINT_GTE;
+                        break;
+                    } else if (arg2[0] != '<' || arg2[1] != '>') {
+                        return NULL;
+                    }
+                } else {
+                    return NULL;
                 }
-                break;
+                // fall through
             case '-':
                 u8da.mode = DETECT_UINT_RA;
                 if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
@@ -381,9 +456,11 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                 }
 
                 SCLogDebug("u8 is %"PRIu8" to %"PRIu8"", u8da.arg1, u8da.arg2);
-                if (u8da.arg1 >= u8da.arg2) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid u8 range. ");
-                    return NULL;
+                if (u8da.arg1 > u8da.arg2) {
+                    uint8_t temp = u8da.arg1;
+                    u8da.arg1 = u8da.arg2;
+                    u8da.arg2 = temp;
+                    SCLogWarning(SC_WARN_POOR_RULE, "Reversed u8 range. ");
                 }
                 break;
             default:
@@ -408,6 +485,10 @@ DetectU8Data *DetectU8Parse (const char *u8str)
             SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
             return NULL;
         }
+    }
+    if (DetectU8Validate(&u8da)) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Impossible value for uint8 condition : %s", u8str);
+        return NULL;
     }
     u8d = SCCalloc(1, sizeof (DetectU8Data));
     if (unlikely(u8d == NULL))
