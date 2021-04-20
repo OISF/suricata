@@ -88,6 +88,15 @@ struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
 };
 
+/* Registration/management for file-related keyword handlers */
+typedef struct AppLayerParserFileKeywordHandlerNode_ {
+    DetectAppLayerParserKeywordEntry *keyword_list;
+    int keyword_list_size;
+    const char *keyword;
+    TAILQ_ENTRY(AppLayerParserFileKeywordHandlerNode_) entries;
+} AppLayerParserFileKeywordHandlerNode;
+static TAILQ_HEAD(, AppLayerParserFileKeywordHandlerNode_)
+        keyword_handler_node_list = TAILQ_HEAD_INITIALIZER(keyword_handler_node_list);
 
 /**
  * \brief App layer protocol parser context.
@@ -1141,6 +1150,69 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles != NULL)
         return TRUE;
     return FALSE;
+}
+
+void AppLayerParserRegisterFileKeywordEntry(
+        const char *name, DetectAppLayerParserKeywordEntry *entry)
+{
+    static uint32_t directions[] = { SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT };
+    SCLogDebug("Registering %s %s (%s%s)", name, AppProtoToString(entry->alproto),
+            entry->directions & SIG_FLAG_TOSERVER ? "server " : "",
+            entry->directions & SIG_FLAG_TOCLIENT ? "client" : "");
+
+    for (uint16_t i = 0; i < ARRAY_SIZE(directions); i++) {
+        uint32_t direction = directions[i];
+
+        if (entry->directions & direction) {
+            SCLogDebug("Registering inspection engine for %s [%s]", name,
+                    i == 0 ? "server" : "client");
+            DetectAppLayerInspectEngineRegister2(name, entry->alproto, direction,
+                    entry->inspect.progress, entry->inspect.Callback, entry->inspect.Getdata);
+
+            if (entry->mpm.PrefilterRegister) {
+                SCLogDebug("Registering mpm for %s [%s]", name, i == 0 ? "server" : "client");
+                DetectAppLayerMpmRegister2(name, direction, entry->mpm.priority,
+                        entry->mpm.PrefilterRegister, entry->mpm.Getdata, entry->alproto,
+                        entry->mpm.tx_min_progress);
+            }
+        }
+    }
+}
+
+void AppLayerParserRegisterFileKeywordHandler(const char *keyword,
+        DetectAppLayerParserKeywordEntry *keyword_list, size_t keyword_list_len)
+{
+    AppLayerParserFileKeywordHandlerNode *node = SCCalloc(1, sizeof(*node));
+    if (node == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for keyword node");
+        return;
+    }
+    node->keyword = SCStrdup(keyword);
+    if (node->keyword == NULL) {
+        SCFree(node);
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for keyword");
+        return;
+    }
+
+    node->keyword_list_size = (int)keyword_list_len;
+    node->keyword_list = keyword_list;
+    TAILQ_INSERT_TAIL(&keyword_handler_node_list, node, entries);
+}
+
+void AppLayerParserRegisterFileHandlers(void)
+{
+    AppLayerParserFileKeywordHandlerNode *node = NULL;
+    TAILQ_FOREACH (node, &keyword_handler_node_list, entries) {
+        for (int i = 0; i < node->keyword_list_size; i++) {
+            DetectAppLayerParserKeywordEntry entry = node->keyword_list[i];
+            if (entry.alproto == ALPROTO_FTP ||
+                    AppLayerParserSupportsFiles((uint8_t)IPPROTO_UDP, entry.alproto) ||
+                    AppLayerParserSupportsFiles((uint8_t)IPPROTO_TCP, entry.alproto)) {
+                SCLogDebug("FILES: application layer proto %s", AppProtoToString(entry.alproto));
+                AppLayerParserRegisterFileKeywordEntry(node->keyword, &entry);
+            }
+        }
+    }
 }
 
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
