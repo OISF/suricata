@@ -587,6 +587,23 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
     SCReturnUInt(0);
 }
 
+uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
+{
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
+        if (stream->sb.stream_offset != 0)
+            return 0;
+
+        return stream->sb.buf_offset;
+    } else {
+        DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
+
+        if (stream->sb.head->offset != 0)
+            return 0;
+
+        return stream->sb.head->len;
+    }
+}
+
 /**
  *  \brief Insert a packets TCP data into the stream reassembly engine.
  *
