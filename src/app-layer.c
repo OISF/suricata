@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -205,11 +205,9 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
         return;
     }
 
-    const uint64_t size_ts = STREAM_HAS_SEEN_DATA(&ssn->client) ?
-        STREAM_RIGHT_EDGE(&ssn->client) : 0;
-    const uint64_t size_tc = STREAM_HAS_SEEN_DATA(&ssn->server) ?
-        STREAM_RIGHT_EDGE(&ssn->server) : 0;
-    SCLogDebug("size_ts %"PRIu64", size_tc %"PRIu64, size_ts, size_tc);
+    const uint32_t size_ts = StreamDataAvailableForProtoDetect(&ssn->client);
+    const uint32_t size_tc = StreamDataAvailableForProtoDetect(&ssn->server);
+    SCLogDebug("size_ts %" PRIu32 ", size_tc %" PRIu32, size_ts, size_tc);
 
     DEBUG_VALIDATE_BUG_ON(size_ts > 1000000UL);
     DEBUG_VALIDATE_BUG_ON(size_tc > 1000000UL);
