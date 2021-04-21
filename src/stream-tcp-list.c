@@ -624,6 +624,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     }
 
+    if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
+        stream->data_protodetect_seen += pkt_datalen;
+    }
     SCReturnInt(0);
 }
 

@@ -1092,7 +1092,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     while (1) {
         const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
-        bool check_for_gap_ahead = ((*stream)->data_required > 0);
+        bool check_for_gap_ahead = ((*stream)->data_required > 0 &&
+                                    StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(*stream));
         gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
                 app_progress, check_for_gap_ahead);
         if (last_was_gap && mydata_len == 0) {
@@ -1120,7 +1121,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             /* a GAP also consumes 'data required'. TODO perhaps we can use
              * this to skip post GAP data until the start of a next record. */
-            if ((*stream)->data_required > 0) {
+            if ((*stream)->data_required > 0 &&
+                    StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(*stream)) {
                 if ((*stream)->data_required > mydata_len) {
                     (*stream)->data_required -= mydata_len;
                 } else {
@@ -1152,7 +1154,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
 
         if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
-            if (mydata_len < (*stream)->data_required) {
+            if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(*stream) &&
+                    mydata_len < (*stream)->data_required) {
                 if (gap_ahead) {
                     SCLogDebug("GAP while expecting more data (expect %u, gap size %u)",
                             (*stream)->data_required, mydata_len);
@@ -1167,7 +1170,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 continue;
             }
         }
-        (*stream)->data_required = 0;
+        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(*stream)) {
+            (*stream)->data_required = 0;
+        }
 
         /* update the app-layer */
         (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,

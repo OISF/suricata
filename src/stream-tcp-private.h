@@ -117,7 +117,11 @@ typedef struct TcpStream_ {
 
     uint32_t min_inspect_depth;     /**< min inspect size set by the app layer, to make sure enough data
                                      *   remains available for inspection together with app layer buffers */
-    uint32_t data_required;         /**< data required from STREAM_APP_PROGRESS before calling app-layer again */
+    union {
+        uint32_t data_required; /**< data required from STREAM_APP_PROGRESS before calling app-layer
+                                   again */
+        uint32_t data_protodetect_seen; /**< data seen for protocol detection */
+    };
 
     StreamingBuffer sb;
     struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
