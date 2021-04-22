@@ -52,6 +52,7 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
+#include "queue.h"
 #include "suricata-common.h"
 #include "debug.h"
 
@@ -61,7 +62,6 @@
 #include "app-layer-expectation.h"
 
 #include "util-print.h"
-#include "queue.h"
 
 static int g_expectation_id = -1;
 static int g_expectation_data_id = -1;
