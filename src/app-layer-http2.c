@@ -77,6 +77,10 @@ void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
     if (h2s == NULL || h1tx == NULL) {
         return;
     }
+    if (h1tx->request_method == NULL) {
+        // may happen if we only got the reply, not the HTTP1 request
+        return;
+    }
 
     rs_http2_tx_set_method(h2s, bstr_ptr(h1tx->request_method), bstr_len(h1tx->request_method));
     rs_http2_tx_set_uri(h2s, bstr_ptr(h1tx->request_uri), bstr_len(h1tx->request_uri));
