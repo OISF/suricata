@@ -951,7 +951,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
-                    tx_skipped = skipped = true;
+                    tx_skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -961,7 +961,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
-                    tx_skipped = skipped = true;
+                    tx_skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -972,6 +972,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         // been inspected.
         if (!is_unidir && tx_skipped) {
             SCLogDebug("%p/%" PRIu64 " !is_unidir && tx_skipped", tx, i);
+            skipped = true;
             goto next;
         }
 
@@ -981,6 +982,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         // tx inspected flag checked.
         if (is_unidir && tx_skipped && !inspected) {
             SCLogDebug("%p/%" PRIu64 " is_unidir && tx_skipped && !inspected", tx, i);
+            skipped = true;
             goto next;
         }
 
