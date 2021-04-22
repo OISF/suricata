@@ -114,19 +114,6 @@ pub const DNS_RCODE_BADALG:   u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
 
-/// The maximum number of transactions to keep in the queue pending
-/// processing before they are aggressively purged. Due to the
-/// stateless nature of this parser this is rarely needed, especially
-/// when one call to parse a request parses and a single request, and
-/// likewise for responses.
-///
-/// Where this matters is when one TCP buffer contains multiple
-/// requests are responses and one call into the parser creates
-/// multiple transactions. In this case we have to hold onto
-/// transactions longer than until handling the next transaction so it
-/// gets logged.
-const MAX_TRANSACTIONS: usize = 32;
-
 static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[repr(u32)]
@@ -471,26 +458,8 @@ impl DNSState {
         }
     }
 
-    // Purges all transactions except one. This is a stateless parser
-    // so we don't need to hang onto old transactions.
-    //
-    // This is to actually handle an edge case where a DNS flood
-    // occurs in a single direction with no response packets. In such
-    // a case the functions to free a transaction are never called by
-    // the app-layer as they require bidirectional traffic.
-    pub fn purge(&mut self, tx_id: u64) {
-        while self.transactions.len() > MAX_TRANSACTIONS {
-            if self.transactions[0].id == tx_id + 1 {
-                return;
-            }
-            SCLogDebug!("Purging DNS TX with ID {}", self.transactions[0].id);
-            self.transactions.remove(0);
-        }
-    }
-
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
         SCLogDebug!("get_tx: tx_id={}", tx_id);
-        self.purge(tx_id);
         for tx in &mut self.transactions {
             if tx.id == tx_id + 1 {
                 SCLogDebug!("Found DNS TX with ID {}", tx_id);
