@@ -118,16 +118,16 @@ static bool HasConflicts(const DetectAppLayerProtocolData *us,
 {
     /* mixing negated and non negated is illegal */
     if (them->negated ^ us->negated)
-        return TRUE;
+        return true;
     /* multiple non-negated is illegal */
     if (!us->negated)
-        return TRUE;
+        return true;
     /* duplicate option */
     if (us->alproto == them->alproto)
-        return TRUE;
+        return true;
 
     /* all good */
-    return FALSE;
+    return false;
 }
 
 static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
@@ -192,7 +192,7 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE) {
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p)) {
         SCLogDebug("packet %"PRIu64": extra match failed", p->pcap_cnt);
         SCReturn;
     }
@@ -236,8 +236,8 @@ PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
     const DetectAppLayerProtocolData *a = smctx;
     if (v.u16[0] == a->alproto &&
         v.u8[2] == (uint8_t)a->negated)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -252,9 +252,9 @@ static bool PrefilterAppProtoIsPrefilterable(const Signature *s)
 {
     if (s->flags & SIG_FLAG_PDONLY) {
         SCLogDebug("prefilter on PD %u", s->id);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 void DetectAppLayerProtocolRegister(void)

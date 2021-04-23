@@ -30,7 +30,7 @@
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
 
-#define STREAM_VERBOSE    FALSE
+#define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine
    has been enabled */
 #define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    BIT_U8(0)
@@ -104,8 +104,8 @@ typedef struct StreamTcpThread_ {
 } StreamTcpThread;
 
 extern TcpStreamCnf stream_config;
-void StreamTcpInitConfig (char);
-void StreamTcpFreeConfig(char);
+void StreamTcpInitConfig(bool);
+void StreamTcpFreeConfig(bool);
 void StreamTcpRegisterTests (void);
 
 void StreamTcpSessionPktFree (Packet *);

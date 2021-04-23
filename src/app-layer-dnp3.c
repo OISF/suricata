@@ -2133,7 +2133,7 @@ static int DNP3ParserTestRequestResponse(void)
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCMutexLock(&flow.m);
     FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
@@ -2160,7 +2160,7 @@ static int DNP3ParserTestRequestResponse(void)
     FAIL_IF(tx->response_buffer == NULL);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }
@@ -2200,7 +2200,7 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCMutexLock(&flow.m);
     FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
@@ -2229,7 +2229,7 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
     /* FAIL_IF(tx->iin1 != 0 || tx->iin2 != 0); */
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }
@@ -2266,7 +2266,7 @@ static int DNP3ParserTestFlooded(void)
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCMutexLock(&flow.m);
     FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
@@ -2308,7 +2308,7 @@ static int DNP3ParserTestFlooded(void)
     FAIL_IF(DNP3GetAlstateProgress(state->curr, 0));
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }
@@ -2371,7 +2371,7 @@ static int DNP3ParserTestPartialFrame(void)
     flow.protoctx = (void *)&ssn;
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* Pass in the first partial frame. */
 
@@ -2441,7 +2441,7 @@ static int DNP3ParserTestPartialFrame(void)
     FAIL_IF(tx->response_buffer_len == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }
@@ -2484,7 +2484,7 @@ static int DNP3ParserTestMultiFrame(void)
     flow.protoctx = (void *)&ssn;
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCMutexLock(&flow.m);
     r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
@@ -2497,7 +2497,7 @@ static int DNP3ParserTestMultiFrame(void)
     FAIL_IF(state->transaction_max != 2);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }
@@ -2647,7 +2647,7 @@ static int DNP3ParserIncorrectUserData(void)
     flow.protoctx = (void *)&ssn;
     flow.proto = IPPROTO_TCP;
     flow.alproto = ALPROTO_DNP3;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
                                 STREAM_TOCLIENT, packet_bytes, sizeof(packet_bytes));
@@ -2655,7 +2655,7 @@ static int DNP3ParserIncorrectUserData(void)
     FAIL_IF(r == 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&flow);
     PASS;
 }

@@ -125,7 +125,7 @@ static int DetectEngineHttpRawHeaderTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -176,7 +176,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -218,7 +218,7 @@ static int DetectEngineHttpRawHeaderTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -269,7 +269,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -311,7 +311,7 @@ static int DetectEngineHttpRawHeaderTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -362,7 +362,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -404,7 +404,7 @@ static int DetectEngineHttpRawHeaderTest04(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -455,7 +455,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -497,7 +497,7 @@ static int DetectEngineHttpRawHeaderTest05(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -548,7 +548,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -590,7 +590,7 @@ static int DetectEngineHttpRawHeaderTest06(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -641,7 +641,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -683,7 +683,7 @@ static int DetectEngineHttpRawHeaderTest07(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -734,7 +734,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -776,7 +776,7 @@ static int DetectEngineHttpRawHeaderTest08(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -827,7 +827,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -869,7 +869,7 @@ static int DetectEngineHttpRawHeaderTest09(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -920,7 +920,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -962,7 +962,7 @@ static int DetectEngineHttpRawHeaderTest10(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1013,7 +1013,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1055,7 +1055,7 @@ static int DetectEngineHttpRawHeaderTest11(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1106,7 +1106,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1148,7 +1148,7 @@ static int DetectEngineHttpRawHeaderTest12(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1199,7 +1199,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1241,7 +1241,7 @@ static int DetectEngineHttpRawHeaderTest13(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1292,7 +1292,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1334,7 +1334,7 @@ static int DetectEngineHttpRawHeaderTest14(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1385,7 +1385,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1427,7 +1427,7 @@ static int DetectEngineHttpRawHeaderTest15(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1478,7 +1478,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1520,7 +1520,7 @@ static int DetectEngineHttpRawHeaderTest16(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1571,7 +1571,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1613,7 +1613,7 @@ static int DetectEngineHttpRawHeaderTest17(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1664,7 +1664,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1711,7 +1711,7 @@ static int DetectEngineHttpRawHeaderTest20(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1750,7 +1750,7 @@ static int DetectEngineHttpRawHeaderTest20(void)
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1801,7 +1801,7 @@ static int DetectEngineHttpRawHeaderTest21(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1873,7 +1873,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1923,7 +1923,7 @@ static int DetectEngineHttpRawHeaderTest22(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1995,7 +1995,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2045,7 +2045,7 @@ static int DetectEngineHttpRawHeaderTest23(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2117,7 +2117,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2167,7 +2167,7 @@ static int DetectEngineHttpRawHeaderTest24(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2239,7 +2239,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2289,7 +2289,7 @@ static int DetectEngineHttpRawHeaderTest25(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2361,7 +2361,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2411,7 +2411,7 @@ static int DetectEngineHttpRawHeaderTest26(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2481,7 +2481,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2531,7 +2531,7 @@ static int DetectEngineHttpRawHeaderTest27(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2603,7 +2603,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2658,7 +2658,7 @@ static int DetectEngineHttpRawHeaderTest28(void)
     p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2729,7 +2729,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2784,7 +2784,7 @@ static int DetectEngineHttpRawHeaderTest29(void)
     p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2855,7 +2855,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2937,7 +2937,7 @@ static int DetectEngineHttpRawHeaderTest31(void)
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2989,7 +2989,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     return result;
@@ -3046,7 +3046,7 @@ static int DetectEngineHttpRawHeaderTest32(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3117,7 +3117,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -3318,7 +3318,7 @@ static int DetectHttpRawHeaderTest06(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3369,7 +3369,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -3424,7 +3424,7 @@ static int DetectHttpRawHeaderTest07(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3494,7 +3494,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -3549,7 +3549,7 @@ static int DetectHttpRawHeaderTest08(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3619,7 +3619,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -3675,7 +3675,7 @@ static int DetectHttpRawHeaderTest09(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3745,7 +3745,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -3801,7 +3801,7 @@ static int DetectHttpRawHeaderTest10(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3871,7 +3871,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -3919,7 +3919,7 @@ static int DetectHttpRawHeaderTest11(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3970,7 +3970,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -4017,7 +4017,7 @@ static int DetectHttpRawHeaderTest12(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -4068,7 +4068,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -4116,7 +4116,7 @@ static int DetectHttpRawHeaderTest13(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -4168,7 +4168,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;

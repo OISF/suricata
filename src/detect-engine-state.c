@@ -506,7 +506,7 @@ static int DeStateSigTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -543,7 +543,7 @@ static int DeStateSigTest01(void)
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -591,7 +591,7 @@ static int DeStateSigTest02(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -656,7 +656,7 @@ static int DeStateSigTest02(void)
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -712,7 +712,7 @@ static int DeStateSigTest03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
@@ -738,7 +738,7 @@ static int DeStateSigTest03(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -789,7 +789,7 @@ static int DeStateSigTest04(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
@@ -812,7 +812,7 @@ static int DeStateSigTest04(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -863,7 +863,7 @@ static int DeStateSigTest05(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
@@ -886,7 +886,7 @@ static int DeStateSigTest05(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -938,7 +938,7 @@ static int DeStateSigTest06(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
@@ -960,7 +960,7 @@ static int DeStateSigTest06(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1013,7 +1013,7 @@ static int DeStateSigTest07(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
@@ -1041,7 +1041,7 @@ static int DeStateSigTest07(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1107,7 +1107,7 @@ static int DeStateSigTest08(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* HTTP request with 1st part of the multipart body */
 
@@ -1161,7 +1161,7 @@ static int DeStateSigTest08(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1227,7 +1227,7 @@ static int DeStateSigTest09(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* HTTP request with 1st part of the multipart body */
 
@@ -1279,7 +1279,7 @@ static int DeStateSigTest09(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1345,7 +1345,7 @@ static int DeStateSigTest10(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* HTTP request with 1st part of the multipart body */
 
@@ -1397,7 +1397,7 @@ static int DeStateSigTest10(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 

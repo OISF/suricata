@@ -775,12 +775,12 @@ static int DetectTagTestPacket02 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 2 || i == 3 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -892,12 +892,12 @@ static int DetectTagTestPacket03 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 3 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -1027,12 +1027,12 @@ static int DetectTagTestPacket04 (void)
 
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 4 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -1174,12 +1174,12 @@ static int DetectTagTestPacket05 (void)
 
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 

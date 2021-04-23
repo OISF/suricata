@@ -73,7 +73,7 @@ static int DetectTlsJa3HashTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_TLS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -107,7 +107,7 @@ static int DetectTlsJa3HashTest01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 
@@ -169,7 +169,7 @@ static int DetectTlsJa3HashTest02(void)
     p->flowflags |= FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_TLS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -203,7 +203,7 @@ static int DetectTlsJa3HashTest02(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 

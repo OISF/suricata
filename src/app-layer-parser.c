@@ -1789,7 +1789,7 @@ static int AppLayerParserTest01(void)
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_TCP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
@@ -1799,7 +1799,7 @@ static int AppLayerParserTest01(void)
     FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
 
     AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -1832,7 +1832,7 @@ static int AppLayerParserTest02(void)
     f->proto = IPPROTO_UDP;
     f->protomap = FlowGetProtoMapping(f->proto);
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
@@ -1840,7 +1840,7 @@ static int AppLayerParserTest02(void)
     FAIL_IF(r != -1);
 
     AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }

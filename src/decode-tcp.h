@@ -91,7 +91,7 @@
 #define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.ws.type == TCP_OPT_WS)
 #define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
 #define TCP_HAS_SACKOK(p)                   ((p)->tcpvars.sackok.type == TCP_OPT_SACKOK)
-#define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set == TRUE)
+#define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
 #define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss.type == TCP_OPT_MSS)
 #define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo.type == TCP_OPT_TFO)
 

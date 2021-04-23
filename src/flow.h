@@ -39,8 +39,8 @@ typedef struct FlowStorageId FlowStorageId;
  * The actual declaration is in app-layer-parser.c */
 typedef struct AppLayerParserState_ AppLayerParserState;
 
-#define FLOW_QUIET      TRUE
-#define FLOW_VERBOSE    FALSE
+#define FLOW_QUIET   true
+#define FLOW_VERBOSE false
 
 #define TOSERVER 0
 #define TOCLIENT 1
@@ -550,7 +550,7 @@ typedef struct FlowLookupStruct_ // TODO name
  *  balancing. */
 void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
-void FlowInitConfig (char);
+void FlowInitConfig(bool);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);

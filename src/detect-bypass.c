@@ -177,7 +177,7 @@ static int DetectBypassTestSig01(void)
     p2->livedev = livedev;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -228,7 +228,7 @@ static int DetectBypassTestSig01(void)
 
     FAIL_IF(callback_var == 0);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);

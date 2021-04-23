@@ -1378,7 +1378,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                 SigMatch *sm = s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
-                        if (sigmatch_table[sm->type].SupportsPrefilter(s) == TRUE) {
+                        if (sigmatch_table[sm->type].SupportsPrefilter(s)) {
                             prefilter_list = MIN(prefilter_list, sm->type);
                         }
                     }

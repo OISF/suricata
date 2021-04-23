@@ -229,7 +229,7 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
         return;
     }
 
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     if (IPV4_GET_IPID(p) == ctx->v1.u16[0])
@@ -251,8 +251,8 @@ PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIdData *a = smctx;
     if (v.u16[0] == a->id)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -269,10 +269,10 @@ static bool PrefilterIdIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ID:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

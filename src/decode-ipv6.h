@@ -235,9 +235,9 @@ typedef struct IPV6ExtHdrs_
 
 } IPV6ExtHdrs;
 
-#define IPV6_EXTHDR_SET_FH(p)       (p)->ip6eh.fh_set = TRUE
+#define IPV6_EXTHDR_SET_FH(p)       (p)->ip6eh.fh_set = true
 #define IPV6_EXTHDR_ISSET_FH(p)     (p)->ip6eh.fh_set
-#define IPV6_EXTHDR_SET_RH(p)       (p)->ip6eh.rh_set = TRUE
+#define IPV6_EXTHDR_SET_RH(p)       (p)->ip6eh.rh_set = true
 #define IPV6_EXTHDR_ISSET_RH(p)     (p)->ip6eh.rh_set
 
 void DecodeIPV6RegisterTests(void);

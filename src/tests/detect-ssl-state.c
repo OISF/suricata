@@ -364,7 +364,7 @@ static int DetectSslStateTest07(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_TLS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -486,7 +486,7 @@ static int DetectSslStateTest07(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;

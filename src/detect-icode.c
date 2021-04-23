@@ -346,8 +346,8 @@ PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == a->mode &&
         v.u8[1] == a->code1 &&
         v.u8[2] == a->code2)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -364,10 +364,10 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICODE:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

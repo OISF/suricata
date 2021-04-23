@@ -1079,7 +1079,7 @@ DefragInit(void)
     }
 
     DefragSetDefaultTimeout(defrag_context->timeout);
-    DefragInitConfig(FALSE);
+    DefragInitConfig(false);
 }
 
 void DefragDestroy(void)

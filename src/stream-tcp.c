@@ -96,7 +96,7 @@
 
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *, PacketQueueNoLock *);
 void StreamTcpReturnStreamSegments (TcpStream *);
-void StreamTcpInitConfig(char);
+void StreamTcpInitConfig(bool);
 int StreamTcpGetFlowState(void *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 
@@ -358,11 +358,11 @@ static int RandomGetWrap(void)
 
 /** \brief          To initialize the stream global configuration data
  *
- *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
+ *  \param  quiet   It tells the mode of operation, if it is true nothing will
  *                  be get printed.
  */
 
-void StreamTcpInitConfig(char quiet)
+void StreamTcpInitConfig(bool quiet)
 {
     intmax_t value = 0;
     uint16_t rdrange = 10;
@@ -667,7 +667,7 @@ void StreamTcpInitConfig(char quiet)
 #endif
 }
 
-void StreamTcpFreeConfig(char quiet)
+void StreamTcpFreeConfig(bool quiet)
 {
     StreamTcpReassembleFree(quiet);
 
@@ -1745,7 +1745,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        uint8_t reset = TRUE;
+        bool reset = true;
         /* After receiveing the RST in SYN_RECV state and if detection
            evasion flags has been set, then the following operating
            systems will not closed the connection. As they consider the
@@ -1758,7 +1758,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                         (ssn->server.os_policy == OS_POLICY_OLD_LINUX) ||
                         (ssn->server.os_policy == OS_POLICY_SOLARIS))
                 {
-                    reset = FALSE;
+                    reset = false;
                     SCLogDebug("Detection evasion has been attempted, so"
                             " not resetting the connection !!");
                 }
@@ -1767,14 +1767,14 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                         (ssn->client.os_policy == OS_POLICY_OLD_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_SOLARIS))
                 {
-                    reset = FALSE;
+                    reset = false;
                     SCLogDebug("Detection evasion has been attempted, so"
                             " not resetting the connection !!");
                 }
             }
         }
 
-        if (reset == TRUE) {
+        if (reset) {
             StreamTcpCloseSsnWithReset(p, ssn);
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {

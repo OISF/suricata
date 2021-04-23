@@ -2504,7 +2504,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
 #ifdef NFQ
     if (suri->run_mode == RUNMODE_NFQ)
-        NFQInitConfig(FALSE);
+        NFQInitConfig(false);
 #endif
 
     /* Load the Host-OS lookup. */

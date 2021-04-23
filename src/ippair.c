@@ -165,7 +165,7 @@ void IPPairClearMemory(IPPair *h)
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
-void IPPairInitConfig(char quiet)
+void IPPairInitConfig(bool quiet)
 {
     SCLogDebug("initializing ippair engine...");
     if (IPPairStorageSize() > 0)
@@ -247,7 +247,7 @@ void IPPairInitConfig(char quiet)
     }
     (void) SC_ATOMIC_ADD(ippair_memuse, (ippair_config.hash_size * sizeof(IPPairHashRow)));
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("allocated %"PRIu64" bytes of memory for the ippair hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(ippair_memuse), ippair_config.hash_size,
@@ -272,7 +272,7 @@ void IPPairInitConfig(char quiet)
         IPPairEnqueue(&ippair_spare_q,h);
     }
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("preallocated %" PRIu32 " ippairs of size %" PRIu16 "",
                 ippair_spare_q.len, g_ippair_size);
         SCLogConfig("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,

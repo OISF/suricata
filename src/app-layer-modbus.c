@@ -1143,7 +1143,8 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
 {
     SCEnter();
     uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
-    uint8_t     count = 0, error = FALSE, function = 0, mei = 0;
+    uint8_t count = 0, function = 0, mei = 0;
+    uint8_t error = false;
 
     /* Standard function codes used on MODBUS application layer protocol (1 byte) */
     if (ModbusExtractUint8(modbus, &function, input, input_len, &offset))
@@ -1152,7 +1153,7 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
     /* Check if response is error */
     if(function & MODBUS_FUNC_ERRORMASK) {
         function &= MODBUS_FUNC_MASK;
-        error = TRUE;
+        error = true;
     }
 
     if (tx->category == MODBUS_CAT_PUBLIC_ASSIGNED) {
@@ -1755,7 +1756,7 @@ static int ModbusParserTest01(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -1782,7 +1783,7 @@ static int ModbusParserTest01(void) {
     FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -1803,7 +1804,7 @@ static int ModbusParserTest02(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -1834,7 +1835,7 @@ static int ModbusParserTest02(void) {
     FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -1868,7 +1869,7 @@ static int ModbusParserTest03(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1928,7 +1929,7 @@ static int ModbusParserTest03(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -1950,7 +1951,7 @@ static int ModbusParserTest04(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -1968,7 +1969,7 @@ static int ModbusParserTest04(void) {
     FAIL_IF_NOT(tx->subFunction == 4);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2002,7 +2003,7 @@ static int ModbusParserTest05(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2040,7 +2041,7 @@ static int ModbusParserTest05(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2075,7 +2076,7 @@ static int ModbusParserTest06(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2113,7 +2114,7 @@ static int ModbusParserTest06(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2148,7 +2149,7 @@ static int ModbusParserTest07(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2187,7 +2188,7 @@ static int ModbusParserTest07(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2222,7 +2223,7 @@ static int ModbusParserTest08(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2275,7 +2276,7 @@ static int ModbusParserTest08(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2300,7 +2301,7 @@ static int ModbusParserTest09(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -2338,7 +2339,7 @@ static int ModbusParserTest09(void) {
     FAIL_IF_NOT(modbus_state->transaction_max ==1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2368,7 +2369,7 @@ static int ModbusParserTest10(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -2407,7 +2408,7 @@ static int ModbusParserTest10(void) {
 
     SCFree(input);
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2441,7 +2442,7 @@ static int ModbusParserTest11(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2480,7 +2481,7 @@ static int ModbusParserTest11(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2515,7 +2516,7 @@ static int ModbusParserTest12(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2554,7 +2555,7 @@ static int ModbusParserTest12(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2576,7 +2577,7 @@ static int ModbusParserTest13(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -2604,7 +2605,7 @@ static int ModbusParserTest13(void) {
     FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2625,7 +2626,7 @@ static int ModbusParserTest14(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
@@ -2653,7 +2654,7 @@ static int ModbusParserTest14(void) {
     FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2687,7 +2688,7 @@ static int ModbusParserTest15(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2738,7 +2739,7 @@ static int ModbusParserTest15(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -2773,7 +2774,7 @@ static int ModbusParserTest16(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2826,7 +2827,7 @@ static int ModbusParserTest16(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;}
@@ -2847,7 +2848,7 @@ static int ModbusParserTest17(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
@@ -2868,7 +2869,7 @@ static int ModbusParserTest17(void) {
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2892,7 +2893,7 @@ static int ModbusParserTest18(void) {
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_MODBUS;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
@@ -2933,7 +2934,7 @@ static int ModbusParserTest18(void) {
     FAIL_IF(((TcpSession *)(f.protoctx))->reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }
@@ -2967,7 +2968,7 @@ static int ModbusParserTest19(void) {
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -3006,7 +3007,7 @@ static int ModbusParserTest19(void) {
     DetectEngineCtxFree(de_ctx);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;

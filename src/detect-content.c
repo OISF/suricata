@@ -392,12 +392,12 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
     if (!(s->flags & SIG_FLAG_DSIZE)) {
-        return TRUE;
+        return true;
     }
 
     int max_right_edge_i = SigParseGetMaxDsize(s);
     if (max_right_edge_i < 0) {
-        return TRUE;
+        return true;
     }
 
     uint32_t max_right_edge = (uint32_t)max_right_edge_i;
@@ -412,16 +412,16 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "signature can't match as content length %u is bigger than dsize %u.",
                     cd->content_len, max_right_edge);
-            return FALSE;
+            return false;
         }
         if (right_edge > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u.",
                     cd->content_len, cd->offset, right_edge, max_right_edge);
-            return FALSE;
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 /** \brief apply depth/offset and distance/within to content matches

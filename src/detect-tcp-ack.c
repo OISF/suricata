@@ -160,7 +160,7 @@ PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
@@ -183,8 +183,8 @@ PrefilterPacketAckCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectAckData *a = smctx;
     if (v.u32[0] == a->ack)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -201,10 +201,10 @@ static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ACK:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

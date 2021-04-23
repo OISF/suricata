@@ -160,9 +160,9 @@ static bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char *
                 "inspecting response headers.";
 
         SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
-        SCReturnInt(FALSE);
+        SCReturnInt(false);
     }
-    return TRUE;
+    return true;
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

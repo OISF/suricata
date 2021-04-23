@@ -385,8 +385,8 @@ static void XBitsTestSetup(void)
     HostBitInitCtx();
     IPPairBitInitCtx();
     StorageFinalize();
-    HostInitConfig(TRUE);
-    IPPairInitConfig(TRUE);
+    HostInitConfig(true);
+    IPPairInitConfig(true);
 }
 
 static void XBitsTestShutdown(void)

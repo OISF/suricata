@@ -170,7 +170,7 @@ void HostClearMemory(Host *h)
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
-void HostInitConfig(char quiet)
+void HostInitConfig(bool quiet)
 {
     SCLogDebug("initializing host engine...");
     if (HostStorageSize() > 0)
@@ -252,7 +252,7 @@ void HostInitConfig(char quiet)
     }
     (void) SC_ATOMIC_ADD(host_memuse, (host_config.hash_size * sizeof(HostHashRow)));
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("allocated %"PRIu64" bytes of memory for the host hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(host_memuse), host_config.hash_size,
@@ -277,7 +277,7 @@ void HostInitConfig(char quiet)
         HostEnqueue(&host_spare_q,h);
     }
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("preallocated %" PRIu32 " hosts of size %" PRIu16 "",
                 host_spare_q.len, g_host_size);
         SCLogConfig("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,

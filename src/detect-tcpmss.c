@@ -325,7 +325,7 @@ PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
     /* during setup Suricata will automatically see if there is another
      * check that can be added: alproto, sport or dport */
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     /* if we match, add all the sigs that use this prefilter. This means

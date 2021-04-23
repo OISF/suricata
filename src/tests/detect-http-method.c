@@ -79,7 +79,7 @@ static int DetectEngineHttpMethodTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -131,7 +131,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -173,7 +173,7 @@ static int DetectEngineHttpMethodTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -225,7 +225,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -267,7 +267,7 @@ static int DetectEngineHttpMethodTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -319,7 +319,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -361,7 +361,7 @@ static int DetectEngineHttpMethodTest04(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -413,7 +413,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -455,7 +455,7 @@ static int DetectEngineHttpMethodTest05(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -507,7 +507,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -549,7 +549,7 @@ static int DetectEngineHttpMethodTest06(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -601,7 +601,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -643,7 +643,7 @@ static int DetectEngineHttpMethodTest07(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -695,7 +695,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -737,7 +737,7 @@ static int DetectEngineHttpMethodTest08(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -789,7 +789,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -831,7 +831,7 @@ static int DetectEngineHttpMethodTest09(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -883,7 +883,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -925,7 +925,7 @@ static int DetectEngineHttpMethodTest10(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -978,7 +978,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1020,7 +1020,7 @@ static int DetectEngineHttpMethodTest11(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1073,7 +1073,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1115,7 +1115,7 @@ static int DetectEngineHttpMethodTest12(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1168,7 +1168,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1210,7 +1210,7 @@ static int DetectEngineHttpMethodTest13(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1263,7 +1263,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1305,7 +1305,7 @@ static int DetectEngineHttpMethodTest14(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1358,7 +1358,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1400,7 +1400,7 @@ static int DetectEngineHttpMethodTest15(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1453,7 +1453,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1495,7 +1495,7 @@ static int DetectEngineHttpMethodTest16(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1548,7 +1548,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1590,7 +1590,7 @@ static int DetectEngineHttpMethodTest17(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1643,7 +1643,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -1942,7 +1942,7 @@ static int DetectHttpMethodSigTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -2005,7 +2005,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -2045,7 +2045,7 @@ static int DetectHttpMethodSigTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -2110,7 +2110,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -2148,7 +2148,7 @@ static int DetectHttpMethodSigTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -2200,7 +2200,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -2240,7 +2240,7 @@ static int DetectHttpMethodSigTest04(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -2305,7 +2305,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;

@@ -206,7 +206,7 @@ static int HostBitTest01 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -227,7 +227,7 @@ static int HostBitTest02 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -246,7 +246,7 @@ static int HostBitTest03 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -279,7 +279,7 @@ static int HostBitTest04 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -303,7 +303,7 @@ static int HostBitTest05 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -327,7 +327,7 @@ static int HostBitTest06 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -351,7 +351,7 @@ static int HostBitTest07 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -375,7 +375,7 @@ static int HostBitTest08 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -408,7 +408,7 @@ static int HostBitTest09 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -441,7 +441,7 @@ static int HostBitTest10 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;
@@ -474,7 +474,7 @@ static int HostBitTest11 (void)
 {
     int ret = 0;
 
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
         goto end;

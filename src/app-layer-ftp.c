@@ -1447,7 +1447,7 @@ static int FTPParserTest01(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_EOF, ftpbuf, ftplen);
@@ -1458,7 +1458,7 @@ static int FTPParserTest01(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1482,7 +1482,7 @@ static int FTPParserTest03(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_START, ftpbuf1,
@@ -1503,7 +1503,7 @@ static int FTPParserTest03(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1523,7 +1523,7 @@ static int FTPParserTest06(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_START | STREAM_EOF,
@@ -1537,7 +1537,7 @@ static int FTPParserTest06(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_UNKNOWN);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1559,7 +1559,7 @@ static int FTPParserTest07(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_START, ftpbuf1,
@@ -1576,7 +1576,7 @@ static int FTPParserTest07(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1597,7 +1597,7 @@ static int FTPParserTest10(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     uint32_t u;
     for (u = 0; u < ftplen1; u++) {
@@ -1618,7 +1618,7 @@ static int FTPParserTest10(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1640,7 +1640,7 @@ static int FTPParserTest11(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_START, ftpbuf1,
@@ -1665,7 +1665,7 @@ static int FTPParserTest11(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_RETR);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1687,7 +1687,7 @@ static int FTPParserTest12(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER | STREAM_START, ftpbuf1,
@@ -1712,7 +1712,7 @@ static int FTPParserTest12(void)
     FAIL_IF(ftp_state->command != FTP_COMMAND_STOR);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 #endif /* UNITTESTS */
