@@ -51,7 +51,7 @@ try:
         try:
             from docker import Client
         except ImportError:
-            GOT_DOCKER = FALSE
+            GOT_DOCKER = False
 except ImportError:
     GOT_DOCKER = False
 

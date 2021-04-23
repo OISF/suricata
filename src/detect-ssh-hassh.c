@@ -143,7 +143,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
                         "be 32 characters long). This rule will therefore "
                         "never match.";
             SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
-            return FALSE;
+            return false;
         }
         for (size_t i = 0; i < cd->content_len; ++i)
         {
@@ -152,12 +152,12 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
                 *sigerror = "Invalid ssh.hassh string (should be string of hexademical characters)."
                             "This rule will therefore never match.";
                 SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
-                return FALSE;
+                return false;
             }
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,

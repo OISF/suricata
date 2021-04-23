@@ -359,7 +359,7 @@ int StreamTcpAppLayerIsDisabled(Flow *f)
     return (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
 }
 
-static int StreamTcpReassemblyConfig(char quiet)
+static int StreamTcpReassemblyConfig(bool quiet)
 {
     uint32_t segment_prealloc = 2048;
     ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
@@ -396,7 +396,7 @@ static int StreamTcpReassemblyConfig(char quiet)
     return 0;
 }
 
-int StreamTcpReassembleInit(char quiet)
+int StreamTcpReassembleInit(bool quiet)
 {
     /* init the memcap/use tracker */
     StreamTcpReassembleInitMemuse();
@@ -412,7 +412,7 @@ int StreamTcpReassembleInit(char quiet)
     return 0;
 }
 
-void StreamTcpReassembleFree(char quiet)
+void StreamTcpReassembleFree(bool quiet)
 {
     SCMutexLock(&segment_thread_pool_mutex);
     if (segment_thread_pool != NULL) {
@@ -2835,7 +2835,7 @@ static int StreamTcpReassembleTest40 (void)
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     StreamTcpUTSetupSession(&ssn);
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
@@ -2955,7 +2955,7 @@ static int StreamTcpReassembleTest40 (void)
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     SCFree(p);
     UTHFreeFlow(f);
     PASS;
@@ -2964,7 +2964,7 @@ static int StreamTcpReassembleTest40 (void)
 /** \test   Test the memcap incrementing/decrementing and memcap check */
 static int StreamTcpReassembleTest44(void)
 {
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     uint32_t memuse = SC_ATOMIC_GET(ra_memuse);
     StreamTcpReassembleIncrMemuse(500);
     FAIL_IF(SC_ATOMIC_GET(ra_memuse) != (memuse+500));
@@ -2972,7 +2972,7 @@ static int StreamTcpReassembleTest44(void)
     FAIL_IF(SC_ATOMIC_GET(ra_memuse) != memuse);
     FAIL_IF(StreamTcpReassembleCheckMemcap(500) != 1);
     FAIL_IF(StreamTcpReassembleCheckMemcap((1 + memuse + SC_ATOMIC_GET(stream_config.reassembly_memcap))) != 0);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FAIL_IF(SC_ATOMIC_GET(ra_memuse) != 0);
     PASS;
 }
@@ -3082,7 +3082,7 @@ static int StreamTcpReassembleTest47 (void)
     memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&tv, 0, sizeof (ThreadVars));
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     StreamTcpUTSetupSession(&ssn);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
 
@@ -3134,7 +3134,7 @@ static int StreamTcpReassembleTest47 (void)
 
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     SCFree(p);
     UTHFreeFlow(f);
     PASS;

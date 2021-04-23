@@ -325,7 +325,7 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     if (TtlMatch(pttl, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
@@ -351,8 +351,8 @@ PrefilterPacketTtlCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == a->mode &&
         v.u8[1] == a->ttl1 &&
         v.u8[2] == a->ttl2)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -369,10 +369,10 @@ static bool PrefilterTtlIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_TTL:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

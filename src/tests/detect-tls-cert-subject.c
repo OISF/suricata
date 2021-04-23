@@ -299,7 +299,7 @@ static int DetectTlsSubjectTest02(void)
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
     p3->pcap_cnt = 3;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -356,7 +356,7 @@ static int DetectTlsSubjectTest02(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);

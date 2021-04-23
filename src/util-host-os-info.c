@@ -128,7 +128,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     char *netmask_str = NULL;
     int netmask_value = 0;
     int *user_data = NULL;
-    char recursive = FALSE;
+    bool recursive = false;
 
     if (host_os == NULL || host_os_ip_range == NULL ||
             strlen(host_os_ip_range) == 0) {
@@ -163,7 +163,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     if ((ip_str_rem = strchr(ip_str, ',')) != NULL) {
         ip_str_rem[0] = '\0';
         ip_str_rem++;
-        recursive = TRUE;
+        recursive = true;
     }
 
     /* check if we have received a netblock */
@@ -224,7 +224,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
         }
     }
 
-    if (recursive == TRUE) {
+    if (recursive) {
         SCHInfoAddHostOSInfo(host_os, ip_str_rem, is_ipv4);
     }
 

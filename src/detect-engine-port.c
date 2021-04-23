@@ -746,7 +746,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
 {
     DetectPort *ad = NULL, *ad_any = NULL;
     int r = 0;
-    char port_any = FALSE;
+    bool port_any = false;
 
     SCLogDebug("head %p, *head %p, s %s", head, *head, s);
 
@@ -758,7 +758,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     }
 
     if (ad->flags & PORT_FLAG_ANY) {
-        port_any = TRUE;
+        port_any = true;
     }
 
     /** handle the not case, we apply the negation then insert the part(s) */
@@ -785,7 +785,7 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
         goto error;
 
     /** if any, insert 0.0.0.0/0 and ::/0 as well */
-    if (r == 1 && port_any == TRUE) {
+    if (r == 1 && port_any) {
         SCLogDebug("inserting 0:65535 as port is \"any\"");
 
         ad_any = PortParse("0:65535");

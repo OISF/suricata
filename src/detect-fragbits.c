@@ -355,9 +355,9 @@ PrefilterPacketFragBitsCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == fb->modifier &&
         v.u8[1] == fb->fragbits)
     {
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -374,10 +374,10 @@ static bool PrefilterFragBitsIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FRAGBITS:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /*

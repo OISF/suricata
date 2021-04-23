@@ -337,7 +337,7 @@ static int SMBParserTxCleanupTest(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
@@ -480,7 +480,7 @@ static int SMBParserTxCleanupTest(void)
     FAIL_IF_NOT(ret[3] == 9); // min_id
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
 
     PASS;

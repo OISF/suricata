@@ -3405,7 +3405,7 @@ static int AppLayerProtoDetectTest16(void)
 
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3457,7 +3457,7 @@ static int AppLayerProtoDetectTest16(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
 
     UTHFreePackets(&p, 1);
     UTHFreeFlow(f);
@@ -3499,7 +3499,7 @@ static int AppLayerProtoDetectTest17(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3553,7 +3553,7 @@ static int AppLayerProtoDetectTest17(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
 
     UTHFreePackets(&p, 1);
     UTHFreeFlow(f);
@@ -3595,7 +3595,7 @@ static int AppLayerProtoDetectTest18(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3648,7 +3648,7 @@ static int AppLayerProtoDetectTest18(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
 
     UTHFreePackets(&p, 1);
     UTHFreeFlow(f);
@@ -3687,7 +3687,7 @@ static int AppLayerProtoDetectTest19(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f->alproto = ALPROTO_FTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3735,7 +3735,7 @@ static int AppLayerProtoDetectTest19(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     UTHFreeFlow(f);
     return result;

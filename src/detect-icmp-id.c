@@ -75,7 +75,7 @@ void DetectIcmpIdRegister (void)
 static inline bool GetIcmpId(Packet *p, uint16_t *id)
 {
     if (PKT_IS_PSEUDOPKT(p))
-        return FALSE;
+        return false;
 
     uint16_t pid;
     if (PKT_IS_ICMPV4(p)) {
@@ -96,7 +96,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
                 break;
             default:
                 SCLogDebug("Packet has no id field");
-                return FALSE;
+                return false;
         }
     } else if (PKT_IS_ICMPV6(p)) {
         switch (ICMPV6_GET_TYPE(p)) {
@@ -110,15 +110,15 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
                 break;
             default:
                 SCLogDebug("Packet has no id field");
-                return FALSE;
+                return false;
         }
     } else {
         SCLogDebug("Packet not ICMPV4 nor ICMPV6");
-        return FALSE;
+        return false;
     }
 
     *id = pid;
-    return TRUE;
+    return true;
 }
 
 /**
@@ -137,7 +137,7 @@ static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 {
     uint16_t pid;
 
-    if (GetIcmpId(p, &pid) == FALSE)
+    if (!GetIcmpId(p, &pid))
         return 0;
 
     const DetectIcmpIdData *iid = (const DetectIcmpIdData *)ctx;
@@ -274,7 +274,7 @@ PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     uint16_t pid;
-    if (GetIcmpId(p, &pid) == FALSE)
+    if (!GetIcmpId(p, &pid))
         return;
 
     if (pid == ctx->v1.u16[0])
@@ -296,8 +296,8 @@ PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpIdData *a = smctx;
     if (v.u16[0] == a->id)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -314,10 +314,10 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_ID:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

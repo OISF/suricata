@@ -83,8 +83,8 @@ typedef struct TcpReassemblyThreadCtx_ {
 
 void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueueNoLock *);
-int StreamTcpReassembleInit(char);
-void StreamTcpReassembleFree(char);
+int StreamTcpReassembleInit(bool);
+void StreamTcpReassembleFree(bool);
 void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);

@@ -97,7 +97,7 @@ static time_t stats_start_time;
 /** refresh interval in seconds */
 static uint32_t stats_tts = STATS_MGMTT_TTS;
 /** is the stats counter enabled? */
-static char stats_enabled = TRUE;
+static bool stats_enabled = true;
 
 /**< add decoder events as stats? enabled by default */
 bool stats_decoder_events = true;
@@ -119,7 +119,7 @@ static uint16_t counters_global_id = 0;
 
 bool StatsEnabled(void)
 {
-    return (stats_enabled == TRUE);
+    return stats_enabled;
 }
 
 static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
@@ -238,7 +238,7 @@ static void StatsInitCtxPreOutput(void)
     if (stats != NULL) {
         const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
         if (enabled != NULL && ConfValIsFalse(enabled)) {
-            stats_enabled = FALSE;
+            stats_enabled = false;
             SCLogDebug("Stats module has been disabled");
             SCReturn;
         }
@@ -296,7 +296,7 @@ static void StatsInitCtxPostOutput(void)
          * stats sync just in case someone runs 'dump-counters' */
         if (!ConfUnixSocketIsEnable()) {
             SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
-            stats_enabled = FALSE;
+            stats_enabled = false;
             SCReturn;
         }
     }

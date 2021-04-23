@@ -324,7 +324,7 @@ PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     const uint16_t dsize = p->payload_len;
@@ -351,8 +351,8 @@ PrefilterPacketDsizeCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == a->mode &&
         v.u16[1] == a->dsize &&
         v.u16[2] == a->dsize2)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -369,10 +369,10 @@ static bool PrefilterDsizeIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_DSIZE:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /** \brief get max dsize "depth"

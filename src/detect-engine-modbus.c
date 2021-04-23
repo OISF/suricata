@@ -372,7 +372,7 @@ static int DetectEngineInspectModbusTest01(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -407,7 +407,7 @@ static int DetectEngineInspectModbusTest01(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -443,7 +443,7 @@ static int DetectEngineInspectModbusTest02(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -478,7 +478,7 @@ static int DetectEngineInspectModbusTest02(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -514,7 +514,7 @@ static int DetectEngineInspectModbusTest03(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -550,7 +550,7 @@ static int DetectEngineInspectModbusTest03(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -586,7 +586,7 @@ static int DetectEngineInspectModbusTest04(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -621,7 +621,7 @@ static int DetectEngineInspectModbusTest04(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -657,7 +657,7 @@ static int DetectEngineInspectModbusTest05(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -692,7 +692,7 @@ static int DetectEngineInspectModbusTest05(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -728,7 +728,7 @@ static int DetectEngineInspectModbusTest06(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -763,7 +763,7 @@ static int DetectEngineInspectModbusTest06(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -799,7 +799,7 @@ static int DetectEngineInspectModbusTest07(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -834,7 +834,7 @@ static int DetectEngineInspectModbusTest07(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -870,7 +870,7 @@ static int DetectEngineInspectModbusTest08(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -963,7 +963,7 @@ static int DetectEngineInspectModbusTest08(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -999,7 +999,7 @@ static int DetectEngineInspectModbusTest09(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1095,7 +1095,7 @@ static int DetectEngineInspectModbusTest09(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -1133,7 +1133,7 @@ static int DetectEngineInspectModbusTest10(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1216,7 +1216,7 @@ static int DetectEngineInspectModbusTest10(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -1254,7 +1254,7 @@ static int DetectEngineInspectModbusTest11(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1332,7 +1332,7 @@ static int DetectEngineInspectModbusTest11(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -1368,7 +1368,7 @@ static int DetectEngineInspectModbusTest12(void)
     p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1427,7 +1427,7 @@ static int DetectEngineInspectModbusTest12(void)
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;

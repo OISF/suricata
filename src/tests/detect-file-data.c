@@ -84,7 +84,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST|PKT_STREAM_EOF;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -109,7 +109,7 @@ static int DetectEngineSMTPFiledataTest01(void)
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -170,7 +170,7 @@ static int DetectEngineSMTPFiledataTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -199,7 +199,7 @@ static int DetectEngineSMTPFiledataTest03(void)
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;

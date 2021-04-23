@@ -1681,7 +1681,7 @@ static int DetectPcreTestSig01(void)
 
     memset(&th_v, 0, sizeof(th_v));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1722,7 +1722,7 @@ static int DetectPcreTestSig01(void)
     UTHRemoveSessionFromFlow(f);
     UTHFreeFlow(f);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -1880,7 +1880,7 @@ static int DetectPcreModifPTest04(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -1920,7 +1920,7 @@ static int DetectPcreModifPTest04(void)
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     PASS;
@@ -1992,7 +1992,7 @@ static int DetectPcreModifPTest05(void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2045,7 +2045,7 @@ static int DetectPcreModifPTest05(void)
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -2140,7 +2140,7 @@ static int DetectPcreTestSig09(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2179,7 +2179,7 @@ static int DetectPcreTestSig09(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2219,7 +2219,7 @@ static int DetectPcreTestSig10(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2258,7 +2258,7 @@ static int DetectPcreTestSig10(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2298,7 +2298,7 @@ static int DetectPcreTestSig11(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2337,7 +2337,7 @@ static int DetectPcreTestSig11(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2377,7 +2377,7 @@ static int DetectPcreTestSig12(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2416,7 +2416,7 @@ static int DetectPcreTestSig12(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2456,7 +2456,7 @@ static int DetectPcreTestSig13(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2495,7 +2495,7 @@ static int DetectPcreTestSig13(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2535,7 +2535,7 @@ static int DetectPcreTestSig14(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2574,7 +2574,7 @@ static int DetectPcreTestSig14(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2614,7 +2614,7 @@ static int DetectPcreTestSig15(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2654,7 +2654,7 @@ static int DetectPcreTestSig15(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2694,7 +2694,7 @@ static int DetectPcreTestSig16(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -2734,7 +2734,7 @@ static int DetectPcreTestSig16(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
     PASS;
 }
@@ -2778,7 +2778,7 @@ static int DetectPcreTxBodyChunksTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     AppLayerHtpEnableRequestBodyCallback();
 
@@ -2835,7 +2835,7 @@ static int DetectPcreTxBodyChunksTest01(void)
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     FLOWLOCK_UNLOCK(&f);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -2883,7 +2883,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -3004,7 +3004,7 @@ static int DetectPcreTxBodyChunksTest02(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -3052,7 +3052,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -3155,7 +3155,7 @@ static int DetectPcreTxBodyChunksTest03(void)
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
@@ -3207,7 +3207,7 @@ static int DetectPcreFlowvarCapture01(void)
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -3256,7 +3256,7 @@ static int DetectPcreFlowvarCapture01(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     PASS;
@@ -3308,7 +3308,7 @@ static int DetectPcreFlowvarCapture02(void)
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -3375,7 +3375,7 @@ static int DetectPcreFlowvarCapture02(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     PASS;
@@ -3424,7 +3424,7 @@ static int DetectPcreFlowvarCapture03(void)
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -3473,7 +3473,7 @@ static int DetectPcreFlowvarCapture03(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     PASS;

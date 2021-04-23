@@ -961,7 +961,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 FlowTimeoutsReset();
 
                 emerg = false;
-                prev_emerg = FALSE;
+                prev_emerg = false;
                 emerg_over_cnt = 0;
                 hash_pass_iter = 0;
                 SCLogNotice("Flow emergency mode over, back to normal... unsetting"

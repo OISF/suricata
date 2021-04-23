@@ -89,7 +89,7 @@ SC_ATOMIC_EXTERN(uint64_t,defrag_memuse);
 SC_ATOMIC_EXTERN(unsigned int,defragtracker_counter);
 SC_ATOMIC_EXTERN(unsigned int,defragtracker_prune_idx);
 
-void DefragInitConfig(char quiet);
+void DefragInitConfig(bool quiet);
 void DefragHashShutdown(void);
 
 DefragTracker *DefragLookupTrackerFromHash (Packet *);

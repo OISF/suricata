@@ -172,7 +172,7 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                         "is actually lowercase.  So having a "
                         "nocase is redundant.";
                 SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
-                return FALSE;
+                return false;
             } else {
                 uint32_t u;
                 for (u = 0; u < cd->content_len; u++) {
@@ -186,13 +186,13 @@ static bool DetectHttpHostValidateCallback(const Signature *s, const char **sige
                             "is lowercase only, please specify a "
                             "lowercase pattern.";
                     SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
-                    return FALSE;
+                    return false;
                 }
             }
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /**

@@ -190,7 +190,7 @@ static int IPPairBitTest01 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -211,7 +211,7 @@ static int IPPairBitTest02 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -230,7 +230,7 @@ static int IPPairBitTest03 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -263,7 +263,7 @@ static int IPPairBitTest04 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -287,7 +287,7 @@ static int IPPairBitTest05 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -311,7 +311,7 @@ static int IPPairBitTest06 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -335,7 +335,7 @@ static int IPPairBitTest07 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -359,7 +359,7 @@ static int IPPairBitTest08 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -392,7 +392,7 @@ static int IPPairBitTest09 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -425,7 +425,7 @@ static int IPPairBitTest10 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;
@@ -458,7 +458,7 @@ static int IPPairBitTest11 (void)
 {
     int ret = 0;
 
-    IPPairInitConfig(TRUE);
+    IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
         goto end;

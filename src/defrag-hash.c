@@ -164,7 +164,7 @@ void DefragTrackerClearMemory(DefragTracker *dt)
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
-void DefragInitConfig(char quiet)
+void DefragInitConfig(bool quiet)
 {
     SCLogDebug("initializing defrag engine...");
 
@@ -247,7 +247,7 @@ void DefragInitConfig(char quiet)
     }
     (void) SC_ATOMIC_ADD(defrag_memuse, (defrag_config.hash_size * sizeof(DefragTrackerHashRow)));
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("allocated %"PRIu64" bytes of memory for the defrag hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(defrag_memuse), defrag_config.hash_size,
@@ -274,14 +274,14 @@ void DefragInitConfig(char quiet)
                 }
                 DefragTrackerEnqueue(&defragtracker_spare_q,h);
             }
-            if (quiet == FALSE) {
+            if (!quiet) {
                 SCLogConfig("preallocated %" PRIu32 " defrag trackers of size %" PRIuMAX "",
                         defragtracker_spare_q.len, (uintmax_t)sizeof(DefragTracker));
             }
         }
     }
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }

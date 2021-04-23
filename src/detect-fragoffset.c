@@ -299,9 +299,9 @@ PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == fb->mode &&
         v.u16[1] == fb->frag_off)
     {
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -318,10 +318,10 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FRAGOFFSET:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

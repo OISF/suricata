@@ -490,7 +490,7 @@ static int StreamTcpTest07(void)
     p->flow = &f;
 
     StreamTcpUTInit(&stt.ra_ctx);
-    stream_config.midstream = TRUE;
+    stream_config.midstream = true;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -498,7 +498,7 @@ static int StreamTcpTest07(void)
     tcph.th_flags = TH_ACK | TH_PUSH;
     p->tcph = &tcph;
 
-    p->tcpvars.ts_set = TRUE;
+    p->tcpvars.ts_set = true;
     p->tcpvars.ts_val = 10;
     p->tcpvars.ts_ecr = 11;
 
@@ -551,7 +551,7 @@ static int StreamTcpTest08(void)
     p->flow = &f;
 
     StreamTcpUTInit(&stt.ra_ctx);
-    stream_config.midstream = TRUE;
+    stream_config.midstream = true;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -559,7 +559,7 @@ static int StreamTcpTest08(void)
     tcph.th_flags = TH_ACK | TH_PUSH;
     p->tcph = &tcph;
 
-    p->tcpvars.ts_set = TRUE;
+    p->tcpvars.ts_set = true;
     p->tcpvars.ts_val = 10;
     p->tcpvars.ts_ecr = 11;
 
@@ -613,7 +613,7 @@ static int StreamTcpTest09(void)
     p->flow = &f;
 
     StreamTcpUTInit(&stt.ra_ctx);
-    stream_config.midstream = TRUE;
+    stream_config.midstream = true;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -2696,7 +2696,7 @@ static int StreamTcpTest29(void)
     int result = 1;
 
     FLOW_INITIALIZE(&f);
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* prevent L7 from kicking in */
 
@@ -2790,7 +2790,7 @@ static int StreamTcpTest29(void)
 
 end:
     StreamTcpReturnStreamSegments(&ssn.client);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return result;
 }
 
@@ -2837,7 +2837,7 @@ static int StreamTcpTest30(void)
     int result = 1;
 
     FLOW_INITIALIZE(&f);
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     /* prevent L7 from kicking in */
 
@@ -2931,7 +2931,7 @@ static int StreamTcpTest30(void)
 
 end:
     StreamTcpReturnStreamSegments(&ssn.client);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return result;
 }
 
@@ -2976,7 +2976,7 @@ static int StreamTcpTest31(void)
     memset(&tcpopt, 0, sizeof (TCPOpt));
     int result = 1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOW_INITIALIZE(&f);
     /* prevent L7 from kicking in */
@@ -3091,7 +3091,7 @@ static int StreamTcpTest31(void)
 
 end:
     StreamTcpReturnStreamSegments(&ssn.client);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return result;
 }
 
@@ -3127,7 +3127,7 @@ static int StreamTcpTest32(void)
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     if (StreamTcpPacket(&tv, &p, &stt, &pq) == -1)
         goto end;
@@ -3180,7 +3180,7 @@ static int StreamTcpTest32(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return ret;
 }
 
@@ -3218,7 +3218,7 @@ static int StreamTcpTest33 (void)
     int ret = 0;
     stt.ra_ctx = &ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     if (StreamTcpPacket(&tv, &p, &stt, &pq) == -1)
         goto end;
@@ -3282,7 +3282,7 @@ static int StreamTcpTest33 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p.flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return ret;
 }
 
@@ -3319,7 +3319,7 @@ static int StreamTcpTest34 (void)
     int ret = 0;
     stt.ra_ctx = &ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     if (StreamTcpPacket(&tv, &p, &stt, &pq) == -1)
         goto end;
@@ -3347,7 +3347,7 @@ static int StreamTcpTest34 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p.flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return ret;
 }
 
@@ -3384,7 +3384,7 @@ static int StreamTcpTest35 (void)
     int ret = 0;
     stt.ra_ctx = &ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     if (StreamTcpPacket(&tv, &p, &stt, &pq) == -1)
         goto end;
@@ -3412,7 +3412,7 @@ static int StreamTcpTest35 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p.flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return ret;
 }
 
@@ -3448,7 +3448,7 @@ static int StreamTcpTest36(void)
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     if (StreamTcpPacket(&tv, &p, &stt, &pq) == -1) {
         printf("failed in processing packet\n");
@@ -3503,7 +3503,7 @@ static int StreamTcpTest36(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     return ret;
 }
 #endif
