@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,6 +48,7 @@
 #define ETHERNET_TYPE_ERSPAN          0x88BE
 #define ETHERNET_TYPE_DCE             0x8903 /* Data center ethernet,
                                               * Cisco Fabric Path */
+#define ETHERNET_TYPE_VNTAG 0x8926           /* 802.1Qbh */
 
 typedef struct EthernetHdr_ {
     uint8_t eth_dst[6];
