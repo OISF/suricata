@@ -403,6 +403,16 @@ const struct DecodeEvents_ DEvents[] = {
             IEEE8021AH_HEADER_TOO_SMALL,
     },
 
+    /* VNTAG EVENTS */
+    {
+            "decoder.vntag.header_too_small",
+            VNTAG_HEADER_TOO_SMALL,
+    },
+    {
+            "decoder.vntag.unknown_type",
+            VNTAG_UNKNOWN_TYPE,
+    },
+
     /* RAW EVENTS */
     {
             "decoder.ipraw.invalid_ip_version",
