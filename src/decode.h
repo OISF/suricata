@@ -94,6 +94,7 @@ enum PktSrcEnum {
 #include "decode-raw.h"
 #include "decode-null.h"
 #include "decode-vlan.h"
+#include "decode-vntag.h"
 #include "decode-vxlan.h"
 #include "decode-mpls.h"
 #include "decode-nsh.h"
