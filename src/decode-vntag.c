@@ -100,8 +100,8 @@ static int DecodeVNTagtest01(void)
 {
     uint8_t raw_vntag[] = { 0x00, 0x20, 0x08 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
+
     ThreadVars tv;
     DecodeThreadVars dtv;
 
