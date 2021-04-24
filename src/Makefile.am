@@ -67,6 +67,7 @@ datasets-md5.c datasets-md5.h \
 decode.c decode.h \
 decode-chdlc.c decode-chdlc.h \
 decode-erspan.c decode-erspan.h \
+decode-vntag.c decode-vntag.h \
 decode-ethernet.c decode-ethernet.h \
 decode-events.c decode-events.h \
 decode-geneve.c decode-geneve.h \
