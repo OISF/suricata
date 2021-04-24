@@ -670,6 +670,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
     uint16_t counter_vxlan;
+    uint16_t counter_vntag;
     uint16_t counter_ieee8021ah;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
