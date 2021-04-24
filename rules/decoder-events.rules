@@ -97,6 +97,8 @@ alert pkthdr any any -> any any (msg:"SURICATA VLAN header too small "; decode-e
 alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:vlan.unknown_type; classtype:protocol-command-decode; sid:2200067; rev:2;)
 # more than 2 vlan layers in the packet
 alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-event:vlan.too_many_layers; classtype:protocol-command-decode; sid:2200091; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA VNTAG header too small"; decode-event:vntag.header_too_small; classtype:protocol-command-decode; sid:2200117; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA VNTAG unknown type"; decode-event:vntag.unknown_type; classtype:protocol-command-decode; sid:2200118; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IEEE802.1AH header too small"; decode-event:ieee8021ah.header_too_small; classtype:protocol-command-decode; sid:2200112; rev:1;)
 
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; classtype:protocol-command-decode; sid:2200068; rev:2;)
@@ -113,9 +115,7 @@ alert icmp any any -> any any (msg:"SURICATA ICMPv4 invalid checksum"; icmpv4-cs
 alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:invalid; classtype:protocol-command-decode; sid:2200077; rev:2;)
 alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; classtype:protocol-command-decode; sid:2200078; rev:2;)
 alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; classtype:protocol-command-decode; sid:2200079; rev:2;)
-
-# IPv4 in IPv6 rules
-alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 packet too short"; decode-event:ipv6.ipv4_in_ipv6_too_small; classtype:protocol-command-decode; sid:2200082; rev:2;)
+# IPv4 in IPv6 rules alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 packet too short"; decode-event:ipv6.ipv4_in_ipv6_too_small; classtype:protocol-command-decode; sid:2200082; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; decode-event:ipv6.ipv4_in_ipv6_wrong_version; classtype:protocol-command-decode; sid:2200083; rev:2;)
 # IPv6 in IPv6 rules
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; classtype:protocol-command-decode; sid:2200084; rev:2;)
@@ -148,5 +148,5 @@ alert pkthdr any any -> any any (msg:"SURICATA CHDLC packet too small"; decode-e
 
 alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; decode-event:too_many_layers; classtype:protocol-command-decode; sid:2200116; rev:1;)
 
-# next sid is 2200117
+# next sid is 2200119
 
