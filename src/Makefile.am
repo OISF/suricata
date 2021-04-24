@@ -86,6 +86,7 @@ decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-vxlan.c decode-vxlan.h \
+decode-vntag.c decode-vntag.h \
 decode-mpls.c decode-mpls.h \
 decode-template.c decode-template.h \
 defrag-config.c defrag-config.h \
