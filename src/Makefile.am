@@ -92,6 +92,7 @@ noinst_HEADERS = \
 	decode-teredo.h \
 	decode-udp.h \
 	decode-vlan.h \
+	decode-vntag.h \
 	decode-vxlan.h \
 	defrag-config.h \
 	defrag.h \
@@ -669,6 +670,7 @@ libsuricata_c_a_SOURCES = \
 	decode-teredo.c \
 	decode-udp.c \
 	decode-vlan.c \
+	decode-vntag.c \
 	decode-vxlan.c \
 	defrag.c \
 	defrag-config.c \
