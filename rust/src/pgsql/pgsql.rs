@@ -116,6 +116,7 @@ pub enum PgsqlStateProgress {
 
 #[derive(Debug)]
 pub struct PgsqlState {
+    state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<PgsqlTransaction>,
     request_gap: bool,
@@ -138,6 +139,7 @@ impl State<PgsqlTransaction> for PgsqlState {
 impl PgsqlState {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             tx_id: 0,
             transactions: VecDeque::new(),
             request_gap: false,
@@ -675,6 +677,7 @@ pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
+export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"pgsql\0";
@@ -710,6 +713,7 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
             crate::applayer::state_get_tx_iterator::<PgsqlState, PgsqlTransaction>,
         ),
         get_tx_data: rs_pgsql_get_tx_data,
+        get_state_data: rs_pgsql_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,

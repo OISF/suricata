@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2018 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,6 +52,7 @@ typedef struct TemplateTransaction
 } TemplateTransaction;
 
 typedef struct TemplateState {
+    AppLayerStateData state_data;
 
     /** List of Template transactions associated with this
      *  state. */

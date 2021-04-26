@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -99,6 +99,8 @@ impl Transaction for DHCPTransaction {
 
 #[derive(Default)]
 pub struct DHCPState {
+    state_data: AppLayerStateData,
+
     // Internal transaction ID.
     tx_id: u64,
 
@@ -264,6 +266,7 @@ pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
+export_state_data_get!(rs_dhcp_get_state_data, DHCPState);
 
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
@@ -296,6 +299,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_files          : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<DHCPState, DHCPTransaction>),
         get_tx_data        : rs_dhcp_get_tx_data,
+        get_state_data     : rs_dhcp_get_state_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
