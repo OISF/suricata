@@ -76,7 +76,12 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
-
+static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
+static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 /**
  * \brief Registration function for keyword: http_cookie
  */
@@ -115,6 +120,16 @@ void DetectHttpCookieRegister(void)
     DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetResponseData, ALPROTO_HTTP,
             HTP_REQUEST_HEADERS);
+
+    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
+    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetResponseData2);
+
+    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRequestData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+    DetectAppLayerMpmRegister2("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetResponseData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
@@ -211,6 +226,48 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = bstr_ptr(h->value);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_cookie(txv, STREAM_TOSERVER, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_cookie(txv, STREAM_TOCLIENT, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
