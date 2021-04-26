@@ -46,6 +46,7 @@ pub enum SIPEvent {
 }
 
 pub struct SIPState {
+    state_data: AppLayerStateData,
     transactions: Vec<SIPTransaction>,
     tx_id: u64,
 }
@@ -78,6 +79,7 @@ impl Transaction for SIPTransaction {
 impl SIPState {
     pub fn new() -> SIPState {
         SIPState {
+            state_data: AppLayerStateData::new(),
             transactions: Vec::new(),
             tx_id: 0,
         }
@@ -339,6 +341,7 @@ pub unsafe extern "C" fn rs_sip_parse_response(
 }
 
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
+export_state_data_get!(rs_sip_get_state_data, SIPState);
 
 const PARSER_NAME: &'static [u8] = b"sip\0";
 
@@ -370,6 +373,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SIPState, SIPTransaction>),
         get_tx_data: rs_sip_get_tx_data,
+        get_state_data: rs_sip_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

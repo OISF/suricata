@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -444,6 +444,15 @@ static AppLayerTxData *TemplateGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
+/**
+ * \brief retrieve the state data
+ */
+static AppLayerStateData *TemplateGetStateData(void *vstate)
+{
+    TemplateState *state = vstate;
+    return &state->state_data;
+}
+
 void RegisterTemplateParsers(void)
 {
     const char *proto_name = "template";
@@ -521,6 +530,7 @@ void RegisterTemplateParsers(void)
             TemplateGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_TEMPLATE, TemplateGetStateData);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfo);

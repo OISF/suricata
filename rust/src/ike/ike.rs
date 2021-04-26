@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -136,6 +136,7 @@ impl IKETransaction {
 
 #[derive(Default)]
 pub struct IKEState {
+    state_data: AppLayerStateData,
     tx_id: u64,
     pub transactions: Vec<IKETransaction>,
 
@@ -394,6 +395,7 @@ const PARSER_NAME: &'static [u8] = b"ike\0";
 const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
+export_state_data_get!(rs_ike_get_state_data, IKEState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_register_parser() {
@@ -423,6 +425,7 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         get_files          : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
         get_tx_data        : rs_ike_get_tx_data,
+        get_state_data     : rs_ike_get_state_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,

@@ -393,6 +393,7 @@ impl HTTP2DynTable {
 }
 
 pub struct HTTP2State {
+    state_data: AppLayerStateData,
     tx_id: u64,
     request_frame_size: u32,
     response_frame_size: u32,
@@ -416,6 +417,7 @@ impl State<HTTP2Transaction> for HTTP2State {
 impl HTTP2State {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             tx_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
@@ -1042,6 +1044,7 @@ impl HTTP2State {
 // C exports.
 
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
+export_state_data_get!(rs_http2_get_state_data, HTTP2State);
 
 /// C entry point for a probing parser.
 #[no_mangle]
@@ -1214,6 +1217,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_files: Some(rs_http2_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<HTTP2State, HTTP2Transaction>),
         get_tx_data: rs_http2_get_tx_data,
+        get_state_data: rs_http2_get_state_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,

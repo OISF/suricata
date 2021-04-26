@@ -125,6 +125,7 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
+    AppLayerStateData *(*GetStateData)(void *state);
     AppLayerTxData *(*GetTxData)(void *tx);
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
@@ -614,6 +615,16 @@ void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData = GetTxData;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterStateDataFunc(
+        uint8_t ipproto, AppProto alproto, AppLayerStateData *(*GetStateData)(void *state))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetStateData = GetStateData;
 
     SCReturn;
 }
@@ -1199,6 +1210,17 @@ AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void 
     SCReturnPtr(d, "AppLayerTxData");
 }
 
+AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto, void *state)
+{
+    SCEnter();
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetStateData) {
+        AppLayerStateData *d =
+                alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetStateData(state);
+        SCReturnPtr(d, "AppLayerStateData");
+    }
+    SCReturnPtr(NULL, "AppLayerStateData");
+}
+
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig config)
 {
@@ -1593,6 +1615,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateGetTx %p StateGetTxCnt %p StateTransactionFree %p\n",
             ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree);
     printf("- GetTxData %p\n", ctx->GetTxData);
+    printf("- GetStateData %p\n", ctx->GetStateData);
     printf("- StateGetProgress %p\n", ctx->StateGetProgress);
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
@@ -1630,6 +1653,9 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
         goto bad;
     }
     if (ctx->GetTxData == NULL) {
+        goto bad;
+    }
+    if (ctx->GetStateData == NULL) {
         goto bad;
     }
     return;
