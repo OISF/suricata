@@ -529,6 +529,18 @@ pub unsafe extern "C" fn rs_http2_tx_get_uri(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_method(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Ok(value) = http2_frames_get_header_value(&tx.frames_ts, ":method") {
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_useragent(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
