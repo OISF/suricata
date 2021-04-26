@@ -28,6 +28,15 @@ A C example:
             const uint8_t *input, uint32_t input_len,
             void *local_data, const uint8_t flags);
 
+Minimal Parser function:
+
+.. literalinclude:: ../../../../src/app-layer-template.c
+    :linenos:
+    :language: c
+    :start-after: sphinx::TemplateParseRequest::start
+    :end-before: sphinx::TemplateParseRequest::end
+    :emphasize-lines: 1-3
+
 In Rust, the callbacks are similar.
 
 .. code-block:: rust
@@ -42,11 +51,26 @@ In Rust, the callbacks are similar.
             _flags: u8)
     -> AppLayerResult
 
+Minimal Parser function:
+
+.. literalinclude:: ../../../../rust/src/applayertemplate/template.rs
+    :linenos:
+    :language: rust
+    :start-after: sphinx::request_parser::start
+    :end-before: sphinx::request_parser::end
+    :emphasize-lines: 2-10
+
 
 Return Types
 ============
 
 Parsers return the type `AppLayerResult`.
+
+.. literalinclude:: ../../../../rust/src/applayer.rs
+    :linenos:
+    :language: rust
+    :start-after: sphinx::AppLayerResult::start
+    :end-before: sphinx::AppLayerResult::end
 
 There are 3 possible results:
  - `APP_LAYER_OK` - parser consumed the data successfully
