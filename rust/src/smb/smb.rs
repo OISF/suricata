@@ -752,6 +752,8 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
 
 #[derive(Default, Debug)]
 pub struct SMBState<> {
+    pub state_data: AppLayerStateData,
+
     /// map ssn/tree/msgid to vec (guid/name/share)
     pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
     /// map guid to filename
@@ -826,6 +828,7 @@ impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
         Self {
+            state_data:AppLayerStateData::new(),
             ssn2vec_map:HashMap::new(),
             guid2name_map:HashMap::new(),
             ssn2vecoffset_map:HashMap::new(),
@@ -2292,6 +2295,8 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 }
 
 
+export_state_data_get!(rs_smb_get_state_data, SMBState);
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_get_tx_data(
     tx: *mut std::os::raw::c_void)
@@ -2424,6 +2429,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         get_files: Some(rs_smb_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SMBState, SMBTransaction>),
         get_tx_data: rs_smb_get_tx_data,
+        get_state_data: rs_smb_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: Some(rs_smb_state_truncate),

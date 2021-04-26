@@ -86,6 +86,7 @@ impl QuicTransaction {
 }
 
 pub struct QuicState {
+    state_data: AppLayerStateData,
     max_tx_id: u64,
     keys: Option<QuicKeys>,
     hello_tc: bool,
@@ -96,6 +97,7 @@ pub struct QuicState {
 impl Default for QuicState {
     fn default() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             max_tx_id: 0,
             keys: None,
             hello_tc: false,
@@ -441,6 +443,7 @@ pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
 }
 
 export_tx_data_get!(rs_quic_get_tx_data, QuicTransaction);
+export_state_data_get!(rs_quic_get_state_data, QuicState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"quic\0";
@@ -473,6 +476,7 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         get_files: None,
         get_tx_iterator: Some(rs_quic_state_get_tx_iterator),
         get_tx_data: rs_quic_get_tx_data,
+        get_state_data: rs_quic_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

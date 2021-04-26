@@ -288,6 +288,7 @@ typedef struct SSLStateConnp_ {
 typedef struct SSLState_ {
     Flow *f;
 
+    AppLayerStateData state_data;
     AppLayerTxData tx_data;
 
     /* holds some state flags we need */

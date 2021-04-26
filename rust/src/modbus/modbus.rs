@@ -90,6 +90,7 @@ impl ModbusTransaction {
 }
 
 pub struct ModbusState {
+    state_data: AppLayerStateData,
     pub transactions: Vec<ModbusTransaction>,
     tx_id: u64,
     givenup: bool, // Indicates flood
@@ -108,6 +109,7 @@ impl State<ModbusTransaction> for ModbusState {
 impl ModbusState {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             transactions: Vec::new(),
             tx_id: 0,
             givenup: false,
@@ -378,6 +380,8 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
     &mut tx.tx_data
 }
 
+export_state_data_get!(rs_modbus_get_state_data, ModbusState);
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_register_parser() {
     let default_port = std::ffi::CString::new("[502]").unwrap();
@@ -406,6 +410,7 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<ModbusState, ModbusTransaction>),
         get_tx_data: rs_modbus_state_get_tx_data,
+        get_state_data: rs_modbus_get_state_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,
