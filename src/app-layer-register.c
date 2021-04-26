@@ -165,6 +165,10 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->GetTxData);
     }
 
+    if (p->GetStateData) {
+        AppLayerParserRegisterStateDataFunc(p->ip_proto, alproto, p->GetStateData);
+    }
+
     if (p->ApplyTxConfig) {
         AppLayerParserRegisterApplyTxConfigFunc(p->ip_proto, alproto,
                 p->ApplyTxConfig);

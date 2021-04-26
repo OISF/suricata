@@ -1000,6 +1000,12 @@ static AppLayerTxData *FTPGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
+static AppLayerStateData *FTPGetStateData(void *vstate)
+{
+    FtpState *s = (FtpState *)vstate;
+    return &s->state_data;
+}
+
 static void FTPStateTransactionFree(void *state, uint64_t tx_id)
 {
     FtpState *ftp_state = state;
@@ -1262,6 +1268,12 @@ static AppLayerTxData *FTPDataGetTxData(void *vtx)
     return &ftp_state->tx_data;
 }
 
+static AppLayerStateData *FTPDataGetStateData(void *vstate)
+{
+    FtpDataState *ftp_state = (FtpDataState *)vstate;
+    return &ftp_state->state_data;
+}
+
 static void FTPDataStateTransactionFree(void *state, uint64_t tx_id)
 {
     /* do nothing */
@@ -1397,6 +1409,7 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxData);
         AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxIterator);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetStateData);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_FTP, FTPLocalStorageAlloc,
                                                FTPLocalStorageFree);
@@ -1420,6 +1433,7 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetStateData);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTxCnt);
 

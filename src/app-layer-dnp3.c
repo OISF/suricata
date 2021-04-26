@@ -1543,6 +1543,12 @@ static AppLayerTxData *DNP3GetTxData(void *vtx)
     return &tx->tx_data;
 }
 
+static AppLayerStateData *DNP3GetStateData(void *vstate)
+{
+    DNP3State *state = (DNP3State *)vstate;
+    return &state->state_data;
+}
+
 /**
  * \brief Check if the prefix code is a size prefix.
  *
@@ -1619,6 +1625,7 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
