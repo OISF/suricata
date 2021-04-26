@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -96,6 +96,7 @@ impl Transaction for MQTTTransaction {
 }
 
 pub struct MQTTState {
+    state_data: AppLayerStateData,
     tx_id: u64,
     pub protocol_version: u8,
     transactions: Vec<MQTTTransaction>,
@@ -114,6 +115,7 @@ impl State<MQTTTransaction> for MQTTState {
 impl MQTTState {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             tx_id: 0,
             protocol_version: 0,
             transactions: Vec::new(),
@@ -711,6 +713,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
 const PARSER_NAME: &'static [u8] = b"mqtt\0";
 
 export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
+export_state_data_get!(rs_mqtt_get_state_data, MQTTState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
@@ -742,6 +745,7 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<MQTTState, MQTTTransaction>),
         get_tx_data: rs_mqtt_get_tx_data,
+        get_state_data: rs_mqtt_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

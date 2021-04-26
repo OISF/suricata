@@ -213,6 +213,7 @@ typedef struct ENIPTransaction_
 /** \brief Per flow ENIP state container */
 typedef struct ENIPState_
 {
+    AppLayerStateData state_data;
     TAILQ_HEAD(, ENIPTransaction_) tx_list; /**< transaction list */
     ENIPTransaction *curr;                  /**< ptr to current tx */
     ENIPTransaction *iter;

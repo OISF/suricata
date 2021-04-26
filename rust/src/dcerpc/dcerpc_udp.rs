@@ -54,6 +54,7 @@ pub struct DCERPCHdrUdp {
 
 #[derive(Default, Debug)]
 pub struct DCERPCUDPState {
+    state_data: AppLayerStateData,
     pub tx_id: u64,
     pub transactions: Vec<DCERPCTransaction>,
 }
@@ -322,6 +323,8 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
+export_state_data_get!(rs_dcerpc_udp_get_state_data, DCERPCUDPState);
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
     let parser = RustParser {
@@ -349,6 +352,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         get_files: None,
         get_tx_iterator: None,
         get_tx_data: rs_dcerpc_udp_get_tx_data,
+        get_state_data: rs_dcerpc_udp_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
