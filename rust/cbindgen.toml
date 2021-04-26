@@ -73,6 +73,7 @@ documentation_style = "doxy"
 # default: []
 include = [
     "StreamSlice",
+    "AppLayerStateData",
     "AppLayerGetTxIterTuple",
     "RdpState",
     "SIPState",

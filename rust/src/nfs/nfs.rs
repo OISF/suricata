@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -270,6 +270,8 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 
 #[derive(Debug)]
 pub struct NFSState {
+    state_data: AppLayerStateData,
+
     /// map xid to procedure so replies can lookup the procedure
     pub requestmap: HashMap<u32, NFSRequestXidMap>,
 
@@ -325,6 +327,7 @@ impl NFSState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> NFSState {
         NFSState {
+            state_data: AppLayerStateData::new(),
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
@@ -1527,6 +1530,8 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
     return &mut tx.tx_data;
 }
 
+export_state_data_get!(rs_nfs_get_state_data, NFSState);
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                               event_name: *mut *const std::os::raw::c_char,
@@ -1860,6 +1865,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         get_files: Some(rs_nfs_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
+        get_state_data: rs_nfs_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,
@@ -1938,6 +1944,7 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         get_files: Some(rs_nfs_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
+        get_state_data: rs_nfs_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

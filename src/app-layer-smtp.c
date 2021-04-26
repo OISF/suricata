@@ -1638,6 +1638,12 @@ static AppLayerTxData *SMTPGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
+static AppLayerStateData *SMTPGetStateData(void *vstate)
+{
+    SMTPState *state = (SMTPState *)vstate;
+    return &state->state_data;
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1675,6 +1681,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetStateData);
         AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
     } else {

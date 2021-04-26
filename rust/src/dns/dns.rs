@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -307,6 +307,8 @@ impl ConfigTracker {
 
 #[derive(Default)]
 pub struct DNSState {
+    state_data: AppLayerStateData,
+
     // Internal transaction ID.
     pub tx_id: u64,
 
@@ -785,6 +787,8 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     return &mut tx.tx_data;
 }
 
+export_state_data_get!(rs_dns_get_state_data, DNSState);
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        i: u32,
@@ -940,6 +944,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         get_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
+        get_state_data: rs_dns_get_state_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
@@ -985,6 +990,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         get_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: rs_dns_state_get_tx_data,
+        get_state_data: rs_dns_get_state_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

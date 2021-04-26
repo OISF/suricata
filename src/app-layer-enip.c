@@ -73,6 +73,12 @@ static AppLayerTxData *ENIPGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
+static AppLayerStateData *ENIPGetStateData(void *vstate)
+{
+    ENIPState *state = (ENIPState *)vstate;
+    return &state->state_data;
+}
+
 static void *ENIPGetTx(void *alstate, uint64_t tx_id)
 {
     ENIPState         *enip = (ENIPState *) alstate;
@@ -493,6 +499,7 @@ void RegisterENIPUDPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetStateData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
@@ -566,6 +573,7 @@ void RegisterENIPTCPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetStateData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
