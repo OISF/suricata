@@ -564,6 +564,26 @@ pub unsafe extern "C" fn rs_http2_tx_get_status(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_cookie(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if direction == STREAM_TOSERVER {
+        if let Ok(value) = http2_frames_get_header_value(&tx.frames_ts, "cookie") {
+            *buffer = value.as_ptr(); //unsafe
+            *buffer_len = value.len() as u32;
+            return 1;
+        }
+    } else {
+        if let Ok(value) = http2_frames_get_header_value(&tx.frames_tc, "set-cookie") {
+            *buffer = value.as_ptr(); //unsafe
+            *buffer_len = value.len() as u32;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_value(
     tx: &mut HTTP2Transaction, direction: u8, strname: *const std::os::raw::c_char,
     buffer: *mut *const u8, buffer_len: *mut u32,
