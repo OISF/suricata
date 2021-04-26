@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,7 +26,7 @@ use nom7::combinator::map_res;
 use nom7::bytes::streaming::{tag, take_while};
 use nom7::number::streaming::be_u8;
 
-use crate::applayer::AppLayerTxData;
+use crate::applayer::{AppLayerTxData,AppLayerStateData};
 
 const READREQUEST:  u8 = 1;
 const WRITEREQUEST: u8 = 2;
@@ -44,6 +44,7 @@ pub struct TFTPTransaction {
 }
 
 pub struct TFTPState {
+    state_data: AppLayerStateData,
     pub transactions : Vec<TFTPTransaction>,
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -89,7 +90,7 @@ impl TFTPTransaction {
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_alloc() -> *mut std::os::raw::c_void {
-    let state = TFTPState { transactions : Vec::new(), tx_id: 0, };
+    let state = TFTPState { state_data: AppLayerStateData::new(), transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
@@ -180,6 +181,15 @@ pub unsafe extern "C" fn rs_tftp_get_tx_data(
 {
     let tx = cast_pointer!(tx, TFTPTransaction);
     return &mut tx.tx_data;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_tftp_get_state_data(
+    state: *mut std::os::raw::c_void)
+    -> *mut AppLayerStateData
+{
+    let state = cast_pointer!(state, TFTPState);
+    return &mut state.state_data;
 }
 
 #[cfg(test)]

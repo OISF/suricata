@@ -321,6 +321,7 @@ pub struct DCERPCState {
     pub ts_ssn_trunc: bool, /// true if Truncated in this direction
     pub tc_ssn_trunc: bool,
     pub flow: Option<*const core::Flow>,
+    state_data: AppLayerStateData,
 }
 
 impl State<DCERPCTransaction> for DCERPCState {
@@ -1337,6 +1338,7 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
+export_state_data_get!(rs_dcerpc_get_state_data, DCERPCState);
 
 // Parser name as a C style string.
 pub const PARSER_NAME: &'static [u8] = b"dcerpc\0";
@@ -1368,6 +1370,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCState, DCERPCTransaction>),
         get_tx_data: rs_dcerpc_get_tx_data,
+        get_state_data: rs_dcerpc_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,
