@@ -81,6 +81,29 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_header_value(txv, STREAM_TOSERVER, HEADER_NAME, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
 #endif
 #ifdef KEYWORD_TOCLIENT
 static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
@@ -108,6 +131,29 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = bstr_ptr(h->value);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_header_value(txv, STREAM_TOCLIENT, HEADER_NAME, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -147,24 +193,28 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
 #ifdef KEYWORD_TOSERVER
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetRequestData,
-            ALPROTO_HTTP, HTP_REQUEST_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRequestData, ALPROTO_HTTP, HTP_REQUEST_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRequestData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 #endif
 #ifdef KEYWORD_TOCLIENT
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetResponseData,
-            ALPROTO_HTTP, HTP_RESPONSE_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetResponseData, ALPROTO_HTTP, HTP_RESPONSE_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetResponseData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 #endif
 #ifdef KEYWORD_TOSERVER
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectBufferGeneric, GetRequestData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
 #endif
 #ifdef KEYWORD_TOCLIENT
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
-            DetectEngineInspectBufferGeneric, GetResponseData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetResponseData2);
 #endif
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
