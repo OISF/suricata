@@ -175,6 +175,36 @@ macro_rules!export_tx_data_get {
 
 #[repr(C)]
 #[derive(Default,Debug,PartialEq,Copy,Clone)]
+pub struct AppLayerStateData {
+    pub file_flags: u16,
+}
+
+impl AppLayerStateData {
+    pub fn new() -> Self {
+        Self {
+            file_flags: 0,
+        }
+    }
+    pub fn update_file_flags(&mut self, flags: u16) {
+        self.file_flags |= flags;
+    }
+}
+
+#[macro_export]
+macro_rules!export_state_data_get {
+    ($name:ident, $type:ty) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
+            -> *mut crate::applayer::AppLayerStateData
+        {
+            let state = &mut *(state as *mut $type);
+            &mut state.state_data
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Default,Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -297,6 +327,7 @@ pub struct RustParser {
     /// Function to get the TX iterator
     pub get_tx_iterator:    Option<GetTxIteratorFn>,
 
+    pub get_state_data: GetStateDataFn,
     pub get_tx_data: GetTxDataFn,
 
     // Function to apply config to a TX. Optional. Normal (bidirectional)
@@ -356,6 +387,7 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
                                              istate: &mut u64)
                                              -> AppLayerGetTxIterTuple;
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
+pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStateData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
