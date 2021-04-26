@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -320,6 +320,12 @@ static AppLayerTxData *SSLGetTxData(void *vtx)
 {
     SSLState *ssl_state = (SSLState *)vtx;
     return &ssl_state->tx_data;
+}
+
+static AppLayerStateData *SSLGetStateData(void *vstate)
+{
+    SSLState *ssl_state = (SSLState *)vstate;
+    return &ssl_state->state_data;
 }
 
 void SSLVersionToString(uint16_t version, char *buffer)
@@ -3029,6 +3035,7 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TLS, SSLGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetStateData);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxCnt);
 

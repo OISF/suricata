@@ -249,6 +249,7 @@ TAILQ_HEAD(TxListHead, DNP3Transaction_);
  * \brief Per flow DNP3 state.
  */
 typedef struct DNP3State_ {
+    AppLayerStateData state_data;
     TAILQ_HEAD(, DNP3Transaction_) tx_list;
     DNP3Transaction *curr;     /**< Current transaction. */
     uint64_t transaction_max;
