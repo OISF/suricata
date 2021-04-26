@@ -978,7 +978,7 @@ void FlowInitFlowProto(void)
                                             strlen(emergency_bypassed),
                                             emergency_bypassed) > 0) {
 
-                flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
+                flow_timeouts_emerg[FLOW_PROTO_ICMP].bypassed_timeout = configval;
             }
         }
     }
