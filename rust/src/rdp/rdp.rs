@@ -107,6 +107,7 @@ pub extern "C" fn rs_rdp_tx_get_progress(
 
 #[derive(Debug, PartialEq)]
 pub struct RdpState {
+    state_data: AppLayerStateData,
     next_id: u64,
     transactions: VecDeque<RdpTransaction>,
     tls_parsing: bool,
@@ -126,6 +127,7 @@ impl State<RdpTransaction> for RdpState {
 impl RdpState {
     fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             next_id: 0,
             transactions: VecDeque::new(),
             tls_parsing: false,
@@ -454,6 +456,7 @@ pub unsafe extern "C" fn rs_rdp_parse_tc(
 }
 
 export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);
+export_state_data_get!(rs_rdp_get_state_data, RdpState);
 
 //
 // registration
@@ -489,6 +492,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<RdpState, RdpTransaction>),
         get_tx_data: rs_rdp_get_tx_data,
+        get_state_data: rs_rdp_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,

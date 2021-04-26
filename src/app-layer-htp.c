@@ -3110,6 +3110,12 @@ static AppLayerTxData *HTPGetTxData(void *vtx)
     return NULL;
 }
 
+static AppLayerStateData *HTPGetStateData(void *vstate)
+{
+    HtpState *s = vstate;
+    return &s->state_data;
+}
+
 static int HTPRegisterPatternsForProtocolDetection(void)
 {
     const char *methods[] = { "GET", "PUT", "POST", "HEAD", "TRACE", "OPTIONS",
@@ -3196,6 +3202,7 @@ void RegisterHTPParsers(void)
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTruncate);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetStateData);
 
         AppLayerParserRegisterSetStreamDepthFlag(
                 IPPROTO_TCP, ALPROTO_HTTP1, AppLayerHtpSetStreamDepthFlag);

@@ -264,6 +264,7 @@ typedef struct HtpState_ {
     StreamSlice *slice;
     FrameId request_frame_id;
     FrameId response_frame_id;
+    AppLayerStateData state_data;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

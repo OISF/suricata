@@ -54,6 +54,7 @@ impl Transaction for TemplateTransaction {
 }
 
 pub struct TemplateState {
+    state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<TemplateTransaction>,
     request_gap: bool,
@@ -73,6 +74,7 @@ impl State<TemplateTransaction> for TemplateState {
 impl TemplateState {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             tx_id: 0,
             transactions: VecDeque::new(),
             request_gap: false,
@@ -423,6 +425,7 @@ pub unsafe extern "C" fn rs_template_get_response_buffer(
 }
 
 export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
+export_state_data_get!(rs_template_get_state_data, TemplateState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"template-rust\0";
@@ -455,6 +458,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>),
         get_tx_data: rs_template_get_tx_data,
+        get_state_data: rs_template_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,

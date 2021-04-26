@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,8 @@ pub enum KRB5Event {
 }
 
 pub struct KRB5State {
+    state_data: AppLayerStateData,
+
     pub req_id: u8,
 
     pub record_ts: usize,
@@ -103,6 +105,7 @@ pub fn to_hex_string(bytes: &[u8]) -> String {
 impl KRB5State {
     pub fn new() -> KRB5State {
         KRB5State{
+            state_data: AppLayerStateData::new(),
             req_id: 0,
             record_ts: 0,
             defrag_buf_ts: Vec::new(),
@@ -525,6 +528,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
 }
 
 export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
+export_state_data_get!(rs_krb5_get_state_data, KRB5State);
 
 const PARSER_NAME : &'static [u8] = b"krb5\0";
 
@@ -556,6 +560,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_files          : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
         get_tx_data        : rs_krb5_get_tx_data,
+        get_state_data     : rs_krb5_get_state_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
