@@ -564,6 +564,27 @@ pub unsafe extern "C" fn rs_http2_tx_get_useragent(
     return 0;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_header_value(
+    tx: &mut HTTP2Transaction, direction: u8, strname: *const std::os::raw::c_char,
+    buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let hname: &CStr = CStr::from_ptr(strname); //unsafe
+    if let Ok(s) = hname.to_str() {
+        let frames = if direction == STREAM_TOSERVER {
+            &tx.frames_ts
+        } else {
+            &tx.frames_tc
+        };
+        if let Ok(value) = http2_frames_get_header_value(frames, &s.to_lowercase()) {
+            *buffer = value.as_ptr(); //unsafe
+            *buffer_len = value.len() as u32;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
     //minimum size + 2 for escapes
     let normalsize = hd.blocks[i as usize].value.len() + 2 + hd.blocks[i as usize].name.len() + 2;
