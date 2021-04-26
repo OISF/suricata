@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,8 @@ pub enum SNMPEvent {
 }
 
 pub struct SNMPState<'a> {
+    state_data: AppLayerStateData,
+
     /// SNMP protocol version
     pub version: u32,
 
@@ -88,6 +90,7 @@ impl<'a> Transaction for SNMPTransaction<'a> {
 impl<'a> SNMPState<'a> {
     pub fn new() -> SNMPState<'a> {
         SNMPState{
+            state_data: AppLayerStateData::new(),
             version: 0,
             transactions: Vec::new(),
             tx_id: 0,
@@ -367,6 +370,7 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
 }
 
 export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
+export_state_data_get!(rs_snmp_get_state_data, SNMPState);
 
 const PARSER_NAME : &'static [u8] = b"snmp\0";
 
@@ -398,6 +402,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_files          : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
         get_tx_data        : rs_snmp_get_tx_data,
+        get_state_data     : rs_snmp_get_state_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,

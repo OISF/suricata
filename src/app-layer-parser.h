@@ -216,6 +216,8 @@ void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
         bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
+void AppLayerParserRegisterStateDataFunc(
+        uint8_t ipproto, AppProto alproto, AppLayerStateData *(*GetStateData)(void *state));
 
 /***** Get and transaction functions *****/
 
@@ -256,6 +258,7 @@ uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);
+AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto, void *state);
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig);
 

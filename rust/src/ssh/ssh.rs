@@ -96,12 +96,14 @@ impl SSHTransaction {
 }
 
 pub struct SSHState {
+    state_data: AppLayerStateData,
     transaction: SSHTransaction,
 }
 
 impl SSHState {
     pub fn new() -> Self {
         Self {
+            state_data: AppLayerStateData::new(),
             transaction: SSHTransaction::new(),
         }
     }
@@ -332,6 +334,7 @@ impl SSHState {
 // C exports.
 
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
+export_state_data_get!(rs_ssh_get_state_data, SSHState);
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
@@ -463,6 +466,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_files: None,
         get_tx_iterator: None,
         get_tx_data: rs_ssh_get_tx_data,
+        get_state_data: rs_ssh_get_state_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,
