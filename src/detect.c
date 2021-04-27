@@ -1084,15 +1084,15 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return false;
         }
-        if (DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL) == false) {
-            TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
-            return false;
-        }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
         if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
             return false;
         }
+    }
+    if (DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL) == false) {
+        TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
+        return false;
     }
 
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
