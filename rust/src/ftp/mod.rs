@@ -70,7 +70,8 @@ named!(pub ftp_pasv_response<u16>,
             part1: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
             part2: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
-            alt! (tag!(").") | tag!(")")) >>
+            // may also be completed by a final point
+            tag!(")") >> opt!(complete!(tag!("."))) >>
             (
                 part1 * 256 + part2
             )
@@ -121,7 +122,7 @@ named!(pub ftp_epsv_response<u16>,
             tag!("229") >>
             take_until_and_consume!("|||") >>
             port: getu16 >>
-            alt! (tag!("|).") | tag!("|)")) >>
+            tag!("|)") >> opt!(complete!(tag!("."))) >>
             (
                 port
             )
@@ -188,6 +189,13 @@ mod test {
     fn test_pasv_response_valid() {
         let port = ftp_pasv_response("227 Entering Passive Mode (212,27,32,66,221,243).".as_bytes());
         assert_eq!(port, Ok((&b""[..], 56819)));
+        let port_notdot = ftp_pasv_response("227 Entering Passive Mode (212,27,32,66,221,243)".as_bytes());
+        assert_eq!(port_notdot, Ok((&b""[..], 56819)));
+
+        let port_epsv_dot = ftp_epsv_response("229 Entering Extended Passive Mode (|||48758|).".as_bytes());
+        assert_eq!(port_epsv_dot, Ok((&b""[..], 48758)));
+        let port_epsv_nodot = ftp_epsv_response("229 Entering Extended Passive Mode (|||48758|)".as_bytes());
+        assert_eq!(port_epsv_nodot, Ok((&b""[..], 48758)));
     }
 
     #[test]
