@@ -66,7 +66,8 @@ named!(pub ftp_pasv_response<u16>,
             part1: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
             part2: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
-            alt! (tag!(").") | tag!(")")) >>
+            // may also be completed by a final point
+           tag!(")") >> opt!(complete!(tag!("."))) >>
             (
                 part1 * 256 + part2
             )
@@ -118,7 +119,7 @@ named!(pub ftp_epsv_response<u16>,
             take_until!("|||") >>
             tag!("|||") >>
             port: getu16 >>
-            alt! (tag!("|).") | tag!("|)")) >>
+            tag!("|)") >> opt!(complete!(tag!("."))) >>
             (
                 port
             )
