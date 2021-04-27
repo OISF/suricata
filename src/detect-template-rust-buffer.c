@@ -54,9 +54,11 @@ static int g_template_rust_id = 0;
 void DetectTemplateRustBufferRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
+#ifndef UNITTESTS
     if (ConfGetNode("app-layer.protocols.template-rust") == NULL) {
         return;
     }
+#endif
     /* TEMPLATE_END_REMOVE */
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].name =
         "template_rust_buffer";

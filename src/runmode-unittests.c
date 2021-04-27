@@ -38,6 +38,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
+#include "detect-engine-enip.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -184,6 +185,7 @@ static void RegisterUnittests(void)
     DeStateRegisterTests();
     MemcmpRegisterTests();
     DetectEngineInspectModbusRegisterTests();
+    DetectEngineInspectENIPRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
