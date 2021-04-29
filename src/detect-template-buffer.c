@@ -53,9 +53,12 @@ static int g_template_buffer_id = 0;
 void DetectTemplateBufferRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
+#ifndef UNITTESTS
+    /* Ensure registration when running unittests */
     if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
+#endif
     /* TEMPLATE_END_REMOVE */
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
