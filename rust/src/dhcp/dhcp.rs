@@ -219,7 +219,7 @@ impl DHCPState {
             *state = index as u64;
             return Some((tx, tx.tx_id - 1, (len - index) > 1));
         }
-        
+
         return None;
     }
 }

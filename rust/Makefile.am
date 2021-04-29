@@ -27,7 +27,7 @@ if DEBUG_VALIDATION
 RUST_FEATURES +=	debug-validate
 endif
 
-if RUST_CROSS_COMPILE 
+if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 

@@ -29,7 +29,7 @@ pub struct DHCPLogger {
 }
 
 impl DHCPLogger {
-    
+
     pub fn new(conf: ConfNode) -> DHCPLogger {
         return DHCPLogger{
             extended: conf.get_child_bool("extended"),
@@ -92,7 +92,7 @@ impl DHCPLogger {
                 js.set_string("type", "<unknown>")?;
             }
         }
-        
+
         js.set_uint("id", header.txid as u64)?;
         js.set_string("client_mac",
                       &format_addr_hex(&header.clienthw.to_vec()))?;
@@ -107,7 +107,7 @@ impl DHCPLogger {
                               &dns_print_addr(&header.serverip))?;
             }
         }
-        
+
         for option in options {
             let code = option.code;
             match &option.option {
@@ -180,7 +180,7 @@ impl DHCPLogger {
                 _ => {}
             }
         }
-        
+
         js.close()?;
 
         return Ok(());
@@ -225,7 +225,7 @@ impl DHCPLogger {
         js.close()?;
         Ok(())
     }
-    
+
     fn log_opt_dns_server(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
         js.open_array("dns_servers")?;
         for i in 0..(option.data.len() / 4) {
@@ -235,7 +235,7 @@ impl DHCPLogger {
         js.close()?;
         Ok(())
     }
-    
+
     fn log_opt_routers(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
         js.open_array("routers")?;
         for i in 0..(option.data.len() / 4) {

@@ -334,7 +334,7 @@ impl SMBVerCmdStat {
 /// Coordinated Universal Time (UTC)."
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct SMBFiletime {
-    ts: u64, 
+    ts: u64,
 }
 
 impl SMBFiletime {

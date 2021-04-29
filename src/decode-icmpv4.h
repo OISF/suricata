@@ -262,7 +262,7 @@ typedef struct ICMPV4Timestamp_ {
 #define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->icmpv4vars.hlen
 
 /** macro for checking if a ICMP DEST UNREACH packet is valid for use
- *  in other parts of the engine, such as the flow engine. 
+ *  in other parts of the engine, such as the flow engine.
  *
  *  \warning use only _after_ the decoder has processed the packet
  */

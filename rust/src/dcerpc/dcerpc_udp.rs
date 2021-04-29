@@ -280,7 +280,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx(
         None => {
             return std::ptr::null_mut();
         }
-    } 
+    }
 }
 
 #[no_mangle]

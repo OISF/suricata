@@ -107,7 +107,7 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
         default:
             return -1;
     }
-    
+
     tuple.src = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
     tuple.dst = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
 

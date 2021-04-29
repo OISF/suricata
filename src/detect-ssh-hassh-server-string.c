@@ -61,7 +61,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t flow_flags, void *txv, const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -102,7 +102,7 @@ static int DetectSshHasshServerStringSetup(DetectEngineCtx *de_ctx, Signature *s
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-     
+
     /* try to enable Hassh */
     rs_ssh_enable_hassh();
 
@@ -121,7 +121,7 @@ static int DetectSshHasshServerStringSetup(DetectEngineCtx *de_ctx, Signature *s
 /**
  * \brief Registration function for hasshServer.string keyword.
  */
-void DetectSshHasshServerStringRegister(void) 
+void DetectSshHasshServerStringRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].alias = KEYWORD_ALIAS;
@@ -130,13 +130,10 @@ void DetectSshHasshServerStringRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].Setup = DetectSshHasshServerStringSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, 
-            PrefilterGenericMpmRegister, GetSshData,
-            ALPROTO_SSH, SshStateBannerDone);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOCLIENT, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
