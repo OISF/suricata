@@ -804,8 +804,14 @@ static inline void DetectRulePacketRules(
 
         if (!(sflags & SIG_FLAG_NOALERT)) {
             /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
-            if (!state_alert)
-                PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
+            if (!state_alert) {
+                uint64_t tx_id = 0;
+                if (pflow && pflow->alparser) {
+                    tx_id = AppLayerParserGetTransactionInspectId(
+                            pflow->alparser, scratch->flow_flags);
+                }
+                PacketAlertAppend(det_ctx, s, p, tx_id, alert_flags);
+            }
         } else {
             /* apply actions even if not alerting */
             DetectSignatureApplyActions(p, s, alert_flags);
