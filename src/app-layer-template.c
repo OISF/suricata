@@ -472,9 +472,12 @@ void RegisterTemplateParsers(void)
     const char *proto_name = "template";
 
     /* TEMPLATE_START_REMOVE */
+#ifndef UNITTESTS
+    /* Ensure template registration for unittests */
     if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
+#endif
     /* TEMPLATE_END_REMOVE */
     /* Check if Template TCP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */
