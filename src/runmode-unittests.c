@@ -37,6 +37,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
+#include "detect-engine-enip.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -181,6 +182,7 @@ static void RegisterUnittests(void)
 #endif
     DeStateRegisterTests();
     MemcmpRegisterTests();
+    DetectEngineInspectENIPRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
