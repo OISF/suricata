@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -291,13 +291,32 @@ int DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static uint8_t listIdentity[] = {/* List ID */    0x00, 0x63,
-                                 /* Length */     0x00, 0x00,
-                                 /* Session */    0x00, 0x00, 0x00, 0x00,
-                                 /* Status */     0x00, 0x00, 0x00, 0x00,
-                                 /*  Delay*/      0x00,
-                                 /* Context */    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                 /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00,};
+static uint8_t listIdentity[] = {
+    /* List ID */ 0x63,
+    0x00,
+    /* Length */ 0x00,
+    0x00,
+    /* Session */ 0x00,
+    0x00,
+    0x00,
+    0x00,
+    /* Status */ 0x00,
+    0x00,
+    0x00,
+    0x00,
+    /*  Delay*/ 0x00,
+    /* Context */ 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    /* Quantity of coils */ 0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+};
 
 /** \test Test code function. */
 static int DetectEngineInspectENIPTest01(void)
@@ -335,8 +354,8 @@ static int DetectEngineInspectENIPTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert enip any any -> any any "
-            "(msg:\"Testing enip command\"; "
-            "enipcommand:99 ; sid:1;)");
+                                           "(msg:\"Testing enip command\"; "
+                                           "enip_command:99 ; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
