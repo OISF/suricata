@@ -97,12 +97,10 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     }
 
     uint32_t compressed_data_len = 0;
-    if (buffer_len > offset && compress_depth == 0) {
-        compressed_data_len = buffer_len - offset;
-    } else if (compress_depth > 0 && compress_depth <= buffer_len) {
+    if (compress_depth > 0 && compress_depth <= buffer_len) {
         compressed_data_len = compress_depth;
-    } else if (compress_depth > 0 && compress_depth > buffer_len) {
-        compressed_data_len = buffer_len;
+    } else {
+        compressed_data_len = buffer_len - offset;
     }
 
     /* get swf version */
