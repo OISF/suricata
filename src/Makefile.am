@@ -599,7 +599,6 @@ libsuricata_c_a_SOURCES = \
 	alert-prelude.c \
 	alert-syslog.c \
 	app-layer.c \
-	app-layer-dcerpc.c \
 	app-layer-dcerpc-udp.c \
 	app-layer-detect-proto.c \
 	app-layer-dnp3.c \

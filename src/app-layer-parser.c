@@ -1581,7 +1581,7 @@ void AppLayerParserRegisterProtocolParsers(void)
 
     RegisterHTPParsers();
     RegisterSSLParsers();
-    RegisterDCERPCParsers();
+    rs_dcerpc_register_parser();
     RegisterDCERPCUDPParsers();
     RegisterSMBParsers();
     RegisterFTPParsers();
