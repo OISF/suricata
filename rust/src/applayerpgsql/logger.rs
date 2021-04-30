@@ -26,6 +26,8 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
     if let Some(ref response) = tx.response {
         js.set_string("response", &response.to_string())?;
     }
+    // TODO
+    // Check tx vectors and alternately print request and response? >_<
     Ok(())
 }
 

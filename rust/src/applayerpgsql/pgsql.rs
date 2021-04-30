@@ -16,13 +16,12 @@
  */
 
 use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use nom;
+use std::ffi::CString;
 use std::mem::transmute;
 use crate::applayer::{self, *};
-use std::ffi::CString;
-use nom;
-use parser::PgsqlMessageType;
-use super::parser::{self, PgsqlRequestMessage, PgsqlResponseMessage};
+use super::parser::{self, PgsqlBEMessage, PgsqlFEMessage};
+use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP, STREAM_TOCLIENT};
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
@@ -40,16 +39,19 @@ pub enum PgsqlTransactionState {
     AuthenticationOk = 8,
     BackendInitialization = 9,
     ReadyForQuery = 10,
-    SimpleQueryProtocol = 11, // TODO not sure if necessary
-    Termination = 12, // TODO not sure if necessary
-    Finished = 13,
+    NotificationReceived = 11, // TODO not sure if necessary
+    ErrorReceived = 12,
+    SimpleQueryProtocol = 13, // TODO not sure if necessary
+    PossibleInvalidState = 14, // TODO this may be nonsense
+    Termination = 15, // TODO not sure if necessary
+    Finished = 16,
 }
 
 pub struct PgsqlTransaction {
     tx_id: u64,
     pub state: PgsqlTransactionState,
-    pub request: Vec<PgsqlRequestMessage>,
-    pub response: Vec<PgsqlResponseMessage>,
+    pub request: Vec<PgsqlFEMessage>,
+    pub response: Vec<PgsqlBEMessage>,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
@@ -61,8 +63,8 @@ impl PgsqlTransaction {
         PgsqlTransaction {
             tx_id: 0,
             state: PgsqlTransactionState::ConnectionStart, // TODO question is this the best initialization value?
-            request: Vec::<PgsqlRequestMessage>::new(),
-            response: Vec::<PgsqlResponseMessage>::new(),
+            request: Vec::<PgsqlFEMessage>::new(),
+            response: Vec::<PgsqlBEMessage>::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -90,6 +92,10 @@ pub struct PgsqlState {
     transactions: Vec<PgsqlTransaction>,
     request_gap: bool,
     response_gap: bool,
+    // TODO check this out with Shivani April 30
+    // TODO 2 if they stay, must extract this info when BackendKeyDataMessage is parsed
+    backend_secrete_key: u32,
+    backend_pid: u32,
 }
 
 impl PgsqlState {
@@ -99,6 +105,8 @@ impl PgsqlState {
             transactions: Vec::new(),
             request_gap: false,
             response_gap: false,
+            backend_secrete_key: 0,
+            backend_pid: 0,
         }
     }
 
@@ -137,21 +145,59 @@ impl PgsqlState {
     }
 
     // TODO this will probably be replaced by find_or_create_tx
-    fn find_request(&mut self) -> Option<&mut PgsqlTransaction> {
-        // TODO this must be changed, now. HTTP2 doesn't do this, as far as I could tell...
-        // So I may or may not keep it. I'll have to decide
-        for tx in &mut self.transactions {
-            if tx.response.is_none() {
-                return Some(tx);
+    // fn find_request(&mut self) -> Option<&mut PgsqlTransaction> {
+    //     // TODO this must be changed, now. HTTP2 doesn't do this, as far as I could tell...
+    //     // So I may or may not keep it. I'll have to decide
+    //     for tx in &mut self.transactions {
+    //         if tx.response.is_none() {
+    //             return Some(tx);
+    //         }
+    //     }
+    //     None
+    // }
+
+    // find or create a new transaction, based on current message type and last transaction state
+    // TODO in order to be able to use message type, I may have to change lots os things (or
+    // write a match in the state's message parsers)
+    fn find_or_create_tx(&mut self, direction: u8) -> &mut PgsqlTransaction {
+        // if this is a response, look for the last transaction and return that one
+        // if this is a request, recover last tx. If state is finished, return a new one
+        // this is a simple approach and will need refinement later on, Likely
+        let curr_tx_index = self.transactions.len() - 1;
+        if direction == STREAM_TOCLIENT {
+            // TODO take message_type into account to decide on tx_state
+            // we'll cast it here into the correct type, based on direction
+            if curr_tx_index <= 0 {
+                // TODO I don't think this should not happen, what do I do? Error?
+                // create a tx anyway?
+                let mut tx = PgsqlTransaction::new();
+                // TODO decide on what TransactionState to use here.
+                tx.state = PgsqlTransactionState::PossibleInvalidState;
+                return &mut tx;
+            } else {
+                return &mut self.transactions[curr_tx_index];
+            }
+        } else {
+            if curr_tx_index <= 0 {
+                // if we don't find any tx, this is (hopefully) a connection message of some type
+                let mut tx = PgsqlTransaction::new();
+                tx.state = PgsqlTransactionState::ConnectionStart;
+                return &mut tx;
+            } else {
+                // for now, we assume that, as PostgreSQL documentation says, things won't go wrong with
+                // communication exchange, and messages are following their normal flow. So, a new request
+                // either goes to the previous tx, if it's open and state makes sense, or, if not, then it's a new one
+                let mut tx = self.transactions[curr_tx_index];
+                if tx.state < PgsqlTransactionState::Termination {
+                    return &mut tx;
+                } else {
+                    let mut tx = PgsqlTransaction::new();
+                    // TODO this is overly simplified, and will have to take message type into account, to be defined
+                    tx.state = PgsqlTransactionState::SimpleQueryProtocol;
+                    return &mut tx;
+                }
             }
         }
-        None
-    }
-
-    // find a transaction based on current message type and last transaction state
-    // TODO does that even make sense? find out...
-    fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
-
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -217,19 +263,22 @@ impl PgsqlState {
                     // let mut tx = self.new_tx();
                     let mut tx: PgsqlTransaction;
 
-                    match request.message_type {
-                        PgsqlMessageType::SslRequest(_) => {
+                    match request {
+                        PgsqlFEMessage::SslRequest(_) => {
                             tx = self.new_tx();
                             tx.state = PgsqlTransactionState::SslRequest;
                             tx.request.push(request);
                             self.transactions.push(tx);
                         }
-                        PgsqlMessageType::StartupMessage(_) => {
+                        PgsqlFEMessage::StartupMessage(_) => {
                             tx = self.new_tx();
                             tx.state = PgsqlTransactionState::ConnectionStart;
                             tx.request.push(request);
                             self.transactions.push(tx);
                         }
+                        // PgsqlFEMessage::PasswordMessage(_) => {
+                        //     // TODO here I must look for the correct tx, then
+                        // }
                         _ => {}
                     }
                 },
@@ -279,15 +328,19 @@ impl PgsqlState {
                     start = rem;
 
                     // TODO the idea, I think, will be to replace find_request with find_or_create_tx
-                    match self.find_request() {
-                        Some(tx) => {
-                            tx.response.push(response);
-                            SCLogNotice!("Found response for request:");
-                            SCLogNotice!("- Request: {:?}", tx.request); // TODO how will this work, now? -- make a copy?
-                            SCLogNotice!("- Response: {:?}", tx.response); // TODO how will this work, now? -- make a copy?
-                        }
-                        None => {}
-                    }
+                    // match self.find_request() {
+                    //     Some(tx) => {
+                    //         tx.response.push(response);
+                    //         SCLogNotice!("Found response for request:");
+                    //         SCLogNotice!("- Request: {:?}", tx.request); // TODO how will this work, now? -- make a copy?
+                    //         SCLogNotice!("- Response: {:?}", tx.response); // TODO how will this work, now? -- make a copy?
+                    //     }
+                    //     None => {}
+                    // }
+                    let mut tx = self.find_or_create_tx(STREAM_TOCLIENT);
+                    SCLogNotice!("Found a response.");
+                    SCLogNotice!("- Response: {:?}", &response);
+                    tx.response.push(response);
                 }
                 Err(nom::Err::Incomplete(needed)) => {
                     let consumed = input.len() - start.len();

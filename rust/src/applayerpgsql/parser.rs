@@ -45,92 +45,65 @@ impl fmt::Display for PgsqlStartupParameters {
     }
 }
 
-named!(parse_user_param<PgsqlParameter>,
-    do_parse!(
-        param_name: tag_no_case!("user")
-        >> tag!("\x00")
-        >> param_value: take_until1!("\x00")
-        >> tag!("\x00")
-        >> (PgsqlParameter{
-            param_name: param_name.to_vec(),
-            param_value: param_value.to_vec(),
-            })
-    ));
-
-named!(parse_database_param<PgsqlParameter>,
-    do_parse!(
-        param_name: tag_no_case!("database")
-        >> tag!("\x00")
-        >> param_value: take_until1!("\x00")
-        >> tag!("\x00")
-        >> (PgsqlParameter{
-                param_name: param_name.to_vec(),
-                param_value: param_value.to_vec(),
-            })
-    ));
-
-//TODO shall I create a generic parser for the parameters, which receives tag as an argument?
-// using named_args....
-named!(pgsql_parse_parameter<PgsqlParameter>,
-    do_parse!(
-        param_name: take_until1!("\x00")
-        >> tag!("\x00")
-        >> param_value: take_until1!("\x00")
-        >> tag!("\x00")
-        >> (PgsqlParameter{
-                param_name: param_name.to_vec(),
-                param_value: param_value.to_vec(),
-            })
-    ));
-
-named!(pub pgsql_parse_startup_parameters<PgsqlStartupParameters>,
-    do_parse!(
-        user: call!(parse_user_param)
-        >> database: opt!(parse_database_param)
-        >> optional: opt!(terminated!(many1!(pgsql_parse_parameter), tag!("\x00")))
-        >> (PgsqlStartupParameters{
-                user,
-                database,
-                optional_params: optional,
-        })
-    ));
-
 #[derive(Debug, PartialEq)]
-pub struct PgsqlDummyStartupPacket {
+pub struct DummyStartupPacket {
     length: u32,
     proto_major: u16,
     proto_minor: u16,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PgsqlStartupPacket{
+pub struct StartupPacket{
     length: u32,
     proto_major: u16,
     proto_minor: u16,
     params: PgsqlStartupParameters,
 }
 
-impl fmt::Display for PgsqlStartupPacket {
+impl fmt::Display for StartupPacket {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PgsqlRegularPacket{
+pub struct RegularPacket{
     identifier: u8,
     length: u32,
     payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum PgsqlSslResponse {
+pub struct PgsqlErrorNoticeMessageField{
+    field_type: PgsqlErrorNoticeFieldTypes,
+    field_value: Option<Vec<u8>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ErrorNoticeMessage {
+    identifier: u8,
+    length: u32,
+    message_body: Vec<PgsqlErrorNoticeMessageField>,
+}
+
+impl ErrorNoticeMessage {
+    pub fn new(identifier: u8, length: u32) -> Self {
+        ErrorNoticeMessage{
+            identifier,
+            length,
+            message_body: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum SslResponse {
     SslAccepted,
     SslRejected,
     InvalidResponse,
 }
 
-impl From<u8> for PgsqlSslResponse {
+impl From<u8> for SslResponse {
     fn from(identifier: u8) -> Self {
         match identifier {
             b'S' => Self::SslAccepted,
@@ -140,7 +113,7 @@ impl From<u8> for PgsqlSslResponse {
     }
 }
 
-impl From<char> for PgsqlSslResponse {
+impl From<char> for SslResponse {
     fn from(identifier: char) -> Self {
         match identifier {
             'S' => Self::SslAccepted,
@@ -149,48 +122,35 @@ impl From<char> for PgsqlSslResponse {
         }
     }
 }
-// TODO decide whether to have different enums for FE / BE messages,
-// as few are common
-#[derive(Debug, PartialEq)]
-pub enum PgsqlMessageType {
-    StartupMessage(PgsqlStartupPacket),
-    SslRequest(PgsqlDummyStartupPacket),
-    SslResponse(PgsqlSslResponse), // BE message
-    PasswordMessage(PgsqlRegularPacket), // FE message
-    AuthenticationGSS(PgsqlAuthenticationMessage), // BE Message
-    AuthenticationGSSContinue(PgsqlAuthenticationMessage), // BE Message
-    AuthenticationMD5Password(PgsqlAuthenticationMessage), // BE message
-    AuthenticationCleartextPassword(PgsqlAuthenticationMessage), // BE message
-    AuthenticationSSPI(PgsqlAuthenticationMessage), // BE Message
-    AuthenticationSASL(AuthenticationSASLMechanismMessage), // BE Message
-    AuthenticationSASLContinue(PgsqlAuthenticationMessage), // BE Message
-    AuthenticationSASLFinal(PgsqlAuthenticationMessage), // BE Message
-    AuthenticationOk(PgsqlAuthenticationMessage), // BE message
-    ErrorResponse(PgsqlErrorNoticeResponse), // BE message
-    NoticeResponse(PgsqlErrorNoticeResponse), // BE message
-    SASLInitialResponse(SASLInitialResponsePacket), // FE message
-    SASLResponse(PgsqlRegularPacket), // FE Message
-    ParameterStatus(ParameterStatusMessage), // BE message
-    BackendKeyData(BackendKeyDataMessage), // BE message
-    ReadyForQuery(ReadyForQueryMessage), // BE message
-}
 
-#[derive(Debug, PartialEq)]
-pub struct PgsqlAuthenticationMessage {
-    identifier: u8,
-    length: u32,
-    auth_type: u32,
-    payload: Option<Vec<u8>>,
-}
+// #[derive(Debug, PartialEq)]
+// pub enum PgsqlBEMessage {
+//     SslResponse(PgsqlSslResponse), // BE message
+//     PasswordMessage(PgsqlRegularPacket), // FE message
+//     AuthenticationGSS(PgsqlAuthenticationMessage), // BE Message
+//     AuthenticationGSSContinue(PgsqlAuthenticationMessage), // BE Message
+//     AuthenticationMD5Password(PgsqlAuthenticationMessage), // BE message
+//     AuthenticationCleartextPassword(PgsqlAuthenticationMessage), // BE message
+//     AuthenticationSSPI(PgsqlAuthenticationMessage), // BE Message
+//     AuthenticationSASL(AuthenticationSASLMechanismMessage), // BE Message
+//     AuthenticationSASLContinue(PgsqlAuthenticationMessage), // BE Message
+//     AuthenticationSASLFinal(PgsqlAuthenticationMessage), // BE Message
+//     AuthenticationOk(PgsqlAuthenticationMessage), // BE message
+//     ErrorResponse(PgsqlErrorNoticeResponse), // BE message
+//     NoticeResponse(PgsqlErrorNoticeResponse), // BE message
+//     SASLInitialResponse(SASLInitialResponsePacket), // FE message
+//     SASLResponse(PgsqlRegularPacket), // FE Message
+//     ParameterStatus(ParameterStatusMessage), // BE message
+//     BackendKeyData(BackendKeyDataMessage), // BE message
+//     ReadyForQuery(ReadyForQueryMessage), // BE message
+// }
 
-#[derive(Debug, PartialEq)]
-pub struct SASLInitialResponsePacket {
-    identifier: u8,
-    length: u32,
-    auth_mechanism: SASLAuthenticationMechanism,
-    param_length: u32,
-    sasl_param: Vec<u8>,
-}
+// #[derive(Debug, PartialEq)]
+// pub struct AuthenticationRequest {
+//     length: u32,
+//     auth_type: u32,
+//     payload: Option<Vec<u8>>,
+// }
 
 #[derive(Debug, PartialEq)]
 pub struct ParameterStatusMessage {
@@ -214,44 +174,31 @@ pub struct ReadyForQueryMessage {
     transaction_status: u8,
 }
 
-named!(parse_sasl_initial_response_payload<(SASLAuthenticationMechanism, u32, Vec<u8>)>,
-    do_parse!(
-        sasl_mechanism: call!(parse_sasl_mechanism)
-        >> param_length: be_u32
-        // From RFC 5802 - the client-first-message will always start w/
-        // 'n', 'y' or 'p', otherwise it's invalid, I think we should check that, at some point
-        >> param: terminated!(take!(param_length), eof!())
-        >> ((sasl_mechanism, param_length, param.to_vec()))
-    ));
+#[derive(Debug, PartialEq)]
+pub enum PgsqlBEMessage {
+    SslResponse(SslResponse),
+    ErrorResponse(ErrorNoticeMessage),
+    NoticeResponse(ErrorNoticeMessage),
+    AuthenticationOk(AuthenticationMessage),
+    AuthenticationKerb5(AuthenticationMessage),
+    AuthenticationCleartextPassword(AuthenticationMessage),
+    AuthenticationMD5Password(AuthenticationMessage),
+    AuthenticationGSS(AuthenticationMessage),
+    AuthenticationSSPI(AuthenticationMessage),
+    AuthenticationGSSContinue(AuthenticationMessage),
+    AuthenticationSASL(AuthenticationSASLMechanismMessage),
+    AuthenticationSASLContinue(AuthenticationMessage),
+    AuthenticationSASLFinal(AuthenticationMessage),
+    ParameterStatus(ParameterStatusMessage),
+    BackendKeyData(BackendKeyDataMessage),
+    ReadyForQuery(ReadyForQueryMessage),
+}
 
-named!(pgsql_parse_sasl_initial_response<PgsqlMessageType>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'p')
-        >> length: verify!(be_u32, |&x| x > 8)
-        >> payload: flat_map!(take!(length - 4), parse_sasl_initial_response_payload)
-        >> (PgsqlMessageType::SASLInitialResponse(
-            SASLInitialResponsePacket {
-            identifier,
-            length,
-            auth_mechanism: payload.0,
-            param_length: payload.1,
-            sasl_param: payload.2,
-        }))
-    ));
-
-named!(pgsql_parse_sasl_response<PgsqlMessageType>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'p')
-        >> length: verify!(be_u32, |&x| x > 4)
-        >> payload: flat_map!(take!(length - 4), rest)
-        >> (PgsqlMessageType::SASLResponse(
-            PgsqlRegularPacket {
-            identifier,
-            length,
-            payload: payload.to_vec(),
-        }))
-    ));
-
+impl fmt::Display for PgsqlBEMessage {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 enum SASLAuthenticationMechanism {
     ScramSha256,
@@ -259,18 +206,49 @@ enum SASLAuthenticationMechanism {
     // UnknownMechanism,
 }
 
-// // TODO find out how to make this work. if not... go back to having a vector, oh well...
-// impl From<&[u8]> for SASLAuthenticationMechanism {
-//     fn from(tag: &[u8]) -> SASLAuthenticationMechanism {
-//         match tag {
-//             br#"SCRAM-SHA-256"# => SASLAuthenticationMechanism::ScramSha256,
-//             br#"SCRAM-SHA-256-PLUS"# => SASLAuthenticationMechanism::ScramSha256Plus,
-//             _ => {
-//                     SASLAuthenticationMechanism::UnknownMechanism
-//                 }
-//         }
-//     }
-// }
+#[derive(Debug, PartialEq)]
+pub enum PgsqlFEMessage {
+    StartupMessage(StartupPacket),
+    SslRequest(DummyStartupPacket),
+    PasswordMessage(RegularPacket),
+    SASLInitialResponse(SASLInitialResponsePacket),
+    SASLResponse(RegularPacket),
+}
+
+impl fmt::Display for PgsqlFEMessage {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl PgsqlFEMessage {
+    pub fn is_ssl_request(&self) -> bool {
+        match self {
+            Self::SslRequest(DummyStartupPacket {
+                length: 8,
+                proto_major: PGSQL_DUMMY_PROTO_MAJOR,
+                proto_minor: PGSQL_DUMMY_PROTO_MINOR_SSL,
+            }) => true,
+            _ => false,
+        }
+    }
+}
+#[derive(Debug, PartialEq)]
+pub struct AuthenticationMessage {
+    identifier: u8,
+    length: u32,
+    auth_type: u32,
+    payload: Option<Vec<u8>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SASLInitialResponsePacket {
+    identifier: u8,
+    length: u32,
+    auth_mechanism: SASLAuthenticationMechanism,
+    param_length: u32,
+    sasl_param: Vec<u8>,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct AuthenticationSASLMechanismMessage {
@@ -282,7 +260,7 @@ pub struct AuthenticationSASLMechanismMessage {
 
 #[derive(Debug, PartialEq)]
 pub struct PgsqlRequestMessage {
-    pub message_type: PgsqlMessageType,
+    pub message_type: PgsqlBEMessage,
     // TODO I'm not sure whether length should be in the other structures, or here
 }
 
@@ -291,244 +269,6 @@ impl fmt::Display for PgsqlRequestMessage {
         write!(f, "{:?}", self)
     }
 }
-
-// TODO keep extending, to parse more messages!
-// Likely requires refactoring, to hide part of the logic in specialized parsers
-// may also need better checking to ensure length is right
-named!(pub pgsql_parse_startup_packet<PgsqlRequestMessage>,
-    do_parse!(
-        len: verify!(be_u32, |&x| x >= 8)
-        >> proto_major: peek!(be_u16)
-        >> message: flat_map!(take!(len - 4),
-                    switch!(value!(proto_major),
-                        1 | 2 | 3 => do_parse!(
-                                        proto_major: be_u16
-                                        >> proto_minor: be_u16
-                                        >> params: call!(pgsql_parse_startup_parameters)
-                                        >> (PgsqlMessageType::StartupMessage(PgsqlStartupPacket{
-                                                length: len,
-                                                proto_major,
-                                                proto_minor,
-                                                params}))) |
-                        PGSQL_DUMMY_PROTO_MAJOR => do_parse!(
-                                        proto_major: be_u16
-                                        >> proto_minor: exact!(be_u16)
-                                        >> message: switch!(value!(proto_minor),
-                                            PGSQL_DUMMY_PROTO_MINOR_SSL => tuple!(
-                                                        value!(len),
-                                                        value!(proto_major),
-                                                        value!(proto_minor)))
-                                        >> (PgsqlMessageType::SslRequest(PgsqlDummyStartupPacket{
-                                            length: len,
-                                            proto_major,
-                                            proto_minor})))
-                        ))
-        >> (PgsqlRequestMessage{
-            message_type: message,
-        })
-    ));
-
-// Password can be encrypted or in cleartext
-named!(pgsql_parse_password_message<PgsqlRequestMessage>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'p')
-        >> length: verify!(be_u32, |&x| x >= 5) // a magic number to check that we have some data.
-        >> password: flat_map!(take!(length - 4), take_until1!("\x00"))
-        >> (PgsqlRequestMessage{
-                message_type: PgsqlMessageType::PasswordMessage(
-                    PgsqlRegularPacket{
-                        identifier,
-                        length,
-                        payload: password.to_vec(),
-                    })
-        })
-    ));
-
-// TODO messages that begin with 'p' but are not password ones are not parsed (yet) here
-// we may need to bring some context logic to pgsql.rs, as content interpretation
-// of such messages is context (transaction, I believe) dependent
-named!(pub pgsql_parse_request<PgsqlRequestMessage>,
-    do_parse!(
-        tag: peek!(be_u8)
-        >> message: switch!(value!(tag),
-                        b'\0' => call!(pgsql_parse_startup_packet) | // TODO this will probably be taken away from here.
-                        b'p' =>  call!(pgsql_parse_password_message)
-                )
-        >> (message)
-    ));
-
-#[derive(Debug, PartialEq)]
-pub struct PgsqlErrorNoticeResponse {
-    identifier: u8,
-    length: u32,
-    message_body: Vec<PgsqlErrorNoticeMessageField>,
-}
-
-impl PgsqlErrorNoticeResponse {
-    pub fn new(identifier: u8, length: u32) -> Self {
-        PgsqlErrorNoticeResponse{
-            identifier,
-            length,
-            message_body: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct PgsqlResponseMessage{
-    // TODO also... I think it's better to have this one as the enum itself,
-    // instead of adding this extra layer with a struct with a single enum field...
-    pub message_type: PgsqlMessageType,
-}
-
-impl fmt::Display for PgsqlResponseMessage {
-    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-// TODO This will need thinking and refactoring.
-// I believe it must be called from elsewhere, not from
-// parse_response, for that one already has other messages with the same identifier, so handling these two via events or smth, from pgsql.rs might work better
-named!(pgsql_parse_ssl_response<PgsqlResponseMessage>,
-    do_parse!(
-        tag: alt!(char!('N') | char!('S'))
-        >> (PgsqlResponseMessage {
-            message_type: PgsqlMessageType::SslResponse(
-            PgsqlSslResponse::from(tag))
-        })
-    ));
-
-named!(parse_parameter_status_message<PgsqlMessageType>,
-    dbg_dmp!(do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'S')
-        >> length: verify!(be_u32, |&x| x >= 4)
-        >> param : flat_map!(take!(length - 4), pgsql_parse_parameter)
-        >> (PgsqlMessageType::ParameterStatus(ParameterStatusMessage {
-            identifier,
-            length,
-            param,
-        }))
-    )));
-
-named!(parse_backend_key_data_message<PgsqlMessageType>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'K')
-        >> length: verify!(be_u32, |&x| x == 12)
-        >> pid: be_u32
-        >> secret_key: be_u32
-        >> (PgsqlMessageType::BackendKeyData(
-            BackendKeyDataMessage {
-                identifier,
-                length,
-                backend_pid: pid,
-                secret_key,
-            }))
-    ));
-
-named!(parse_ready_for_query<PgsqlMessageType>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'Z')
-        >> length: verify!(be_u32, |&x| x == 5)
-        >> status: verify!(be_u8, |&x| x == b'I' || x == b'T' || x == b'E')
-        >> (PgsqlMessageType::ReadyForQuery(
-            ReadyForQueryMessage {
-                identifier,
-                length,
-                transaction_status: status,
-            }))
-    ));
-
-// TODO - Question - although this works with the unittests, if I run the tests w/
-// dbg_dmp I can see that there are errors for the tag!("\x00") cases.
-// I haven't managed to make things work with other structures, though.
-// are these errors an issue?
-named!(parse_sasl_mechanism<SASLAuthenticationMechanism>,
-    do_parse!(
-        mechanism: alt!(
-            terminated!(tag!("SCRAM-SHA-256-PLUS"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256Plus} |
-            terminated!(tag!("SCRAM-SHA-256"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256}
-        )
-        >> (mechanism)
-    ));
-
-named!(parse_sasl_mechanisms<Vec<SASLAuthenticationMechanism>>,
-    terminated!(many1!(parse_sasl_mechanism), tag!("\x00")));
-
-named!(pgsql_parse_authentication_message<PgsqlMessageType>,
-    do_parse!(
-        identifier: verify!(be_u8, |&x| x == b'R')
-        >> length: verify!(be_u32, |&x| x >= 8 )
-        >> auth_type: be_u32
-        >> message: flat_map!(take!(length - 8), switch!(value!(auth_type),
-            0 => value!(PgsqlMessageType::AuthenticationOk(
-                    PgsqlAuthenticationMessage {
-                        identifier,
-                        length,
-                        auth_type,
-                        payload: None,
-                    }))  |
-            3 => value!(PgsqlMessageType::AuthenticationCleartextPassword(
-                    PgsqlAuthenticationMessage {
-                        identifier,
-                        length,
-                        auth_type,
-                        payload: None,
-                    }))  |
-            5 => do_parse!(
-                salt: exact!(take!(4))
-                >> (PgsqlMessageType::AuthenticationMD5Password(
-                        PgsqlAuthenticationMessage {
-                            identifier,
-                            length,
-                            auth_type,
-                            payload: Some(salt.to_vec()),
-                        }))
-                ) |
-            9 => value!(PgsqlMessageType::AuthenticationSSPI(
-                    PgsqlAuthenticationMessage {
-                        identifier,
-                        length,
-                        auth_type,
-                        payload: None,
-                    })) |
-            // TODO - Question: For SASL, should I parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
-            10 => do_parse!(
-                    auth_mechanisms: call!(parse_sasl_mechanisms)
-                    >> (PgsqlMessageType::AuthenticationSASL(
-                        AuthenticationSASLMechanismMessage {
-                            identifier,
-                            length,
-                            auth_type,
-                            auth_mechanisms,
-                        }))
-                ) |
-            11 => do_parse!(
-                sasl_challenge: rest
-                >> (PgsqlMessageType::AuthenticationSASLContinue(
-                    PgsqlAuthenticationMessage {
-                        identifier,
-                        length,
-                        auth_type,
-                        payload: Some(sasl_challenge.to_vec())
-                    }))
-                ) |
-            12 => do_parse!(
-                signature: rest
-                >> (PgsqlMessageType::AuthenticationSASLFinal(
-                    PgsqlAuthenticationMessage {
-                        identifier,
-                        length,
-                        auth_type,
-                        payload: Some(signature.to_vec()),
-                    }
-                ))
-            )
-            // TODO - Question: Should I add here a pattern for unknown message types? If so, should I create PgsqlError, like SmbError?)
-            // TODO add other authentication messages
-        ))
-        >> (message)
-    ));
 
 #[derive(Debug, PartialEq)]
 pub enum PgsqlErrorNoticeFieldTypes {
@@ -608,11 +348,298 @@ impl From<u8> for PgsqlErrorNoticeFieldTypes {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct PgsqlErrorNoticeMessageField{
-    field_type: PgsqlErrorNoticeFieldTypes,
-    field_value: Option<Vec<u8>>,
-}
+named!(parse_user_param<PgsqlParameter>,
+    do_parse!(
+        param_name: tag_no_case!("user")
+        >> tag!("\x00")
+        >> param_value: take_until1!("\x00")
+        >> tag!("\x00")
+        >> (PgsqlParameter{
+            param_name: param_name.to_vec(),
+            param_value: param_value.to_vec(),
+            })
+    ));
+
+named!(parse_database_param<PgsqlParameter>,
+    do_parse!(
+        param_name: tag_no_case!("database")
+        >> tag!("\x00")
+        >> param_value: take_until1!("\x00")
+        >> tag!("\x00")
+        >> (PgsqlParameter{
+                param_name: param_name.to_vec(),
+                param_value: param_value.to_vec(),
+            })
+    ));
+
+//TODO shall I create a generic parser for the parameters, which receives tag as an argument?
+// using named_args....
+named!(pgsql_parse_parameter<PgsqlParameter>,
+    do_parse!(
+        param_name: take_until1!("\x00")
+        >> tag!("\x00")
+        >> param_value: take_until1!("\x00")
+        >> tag!("\x00")
+        >> (PgsqlParameter{
+                param_name: param_name.to_vec(),
+                param_value: param_value.to_vec(),
+            })
+    ));
+
+named!(pub pgsql_parse_startup_parameters<PgsqlStartupParameters>,
+    do_parse!(
+        user: call!(parse_user_param)
+        >> database: opt!(parse_database_param)
+        >> optional: opt!(terminated!(many1!(pgsql_parse_parameter), tag!("\x00")))
+        >> (PgsqlStartupParameters{
+                user,
+                database,
+                optional_params: optional,
+        })
+    ));
+
+named!(parse_sasl_initial_response_payload<(SASLAuthenticationMechanism, u32, Vec<u8>)>,
+    do_parse!(
+        sasl_mechanism: call!(parse_sasl_mechanism)
+        >> param_length: be_u32
+        // From RFC 5802 - the client-first-message will always start w/
+        // 'n', 'y' or 'p', otherwise it's invalid, I think we should check that, at some point
+        >> param: terminated!(take!(param_length), eof!())
+        >> ((sasl_mechanism, param_length, param.to_vec()))
+    ));
+
+named!(pgsql_parse_sasl_initial_response<PgsqlFEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'p')
+        >> length: verify!(be_u32, |&x| x > 8)
+        >> payload: flat_map!(take!(length - 4), parse_sasl_initial_response_payload)
+        >> (PgsqlFEMessage::SASLInitialResponse(
+            SASLInitialResponsePacket {
+            identifier,
+            length,
+            auth_mechanism: payload.0,
+            param_length: payload.1,
+            sasl_param: payload.2,
+        }))
+    ));
+
+named!(pgsql_parse_sasl_response<PgsqlFEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'p')
+        >> length: verify!(be_u32, |&x| x > 4)
+        >> payload: flat_map!(take!(length - 4), rest)
+        >> (PgsqlFEMessage::SASLResponse(
+            RegularPacket {
+            identifier,
+            length,
+            payload: payload.to_vec(),
+        }))
+    ));
+
+// TODO keep extending, to parse more messages!
+// Likely requires refactoring, to hide part of the logic in specialized parsers
+// may also need better checking to ensure length is right
+named!(pub pgsql_parse_startup_packet<PgsqlFEMessage>,
+    do_parse!(
+        len: verify!(be_u32, |&x| x >= 8)
+        >> proto_major: peek!(be_u16)
+        >> message: flat_map!(take!(len - 4),
+                    switch!(value!(proto_major),
+                        1 | 2 | 3 => do_parse!(
+                                        proto_major: be_u16
+                                        >> proto_minor: be_u16
+                                        >> params: call!(pgsql_parse_startup_parameters)
+                                        >> (PgsqlFEMessage::StartupMessage(StartupPacket{
+                                                length: len,
+                                                proto_major,
+                                                proto_minor,
+                                                params}))) |
+                        PGSQL_DUMMY_PROTO_MAJOR => do_parse!(
+                                        proto_major: be_u16
+                                        >> proto_minor: exact!(be_u16)
+                                        >> message: switch!(value!(proto_minor),
+                                            PGSQL_DUMMY_PROTO_MINOR_SSL => tuple!(
+                                                        value!(len),
+                                                        value!(proto_major),
+                                                        value!(proto_minor)))
+                                        >> (PgsqlFEMessage::SslRequest(DummyStartupPacket{
+                                            length: len,
+                                            proto_major,
+                                            proto_minor})))
+                        ))
+        >> (message)
+    ));
+
+// Password can be encrypted or in cleartext
+named!(pgsql_parse_password_message<PgsqlFEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'p')
+        >> length: verify!(be_u32, |&x| x >= 5) // a magic number to check that we have some data.
+        >> password: flat_map!(take!(length - 4), take_until1!("\x00"))
+        >> (PgsqlFEMessage::PasswordMessage(
+                    RegularPacket{
+                        identifier,
+                        length,
+                        payload: password.to_vec(),
+            }))
+    ));
+
+// TODO messages that begin with 'p' but are not password ones are not parsed (yet) here
+// we may need to bring some context logic to pgsql.rs, as content interpretation
+// of such messages is context (transaction, I believe) dependent
+named!(pub pgsql_parse_request<PgsqlFEMessage>,
+    do_parse!(
+        tag: peek!(be_u8)
+        >> message: switch!(value!(tag),
+                        b'\0' => call!(pgsql_parse_startup_packet) | // TODO this will probably be taken away from here.
+                        b'p' =>  call!(pgsql_parse_password_message)
+                )
+        >> (message)
+    ));
+
+named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'R')
+        >> length: verify!(be_u32, |&x| x >= 8 )
+        >> auth_type: be_u32
+        >> message: flat_map!(take!(length - 8), switch!(value!(auth_type),
+            0 => value!(PgsqlBEMessage::AuthenticationOk(
+                    AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: None,
+                    }))  |
+            3 => value!(PgsqlBEMessage::AuthenticationCleartextPassword(
+                    AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: None,
+                    }))  |
+            5 => do_parse!(
+                salt: exact!(take!(4))
+                >> (PgsqlBEMessage::AuthenticationMD5Password(
+                        AuthenticationMessage {
+                            identifier,
+                            length,
+                            auth_type,
+                            payload: Some(salt.to_vec()),
+                        }))
+                ) |
+            9 => value!(PgsqlBEMessage::AuthenticationSSPI(
+                    AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: None,
+                    })) |
+            // TODO - Question: For SASL, should I parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
+            10 => do_parse!(
+                    auth_mechanisms: call!(parse_sasl_mechanisms)
+                    >> (PgsqlBEMessage::AuthenticationSASL(
+                        AuthenticationSASLMechanismMessage {
+                            identifier,
+                            length,
+                            auth_type,
+                            auth_mechanisms,
+                        }))
+                ) |
+            11 => do_parse!(
+                sasl_challenge: rest
+                >> (PgsqlBEMessage::AuthenticationSASLContinue(
+                    AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: Some(sasl_challenge.to_vec())
+                    }))
+                ) |
+            12 => do_parse!(
+                signature: rest
+                >> (PgsqlBEMessage::AuthenticationSASLFinal(
+                    AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: Some(signature.to_vec()),
+                    }
+                ))
+            )
+            // TODO - Question: Should I add here a pattern for unknown message types? If so, should I create PgsqlError, like SmbError?)
+            // TODO add other authentication messages
+        ))
+        >> (message)
+    ));
+
+
+named!(parse_parameter_status_message<PgsqlBEMessage>,
+    dbg_dmp!(do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'S')
+        >> length: verify!(be_u32, |&x| x >= 4)
+        >> param : flat_map!(take!(length - 4), pgsql_parse_parameter)
+        >> (PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
+            identifier,
+            length,
+            param,
+        }))
+    )));
+
+// TODO This will need thinking and refactoring.
+// I believe it must be called from elsewhere, not from
+// parse_response, for that one already has other messages with the same identifier, so handling these two via events or smth, from pgsql.rs might work better
+named!(pgsql_parse_ssl_response<PgsqlBEMessage>,
+    do_parse!(
+        tag: alt!(char!('N') | char!('S'))
+        >> (PgsqlBEMessage::SslResponse(
+            SslResponse::from(tag))
+        )
+    ));
+
+named!(parse_backend_key_data_message<PgsqlBEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'K')
+        >> length: verify!(be_u32, |&x| x == 12)
+        >> pid: be_u32
+        >> secret_key: be_u32
+        >> (PgsqlBEMessage::BackendKeyData(
+            BackendKeyDataMessage {
+                identifier,
+                length,
+                backend_pid: pid,
+                secret_key,
+            }))
+    ));
+
+named!(parse_ready_for_query<PgsqlBEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'Z')
+        >> length: verify!(be_u32, |&x| x == 5)
+        >> status: verify!(be_u8, |&x| x == b'I' || x == b'T' || x == b'E')
+        >> (PgsqlBEMessage::ReadyForQuery(
+            ReadyForQueryMessage {
+                identifier,
+                length,
+                transaction_status: status,
+            }))
+    ));
+
+// TODO - Question - although this works with the unittests, if I run the tests w/
+// dbg_dmp I can see that there are errors for the tag!("\x00") cases.
+// I haven't managed to make things work with other structures, though.
+// are these errors an issue?
+named!(parse_sasl_mechanism<SASLAuthenticationMechanism>,
+    do_parse!(
+        mechanism: alt!(
+            terminated!(tag!("SCRAM-SHA-256-PLUS"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256Plus} |
+            terminated!(tag!("SCRAM-SHA-256"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256}
+        )
+        >> (mechanism)
+    ));
+
+named!(parse_sasl_mechanisms<Vec<SASLAuthenticationMechanism>>,
+    terminated!(many1!(parse_sasl_mechanism), tag!("\x00")));
+
 
 named!(pub parse_error_response_code<PgsqlErrorNoticeMessageField>,
     do_parse!(
@@ -677,34 +704,33 @@ named!(pub parse_error_notice_fields<Vec<PgsqlErrorNoticeMessageField>>,
         >> (data.0)
     ));
 
-named!(pgsql_parse_error_response<PgsqlMessageType>,
+named!(pgsql_parse_error_response<PgsqlBEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'E')
         >> length: verify!(be_u32, |&x| x > 10)
         >> message_body: flat_map!(take!(length - 4), call!(parse_error_notice_fields))
-        >> (PgsqlMessageType::ErrorResponse(
-            PgsqlErrorNoticeResponse {
+        >> (PgsqlBEMessage::ErrorResponse(
+            ErrorNoticeMessage {
                 identifier,
                 length,
                 message_body,
             }))
     ));
 
-named!(pgsql_parse_notice_response<PgsqlMessageType>,
+named!(pgsql_parse_notice_response<PgsqlBEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'N')
         >> length: verify!(be_u32, |&x| x > 10)
         >> message_body: flat_map!(take!(length - 4), call!(parse_error_notice_fields))
-        >> (PgsqlMessageType::NoticeResponse(
-            PgsqlErrorNoticeResponse {
+        >> (PgsqlBEMessage::NoticeResponse(
+            ErrorNoticeMessage {
                 identifier,
                 length,
                 message_body,
             }))
     ));
 
-
-named!(pub pgsql_parse_response<PgsqlResponseMessage>,
+named!(pub pgsql_parse_response<PgsqlBEMessage>,
     do_parse!(
         message: switch!(peek!(be_u8),
             b'E' => call!(pgsql_parse_error_response) |
@@ -715,12 +741,10 @@ named!(pub pgsql_parse_response<PgsqlResponseMessage>,
             b'Z' => call!(parse_ready_for_query)
             // _ => {} // TODO question should I add an unknown message type here, or maybe an error?
         )
-        >> (PgsqlResponseMessage{
-            message_type: message,
-        })
+        >> (message)
     ));
 
-    // TODO decide whether to keep this or not. If I have to parse length in more
+// TODO decide whether to keep this or not. If I have to parse length in more
 // than one place, it does sound reasonable,
 // to avoid writing take!(len - 4) everywhere and any possible related mistakes...
 fn _parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
@@ -737,14 +761,12 @@ mod tests {
     fn test_parse_request() {
         // An SSLRequest
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
-        let ssl_request = PgsqlDummyStartupPacket {
+        let ssl_request = DummyStartupPacket {
             length: 8,
             proto_major: PGSQL_DUMMY_PROTO_MAJOR,
             proto_minor: PGSQL_DUMMY_PROTO_MINOR_SSL,
         };
-        let request_ok = PgsqlRequestMessage {
-            message_type: PgsqlMessageType::SslRequest(ssl_request),
-        };
+        let request_ok = PgsqlFEMessage::SslRequest(ssl_request);
 
         let (_remainder, result) = pgsql_parse_request(&buf).unwrap();
         assert_eq!(result, request_ok);
@@ -810,14 +832,13 @@ mod tests {
             database: Some(database),
             optional_params: None,
         };
-        let expected_result = PgsqlRequestMessage{
-            message_type: PgsqlMessageType::StartupMessage(
-                PgsqlStartupPacket{
+        let expected_result = PgsqlFEMessage::StartupMessage(
+                StartupPacket{
                     length: 38,
                     proto_major: 3,
                     proto_minor: 0,
                     params,
-        })};
+        });
         let result = pgsql_parse_request(&buf);
         match result {
             Ok((remainder, message)) => {
@@ -849,14 +870,13 @@ mod tests {
             database: None,
             optional_params: None,
         };
-        let expected_result = PgsqlRequestMessage{
-            message_type: PgsqlMessageType::StartupMessage(
-                PgsqlStartupPacket{
+        let expected_result = PgsqlFEMessage::StartupMessage(
+                StartupPacket{
                     length: 19,
                     proto_major: 3,
                     proto_minor: 0,
                     params,
-                })};
+                });
         let result = pgsql_parse_request(&buf);
         match result {
             Ok((remainder, message)) => {
@@ -913,14 +933,12 @@ mod tests {
                             0x32, 0x39, 0x64, 0x65, 0x65, 0x66, 0x36, 0x62,
                             0x35, 0x65, 0x39, 0x63, 0x39, 0x31, 0x34, 0x32,
                             0x00];
-        let ok_result = PgsqlRequestMessage {
-            message_type: PgsqlMessageType::PasswordMessage(
-                PgsqlRegularPacket {
+        let ok_result = PgsqlFEMessage::PasswordMessage(
+                RegularPacket {
                     identifier: b'p',
                     length: 40,
                     payload: br#"md5ceffc01dcde7541829deef6b5e9c9142"#.to_vec(),
-                })
-        };
+                });
         let (_remainder, result) = pgsql_parse_request(&buf).unwrap();
         assert_eq!(result, ok_result);
 
@@ -1040,7 +1058,7 @@ mod tests {
                             0x61, 0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69,
                             0x6f, 0x6e, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x00,
                             0x70, 0x73, 0x71, 0x6c, 0x00];
-        let ok_res = PgsqlMessageType::ParameterStatus(ParameterStatusMessage {
+        let ok_res = PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
                     identifier: b'S',
                     length: 26,
                     param: PgsqlParameter {
@@ -1050,15 +1068,14 @@ mod tests {
         let (_remainder, result) = parse_parameter_status_message(&buf).unwrap();
         assert_eq!(result, ok_res);
 
-        let ok_res = PgsqlResponseMessage {
-            message_type: PgsqlMessageType::ParameterStatus(
+        let ok_res = PgsqlBEMessage::ParameterStatus(
                 ParameterStatusMessage {
                     identifier: b'S',
                     length: 26,
                     param: PgsqlParameter {
                         param_name:br#"application_name"#.to_vec(),
                         param_value:br#"psql"#.to_vec(),
-                    }})};
+                    }});
 
                     let result = pgsql_parse_response(&buf);
         match result {
@@ -1245,7 +1262,7 @@ mod tests {
             field_value: None,
         };
 
-        let mut payload = PgsqlErrorNoticeResponse::new(b'E', 150);
+        let mut payload = ErrorNoticeMessage::new(b'E', 150);
         payload.message_body.push(field1);
         payload.message_body.push(field2);
         payload.message_body.push(field3);
@@ -1254,9 +1271,7 @@ mod tests {
         payload.message_body.push(field6);
         payload.message_body.push(field7);
 
-        let ok_res = PgsqlResponseMessage {
-            message_type: PgsqlMessageType::ErrorResponse(payload)
-        };
+        let ok_res = PgsqlBEMessage::ErrorResponse(payload);
 
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1301,16 +1316,13 @@ mod tests {
                                     0x41, 0x2d, 0x32, 0x35, 0x36, 0x2d, 0x50, 0x4c,
                                     0x55,0x53, 0x00, 0x00];
             let mechanism = vec![SASLAuthenticationMechanism::ScramSha256Plus];
-            let ok_message = PgsqlMessageType::AuthenticationSASL(
+            let ok_res = PgsqlBEMessage::AuthenticationSASL(
                 AuthenticationSASLMechanismMessage {
                     identifier: b'R',
                     length: 28,
                     auth_type: 10,
                     auth_mechanisms: mechanism,
                 });
-            let ok_res = PgsqlResponseMessage {
-                message_type: ok_message,
-            };
 
             let result = pgsql_parse_response(&buf);
             match result {
@@ -1339,16 +1351,13 @@ mod tests {
         /* SCRAM-SHA-256 */     0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48,
                                 0x41, 0x2d, 0x32, 0x35, 0x36, 0x00, 0x00];
         let mechanism = vec![SASLAuthenticationMechanism::ScramSha256Plus, SASLAuthenticationMechanism::ScramSha256];
-        let ok_message = PgsqlMessageType::AuthenticationSASL(
+        let ok_res = PgsqlBEMessage::AuthenticationSASL(
             AuthenticationSASLMechanismMessage {
                 identifier: b'R',
                 length: 42,
                 auth_type: 10,
                 auth_mechanisms: mechanism,
             });
-        let ok_res = PgsqlResponseMessage {
-            message_type: ok_message,
-        };
 
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1396,16 +1405,13 @@ mod tests {
                             0x50, 0x68, 0x67, 0x3d, 0x3d, 0x2c, 0x69, 0x3d, 0x34,
                             0x30, 0x39, 0x36];
 
-        let message = PgsqlMessageType::AuthenticationSASLContinue(
-            PgsqlAuthenticationMessage {
+        let ok_res = PgsqlBEMessage::AuthenticationSASLContinue(
+            AuthenticationMessage {
                 identifier: b'R',
                 length: 92,
                 auth_type: 11,
                 payload: Some(br#"r=/z+giZiTxAH7r8sNAeHr7cvpqV3uo7G/bJBIJO3pjVM7t3ng,s=4UV68bIkC8f9/X8xH7aPhg==,i=4096"#.to_vec()),
         });
-        let ok_res = PgsqlResponseMessage {
-            message_type: message,
-        };
 
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1440,16 +1446,13 @@ mod tests {
                             0x52, 0x6a, 0x4c, 0x79, 0x33, 0x2b, 0x4a, 0x36, 0x79,
                             0x78, 0x72, 0x66, 0x77, 0x2f, 0x7a, 0x7a, 0x70, 0x38,
                             0x59, 0x54, 0x39, 0x65, 0x78, 0x56, 0x37, 0x73, 0x38, 0x3d];
-        let message = PgsqlMessageType::AuthenticationSASLFinal(
-            PgsqlAuthenticationMessage {
+        let ok_res = PgsqlBEMessage::AuthenticationSASLFinal(
+            AuthenticationMessage {
                 identifier: b'R',
                 length: 54,
                 auth_type: 12,
                 payload: Some(br#"v=d1PXa8TKFPZrR3MBRjLy3+J6yxrfw/zzp8YT9exV7s8="#.to_vec()),
         });
-        let ok_res = PgsqlResponseMessage {
-            message_type: message,
-        };
 
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1491,14 +1494,13 @@ mod tests {
         /* 8 */             0x00, 0x00, 0x00, 0x08,
         /* 9 */             0x00, 0x00, 0x00, 0x09];
 
-        let ok_res = PgsqlResponseMessage {
-            message_type: PgsqlMessageType::AuthenticationSSPI(
-                PgsqlAuthenticationMessage {
+        let ok_res = PgsqlBEMessage::AuthenticationSSPI(
+                AuthenticationMessage {
                     identifier: b'R',
                     length: 8,
                     auth_type: 9,
                     payload: None,
-                })};
+                });
 
         let (_remainder, result) = pgsql_parse_response(&buf).unwrap();
         assert_eq!(result, ok_res);
@@ -1516,7 +1518,7 @@ mod tests {
         /* FE 1st msg */    0x6e, 0x2c, 0x2c, 0x6e, 0x3d, 0x2c, 0x72, 0x3d, 0x2f,
                             0x7a, 0x2b, 0x67, 0x69, 0x5a, 0x69, 0x54, 0x78, 0x41,
                             0x48, 0x37, 0x72, 0x38, 0x73, 0x4e, 0x41, 0x65, 0x48, 0x72, 0x37, 0x63, 0x76, 0x70];
-        let ok_res = PgsqlMessageType::SASLInitialResponse(
+        let ok_res = PgsqlFEMessage::SASLInitialResponse(
             SASLInitialResponsePacket {
                 identifier: b'p',
                 length: 54,
@@ -1552,8 +1554,8 @@ mod tests {
                             0x68, 0x69, 0x2f, 0x37, 0x55, 0x46, 0x50, 0x51, 0x70,
                             0x53, 0x72, 0x34, 0x41, 0x3d];
 
-        let ok_res = PgsqlMessageType::SASLResponse(
-            PgsqlRegularPacket {
+        let ok_res = PgsqlFEMessage::SASLResponse(
+            RegularPacket {
                 identifier: b'p',
                 length: 108,
                 payload: br#"c=biws,r=/z+giZiTxAH7r8sNAeHr7cvpqV3uo7G/bJBIJO3pjVM7t3ng,p=AFpSYH/K/8bux1mRPUwxTe8lBuIPEyhi/7UFPQpSr4A="#.to_vec(),
@@ -1574,19 +1576,14 @@ mod tests {
     fn test_parse_response() {
         // An SSL response - N
         let buf: &[u8] = &[0x4e];
-        let ssl_response = PgsqlMessageType::SslResponse(PgsqlSslResponse::SslRejected);
-        let response_ok = PgsqlResponseMessage{
-            message_type: ssl_response,
-        };
+        let response_ok = PgsqlBEMessage::SslResponse(SslResponse::SslRejected);
         let (_remainder, result) = pgsql_parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);
 
         // An SSL response - S
         let buf: &[u8] = &[0x53];
-        let ssl_response = PgsqlMessageType::SslResponse(PgsqlSslResponse::SslAccepted);
-        let response_ok = PgsqlResponseMessage{
-            message_type: ssl_response,
-        };
+        let response_ok = PgsqlBEMessage::SslResponse(SslResponse::SslAccepted);
+
         let (_remainder, result) = pgsql_parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);
 
@@ -1600,15 +1597,13 @@ mod tests {
                             0x00, 0x00, 0x00, 0x0c,
                             0x00, 0x00, 0x00, 0x05,
                             0xf2, 0x11, 0xa3, 0xed];
-        let ok_res = PgsqlResponseMessage {
-            message_type: PgsqlMessageType::AuthenticationMD5Password(
-                PgsqlAuthenticationMessage {
+        let ok_res = PgsqlBEMessage::AuthenticationMD5Password(
+                AuthenticationMessage {
                     identifier: b'R',
                     length: 12,
                     auth_type: 5,
                     payload: Some(vec![0xf2, 0x11, 0xa3, 0xed]),
-                })
-        };
+                });
         let result = pgsql_parse_response(&buf);
         match result {
             Ok((remainder, message)) => {
@@ -1630,14 +1625,13 @@ mod tests {
         let buf: &[u8] = &[ 0x52,
                             0x00, 0x00, 0x00, 0x08,
                             0x00, 0x00, 0x00, 0x03];
-        let ok_res = PgsqlResponseMessage{
-            message_type: PgsqlMessageType::AuthenticationCleartextPassword(
-                PgsqlAuthenticationMessage{
+        let ok_res = PgsqlBEMessage::AuthenticationCleartextPassword(
+                AuthenticationMessage{
                     identifier: b'R',
                     length: 8,
                     auth_type: 3,
                     payload: None,
-                })};
+                });
         let result = pgsql_parse_response(&buf);
         match result {
             Ok((remainder, message)) => {
@@ -1666,14 +1660,13 @@ mod tests {
 
         // - auth Ok
         let buf: &[u8] = &[0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,0x00];
-        let ok_res = PgsqlResponseMessage{
-            message_type: PgsqlMessageType::AuthenticationOk(
-                PgsqlAuthenticationMessage{
+        let ok_res = PgsqlBEMessage::AuthenticationOk(
+                AuthenticationMessage{
                     identifier: b'R',
                     length: 8,
                     auth_type: 0,
                     payload: None,
-                })};
+                });
         let result = pgsql_parse_response(&buf);
         match result {
             Ok((remainder, message)) => {
