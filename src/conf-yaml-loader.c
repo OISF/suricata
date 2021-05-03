@@ -230,6 +230,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                 goto next;
             }
 
+            /* If the value is unquoted, certain strings in YAML represent NULL. */
+            if ((inseq || state == CONF_VAL) &&
+                    event.data.scalar.style == YAML_PLAIN_SCALAR_STYLE) {
+                if (strlen(value) == 0 || strcmp(value, "~") == 0 || strcmp(value, "null") == 0 ||
+                        strcmp(value, "Null") == 0 || strcmp(value, "NULL") == 0) {
+                    value = NULL;
+                }
+            }
+
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
@@ -252,10 +261,14 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                         SCFree(seq_node);
                         goto fail;
                     }
-                    seq_node->val = SCStrdup(value);
-                    if (unlikely(seq_node->val == NULL)) {
-                        SCFree(seq_node->name);
-                        goto fail;
+                    if (value != NULL) {
+                        seq_node->val = SCStrdup(value);
+                        if (unlikely(seq_node->val == NULL)) {
+                            SCFree(seq_node->name);
+                            goto fail;
+                        }
+                    } else {
+                        seq_node->val = NULL;
                     }
                 }
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
@@ -315,13 +328,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
                     state = CONF_VAL;
                 }
                 else {
-                    if ((tag != NULL) && (strcmp(tag, "!include") == 0)) {
+                    if (value != NULL && (tag != NULL) && (strcmp(tag, "!include") == 0)) {
                         SCLogInfo("Including configuration file %s at "
                             "parent node %s.", value, node->name);
                         if (ConfYamlHandleInclude(node, value) != 0)
                             goto fail;
-                    }
-                    else if (!node->final) {
+                    } else if (!node->final && value != NULL) {
                         if (node->val != NULL)
                             SCFree(node->val);
                         node->val = SCStrdup(value);
@@ -897,6 +909,79 @@ ConfYamlOverrideFinalTest(void)
     PASS;
 }
 
+static int ConfYamlNull(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    char config[] = "%YAML 1.1\n"
+                    "---\n"
+                    "quoted-tilde: \"~\"\n"
+                    "unquoted-tilde: ~\n"
+                    "quoted-null: \"null\"\n"
+                    "unquoted-null: null\n"
+                    "quoted-Null: \"Null\"\n"
+                    "unquoted-Null: Null\n"
+                    "quoted-NULL: \"NULL\"\n"
+                    "unquoted-NULL: NULL\n"
+                    "empty-quoted: \"\"\n"
+                    "empty-unquoted: \n"
+                    "list: [\"null\", null, \"Null\", Null, \"NULL\", NULL, \"~\", ~]\n";
+    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
+
+    const char *val;
+
+    FAIL_IF_NOT(ConfGet("quoted-tilde", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("unquoted-tilde", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("quoted-null", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("unquoted-null", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("quoted-Null", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("unquoted-Null", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("quoted-NULL", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("unquoted-NULL", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("empty-quoted", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("empty-unquoted", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("list.0", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("list.1", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("list.2", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("list.3", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("list.4", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("list.5", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    FAIL_IF_NOT(ConfGet("list.6", &val));
+    FAIL_IF_NULL(val);
+    FAIL_IF_NOT(ConfGet("list.7", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -912,5 +997,6 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest);
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);
+    UtRegisterTest("ConfYamlNull", ConfYamlNull);
 #endif /* UNITTESTS */
 }
