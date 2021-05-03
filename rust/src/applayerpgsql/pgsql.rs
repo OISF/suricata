@@ -21,13 +21,13 @@ use std::ffi::CString;
 use std::mem::transmute;
 use crate::applayer::{self, *};
 use super::parser::{self, PgsqlBEMessage, PgsqlFEMessage};
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP, STREAM_TOCLIENT};
+use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
-pub enum PgsqlTransactionState {
+pub enum PgsqlTransactionState { // a simplified version of this, stored in State - for startup phase, at least
     ConnectionStart = 0, // TODO [Doubt] or ConnectionRequest? Maybe we don't even need this
     SslRequest = 1,
     SslAccepted = 2,  // TODO [Doubt] Maybe we don't even need this
@@ -47,6 +47,7 @@ pub enum PgsqlTransactionState {
     Finished = 16,
 }
 
+#[derive(Debug)]
 pub struct PgsqlTransaction {
     tx_id: u64,
     pub state: PgsqlTransactionState,
@@ -87,15 +88,26 @@ impl Drop for PgsqlTransaction {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PgsqlStateProgress {
+    IdleState = 0,
+    StartupMessageReceived,
+    SASLInitialResponseReceived,
+    SSLRequestReceived,
+    PasswordMessageReceived,
+    ConnectionCompleted,
+    ReadyForQueryReceived,
+    UnknownState,
+}
+
 pub struct PgsqlState {
     tx_id: u64,
     transactions: Vec<PgsqlTransaction>,
     request_gap: bool,
     response_gap: bool,
-    // TODO check this out with Shivani April 30
-    // TODO 2 if they stay, must extract this info when BackendKeyDataMessage is parsed
     backend_secrete_key: u32,
     backend_pid: u32,
+    state_progress: PgsqlStateProgress,
 }
 
 impl PgsqlState {
@@ -107,6 +119,7 @@ impl PgsqlState {
             response_gap: false,
             backend_secrete_key: 0,
             backend_pid: 0,
+            state_progress: PgsqlStateProgress::IdleState,
         }
     }
 
@@ -156,48 +169,18 @@ impl PgsqlState {
     //     None
     // }
 
-    // find or create a new transaction, based on current message type and last transaction state
-    // TODO in order to be able to use message type, I may have to change lots os things (or
-    // write a match in the state's message parsers)
-    fn find_or_create_tx(&mut self, direction: u8) -> &mut PgsqlTransaction {
-        // if this is a response, look for the last transaction and return that one
-        // if this is a request, recover last tx. If state is finished, return a new one
-        // this is a simple approach and will need refinement later on, Likely
-        let curr_tx_index = self.transactions.len() - 1;
-        if direction == STREAM_TOCLIENT {
-            // TODO take message_type into account to decide on tx_state
-            // we'll cast it here into the correct type, based on direction
-            if curr_tx_index <= 0 {
-                // TODO I don't think this should not happen, what do I do? Error?
-                // create a tx anyway?
-                let mut tx = PgsqlTransaction::new();
-                // TODO decide on what TransactionState to use here.
-                tx.state = PgsqlTransactionState::PossibleInvalidState;
-                return &mut tx;
-            } else {
-                return &mut self.transactions[curr_tx_index];
+    // find or create a new transaction
+    // TODO future, improved version may be based on current message type and dir, too
+    fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
+        // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
+        if  self.state_progress == PgsqlStateProgress::IdleState ||
+            self.state_progress == PgsqlStateProgress::ConnectionCompleted ||
+            self.state_progress == PgsqlStateProgress::ReadyForQueryReceived {
+                let tx = self.new_tx();
+                self.transactions.push(tx);
             }
-        } else {
-            if curr_tx_index <= 0 {
-                // if we don't find any tx, this is (hopefully) a connection message of some type
-                let mut tx = PgsqlTransaction::new();
-                tx.state = PgsqlTransactionState::ConnectionStart;
-                return &mut tx;
-            } else {
-                // for now, we assume that, as PostgreSQL documentation says, things won't go wrong with
-                // communication exchange, and messages are following their normal flow. So, a new request
-                // either goes to the previous tx, if it's open and state makes sense, or, if not, then it's a new one
-                let mut tx = self.transactions[curr_tx_index];
-                if tx.state < PgsqlTransactionState::Termination {
-                    return &mut tx;
-                } else {
-                    let mut tx = PgsqlTransaction::new();
-                    // TODO this is overly simplified, and will have to take message type into account, to be defined
-                    tx.state = PgsqlTransactionState::SimpleQueryProtocol;
-                    return &mut tx;
-                }
-            }
-        }
+            // If we don't have to create a new transaction, just return the current one
+            return self.transactions.last_mut().unwrap();
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -261,24 +244,22 @@ impl PgsqlState {
                     // TODO I can't simply create a new transaction without being sure that's what I need.
                     // if we're in the middle of a transaction, I certainly will not create a new one.
                     // let mut tx = self.new_tx();
-                    let mut tx: PgsqlTransaction;
-
+                    let mut tx = self.find_or_create_tx();
                     match request {
                         PgsqlFEMessage::SslRequest(_) => {
-                            tx = self.new_tx();
-                            tx.state = PgsqlTransactionState::SslRequest;
                             tx.request.push(request);
-                            self.transactions.push(tx);
+                            self.state_progress = PgsqlStateProgress::SSLRequestReceived;
+                            // self.transactions.push(tx); // TODO question: This is now done in find_or_create_tx. Is that bad practice?
                         }
                         PgsqlFEMessage::StartupMessage(_) => {
-                            tx = self.new_tx();
-                            tx.state = PgsqlTransactionState::ConnectionStart;
                             tx.request.push(request);
-                            self.transactions.push(tx);
+                            self.state_progress = PgsqlStateProgress::StartupMessageReceived;
+                            // self.transactions.push(tx);
                         }
-                        // PgsqlFEMessage::PasswordMessage(_) => {
-                        //     // TODO here I must look for the correct tx, then
-                        // }
+                        PgsqlFEMessage::PasswordMessage(_) => {
+                            tx.request.push(request);
+                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
+                        }
                         _ => {}
                     }
                 },
@@ -337,7 +318,8 @@ impl PgsqlState {
                     //     }
                     //     None => {}
                     // }
-                    let mut tx = self.find_or_create_tx(STREAM_TOCLIENT);
+                    let mut tx = self.find_or_create_tx();
+                    // TODO we must also match on response type, so we can change state...
                     SCLogNotice!("Found a response.");
                     SCLogNotice!("- Response: {:?}", &response);
                     tx.response.push(response);
@@ -818,14 +800,9 @@ mod test {
         // an SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
         state.parse_request(buf);
-        let ok_state = PgsqlTransactionState::SslRequest;
+        let ok_state = PgsqlStateProgress::SSLRequestReceived;
 
-        match state.find_request() {
-            Some(tx) => {
-                assert_eq!(tx.state, ok_state)
-            }
-            _ => panic!("Expected {:?}", ok_state)
-        }
+        assert_eq!(state.state_progress, ok_state);
 
         // TODO add test for startup request
     }
