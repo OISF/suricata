@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author FirstName LastName <name@domain>
+ * \author Juliana Fajardini <jufajardini@oisf.net>
  */
 
 #ifndef __OUTPUT_JSON_PGSQL_H__
