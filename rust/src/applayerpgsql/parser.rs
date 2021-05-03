@@ -199,6 +199,7 @@ impl fmt::Display for PgsqlBEMessage {
         write!(f, "{:?}", self)
     }
 }
+
 #[derive(Debug, PartialEq, Clone)]
 enum SASLAuthenticationMechanism {
     ScramSha256,
