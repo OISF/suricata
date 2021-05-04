@@ -307,21 +307,25 @@ impl PgsqlState {
             match parser::pgsql_parse_response(start) {
                 Ok((rem, response)) => {
                     start = rem;
-
-                    // TODO the idea, I think, will be to replace find_request with find_or_create_tx
-                    // match self.find_request() {
-                    //     Some(tx) => {
-                    //         tx.response.push(response);
-                    //         SCLogNotice!("Found response for request:");
-                    //         SCLogNotice!("- Request: {:?}", tx.request); // TODO how will this work, now? -- make a copy?
-                    //         SCLogNotice!("- Response: {:?}", tx.response); // TODO how will this work, now? -- make a copy?
-                    //     }
-                    //     None => {}
-                    // }
-                    let mut tx = self.find_or_create_tx();
-                    // TODO we must also match on response type, so we can change state...
                     SCLogNotice!("Found a response.");
                     SCLogNotice!("- Response: {:?}", &response);
+                    let message_type = response.get_message_type();
+                    let be_key_pid = response.get_backendkey_info().0;
+                    let be_secret_key = response.get_backendkey_info().1;
+                    // TODO we must also match on response type, so we can change state...
+                    // match on backend_secrete_key - store info
+                    // ready for query -- change state to ready for query received
+                    match message_type {
+                        15 => {
+                            self.backend_pid = be_key_pid;
+                            self.backend_secrete_key = be_secret_key;
+                        }
+                        16 => {
+                            self.state_progress = PgsqlStateProgress::ReadyForQueryReceived;
+                        }
+                        _ => {}
+                    }
+                    let mut tx = self.find_or_create_tx();
                     tx.response.push(response);
                 }
                 Err(nom::Err::Incomplete(needed)) => {

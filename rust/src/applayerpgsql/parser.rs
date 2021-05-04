@@ -163,8 +163,8 @@ pub struct ParameterStatusMessage {
 pub struct BackendKeyDataMessage {
     identifier: u8,
     length: u32,
-    backend_pid: u32,
-    secret_key: u32,
+    pub backend_pid: u32,
+    pub secret_key: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -194,9 +194,43 @@ pub enum PgsqlBEMessage {
     ReadyForQuery(ReadyForQueryMessage),
 }
 
+
+
 impl fmt::Display for PgsqlBEMessage {
     fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl PgsqlBEMessage {
+    pub fn get_message_type(&self) -> u8 {
+        match self {
+            PgsqlBEMessage::SslResponse(_) => 1,
+            PgsqlBEMessage::ErrorResponse(_) => 2,
+            PgsqlBEMessage::NoticeResponse(_) => 3,
+            PgsqlBEMessage::AuthenticationOk(_) => 4,
+            PgsqlBEMessage::AuthenticationKerb5(_) => 5,
+            PgsqlBEMessage::AuthenticationCleartextPassword(_) => 6,
+            PgsqlBEMessage::AuthenticationMD5Password(_) => 7,
+            PgsqlBEMessage::AuthenticationGSS(_) => 8,
+            PgsqlBEMessage::AuthenticationSSPI(_) => 9,
+            PgsqlBEMessage::AuthenticationGSSContinue(_) => 10,
+            PgsqlBEMessage::AuthenticationSASL(_) => 11,
+            PgsqlBEMessage::AuthenticationSASLContinue(_) => 12,
+            PgsqlBEMessage::AuthenticationSASLFinal(_) => 13,
+            PgsqlBEMessage::ParameterStatus(_) => 14,
+            PgsqlBEMessage::BackendKeyData(_) => 15,
+            PgsqlBEMessage::ReadyForQuery(_) => 16,
+        }
+    }
+
+    pub fn get_backendkey_info(&self) -> (u32, u32) {
+        match self {
+            PgsqlBEMessage::BackendKeyData(message) => {
+                return (message.backend_pid, message.secret_key);
+            }
+            _ => (0, 0)
+        }
     }
 }
 
