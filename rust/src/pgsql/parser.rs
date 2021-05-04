@@ -203,24 +203,26 @@ impl fmt::Display for PgsqlBEMessage {
 }
 
 impl PgsqlBEMessage {
-    pub fn get_message_type(&self) -> u8 {
+    pub fn get_message_type(&self) -> &str {
         match self {
-            PgsqlBEMessage::SslResponse(_) => 1,
-            PgsqlBEMessage::ErrorResponse(_) => 2,
-            PgsqlBEMessage::NoticeResponse(_) => 3,
-            PgsqlBEMessage::AuthenticationOk(_) => 4,
-            PgsqlBEMessage::AuthenticationKerb5(_) => 5,
-            PgsqlBEMessage::AuthenticationCleartextPassword(_) => 6,
-            PgsqlBEMessage::AuthenticationMD5Password(_) => 7,
-            PgsqlBEMessage::AuthenticationGSS(_) => 8,
-            PgsqlBEMessage::AuthenticationSSPI(_) => 9,
-            PgsqlBEMessage::AuthenticationGSSContinue(_) => 10,
-            PgsqlBEMessage::AuthenticationSASL(_) => 11,
-            PgsqlBEMessage::AuthenticationSASLContinue(_) => 12,
-            PgsqlBEMessage::AuthenticationSASLFinal(_) => 13,
-            PgsqlBEMessage::ParameterStatus(_) => 14,
-            PgsqlBEMessage::BackendKeyData(_) => 15,
-            PgsqlBEMessage::ReadyForQuery(_) => 16,
+            PgsqlBEMessage::SslResponse(SslResponse::SslAccepted) => "SslAccepted",
+            PgsqlBEMessage::SslResponse(SslResponse::SslRejected) => "SslRejected",
+            PgsqlBEMessage::ErrorResponse(_) => "ErrorResponse",
+            PgsqlBEMessage::NoticeResponse(_) => "NoticeResponse",
+            PgsqlBEMessage::AuthenticationOk(_) => "AuthenticationOk",
+            PgsqlBEMessage::AuthenticationKerb5(_) => "AuthenticationKerb5",
+            PgsqlBEMessage::AuthenticationCleartextPassword(_) => "AuthenticationCleartextPassword",
+            PgsqlBEMessage::AuthenticationMD5Password(_) => "AuthenticationMD5Password",
+            PgsqlBEMessage::AuthenticationGSS(_) => "AuthenticationGSS",
+            PgsqlBEMessage::AuthenticationSSPI(_) => "AuthenticationSSPI",
+            PgsqlBEMessage::AuthenticationGSSContinue(_) => "AuthenticationGSSContinue",
+            PgsqlBEMessage::AuthenticationSASL(_) => "AuthenticationSASL",
+            PgsqlBEMessage::AuthenticationSASLContinue(_) => "AuthenticationSASLContinue",
+            PgsqlBEMessage::AuthenticationSASLFinal(_) => "AuthenticationSASLFinal",
+            PgsqlBEMessage::ParameterStatus(_) => "ParameterStatus",
+            PgsqlBEMessage::BackendKeyData(_) => "BackendKeyData",
+            PgsqlBEMessage::ReadyForQuery(_) => "ReadyForQuery",
+            PgsqlBEMessage::SslResponse(SslResponse::InvalidResponse) => "InvalidBEMessage",
         }
     }
 
@@ -443,7 +445,7 @@ named!(parse_sasl_initial_response_payload<(SASLAuthenticationMechanism, u32, Ve
         >> ((sasl_mechanism, param_length, param.to_vec()))
     ));
 
-named!(pgsql_parse_sasl_initial_response<PgsqlFEMessage>,
+named!(pub parse_sasl_initial_response<PgsqlFEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'p')
         >> length: verify!(be_u32, |&x| x > 8)
@@ -458,7 +460,7 @@ named!(pgsql_parse_sasl_initial_response<PgsqlFEMessage>,
         }))
     ));
 
-named!(pgsql_parse_sasl_response<PgsqlFEMessage>,
+named!(pub parse_sasl_response<PgsqlFEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'p')
         >> length: verify!(be_u32, |&x| x > 4)
@@ -505,8 +507,21 @@ named!(pub pgsql_parse_startup_packet<PgsqlFEMessage>,
         >> (message)
     ));
 
+// TODO Decide if it's a good idea to offer GSS encryption support right now, as the documentation seems to
+// have conflicting information...
+// If I do:
+// To initiate a GSSAPI-encrypted connection, the frontend initially sends a GSSENCRequest message rather than a
+// StartupMessage. The server then responds with a single byte containing G or N, indicating that it is willing or unwilling to perform GSSAPI encryption, respectively. The frontend might close the connection at this point if it is
+// dissatisfied with the response. To continue after G, using the GSSAPI C bindings as discussed in RFC2744 or equivalent,
+// perform a GSSAPI initialization by calling gss_init_sec_context() in a loop and sending the result to the server,
+// starting with an empty input and then with each result from the server, until it returns no output. When sending the
+// results of gss_init_sec_context() to the server, prepend the length of the message as a four byte integer in network
+// byte order. To continue after N, send the usual StartupMessage and proceed without encryption. (Alternatively, it is
+// permissible to issue an SSLRequest message after an N response to try to use SSL encryption instead of GSSAPI.)
+// Source: https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11, GSSAPI Session Encryption
+
 // Password can be encrypted or in cleartext
-named!(pgsql_parse_password_message<PgsqlFEMessage>,
+named!(pub parse_password_message<PgsqlFEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'p')
         >> length: verify!(be_u32, |&x| x >= 5) // a magic number to check that we have some data.
@@ -527,7 +542,7 @@ named!(pub pgsql_parse_request<PgsqlFEMessage>,
         tag: peek!(be_u8)
         >> message: switch!(value!(tag),
                         b'\0' => call!(pgsql_parse_startup_packet) | // TODO this will probably be taken away from here.
-                        b'p' =>  call!(pgsql_parse_password_message)
+                        b'p' =>  call!(parse_password_message)
                 )
         >> (message)
     ));
@@ -623,7 +638,7 @@ named!(parse_parameter_status_message<PgsqlBEMessage>,
 // TODO This will need thinking and refactoring.
 // I believe it must be called from elsewhere, not from
 // parse_response, for that one already has other messages with the same identifier, so handling these two via events or smth, from pgsql.rs might work better
-named!(pgsql_parse_ssl_response<PgsqlBEMessage>,
+named!(pub parse_ssl_response<PgsqlBEMessage>,
     do_parse!(
         tag: alt!(char!('N') | char!('S'))
         >> (PgsqlBEMessage::SslResponse(
@@ -1562,7 +1577,7 @@ mod tests {
                 sasl_param: br#"n,,n=,r=/z+giZiTxAH7r8sNAeHr7cvp"#.to_vec(),
             });
 
-        let result = pgsql_parse_sasl_initial_response(&buf);
+        let result = parse_sasl_initial_response(&buf);
         match result {
             Ok((remainder, message)) => {
                 assert_eq!(message, ok_res);
@@ -1596,7 +1611,7 @@ mod tests {
                 payload: br#"c=biws,r=/z+giZiTxAH7r8sNAeHr7cvpqV3uo7G/bJBIJO3pjVM7t3ng,p=AFpSYH/K/8bux1mRPUwxTe8lBuIPEyhi/7UFPQpSr4A="#.to_vec(),
             });
 
-        let result = pgsql_parse_sasl_response(&buf);
+        let result = parse_sasl_response(&buf);
         match result {
             Ok((_remainder, message)) => {
                 assert_eq!(message, ok_res);
@@ -1612,19 +1627,19 @@ mod tests {
         // An SSL response - N
         let buf: &[u8] = &[0x4e];
         let response_ok = PgsqlBEMessage::SslResponse(SslResponse::SslRejected);
-        let (_remainder, result) = pgsql_parse_ssl_response(&buf).unwrap();
+        let (_remainder, result) = parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);
 
         // An SSL response - S
         let buf: &[u8] = &[0x53];
         let response_ok = PgsqlBEMessage::SslResponse(SslResponse::SslAccepted);
 
-        let (_remainder, result) = pgsql_parse_ssl_response(&buf).unwrap();
+        let (_remainder, result) = parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);
 
         // Not an SSL response
         let buf: &[u8] = &[0x52];
-        let result = pgsql_parse_ssl_response(&buf);
+        let result = parse_ssl_response(&buf);
         assert!(result.is_err());
 
         // - auth MD5

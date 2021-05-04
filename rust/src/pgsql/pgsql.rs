@@ -51,8 +51,8 @@ pub enum PgsqlTransactionState { // a simplified version of this, stored in Stat
 pub struct PgsqlTransaction {
     tx_id: u64,
     pub state: PgsqlTransactionState,
-    pub request: Vec<PgsqlFEMessage>,
-    pub response: Vec<PgsqlBEMessage>,
+    pub requests: Vec<PgsqlFEMessage>,
+    pub responses: Vec<PgsqlBEMessage>,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
@@ -64,8 +64,8 @@ impl PgsqlTransaction {
         PgsqlTransaction {
             tx_id: 0,
             state: PgsqlTransactionState::ConnectionStart, // TODO question is this the best initialization value?
-            request: Vec::<PgsqlFEMessage>::new(),
-            response: Vec::<PgsqlBEMessage>::new(),
+            requests: Vec::<PgsqlFEMessage>::new(),
+            responses: Vec::<PgsqlBEMessage>::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -87,16 +87,21 @@ impl Drop for PgsqlTransaction {
         self.free();
     }
 }
-
 #[derive(Debug, PartialEq)]
 pub enum PgsqlStateProgress {
     IdleState = 0,
+    SslRequestReceived,
+    SslAcceptedReceived,
+    SslRejectedReceived,
     StartupMessageReceived,
+    SASLAuthenticationReceived,
     SASLInitialResponseReceived,
-    SSLRequestReceived,
+    // SSPIAuthenticationReceived, // TODO implement
+    SimpleAuthenticationReceived,
     PasswordMessageReceived,
     ConnectionCompleted,
     ReadyForQueryReceived,
+    ErrorMessageReceived,
     UnknownState,
 }
 
@@ -154,22 +159,12 @@ impl PgsqlState {
         let mut tx = PgsqlTransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
+        SCLogNotice!("Creating new transaction. tx_id: {}", tx.tx_id);
         return tx;
     }
 
-    // TODO this will probably be replaced by find_or_create_tx
-    // fn find_request(&mut self) -> Option<&mut PgsqlTransaction> {
-    //     // TODO this must be changed, now. HTTP2 doesn't do this, as far as I could tell...
-    //     // So I may or may not keep it. I'll have to decide
-    //     for tx in &mut self.transactions {
-    //         if tx.response.is_none() {
-    //             return Some(tx);
-    //         }
-    //     }
-    //     None
-    // }
-
-    // find or create a new transaction
+    /// Find or create a new transaction
+    /// If a new transaction is created, push that into state.transactions
     // TODO future, improved version may be based on current message type and dir, too
     fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
         // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
@@ -206,76 +201,111 @@ impl PgsqlState {
 
         let mut start = input;
         while start.len() > 0 {
-            // I think this whole block must be redesigned. Already. lol.
-            // Lol, indeed. But let's face the facts:
-            /*
-                - there may be situations where, for the same flow, there will be more than one
-                startupmessage. So I can't assume that those will only happen when there aren't any
-                transactions in the State.
-                - It is probably cleaner to have a method that returns message type, instead of directly
-                trying to extract that from the message. hmmm....
 
-                - so, for the first issue, I can probably have just one match, and check message type
-                for whatever is the returned request...?
-            */
-            // if self.transactions.len() == 0 {
-            //     match parser::pgsql_parse_startup_packet(start) {
-            //         Ok((ram, request)) => {
-            //             start = rem;
-            //             SCLogNotice!("Request: {:?}", request);
-            //             let mut tx = self.new_tx();
-            //             tx.request = Some(request);
-            //             let mut e: PgsqlEvent;
-            //             let request_type = request.message_type;
-
-            //             if request_type {
-            //                 e = PgsqlEvent::SslAccepted;
-            //             } else if
-
-            //             self.transactions.push(tx);
-            //         }
-            //     }
-            // } // TODO clean this up, add logic for response, add tests!
-            match parser::pgsql_parse_request(start) {
-                Ok((rem, request)) => {
-                    start = rem;
-
-                    SCLogNotice!("Request: {:?}", request);
-                    // TODO I can't simply create a new transaction without being sure that's what I need.
-                    // if we're in the middle of a transaction, I certainly will not create a new one.
-                    // let mut tx = self.new_tx();
-                    let mut tx = self.find_or_create_tx();
-                    match request {
-                        PgsqlFEMessage::SslRequest(_) => {
-                            tx.request.push(request);
-                            self.state_progress = PgsqlStateProgress::SSLRequestReceived;
-                            // self.transactions.push(tx); // TODO question: This is now done in find_or_create_tx. Is that bad practice?
+            // TODO rewrite this, in light of PgsqlStateProgress
+            // if PgsqlStateProgress is AuthenticationGSS, parse GSS response -> TODO decide if we should offer support for it in the first version
+            // if PgsqlStateProgress is AuthenticationSSPI, parse SSPI response -> make sure I have the proper nom parser
+            // if PgsqlStateProgress is ReadyForQueryReceived, parse a query...
+            match self.state_progress {
+                PgsqlStateProgress::IdleState  => {
+                    match parser::pgsql_parse_startup_packet(start) {
+                        // TODO should I also add "&& self.transactions.is_empty()"
+                        Ok((rem, request)) => {
+                            start =rem;
+                            SCLogNotice!("Request: {:?}", request);
+                            let mut tx = self.find_or_create_tx();
+                            match request {
+                                PgsqlFEMessage::SslRequest(_) => {
+                                    tx.requests.push(request);
+                                    self.state_progress = PgsqlStateProgress::SslRequestReceived;
+                                },
+                                PgsqlFEMessage::StartupMessage(_) => {
+                                    tx.requests.push(request);
+                                    self.state_progress = PgsqlStateProgress::StartupMessageReceived;
+                                },
+                                _ =>{
+                                    // TODO when things don't go well, what will I do?
+                                },
+                            }
+                        },
+                        Err(nom::Err::Incomplete(needed)) => {
+                            let consumed = input.len() - start.len();
+                            let needed_estimation = start.len() + 1;
+                            SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
+                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                        },
+                        Err(_) => {
+                            return AppLayerResult::err();
+                        },
                         }
-                        PgsqlFEMessage::StartupMessage(_) => {
-                            tx.request.push(request);
-                            self.state_progress = PgsqlStateProgress::StartupMessageReceived;
-                            // self.transactions.push(tx);
+                },
+                PgsqlStateProgress::SASLAuthenticationReceived => {
+                    match parser::parse_sasl_initial_response(start) {
+                        Ok((rem, request)) => {
+                            start = rem;
+                            SCLogNotice!("Request: {:?}", request);
+                            let mut tx = self.find_or_create_tx();
+                            tx.requests.push(request);
                         }
-                        PgsqlFEMessage::PasswordMessage(_) => {
-                            tx.request.push(request);
-                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
+                        Err(nom::Err::Incomplete(needed)) => {
+                            let consumed = input.len() - start.len();
+                            let needed_estimation = start.len() + 1;
+                            SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
+                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                         }
-                        _ => {}
+                        Err(_) => {
+                            return AppLayerResult::err();
+                        }
                     }
                 },
-                Err(nom::Err::Incomplete(needed)) => {
-                    // Not enough data. This parser doesn't give us a good indication
-                    // of how much data is missing so just ask for one more byte so the
-                    // parse is called as soon as more data is received.
-                    SCLogNotice!("Suricata interprets request as incomplete");
-                    let consumed = input.len() - start.len();
-                    let needed_estimation = start.len() + 1;
-                    SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
-                    return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                PgsqlStateProgress::SASLInitialResponseReceived => {
+                    match parser::parse_sasl_response(start) {
+                        Ok((rem, request)) => {
+                            start = rem;
+                            SCLogNotice!("Request: {:?}", request);
+                            let mut tx = self.find_or_create_tx();
+                            tx.requests.push(request);
+                        },
+                        Err(nom::Err::Incomplete(needed)) => {
+                            let consumed = input.len() - start.len();
+                            let needed_estimation = start.len() + 1;
+                            SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
+                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                        },
+                        Err(_) => {
+                            return AppLayerResult::err();
+                        },
+                    }
                 },
-                Err(_) => {
-                    return AppLayerResult::err();
+                PgsqlStateProgress::SimpleAuthenticationReceived => {
+                    match parser::parse_password_message(start) {
+                        Ok((rem, request)) => {
+                            start = rem;
+                            SCLogNotice!("Request : {:?}", request);
+                            let mut tx = self.find_or_create_tx();
+                            tx.requests.push(request);
+                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
+                        },
+                        Err(nom::Err::Incomplete(needed)) => {
+                            let consumed = input.len() - start.len() + 1;
+                            let needed_estimation = start.len() + 1;
+                            SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
+                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                        },
+                        Err(_) => {
+                            return AppLayerResult::err();
+                        },
+                    }
                 },
+                // PgsqlStateProgress::SSPIAuthenticationReceived => {
+                //     // TODO implement
+                // },
+                PgsqlStateProgress::ReadyForQueryReceived => {
+                    // TODO parse simple query request
+                },
+                _ => {
+                    // TODO handle unexpected situations here
+                }
             }
         }
 
@@ -302,31 +332,78 @@ impl PgsqlState {
             // state and keep parsing.
             self.response_gap = false;
         }
+
+        // what changes must be done here?
+        // first of them: if SSL was requested, parse ssl response
+        // then, if ssl response is "accepted", upgrade to TLS
+        // if not, I guess we can simply go on and parse the responses.
+        // I think that for most, if not for all of them, just the message should be enough to know how to parse the msg
+
         let mut start = input;
         while start.len() > 0 {
+            // TODO this must be revamped, to take into account PgsqlStateProgress,
+            // for cases like SSL handshake (might be the only one, but not sure yet)
+            if self.state_progress == PgsqlStateProgress::SslRequestReceived {
+                match parser::parse_ssl_response(start) {
+                    Ok((rem, response)) => {
+                        start = rem;
+                        SCLogNotice!("SSL Response received");
+                        SCLogNotice!("Response: {:?}", &response);
+                        let message_type = response.get_message_type();
+                        if message_type == "SslAccepted" {
+                            self.state_progress = PgsqlStateProgress::SslRequestReceived;
+                            // TODO do we upgrade to TLS here, or leave that for elsewhere?
+                        } else if message_type == "SslRejected" {
+                            self.state_progress = PgsqlStateProgress::SslRejectedReceived;
+                            // TODO not sure if something else should be done here it may be the case that this tx
+                        } else {
+                            // TODO what should I do if I get an invalid message here? AppLayerResult error?
+                        }
+                    },
+                    Err(nom::Err::Incomplete(needed)) => {
+                        let consumed = input.len() - start.len();
+                        let needed_estimation = start.len() + 1;
+                        SCLogNotice!("Suricata interprets the response as incomplete");
+                        SCLogNotice!("Needed: {:?}, estimated needed: {:?}", needed, needed_estimation);
+                        SCLogNotice!("start is: {:?}", &start);
+                        return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                    },
+                    Err(nom::Err::Error((rem, nom::error::ErrorKind::Verify))) => {
+                        // We want to know if we got an ErrorMessage here
+                        SCLogNotice!("Nom error while parsing SSL Response. Unparsed input: {:?}", rem);
+                        // TODO I think we want to parse the error message
+                        self.state_progress = PgsqlStateProgress::ErrorMessageReceived;
+                    },
+                    _ => {
+                        return AppLayerResult::err();
+                    }
+                }
+            }
             match parser::pgsql_parse_response(start) {
                 Ok((rem, response)) => {
                     start = rem;
                     SCLogNotice!("Found a response.");
                     SCLogNotice!("- Response: {:?}", &response);
                     let message_type = response.get_message_type();
-                    let be_key_pid = response.get_backendkey_info().0;
-                    let be_secret_key = response.get_backendkey_info().1;
-                    // TODO we must also match on response type, so we can change state...
-                    // match on backend_secrete_key - store info
-                    // ready for query -- change state to ready for query received
+                    // We must also match on response type, so we can change state...
                     match message_type {
-                        15 => {
-                            self.backend_pid = be_key_pid;
-                            self.backend_secrete_key = be_secret_key;
+                        "SslAccepted" => { // SSL Response
+                            self.state_progress = PgsqlStateProgress::SslRequestReceived;
+                            // TODO we must upgrade to TLS here.
                         }
-                        16 => {
+                        "BackendKeyData" => { // BackendKeyDataMessage
+                            self.backend_pid = response.get_backendkey_info().0;
+                            self.backend_secrete_key = response.get_backendkey_info().1;
+                        }
+                        "ReadyForQuery" => { // ReadyForQueryMessage
                             self.state_progress = PgsqlStateProgress::ReadyForQueryReceived;
                         }
+                        // TODO Question find out if we should store any of the Parameter Statuses in the State.
                         _ => {}
                     }
+                    // Handle the tx here to avoid borrow checker issues
                     let mut tx = self.find_or_create_tx();
-                    tx.response.push(response);
+                    tx.responses.push(response);
                 }
                 Err(nom::Err::Incomplete(needed)) => {
                     let consumed = input.len() - start.len();
@@ -381,6 +458,7 @@ impl PgsqlState {
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_ts(input: &[u8]) -> bool {
     // TODO would it be useful to add a is_valid function?
+    SCLogNotice!("We are in probe_ts");
     parser::pgsql_parse_request(input).is_ok()
 }
 
@@ -388,6 +466,7 @@ fn probe_ts(input: &[u8]) -> bool {
 ///
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_tc(input: &[u8]) -> bool {
+    SCLogNotice!("We are in probe_tc");
     parser::pgsql_parse_response(input).is_ok()
 }
 
@@ -804,7 +883,7 @@ mod test {
         // an SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
         state.parse_request(buf);
-        let ok_state = PgsqlStateProgress::SSLRequestReceived;
+        let ok_state = PgsqlStateProgress::SslRequestReceived;
 
         assert_eq!(state.state_progress, ok_state);
 
