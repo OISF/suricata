@@ -720,7 +720,7 @@ pcap-file:
 app-layer:
   protocols:
     postgresql:
-      enabled: yes
+      enabled: no
     rfb:
       enabled: yes
       detection-ports:
@@ -1040,8 +1040,8 @@ coredump:
 # This feature is currently only used by the reject* keywords.
 host-mode: auto
 
-# Number of packets preallocated per thread. The default is 1024. A higher number 
-# will make sure each CPU will be more easily kept busy, but may negatively 
+# Number of packets preallocated per thread. The default is 1024. A higher number
+# will make sure each CPU will be more easily kept busy, but may negatively
 # impact caching.
 #max-pending-packets: 1024
 
