@@ -300,6 +300,10 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 
 // Defined in app-layer-detect-proto.h
 extern {
+    pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(iproto: u8, alproto: AppProto,
+                                                     pattern: *const c_char, depth: u16,
+                                                     offset: u16, direction: u8, ppfn: ProbeFn,
+                                                     pp_min_depth: u16, pp_max_depth: u16) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }
 
