@@ -23,6 +23,7 @@ use nom::error::ErrorKind;
 use nom::number::Endianness;
 use nom;
 use std::cmp;
+use std::ffi::CString;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -107,6 +108,10 @@ pub const DCERPC_TYPE_CO_CANCEL: u8 = 18;
 pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
+
+pub const PROTO_DCERPC: u16 = 9;
+
+static mut ALPROTO_DCERPC: AppProto = ALPROTO_UNKNOWN;
 
 pub fn dcerpc_type_string(t: u8) -> String {
     match t {
@@ -1183,9 +1188,10 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_request(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
             input, input_len, flags, flags & core::STREAM_EOF != 0);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1205,9 +1211,10 @@ pub extern "C" fn rs_dcerpc_parse_request(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_response(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
         return AppLayerResult::ok();
     }
@@ -1226,15 +1233,15 @@ pub extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    transmute(boxed)
+    return unsafe { transmute(boxed)};
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCState> = transmute(state);
+pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+    let _state: Box<DCERPCState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
@@ -1281,8 +1288,8 @@ pub extern "C" fn rs_dcerpc_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
-) -> u8 {
+    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
     dce_tx.de_state = Some(de_state);
     0
@@ -1291,10 +1298,10 @@ pub extern "C" fn rs_dcerpc_set_tx_detect_state(
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut DCERPCTransaction {
+) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
-        Some(tx) => tx,
+        Some(tx) => unsafe { transmute(tx) },
         None => std::ptr::null_mut(),
     }
 }
@@ -1306,7 +1313,9 @@ pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: &mut DCERPCTransaction, direction: u8) -> u8 {
+pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
+                                                 )-> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == core::STREAM_TOSERVER && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
         return 1;
@@ -1361,9 +1370,8 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> i32
+pub extern "C" fn dcerpc_probe_tcp(_f: *const core::Flow, direction: u8, input: *const u8,
+                                      len: u32, rdir: *mut u8) -> u16
 {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 {
@@ -1383,11 +1391,95 @@ pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
         if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
             unsafe { *rdir = dir };
         }
-        return 1;
+        return PROTO_DCERPC;
     }
-    return 0;
-
+    ALPROTO_UNKNOWN
 }
+
+fn register_pattern_probe() -> i8 {
+    unsafe {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, PROTO_DCERPC,
+                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOSERVER, dcerpc_probe_tcp, 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, PROTO_DCERPC,
+                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOCLIENT, dcerpc_probe_tcp, 0, 0) < 0 {
+            SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+    }
+
+    0
+}
+
+
+// Parser name as a C style string.
+const PARSER_NAME: &'static [u8] = b"dcerpc\0";
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dcerpc_register_parser() {
+    let default_port = CString::new("[0:65355]").unwrap();
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_TCP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_dcerpc_state_new,
+        state_free: rs_dcerpc_state_free,
+        tx_free: rs_dcerpc_state_transaction_free,
+        parse_ts: rs_dcerpc_parse_request,
+        parse_tc: rs_dcerpc_parse_response,
+        get_tx_count: rs_dcerpc_get_tx_cnt,
+        get_tx: rs_dcerpc_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        get_de_state: rs_dcerpc_get_tx_detect_state,
+        set_de_state: rs_dcerpc_set_tx_detect_state,
+        get_events: None,
+        get_eventinfo: None,
+        get_eventinfo_byid : None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_dcerpc_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("tcp").unwrap();
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        if register_pattern_probe() < 0 {
+            return;
+        }
+        ALPROTO_DCERPC = alproto;
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogNotice!("Rust DCERPC parser registered.");
+    } else {
+        SCLogNotice!("Protocol detector and parser disabled for DCERPC.");
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

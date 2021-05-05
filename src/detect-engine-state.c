@@ -57,7 +57,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "app-layer-dcerpc-common.h"
-#include "app-layer-dcerpc.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
