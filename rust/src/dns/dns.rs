@@ -24,6 +24,7 @@ use crate::log::*;
 use crate::applayer::LoggerFlags;
 use crate::core;
 use crate::dns::parser;
+use crate::applayer;
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
@@ -516,6 +517,46 @@ impl DNSState {
         if gap > 0 {
             self.response_buffer.clear();
             self.gap = true;
+        }
+    }
+
+    fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
+        Option<(&DNSTransaction, u64, bool)>
+    {
+        let mut index = *state as usize;
+        let len = self.transactions.len();
+
+        while index < len {
+            let tx = &self.transactions[index];
+            if tx.id < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+            return Some((tx, tx.id - 1, (len - index) > 1));
+        }
+
+        return None;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_state_get_tx_iterator(
+    state: *mut std::os::raw::c_void,
+    min_tx_id: u64,
+    istate: &mut u64)
+    -> applayer::AppLayerGetTxIterTuple
+{
+    let state = cast_pointer!(state, DNSState);
+    match state.get_tx_iterator(min_tx_id, istate) {
+        Some((tx, out_tx_id, has_next)) => {
+            let c_tx = unsafe { transmute(tx) };
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(
+                c_tx, out_tx_id, has_next);
+            return ires;
+        }
+        None => {
+            return applayer::AppLayerGetTxIterTuple::not_found();
         }
     }
 }

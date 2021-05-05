@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "app-layer-dns-common.h"
+#include "rust-dns-dns-gen.h"
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
     { "UNSOLLICITED_RESPONSE",      DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE, },
@@ -328,3 +329,12 @@ void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size)
             snprintf(str, str_size, "%04x/%u", rcode, rcode);
     }
 }
+
+AppLayerGetTxIterTuple RustDNSGetTxIterator(
+    const uint8_t ipproto, const AppProto alproto,
+    void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+    AppLayerGetTxIterState *istate)
+{
+    return rs_dns_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
+}
+

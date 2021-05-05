@@ -169,6 +169,9 @@ void RegisterDNSTCPParsers(void)
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
         DNSAppLayerRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_DNS);
 
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_DNS,
+                RustDNSGetTxIterator);
+
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DNS,
                 APP_LAYER_PARSER_OPT_ACCEPT_GAPS);

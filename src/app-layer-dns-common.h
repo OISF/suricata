@@ -143,5 +143,9 @@ void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto);
 
 void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
 void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
+AppLayerGetTxIterTuple RustDNSGetTxIterator(
+    const uint8_t ipproto, const AppProto alproto,
+    void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+    AppLayerGetTxIterState *istate);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */

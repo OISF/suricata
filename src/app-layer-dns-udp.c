@@ -180,6 +180,9 @@ void RegisterDNSUDPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                 rs_dns_state_progress_completion_status);
 
+        AppLayerParserRegisterGetTxIterator(IPPROTO_UDP, ALPROTO_DNS,
+                RustDNSGetTxIterator);
+
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
         DNSAppLayerRegisterGetEventInfoById(IPPROTO_UDP, ALPROTO_DNS);
 
