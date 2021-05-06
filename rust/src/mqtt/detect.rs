@@ -353,7 +353,7 @@ pub extern "C" fn rs_mqtt_tx_get_publish_message(
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_get_subscribe_topic(tx: &MQTTTransaction,
-    i: u16,
+    i: u32,
     buf: *mut *const u8,
     len: *mut u32)
     -> u8
@@ -386,7 +386,7 @@ pub extern "C" fn rs_mqtt_tx_get_subscribe_topic(tx: &MQTTTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(tx: &MQTTTransaction,
-    i: u16,
+    i: u32,
     buf: *mut *const u8,
     len: *mut u32)
     -> u8

@@ -703,7 +703,7 @@ static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_http2_tx_get_header_name(cbdata->txv, flags, (uint32_t)cbdata->local_id, &b, &b_len) != 1)
+    if (rs_http2_tx_get_header_name(cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1)
         return NULL;
     if (b == NULL || b_len == 0)
         return NULL;
@@ -725,7 +725,7 @@ static void PrefilterTxHttp2HName(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     while(1) {
         // loop until we get a NULL
@@ -769,7 +769,7 @@ static int DetectEngineInspectHttp2HeaderName(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
@@ -837,7 +837,7 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_http2_tx_get_header(cbdata->txv, flags, (uint32_t)cbdata->local_id, &b, &b_len) != 1)
+    if (rs_http2_tx_get_header(cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1)
         return NULL;
     if (b == NULL || b_len == 0)
         return NULL;
@@ -859,7 +859,7 @@ static void PrefilterTxHttp2Header(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     while(1) {
         // loop until we get a NULL
@@ -902,7 +902,7 @@ static int DetectEngineInspectHttp2Header(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {

@@ -43,7 +43,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx:  &mut KRB5Transaction,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
-                                              i: u16,
+                                              i: u32,
                                               buffer: *mut *const u8,
                                               buffer_len: *mut u32)
                                               -> u8
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_sname(tx:  &mut KRB5Transaction,
-                                              i: u16,
+                                              i: u32,
                                               buffer: *mut *const u8,
                                               buffer_len: *mut u32)
                                               -> u8

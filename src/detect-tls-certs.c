@@ -71,7 +71,7 @@ static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
 static int g_tls_certs_buffer_id = 0;
 
 struct TlsCertsGetDataArgs {
-    int local_id;  /**< used as index into thread inspect array */
+    uint32_t local_id; /**< used as index into thread inspect array */
     SSLCertsChain *cert;
 };
 
