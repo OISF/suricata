@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -209,6 +209,15 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    char proto[16] = "";
+    const char *protoptr;
+    if (SCProtoNameValid(IPV4_GET_IPPROTO(p))) {
+        protoptr = known_proto[IPV4_GET_IPPROTO(p)];
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+        protoptr = proto;
+    }
+
     /* Not sure if this mutex is needed around calls to syslog. */
     SCMutexLock(&ast->file_ctx->fp_mutex);
 
@@ -234,7 +243,7 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                     " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->s->gid,
                     pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                    known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
+                    protoptr, srcip, p->sp, dstip, p->dp);
         } else {
             syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
@@ -266,6 +275,15 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    char proto[16] = "";
+    const char *protoptr;
+    if (SCProtoNameValid(IPV6_GET_L4PROTO(p))) {
+        protoptr = known_proto[IPV6_GET_L4PROTO(p)];
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:03%" PRIu32, IPV6_GET_L4PROTO(p));
+        protoptr = proto;
+    }
+
     SCMutexLock(&ast->file_ctx->fp_mutex);
 
     for (i = 0; i < p->alerts.cnt; i++) {
@@ -290,7 +308,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                     action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
-                    pa->s->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
+                    pa->s->prio, protoptr, srcip, p->sp,
                     dstip, p->dp);
 
         } else {
