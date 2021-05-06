@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,19 +24,12 @@
 #ifndef __UTIL_PROTO_NAME_H__
 #define	__UTIL_PROTO_NAME_H__
 
-#ifndef OS_WIN32
-#define PROTO_FILE    "/etc/protocols"
-#else
-#define PROTO_FILE    "C:\\Windows\\system32\\drivers\\etc\\protocol"
-#endif /* OS_WIN32 */
-
 /** Lookup array to hold the information related to known protocol
- *  in /etc/protocols */
-extern char *known_proto[256];
+ *  values
+ */
+extern const char *known_proto[256];
 
-uint8_t SCProtoNameValid(uint16_t);
-void SCProtoNameInit(void);
-void SCProtoNameDeInit(void);
+bool SCProtoNameValid(uint16_t);
 
 #endif	/* __UTIL_PROTO_NAME_H__ */
 
