@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -382,7 +382,6 @@ static void GlobalsDestroy(SCInstance *suri)
     LiveDeviceListClean();
     OutputDeregisterAll();
     TimeDeinit();
-    SCProtoNameDeInit();
     if (!suri->disabled_detect) {
         SCReferenceConfDeinit();
         SCClassConfDeinit();
@@ -2857,8 +2856,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     SigTableSetup(); /* load the rule keywords */
     SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
-
-    SCProtoNameInit();
 
     TagInitCtx();
     PacketAlertTagInit();
