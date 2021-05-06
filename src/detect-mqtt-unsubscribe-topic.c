@@ -59,7 +59,7 @@ static int DetectMQTTUnsubscribeTopicSetup(DetectEngineCtx *, Signature *, const
 static int g_mqtt_unsubscribe_topic_buffer_id = 0;
 
 struct MQTTUnsubscribeTopicGetDataArgs {
-    int local_id;
+    uint32_t local_id;
     void *txv;
 };
 
@@ -78,8 +78,7 @@ static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_unsubscribe_topic(cbdata->txv, (uint16_t)cbdata->local_id,
-                &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_unsubscribe_topic(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
         return NULL;
     }
 
@@ -94,7 +93,7 @@ static int DetectEngineInspectMQTTUnsubscribeTopic(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
@@ -151,7 +150,7 @@ static void PrefilterTxMQTTUnsubscribeTopic(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    int local_id = 0;
+    uint32_t local_id = 0;
     while(1) {
         struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv };
         InspectionBuffer *buffer = MQTTUnsubscribeTopicGetData(det_ctx, ctx->transforms,

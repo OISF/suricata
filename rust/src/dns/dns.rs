@@ -888,7 +888,7 @@ pub extern "C" fn rs_dns_state_get_tx_data(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
-                                       i: u16,
+                                       i: u32,
                                        buf: *mut *const u8,
                                        len: *mut u32)
                                        -> u8
