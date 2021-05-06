@@ -23,8 +23,6 @@ use std::str;
 use std;
 use std::str::FromStr;
 
-use crate::log::*;
-
 // We transform an integer string into a i64, ignoring surrounding whitespaces
 // We look for a digit suite, and try to convert it.
 // If either str::from_utf8 or FromStr::from_str fail,
@@ -105,11 +103,9 @@ pub extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
             return dport;
         },
         Err(nom::Err::Incomplete(_)) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
         Err(_) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv error on '{:?}'", String::from_utf8_lossy(buf));
         },
     }
@@ -169,11 +165,9 @@ pub extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
             return dport;
         },
         Err(nom::Err::Incomplete(_)) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
         Err(_) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
 

@@ -17,8 +17,6 @@
 
 // written by Victor Julien
 
-use crate::log::*;
-
 use crate::smb::smb::*;
 use crate::smb::smb2::*;
 use crate::smb::dcerpc_records::*;

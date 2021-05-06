@@ -23,7 +23,6 @@ use applayer;
 use conf;
 use core;
 use core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
-use log::*;
 use parser::*;
 use sip::parser::*;
 use std;

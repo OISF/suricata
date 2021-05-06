@@ -20,7 +20,6 @@ extern crate nom;
 use std;
 use std::mem::transmute;
 
-use crate::log::*;
 use crate::applayer::LoggerFlags;
 use crate::core;
 use crate::dns::parser;

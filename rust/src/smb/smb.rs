@@ -35,7 +35,6 @@ use std::collections::HashMap;
 use nom;
 
 use crate::core::*;
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
 
@@ -1723,8 +1722,8 @@ impl SMBState {
                     }
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(needed)) => {
-                    SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), needed);
+                Err(nom::Err::Incomplete(_needed)) => {
+                    SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), _needed);
                     let consumed = self.parse_tcp_data_tc_partial(cur_i);
                     cur_i = &cur_i[consumed ..];
 
