@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -126,7 +126,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
 
     char proto[16] = "";
-    char *protoptr;
+    const char *protoptr;
     if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
         protoptr = known_proto[IP_GET_IPPROTO(p)];
     } else {
