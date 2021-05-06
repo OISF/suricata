@@ -1017,9 +1017,9 @@ impl NFSState {
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
 
-            let mut cnt = 0;
+            let mut _cnt = 0;
             while cur_i.len() > 0 {
-                cnt += 1;
+                _cnt += 1;
                 match nfs_probe(cur_i, STREAM_TOSERVER) {
                     1 => {
                         SCLogDebug!("expected data found");
@@ -1028,13 +1028,13 @@ impl NFSState {
                     },
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.",
-                                cur_i.len(), cnt);
+                                cur_i.len(), _cnt);
                         return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, (cur_i.len() + 1) as u32);
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
                         if cur_i.len() == 0 {
-                            SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
+                            SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
                     _ => {
@@ -1170,9 +1170,9 @@ impl NFSState {
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
 
-            let mut cnt = 0;
+            let mut _cnt = 0;
             while cur_i.len() > 0 {
-                cnt += 1;
+                _cnt += 1;
                 match nfs_probe(cur_i, STREAM_TOCLIENT) {
                     1 => {
                         SCLogDebug!("expected data found");
@@ -1181,13 +1181,13 @@ impl NFSState {
                     },
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.",
-                                cur_i.len(), cnt);
+                                cur_i.len(), _cnt);
                         return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, (cur_i.len() + 1) as u32);
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
                         if cur_i.len() == 0 {
-                            SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
+                            SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", _cnt);
                         }
                     },
                     _ => {

@@ -149,8 +149,8 @@ pub fn handle_ikev2(
                             state.ikev2_container.dh_group = kex.dh_group;
                         }
                     }
-                    IkeV2PayloadContent::Nonce(ref n) => {
-                        SCLogDebug!("Nonce: {:?}", n);
+                    IkeV2PayloadContent::Nonce(ref _n) => {
+                        SCLogDebug!("Nonce: {:?}", _n);
                     }
                     IkeV2PayloadContent::Notify(ref n) => {
                         SCLogDebug!("Notify: {:?}", n);
@@ -207,8 +207,8 @@ pub fn handle_ikev2(
                 }
             }
         }
-        e => {
-            SCLogDebug!("parse_ikev2_payload_with_type: {:?}", e);
+        _e => {
+            SCLogDebug!("parse_ikev2_payload_with_type: {:?}", _e);
             ()
         }
     }
@@ -285,8 +285,8 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                     }
                     _ => (),
                 },
-                IkeV2Transform::Unknown(tx_type, tx_id) => {
-                    SCLogDebug!("Unknown proposal: type={:?}, id={}", tx_type, tx_id);
+                IkeV2Transform::Unknown(_tx_type, _tx_id) => {
+                    SCLogDebug!("Unknown proposal: type={:?}, id={}", _tx_type, _tx_id);
                     state.set_event(IkeEvent::UnknownProposal);
                 }
                 _ => (),

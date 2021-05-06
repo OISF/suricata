@@ -101,11 +101,9 @@ pub extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
             return dport;
         },
         Err(nom::Err::Incomplete(_)) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
         Err(_) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv error on '{:?}'", String::from_utf8_lossy(buf));
         },
     }
@@ -166,11 +164,9 @@ pub extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
             return dport;
         },
         Err(nom::Err::Incomplete(_)) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
         Err(_) => {
-            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
 

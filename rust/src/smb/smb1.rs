@@ -251,14 +251,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             true
 
                                         },
-                                        Err(nom::Err::Incomplete(n)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", n);
+                                        Err(nom::Err::Incomplete(_n)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(e)) |
-                                        Err(nom::Err::Failure(e)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", e);
+                                        Err(nom::Err::Error(_e)) |
+                                        Err(nom::Err::Failure(_e)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
@@ -279,14 +279,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
                                             true
                                         },
-                                        Err(nom::Err::Incomplete(n)) => {
-                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME INCOMPLETE {:?}", n);
+                                        Err(nom::Err::Incomplete(_n)) => {
+                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(e)) |
-                                        Err(nom::Err::Failure(e)) => {
-                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME ERROR {:?}", e);
+                                        Err(nom::Err::Error(_e)) |
+                                        Err(nom::Err::Failure(_e)) => {
+                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
@@ -295,14 +295,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                     false
                                 }
                             },
-                            Err(nom::Err::Incomplete(n)) => {
-                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS INCOMPLETE {:?}", n);
+                            Err(nom::Err::Incomplete(_n)) => {
+                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS INCOMPLETE {:?}", _n);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
-                            Err(nom::Err::Error(e)) |
-                            Err(nom::Err::Failure(e)) => {
-                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS ERROR {:?}", e);
+                            Err(nom::Err::Error(_e)) |
+                            Err(nom::Err::Failure(_e)) => {
+                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS ERROR {:?}", _e);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
@@ -334,14 +334,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             true
 
                                         },
-                                        Err(nom::Err::Incomplete(n)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", n);
+                                        Err(nom::Err::Incomplete(_n)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(e)) |
-                                        Err(nom::Err::Failure(e)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", e);
+                                        Err(nom::Err::Error(_e)) |
+                                        Err(nom::Err::Failure(_e)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
@@ -367,14 +367,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
                                             true
                                         },
-                                        Err(nom::Err::Incomplete(n)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME INCOMPLETE {:?}", n);
+                                        Err(nom::Err::Incomplete(_n)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(e)) |
-                                        Err(nom::Err::Failure(e)) => {
-                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME ERROR {:?}", e);
+                                        Err(nom::Err::Error(_e)) |
+                                        Err(nom::Err::Failure(_e)) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
@@ -383,14 +383,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                     false
                                 }
                             },
-                            Err(nom::Err::Incomplete(n)) => {
-                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS INCOMPLETE {:?}", n);
+                            Err(nom::Err::Incomplete(_n)) => {
+                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS INCOMPLETE {:?}", _n);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
-                            Err(nom::Err::Error(e)) |
-                            Err(nom::Err::Failure(e)) => {
-                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS ERROR {:?}", e);
+                            Err(nom::Err::Error(_e)) |
+                            Err(nom::Err::Failure(_e)) => {
+                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS ERROR {:?}", _e);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
@@ -399,14 +399,14 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                         false
                     }
                 },
-                Err(nom::Err::Incomplete(n)) => {
-                    SCLogDebug!("TRANS2 INCOMPLETE {:?}", n);
+                Err(nom::Err::Incomplete(_n)) => {
+                    SCLogDebug!("TRANS2 INCOMPLETE {:?}", _n);
                     events.push(SMBEvent::MalformedData);
                     false
                 },
-                Err(nom::Err::Error(e)) |
-                Err(nom::Err::Failure(e)) => {
-                    SCLogDebug!("TRANS2 ERROR {:?}", e);
+                Err(nom::Err::Error(_e)) |
+                Err(nom::Err::Failure(_e)) => {
+                    SCLogDebug!("TRANS2 ERROR {:?}", _e);
                     events.push(SMBEvent::MalformedData);
                     false
                 },
@@ -883,11 +883,11 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 let mut frankenfid = pipe.fid.to_vec();
                 frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-                let (filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
+                let (_filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
                     (n, x) => (n, x),
                 };
                 SCLogDebug!("smb1_trans_request_record: name {} is_dcerpc {}",
-                        filename, is_dcerpc);
+                        _filename, is_dcerpc);
                 pipe_dcerpc = is_dcerpc;
             }
 
@@ -924,11 +924,11 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             let mut frankenfid = fid.to_vec();
             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-            let (filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
+            let (_filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
                 (n, x) => (n, x),
             };
             SCLogDebug!("smb1_trans_response_record: name {} is_dcerpc {}",
-                    filename, is_dcerpc);
+                    _filename, is_dcerpc);
 
             // if we get status 'BUFFER_OVERFLOW' this is only a part of
             // the data. Store it in the ssn/tree for later use.

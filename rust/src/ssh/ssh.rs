@@ -256,15 +256,15 @@ impl SSHState {
                                 panic!("SSH invalid length record header");
                             }
                         }
-                        Err(e) => {
-                            SCLogDebug!("SSH invalid record header {}", e);
+                        Err(_e) => {
+                            SCLogDebug!("SSH invalid record header {}", _e);
                             self.set_event(SSHEvent::InvalidRecord);
                             return AppLayerResult::err();
                         }
                     }
                 }
-                Err(e) => {
-                    SCLogDebug!("SSH invalid record {}", e);
+                Err(_e) => {
+                    SCLogDebug!("SSH invalid record {}", _e);
                     self.set_event(SSHEvent::InvalidRecord);
                     return AppLayerResult::err();
                 }
@@ -294,8 +294,8 @@ impl SSHState {
                 Err(nom::Err::Incomplete(_)) => {
                     return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
                 }
-                Err(e) => {
-                    SCLogDebug!("SSH invalid banner {}", e);
+                Err(_e) => {
+                    SCLogDebug!("SSH invalid banner {}", _e);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -353,8 +353,8 @@ impl SSHState {
                     }
                 }
             }
-            Err(e) => {
-                SCLogDebug!("SSH invalid banner {}", e);
+            Err(_e) => {
+                SCLogDebug!("SSH invalid banner {}", _e);
                 self.set_event(SSHEvent::InvalidBanner);
                 return AppLayerResult::err();
             }
