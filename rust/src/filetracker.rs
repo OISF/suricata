@@ -121,10 +121,10 @@ impl FileTransferTracker {
         self.file_is_truncated = true;
     }
 
-    pub fn create(&mut self, name: &[u8], file_size: u64) {
+    pub fn create(&mut self, _name: &[u8], _file_size: u64) {
         if self.file_open == true { panic!("close existing file first"); }
 
-        SCLogDebug!("CREATE: name {:?} file_size {}", name, file_size);
+        SCLogDebug!("CREATE: name {:?} file_size {}", _name, _file_size);
     }
 
     pub fn new_chunk(&mut self, config: &'static SuricataFileContext,
@@ -255,7 +255,7 @@ impl FileTransferTracker {
 
                     if self.chunk_is_ooo == false {
                         loop {
-                            let offset = self.tracked;
+                            let _offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
                                 Some(c) => {
                                     let res = files.file_append(&self.track_id, &c.chunk, c.contains_gap);
@@ -273,10 +273,10 @@ impl FileTransferTracker {
                                     self.tracked += c.chunk.len() as u64;
                                     self.cur_ooo -= c.chunk.len() as u64;
 
-                                    SCLogDebug!("STORED OOO CHUNK at offset {}, tracked now {}, stored len {}", offset, self.tracked, c.chunk.len());
+                                    SCLogDebug!("STORED OOO CHUNK at offset {}, tracked now {}, stored len {}", _offset, self.tracked, c.chunk.len());
                                 },
                                 _ => {
-                                    SCLogDebug!("NO STORED CHUNK found at offset {}", self.tracked);
+                                    SCLogDebug!("NO STORED CHUNK found at _offset {}", self.tracked);
                                     break;
                                 },
                             };

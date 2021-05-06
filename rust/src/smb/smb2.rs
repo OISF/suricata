@@ -579,20 +579,20 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_write(r.data)
                 {
-                    Ok((_, wr)) => {
-                        SCLogDebug!("SMBv2: Write response => {:?}", wr);
+                    Ok((_, _wr)) => {
+                        SCLogDebug!("SMBv2: Write response => {:?}", _wr);
 
                         /* search key-guid map */
                         let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
                                 r.session_id, r.tree_id, r.message_id);
-                        let guid_vec = match state.ssn2vec_map.remove(&guid_key) {
+                        let _guid_vec = match state.ssn2vec_map.remove(&guid_key) {
                             Some(p) => p,
                             None => {
                                 SCLogDebug!("SMBv2 response: GUID NOT FOUND");
                                 Vec::new()
                             },
                         };
-                        SCLogDebug!("SMBv2 write response for GUID {:?}", guid_vec);
+                        SCLogDebug!("SMBv2 write response for GUID {:?}", _guid_vec);
                     }
                     _ => {
                         events.push(SMBEvent::MalformedData);

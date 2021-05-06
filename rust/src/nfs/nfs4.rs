@@ -186,8 +186,8 @@ impl NFSState {
                         self.commit_v4(r, fh);
                     }
                 }
-                &Nfs4RequestContent::Close(ref rd) => {
-                    SCLogDebug!("CLOSEv4: {:?}", rd);
+                &Nfs4RequestContent::Close(ref _rd) => {
+                    SCLogDebug!("CLOSEv4: {:?}", _rd);
                 }
                 &Nfs4RequestContent::Create(ref rd) => {
                     SCLogDebug!("CREATEv4: {:?}", rd);
@@ -202,11 +202,11 @@ impl NFSState {
                     xidmap.file_name = rd.to_vec();
                     main_opcode = NFSPROC4_REMOVE;
                 }
-                &Nfs4RequestContent::SetClientId(ref rd) => {
+                &Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!("SETCLIENTIDv4: client id {} r_netid {} r_addr {}",
-                            String::from_utf8_lossy(&rd.client_id),
-                            String::from_utf8_lossy(&rd.r_netid),
-                            String::from_utf8_lossy(&rd.r_addr));
+                            String::from_utf8_lossy(&_rd.client_id),
+                            String::from_utf8_lossy(&_rd.r_netid),
+                            String::from_utf8_lossy(&_rd.r_addr));
                 }
                 &_ => { },
             }
@@ -291,13 +291,13 @@ impl NFSState {
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
             match c {
-                &Nfs4ResponseContent::ReadDir(s, ref rd) => {
+                &Nfs4ResponseContent::ReadDir(_s, ref rd) => {
                     if let &Some(ref rd) = rd {
-                        SCLogDebug!("READDIRv4: status {} eof {}", s, rd.eof);
+                        SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
 
                         for d in &rd.listing {
-                            if let &Some(ref d) = d {
-                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&d.name));
+                            if let &Some(ref _d) = d {
+                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&_d.name));
                             }
                         }
 
@@ -329,9 +329,9 @@ impl NFSState {
                         self.process_read_record(r, &reply, Some(&xidmap));
                     }
                 },
-                &Nfs4ResponseContent::Open(s, ref rd) => {
-                    if let &Some(ref rd) = rd {
-                        SCLogDebug!("OPENv4: status {} opendata {:?}", s, rd);
+                &Nfs4ResponseContent::Open(_s, ref rd) => {
+                    if let &Some(ref _rd) = rd {
+                        SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
                         insert_filename_with_getfh = true;
                     }
                 },

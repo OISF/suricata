@@ -20,6 +20,7 @@ use crate::smb::smb2::*;
 use crate::smb::smb2_records::*;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
+#[cfg(feature = "debug")]
 use crate::smb::funcs::*;
 
 #[derive(Debug)]

@@ -195,8 +195,8 @@ impl<'a> SNMPState<'a> {
             Ok((_rem,SnmpGenericMessage::V1(msg))) |
             Ok((_rem,SnmpGenericMessage::V2(msg))) => self.handle_snmp_v12(msg, direction),
             Ok((_rem,SnmpGenericMessage::V3(msg))) => self.handle_snmp_v3(msg, direction),
-            Err(e) => {
-                SCLogDebug!("parse_snmp failed: {:?}", e);
+            Err(_e) => {
+                SCLogDebug!("parse_snmp failed: {:?}", _e);
                 self.set_event(SNMPEvent::MalformedData);
                 -1
             },
