@@ -399,7 +399,9 @@ impl PgsqlState {
                             self.state_progress = PgsqlStateProgress::ReadyForQueryReceived;
                         }
                         // TODO Question find out if we should store any of the Parameter Statuses in the State.
-                        _ => {}
+                        _ => {        // TODO handle unexpected situations here
+                            SCLogNotice!("ERROR in parse_response, all unexpected cases");
+                            return AppLayerResult::err();}
                     }
                     // Handle the tx here to avoid borrow checker issues
                     let mut tx = self.find_or_create_tx();
