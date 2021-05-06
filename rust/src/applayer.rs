@@ -295,7 +295,14 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 
 // Defined in app-layer-detect-proto.h
 extern {
-    pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(iproto: u8, alproto: AppProto,
+    pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
+                                         min_depth: u16, max_depth: u16, dir: u8,
+                                         pparser1: ProbeFn, pparser2: ProbeFn);
+    pub fn AppLayerProtoDetectPPParseConfPorts(ipproto_name: *const c_char, ipproto: u8,
+                                               alproto_name: *const c_char, alproto: AppProto,
+                                               min_depth: u16, max_depth: u16,
+                                               pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
+    pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(ipproto: u8, alproto: AppProto,
                                                      pattern: *const c_char, depth: u16,
                                                      offset: u16, direction: u8, ppfn: ProbeFn,
                                                      pp_min_depth: u16, pp_max_depth: u16) -> c_int;
@@ -323,6 +330,7 @@ pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
+    pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
     pub fn AppLayerParserRegisterOptionFlags(ipproto: u8, alproto: AppProto, flags: u32);
