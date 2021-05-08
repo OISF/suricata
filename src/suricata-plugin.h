@@ -38,8 +38,11 @@ typedef struct SCPlugin_ {
     const char *name;
     const char *license;
     const char *author;
+    const bool internal;
     void (*Init)(void);
 } SCPlugin;
+
+typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
 /**
  * Structure used to define a file type plugin.
@@ -50,7 +53,8 @@ typedef struct SCPlugin_ {
  * plugins: section
  */
 typedef struct SCPluginFileType_ {
-    char *name;
+    const char *name;
+    bool internal;
     /* Init Called on first access */
     int (*Init)(ConfNode *conf, bool threaded, void **init_data);
     /* Write - Called on each write to the object */
@@ -64,7 +68,8 @@ typedef struct SCPluginFileType_ {
     TAILQ_ENTRY(SCPluginFileType_) entries;
 } SCPluginFileType;
 
-bool SCPluginRegisterFileType(SCPluginFileType *);
+bool SCPluginRegisterEveFileType(SCPluginFileType *);
+bool SCRegisterEveFileType(SCPluginFileType *);
 
 typedef struct SCCapturePlugin_ {
     char *name;
