@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,13 +17,12 @@
 
 #include "suricata-common.h"
 #include "suricata-plugin.h"
+#include "output-eve-syslog.h"
 #include "util-plugin.h"
 
 #ifdef HAVE_PLUGINS
 
 #include <dlfcn.h>
-
-typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
 typedef struct PluginListNode_ {
     SCPlugin *plugin;
@@ -44,6 +43,27 @@ static TAILQ_HEAD(, SCPluginFileType_) output_types =
 
 static TAILQ_HEAD(, SCCapturePlugin_) capture_plugins = TAILQ_HEAD_INITIALIZER(capture_plugins);
 
+bool RegisterPlugin(SCPlugin *plugin, void *lib)
+{
+    BUG_ON(plugin->name == NULL);
+    BUG_ON(plugin->author == NULL);
+    BUG_ON(plugin->license == NULL);
+    BUG_ON(plugin->Init == NULL);
+
+    PluginListNode *node = SCCalloc(1, sizeof(*node));
+    if (node == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for plugin");
+        return false;
+    }
+    node->plugin = plugin;
+    node->lib = lib;
+    TAILQ_INSERT_TAIL(&plugins, node, entries);
+    SCLogNotice("Initializing plugin %s; author=%s; license=%s", plugin->name, plugin->author,
+            plugin->license);
+    (*plugin->Init)();
+    return true;
+}
+
 static void InitPlugin(char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
@@ -58,31 +78,18 @@ static void InitPlugin(char *path)
             dlclose(lib);
             return;
         }
-        SCPlugin *plugin = (*plugin_register)();
-        if (plugin == NULL) {
+
+        if (!RegisterPlugin(plugin_register(), lib)) {
             SCLogError(SC_ERR_PLUGIN, "Plugin registration failed: %s", path);
             dlclose(lib);
             return;
         }
-
-        BUG_ON(plugin->name == NULL);
-        BUG_ON(plugin->author == NULL);
-        BUG_ON(plugin->license == NULL);
-        BUG_ON(plugin->Init == NULL);
-
-        PluginListNode *node = SCCalloc(1, sizeof(*node));
-        if (node == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocated memory for plugin");
-            dlclose(lib);
-            return;
-        }
-        node->plugin = plugin;
-        node->lib = lib;
-        TAILQ_INSERT_TAIL(&plugins, node, entries);
-        SCLogNotice("Initializing plugin %s; author=%s; license=%s", plugin->name, plugin->author,
-                plugin->license);
-        (*plugin->Init)();
     }
+}
+
+void SCInternalLoad(void)
+{
+    SyslogInitialize();
 }
 
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
@@ -132,6 +139,23 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     }
 }
 
+bool SCRegisterEveFileType(SCPluginFileType *plugin)
+{
+    SCPluginFileType *existing = NULL;
+    TAILQ_FOREACH (existing, &output_types, entries) {
+        if (strcmp(existing->name, plugin->name) == 0) {
+            SCLogNotice("EVE file type plugin name conflicts with previously "
+                        "registered plugin: %s",
+                    plugin->name);
+            return false;
+        }
+    }
+
+    SCLogNotice("Registering EVE file type plugin %s", plugin->name);
+    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
+    return true;
+}
+
 /**
  * \brief Register an Eve/JSON file type plugin.
  *
@@ -139,15 +163,14 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
  *      conflicts with a built-in or previously registered
  *      plugin file type.
  *
- * TODO: As this is Eve specific, perhaps Eve should be in the filename.
  */
-bool SCPluginRegisterFileType(SCPluginFileType *plugin)
+bool SCPluginRegisterEveFileType(SCPluginFileType *plugin)
 {
     const char *builtin[] = {
         "regular",
-        "syslog",
         "unix_dgram",
         "unix_stream",
+        "syslog",
         "redis",
         NULL,
     };
@@ -156,24 +179,14 @@ bool SCPluginRegisterFileType(SCPluginFileType *plugin)
             break;
         }
         if (strcmp(builtin[i], plugin->name) == 0) {
-            SCLogNotice("Eve filetype plugin name \"%s\" conflicts "
-                    "with built-in name", plugin->name);
+            SCLogNotice("Plugin EVE filetype plugin name \"%s\" conflicts "
+                        "with built-in name",
+                    plugin->name);
             return false;
         }
     }
 
-    SCPluginFileType *existing = NULL;
-    TAILQ_FOREACH(existing, &output_types, entries) {
-        if (strcmp(existing->name, plugin->name) == 0) {
-            SCLogNotice("Eve filetype plugin name conflicts with previously "
-                    "registered plugin: %s", plugin->name);
-            return false;
-        }
-    }
-
-    SCLogNotice("Registering JSON file type plugin %s", plugin->name);
-    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
-    return true;
+    return SCRegisterEveFileType(plugin);
 }
 
 SCPluginFileType *SCPluginFindFileType(const char *name)
