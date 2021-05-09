@@ -30,6 +30,19 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading 6.0 to 7.0
+--------------------
+- Protocol values and their names are built-in to Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed.
+
+Major changes
+~~~~~~~~~~~~~
+
+Removals
+~~~~~~~~
+
+Logging changes
+~~~~~~~~~~~~~~~
+
 Upgrading 5.0 to 6.0
 --------------------
 - SIP now enabled by default
