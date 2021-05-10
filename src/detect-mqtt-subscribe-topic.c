@@ -82,7 +82,7 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
                 &data, &data_len) == 0) {
         return NULL;
     }
-
+    buffer->inspect = data;
     InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
