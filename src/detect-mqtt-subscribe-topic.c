@@ -59,7 +59,7 @@ static int DetectMQTTSubscribeTopicSetup(DetectEngineCtx *, Signature *, const c
 static int g_mqtt_subscribe_topic_buffer_id = 0;
 
 struct MQTTSubscribeTopicGetDataArgs {
-    int local_id;
+    uint32_t local_id;
     void *txv;
 };
 
@@ -78,8 +78,7 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint16_t)cbdata->local_id,
-                &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
         return NULL;
     }
 
