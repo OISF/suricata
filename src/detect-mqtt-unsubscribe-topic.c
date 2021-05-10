@@ -58,6 +58,8 @@ static int DetectMQTTUnsubscribeTopicSetup(DetectEngineCtx *, Signature *, const
 
 static int g_mqtt_unsubscribe_topic_buffer_id = 0;
 
+static int unsubscribe_topic_match_limit = 100;
+
 struct MQTTUnsubscribeTopicGetDataArgs {
     int local_id;
     void *txv;
@@ -102,7 +104,7 @@ static int DetectEngineInspectMQTTUnsubscribeTopic(
         transforms = engine->v2.transforms;
     }
 
-    while(1) {
+    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
         struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = MQTTUnsubscribeTopicGetData(det_ctx,
             transforms, f, &cbdata, engine->sm_list, false);
@@ -153,7 +155,7 @@ static void PrefilterTxMQTTUnsubscribeTopic(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     int local_id = 0;
-    while(1) {
+    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
         struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv };
         InspectionBuffer *buffer = MQTTUnsubscribeTopicGetData(det_ctx, ctx->transforms,
                 f, &cbdata, list_id, true);
@@ -203,6 +205,16 @@ void DetectMQTTUnsubscribeTopicRegister (void)
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    intmax_t val = 0;
+    if (ConfGetInt("mqtt.unsubscribe-topic-match-limit", &val)) {
+        unsubscribe_topic_match_limit = val;
+    }
+    if (unsubscribe_topic_match_limit == 0) {
+        SCLogDebug("Using unrestricted MQTT UNSUBSCRIBE topic matching");
+    } else {
+        SCLogDebug("Using MQTT UNSUBSCRIBE topic match-limit setting of: %i",
+                unsubscribe_topic_match_limit);
+    }
 
     DetectAppLayerMpmRegister2("mqtt.unsubscribe.topic", SIG_FLAG_TOSERVER, 1,
             PrefilterMpmMQTTUnsubscribeTopicRegister, NULL,
