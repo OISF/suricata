@@ -80,8 +80,8 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint32_t)cbdata->local_id,
-                &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint32_t)cbdata->local_id, &data, &data_len) ==
+            0) {
         return NULL;
     }
     buffer->inspect = data;
@@ -104,7 +104,7 @@ static int DetectEngineInspectMQTTSubscribeTopic(
         transforms = engine->v2.transforms;
     }
 
-    while((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
+    while ((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
         struct MQTTSubscribeTopicGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = MQTTSubscribeTopicGetData(det_ctx,
             transforms, f, &cbdata, engine->sm_list, false);
@@ -155,7 +155,7 @@ static void PrefilterTxMQTTSubscribeTopic(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     int local_id = 0;
-    while((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
+    while ((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
         struct MQTTSubscribeTopicGetDataArgs cbdata = { local_id, txv };
         InspectionBuffer *buffer = MQTTSubscribeTopicGetData(det_ctx, ctx->transforms,
                 f, &cbdata, list_id, true);
@@ -208,7 +208,8 @@ void DetectMQTTSubscribeTopicRegister (void)
     intmax_t val = 0;
     if (ConfGetInt("mqtt.subscribe-topic-match-limit", &val)) {
         subscribe_topic_match_limit = val;
-        SCLogDebug("Using MQTT SUBSCRIBE topic match-limit setting of: %i", subscribe_topic_match_limit);
+        SCLogDebug("Using MQTT SUBSCRIBE topic match-limit setting of: %i",
+                subscribe_topic_match_limit);
     }
     if (subscribe_topic_match_limit == 0) {
         SCLogDebug("Using unrestricted MQTT SUBSCRIBE topic matching");

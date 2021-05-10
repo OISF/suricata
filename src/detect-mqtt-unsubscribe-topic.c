@@ -80,8 +80,8 @@ static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_unsubscribe_topic(cbdata->txv, (uint32_t)cbdata->local_id,
-                &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_unsubscribe_topic(
+                cbdata->txv, (uint32_t)cbdata->local_id, &data, &data_len) == 0) {
         return NULL;
     }
     buffer->inspect = data;
@@ -104,7 +104,7 @@ static int DetectEngineInspectMQTTUnsubscribeTopic(
         transforms = engine->v2.transforms;
     }
 
-    while((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
+    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
         struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = MQTTUnsubscribeTopicGetData(det_ctx,
             transforms, f, &cbdata, engine->sm_list, false);
@@ -155,7 +155,7 @@ static void PrefilterTxMQTTUnsubscribeTopic(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     int local_id = 0;
-    while((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
+    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
         struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv };
         InspectionBuffer *buffer = MQTTUnsubscribeTopicGetData(det_ctx, ctx->transforms,
                 f, &cbdata, list_id, true);
@@ -208,7 +208,8 @@ void DetectMQTTUnsubscribeTopicRegister (void)
     intmax_t val = 0;
     if (ConfGetInt("mqtt.unsubscribe-topic-match-limit", &val)) {
         unsubscribe_topic_match_limit = val;
-        SCLogDebug("Using MQTT UNSUBSCRIBE topic match-limit setting of: %i", unsubscribe_topic_match_limit);
+        SCLogDebug("Using MQTT UNSUBSCRIBE topic match-limit setting of: %i",
+                unsubscribe_topic_match_limit);
     }
     if (unsubscribe_topic_match_limit == 0) {
         SCLogDebug("Using unrestricted MQTT UNSUBSCRIBE topic matching");
