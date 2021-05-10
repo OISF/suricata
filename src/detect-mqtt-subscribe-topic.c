@@ -78,7 +78,7 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint16_t)cbdata->local_id,
+    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint32_t)cbdata->local_id,
                 &data, &data_len) == 0) {
         return NULL;
     }
