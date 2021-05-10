@@ -1111,6 +1111,11 @@ pcre:
   match-limit: 3500
   match-limit-recursion: 1500
 
+# MQTT topic detection depth
+#mqtt:
+#  subscribe-topic-match-limit: 100
+#  unsubscribe-topic-match-limit: 100
+
 ##
 ## Advanced Traffic Tracking and Reconstruction Settings
 ##
