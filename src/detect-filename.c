@@ -355,8 +355,8 @@ static InspectionBuffer *FilenameGetDataCallback(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, local_file_id);
+    InspectionBuffer *buffer =
+        InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -365,8 +365,7 @@ static InspectionBuffer *FilenameGetDataCallback(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data = cur_file->name;
     uint32_t data_len = cur_file->name_len;
 
-    InspectionBufferSetup(buffer, data, data_len);
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }

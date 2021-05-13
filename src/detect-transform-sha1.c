@@ -110,7 +110,7 @@ static int DetectTransformToSha1Test01(void)
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, 8);
-    InspectionBufferSetup(&buffer, input, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformToSha1(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);

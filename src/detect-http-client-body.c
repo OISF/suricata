@@ -257,7 +257,7 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *de
 
     StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
 
     /* move inspected tracker to end of the data. HtpBodyPrune will consider

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,7 +29,9 @@
 #include "flow-private.h"
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
-void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+                           InspectionBuffer *buffer, const uint8_t *data,
+                           const uint32_t data_len);
 void InspectionBufferFree(InspectionBuffer *buffer);
 void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
@@ -39,8 +41,12 @@ bool DetectBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
         const uint8_t *content, uint16_t content_len, const char **namestr);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
-InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleForList *fb, uint32_t local_id);
-InspectionBufferMultipleForList *InspectionBufferGetMulti(DetectEngineThreadCtx *det_ctx, const int list_id);
+void InspectionBufferSetupMulti(InspectionBuffer *buffer,
+                                const DetectEngineTransforms *transforms,
+                                const uint8_t *data, const uint32_t data_len);
+InspectionBuffer *
+InspectionBufferMultipleForListGet(DetectEngineThreadCtx *det_ctx,
+                                   const int list_id, uint32_t local_id);
 
 int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);

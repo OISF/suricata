@@ -303,7 +303,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
 
     /* built-in 'transformation' */
@@ -331,6 +331,28 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
 /* file API based inspection */
 
+static inline InspectionBuffer *FiledataWithXformsGetDataCallback(
+    DetectEngineThreadCtx *det_ctx, const DetectEngineTransforms *transforms,
+    const int list_id, int local_file_id, InspectionBuffer *base_buffer,
+    const bool first) {
+  InspectionBuffer *buffer =
+      InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
+  if (buffer == NULL) {
+    SCLogDebug("list_id: %d: no buffer", list_id);
+    return NULL;
+  }
+  if (!first && buffer->inspect != NULL) {
+    SCLogDebug("list_id: %d: returning %p", list_id, buffer);
+    return buffer;
+  }
+
+  InspectionBufferSetupMulti(buffer, transforms, base_buffer->inspect,
+                             base_buffer->inspect_len);
+  buffer->inspect_offset = base_buffer->inspect_offset;
+  SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
+  SCReturnPtr(buffer, "InspectionBuffer");
+}
+
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *f, uint8_t flow_flags, File *cur_file,
@@ -338,8 +360,9 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, local_file_id);
+    InspectionBuffer *buffer =
+        InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
+    SCLogDebug("base: buffer %p", buffer);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -383,7 +406,12 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     StreamingBufferGetDataAtOffset(cur_file->sb,
             &data, &data_len,
             cur_file->content_inspected);
-    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferSetupMulti(buffer, NULL, data, data_len);
+    SCLogDebug("[list %d] [before] buffer offset %" PRIu64
+               "; buffer len %" PRIu32 "; data_len %" PRIu32
+               "; file_size %" PRIu64,
+               list_id, buffer->inspect_offset, buffer->inspect_len, data_len,
+               file_size);
     buffer->inspect_offset = cur_file->content_inspected;
     InspectionBufferApplyTransforms(buffer, transforms);
 

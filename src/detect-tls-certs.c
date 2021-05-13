@@ -137,8 +137,8 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
+    InspectionBuffer *buffer =
+        InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
 
@@ -151,16 +151,14 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     if (cbdata->cert == NULL) {
         cbdata->cert = TAILQ_FIRST(&ssl_state->server_connp.certs);
     } else {
-	cbdata->cert = TAILQ_NEXT(cbdata->cert, next);
+      cbdata->cert = TAILQ_NEXT(cbdata->cert, next);
     }
-
     if (cbdata->cert == NULL) {
         return NULL;
     }
 
-    InspectionBufferSetup(buffer, cbdata->cert->cert_data,
-		          cbdata->cert->cert_len);
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferSetupMulti(buffer, transforms, cbdata->cert->cert_data,
+                               cbdata->cert->cert_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
