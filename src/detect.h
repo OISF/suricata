@@ -346,7 +346,9 @@ typedef struct InspectionBuffer {
     uint64_t inspect_offset;
     uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */
     uint8_t flags;          /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
-
+#ifdef DEBUG_VALIDATION
+    bool multi;
+#endif
     uint32_t len;           /**< how much is in use */
     uint8_t *buf;
     uint32_t size;          /**< size of the memory allocation */
