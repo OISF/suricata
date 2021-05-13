@@ -101,25 +101,29 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 
-SCEnumCharMap det_ctx_event_table[ ] = {
+SCEnumCharMap det_ctx_event_table[] = {
 #ifdef UNITTESTS
-    { "TEST",                       DET_CTX_EVENT_TEST },
+    {"TEST", DET_CTX_EVENT_TEST},
 #endif
-    { "NO_MEMORY",                  FILE_DECODER_EVENT_NO_MEM },
-    { "INVALID_SWF_LENGTH",         FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
-    { "INVALID_SWF_VERSION",        FILE_DECODER_EVENT_INVALID_SWF_VERSION },
-    { "Z_DATA_ERROR",               FILE_DECODER_EVENT_Z_DATA_ERROR },
-    { "Z_STREAM_ERROR",             FILE_DECODER_EVENT_Z_STREAM_ERROR },
-    { "Z_BUF_ERROR",                FILE_DECODER_EVENT_Z_BUF_ERROR },
-    { "Z_UNKNOWN_ERROR",            FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
-    { "LZMA_DECODER_ERROR",         FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
-    { "LZMA_MEMLIMIT_ERROR",        FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
-    { "LZMA_OPTIONS_ERROR",         FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR },
-    { "LZMA_FORMAT_ERROR",          FILE_DECODER_EVENT_LZMA_FORMAT_ERROR },
-    { "LZMA_DATA_ERROR",            FILE_DECODER_EVENT_LZMA_DATA_ERROR },
-    { "LZMA_BUF_ERROR",             FILE_DECODER_EVENT_LZMA_BUF_ERROR },
-    { "LZMA_UNKNOWN_ERROR",         FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
-    { NULL,                         -1 },
+    {"NO_MEMORY", FILE_DECODER_EVENT_NO_MEM},
+    {"INVALID_SWF_LENGTH", FILE_DECODER_EVENT_INVALID_SWF_LENGTH},
+    {"INVALID_SWF_VERSION", FILE_DECODER_EVENT_INVALID_SWF_VERSION},
+    {"Z_DATA_ERROR", FILE_DECODER_EVENT_Z_DATA_ERROR},
+    {"Z_STREAM_ERROR", FILE_DECODER_EVENT_Z_STREAM_ERROR},
+    {"Z_BUF_ERROR", FILE_DECODER_EVENT_Z_BUF_ERROR},
+    {"Z_UNKNOWN_ERROR", FILE_DECODER_EVENT_Z_UNKNOWN_ERROR},
+    {"LZMA_DECODER_ERROR", FILE_DECODER_EVENT_LZMA_DECODER_ERROR},
+    {"LZMA_MEMLIMIT_ERROR", FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR},
+    {"LZMA_OPTIONS_ERROR", FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR},
+    {"LZMA_FORMAT_ERROR", FILE_DECODER_EVENT_LZMA_FORMAT_ERROR},
+    {"LZMA_DATA_ERROR", FILE_DECODER_EVENT_LZMA_DATA_ERROR},
+    {"LZMA_BUF_ERROR", FILE_DECODER_EVENT_LZMA_BUF_ERROR},
+    {"LZMA_UNKNOWN_ERROR", FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR},
+    {
+        "TOO_MANY_BUFFERS",
+        DETECT_EVENT_TOO_MANY_BUFFERS,
+    },
+    {NULL, -1},
 };
 
 /** \brief register inspect engine at start up time
@@ -1053,22 +1057,32 @@ InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int 
  *  \param buffer the inspect buffer or NULL in case of error */
 InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleForList *fb, uint32_t local_id)
 {
-    if (local_id >= fb->size) {
-        uint32_t old_size = fb->size;
-        uint32_t new_size = local_id + 1;
-        uint32_t grow_by = new_size - old_size;
-        SCLogDebug("size is %u, need %u, so growing by %u", old_size, new_size, grow_by);
+  if (unlikely(local_id >= 1024)) {
+    DetectEngineSetEvent(det_ctx, DETECT_EVENT_TOO_MANY_BUFFERS);
+    return NULL;
+  }
 
-        SCLogDebug("fb->inspection_buffers %p", fb->inspection_buffers);
-        void *ptr = SCRealloc(fb->inspection_buffers, (local_id + 1) * sizeof(InspectionBuffer));
-        if (ptr == NULL)
-            return NULL;
+  InspectionBufferMultipleForList *fb =
+      InspectionBufferGetMulti(det_ctx, list_id);
 
-        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("ptr %p to_zero %p", ptr, to_zero);
-        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
-        fb->inspection_buffers = ptr;
-        fb->size = new_size;
+  if (local_id >= fb->size) {
+    uint32_t old_size = fb->size;
+    uint32_t new_size = local_id + 1;
+    uint32_t grow_by = new_size - old_size;
+    SCLogDebug("size is %u, need %u, so growing by %u", old_size, new_size,
+               grow_by);
+
+    SCLogDebug("fb->inspection_buffers %p", fb->inspection_buffers);
+    void *ptr = SCRealloc(fb->inspection_buffers,
+                          (local_id + 1) * sizeof(InspectionBuffer));
+    if (ptr == NULL)
+      return NULL;
+
+    InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
+    SCLogDebug("ptr %p to_zero %p", ptr, to_zero);
+    memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
+    fb->inspection_buffers = ptr;
+    fb->size = new_size;
     }
 
     fb->max = MAX(fb->max, local_id);
