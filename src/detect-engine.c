@@ -121,6 +121,10 @@ SCEnumCharMap det_ctx_event_table[] = {
     { "LZMA_DATA_ERROR", FILE_DECODER_EVENT_LZMA_DATA_ERROR },
     { "LZMA_BUF_ERROR", FILE_DECODER_EVENT_LZMA_BUF_ERROR },
     { "LZMA_UNKNOWN_ERROR", FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
+    {
+            "TOO_MANY_BUFFERS",
+            DETECT_EVENT_TOO_MANY_BUFFERS,
+    },
     { NULL, -1 },
 };
 
@@ -1027,6 +1031,11 @@ static InspectionBufferMultipleForList *InspectionBufferGetMulti(
 InspectionBuffer *InspectionBufferMultipleForListGet(
         DetectEngineThreadCtx *det_ctx, const int list_id, const uint32_t local_id)
 {
+    if (unlikely(local_id >= 1024)) {
+        DetectEngineSetEvent(det_ctx, DETECT_EVENT_TOO_MANY_BUFFERS);
+        return NULL;
+    }
+
     InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
 
     if (local_id >= fb->size) {
