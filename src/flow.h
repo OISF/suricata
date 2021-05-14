@@ -586,6 +586,7 @@ FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
 void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
+uint32_t FlowGetFlags(Flow *flow);
 
 /** ----- Inline functions ----- */
 

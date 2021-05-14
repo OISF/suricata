@@ -1171,6 +1171,17 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
     *usecs = (uint64_t)flow->lastts.tv_usec;
 }
 
+/**
+ * \brief Get flow flags.
+ *
+ * A function to get the flow flags useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+uint32_t FlowGetFlags(Flow *flow)
+{
+    return flow->flags;
+}
+
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
