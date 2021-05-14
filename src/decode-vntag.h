@@ -43,6 +43,7 @@ typedef struct VNTagHdr_ {
 /** VNTag header length */
 #define VNTAG_HEADER_LEN 6
 
+void DecodeVNTagConfig(void);
 void DecodeVNTagRegisterTests(void);
 
 #endif /* __DECODE_VNTAG_H__ */
