@@ -43,20 +43,33 @@
 #include "util-profiling.h"
 #include "host.h"
 
+bool g_vntag_enabled = false;
+
+void DecodeVNTagConfig(void)
+{
+    int enabled = 0;
+    if (ConfGetBool("decoder.vntag.enabled", &enabled) == 1) {
+        g_vntag_enabled = (enabled == 1);
+    }
+    SCLogDebug("VNTag decode support %s", g_vntag_enabled ? "enabled" : "disabled");
+}
+
 /**
  * \internal
  * \brief this function is used to decode 802.1Qbh packets
  *
  * \param tv pointer to the thread vars
- * \param dtv pointer code thread vars
+ * \param dtv pointer to decode thread vars
  * \param p pointer to the packet struct
  * \param pkt pointer to the raw packet
  * \param len packet len
- * \param pq pointer to the packet queue
  *
  */
 int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
+    if (!g_vntag_enabled)
+        return TM_ECODE_FAILED;
+
     StatsIncr(tv, dtv->counter_vntag);
 
     if (len < VNTAG_HEADER_LEN) {
@@ -108,7 +121,9 @@ static int DecodeVNTagtest01(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
+    g_vntag_enabled = true;
     FAIL_IF(TM_ECODE_OK == DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    g_vntag_enabled = false;
 
     PASS_IF(ENGINE_ISSET_EVENT(p, VNTAG_HEADER_TOO_SMALL));
 }
@@ -138,7 +153,10 @@ static int DecodeVNTagtest02(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    PASS_IF(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    g_vntag_enabled = true;
+    int rc = DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag));
+    g_vntag_enabled = false;
+    PASS_IF(TM_ECODE_OK != rc);
 }
 
 /**
@@ -166,12 +184,26 @@ static int DecodeVNTagtest03(void)
 
     FlowInitConfig(FLOW_QUIET);
 
+    g_vntag_enabled = true;
     FAIL_IF(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    g_vntag_enabled = false;
 
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
 
+    PASS;
+}
+
+/**
+ * \test DecodeVNTagtest04 Ensure decoder is disabled by default
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DecodeVNTagtest04(void)
+{
+    FAIL_IF(g_vntag_enabled);
     PASS;
 }
 #endif /* UNITTESTS */
@@ -182,6 +214,7 @@ void DecodeVNTagRegisterTests(void)
     UtRegisterTest("DecodeVNTagtest01", DecodeVNTagtest01);
     UtRegisterTest("DecodeVNTagtest02", DecodeVNTagtest02);
     UtRegisterTest("DecodeVNTagtest03", DecodeVNTagtest03);
+    UtRegisterTest("DecodeVNTagtest04", DecodeVNTagtest04);
 #endif /* UNITTESTS */
 }
 
