@@ -1171,6 +1171,39 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
     *usecs = (uint64_t)flow->lastts.tv_usec;
 }
 
+/**
+ * \brief Get flow source port.
+ *
+ * A function to get the flow sport useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+uint16_t FlowGetSourcePort(Flow *flow)
+{
+    return flow->sp;
+}
+
+/**
+ * \brief Get flow destination port.
+ *
+ * A function to get the flow dport useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+
+uint16_t FlowGetDestinationPort(Flow *flow)
+{
+    return flow->dp;
+}
+/**
+ * \brief Get flow flags.
+ *
+ * A function to get the flow flags useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+
+uint32_t FlowGetFlags(Flow *flow)
+{
+    return flow->flags;
+}
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
