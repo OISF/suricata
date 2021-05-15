@@ -38,6 +38,7 @@ typedef struct SCPlugin_ {
     const char *name;
     const char *license;
     const char *author;
+    const bool internal;
     void (*Init)(void);
 } SCPlugin;
 
@@ -50,7 +51,8 @@ typedef struct SCPlugin_ {
  * plugins: section
  */
 typedef struct SCPluginFileType_ {
-    char *name;
+    const char *name;
+    bool internal;
     /* Init Called on first access */
     int (*Init)(ConfNode *conf, bool threaded, void **init_data);
     /* Write - Called on each write to the object */
