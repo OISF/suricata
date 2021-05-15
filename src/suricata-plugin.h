@@ -63,6 +63,7 @@ typedef struct SCPluginFileType_ {
 } SCPluginFileType;
 
 bool SCPluginRegisterFileType(SCPluginFileType *);
+bool SCRegisterEveFileType(SCPluginFileType *);
 
 typedef struct SCCapturePlugin_ {
     char *name;
