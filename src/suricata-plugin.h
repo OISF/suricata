@@ -40,6 +40,8 @@ typedef struct SCPlugin_ {
     void (*Init)(void);
 } SCPlugin;
 
+typedef SCPlugin *(*SCPluginRegisterFunc)(void);
+
 /**
  * Structure used to define a file type plugin.
  *
@@ -64,7 +66,7 @@ typedef struct SCPluginFileType_ {
     TAILQ_ENTRY(SCPluginFileType_) entries;
 } SCPluginFileType;
 
-bool SCPluginRegisterFileType(SCPluginFileType *);
+bool SCPluginRegisterEveFileType(SCPluginFileType *);
 bool SCRegisterEveFileType(SCPluginFileType *);
 
 typedef struct SCCapturePlugin_ {
