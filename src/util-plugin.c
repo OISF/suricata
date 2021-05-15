@@ -17,13 +17,12 @@
 
 #include "suricata-common.h"
 #include "suricata-plugin.h"
+#include "output-eve-syslog.h"
 #include "util-plugin.h"
 
 #ifdef HAVE_PLUGINS
 
 #include <dlfcn.h>
-
-typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
 typedef struct PluginListNode_ {
     SCPlugin *plugin;
@@ -167,9 +166,8 @@ bool SCRegisterEveFileType(SCPluginFileType *plugin)
  *      conflicts with a built-in or previously registered
  *      plugin file type.
  *
- * TODO: As this is Eve specific, perhaps Eve should be in the filename.
  */
-bool SCPluginRegisterFileType(SCPluginFileType *plugin)
+bool SCPluginRegisterEveFileType(SCPluginFileType *plugin)
 {
     const char *builtin[] = {
         "regular",
@@ -190,18 +188,7 @@ bool SCPluginRegisterFileType(SCPluginFileType *plugin)
         }
     }
 
-    SCPluginFileType *existing = NULL;
-    TAILQ_FOREACH(existing, &output_types, entries) {
-        if (strcmp(existing->name, plugin->name) == 0) {
-            SCLogNotice("Eve filetype plugin name conflicts with previously "
-                    "registered plugin: %s", plugin->name);
-            return false;
-        }
-    }
-
-    SCLogNotice("Registering JSON file type plugin %s", plugin->name);
-    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
-    return true;
+    return SCRegisterEveFileType(plugin);
 }
 
 SCPluginFileType *SCPluginFindFileType(const char *name)
