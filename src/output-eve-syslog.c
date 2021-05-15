@@ -32,10 +32,6 @@
 #include "output-eve-syslog.h"
 #include "util-syslog.h"
 
-#define DEFAULT_ALERT_SYSLOG_FACILITY_STR "local0"
-#define DEFAULT_ALERT_SYSLOG_FACILITY     LOG_LOCAL0
-#define DEFAULT_ALERT_SYSLOG_LEVEL        LOG_INFO
-
 #define OUTPUT_NAME "syslog"
 
 typedef struct Context_ {
@@ -110,8 +106,5 @@ void SyslogInitialize(void)
     plugin_data->Init = SyslogInit;
     plugin_data->Deinit = SyslogDeInit;
     plugin_data->Write = SyslogWrite;
-    if (!SCRegisterEveFileType(plugin_data)) {
-        FatalError(SC_ERR_PLUGIN, "Failed to register EVE output: %s", OUTPUT_NAME);
-    }
 }
 #endif /* !OS_WIN32 */
