@@ -109,5 +109,8 @@ void SyslogInitialize(void)
     plugin_data->Init = SyslogInit;
     plugin_data->Deinit = SyslogDeInit;
     plugin_data->Write = SyslogWrite;
+    if (!SCRegisterEveFileType(plugin_data)) {
+        FatalError(SC_ERR_PLUGIN, "Failed to register EVE output: %s", OUTPUT_NAME);
+    }
 }
 #endif /* !OS_WIN32 */
