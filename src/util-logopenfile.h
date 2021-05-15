@@ -35,7 +35,6 @@
 
 enum LogFileType {
     LOGFILE_TYPE_FILE,
-    LOGFILE_TYPE_SYSLOG,
     LOGFILE_TYPE_UNIX_DGRAM,
     LOGFILE_TYPE_UNIX_STREAM,
     LOGFILE_TYPE_REDIS,
@@ -73,7 +72,6 @@ typedef struct LogFileCtx_ {
     LogThreadedFileCtx *threads;
 
     union {
-        SyslogSetup syslog_setup;
 #ifdef HAVE_LIBHIREDIS
         RedisSetup redis_setup;
 #endif
