@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,17 +15,15 @@
  * 02110-1301, USA.
  */
 
-#ifndef __UTIL_PLUGIN_H__
-#define __UTIL_PLUGIN_H__
+/**
+ * \file
+ *
+ * \author Jeff Lucovsky <jeff@lucovsky.org>
+ */
 
-#include "suricata-plugin.h"
-#include "output-eve-syslog.h"
+#ifndef __OUTPUT_EVE_SYSLOG_H__
+#define __OUTPUT_EVE_SYSLOG_H__
 
-void SCInternalLoad(void);
-void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args);
-SCPluginFileType *SCPluginFindFileType(const char *name);
-SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
+void SyslogInitialize(void);
 
-bool RegisterPlugin(SCPlugin *, void *);
-
-#endif /* __UTIL_PLUGIN_H__ */
+#endif /* __OUTPUT_EVE_SYSLOG_H__ */

@@ -411,6 +411,7 @@ noinst_HEADERS = \
 	output-json-template-rust.h \
 	output-json-tftp.h \
 	output-json-tls.h \
+	output-eve-syslog.h \
 	output-lua.h \
 	output-packet.h \
 	output-stats.h \
@@ -986,6 +987,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-template-rust.c \
 	output-json-tftp.c \
 	output-json-tls.c \
+	output-eve-syslog.c \
 	output-lua.c \
 	output-packet.c \
 	output-stats.c \
