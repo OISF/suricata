@@ -2555,6 +2555,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
 #ifdef HAVE_PLUGINS
+    SCInternalLoad();
     SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
 #endif
     AppLayerHtpNeedFileInspection();
