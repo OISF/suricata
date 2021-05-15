@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,6 +93,7 @@ static void InitPlugin(char *path)
  */
 void SCInternalLoad(void)
 {
+    SyslogInitialize();
 }
 
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
