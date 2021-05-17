@@ -60,5 +60,6 @@ DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uin
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
+int DatasetLookupSerialized(Dataset *set, const char *string);
 
 #endif /* __DATASETS_H__ */

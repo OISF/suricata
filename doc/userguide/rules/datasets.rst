@@ -169,6 +169,50 @@ type
 data
   Data to remove in serialized form (base64 for string, hex notation for md5/sha256)
 
+dataset-clear
+~~~~~~~~~~~~~
+
+Unix Socket command to remove all data from a set. On success, the removal becomes
+active instantly.
+
+Syntax::
+
+    dataset-clear <set name> <set type>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256
+
+dataset-lookup
+~~~~~~~~~~~~~~
+
+Unix Socket command to test if data is in a set. 
+
+Syntax::
+
+    dataset-lookup <set name> <set type> <data>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256
+data
+  Data to test in serialized form (base64 for string, hex notation for md5/sha256)
+
+Example testing if 'google.com' is in the set 'myset'::
+
+    dataset-lookup myset string Z29vZ2xlLmNvbQ==
+
+dataset-dump
+~~~~~~~~~~~~
+
+Unix socket command to trigger a dump of datasets to disk.
+
+Syntax::
+
+    dataset-dump
+
 File formats
 ------------
 
