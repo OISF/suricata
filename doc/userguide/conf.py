@@ -135,7 +135,7 @@ if not on_rtd:
     except:
         html_theme = 'default'
     def setup(app):
-        app.add_stylesheet('css/suricata.css')
+        app.add_css_file('css/suricata.css')
 else:
     html_context = {
         'css_files': [
