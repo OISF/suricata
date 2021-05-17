@@ -306,7 +306,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> i32
+                                      len: u32, rdir: *mut u8) -> core::AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
     if len == 0 {

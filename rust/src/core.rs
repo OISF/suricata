@@ -40,7 +40,7 @@ pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
 // Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = std::os::raw::c_int;
+pub type AppProto = u16;
 
 pub const ALPROTO_UNKNOWN : AppProto = 0;
 pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init

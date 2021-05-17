@@ -1363,7 +1363,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> i32
+                                      len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 {
