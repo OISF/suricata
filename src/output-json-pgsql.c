@@ -65,7 +65,8 @@ typedef struct LogPgsqlLogThread_ {
     MemBuffer *buffer;
 } LogPgsqlLogThread;
 
-// static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+// static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void
+// *state,
 //         void *tx, uint64_t tx_id)
 // {
 //     SCLogNotice("JsonPgsqlLogger");
