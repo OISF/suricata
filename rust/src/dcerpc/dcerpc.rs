@@ -1183,9 +1183,10 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_request(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
             input, input_len, flags, flags & core::STREAM_EOF != 0);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1205,9 +1206,10 @@ pub extern "C" fn rs_dcerpc_parse_request(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_parse_response(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
         return AppLayerResult::ok();
     }
@@ -1226,15 +1228,15 @@ pub extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    transmute(boxed)
+    return unsafe { transmute(boxed)};
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCState> = transmute(state);
+pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+    let _state: Box<DCERPCState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
@@ -1281,8 +1283,8 @@ pub extern "C" fn rs_dcerpc_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
-) -> u8 {
+    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
     dce_tx.de_state = Some(de_state);
     0
@@ -1291,10 +1293,10 @@ pub extern "C" fn rs_dcerpc_set_tx_detect_state(
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut DCERPCTransaction {
+) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
-        Some(tx) => tx,
+        Some(tx) => unsafe { transmute(tx) },
         None => std::ptr::null_mut(),
     }
 }
@@ -1306,7 +1308,9 @@ pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: &mut DCERPCTransaction, direction: u8) -> u8 {
+pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
+                                                 )-> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == core::STREAM_TOSERVER && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
         return 1;
@@ -1362,7 +1366,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
+pub extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing packet for DCERPC");
@@ -1386,7 +1390,6 @@ pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
         return 1;
     }
     return 0;
-
 }
 
 #[cfg(test)]

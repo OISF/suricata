@@ -126,7 +126,7 @@ static uint16_t DCERPCTCPProbe(
 {
     SCLogDebug("DCERPCTCPProbe");
 
-    const int r = rs_dcerpc_probe_tcp(direction, input, len, rdir);
+    const int r = rs_dcerpc_probe_tcp(f, direction, input, len, rdir);
     switch (r) {
         case 1:
             return ALPROTO_DCERPC;
