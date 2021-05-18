@@ -1190,6 +1190,12 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             inspect_flags, total_matches, engine);
 
     if (engine == NULL && total_matches) {
+        if (stored_flags) {
+            if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
+                TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
+                return false;
+            }
+        }
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
         retval = true;
