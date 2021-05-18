@@ -135,8 +135,8 @@ fn http2_decompress<'a>(
             }
         }
     }
-    //checks all input was consumed
-    debug_validate_bug_on!(decoder.get_mut().position() < (input.len() as u64));
+    //brotli does not consume all input if it reaches some end
+
     decoder.get_mut().set_position(0);
     return Ok(&output[..offset]);
 }
