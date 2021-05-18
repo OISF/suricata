@@ -45,11 +45,6 @@ impl HTTP2cursor {
         }
     }
 
-    #[cfg(feature = "debug-validate")]
-    pub fn position(&self) -> u64 {
-        return self.cursor.position();
-    }
-
     pub fn set_position(&mut self, pos: u64) {
         return self.cursor.set_position(pos);
     }
