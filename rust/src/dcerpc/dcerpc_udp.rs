@@ -208,9 +208,10 @@ impl DCERPCUDPState {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *mut core::Flow, state: &mut DCERPCUDPState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, _flags: u8,
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCUDPState);
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf);
@@ -224,10 +225,10 @@ pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
-    transmute(boxed)
+    return unsafe { transmute(boxed) };
 }
 
 #[no_mangle]
@@ -252,8 +253,8 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
-) -> u8 {
+    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     dce_state.de_state = Some(de_state);
     0
@@ -271,11 +272,11 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_data(
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut DCERPCTransaction {
+) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{&mut *(tx as *mut DCERPCTransaction)};
+            return unsafe{ transmute(tx) };
         },
         None => {
             return std::ptr::null_mut();
@@ -329,7 +330,6 @@ pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
         return 1;
     }
     return 0;
-
 }
 
 
