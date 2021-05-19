@@ -17,11 +17,14 @@
 
 use std::mem::transmute;
 
-use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::applayer::*;
 use crate::core;
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
+    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use std;
+use std::ffi::CString;
 use crate::dcerpc::parser;
 
 // Constant DCERPC UDP Header length
@@ -305,8 +308,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
+pub extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> core::AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
@@ -327,9 +329,72 @@ pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
         if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
             unsafe { *rdir = dir };
         }
-        return 1;
+        return unsafe {ALPROTO_DCERPC};
     }
-    return 0;
+    return unsafe { core::ALPROTO_FAILED };
+}
+
+fn register_pattern_probe() -> i8 {
+    unsafe {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP as u8, ALPROTO_DCERPC,
+                                                     b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_udp, 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+    }
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
+    let default_port = CString::new("[0:65535]").unwrap();
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_dcerpc_udp_state_new,
+        state_free: rs_dcerpc_udp_state_free,
+        tx_free: rs_dcerpc_udp_state_transaction_free,
+        parse_ts: rs_dcerpc_udp_parse,
+        parse_tc: rs_dcerpc_udp_parse,
+        get_tx_count: rs_dcerpc_udp_get_tx_cnt,
+        get_tx: rs_dcerpc_udp_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        get_de_state: rs_dcerpc_udp_get_tx_detect_state,
+        set_de_state: rs_dcerpc_udp_set_tx_detect_state,
+        get_events: None,
+        get_eventinfo: None,
+        get_eventinfo_byid: None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_dcerpc_udp_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("udp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_DCERPC = alproto;
+        if register_pattern_probe() < 0 {
+            return;
+        }
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+    } else {
+        SCLogDebug!("Protocol detecter and parser disabled for DCERPC/UDP.");
+    }
 }
 
 
