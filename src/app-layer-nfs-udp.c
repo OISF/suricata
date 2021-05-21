@@ -120,9 +120,9 @@ static AppProto NFSProbingParser(Flow *f, uint8_t direction,
 
     int8_t r = 0;
     if (direction & STREAM_TOSERVER)
-        r = rs_nfs_probe_udp_ts(input, input_len);
+        r = rs_nfs_probe_udp_ts(f, direction, input, input_len, rdir);
     else
-        r = rs_nfs_probe_udp_tc(input, input_len);
+        r = rs_nfs_probe_udp_tc(f, direction, input, input_len, rdir);
 
     if (r == 1) {
         SCLogDebug("nfs");
@@ -143,8 +143,8 @@ static AppLayerResult NFSParseRequest(Flow *f, void *state,
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs_setfileflags(0, state, file_flags);
 
-    AppLayerResult res = rs_nfs_parse_request_udp(f, state, pstate,
-            input, input_len, local_data);
+    AppLayerResult res =
+            rs_nfs_parse_request_udp(f, state, pstate, input, input_len, local_data, flags);
     SCReturnStruct(res);
 }
 
@@ -155,8 +155,8 @@ static AppLayerResult NFSParseResponse(Flow *f, void *state, AppLayerParserState
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs_setfileflags(1, state, file_flags);
 
-    AppLayerResult res = rs_nfs_parse_response_udp(f, state, pstate,
-            input, input_len, local_data);
+    AppLayerResult res =
+            rs_nfs_parse_response_udp(f, state, pstate, input, input_len, local_data, flags);
     SCReturnStruct(res);
 }
 
@@ -175,7 +175,8 @@ static AppLayerGetTxIterTuple RustNFSGetTxIterator(
         void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
         AppLayerGetTxIterState *istate)
 {
-    return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
+    return rs_nfs_state_get_tx_iterator(
+            ipproto, alproto, alstate, min_tx_id, max_tx_id, (uint64_t *)istate);
 }
 
 /**
@@ -215,7 +216,7 @@ static int NFSSetTxDetectState(void *vtx, DetectEngineState *s)
 
 static FileContainer *NFSGetFiles(void *state, uint8_t direction)
 {
-    return rs_nfs_getfiles(direction, state);
+    return rs_nfs_getfiles(state, direction);
 }
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
