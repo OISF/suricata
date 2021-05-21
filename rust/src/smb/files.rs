@@ -22,7 +22,7 @@ use crate::filecontainer::*;
 use crate::smb::smb::*;
 
 /// File tracking transaction. Single direction only.
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SMBTransactionFile {
     pub direction: u8,
     pub fuid: Vec<u8>,
@@ -35,14 +35,10 @@ pub struct SMBTransactionFile {
 }
 
 impl SMBTransactionFile {
-    pub fn new() -> SMBTransactionFile {
-        return SMBTransactionFile {
-            direction: 0,
-            fuid: Vec::new(),
-            file_name: Vec::new(),
-            share_name: Vec::new(),
+    pub fn new() -> Self {
+        return Self {
             file_tracker: FileTransferTracker::new(),
-            post_gap_ts: 0,
+            ..Default::default()
         }
     }
 }
