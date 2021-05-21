@@ -49,6 +49,7 @@ impl FileChunk {
 }
 
 #[derive(Debug)]
+#[derive(Default)]
 pub struct FileTransferTracker {
     file_size: u64,
     pub tracked: u64,
@@ -71,19 +72,8 @@ pub struct FileTransferTracker {
 impl FileTransferTracker {
     pub fn new() -> FileTransferTracker {
         FileTransferTracker {
-            file_size:0,
-            tracked:0,
-            cur_ooo:0,
-            track_id:0,
-            chunk_left:0,
-            tx_id:0,
-            fill_bytes:0,
-            file_open:false,
-            chunk_is_last:false,
-            chunk_is_ooo:false,
-            file_is_truncated:false,
-            cur_ooo_chunk_offset:0,
             chunks:HashMap::new(),
+            ..Default::default()
         }
     }
 
