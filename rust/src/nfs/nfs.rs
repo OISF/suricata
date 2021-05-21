@@ -39,6 +39,9 @@ use crate::nfs::nfs3_records::*;
 
 pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
+pub const NFS_MIN_FRAME_LEN: u16 = 32;
+
+static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
 /*
  * Record parsing.
  *
@@ -1359,7 +1362,7 @@ impl NFSState {
     }
     fn setfileflags(&mut self, direction: u8, flags: u16) {
         SCLogDebug!("direction: {}, flags: {}", direction, flags);
-        if direction == 1 {
+        if direction == 1 {        // TODO change toclient
             self.files.flags_tc = flags;
         } else {
             self.files.flags_ts = flags;
@@ -1387,14 +1390,23 @@ pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
-                                       state: &mut NFSState,
+pub extern "C" fn rs_nfs_parse_request(flow: *const Flow,
+                                       state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       _data: *mut std::os::raw::c_void)
-                                       -> AppLayerResult
+                                       _data: *const std::os::raw::c_void,
+                                       _flags: u8,
+                                       ) -> AppLayerResult
 {
+    let state = cast_pointer!(state, NFSState);
+    let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    rs_nfs_setfileflags(0, state, file_flags);
+
+    if input.is_null() == true && input_len > 0 {
+        return rs_nfs_parse_request_tcp_gap(state, input_len);
+    }
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
@@ -1412,14 +1424,23 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
-                                        state: &mut NFSState,
+pub extern "C" fn rs_nfs_parse_response(flow: *const Flow,
+                                        state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
                                         input_len: u32,
-                                        _data: *mut std::os::raw::c_void)
-                                        -> AppLayerResult
+                                        _data: *const std::os::raw::c_void,
+                                        _flags: u8,
+                                        ) -> AppLayerResult
 {
+    let state = cast_pointer!(state, NFSState);
+    let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    rs_nfs_setfileflags(1, state, file_flags);
+
+    if input.is_null() == true && input_len > 0 {
+        return rs_nfs_parse_response_tcp_gap(state, input_len);
+    }
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
@@ -1438,46 +1459,56 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
-                                       state: &mut NFSState,
+pub extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
+                                       state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       _data: *mut std::os::raw::c_void)
-                                       -> AppLayerResult
+                                       _data: *const std::os::raw::c_void,
+                                       _flags: u8) -> AppLayerResult
 {
+    let state = cast_pointer!(state, NFSState);
+    let file_flags = unsafe { FileFlowToFlags(f, STREAM_TOSERVER) };
+    rs_nfs_setfileflags(0, state, file_flags);
+
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
     state.parse_udp_ts(buf)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
-                                        state: &mut NFSState,
+pub extern "C" fn rs_nfs_parse_response_udp(f: *const Flow,
+                                        state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
                                         input_len: u32,
-                                        _data: *mut std::os::raw::c_void)
-                                        -> AppLayerResult
+                                        _data: *const std::os::raw::c_void,
+                                        _flags: u8) -> AppLayerResult
 {
+    let state = cast_pointer!(state, NFSState);
+    let file_flags = unsafe { FileFlowToFlags(f, STREAM_TOSERVER) };
+    rs_nfs_setfileflags(0, state, file_flags);
+
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     state.parse_udp_tc(buf)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_tx_count(state: &mut NFSState)
+pub extern "C" fn rs_nfs_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
+    let state = cast_pointer!(state, NFSState);
     SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
+pub extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
-                                      -> *mut NFSTransaction
+                                      -> *mut std::os::raw::c_void
 {
+    let state = cast_pointer!(state, NFSState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
             return unsafe{transmute(tx)};
@@ -1491,11 +1522,15 @@ pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
 // for use with the C API call StateGetTxIterator
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_iterator(
-                                      state: &mut NFSState,
+                                      _ipproto: u8,
+                                      _alproto: AppProto,
+                                      state: *mut std::os::raw::c_void,
                                       min_tx_id: u64,
+                                      _max_tx_id: u64,
                                       istate: &mut u64)
                                       -> applayer::AppLayerGetTxIterTuple
 {
+    let state = cast_pointer!(state, NFSState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = unsafe { transmute(tx) };
@@ -1509,17 +1544,19 @@ pub extern "C" fn rs_nfs_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
+pub extern "C" fn rs_nfs_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
+    let state = cast_pointer!(state, NFSState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
+pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c_void,
                                                   direction: u8)
-                                                  -> u8
+                                                  -> std::os::raw::c_int
 {
+    let tx = cast_pointer!(tx, NFSTransaction);
     if direction == STREAM_TOSERVER && tx.request_done {
         //SCLogNotice!("TOSERVER progress 1");
         return 1;
@@ -1543,17 +1580,20 @@ pub extern "C" fn rs_nfs_get_tx_data(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_set_tx_detect_state(
-    tx: &mut NFSTransaction,
-    de_state: &mut DetectEngineState)
+    tx: *mut std::os::raw::c_void,
+    de_state: &mut DetectEngineState) -> i32
 {
+    let tx = cast_pointer!(tx, NFSTransaction);
     tx.de_state = Some(de_state);
+    0
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_detect_state(
-    tx: &mut NFSTransaction)
+    tx: *mut std::os::raw::c_void)
     -> *mut DetectEngineState
 {
+    let tx = cast_pointer!(tx, NFSTransaction);
     match tx.de_state {
         Some(ds) => {
             SCLogDebug!("{}: getting de_state", tx.id);
@@ -1564,6 +1604,18 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
             return std::ptr::null_mut();
         }
     }
+}
+
+pub extern "C" fn rs_nfs_udp_state_get_event_info_by_id(_event_id: std::os::raw::c_int,
+                                              event_name: *mut *const std::os::raw::c_char,
+                                              event_type: *mut AppLayerEventType)
+                                             -> i8
+{
+    unsafe {
+        *event_name = b"NFS UDP event name (generic)\0".as_ptr() as *const std::os::raw::c_char;
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+    }
+    0
 }
 
 #[no_mangle]
@@ -1595,11 +1647,13 @@ pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: std::os::raw::c_in
         -1
     }
 }
+
+
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut AppLayerEventType)
-                                              -> i8
+                                              -> std::os::raw::c_int
 {
     if event_name == std::ptr::null() {
         return -1;
@@ -1693,7 +1747,7 @@ fn nfs_probe_dir(i: &[u8], rdir: *mut u8) -> i8 {
     }
 }
 
-pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
+pub fn nfs_probe(i: &[u8], direction: u8) -> i32 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_reply(i) {
             Ok((_, ref rpc)) => {
@@ -1734,7 +1788,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                    rpc.program == 100003 &&
                    rpc.procedure <= NFSPROC3_COMMIT
                 {
-                    return rpc_auth_type_known(rpc.creds_flavor);
+                    return rpc_auth_type_known(rpc.creds_flavor) as i32;
                 } else {
                     return -1;
                 }
@@ -1749,7 +1803,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     }
 }
 
-pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
+pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i32 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_udp_reply(i) {
             Ok((_, ref rpc)) => {
@@ -1786,8 +1840,9 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
 /// MIDSTREAM
 #[no_mangle]
 pub extern "C" fn rs_nfs_probe_ms(
+        _flow: *const Flow,
         direction: u8, input: *const u8,
-        len: u32, rdir: *mut u8) -> i8
+        len: u32, rdir: *mut u8) -> AppProto
 {
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe_ms: probing direction {:02x}", direction);
@@ -1799,57 +1854,93 @@ pub extern "C" fn rs_nfs_probe_ms(
             } else {
                 SCLogDebug!("nfs_probe_dir said STREAM_TOCLIENT");
             }
-            let r = nfs_probe(slice, adirection);
-            if r == 1 {
-                SCLogDebug!("nfs_probe success: dir {:02x} adir {:02x}", direction, adirection);
-                if (direction & (STREAM_TOSERVER|STREAM_TOCLIENT)) != adirection {
-                    unsafe { *rdir = adirection; }
-                }
-                return 1;
+            match nfs_probe(slice, adirection) {
+                1 => {
+                    SCLogDebug!("nfs_probe success: dir {:02x} adir {:02x}", direction, adirection);
+                    if (direction & (STREAM_TOSERVER|STREAM_TOCLIENT)) != adirection {
+                        unsafe { *rdir = adirection; }
+                    }
+                    return unsafe { ALPROTO_NFS };
+                },
+                0 => { return ALPROTO_UNKNOWN },
+                _ => { return unsafe { ALPROTO_FAILED } },
             }
-            return r;
         },
         0 => {
-            return 0;
+            return ALPROTO_UNKNOWN;
         },
         _ => {
-            return -1;
+            return unsafe { ALPROTO_FAILED };
         }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe(direction: u8,
-        input: *const u8, len: u32)
-    -> i8
+pub extern "C" fn rs_nfs_probe(_f: *const Flow,
+                               direction: u8,
+                               input: *const u8,
+                               len: u32,
+                               _: *mut u8)
+    -> AppProto
 {
+    if len < NFS_MIN_FRAME_LEN as u32 {
+        return ALPROTO_UNKNOWN;
+    }
+
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe: running probe");
-    return nfs_probe(slice, direction);
+    match nfs_probe(slice, direction) {
+        1 => { return unsafe { ALPROTO_NFS } },
+        -1 => { return unsafe { ALPROTO_FAILED } },
+        _ => { return ALPROTO_UNKNOWN },
+    }
 }
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
-                               -> i8
+pub extern "C" fn rs_nfs_probe_udp_ts(_f: *const Flow,
+                               _direction: u8,
+                               input: *const u8,
+                               len: u32,
+                               _: *mut u8)
+    -> AppProto
 {
+    if len < NFS_MIN_FRAME_LEN as u32 {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
-    return nfs_probe_udp(slice, STREAM_TOSERVER);
+    match nfs_probe_udp(slice, STREAM_TOSERVER) {
+        1 => { return unsafe { ALPROTO_NFS } },
+        -1 => { return unsafe { ALPROTO_FAILED } },
+        _ => { return ALPROTO_UNKNOWN },
+    }
 }
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
-                               -> i8
+pub extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
+                               _direction: u8,
+                               input: *const u8,
+                               len: u32,
+                               _: *mut u8)
+    -> AppProto
 {
+    if len < NFS_MIN_FRAME_LEN as u32 {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
-    return nfs_probe_udp(slice, STREAM_TOCLIENT);
+    match nfs_probe_udp(slice, STREAM_TOCLIENT) {
+        1 => { return unsafe { ALPROTO_NFS } },
+        -1 => { return unsafe { ALPROTO_FAILED } },
+        _ => { return ALPROTO_UNKNOWN },
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_getfiles(direction: u8, ptr: *mut NFSState) -> * mut FileContainer {
+pub extern "C" fn rs_nfs_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *ptr };
+    let ptr = cast_pointer!(ptr, NFSState);
+    let parser = &mut *ptr;
     parser.getfiles(direction)
 }
 #[no_mangle]
@@ -1859,3 +1950,4 @@ pub extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, flags: 
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)
 }
+
