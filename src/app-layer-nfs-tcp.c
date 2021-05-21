@@ -100,7 +100,7 @@ static AppProto NFSTCPProbingParserMidstream(Flow *f,
         return ALPROTO_UNKNOWN;
     }
 
-    int8_t r = rs_nfs_probe_ms(direction, input, input_len, rdir);
+    int8_t r = rs_nfs_probe_ms(f, direction, input, input_len, rdir);
     if (r == 1) {
         return ALPROTO_NFS;
     } else if (r == -1) {
@@ -126,7 +126,7 @@ static AppProto NFSTCPProbingParser(Flow *f,
         return ALPROTO_UNKNOWN;
     }
 
-    int8_t r = rs_nfs_probe(direction, input, input_len);
+    int8_t r = rs_nfs_probe(f, direction, input, input_len, rdir);
     if (r == 1) {
         return ALPROTO_NFS;
     } else if (r == -1) {
@@ -148,8 +148,8 @@ static AppLayerResult NFSTCPParseRequest(Flow *f, void *state,
         AppLayerResult res = rs_nfs_parse_request_tcp_gap(state, input_len);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_nfs_parse_request(f, state, pstate,
-                input, input_len, local_data);
+        AppLayerResult res =
+                rs_nfs_parse_request(f, state, pstate, input, input_len, local_data, flags);
         SCReturnStruct(res);
     }
 }
@@ -165,8 +165,8 @@ static AppLayerResult NFSTCPParseResponse(Flow *f, void *state, AppLayerParserSt
         AppLayerResult res = rs_nfs_parse_response_tcp_gap(state, input_len);
         SCReturnStruct(res);
     } else {
-        AppLayerResult res = rs_nfs_parse_response(f, state, pstate,
-                input, input_len, local_data);
+        AppLayerResult res =
+                rs_nfs_parse_response(f, state, pstate, input, input_len, local_data, flags);
         SCReturnStruct(res);
     }
 }
@@ -186,7 +186,8 @@ static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
         void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
         AppLayerGetTxIterState *istate)
 {
-    return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
+    return rs_nfs_state_get_tx_iterator(
+            ipproto, alproto, alstate, min_tx_id, max_tx_id, (uint64_t *)istate);
 }
 
 /**
@@ -226,7 +227,7 @@ static int NFSTCPSetTxDetectState(void *vtx, DetectEngineState *s)
 
 static FileContainer *NFSTCPGetFiles(void *state, uint8_t direction)
 {
-    return rs_nfs_getfiles(direction, state);
+    return rs_nfs_getfiles(state, direction);
 }
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
