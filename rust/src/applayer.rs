@@ -25,7 +25,7 @@ use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
     log_flags: u8,
@@ -50,7 +50,7 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
@@ -355,7 +355,7 @@ impl AppLayerGetTxIterTuple {
 
 /// LoggerFlags tracks which loggers have already been executed.
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct LoggerFlags {
     flags: u32,
 }
