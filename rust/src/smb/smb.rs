@@ -192,7 +192,7 @@ pub fn ntlmssp_type_string(c: u32) -> String {
     }.to_string()
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Default, Eq, PartialEq, Debug, Clone)]
 pub struct SMBVerCmdStat {
     smb_ver: u8,
     smb1_cmd: u8,
@@ -205,60 +205,40 @@ pub struct SMBVerCmdStat {
 }
 
 impl SMBVerCmdStat {
-    pub fn new() -> SMBVerCmdStat {
-        return SMBVerCmdStat {
-            smb_ver: 0,
-            smb1_cmd: 0,
-            smb2_cmd: 0,
-            status_set: false,
-            status_is_dos_error: false,
-            status_error_class: 0,
-            status: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
-    pub fn new1(cmd: u8) -> SMBVerCmdStat {
-        return SMBVerCmdStat {
+    pub fn new1(cmd: u8) -> Self {
+        return Self {
             smb_ver: 1,
             smb1_cmd: cmd,
-            smb2_cmd: 0,
-            status_set: false,
-            status_is_dos_error: false,
-            status_error_class: 0,
-            status: 0,
+            ..Default::default()
         }
     }
-    pub fn new1_with_ntstatus(cmd: u8, status: u32) -> SMBVerCmdStat {
-        return SMBVerCmdStat {
+    pub fn new1_with_ntstatus(cmd: u8, status: u32) -> Self {
+        return Self {
             smb_ver: 1,
             smb1_cmd: cmd,
-            smb2_cmd: 0,
             status_set: true,
-            status_is_dos_error: false,
-            status_error_class: 0,
             status: status,
+            ..Default::default()
         }
     }
-    pub fn new2(cmd: u16) -> SMBVerCmdStat {
-        return SMBVerCmdStat {
+    pub fn new2(cmd: u16) -> Self {
+        return Self {
             smb_ver: 2,
-            smb1_cmd: 0,
             smb2_cmd: cmd,
-            status_set: false,
-            status_is_dos_error: false,
-            status_error_class: 0,
-            status: 0,
+            ..Default::default()
         }
     }
 
-    pub fn new2_with_ntstatus(cmd: u16, status: u32) -> SMBVerCmdStat {
-        return SMBVerCmdStat {
+    pub fn new2_with_ntstatus(cmd: u16, status: u32) -> Self {
+        return Self {
             smb_ver: 2,
-            smb1_cmd: 0,
             smb2_cmd: cmd,
             status_set: true,
-            status_is_dos_error: false,
-            status_error_class: 0,
             status: status,
+            ..Default::default()
         }
     }
 
@@ -338,8 +318,8 @@ pub struct SMBFiletime {
 }
 
 impl SMBFiletime {
-    pub fn new(raw: u64) -> SMBFiletime {
-        SMBFiletime {
+    pub fn new(raw: u64) -> Self {
+        Self {
             ts: raw,
         }
     }
@@ -380,9 +360,9 @@ pub struct SMBTransactionSetFilePathInfo {
 
 impl SMBTransactionSetFilePathInfo {
     pub fn new(filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool)
-        -> SMBTransactionSetFilePathInfo
+        -> Self
     {
-        return SMBTransactionSetFilePathInfo {
+        return Self {
             filename: filename, fid: fid,
             subcmd: subcmd,
             loi: loi,
@@ -438,8 +418,8 @@ pub struct SMBTransactionRename {
 }
 
 impl SMBTransactionRename {
-    pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> SMBTransactionRename {
-        return SMBTransactionRename {
+    pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> Self {
+        return Self {
             fuid: fuid, oldname: oldname, newname: newname,
         }
     }
@@ -463,7 +443,7 @@ impl SMBState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SMBTransactionCreate {
     pub disposition: u32,
     pub delete_on_close: bool,
@@ -480,23 +460,18 @@ pub struct SMBTransactionCreate {
 }
 
 impl SMBTransactionCreate {
-    pub fn new(filename: Vec<u8>, disp: u32, del: bool, dir: bool) -> SMBTransactionCreate {
-        return SMBTransactionCreate {
+    pub fn new(filename: Vec<u8>, disp: u32, del: bool, dir: bool) -> Self {
+        return Self {
             disposition: disp,
             delete_on_close: del,
             directory: dir,
             filename: filename,
-            guid: Vec::new(),
-            create_ts: 0,
-            last_access_ts: 0,
-            last_write_ts: 0,
-            last_change_ts: 0,
-            size: 0,
+            ..Default::default()
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SMBTransactionNegotiate {
     pub smb_ver: u8,
     pub dialects: Vec<Vec<u8>>,
@@ -508,18 +483,16 @@ pub struct SMBTransactionNegotiate {
 }
 
 impl SMBTransactionNegotiate {
-    pub fn new(smb_ver: u8) -> SMBTransactionNegotiate {
-        return SMBTransactionNegotiate {
+    pub fn new(smb_ver: u8) -> Self {
+        return Self {
             smb_ver: smb_ver,
-            dialects: Vec::new(),
-            dialects2: Vec::new(),
-            client_guid: None,
             server_guid: Vec::with_capacity(16),
+            ..Default::default()
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SMBTransactionTreeConnect {
     pub is_pipe: bool,
     pub share_type: u8,
@@ -532,14 +505,10 @@ pub struct SMBTransactionTreeConnect {
 }
 
 impl SMBTransactionTreeConnect {
-    pub fn new(share_name: Vec<u8>) -> SMBTransactionTreeConnect {
-        return SMBTransactionTreeConnect {
-            is_pipe:false,
-            share_type: 0,
-            tree_id:0,
+    pub fn new(share_name: Vec<u8>) -> Self {
+        return Self {
             share_name:share_name,
-            req_service: None,
-            res_service: None,
+            ..Default::default()
         }
     }
 }
@@ -567,17 +536,17 @@ pub struct SMBTransaction {
 }
 
 impl SMBTransaction {
-    pub fn new() -> SMBTransaction {
-        return SMBTransaction{
-            id: 0,
-            vercmd: SMBVerCmdStat::new(),
-            hdr: SMBCommonHdr::init(),
-            request_done: false,
-            response_done: false,
-            type_data: None,
-            de_state: None,
-            events: std::ptr::null_mut(),
-            tx_data: AppLayerTxData::new(),
+    pub fn new() -> Self {
+        return Self {
+              id: 0,
+              vercmd: SMBVerCmdStat::new(),
+              hdr: SMBCommonHdr::init(),
+              request_done: false,
+              response_done: false,
+              type_data: None,
+              de_state: None,
+              events: std::ptr::null_mut(),
+              tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -616,8 +585,8 @@ pub struct SMBFileGUIDOffset {
 }
 
 impl SMBFileGUIDOffset {
-    pub fn new(guid: Vec<u8>, offset: u64) -> SMBFileGUIDOffset {
-        SMBFileGUIDOffset {
+    pub fn new(guid: Vec<u8>, offset: u64) -> Self {
+        Self {
             guid:guid,
             offset:offset,
         }
@@ -637,7 +606,7 @@ pub const SMBHDR_TYPE_TRANS_FRAG:  u32 = 8;
 pub const SMBHDR_TYPE_TREE:        u32 = 9;
 pub const SMBHDR_TYPE_DCERPCTX:    u32 = 10;
 
-#[derive(Hash, Eq, PartialEq, Debug)]
+#[derive(Default, Hash, Eq, PartialEq, Debug)]
 pub struct SMBCommonHdr {
     pub ssn_id: u64,
     pub tree_id: u32,
@@ -646,16 +615,11 @@ pub struct SMBCommonHdr {
 }
 
 impl SMBCommonHdr {
-    pub fn init() -> SMBCommonHdr {
-        SMBCommonHdr {
-            rec_type : 0,
-            ssn_id : 0,
-            tree_id : 0,
-            msg_id : 0,
-        }
+    pub fn init() -> Self {
+        Default::default()
     }
-    pub fn new(rec_type: u32, ssn_id: u64, tree_id: u32, msg_id: u64) -> SMBCommonHdr {
-        SMBCommonHdr {
+    pub fn new(rec_type: u32, ssn_id: u64, tree_id: u32, msg_id: u64) -> Self {
+        Self {
             rec_type : rec_type,
             ssn_id : ssn_id,
             tree_id : tree_id,
@@ -712,8 +676,8 @@ pub struct SMBHashKeyHdrGuid {
 }
 
 impl SMBHashKeyHdrGuid {
-    pub fn new(hdr: SMBCommonHdr, guid: Vec<u8>) -> SMBHashKeyHdrGuid {
-        SMBHashKeyHdrGuid {
+    pub fn new(hdr: SMBCommonHdr, guid: Vec<u8>) -> Self {
+        Self {
             hdr: hdr, guid: guid,
         }
     }
@@ -726,8 +690,8 @@ pub struct SMBTree {
 }
 
 impl SMBTree {
-    pub fn new(name: Vec<u8>, is_pipe: bool) -> SMBTree {
-        SMBTree {
+    pub fn new(name: Vec<u8>, is_pipe: bool) -> Self {
+        Self {
             name:name,
             is_pipe:is_pipe,
         }
@@ -802,8 +766,8 @@ pub struct SMBState<> {
 
 impl SMBState {
     /// Allocation function for a new TLS parser instance
-    pub fn new() -> SMBState {
-        SMBState {
+    pub fn new() -> Self {
+        Self {
             ssn2vec_map:HashMap::new(),
             guid2name_map:HashMap::new(),
             ssn2vecoffset_map:HashMap::new(),
