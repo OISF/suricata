@@ -88,7 +88,7 @@ macro_rules!export_tx_data_get {
 }
 
 #[repr(C)]
-#[derive(Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -97,20 +97,15 @@ pub struct AppLayerResult {
 
 impl AppLayerResult {
     /// parser has successfully processed in the input, and has consumed all of it
-    pub fn ok() -> AppLayerResult {
-        return AppLayerResult {
-            status: 0,
-            consumed: 0,
-            needed: 0,
-        };
+    pub fn ok() -> Self {
+        Default::default()
     }
     /// parser has hit an unrecoverable error. Returning this to the API
     /// leads to no further calls to the parser.
-    pub fn err() -> AppLayerResult {
-        return AppLayerResult {
+    pub fn err() -> Self {
+        return Self {
             status: -1,
-            consumed: 0,
-            needed: 0,
+            ..Default::default()
         };
     }
     /// parser needs more data. Through 'consumed' it will indicate how many
@@ -118,8 +113,8 @@ impl AppLayerResult {
     /// how many more bytes it needs before getting called again.
     /// Note: consumed should never be more than the input len
     ///       needed + consumed should be more than the input len
-    pub fn incomplete(consumed: u32, needed: u32) -> AppLayerResult {
-        return AppLayerResult {
+    pub fn incomplete(consumed: u32, needed: u32) -> Self {
+        return Self {
             status: 1,
             consumed: consumed,
             needed: needed,
@@ -358,10 +353,8 @@ pub struct LoggerFlags {
 
 impl LoggerFlags {
 
-    pub fn new() -> LoggerFlags {
-        return LoggerFlags{
-            flags: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn get(&self) -> u32 {

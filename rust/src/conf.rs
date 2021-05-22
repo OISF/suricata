@@ -79,8 +79,8 @@ pub struct ConfNode {
 
 impl ConfNode {
 
-    pub fn wrap(conf: *const c_void) -> ConfNode {
-        return ConfNode{
+    pub fn wrap(conf: *const c_void) -> Self {
+        return Self {
             conf: conf,
         }
     }
