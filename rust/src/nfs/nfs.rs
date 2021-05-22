@@ -107,7 +107,7 @@ pub enum NFSTransactionTypeData {
     FILE(NFSTransactionFile),
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct NFSTransactionFile {
     /// additional procedures part of a single file transfer. Currently
     /// only COMMIT on WRITEs.
@@ -128,13 +128,10 @@ pub struct NFSTransactionFile {
 }
 
 impl NFSTransactionFile {
-    pub fn new() -> NFSTransactionFile {
-        return NFSTransactionFile {
-            file_additional_procs: Vec::new(),
-            chunk_count:0,
-            file_last_xid: 0,
-            post_gap_ts: 0,
+    pub fn new() -> Self {
+        return Self {
             file_tracker: FileTransferTracker::new(),
+            ..Default::default()
         }
     }
 }
@@ -185,8 +182,8 @@ pub struct NFSTransaction {
 }
 
 impl NFSTransaction {
-    pub fn new() -> NFSTransaction {
-        return NFSTransaction{
+    pub fn new() -> Self {
+        return Self {
             id: 0,
             xid: 0,
             procedure: 0,
