@@ -315,8 +315,8 @@ pub struct DNSTransaction {
 
 impl DNSTransaction {
 
-    pub fn new() -> DNSTransaction {
-        return DNSTransaction{
+    pub fn new() -> Self {
+        return Self {
             id: 0,
             request: None,
             response: None,
@@ -398,6 +398,7 @@ impl ConfigTracker {
     }
 }
 
+#[derive(Default)]
 pub struct DNSState {
     // Internal transaction ID.
     pub tx_id: u64,
@@ -414,24 +415,12 @@ pub struct DNSState {
 
 impl DNSState {
 
-    pub fn new() -> DNSState {
-        return DNSState{
-            tx_id: 0,
-            transactions: Vec::new(),
-            events: 0,
-            config: None,
-            gap: false,
-        };
+    pub fn new() -> Self {
+            Default::default()
     }
 
-    pub fn new_tcp() -> DNSState {
-        return DNSState{
-            tx_id: 0,
-            transactions: Vec::new(),
-            events: 0,
-            config: None,
-            gap: false,
-        };
+    pub fn new_tcp() -> Self {
+            Default::default()
     }
 
     pub fn new_tx(&mut self) -> DNSTransaction {
