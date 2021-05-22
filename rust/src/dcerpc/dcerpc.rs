@@ -160,7 +160,7 @@ pub fn get_req_type_for_resp(t: u8) -> u8 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCTransaction {
     pub id: u64, // internal transaction ID
     pub ctxid: u16,
@@ -187,31 +187,17 @@ pub struct DCERPCTransaction {
 }
 
 impl DCERPCTransaction {
-    pub fn new() -> DCERPCTransaction {
-        return DCERPCTransaction {
-            id: 0,
-            ctxid: 0,
-            opnum: 0,
-            first_request_seen: 0,
-            call_id: 0,
-            frag_cnt_ts: 0,
-            frag_cnt_tc: 0,
-            endianness: 0,
+    pub fn new() -> Self {
+        return Self {
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
-            stub_data_buffer_reset_ts: false,
-            stub_data_buffer_reset_tc: false,
-            req_done: false,
-            resp_done: false,
-            req_lost: false,
-            resp_lost: false,
             req_cmd: DCERPC_TYPE_REQUEST,
             resp_cmd: DCERPC_TYPE_RESPONSE,
             activityuuid: Vec::new(),
-            seqnum: 0,
             tx_data: AppLayerTxData::new(),
             de_state: None,
-        };
+            ..Default::default()
+        }
     }
 
     pub fn free(&mut self) {
@@ -253,7 +239,7 @@ pub struct DCERPCRequest {
     pub first_request_seen: u8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct DCERPCUuidEntry {
     pub ctxid: u16,
     pub internal_id: u16,
@@ -265,16 +251,8 @@ pub struct DCERPCUuidEntry {
 }
 
 impl DCERPCUuidEntry {
-    pub fn new() -> DCERPCUuidEntry {
-        return DCERPCUuidEntry {
-            ctxid: 0,
-            internal_id: 0,
-            result: 0,
-            uuid: Vec::new(),
-            version: 0,
-            versionminor: 0,
-            flags: 0,
-        };
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
@@ -330,7 +308,7 @@ pub struct DCERPCBindAck {
     pub ctxitems: Vec<DCERPCBindAckResult>,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCState {
     pub header: Option<DCERPCHdr>,
     pub bind: Option<DCERPCBind>,
@@ -357,31 +335,12 @@ pub struct DCERPCState {
 }
 
 impl DCERPCState {
-    pub fn new() -> DCERPCState {
-        return DCERPCState {
-            header: None,
-            bind: None,
-            bindack: None,
-            transactions: Vec::new(),
-            buffer_ts: Vec::new(),
-            buffer_tc: Vec::new(),
-            pad: 0,
-            padleft: 0,
-            bytes_consumed: 0,
-            tx_id: 0,
-            query_completed: false,
+    pub fn new() -> Self {
+        return Self {
             data_needed_for_dir: core::STREAM_TOSERVER,
             prev_dir: core::STREAM_TOSERVER,
-            prev_tx_call_id: 0,
-            clear_bind_cache: false,
-            ts_gap: false,
-            tc_gap: false,
-            ts_ssn_gap: false,
-            tc_ssn_gap: false,
-            ts_ssn_trunc: false,
-            tc_ssn_trunc: false,
-            flow: None,
-        };
+            ..Default::default()
+        }
     }
 
     fn create_tx(&mut self, call_id: u32) -> DCERPCTransaction {

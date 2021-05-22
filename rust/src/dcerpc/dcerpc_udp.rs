@@ -30,7 +30,7 @@ use crate::dcerpc::parser;
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCHdrUdp {
     pub rpc_vers: u8,
     pub pkt_type: u8,
@@ -53,18 +53,15 @@ pub struct DCERPCHdrUdp {
     pub serial_lo: u8,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCUDPState {
     pub tx_id: u64,
     pub transactions: Vec<DCERPCTransaction>,
 }
 
 impl DCERPCUDPState {
-    pub fn new() -> DCERPCUDPState {
-        return DCERPCUDPState {
-            tx_id: 0,
-            transactions: Vec::new(),
-        };
+    pub fn new() -> Self {
+        Default::default()
     }
 
     fn create_tx(&mut self,  hdr: &DCERPCHdrUdp) -> DCERPCTransaction {

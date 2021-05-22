@@ -46,8 +46,8 @@ pub struct DCEOpnumRange {
 }
 
 impl DCEOpnumRange {
-    pub fn new() -> DCEOpnumRange {
-        return DCEOpnumRange {
+    pub fn new() -> Self {
+        return Self {
             range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
             range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
         };
