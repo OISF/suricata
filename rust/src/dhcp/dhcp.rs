@@ -129,6 +129,7 @@ impl Drop for DHCPTransaction {
 export_tx_get_detect_state!(rs_dhcp_tx_get_detect_state, DHCPTransaction);
 export_tx_set_detect_state!(rs_dhcp_tx_set_detect_state, DHCPTransaction);
 
+#[derive(Default)]
 pub struct DHCPState {
     // Internal transaction ID.
     tx_id: u64,
@@ -140,12 +141,8 @@ pub struct DHCPState {
 }
 
 impl DHCPState {
-    pub fn new() -> DHCPState {
-        return DHCPState {
-            tx_id: 0,
-            transactions: Vec::new(),
-            events: 0,
-        };
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn parse(&mut self, input: &[u8]) -> bool {
