@@ -30,10 +30,10 @@ pub struct DHCPLogger {
 
 impl DHCPLogger {
     
-    pub fn new(conf: ConfNode) -> DHCPLogger {
-        return DHCPLogger{
+    pub fn new(conf: ConfNode) -> Self {
+        return Self {
             extended: conf.get_child_bool("extended"),
-        };
+        }
     }
 
     fn get_type(&self, tx: &DHCPTransaction) -> Option<u8> {
