@@ -45,9 +45,11 @@
 
 int DecodeNSH(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_nsh);
 
-    /* Check mimimum header size */
+    /* Check minimum header size */
     if (len < sizeof(NshHdr)) {
         ENGINE_SET_INVALID_EVENT(p, NSH_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
