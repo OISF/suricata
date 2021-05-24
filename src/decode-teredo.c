@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2020 Open Information Security Foundation
+/* Copyright (C) 2012-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,8 @@
 #include "decode.h"
 #include "decode-ipv6.h"
 #include "decode-teredo.h"
+
+#include "util-validate.h"
 #include "util-debug.h"
 #include "conf.h"
 #include "detect-engine-port.h"
@@ -124,6 +126,8 @@ void DecodeTeredoConfig(void)
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint16_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     if (!g_teredo_enabled)
         return TM_ECODE_FAILED;
 

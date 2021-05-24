@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,8 @@
 #include "decode.h"
 #include "decode-sctp.h"
 #include "decode-events.h"
+
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-optimize.h"
@@ -41,6 +43,8 @@
 
 static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     if (unlikely(len < SCTP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, SCTP_PKT_TOO_SMALL);
         return -1;

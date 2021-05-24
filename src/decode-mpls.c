@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+
+#include "util-validate.h"
 #include "util-unittest.h"
 
 #define MPLS_HEADER_LEN         4
@@ -47,6 +49,8 @@
 int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     uint32_t shim;
     int label;
     int event = 0;

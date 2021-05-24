@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,12 +37,15 @@
 
 #include "flow.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
 int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_ppp);
 
     if (unlikely(len < PPP_HEADER_LEN)) {
@@ -54,8 +57,6 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     p->ppph = (PPPHdr *)pkt;
-    if (unlikely(p->ppph == NULL))
-        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "",
         p, pkt, SCNtohs(p->ppph->protocol), len);

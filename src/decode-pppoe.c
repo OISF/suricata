@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,6 +41,7 @@
 
 #include "flow.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -50,6 +51,8 @@
 int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_pppoe);
 
     if (len < PPPOE_DISCOVERY_HEADER_MIN_LEN) {
@@ -58,8 +61,6 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
-    if (p->pppoedh == NULL)
-        return TM_ECODE_FAILED;
 
     /* parse the PPPOE code */
     switch (p->pppoedh->pppoe_code)
@@ -130,6 +131,8 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_pppoe);
 
     if (len < PPPOE_SESSION_HEADER_LEN) {
@@ -138,8 +141,6 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     p->pppoesh = (PPPOESessionHdr *)pkt;
-    if (p->pppoesh == NULL)
-        return TM_ECODE_FAILED;
 
     SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
            PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  SCNtohs(p->pppoesh->session_id),  SCNtohs(p->pppoesh->pppoe_length));

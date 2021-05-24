@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,12 +35,15 @@
 #include "decode-ethernet.h"
 #include "decode-events.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_eth);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
@@ -52,8 +55,6 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
     p->ethh = (EthernetHdr *)pkt;
-    if (unlikely(p->ethh == NULL))
-        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(p->ethh->eth_type));
 
