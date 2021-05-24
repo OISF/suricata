@@ -48,135 +48,131 @@
 #include "output-json-pgsql.h"
 #include "rust.h"
 
-typedef struct LogPgsqlFileCtx_ {
-    LogFileCtx *file_ctx;
+typedef struct OutputPgsqlCtx_ {
     uint32_t flags;
-} LogPgsqlFileCtx;
+    OutputJsonCtx *eve_ctx;
+} OutputPgsqlCtx;
 
 typedef struct LogPgsqlLogThread_ {
-    LogPgsqlFileCtx *pgsqllog_ctx;
-    LogFileCtx *file_ctx;
-    MemBuffer *buffer;
+    OutputPgsqlCtx *pgsqllog_ctx;
+    OutputJsonThreadCtx *ctx;
 } LogPgsqlLogThread;
 
-// static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void
-// *state,
-//         void *tx, uint64_t tx_id)
-// {
-//     SCLogNotice("JsonPgsqlLogger");
-//     LogPgsqlLogThread *thread = thread_data;
+static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
+{
+    PgsqlTransaction *pgsql_tx = tx;
+    LogPgsqlLogThread *thread = thread_data;
+    SCLogDebug("Logging pgsql transaction %" PRIu64 ".", tx_id);
 
-//     // TODO must figure out the best way to pass that new argument
-//     JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL, NULL);
-//     if (unlikely(js == NULL)) {
-//         return TM_ECODE_FAILED;
-//     }
+    // TODO must figure out the best way to pass that new argument
+    JsonBuilder *jb =
+            CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
+    if (unlikely(jb == NULL)) {
+        return TM_ECODE_FAILED;
+    }
 
-//     jb_open_object(js, "pgsql");
-//     if (!rs_pgsql_logger_log(tx, js)) {
-//         goto error;
-//     }
-//     jb_close(js);
+    jb_open_object(jb, "pgsql");
+    if (!rs_pgsql_logger_log(pgsql_tx, jb)) {
+        goto error;
+    }
+    jb_close(jb);
 
-//     MemBufferReset(thread->buffer);
-//     OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
-//     jb_free(js);
+    OutputJsonBuilderBuffer(jb, thread->ctx);
+    jb_free(jb);
 
-//     return TM_ECODE_OK;
+    return TM_ECODE_OK;
 
-// error:
-//     jb_free(js);
-//     return TM_ECODE_FAILED;
-// }
+error:
+    jb_free(jb);
+    return TM_ECODE_FAILED;
+}
 
-// static void OutputPgsqlLogDeInitCtxSub(OutputCtx *output_ctx)
-// {
-//     LogPgsqlFileCtx *pgsqllog_ctx = (LogPgsqlFileCtx *)output_ctx->data;
-//     SCFree(pgsqllog_ctx);
-//     SCFree(output_ctx);
-// }
+static void OutputPgsqlLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputPgsqlCtx *pgsqllog_ctx = (OutputPgsqlCtx *)output_ctx->data;
+    SCFree(pgsqllog_ctx);
+    SCFree(output_ctx);
+}
 
-// static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
-// {
-//     OutputInitResult result = { NULL, false };
-//     OutputJsonCtx *ajt = parent_ctx->data;
+static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    OutputInitResult result = { NULL, false };
+    OutputJsonCtx *ojc = parent_ctx->data;
 
-//     LogPgsqlFileCtx *pgsqllog_ctx = SCCalloc(1, sizeof(*pgsqllog_ctx));
-//     if (unlikely(pgsqllog_ctx == NULL)) {
-//         return result;
-//     }
-//     pgsqllog_ctx->file_ctx = ajt->file_ctx;
+    OutputPgsqlCtx *pgsql_ctx = SCMalloc(sizeof(OutputPgsqlCtx));
+    if (unlikely(pgsql_ctx == NULL))
+        return result;
 
-//     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
-//     if (unlikely(output_ctx == NULL)) {
-//         SCFree(pgsqllog_ctx);
-//         return result;
-//     }
-//     output_ctx->data = pgsqllog_ctx;
-//     output_ctx->DeInit = OutputPgsqlLogDeInitCtxSub;
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(pgsql_ctx);
+        return result;
+    }
 
-//     SCLogNotice("PostgreSQL log sub-module initialized.");
+    pgsql_ctx->eve_ctx = ojc;
 
-//     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
+    output_ctx->data = pgsql_ctx;
+    output_ctx->DeInit = OutputPgsqlLogDeInitCtxSub;
 
-//     result.ctx = output_ctx;
-//     result.ok = true;
-//     return result;
-// }
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
 
-// static TmEcode JsonPgsqlLogThreadInit(ThreadVars *t, const void *initdata, void **data)
-// {
-//     LogPgsqlLogThread *thread = SCCalloc(1, sizeof(*thread));
-//     if (unlikely(thread == NULL)) {
-//         return TM_ECODE_FAILED;
-//     }
+    SCLogNotice("PostgreSQL log sub-module initialized.");
 
-//     if (initdata == NULL) {
-//         SCLogDebug("Error getting context for EveLogPgsql.  \"initdata\" is NULL.");
-//         goto error_exit;
-//     }
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
+}
 
-//     thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-//     if (unlikely(thread->buffer == NULL)) {
-//         goto error_exit;
-//     }
+static TmEcode JsonPgsqlLogThreadInit(ThreadVars *t, const void *initdata, void **data)
+{
+    LogPgsqlLogThread *thread = SCCalloc(1, sizeof(LogPgsqlLogThread));
+    if (unlikely(thread == NULL)) {
+        return TM_ECODE_FAILED;
+    }
 
-//     thread->pgsqllog_ctx = ((OutputCtx *)initdata)->data;
-//     thread->file_ctx = LogFileEnsureExists(thread->pgsqllog_ctx->file_ctx, t->id);
-//     if (!thread->file_ctx) {
-//         goto error_exit;
-//     }
-//     *data = (void *)thread;
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogPgsql.  \"initdata\" is NULL.");
+        goto error_exit;
+    }
 
-//     return TM_ECODE_OK;
+    thread->pgsqllog_ctx = ((OutputCtx *)initdata)->data;
+    thread->ctx = CreateEveThreadCtx(t, thread->pgsqllog_ctx->eve_ctx);
+    if (!thread->ctx) {
+        goto error_exit;
+    }
+    *data = (void *)thread;
 
-// error_exit:
-//     if (thread->buffer != NULL) {
-//         MemBufferFree(thread->buffer);
-//     }
-//     SCFree(thread);
-//     return TM_ECODE_FAILED;
-// }
+    return TM_ECODE_OK;
 
-// static TmEcode JsonPgsqlLogThreadDeinit(ThreadVars *t, void *data)
-// {
-//     LogPgsqlLogThread *thread = (LogPgsqlLogThread *)data;
-//     if (thread == NULL) {
-//         return TM_ECODE_OK;
-//     }
-//     if (thread->buffer != NULL) {
-//         MemBufferFree(thread->buffer);
-//     }
-//     SCFree(thread);
-//     return TM_ECODE_OK;
-// }
+error_exit:
+    SCFree(thread);
+    return TM_ECODE_FAILED;
+}
+
+static TmEcode JsonPgsqlLogThreadDeinit(ThreadVars *t, void *data)
+{
+    LogPgsqlLogThread *thread = (LogPgsqlLogThread *)data;
+    if (thread == NULL) {
+        return TM_ECODE_OK;
+    }
+    FreeEveThreadCtx(thread->ctx);
+    SCFree(thread);
+    return TM_ECODE_OK;
+}
 
 void JsonPgsqlLogRegister(void)
 {
+    /* PGSQL_START_REMOVE */
+    if (ConfGetNode("app-layer.protocols.pgsql") == NULL) {
+        SCLogNotice("Disabling Pgsql eve-logger");
+        return;
+    }
+    /* PGSQL_END_REMOVE */
     /* Register as an eve sub-module. */
-    // OutputRegisterTxSubModule(LOGGER_JSON_PGSQL, "eve-log", "JsonPgsqlLog", "eve-log.postgresql",
-    //         OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
-    //         JsonPgsqlLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_PGSQL, "eve-log", "JsonPgsqlLog", "eve-log.pgsql",
+            OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
+            JsonPgsqlLogThreadDeinit, NULL);
 
     SCLogNotice("PostgreSQL JSON logger registered.");
 }

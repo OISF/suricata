@@ -16,5 +16,5 @@
  */
 
 pub mod pgsql;
-// pub mod logger;
-mod parser;
+pub mod logger;
+pub mod parser;
