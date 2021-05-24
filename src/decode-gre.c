@@ -36,6 +36,7 @@
 #include "decode-events.h"
 #include "decode-gre.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -45,6 +46,8 @@
 
 int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     uint32_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
 
@@ -59,8 +62,6 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     }
 
     p->greh = (GREHdr *)pkt;
-    if(p->greh == NULL)
-        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x",
         p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
