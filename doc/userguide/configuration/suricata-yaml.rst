@@ -1549,6 +1549,142 @@ computers etc.)
 Packet Acquisition
 ------------------
 
+Data Plane Development Kit (DPDK)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Data Plane Development Kit <https://www.dpdk.org/>`_ is a framework for fast packet processing in data plane
+applications running on a wide variety of CPU architectures.
+DPDK `Environment Abstraction Layer (EAL) <https://doc.dpdk.org/guides/prog_guide/env_abstraction_layer.html>`_
+provides a generic interface to low-level resources. It is a unique way how DPDK libraries access
+NICs. EAL creates an API for application to access NIC resources from the userspace level. In DPDK, packets
+are not retrieved via interrupt handling. Instead, the application
+`polls <https://doc.dpdk.org/guides/prog_guide/poll_mode_drv.html>`_ NIC for newly received packets.
+
+DPDK allows the user space application to directly access memory where NIC stores the packets.
+As a result, neither DPDK nor the application copies the packets for the inspection. The application directly
+processes packets via passed packet descriptors.
+
+
+.. figure:: suricata-yaml/dpdk.png
+    :align: center
+    :alt: DPDK basic architecture
+    :figclass: align-center
+
+    `High-level overview of DPDK application`
+
+
+Suricata makes use of DPDK for packet acquisition in workers runmode.
+The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
+2 main subnodes and those are eal-params and interfaces.
+
+::
+
+    dpdk:
+      eal-params:
+        proc-type: primary
+      interfaces:
+        - interface: 0000:3b:00.0
+          threads: auto
+          promisc: true
+          multicast: true
+          checksum-checks: true
+          checksum-checks-offload: true
+          mtu: 1500
+          mempool-size: 65535
+          mempool-cache-size: 257
+          rx-descriptors: 1024
+          tx-descriptors: 1024
+          copy-mode: none
+          copy-iface: none # or PCIe address of the second interface
+
+
+The node `dpdk.eal-params` consists of `DPDK arguments <https://doc.dpdk.org/guides/linux_gsg/linux_eal_parameters.html>`_
+that are usually passed through command line. These arguments are used to initialize and configure EAL.
+Arguments can be specified in either long or short forms. When specifying the arguments, the dashes are omitted.
+Among other settings, this configuration node is able to configure available NICs to Suricata, memory settings or other
+parameters related to EAL.
+
+The node `dpdk.interfaces` wraps a list of interface configurations. Items of the list follows the structure that can
+be found in other capture interfaces. The individual items contain the usual configuration options
+such as `threads`/`copy-mode`/`checksum-checks` settings. Other capture interfaces, such as AF_PACKET, rely on the user that NICs are appropriately configured.
+Configuration through kernel does not apply to applications running under DPDK. The application is solely responsible for the
+initialization of NICs it is using. So, before the start of Suricata, NICs that Suricata uses, must undergo the process of initialization.
+As a result, there are extra extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
+At the start of the configuration process, all NIC offloads are disabled to prevent any packet modification.
+According to the configuration, checksum validation offload can be enabled to drop invalid packets.
+Other offloads can not be currently enabled.
+Additionally, the list items of `dpdk.interfaces` contains DPDK specific settings such as `mempool-size` or `rx-descriptors`.
+These settings adjust individual parameters of EAL. One of the entries of the `dpdk.interfaces` is the `default` interface.
+When loading interface configuration and some entry is missing, the corresponding value of the `default` interface is used.
+
+The worker threads must be assigned to a specific cores. The configuration module `threading` can be used to set threads affinity.
+Worker threads can be pinned to cores in the array configured in `threading.cpu-affinity["worker-cpu-set"]`.
+Performance-oriented setups have everything (the NIC, memory and CPU cores interacting with the NIC) based on one NUMA node.
+It is therefore required to know layout of the server architecture to get the best results.
+The CPU core ids and NUMA locations can be determined for example from the output of `/proc/cpuinfo` where `physical id` described the NUMA number.
+The NUMA node to which the NIC is connected to can be determined from the file `/sys/class/net/<KERNEL NAME OF THE NIC>/device/numa_node`.
+
+::
+
+    ## Check ids and NUMA location of individual CPU cores
+    cat /proc/cpuinfo | grep 'physical id\|processor'
+
+    ## Check NUMA node of the NIC
+    ## cat /sys/class/net/<KERNEL NAME OF THE NIC>/device/numa_node e.g.
+    cat /sys/class/net/eth1/device/numa_node
+
+If Suricata has enabled at least 2 (or more) workers, the incoming traffic is load balanced across the worker threads
+by Receive Side Scaling (RSS). Internally, DPDK runmode uses
+a `symmetric hash (0x6d5a) <https://www.ran-lifshitz.com/2014/08/28/symmetric-rss-receive-side-scaling/>`_
+that redirects bi-flows to specific workers.
+
+Before Suricata can be run, it is required to allocate sufficient number of hugepages. Suricata allocates continuous block of memory.
+For efficiency, CPU allocates memory in RAM in chunks. These chunks are usually in size of 4096 bytes. DPDK and other memory intensive applications makes use of hugepages.
+Hugepages start at the size of 2MB but they can be as large as 1GB. Lower count of pages (memory chunks) allows faster lookup of page entries.
+The hugepages need to be allocated on the NUMA node where the NIC and CPU resides.
+Otherwise, if the hugepages are allocated only on NUMA node 0 and the NIC is connected to NUMA node 1, then the application will fail to start.
+Therefore, it is recommended to first find out to which NUMA node the NIC is connected to and only then allocate hugepages and set CPU cores affinity to the given NUMA node.
+If the Suricata deployment is using multiple NICs on different NUMA nodes then hugepages must be allocated on all of those NUMA nodes.
+
+::
+
+    ## To check number of allocated hugepages:
+    grep Huge /proc/meminfo
+
+    ## Allocate hugepages on NUMA node 0:
+    echo 8192 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+
+
+DPDK memory pools hold packets received from NICs. These memory pools are allocated in hugepages.
+One memory pool is allocated per interface. The size of each memory pool can be individual and is set with
+the `mempool-size`. Memory (in bytes) for one memory pool is calculated as: `mempool-size` * `mtu`.
+Sum of memory pool requirements divided by the size of one hugepage results in the number of required hugepages.
+It causes no problem to allocate more memory than required but it is vital for Suricata to not run out of hugepages.
+
+Mempool cache is local to the individual CPU cores and holds packets that were recently processed. As the mempool is
+shared among all cores, cache tries to minimize the required inter-process synchronization. Recommended size of the cache
+is covered in the YAML file.
+
+There has been an ongoing effort to add a DPDK support into Suricata. While the capture interface is continually evolving,
+there has been certain areas with an increased focus. The current version of the DPDK capture interface provides
+support for physical NICs and for running on physical machines in workers runmode.
+The work has not been tested neither with the virtual interfaces nor
+in the virtual environments like VMs, Docker or similar.
+
+Although the capture interface uses DPDK library, there is no need to configure any lcores.
+The capture interface uses the standard Suricata threading module.
+Additionally, Suricata is intended to run as a primary process only.
+
+The minimal supported DPDK is version 19.11 which should be available in most repositories of major distributions.
+Alternatively, it is also possible to use `meson` and `ninja` to build and install DPDK from scratch.
+It is required to have correctly configured tool `pkg-config` as it is used to load libraries and CFLAGS during
+the Suricata configuration and compilation.
+
+To be able to run DPDK on Intel cards, it is required to change the default Intel driver to either
+`vfio-pci` or `igb_uio` driver. The process is described in
+`DPDK manual page regarding Linux drivers <https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_.
+DPDK is natively supported by Mellanox and thus their NICs should work "out of the box".
+
 Pf-ring
 ~~~~~~~
 
