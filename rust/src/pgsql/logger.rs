@@ -20,14 +20,25 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use super::pgsql::PgsqlTransaction;
 
 fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    if let Some(ref request) = tx.request {
-        js.set_string("request", &request.to_string())?;
+    // if let Some(ref request) = tx.request {
+    //     js.set_string("request", &requests.to_string())?;
+    // }
+    // if let Some(ref response) = tx.response {
+    //     js.set_string("response", &responses.to_string())?;
+    // }
+    // // TODO
+    // // Check tx vectors and alternately print request and response? >_<
+    // Ok(())
+
+    if !tx.requests.is_empty() {
+        for request in &tx.requests {
+            js.set_string("request", &request.to_string())?;
+        }
+        for response in &tx.responses {
+            js.set_string("response", &response.to_string())?;
+        }
     }
-    if let Some(ref response) = tx.response {
-        js.set_string("response", &response.to_string())?;
-    }
-    // TODO
-    // Check tx vectors and alternately print request and response? >_<
+
     Ok(())
 }
 
