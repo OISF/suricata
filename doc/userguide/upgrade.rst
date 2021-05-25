@@ -35,6 +35,7 @@ Upgrading 6.0 to 7.0
 
 Major changes
 ~~~~~~~~~~~~~
+- Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
 
 Removals
 ~~~~~~~~

@@ -757,3 +757,22 @@ Suricata has its own specific pcre modifiers. These are:
   relative to the previous match so both matches have to be in the
   HTTP-Host buffer.
 
+.. _pcre-update-v1-to-v2:
+
+Changes from PCRE1 to PCRE2
+===========================
+
+The upgrade from PCRE1 to PCRE2 changes the behavior for some
+PCRE expressions.
+
+- ``\I`` is a valid pcre in PCRE1, with a useless escape, so
+  equivalent to ``I``, but it is no longer the case in PCRE2.
+  There are other characters than I exhibiting this pattern
+- ``[\d-a]`` is a valid pcre in PCRE1, with either a digit,
+  a dash or the character ``a``, but the dash must now be escaped
+  with PCRE2 as ``[\d\-a]`` to get the same behavior
+- ``pcre2_substring_copy_bynumber`` now returns an error
+  ``PCRE2_ERROR_UNSET`` instead of ``pcre_copy_substring`` returning
+  no error and giving an empty string. If the behavior of some use
+  case is no longer the expected one, please let us know.
+
