@@ -866,6 +866,13 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
     }
 }
 
+fn http2_caseinsensitive_cmp(s1: &[u8], s2: &str) -> bool {
+    if let Ok(s) = std::str::from_utf8(s1) {
+        return s.to_lowercase() == s2;
+    }
+    return false;
+}
+
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_add_header(
     state: &mut HTTP2State, name: *const u8, name_len: u32, value: *const u8, value_len: u32,
@@ -874,6 +881,8 @@ pub extern "C" fn rs_http2_tx_add_header(
     let slice_value = build_slice!(value, value_len as usize);
     if slice_name == "HTTP2-Settings".as_bytes() {
         http2_tx_set_settings(state, slice_value)
+    } else if http2_caseinsensitive_cmp(slice_name, "host") {
+        http2_tx_set_header(state, ":authority".as_bytes(), slice_value)
     } else {
         http2_tx_set_header(state, slice_name, slice_value)
     }
