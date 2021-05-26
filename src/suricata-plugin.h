@@ -43,14 +43,11 @@ typedef struct SCPlugin_ {
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
 /**
- * Structure used to define a file type plugin.
- *
- * Currently only used by the Eve output type.
- *
- * name -- The plugin name. This name is used to identify the plugin: eve-log.filetype and in the
- * plugins: section
+ * Structure used to define an Eve output file type plugin.
  */
-typedef struct SCPluginFileType_ {
+typedef struct SCEveFileType_ {
+    /* The name of the output, used to specify the output in the filetype section
+     * of the eve-log configuration. */
     const char *name;
     bool internal;
     /* Init Called on first access */
@@ -63,11 +60,11 @@ typedef struct SCPluginFileType_ {
     int (*ThreadInit)(void *init_data, int thread_id, void **thread_data);
     /* ThreadDeinit - Called for each thread using file object */
     int (*ThreadDeinit)(void *init_data, void *thread_data);
-    TAILQ_ENTRY(SCPluginFileType_) entries;
-} SCPluginFileType;
+    TAILQ_ENTRY(SCEveFileType_) entries;
+} SCEveFileType;
 
-bool SCPluginRegisterEveFileType(SCPluginFileType *);
-bool SCRegisterEveFileType(SCPluginFileType *);
+bool SCPluginRegisterEveFileType(SCEveFileType *);
+bool SCRegisterEveFileType(SCEveFileType *);
 
 typedef struct SCCapturePlugin_ {
     char *name;
