@@ -55,7 +55,7 @@ typedef struct LogThreadedFileCtx_ {
 } LogThreadedFileCtx;
 
 typedef struct LogFilePluginCtx_ {
-    SCPluginFileType *plugin;
+    SCEveFileType *plugin;
     void *init_data;
     void *thread_data;
 } LogFilePluginCtx;

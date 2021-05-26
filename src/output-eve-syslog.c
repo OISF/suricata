@@ -98,7 +98,7 @@ static void SyslogDeInit(void *init_data)
 
 void SyslogInitialize(void)
 {
-    SCPluginFileType *plugin_data = SCCalloc(1, sizeof(SCPluginFileType));
+    SCEveFileType *plugin_data = SCCalloc(1, sizeof(SCEveFileType));
 
     if (plugin_data == NULL) {
         FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve output %s", OUTPUT_NAME);
