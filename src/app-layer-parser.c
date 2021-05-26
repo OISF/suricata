@@ -215,10 +215,16 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
     SCReturn;
 }
 
+bool g_config_http1keywords_http2traffic = false;
+
 int AppLayerParserSetup(void)
 {
     SCEnter();
     memset(&alp_ctx, 0, sizeof(alp_ctx));
+    int value = 0;
+    if (ConfGetBool("app-layer.protocols.http2.http1-rules", &value) == 1 && value == 1) {
+        g_config_http1keywords_http2traffic = true;
+    }
     SCReturnInt(0);
 }
 
