@@ -1133,7 +1133,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         enum LogFileType log_filetype = FileTypeFromConf(output_s);
         if (log_filetype == LOGFILE_TYPE_NOTSET) {
 #ifdef HAVE_PLUGINS
-            SCPluginFileType *plugin = SCPluginFindFileType(output_s);
+            SCEveFileType *plugin = SCPluginFindFileType(output_s);
             if (plugin != NULL) {
                 log_filetype = LOGFILE_TYPE_PLUGIN;
                 json_ctx->plugin = plugin;

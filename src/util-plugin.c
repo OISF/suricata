@@ -38,8 +38,7 @@ typedef struct PluginListNode_ {
  */
 static TAILQ_HEAD(, PluginListNode_) plugins = TAILQ_HEAD_INITIALIZER(plugins);
 
-static TAILQ_HEAD(, SCPluginFileType_) output_types =
-    TAILQ_HEAD_INITIALIZER(output_types);
+static TAILQ_HEAD(, SCEveFileType_) output_types = TAILQ_HEAD_INITIALIZER(output_types);
 
 static TAILQ_HEAD(, SCCapturePlugin_) capture_plugins = TAILQ_HEAD_INITIALIZER(capture_plugins);
 
@@ -142,9 +141,9 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     }
 }
 
-bool SCRegisterEveFileType(SCPluginFileType *plugin)
+bool SCRegisterEveFileType(SCEveFileType *plugin)
 {
-    SCPluginFileType *existing = NULL;
+    SCEveFileType *existing = NULL;
     TAILQ_FOREACH (existing, &output_types, entries) {
         if (strcmp(existing->name, plugin->name) == 0) {
             SCLogNotice("EVE file type plugin name conflicts with previously "
@@ -167,7 +166,7 @@ bool SCRegisterEveFileType(SCPluginFileType *plugin)
  *      plugin file type.
  *
  */
-bool SCPluginRegisterEveFileType(SCPluginFileType *plugin)
+bool SCPluginRegisterEveFileType(SCEveFileType *plugin)
 {
     const char *builtin[] = {
         "regular",
@@ -191,9 +190,9 @@ bool SCPluginRegisterEveFileType(SCPluginFileType *plugin)
     return SCRegisterEveFileType(plugin);
 }
 
-SCPluginFileType *SCPluginFindFileType(const char *name)
+SCEveFileType *SCPluginFindFileType(const char *name)
 {
-    SCPluginFileType *plugin = NULL;
+    SCEveFileType *plugin = NULL;
     TAILQ_FOREACH(plugin, &output_types, entries) {
         if (strcmp(name, plugin->name) == 0) {
             return plugin;
