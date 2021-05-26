@@ -552,6 +552,60 @@ pub unsafe extern "C" fn rs_http2_tx_get_host(
     return 0;
 }
 
+fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
+    for i in 0..value.len() {
+        if value[i].is_ascii_uppercase() {
+            // we got at least one upper character, need to transform
+            let mut vec: Vec<u8> = Vec::with_capacity(value.len());
+            vec.extend_from_slice(value);
+            for j in i..vec.len() {
+                vec[j].make_ascii_lowercase();
+            }
+            return Some(vec);
+        }
+    }
+    return None;
+}
+
+// returns a tuple with the value and its size
+fn http2_normalize_host(value: &[u8]) -> (Option<Vec<u8>>, usize) {
+    match value.iter().position(|&x| x == ':' as u8) {
+        Some(i) => {
+            return (http2_lower(&value[..i]), i);
+        }
+        None => {
+            return (http2_lower(value), value.len());
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Ok(value) = http2_frames_get_header_value(&tx.frames_ts, ":authority") {
+        let r = http2_normalize_host(value);
+        // r is a tuple with the value and its size
+        // this is useful when we only take a substring (before the port)
+        match r.0 {
+            Some(normval) => {
+                tx.escaped.push(normval);
+                let idx = tx.escaped.len() - 1;
+                let resvalue = &tx.escaped[idx];
+                *buffer = resvalue.as_ptr(); //unsafe
+                *buffer_len = r.1 as u32;
+                return 1;
+            }
+            None => {
+                *buffer = value.as_ptr(); //unsafe
+                *buffer_len = r.1 as u32;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_useragent(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
@@ -885,5 +939,43 @@ pub extern "C" fn rs_http2_tx_add_header(
         http2_tx_set_header(state, ":authority".as_bytes(), slice_value)
     } else {
         http2_tx_set_header(state, slice_name, slice_value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_http2_normalize_host() {
+        let buf0 = "aBC.com:1234".as_bytes();
+        let r0 = http2_normalize_host(buf0);
+        match r0.0 {
+            Some(r) => {
+                assert_eq!(r, "abc.com".as_bytes().to_vec());
+            }
+            None => {
+                panic!("Result should not have been None");
+            }
+        }
+        let buf1 = "oisf.net".as_bytes();
+        let r1 = http2_normalize_host(buf1);
+        match r1.0 {
+            Some(r) => {
+                panic!("Result should not have been None, not {:?}", r);
+            }
+            None => {}
+        }
+        assert_eq!(r1.1, "oisf.net".len());
+        let buf2 = "localhost:3000".as_bytes();
+        let r2 = http2_normalize_host(buf2);
+        match r2.0 {
+            Some(r) => {
+                panic!("Result should not have been None, not {:?}", r);
+            }
+            None => {}
+        }
+        assert_eq!(r2.1, "localhost".len());
     }
 }
