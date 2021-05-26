@@ -86,14 +86,6 @@ static void InitPlugin(char *path)
     }
 }
 
-/**
- * \brief Load internal plugins
- */
-void SCInternalLoad(void)
-{
-    SyslogInitialize();
-}
-
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
 {
     ConfNode *conf = ConfGetNode("plugins");

@@ -91,6 +91,10 @@ void OutputJsonRegister (void)
 
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
+
+    // Register output file types that use the new eve filetype registration
+    // API.
+    SyslogInitialize();
 }
 
 json_t *SCJsonString(const char *val)
