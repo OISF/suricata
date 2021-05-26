@@ -23,7 +23,7 @@
 
 void SCInternalLoad(void);
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args);
-SCPluginFileType *SCPluginFindFileType(const char *name);
+SCEveFileType *SCPluginFindFileType(const char *name);
 SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
 
 bool RegisterPlugin(SCPlugin *, void *);

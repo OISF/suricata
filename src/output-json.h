@@ -83,7 +83,7 @@ typedef struct OutputJsonCtx_ {
     enum LogFileType json_out;
     OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
-    SCPluginFileType *plugin;
+    SCEveFileType *plugin;
 } OutputJsonCtx;
 
 typedef struct OutputJsonThreadCtx_ {
