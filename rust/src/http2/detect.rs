@@ -861,6 +861,8 @@ pub extern "C" fn rs_http2_tx_add_header(
     let slice_value = build_slice!(value, value_len as usize);
     if slice_name == "HTTP2-Settings".as_bytes() {
         http2_tx_set_settings(state, slice_value)
+    } else if slice_name == "Host".as_bytes() {
+        http2_tx_set_header(state, ":authority".as_bytes(), slice_value)
     } else {
         http2_tx_set_header(state, slice_name, slice_value)
     }
