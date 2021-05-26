@@ -22,7 +22,7 @@
  * \author Mike Pomraning <mpomraning@qualys.com>
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  *
- * File-like output for logging:  syslog
+ * File-like output for logging: syslog
  */
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
@@ -98,19 +98,19 @@ static void SyslogDeInit(void *init_data)
 
 void SyslogInitialize(void)
 {
-    SCEveFileType *plugin_data = SCCalloc(1, sizeof(SCEveFileType));
+    SCEveFileType *file_type = SCCalloc(1, sizeof(SCEveFileType));
 
-    if (plugin_data == NULL) {
-        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve output %s", OUTPUT_NAME);
+    if (file_type == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve file type %s", OUTPUT_NAME);
     }
 
-    plugin_data->internal = true;
-    plugin_data->name = OUTPUT_NAME;
-    plugin_data->Init = SyslogInit;
-    plugin_data->Deinit = SyslogDeInit;
-    plugin_data->Write = SyslogWrite;
-    if (!SCRegisterEveFileType(plugin_data)) {
-        FatalError(SC_ERR_PLUGIN, "Failed to register EVE output: %s", OUTPUT_NAME);
+    file_type->internal = true;
+    file_type->name = OUTPUT_NAME;
+    file_type->Init = SyslogInit;
+    file_type->Deinit = SyslogDeInit;
+    file_type->Write = SyslogWrite;
+    if (!SCRegisterEveFileType(file_type)) {
+        FatalError(SC_ERR_LOG_OUTPUT, "Failed to register EVE file type: %s", OUTPUT_NAME);
     }
 }
 #endif /* !OS_WIN32 */
