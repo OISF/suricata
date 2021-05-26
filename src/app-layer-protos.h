@@ -77,11 +77,13 @@ static inline bool AppProtoIsValid(AppProto a)
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
 }
 
+extern bool g_config_http1keywords_http2traffic;
+
 // wether a signature AppProto matches a flow (or signature) AppProto
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {
-    if (alproto == ALPROTO_HTTP2 && sigproto == ALPROTO_HTTP) {
-        // TODO config option
+    if (alproto == ALPROTO_HTTP2 && g_config_http1keywords_http2traffic &&
+            sigproto == ALPROTO_HTTP) {
         return true;
     }
     return (sigproto == alproto);
