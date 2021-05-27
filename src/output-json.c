@@ -1062,10 +1062,8 @@ static int LogFileTypePrepare(
                 return -1;
             }
         }
-        ConfNode *plugin_conf = ConfNodeLookupChild(conf, json_ctx->plugin->name);
         void *init_data = NULL;
-        if (json_ctx->plugin->Init(json_ctx->plugin->internal ? conf : plugin_conf,
-                    json_ctx->file_ctx->threaded, &init_data) < 0) {
+        if (json_ctx->plugin->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
             return -1;
         }
         json_ctx->file_ctx->plugin.plugin = json_ctx->plugin;
