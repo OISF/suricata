@@ -131,8 +131,7 @@ const DetectThresholdData *SigGetThresholdTypeIter(const Signature *sig,
 
     while (1) {
         if (smd->type == DETECT_THRESHOLD ||
-            smd->type == DETECT_DETECTION_FILTER)
-        {
+                smd->type == DETECT_DETECTION_FILTER) {
             tsh = (DetectThresholdData *)smd->ctx;
 
             if (smd->is_last) {
