@@ -43,7 +43,7 @@ int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
         const Signature *, PacketAlert *);
 
 void ThresholdHashInit(DetectEngineCtx *);
-void ThresholdHashRealloc(DetectEngineCtx *);
+void ThresholdHashAllocate(DetectEngineCtx *);
 void ThresholdContextDestroy(DetectEngineCtx *);
 
 int ThresholdHostTimeoutCheck(Host *, struct timeval *);

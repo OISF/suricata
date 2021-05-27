@@ -487,9 +487,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            if (parsed_track == TRACK_RULE) {
-                ThresholdHashRealloc(de_ctx);
-            }
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
         }
 
@@ -530,9 +527,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                     sm->type = DETECT_THRESHOLD;
                 sm->ctx = (void *)de;
 
-                if (parsed_track == TRACK_RULE) {
-                    ThresholdHashRealloc(de_ctx);
-                }
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
             }
         }
@@ -603,10 +597,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             else
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
-
-            if (parsed_track == TRACK_RULE) {
-                ThresholdHashRealloc(de_ctx);
-            }
 
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
         }

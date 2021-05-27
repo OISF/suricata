@@ -651,27 +651,71 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
 }
 
 /**
- * \brief Realloc threshold context hash tables
+ * \brief Allocate threshold context hash tables
  *
  * \param de_ctx Detection Context
  */
-void ThresholdHashRealloc(DetectEngineCtx *de_ctx)
+void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
 {
-    /* Return if we are already big enough */
-    uint32_t num = de_ctx->signum + 1;
-    if (num <= de_ctx->ths_ctx.th_size)
-        return;
+    Signature *s = de_ctx->sig_list;
+    bool has_by_rule_tracking = false;
+    const DetectThresholdData *td = NULL;
+    const SigMatchData *smd;
 
-    void *ptmp = SCRealloc(de_ctx->ths_ctx.th_entry, num * sizeof(DetectThresholdEntry *));
-    if (ptmp == NULL) {
-        SCLogWarning(SC_ERR_MEM_ALLOC, "Error allocating memory for rule thresholds"
-                " (tried to allocate %"PRIu32" th_entrys for rule tracking)", num);
-    } else {
-        de_ctx->ths_ctx.th_entry = ptmp;
-        for (uint32_t i = de_ctx->ths_ctx.th_size; i < num; ++i) {
-            de_ctx->ths_ctx.th_entry[i] = NULL;
+    /* Find the signature with the highest signature number that is using
+       thresholding with by_rule tracking. */
+    uint32_t highest_signum = 0;
+    while (s != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_SUPPRESS] != NULL) {
+            smd = NULL;
+            do {
+                td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_SUPPRESS);
+                if (td == NULL) {
+                    continue;
+                }
+                if (td->track != TRACK_RULE) {
+                    continue;
+                }
+                if (s->num >= highest_signum) {
+                    highest_signum = s->num;
+                    has_by_rule_tracking = true;
+                }
+            } while (smd != NULL);
         }
-        de_ctx->ths_ctx.th_size = num;
+
+        if (s->sm_arrays[DETECT_SM_LIST_THRESHOLD] != NULL) {
+            smd = NULL;
+            do {
+                td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_THRESHOLD);
+                if (td == NULL) {
+                    continue;
+                }
+                if (td->track != TRACK_RULE) {
+                    continue;
+                }
+                if (s->num >= highest_signum) {
+                    highest_signum = s->num;
+                    has_by_rule_tracking = true;
+                }
+            } while (smd != NULL);
+        }
+
+        s = s->next;
+    }
+
+    /* Skip allocating if by_rule tracking is not used */
+    if (has_by_rule_tracking == false) {
+        return;
+    }
+
+    de_ctx->ths_ctx.th_size = highest_signum + 1;
+    de_ctx->ths_ctx.th_entry = SCCalloc(de_ctx->ths_ctx.th_size, sizeof(DetectThresholdEntry *));
+    if (de_ctx->ths_ctx.th_entry == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC,
+                "Error allocating memory for rule "
+                "thresholds (tried to allocate %" PRIu32 " th_entrys for "
+                "rule tracking)",
+                de_ctx->ths_ctx.th_size);
     }
 }
 
