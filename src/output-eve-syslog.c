@@ -104,7 +104,6 @@ void SyslogInitialize(void)
         FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve file type %s", OUTPUT_NAME);
     }
 
-    file_type->internal = true;
     file_type->name = OUTPUT_NAME;
     file_type->Init = SyslogInit;
     file_type->Deinit = SyslogDeInit;

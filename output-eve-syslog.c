@@ -105,7 +105,6 @@ void SyslogInitialize(void)
         FatalError(SC_ERR_MEM_ALLOC, "Unable to allocate memory for eve output %s", OUTPUT_NAME);
     }
 
-    plugin_data->internal = true;
     plugin_data->name = OUTPUT_NAME;
     plugin_data->Init = SyslogInit;
     plugin_data->Deinit = SyslogDeInit;
