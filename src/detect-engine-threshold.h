@@ -37,7 +37,7 @@ int ThresholdHostHasThreshold(Host *);
 int ThresholdIPPairHasThreshold(IPPair *pair);
 
 const DetectThresholdData *SigGetThresholdTypeIter(const Signature *,
-        Packet *, const SigMatchData **, int list);
+        const SigMatchData **, int list);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
         const DetectThresholdData *, Packet *,
         const Signature *, PacketAlert *);
