@@ -83,7 +83,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_SUPPRESS);
         smd = NULL;
         do {
-            td = SigGetThresholdTypeIter(s, p, &smd, DETECT_SM_LIST_SUPPRESS);
+            td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_SUPPRESS);
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 
@@ -106,7 +106,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_THRESHOLD);
         smd = NULL;
         do {
-            td = SigGetThresholdTypeIter(s, p, &smd, DETECT_SM_LIST_THRESHOLD);
+            td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_THRESHOLD);
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 

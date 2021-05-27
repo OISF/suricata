@@ -104,16 +104,17 @@ int ThresholdIPPairHasThreshold(IPPair *pair)
 /**
  * \brief Return next DetectThresholdData for signature
  *
- * \param sig Signature pointer
- * \param p Packet structure
- * \param sm Pointer to a Signature Match pointer
+ * \param sig  Signature pointer
+ * \param psm  Pointer to a Signature Match pointer
+ * \param list List to return data from
  *
  * \retval tsh Return the threshold data from signature or NULL if not found
  *
  *
  */
 const DetectThresholdData *SigGetThresholdTypeIter(const Signature *sig,
-        Packet *p, const SigMatchData **psm, int list)
+                                                   const SigMatchData **psm,
+                                                   int list)
 {
     const SigMatchData *smd = NULL;
     const DetectThresholdData *tsh = NULL;
@@ -127,9 +128,6 @@ const DetectThresholdData *SigGetThresholdTypeIter(const Signature *sig,
         /* Iteration in progress, using provided value */
         smd = *psm;
     }
-
-    if (p == NULL)
-        return NULL;
 
     while (1) {
         if (smd->type == DETECT_THRESHOLD ||
