@@ -251,9 +251,6 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         goto error;
 
-    if (de->track == TRACK_RULE)
-        ThresholdHashRealloc(de_ctx);
-
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -1604,7 +1601,6 @@ static int DetectThresholdTestSig13(void)
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-    ThresholdHashRealloc(de_ctx);
 
     /* should alert twice */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
