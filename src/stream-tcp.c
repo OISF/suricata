@@ -2303,7 +2303,8 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                     ssn->server.window);
 
         /* Check if the ACK value is sane and inside the window limit */
-        StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+        if (p->tcph->th_flags & TH_ACK)
+            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
         SCLogDebug("ack %u last_ack %u next_seq %u", TCP_GET_ACK(p), ssn->server.last_ack, ssn->server.next_seq);
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -2457,7 +2458,8 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: ssn->client.window %"PRIu32"", ssn,
                     ssn->client.window);
 
-        StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+        if (p->tcph->th_flags & TH_ACK)
+            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
@@ -2761,7 +2763,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
                     ssn->client.next_seq);
         ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-        StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+        if (p->tcph->th_flags & TH_ACK)
+            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
@@ -2808,7 +2811,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
                     ssn->server.next_seq);
         ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-        StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+        if (p->tcph->th_flags & TH_ACK)
+            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
@@ -3041,7 +3045,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
             }
 
-            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
@@ -3096,7 +3101,8 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
             }
 
-            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
@@ -3370,7 +3376,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
             }
 
-            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
@@ -3424,7 +3431,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
             }
 
-            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
@@ -3841,7 +3849,8 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             if (!retransmission)
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
@@ -3893,7 +3902,8 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
             }
 
-            StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+            if (p->tcph->th_flags & TH_ACK)
+                StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 StreamTcpHandleTimestamp(ssn, p);
