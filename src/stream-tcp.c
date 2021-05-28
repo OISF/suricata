@@ -5822,6 +5822,9 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
 {
     SCEnter();
 
+    if (!(p->tcph->th_flags & TH_ACK))
+        SCReturnInt(0);
+
     uint32_t ack = TCP_GET_ACK(p);
 
     /* fast track */
