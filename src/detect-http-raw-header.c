@@ -62,6 +62,9 @@ static int g_http_raw_header_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t flow_flags, void *txv, const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 
 static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
@@ -69,6 +72,10 @@ static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx,
 static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmHttp2HeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
+static int PrefilterMpmHttp2HeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_raw_header" keyword.
@@ -104,6 +111,16 @@ void DetectHttpRawHeaderRegister(void)
     DetectAppLayerMpmRegister2("http_raw_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttpHeaderRawResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* progress handled in register */
+
+    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
+
+    DetectAppLayerMpmRegister2("http_raw_header", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmHttp2HeaderRawRequestRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
+    DetectAppLayerMpmRegister2("http_raw_header", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmHttp2HeaderRawResponseRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_raw_header",
             "raw http headers");
@@ -146,7 +163,7 @@ static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s,
 {
     if (DetectBufferSetActiveList(s, g_http_raw_header_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
@@ -186,6 +203,27 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             tx_ud->request_headers_raw_len : tx_ud->response_headers_raw_len;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_headers_raw(txv, flow_flags, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -233,6 +271,33 @@ static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx,
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+    }
+}
+
+static void PrefilterMpmHttp2HeaderRaw(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmHttpHeaderRawCtx *ctx = pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
+
+    const int list_id = ctx->list_id;
+
+    InspectionBuffer *buffer = GetData2(det_ctx, ctx->transforms, f, flags, txv, list_id);
+    if (buffer == NULL)
+        return;
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    // PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(
+                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
     }
 }
 
@@ -332,6 +397,50 @@ static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx,
     r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailerRaw,
             mpm_reg->app_v2.alproto, HTP_RESPONSE_TRAILER,
             pectx, PrefilterMpmHttpHeaderRawFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+    }
+    return r;
+}
+
+static int PrefilterMpmHttp2HeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+
+    /* header */
+    PrefilterMpmHttpHeaderRawCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttp2HeaderRaw,
+            mpm_reg->app_v2.alproto, HTTP2StateDataClient, pectx, PrefilterMpmHttpHeaderRawFree,
+            mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+    }
+    return r;
+}
+
+static int PrefilterMpmHttp2HeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+
+    /* header */
+    PrefilterMpmHttpHeaderRawCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttp2HeaderRaw,
+            mpm_reg->app_v2.alproto, HTTP2StateDataServer, pectx, PrefilterMpmHttpHeaderRawFree,
+            mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
