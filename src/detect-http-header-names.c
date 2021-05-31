@@ -150,6 +150,27 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     return buf->buffer;
 }
 
+static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_header_names(txv, flow_flags, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
 typedef struct PrefilterMpmHttpHeaderCtx {
     int list_id;
     const MpmCtx *mpm_ctx;
@@ -411,6 +432,16 @@ void DetectHttpHeaderNamesRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
             InspectEngineHttpHeaderNames, NULL);
+
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataClient);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
+
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
