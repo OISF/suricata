@@ -730,6 +730,117 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
     return 0;
 }
 
+fn http2_header_iscookie(direction: u8, hname: &[u8]) -> bool {
+    if let Ok(s) = std::str::from_utf8(hname) {
+        if direction & STREAM_TOSERVER != 0 {
+            if s.to_lowercase() == "cookie" {
+                return true;
+            }
+        } else {
+            if s.to_lowercase() == "set-cookie" {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+fn http2_header_trimspaces(value: &[u8]) -> &[u8] {
+    let mut start = 0;
+    let mut end = value.len();
+    while start < value.len() {
+        if value[start] == b' ' || value[start] == b'\t' {
+            start += 1;
+        } else {
+            break;
+        }
+    }
+    while end > start {
+        if value[end - 1] == b' ' || value[end - 1] == b'\t' {
+            end -= 1;
+        } else {
+            break;
+        }
+    }
+    return &value[start..end];
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_headers(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let mut vec = Vec::new();
+    let frames = if direction & STREAM_TOSERVER != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for i in 0..frames.len() {
+        match &frames[i].data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                for j in 0..hd.blocks.len() {
+                    if !http2_header_iscookie(direction, &hd.blocks[j].name) {
+                        // we do not escape linefeeds nor : in headers names
+                        vec.extend_from_slice(&hd.blocks[j].name);
+                        vec.push(':' as u8);
+                        vec.push(' ' as u8);
+                        vec.extend_from_slice(http2_header_trimspaces(&hd.blocks[j].value));
+                        vec.push('\r' as u8);
+                        vec.push('\n' as u8);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    if vec.len() > 0 {
+        tx.escaped.push(vec);
+        let idx = tx.escaped.len() - 1;
+        let value = &tx.escaped[idx];
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let mut vec = Vec::new();
+    let frames = if direction & STREAM_TOSERVER != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for i in 0..frames.len() {
+        match &frames[i].data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                for j in 0..hd.blocks.len() {
+                    // we do not escape linefeeds nor : in headers names
+                    vec.extend_from_slice(&hd.blocks[j].name);
+                    vec.push(':' as u8);
+                    vec.push(' ' as u8);
+                    vec.extend_from_slice(&hd.blocks[j].value);
+                    vec.push('\r' as u8);
+                    vec.push('\n' as u8);
+                }
+            }
+            _ => {}
+        }
+    }
+    if vec.len() > 0 {
+        tx.escaped.push(vec);
+        let idx = tx.escaped.len() - 1;
+        let value = &tx.escaped[idx];
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
@@ -1015,5 +1126,18 @@ mod tests {
             None => {}
         }
         assert_eq!(r2.1, "localhost".len());
+    }
+
+    #[test]
+    fn test_http2_header_trimspaces() {
+        let buf0 = "nospaces".as_bytes();
+        let r0 = http2_header_trimspaces(buf0);
+        assert_eq!(r0, "nospaces".as_bytes());
+        let buf1 = " spaces\t".as_bytes();
+        let r1 = http2_header_trimspaces(buf1);
+        assert_eq!(r1, "spaces".as_bytes());
+        let buf2 = " \t".as_bytes();
+        let r2 = http2_header_trimspaces(buf2);
+        assert_eq!(r2, "".as_bytes());
     }
 }
