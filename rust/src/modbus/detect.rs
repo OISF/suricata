@@ -16,6 +16,7 @@
  */
 
 use super::modbus::ModbusTransaction;
+use crate::debug_validate_bug_on;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
@@ -26,21 +27,21 @@ use std::str::FromStr;
 
 lazy_static! {
     static ref ACCESS_RE: Regex = Regex::new(
-        "^\\s*\"?\\s*access\\s*(read|write)\
-        \\s*(discretes|coils|input|holding)?\
-        (?:,\\s*address\\s+([<>]?\\d+)(?:<>(\\d+))?\
-        (?:,\\s*value\\s+([<>]?\\d+)(?:<>(\\d+))?)?)?\
-        \\s*\"?\\s*$"
+        "^[[:space:]]*\"?[[:space:]]*access[[:space:]]*(read|write)\
+        [[:space:]]*(discretes|coils|input|holding)?\
+        (?:,[[:space:]]*address[[:space:]]+([<>]?[[:digit:]]+)(?:<>([[:digit:]]+))?\
+        (?:,[[:space:]]*value[[:space:]]+([<>]?[[:digit:]]+)(?:<>([[:digit:]]+))?)?)?\
+        [[:space:]]*\"?[[:space:]]*$"
     )
     .unwrap();
     static ref FUNC_RE: Regex = Regex::new(
-        "^\\s*\"?\\s*function\\s*(!?[A-z0-9]+)\
-        (?:,\\s*subfunction\\s+(\\d+))?\\s*\"?\\s*$"
+        "^[[:space:]]*\"?[[:space:]]*function[[:space:]]*(!?[A-z0-9]+)\
+        (?:,[[:space:]]*subfunction[[:space:]]+([[:digit:]]+))?[[:space:]]*\"?[[:space:]]*$"
     )
     .unwrap();
     static ref UNIT_RE: Regex = Regex::new(
-        "^\\s*\"?\\s*unit\\s+([<>]?\\d+)\
-        (?:<>(\\d+))?(?:,\\s*(.*))?\\s*\"?\\s*$"
+        "^[[:space:]]*\"?[[:space:]]*unit[[:space:]]+([<>]?[[:digit:]]+)\
+        (?:<>([[:digit:]]+))?(?:,[[:space:]]*(.*))?[[:space:]]*\"?[[:space:]]*$"
     )
     .unwrap();
 }
@@ -110,6 +111,7 @@ fn check_match(sig_range: &Range<u16>, value: u16) -> bool {
 fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
     if max_str.is_empty() {
         if let Some(sign) = min_str.chars().next() {
+            debug_validate_bug_on!(!sign.is_ascii_digit() && sign != '<' && sign != '>');
             match min_str[!sign.is_ascii_digit() as usize..].parse::<u16>() {
                 Ok(num) => match sign {
                     '>' => Ok(num..std::u16::MAX),
@@ -606,6 +608,8 @@ mod test {
                 ..Default::default()
             })
         );
+
+        assert_eq!(parse_unit_id("unit ๖"), Err(()));
 
         assert_eq!(parse_access("access write holdin"), Err(()));
         assert_eq!(parse_access("unt 10"), Err(()));
