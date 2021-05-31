@@ -48,6 +48,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-filetypes.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -1134,14 +1135,13 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         enum LogFileType log_filetype = FileTypeFromConf(output_s);
         if (log_filetype == LOGFILE_TYPE_NOTSET) {
-#ifdef HAVE_PLUGINS
-            SCEveFileType *plugin = SCPluginFindFileType(output_s);
+            SCEveFileType *plugin = SCEveFindFileType(output_s);
             if (plugin != NULL) {
                 log_filetype = LOGFILE_TYPE_PLUGIN;
                 json_ctx->plugin = plugin;
-            } else
-#endif
+            } else {
                 FatalError(SC_ERR_INVALID_ARGUMENT, "Invalid JSON output option: %s", output_s);
+            }
         }
 
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");

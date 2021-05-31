@@ -45,29 +45,6 @@ typedef struct SCPlugin_ {
 
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
-/**
- * Structure used to define an Eve output file type plugin.
- */
-typedef struct SCEveFileType_ {
-    /* The name of the output, used to specify the output in the filetype section
-     * of the eve-log configuration. */
-    const char *name;
-    /* Init Called on first access */
-    int (*Init)(ConfNode *conf, bool threaded, void **init_data);
-    /* Write - Called on each write to the object */
-    int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
-    /* Close - Called on final close */
-    void (*Deinit)(void *init_data);
-    /* ThreadInit - Called for each thread using file object*/
-    int (*ThreadInit)(void *init_data, int thread_id, void **thread_data);
-    /* ThreadDeinit - Called for each thread using file object */
-    int (*ThreadDeinit)(void *init_data, void *thread_data);
-    TAILQ_ENTRY(SCEveFileType_) entries;
-} SCEveFileType;
-
-bool SCPluginRegisterEveFileType(SCEveFileType *);
-bool SCRegisterEveFileType(SCEveFileType *);
-
 typedef struct SCCapturePlugin_ {
     char *name;
     void (*Init)(const char *args, int plugin_slot, int receive_slot, int decode_slot);

@@ -10,6 +10,7 @@ if HAS_FUZZPCAP
 endif
 
 HEADERS_PUBLIC = \
+	output-json-filetypes.h \
 	suricata-plugin.h
 
 HEADERS_PRIVATE = \
@@ -970,6 +971,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-drop.c \
 	output-json-email-common.c \
 	output-json-file.c \
+	output-json-filetypes.c \
 	output-json-flow.c \
 	output-json-ftp.c \
 	output-json-http2.c \

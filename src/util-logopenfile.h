@@ -31,7 +31,7 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
-#include "suricata-plugin.h"
+#include "output-json-filetypes.h"
 
 enum LogFileType {
     LOGFILE_TYPE_FILE,

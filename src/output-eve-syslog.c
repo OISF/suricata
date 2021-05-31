@@ -28,6 +28,7 @@
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "output-eve-syslog.h"
+#include "output-json-filetypes.h"
 #include "util-syslog.h"
 
 #ifdef OS_WIN32
