@@ -2,6 +2,9 @@
 name = "suricata-derive"
 version = "@PACKAGE_VERSION@"
 edition = "2018"
+description = "Derive macros for Suricata"
+license = "GPL-2.0-only"
+repository = "http://github.com/OISF/suricata.git"
 
 [lib]
 proc-macro = true
