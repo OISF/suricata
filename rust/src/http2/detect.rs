@@ -693,6 +693,44 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_header_names(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let mut vec = Vec::new();
+    vec.push('\r' as u8);
+    vec.push('\n' as u8);
+    let frames = if direction & STREAM_TOSERVER != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for i in 0..frames.len() {
+        match &frames[i].data {
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                for j in 0..hd.blocks.len() {
+                    // we do not escape linefeeds in headers names
+                    vec.extend_from_slice(&hd.blocks[j].name);
+                    vec.push('\r' as u8);
+                    vec.push('\n' as u8);
+                }
+            }
+            _ => {}
+        }
+    }
+    if vec.len() > 2 {
+        vec.push('\r' as u8);
+        vec.push('\n' as u8);
+        tx.escaped.push(vec);
+        let idx = tx.escaped.len() - 1;
+        let value = &tx.escaped[idx];
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
