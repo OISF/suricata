@@ -133,36 +133,10 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     }
 }
 
-bool SCRegisterEveFileType(SCEveFileType *plugin)
-{
-    SCEveFileType *existing = NULL;
-    TAILQ_FOREACH (existing, &output_types, entries) {
-        if (strcmp(existing->name, plugin->name) == 0) {
-            SCLogNotice("EVE file type plugin name conflicts with previously "
-                        "registered plugin: %s",
-                    plugin->name);
-            return false;
-        }
-    }
-
-    SCLogDebug("Registering EVE file type plugin %s", plugin->name);
-    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
-    return true;
-}
-
-/**
- * \brief Register an Eve/JSON file type plugin.
- *
- * \retval true if registered successfully, false if the plugin name
- *      conflicts with a built-in or previously registered
- *      plugin file type.
- *
- */
-bool SCPluginRegisterEveFileType(SCEveFileType *plugin)
+static bool IsBuiltinTypeName(const char *name)
 {
     const char *builtin[] = {
         "regular",
-        "syslog",
         "unix_dgram",
         "unix_stream",
         "redis",
@@ -172,14 +146,43 @@ bool SCPluginRegisterEveFileType(SCEveFileType *plugin)
         if (builtin[i] == NULL) {
             break;
         }
-        if (strcmp(builtin[i], plugin->name) == 0) {
-            SCLogNotice("Eve filetype plugin name \"%s\" conflicts "
-                    "with built-in name", plugin->name);
+        if (strcmp(builtin[i], name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * \brief Register an Eve file type.
+ *
+ * \retval true if registered successfully, false if the file type name
+ *      conflicts with a built-in or previously registered
+ *      file type.
+ */
+bool SCRegisterEveFileType(SCEveFileType *plugin)
+{
+    /* First check that the name doesn't conflict with a built-in filetype. */
+    if (IsBuiltinTypeName(plugin->name)) {
+        SCLogError(SC_ERR_LOG_OUTPUT, "Eve file type name conflicts with built-in type: %s",
+                plugin->name);
+        return false;
+    }
+
+    /* Now check against previously registered file types. */
+    SCEveFileType *existing = NULL;
+    TAILQ_FOREACH (existing, &output_types, entries) {
+        if (strcmp(existing->name, plugin->name) == 0) {
+            SCLogError(SC_ERR_LOG_OUTPUT,
+                    "Eve file type name conflicts with previously registered type: %s",
+                    plugin->name);
             return false;
         }
     }
 
-    return SCRegisterEveFileType(plugin);
+    SCLogDebug("Registering EVE file type plugin %s", plugin->name);
+    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
+    return true;
 }
 
 SCEveFileType *SCPluginFindFileType(const char *name)
