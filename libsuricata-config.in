@@ -56,7 +56,7 @@ fi
 output=""
 
 if [ "$show_cflags" = "yes" ]; then
-    output="${output} -DHAVE_CONFIG_H -I$includedir/suricata"
+    output="${output} -I$includedir"
 fi
 
 if [ "$show_libs" = "yes" ]; then
