@@ -150,6 +150,28 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     return buf->buffer;
 }
 
+static const uint8_t *GetBuffer2ForTX(void *txv, uint8_t flags, uint32_t *buffer_len)
+{
+    const uint8_t *b = NULL;
+
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP2, txv, flags) <=
+                HTTP2StateDataClient)
+            return NULL;
+    } else {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP2, txv, flags) <=
+                HTTP2StateDataServer)
+            return NULL;
+    }
+
+    if (rs_http2_tx_get_header_names(txv, flags, &b, buffer_len) != 1)
+        return NULL;
+    if (b == NULL || *buffer_len == 0)
+        return NULL;
+
+    return b;
+}
+
 typedef struct PrefilterMpmHttpHeaderCtx {
     int list_id;
     const MpmCtx *mpm_ctx;
@@ -234,6 +256,71 @@ static int PrefilterTxHttpRequestHeaderNamesRegister(DetectEngineCtx *de_ctx,
     return r;
 }
 
+/** \brief HTTP2 Headers Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxHttp2RequestHeaderNames(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        Packet *p, Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmHttpHeaderCtx *ctx = pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
+
+    const int list_id = ctx->list_id;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t rawdata_len = 0;
+        const uint8_t *rawdata = GetBuffer2ForTX(txv, flags, &rawdata_len);
+        if (rawdata_len == 0)
+            return;
+
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, ctx->transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    // PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(
+                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+    }
+}
+
+static int PrefilterTxHttp2RequestHeaderNamesRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+
+    PrefilterMpmHttpHeaderCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttp2RequestHeaderNames,
+            mpm_reg->app_v2.alproto, HTTP2StateDataClient, pectx, PrefilterMpmHttpHeaderFree,
+            mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+        return r;
+    }
+
+    return r;
+}
+
 /** \brief HTTP Headers Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
@@ -307,6 +394,71 @@ static int PrefilterTxHttpResponseHeaderNamesRegister(DetectEngineCtx *de_ctx,
     return r;
 }
 
+/** \brief HTTP2 Headers Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxHttp2ResponseHeaderNames(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        Packet *p, Flow *f, void *txv, const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmHttpHeaderCtx *ctx = pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
+
+    const int list_id = ctx->list_id;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t rawdata_len = 0;
+        const uint8_t *rawdata = GetBuffer2ForTX(txv, flags, &rawdata_len);
+        if (rawdata_len == 0)
+            return;
+
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, ctx->transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    // PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(
+                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+    }
+}
+
+static int PrefilterTxHttp2ResponseHeaderNamesRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+
+    PrefilterMpmHttpHeaderCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttp2ResponseHeaderNames,
+            mpm_reg->app_v2.alproto, HTTP2StateDataServer, pectx, PrefilterMpmHttpHeaderFree,
+            mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+        return r;
+    }
+
+    return r;
+}
+
 static int InspectEngineHttpHeaderNames(
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine,
@@ -363,6 +515,57 @@ static int InspectEngineHttpHeaderNames(
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
+static int InspectEngineHttp2HeaderNames(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
+{
+    const int list_id = engine->sm_list;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SCLogDebug("setting up inspect buffer %d", list_id);
+
+        /* if prefilter didn't already run, we need to consider transformations */
+        const DetectEngineTransforms *transforms = NULL;
+        if (!engine->mpm) {
+            transforms = engine->v2.transforms;
+        }
+
+        uint32_t rawdata_len = 0;
+        const uint8_t *rawdata = GetBuffer2ForTX(txv, flags, &rawdata_len);
+        if (rawdata_len == 0) {
+            SCLogDebug("no data");
+            goto end;
+        }
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
+            data_len, offset, DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+    if (r == 1)
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+
+end:
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP2, txv, flags) >
+                HTTP2StateDataClient)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP2, txv, flags) >
+                HTTP2StateDataServer)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
 /**
  * \brief The setup function for the http.header_names keyword for a signature.
  *
@@ -381,7 +584,7 @@ static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
 
     return 0;
@@ -409,6 +612,16 @@ void DetectHttpHeaderNamesRegister(void)
             HTP_REQUEST_HEADERS, InspectEngineHttpHeaderNames, NULL);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, InspectEngineHttpHeaderNames, NULL);
+
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterTxHttp2RequestHeaderNamesRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterTxHttp2ResponseHeaderNamesRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataServer);
+
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, InspectEngineHttp2HeaderNames, NULL);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, InspectEngineHttp2HeaderNames, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
