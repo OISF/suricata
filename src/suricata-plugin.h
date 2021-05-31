@@ -21,7 +21,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "conf.h"
+/**
+ * Forward declaration of ConfNode as we don't have a public header for
+ * the configuration API yet. Plugins can still use it by pulling the
+ * private header. */
+typedef struct ConfNode_ ConfNode;
 
 /**
  * The size of the data chunk inside each packet structure a plugin
