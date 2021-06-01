@@ -44,6 +44,10 @@ typedef struct Context_ {
 
 static int SyslogInit(ConfNode *conf, bool threaded, void **init_data)
 {
+    if (threaded) {
+        FatalError(SC_ERR_FATAL, "Syslog file type does not support threaded output");
+    }
+
     Context *context = SCCalloc(1, sizeof(Context));
     if (context == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate context for %s", OUTPUT_NAME);
