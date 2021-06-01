@@ -34,16 +34,26 @@ typedef struct SCEveFileType_ {
     /* The name of the output, used to specify the output in the filetype section
      * of the eve-log configuration. */
     const char *name;
-    /* Init Called on first access */
+
+    /* Init - Called on first access. A return value < 0 indicates error and the
+     * output will not be enabled at runtime. */
     int (*Init)(ConfNode *conf, bool threaded, void **init_data);
-    /* Write - Called on each write to the object */
+
+    /* Write - Called on each write to the object. A return value < 0 indicates
+     * error but this value is not used at this time. */
     int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
+
     /* Close - Called on final close */
     void (*Deinit)(void *init_data);
-    /* ThreadInit - Called for each thread using file object*/
+
+    /* ThreadInit - Called for each thread using file object. A return value < 0
+     * indicates error, however this value is not used at this time. The module
+     * should be able to internally handle this error and write calls that will be
+     * made. */
     int (*ThreadInit)(void *init_data, int thread_id, void **thread_data);
+
     /* ThreadDeinit - Called for each thread using file object */
-    int (*ThreadDeinit)(void *init_data, void *thread_data);
+    void (*ThreadDeinit)(void *init_data, void *thread_data);
 } SCEveFileType;
 
 bool SCRegisterEveFileType(SCEveFileType *file_type);
