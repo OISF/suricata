@@ -660,6 +660,56 @@ af-packet:
     #use-mmap: no
     #tpacket-v3: yes
 
+dpdk:
+  eal-params:
+    proc-type: primary
+    a: 0000:3b:00.0
+    l: 0-1
+
+  # DPDK capture support
+  # Currently queues should be assigned to cores in ratio in 1:1 ratio
+  interfaces:
+    - interface: 0000:3b:00.0 # PCIe address of the NIC port
+      threads: auto # or number of threads - auto takes all lcores, no thread entry takes all cores
+      rx-queues: auto # or number of queues - auto assigns each core 1 queue
+      tx-queues: auto # or number of queues - auto assigns each core 1 queue
+      promisc: true
+      multicast: true # enables also detection on multicast packets
+      checksum-checks: true # if Suricata should validate checksums
+      checksum-checks-offload: true # if possible offload checksum validation to the NIC
+      mtu: 3000 # Set MTU of the device in bytes # default 1526
+      mempool-size: 65356 # 64*1024
+      mempool-cache-size: 250
+      rx-descriptors: 1024
+      tx-descriptors: 1024
+      # IPS mode for Suricata works in 3 modes - none, tap, ips
+      # - none: disables IPS functionality (does not further forward packets)
+      # - tap: forwards all packets and generates alerts (omits DROP action)
+      # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
+      copy-mode: ips
+      copy-iface: 0000:3b:00.0 # PCIe address of the second interface
+
+    - interface: default
+      threads: auto # or number of threads - auto takes all lcores, no thread entry takes all cores
+      rx-queues: auto # or number of queues - auto assigns each core 1 queue
+      tx-queues: auto # or number of queues - auto assigns each core 1 queue
+      promisc: true
+      multicast: true # enables also detection on multicast packets
+      checksum-checks: true # if Suricata should validate checksums
+      checksum-checks-offload: true # if possible offload checksum validation to the NIC
+      mtu: 3000 # Set MTU of the device in bytes # default 1526
+      mempool-size: 65356 # 64*1024
+      mempool-cache-size: 250
+      rx-descriptors: 1024
+      tx-descriptors: 1024
+      # IPS mode for Suricata works in 3 modes - none, tap, ips
+      # - none: disables IPS functionality (does not further forward packets)
+      # - tap: forwards all packets and generates alerts (omits DROP action)
+      # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
+      copy-mode: none
+      copy-iface: none
+
+
 # Cross platform libpcap capture support
 pcap:
   - interface: eth0
