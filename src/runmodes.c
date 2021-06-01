@@ -101,8 +101,7 @@ typedef struct OutputFreeList_ {
 
     TAILQ_ENTRY(OutputFreeList_) entries;
 } OutputFreeList;
-static TAILQ_HEAD(, OutputFreeList_) output_free_list =
-    TAILQ_HEAD_INITIALIZER(output_free_list);
+static TAILQ_HEAD(, OutputFreeList_) output_free_list = TAILQ_HEAD_INITIALIZER(output_free_list);
 
 /**
  * \internal
@@ -157,6 +156,13 @@ static const char *RunModeTranslateModeToName(int runmode)
 #else
             return "WINDIVERT(DISABLED)";
 #endif
+#ifdef HAVE_DPDK
+        case RUNMODE_DPDK:
+            return "DPDK";
+#else
+            return "DPDK(DISABLED)";
+#endif
+
         default:
             FatalError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
     }
@@ -180,7 +186,6 @@ static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_m
     }
     return NULL;
 }
-
 
 /**
  * Return the running mode
@@ -228,6 +233,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsNflogRegister();
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
+    RunModeDpdkRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -348,6 +354,11 @@ void RunModeDispatch(int runmode, const char *custom_mode,
 #ifdef WINDIVERT
             case RUNMODE_WINDIVERT:
                 custom_mode = RunModeIpsWinDivertGetDefaultMode();
+                break;
+#endif
+#ifdef HAVE_DPDK
+            case RUNMODE_DPDK:
+                custom_mode = RunModeDpdkGetDefaultMode();
                 break;
 #endif
             default:
@@ -707,11 +718,11 @@ static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
     BUG_ON(scripts == NULL); //TODO
 
     OutputModule *m;
-    TAILQ_FOREACH(m, &parent_ctx->submodules, entries) {
+    TAILQ_FOREACH (m, &parent_ctx->submodules, entries) {
         SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
 
         ConfNode *script = NULL;
-        TAILQ_FOREACH(script, &scripts->head, next) {
+        TAILQ_FOREACH (script, &scripts->head, next) {
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
                 break;
@@ -748,7 +759,7 @@ void RunModeInitializeOutputs(void)
 
     memset(&logger_bits, 0, sizeof(logger_bits));
 
-    TAILQ_FOREACH(output, &outputs->head, next) {
+    TAILQ_FOREACH (output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
