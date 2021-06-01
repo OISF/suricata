@@ -43,6 +43,11 @@
 #include "util-signal.h"
 #include "queue.h"
 
+#ifdef HAVE_DPDK
+#include <rte_launch.h>
+#include <rte_lcore.h>
+#endif
+
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
 thread_local uint64_t mutex_lock_wait_ticks;
@@ -73,6 +78,20 @@ thread_local uint64_t rwr_lock_cnt;
 /* prototypes */
 static int SetCPUAffinity(uint16_t cpu);
 static void TmThreadDeinitMC(ThreadVars *tv);
+
+#ifdef HAVE_DPDK
+struct dpdk_callback {
+    void *(*func)(void *); // function pointer to the tm_func
+    ThreadVars *tv;        // tm_func argument
+};
+
+static int TmThreadSpawnDpdkThread(void *callback)
+{
+    struct dpdk_callback *cb = (struct dpdk_callback *)callback;
+    cb->func(cb->tv);
+    SCReturnInt(0);
+}
+#endif /* HAVE_DPDK */
 
 /* root of the threadvars list */
 ThreadVars *tv_root[TVT_MAX] = { NULL };
@@ -220,6 +239,27 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 
  */
 
+/**
+ * \brief Exits running pthread with the given exit code
+ *
+ *
+ * With DPDK enabled, the function encapsulates pthread exit with a check for DPDK worker threads.
+ * If the thread has lcore_id attribute set to a different value than LCORE_ID_ANY, it does not
+ * exit because it is identified as a DPDK worker. DPDK worker threads are joined at a single point.
+ * Threads other than DPDK workers exit with pthred_exit.
+ *
+ */
+static void TmThreadExit(ThreadVars *tv, int64_t exit_code)
+{
+#ifdef HAVE_DPDK
+    if (tv->lcore_id == LCORE_ID_ANY) {
+        pthread_exit((void *)exit_code);
+    }
+#else
+    pthread_exit((void *)exit_code);
+#endif /* HAVE_DPDK */
+}
+
 static void *TmThreadsSlotPktAcqLoop(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
@@ -248,7 +288,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                                  " tmqh_out=%p",
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        pthread_exit((void *) -1);
+        TmThreadExit(tv, -1);
         return NULL;
     }
 
@@ -277,7 +317,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+                TmThreadExit(tv, -1);
                 return NULL;
             }
         /* setup a queue */
@@ -292,7 +332,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+                TmThreadExit(tv, -1);
                 return NULL;
             }
         }
@@ -351,12 +391,12 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     tv->stream_pq = NULL;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
-    pthread_exit((void *) 0);
+    TmThreadExit(tv, 0);
     return NULL;
 
 error:
     tv->stream_pq = NULL;
-    pthread_exit((void *) -1);
+    TmThreadExit(tv, -1);
     return NULL;
 }
 
@@ -957,6 +997,13 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
 
+#ifdef HAVE_DPDK
+    /* Value of lcore_id of DPDK worker threads are later reassigned to the respective lcore number,
+     * other (e.g. management) threads are left with value of LCORE_ID_ANY. This is useful on the
+     * thread shutdown as it provides a clear indication of worker in contrast to other threads. */
+    tv->lcore_id = LCORE_ID_ANY;
+#endif /* HAVE_DPDK */
+
     /* set the incoming queue */
     if (inq_name != NULL && strcmp(inq_name, "packetpool") != 0) {
         SCLogDebug("inq_name \"%s\"", inq_name);
@@ -1291,7 +1338,17 @@ static int TmThreadKillThread(ThreadVars *tv)
     }
 
     /* join it and flag it as dead */
-    pthread_join(tv->t, NULL);
+#ifdef HAVE_DPDK
+    if (tv->lcore_id != LCORE_ID_ANY && tv->type == TVT_PPT) {
+        /* wait for DPDK worker threads */
+        rte_eal_wait_lcore(tv->lcore_id);
+    } else {
+#endif /* HAVE_DPDK */
+        pthread_join(tv->t, NULL);
+#ifdef HAVE_DPDK
+    }
+#endif /* HAVE_DPDK */
+
     SCLogDebug("thread %s stopped", tv->name);
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
@@ -1713,16 +1770,32 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         return TM_ECODE_FAILED;
     }
 
-    /* Initialize and set thread detached attribute */
-    pthread_attr_init(&attr);
+#ifdef HAVE_DPDK
+    /* only DPDK worker threads are launched using rte_eal_remote_launch */
+    if (tv->lcore_id != LCORE_ID_ANY) {
+        struct dpdk_callback cb = { .func = tv->tm_func, .tv = tv };
 
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        int rc = rte_eal_remote_launch(&TmThreadSpawnDpdkThread, (void *)&cb, tv->lcore_id);
+        if (rc != 0) {
+            SCLogError(SC_ERR_DPDK_INIT, "Err (%" PRIu32 ") Can not launch function on lcore", rc);
+            return TM_ECODE_FAILED;
+        }
 
-    int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
-    if (rc) {
-        printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
-        return TM_ECODE_FAILED;
+    } else {
+#endif /* HAVE_DPDK */
+        /* Initialize and set thread detached attribute */
+        pthread_attr_init(&attr);
+
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+        int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
+        if (rc) {
+            printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
+            return TM_ECODE_FAILED;
+        }
+#ifdef HAVE_DPDK
     }
+#endif /* HAVE_DPDK */
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 

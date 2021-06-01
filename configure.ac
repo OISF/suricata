@@ -1512,6 +1512,8 @@
                         [enable_dpdk=$enableval],[enable_dpdk=no])
     AS_IF([test "x$enable_dpdk" = "xyes"], [
         AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
+        AC_DEFINE([HAVE_STRLCAT],[1],[STRLCAT is predefined by DPDK])
+        AC_DEFINE([HAVE_STRLCPY],[1],[STRLCPY is predefined by DPDK])
         PKG_CHECK_MODULES([libdpdk], libdpdk,, [with_pkgconfig_libdpdk=no])
         if test "$with_pkgconfig_libdpdk" = "no"; then
             echo
