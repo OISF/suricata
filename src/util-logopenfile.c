@@ -834,7 +834,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             if (lf_ctx->type != LOGFILE_TYPE_PLUGIN) {
                 OutputUnregisterFileRotationFlag(&this_ctx->rotation_flag);
                 this_ctx->Close(this_ctx);
-            } else {
+            } else if (lf_ctx->plugin.plugin->ThreadDeinit) {
                 lf_ctx->plugin.plugin->ThreadDeinit(
                         this_ctx->plugin.init_data, this_ctx->plugin.thread_data);
             }
@@ -859,7 +859,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexDestroy(&lf_ctx->fp_mutex);
     }
 
-    if (lf_ctx->type == LOGFILE_TYPE_PLUGIN) {
+    if (lf_ctx->type == LOGFILE_TYPE_PLUGIN && lf_ctx->plugin.plugin->Deinit) {
         lf_ctx->plugin.plugin->Deinit(lf_ctx->plugin.init_data);
     }
 
