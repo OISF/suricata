@@ -7,24 +7,32 @@ Example:
 
 ::
 
-
   {
-      "timestamp": "2009-11-24T21:27:09.534255",
-      "event_type": "alert",
-      "src_ip": "192.168.2.7",
-      "src_port": 1041,
-      "dest_ip": "x.x.250.50",
-      "dest_port": 80,
-      "proto": "TCP",
-      "alert": {
-          "action": "allowed",
-          "gid": 1,
-          "signature_id" :2001999,
-          "rev": 9,
-          "signature": "ET MALWARE BTGrab.com Spyware Downloading Ads",
-          "category": "A Network Trojan was detected",
-          "severity": 1
-      }
+    "timestamp": "2017-04-07T22:24:37.251547+0100",
+    "flow_id": 586497171462735,
+    "pcap_cnt": 53381,
+    "event_type": "alert",
+    "src_ip": "192.168.2.14",
+    "src_port": 50096,
+    "dest_ip": "209.53.113.5",
+    "dest_port": 80,
+    "proto": "TCP",
+    "metadata": {
+      "flowbits": [
+        "http.dottedquadhost"
+      ]
+    },
+    "tx_id": 4,
+    "alert": {
+      "action": "allowed",
+      "gid": 1,
+      "signature_id": 2018358,
+      "rev": 10,
+      "signature": "ET HUNTING GENERIC SUSPICIOUS POST to Dotted Quad with Fake Browser 1",
+      "category": "Potentially Bad Traffic",
+      "severity": 2
+    },
+    "app_proto": "http"
   }
 
 Common Section
@@ -46,6 +54,14 @@ The common part has a field "event_type" to indicate the log type.
 
 
   "event_type":"TYPE"
+
+When an application layer protocol event is detected, the common section will
+have an ``app_proto`` field.
+
+::
+
+    "app_proto": "http"
+
 
 PCAP fields
 ~~~~~~~~~~~
@@ -92,22 +108,44 @@ the signature.
 
 ::
 
-   "alert": {
-     "action": "allowed",
-     "gid": 1,
-     "signature_id": 1,
-     "rev": 1,
-     "app_proto": "http",
-     "signature": "HTTP body talking about corruption",
-     "severity": 3,
-     "source": {
-       "ip": "192.168.43.32",
-       "port": 36292
-     },
-     "target": {
-       "ip": "179.60.192.3",
-       "port": 80
-     },
+  "alert": {
+    "action": "allowed",
+    "gid": 1,
+    "signature_id": 2024056,
+    "rev": 4,
+    "signature": "ET MALWARE Win32/CryptFile2 / Revenge Ransomware Checkin M3",
+    "category": "Malware Command and Control Activity Detected",
+    "severity": 1,
+    "metadata": {
+      "affected_product": [
+        "Windows_XP_Vista_7_8_10_Server_32_64_Bit"
+      ],
+      "attack_target": [
+        "Client_Endpoint"
+      ],
+      "created_at": [
+        "2017_03_15"
+      ],
+      "deployment": [
+        "Perimeter"
+      ],
+      "former_category": [
+        "MALWARE"
+      ],
+      "malware_family": [
+        "CryptFile2"
+      ],
+      "performance_impact": [
+        "Moderate"
+      ],
+      "signature_severity": [
+        "Major"
+      ],
+      "updated_at": [
+        "2020_08_04"
+      ]
+    }
+  },
 
 Event type: Anomaly
 -------------------
