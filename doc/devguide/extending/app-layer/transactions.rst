@@ -84,9 +84,9 @@ The engine interacts with transactions state using a set of callbacks the parser
 In Summary - Transactions and State
 -----------------------------------
 
-| Initial state value: ``0``
-| Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
-| Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SBM).
+- Initial state value: ``0``
+- Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
+- Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SBM).
 
 _`Examples`
 ===========
