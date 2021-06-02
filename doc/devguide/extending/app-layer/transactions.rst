@@ -66,7 +66,7 @@ _`Progress Tracking`
 
 As a rule of thumb, transactions will follow a request-response model: if a transaction has had a request and a response, it is complete.
 
-But if a protocol has situations where a request or response won’t expect or generate a message from its counter-part,
+But if a protocol has situations where a request or response won’t expect or generate a message from its counterpart,
 it is also possible to have uni-directional transactions. In such cases, transaction is set to complete at the moment of
 creation.
 
@@ -86,7 +86,7 @@ In Summary - Transactions and State
 
 - Initial state value: ``0``
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
-- Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SBM).
+- Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SMB).
 
 _`Examples`
 ===========
