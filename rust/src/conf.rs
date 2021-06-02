@@ -15,19 +15,17 @@
  * 02110-1301, USA.
  */
 
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::os::raw::c_void;
 use std::os::raw::c_int;
-use std::ffi::{CString, CStr};
+use std::os::raw::c_void;
 use std::ptr;
 use std::str;
 
-extern {
+extern "C" {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
-    fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
-                         vptr: *mut *const c_char) -> i8;
-    fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
-                             vptr: *mut c_int) -> i8;
+    fn ConfGetChildValue(conf: *const c_void, key: *const c_char, vptr: *mut *const c_char) -> i8;
+    fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char, vptr: *mut c_int) -> i8;
 }
 
 // Return the string value of a configuration value.
@@ -46,9 +44,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
         return None;
     }
 
-    let value = str::from_utf8(unsafe{
-        CStr::from_ptr(vptr).to_bytes()
-    }).unwrap();
+    let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
 
     return Some(value);
 }
@@ -57,15 +53,13 @@ pub fn conf_get(key: &str) -> Option<&str> {
 // the same as having it set to false.
 pub fn conf_get_bool(key: &str) -> bool {
     match conf_get(key) {
-        Some(val) => {
-            match val {
-                "1" | "yes" | "true" | "on" => {
-                    return true;
-                },
-                _ => {},
+        Some(val) => match val {
+            "1" | "yes" | "true" | "on" => {
+                return true;
             }
+            _ => {}
         },
-        None => {},
+        None => {}
     }
 
     return false;
@@ -78,11 +72,8 @@ pub struct ConfNode {
 }
 
 impl ConfNode {
-
     pub fn wrap(conf: *const c_void) -> Self {
-        return Self {
-            conf: conf,
-        }
+        return Self { conf: conf };
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
@@ -90,9 +81,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValue(self.conf,
-                                 s.as_ptr(),
-                                 &mut vptr) != 1 {
+            if ConfGetChildValue(self.conf, s.as_ptr(), &mut vptr) != 1 {
                 return None;
             }
         }
@@ -101,9 +90,7 @@ impl ConfNode {
             return None;
         }
 
-        let value = str::from_utf8(unsafe{
-            CStr::from_ptr(vptr).to_bytes()
-        }).unwrap();
+        let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
 
         return Some(value);
     }
@@ -113,9 +100,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValueBool(self.conf,
-                                     s.as_ptr(),
-                                     &mut vptr) != 1 {
+            if ConfGetChildValueBool(self.conf, s.as_ptr(), &mut vptr) != 1 {
                 return false;
             }
         }
@@ -125,5 +110,4 @@ impl ConfNode {
         }
         return false;
     }
-
 }
