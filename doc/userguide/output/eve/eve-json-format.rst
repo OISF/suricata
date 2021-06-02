@@ -87,7 +87,7 @@ Example:
 
 Action is set to "allowed" unless a rule used the "drop" action and Suricata is in IPS mode, or when the rule used the "reject" action.
 
-It can also contain information about Source and Target of the attack in the alert.source and alert.target field it target keyword is used in
+It can also contain information about Source and Target of the attack in the alert.source and alert.target field if target keyword is used in
 the signature.
 
 ::
