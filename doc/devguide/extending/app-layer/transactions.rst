@@ -21,6 +21,9 @@ Transactions are implemented and stored in the per-flow state. The engine intera
 _`How the engine uses transactions`
 ===================================
 
+Logging
+~~~~~~~~
+
 Suricata controls when logging should happen based on transaction completeness. For simpler protocols, that will most
 likely happen once per transaction, by the time of its completion. In other cases, like with HTTP, this may happen also at intermediary states.
 
@@ -61,6 +64,38 @@ the next logger. Code snippet from: suricata/src/output-tx.c:
         .
     }
 
+Rule Matching
+~~~~~~~~~~~~~~
+
+Transactions progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
+
+As seen in ```DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister2``, which expects ``int tx_min_progress``, for instance. In the code snippet,
+``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions.
+
+
+.. code-block:: c
+
+    void DetectFiledataRegister(void)
+    {
+        .
+        .
+        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+                PrefilterMpmFiledataRegister, NULL,
+                ALPROTO_HTTP2, HTTP2StateDataClient);
+        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+                PrefilterMpmFiledataRegister, NULL,
+                ALPROTO_HTTP2, HTTP2StateDataServer);
+        .
+        .
+        DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
+            DetectEngineInspectFiledata, NULL);
+        DetectAppLayerInspectEngineRegister2(
+                "file_data", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
+        .
+        .
+    }
+
 _`Progress Tracking`
 ====================
 
@@ -82,7 +117,7 @@ progresses. A state will start at 0. The higher its value, the closer the transa
 The engine interacts with transactions state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 
 In Summary - Transactions and State
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Initial state value: ``0``
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
@@ -92,7 +127,7 @@ _`Examples`
 ===========
 
 Enums
------
+~~~~~~
 
 Code snippet from: rust/src/ssh/ssh.rs:
 
@@ -117,7 +152,7 @@ From src/app-layer-ftp.h:
 
 
 API Callbacks
--------------
+~~~~~~~~~~~~~~
 
 In Rust, this is done via the RustParser struct. As seen in rust/src/applayer.rs:
 
