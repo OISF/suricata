@@ -22,10 +22,11 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::str;
 
-extern "C" {
+extern {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
     fn ConfGetChildValue(conf: *const c_void, key: *const c_char, vptr: *mut *const c_char) -> i8;
     fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char, vptr: *mut c_int) -> i8;
+    fn ConfNodeLookupChild(node: *const c_void, name: *const c_char) -> *const c_void;
 }
 
 // Return the string value of a configuration value.
@@ -109,5 +110,22 @@ impl ConfNode {
             return true;
         }
         return false;
+    }
+
+    // Get a child node of this node by name.
+    //
+    // Wrapper around ConfNodeLookupChild.
+    //
+    // Returns None if the child is not found.
+    pub fn get_child(&self, name: &str) -> Option<ConfNode> {
+        unsafe {
+            let name = CString::new(name).unwrap();
+            let child = ConfNodeLookupChild(self.conf, name.as_ptr());
+            if child != std::ptr::null() {
+                Some(ConfNode { conf: child })
+            } else {
+                None
+            }
+        }
     }
 }
