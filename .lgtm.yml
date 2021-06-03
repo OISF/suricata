@@ -1,0 +1,4 @@
+extraction:
+  cpp:
+    after_prepare:
+      - git clone --depth 1 https://github.com/OISF/libhtp.git
