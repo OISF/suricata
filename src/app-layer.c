@@ -207,10 +207,15 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
 
     const uint32_t size_ts = StreamDataAvailableForProtoDetect(&ssn->client);
     const uint32_t size_tc = StreamDataAvailableForProtoDetect(&ssn->server);
+    // We also use the byte count from the flow so that a dropped packet
+    // or a gap finally bails out even if we do not have enough data
+    // in the beginning
+    const uint32_t flow_size_ts = (uint32_t)f->todstbytecnt;
+    const uint32_t flow_size_tc = (uint32_t)f->tosrcbytecnt;
     SCLogDebug("size_ts %" PRIu32 ", size_tc %" PRIu32, size_ts, size_tc);
 
-    DEBUG_VALIDATE_BUG_ON(size_ts > 1000000UL);
-    DEBUG_VALIDATE_BUG_ON(size_tc > 1000000UL);
+    DEBUG_VALIDATE_BUG_ON(size_ts > 1000000UL || flow_size_ts > 2000000UL);
+    DEBUG_VALIDATE_BUG_ON(size_tc > 1000000UL || flow_size_tc > 2000000UL);
 
     if (ProtoDetectDone(f, ssn, STREAM_TOSERVER) &&
         ProtoDetectDone(f, ssn, STREAM_TOCLIENT))
@@ -218,15 +223,13 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
         goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
-            size_ts > 100000 && size_tc == 0)
-    {
+               (size_ts > 100000 || flow_size_ts > 200000) && size_tc == 0) {
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
-            size_tc > 100000 && size_ts == 0)
-    {
+               (size_tc > 100000 || flow_size_tc > 200000) && size_ts == 0) {
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
@@ -234,10 +237,9 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
     /* little data in ts direction, pp done, pm not done (max
      * depth not reached), ts direction done, lots of data in
      * tc direction. */
-    } else if (size_tc > 100000 &&
-            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
-            FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
-    {
+    } else if ((size_tc > 100000 || flow_size_tc > 200000) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
+               !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) && FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) &&
+               FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
@@ -245,10 +247,9 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
     /* little data in tc direction, pp done, pm not done (max
      * depth not reached), tc direction done, lots of data in
      * ts direction. */
-    } else if (size_ts > 100000 &&
-            FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
-            FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
-    {
+    } else if ((size_ts > 100000 || flow_size_ts > 200000) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
+               !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) && FLOW_IS_PM_DONE(f, STREAM_TOSERVER) &&
+               FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
@@ -256,10 +257,9 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
     /* in case of really low TS data (e.g. 4 bytes) we can have
      * the PP complete, PM not complete (depth not reached) and
      * the TC side also not recognized (proto unknown) */
-    } else if (size_tc > 100000 &&
-            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
-            (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)))
-    {
+    } else if ((size_tc > 100000 || flow_size_tc > 200000) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
+               !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+               (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))) {
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
