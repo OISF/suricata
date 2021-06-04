@@ -64,7 +64,7 @@
 #define CTNT_TYPE_STR     "content-type"
 #define CTNT_DISP_STR     "content-disposition"
 #define CTNT_TRAN_STR     "content-transfer-encoding"
-#define MSG_ID_STR        "message-id"
+#define MSG_ID_STR          "message-id"
 #define MSG_STR           "message/"
 #define MULTIPART_STR     "multipart/"
 #define QP_STR            "quoted-printable"
