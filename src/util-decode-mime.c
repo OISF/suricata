@@ -32,6 +32,7 @@
 #include "util-memcmp.h"
 #include "util-print.h"
 #include "util-validate.h"
+#include "rust.h"
 
 /* Character constants */
 #ifndef CR
@@ -64,8 +65,6 @@
 #define CTNT_DISP_STR     "content-disposition"
 #define CTNT_TRAN_STR     "content-transfer-encoding"
 #define MSG_ID_STR        "message-id"
-#define BND_START_STR     "boundary="
-#define TOK_END_STR       "\""
 #define MSG_STR           "message/"
 #define MULTIPART_STR     "multipart/"
 #define QP_STR            "quoted-printable"
@@ -1866,70 +1865,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 }
 
 /**
- * \brief Finds a mime header token within the specified field
- *
- * \param field The current field
- * \param search_start The start of the search (ie. boundary=\")
- * \param search_end The end of the search (ie. \")
- * \param tlen The output length of the token (if found)
- * \param max_len The maximum offset in which to search
- * \param toolong Set if the field value was truncated to max_len.
- *
- * \return A pointer to the token if found, otherwise NULL if not found
- */
-static uint8_t * FindMimeHeaderTokenRestrict(MimeDecField *field, const char *search_start,
-        const char *search_end, uint32_t *tlen, uint32_t max_len, bool *toolong)
-{
-    uint8_t *fptr, *tptr = NULL, *tok = NULL;
-
-    if (toolong)
-        *toolong = false;
-
-    SCLogDebug("Looking for token: %s", search_start);
-
-    /* Check for token definition */
-    size_t ss_len = strlen(search_start);
-    fptr = FindBuffer(field->value, field->value_len, (const uint8_t *)search_start, ss_len);
-    if (fptr != NULL) {
-        fptr += ss_len; /* Start at end of start string */
-        uint32_t offset = fptr - field->value;
-        if (offset > field->value_len) {
-            return tok;
-        }
-        tok = GetToken(fptr, field->value_len - offset, search_end, &tptr, tlen);
-        if (tok == NULL) {
-            return tok;
-        }
-        SCLogDebug("Found mime token");
-
-        /* Compare the actual token length against the maximum */
-        if (toolong && max_len && *tlen > max_len) {
-            SCLogDebug("Token length %d exceeds length restriction %d; truncating", *tlen, max_len);
-            *toolong = true;
-            *tlen = max_len;
-        }
-    }
-
-    return tok;
-}
-
-/**
- * \brief Finds a mime header token within the specified field
- *
- * \param field The current field
- * \param search_start The start of the search (ie. boundary=\")
- * \param search_end The end of the search (ie. \")
- * \param tlen The output length of the token (if found)
- *
- * \return A pointer to the token if found, otherwise NULL if not found
- */
-static uint8_t * FindMimeHeaderToken(MimeDecField *field, const char *search_start,
-        const char *search_end, uint32_t *tlen)
-{
-    return FindMimeHeaderTokenRestrict(field, search_start, search_end, tlen, 0, NULL);
-}
-
-/**
  * \brief Processes the current line for mime headers and also does post-processing
  * when all headers found
  *
@@ -1944,9 +1879,10 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 {
     int ret = MIME_DEC_OK;
     MimeDecField *field;
-    uint8_t *bptr = NULL, *rptr = NULL;
+    uint8_t *rptr = NULL;
     uint32_t blen = 0;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
+    uint8_t bptr[NAME_MAX];
 
     /* Look for mime header in current line */
     ret = FindMimeHeader(buf, len, state);
@@ -1975,10 +1911,16 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
             bool truncated_name = false;
-            bptr = FindMimeHeaderTokenRestrict(field, "filename=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
-            if (bptr != NULL) {
+            // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
+            if (rs_mime_find_header_token(field->value, field->value_len,
+                        (const uint8_t *)"filename", strlen("filename"), &bptr, &blen)) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+                if (blen > NAME_MAX) {
+                    blen = NAME_MAX;
+                    truncated_name = true;
+                }
 
                 /* Copy over using dynamic memory */
                 entity->filename = SCMalloc(blen);
@@ -2000,8 +1942,9 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TYPE_STR);
         if (field != NULL) {
             /* Check if child entity boundary definition found */
-            bptr = FindMimeHeaderToken(field, BND_START_STR, TOK_END_STR, &blen);
-            if (bptr != NULL) {
+            // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
+            if (rs_mime_find_header_token(field->value, field->value_len,
+                        (const uint8_t *)"boundary", strlen("boundary"), &bptr, &blen)) {
                 state->found_child = 1;
                 entity->ctnt_flags |= CTNT_IS_MULTIPART;
 
@@ -2023,10 +1966,16 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
                 bool truncated_name = false;
-                bptr = FindMimeHeaderTokenRestrict(field, "name=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
-                if (bptr != NULL) {
+                // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
+                if (rs_mime_find_header_token(field->value, field->value_len,
+                            (const uint8_t *)"name", strlen("name"), &bptr, &blen)) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
+
+                    if (blen > NAME_MAX) {
+                        blen = NAME_MAX;
+                        truncated_name = true;
+                    }
 
                     /* Copy over using dynamic memory */
                     entity->filename = SCMalloc(blen);
