@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "threads.h"
 
+#include "stream-tcp.h"
 #include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
@@ -152,27 +153,28 @@ void FlowInit(Flow *f, const Packet *p)
     f->vlan_idx = p->vlan_idx;
     f->livedev = p->livedev;
 
-    if (PKT_IS_IPV4(p)) {
-        FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
-        FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
-        f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_IPTTL((p));
-        f->flags |= FLOW_IPV4;
-    } else if (PKT_IS_IPV6(p)) {
-        FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
-        FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
-        f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));
-        f->flags |= FLOW_IPV6;
-    }
-#ifdef DEBUG
-    /* XXX handle default */
-    else {
-        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
-    }
-#endif
+    int pkt_is_from_client = 1;
 
     if (p->tcph != NULL) { /* XXX MACRO */
-        SET_TCP_SRC_PORT(p,&f->sp);
-        SET_TCP_DST_PORT(p,&f->dp);
+        /* If the first packet to be seen by suricata is a TCP SYNACK then it's from
+         * the server rather than the client, and the flow direction should be set
+         * accordingly. But only do this if midstream flow pickup or async flows are
+         * enabled in config, as these are required for the TCP session state to be
+         * tracked.
+         */
+        if (stream_config.midstream == TRUE || stream_config.async_oneside == TRUE) {
+            if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
+                pkt_is_from_client = 0;
+            }
+        }
+
+        if (likely(pkt_is_from_client)) {
+            SET_TCP_SRC_PORT(p, &f->sp);
+            SET_TCP_DST_PORT(p, &f->dp);
+        } else {
+            SET_TCP_SRC_PORT(p, &f->dp);
+            SET_TCP_DST_PORT(p, &f->sp);
+        }
     } else if (p->udph != NULL) { /* XXX MACRO */
         SET_UDP_SRC_PORT(p,&f->sp);
         SET_UDP_DST_PORT(p,&f->dp);
@@ -195,6 +197,37 @@ void FlowInit(Flow *f, const Packet *p)
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
 #endif
+
+    if (PKT_IS_IPV4(p)) {
+        if (likely(pkt_is_from_client)) {
+            FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
+            FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
+            f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_IPTTL((p));
+        } else {
+            FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->dst);
+            FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->src);
+            f->min_ttl_toclient = f->max_ttl_toclient = IPV4_GET_IPTTL((p));
+        }
+        f->flags |= FLOW_IPV4;
+    } else if (PKT_IS_IPV6(p)) {
+        if (likely(pkt_is_from_client)) {
+            FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
+            FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
+            f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));
+        } else {
+            FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->dst);
+            FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->src);
+            f->min_ttl_toclient = f->max_ttl_toclient = IPV6_GET_HLIM((p));
+        }
+        f->flags |= FLOW_IPV6;
+    }
+#ifdef DEBUG
+    /* XXX handle default */
+    else {
+        printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
+    }
+#endif
+
     COPY_TIMESTAMP(&p->ts, &f->startts);
 
     f->protomap = FlowGetProtoMapping(f->proto);

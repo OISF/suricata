@@ -348,7 +348,9 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
  */
 void FlowForceReassemblyForFlow(Flow *f)
 {
-    const int thread_id = (int)f->thread_id[0];
+    /* if we only saw server->client traffic, then thread_id[TO_SERVER]
+     * will be 0, so choose thread_id[TO_CLIENT] */
+    const int thread_id = (int)(f->thread_id[0] != 0 ? f->thread_id[0] : f->thread_id[1]);
     TmThreadsInjectFlowById(f, thread_id);
 }
 
