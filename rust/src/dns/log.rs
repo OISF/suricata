@@ -503,6 +503,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
     if header.flags & 0x0080 != 0 {
         js.set_bool("ra", true)?;
     }
+    js.set_uint("z", ((header.flags & 0x0070) >> 4).into());
 
     for query in &response.queries {
         js.set_string_from_bytes("rrname", &query.name)?;
@@ -705,6 +706,7 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
     if header.flags & 0x0080 != 0 {
         js.set_bool("ra", true)?;
     }
+    js.set_uint("z", ((header.flags & 0x0070) >> 4).into());
     js.set_string("rcode", &dns_rcode_string(header.flags))?;
     js.set_string_from_bytes("rrname", &answer.name)?;
     js.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
