@@ -28,7 +28,7 @@ pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
 
 
 // Generic file structure, so it can be used by different protocols
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Files {
     pub files_ts: FileContainer,
     pub files_tc: FileContainer,
@@ -66,6 +66,13 @@ pub struct File;
 pub struct FileContainer {
     head: * mut c_void,
     tail: * mut c_void,
+}
+
+impl Default for FileContainer {
+    fn default() -> Self { Self {
+        head: ptr::null_mut(),
+        tail: ptr::null_mut(),
+    }}
 }
 
 impl FileContainer {
