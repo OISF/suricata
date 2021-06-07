@@ -371,13 +371,12 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
-            files: Files::new(),
+            files: Files::default(),
         }
     }
 
     pub fn free(&mut self) {
         self.transactions.clear();
-        self.files.free();
     }
 
     pub fn set_event(&mut self, event: HTTP2Event) {

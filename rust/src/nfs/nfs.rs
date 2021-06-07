@@ -323,7 +323,7 @@ impl NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
-            files:Files::new(),
+            files:Files::default(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
             ts_chunk_left:0,
@@ -348,10 +348,6 @@ impl NFSState {
             self.ts = ts;
             self.post_gap_files_checked = false;
         }
-    }
-
-    pub fn free(&mut self) {
-        self.files.free();
     }
 
     pub fn new_tx(&mut self) -> NFSTransaction {
@@ -1386,8 +1382,7 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut nfs_state: Box<NFSState> = unsafe{transmute(state)};
-    nfs_state.free();
+    let mut _nfs_state: Box<NFSState> = unsafe{transmute(state)};
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.

@@ -773,7 +773,7 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: Files::new(),
+            files: Files::default(),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -800,7 +800,6 @@ impl SMBState {
     pub fn free(&mut self) {
         //self._debug_state_stats();
         self._debug_tx_stats();
-        self.files.free();
     }
 
     pub fn new_tx(&mut self) -> SMBTransaction {

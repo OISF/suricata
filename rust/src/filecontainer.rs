@@ -37,19 +37,6 @@ pub struct Files {
 }
 
 impl Files {
-    pub fn new() -> Files {
-        Files {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
     pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
     {
         if direction == STREAM_TOSERVER {
@@ -66,6 +53,12 @@ pub struct File;
 pub struct FileContainer {
     head: * mut c_void,
     tail: * mut c_void,
+}
+
+impl Drop for FileContainer {
+    fn drop(&mut self) {
+        self.free();
+    }
 }
 
 impl Default for FileContainer {
