@@ -436,6 +436,7 @@ Outline of fields seen in the different kinds of DNS events:
 * "tc": Indicating in case of DNS answer flag, Truncation flag (ex: true if set)
 * "rd": Indicating in case of DNS answer flag, Recursion Desired flag (ex: true if set)
 * "ra": Indicating in case of DNS answer flag, Recursion Available flag (ex: true if set)
+* "z": Indicating in case of DNS answer flag, Reserved bit (ex: true if set)
 * "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
