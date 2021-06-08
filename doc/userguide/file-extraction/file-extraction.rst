@@ -69,6 +69,9 @@ of the filename. For example, if the SHA256 hex string of an extracted
 file starts with "f9bc6d..." the file we be placed in the directory
 `filestore/f9`.
 
+To limit the number of bytes used for the hashing to the first N bytes of
+the file, specify a value for ``file-store.hash-bytelimit``.
+
 The size of a file that can be stored depends on ``file-store.stream-depth``,
 if this value is reached a file can be truncated and might not be stored completely.
 If not enabled, ``stream.reassembly.depth`` will be considered.

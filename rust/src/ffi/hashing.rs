@@ -32,6 +32,10 @@ pub const SC_MD5_HEX_LEN: usize = 32;
 // with .0.
 pub struct SCSha256(Sha256);
 
+extern "C" {
+    static g_hash_byte_limit: u32;
+}
+
 #[no_mangle]
 pub extern "C" fn SCSha256New() -> *mut SCSha256 {
     let hasher = Box::new(SCSha256(Sha256::new()));
@@ -39,8 +43,8 @@ pub extern "C" fn SCSha256New() -> *mut SCSha256 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256Update(hasher: &mut SCSha256, bytes: *const u8, len: u32) {
-    update(&mut hasher.0, bytes, len);
+pub unsafe extern "C" fn SCSha256Update(hasher: &mut SCSha256, bytes: *const u8, len: u32, bytes_hashed: *mut u32) -> u32 {
+    update(&mut hasher.0, bytes, len, bytes_hashed)
 }
 
 #[no_mangle]
@@ -104,8 +108,8 @@ pub extern "C" fn SCSha1New() -> *mut SCSha1 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha1Update(hasher: &mut SCSha1, bytes: *const u8, len: u32) {
-    update(&mut hasher.0, bytes, len);
+pub unsafe extern "C" fn SCSha1Update(hasher: &mut SCSha1, bytes: *const u8, len: u32, bytes_hashed: *mut u32) -> u32 {
+    update(&mut hasher.0, bytes, len, bytes_hashed)
 }
 
 #[no_mangle]
@@ -146,8 +150,8 @@ pub extern "C" fn SCMd5New() -> *mut SCMd5 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: u32) {
-    update(&mut hasher.0, bytes, len);
+pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: u32, bytes_hashed: *mut u32) -> u32 {
+    update(&mut hasher.0, bytes, len, bytes_hashed)
 }
 
 /// Finalize the MD5 hash placing the digest in the provided out buffer.
@@ -214,9 +218,24 @@ pub unsafe extern "C" fn SCMd5HashBufferToHex(
 // Functions that are generic over Digest. For the most part the C bindings are
 // just wrappers around these.
 
-unsafe fn update<D: Digest>(digest: &mut D, bytes: *const u8, len: u32) {
+unsafe fn update<D: Digest>(digest: &mut D, bytes: *const u8, mut len: u32, bytes_hashed: *mut u32) -> u32 {
+    if !bytes_hashed.is_null() {
+        if g_hash_byte_limit > 0 {
+            let bytes_remaining = match g_hash_byte_limit > *bytes_hashed {
+                true => g_hash_byte_limit - *bytes_hashed,
+                false => 0,
+            };
+            if len > bytes_remaining {
+                len = bytes_remaining;
+            }
+        }
+
+        *bytes_hashed += len;
+    }
+
     let data = std::slice::from_raw_parts(bytes, len as usize);
     digest.update(data);
+    len
 }
 
 unsafe fn finalize<D: Digest>(digest: D, out: *mut u8, len: u32) {
