@@ -181,7 +181,11 @@ extern bool g_disable_hashing;
 void EngineStop(void);
 void EngineDone(void);
 
+#ifdef UNITTESTS
 int RunmodeIsUnittests(void);
+#else
+#define RunmodeIsUnittests() 0
+#endif
 int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
