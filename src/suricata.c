@@ -266,6 +266,7 @@ void EngineModeSetIDS(void)
     g_engine_mode = ENGINE_MODE_IDS;
 }
 
+#ifdef UNITTESTS
 int RunmodeIsUnittests(void)
 {
     if (run_mode == RUNMODE_UNITTEST)
@@ -273,6 +274,7 @@ int RunmodeIsUnittests(void)
 
     return 0;
 }
+#endif
 
 int RunmodeGetCurrent(void)
 {

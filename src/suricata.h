@@ -178,7 +178,11 @@ extern uint16_t g_vlan_mask;
 void EngineStop(void);
 void EngineDone(void);
 
+#ifdef UNITTESTS
 int RunmodeIsUnittests(void);
+#else
+#define RunmodeIsUnittests() 0
+#endif
 int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
