@@ -166,7 +166,7 @@ impl JsonBuilder {
             State::None => {
                 debug_validate_fail!("invalid state");
                 Err(JsonError::InvalidState)
-            },
+            }
         }
     }
 
@@ -503,61 +503,34 @@ impl JsonBuilder {
     }
 
     /// Encode a string into the buffer, escaping as needed.
-    ///
-    /// The string is encoded into an intermediate vector as its faster
-    /// than building onto the buffer.
     #[inline(always)]
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
-        let mut buf = vec![0; val.len() * 2 + 2];
-        let mut offset = 0;
+        // reserve memory to avoid too many reallocations
+        self.buf.reserve(val.len() * 2 + 2);
         let bytes = val.as_bytes();
-        buf[offset] = b'"';
-        offset += 1;
+        self.buf.push('"');
         for &x in bytes.iter() {
-            if offset + 7 >= buf.capacity() {
-                let mut extend = vec![0; buf.capacity()];
-                buf.append(&mut extend);
-            }
             let escape = ESCAPED[x as usize];
             if escape == 0 {
-                buf[offset] = x;
-                offset += 1;
+                self.buf.push(x as char);
             } else if escape == b'u' {
-                buf[offset] = b'\\';
-                offset += 1;
-                buf[offset] = b'u';
-                offset += 1;
-                buf[offset] = b'0';
-                offset += 1;
-                buf[offset] = b'0';
-                offset += 1;
-                buf[offset] = HEX[(x >> 4 & 0xf) as usize];
-                offset += 1;
-                buf[offset] = HEX[(x & 0xf) as usize];
-                offset += 1;
+                let mut buf = vec![b'\\', b'u', b'0', b'0', 0, 0];
+                buf[4] = HEX[(x >> 4 & 0xf) as usize];
+                buf[5] = HEX[(x & 0xf) as usize];
+                match std::str::from_utf8(&buf[0..6]) {
+                    Ok(s) => {
+                        self.buf.push_str(s);
+                    }
+                    Err(_) => {
+                        debug_validate_fail!("invalid encode_string from_utf8");
+                    }
+                }
             } else {
-                buf[offset] = b'\\';
-                offset += 1;
-                buf[offset] = escape;
-                offset += 1;
+                self.buf.push('\\');
+                self.buf.push(escape as char);
             }
         }
-        buf[offset] = b'"';
-        offset += 1;
-        match std::str::from_utf8(&buf[0..offset]) {
-            Ok(s) => {
-                self.buf.push_str(s);
-            }
-            Err(err) => {
-                let error = format!(
-                    "\"UTF8-ERROR: what=[escaped string] error={} output={:02x?} input={:02x?}\"",
-                    err,
-                    &buf[0..offset],
-                    val.as_bytes(),
-                );
-                self.buf.push_str(&error);
-            }
-        }
+        self.buf.push('"');
         Ok(())
     }
 }
