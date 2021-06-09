@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "util-checksum.h"
 #include "util-privs.h"
+#include "util-datalink.h"
 #include "util-device.h"
 #include "util-host-info.h"
 #include "runmodes.h"
@@ -643,6 +644,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             return TM_ECODE_FAILED;
         }
     }
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
     *data = (void *)ptv;
     pfconf->DerefFunc(pfconf);

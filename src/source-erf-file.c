@@ -29,6 +29,7 @@
 #include "suricata.h"
 #include "tm-threads.h"
 #include "source-erf-file.h"
+#include "util-datalink.h"
 
 #define DAG_TYPE_ETH 2
 
@@ -240,6 +241,8 @@ ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
     *data = (void *)etv;
 
     SCLogInfo("Processing ERF file %s", (char *)initdata);
+
+    DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
     SCReturnInt(TM_ECODE_OK);
 }

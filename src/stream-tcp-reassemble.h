@@ -85,6 +85,7 @@ void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueueNoLock *);
 int StreamTcpReassembleInit(bool);
 void StreamTcpReassembleFree(bool);
+void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size);
 void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
@@ -129,6 +130,9 @@ int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
 void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth);
+
+int IsTcpSessionDumpingEnabled(void);
+void EnableTcpSessionDumping(void);
 
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {

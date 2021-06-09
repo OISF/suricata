@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,21 +15,6 @@
  * 02110-1301, USA.
  */
 
-
-/**
- * \file
- *
- * \author William Metcalf <William.Metcalf@gmail.com>
- * \author Victor Julien <victor@inliniac.net>
- *
- * Pcap packet logging module.
- */
-
-#ifndef __LOG_PCAP_H__
-#define __LOG_PCAP_H__
-
-void PcapLogRegister(void);
-void PcapLogProfileSetup(void);
-char *PcapLogGetFilename(void);
-
-#endif /* __LOG_PCAP_H__ */
+void DatalinkSetGlobalType(int datalink);
+int DatalinkGetGlobalType(void);
+int DatalinkHasMultipleValues(void);

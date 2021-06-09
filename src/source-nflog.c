@@ -326,6 +326,8 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     ntv->datalen = T_DATA_SIZE;
 #undef T_DATA_SIZE
 
+    DatalinkSetGlobalType(DLT_RAW);
+
     *data = (void *)ntv;
 
     nflconfig->DerefFunc(nflconfig);
