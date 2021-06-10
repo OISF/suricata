@@ -147,6 +147,14 @@ void *LuaStateGetTX(lua_State *luastate)
     return tx;
 }
 
+/** \brief get tx id from the lua state */
+uint64_t LuaStateGetTxId(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    uint64_t tx_id = lua_tointeger(luastate, -1);
+    return tx_id;
+}
 void LuaStateSetTX(lua_State *luastate, void *txptr, const uint64_t tx_id)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx);
