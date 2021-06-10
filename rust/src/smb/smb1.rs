@@ -30,6 +30,7 @@ use crate::smb::smb1_records::*;
 use crate::smb::smb1_session::*;
 
 use nom7::Err;
+use md5::Digest;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
 pub const SMB1_COMMAND_CREATE_DIRECTORY:        u8 = 0x00;
@@ -448,13 +449,23 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                         None => { false },
                     };
                     if !found {
+                        let fps = state.fingerprint_state;
                         let tx = state.new_negotiate_tx(1);
-                        if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
-                            tdn.dialects = dialects;
-                        }
                         tx.request_done = true;
                         if bad_dialects {
                             tx.set_event(SMBEvent::NegotiateMalformedDialects);
+                        }
+                        if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
+                            tdn.dialects = dialects;
+                            if fps == SMBFingerprintState::NotStarted {
+                                let mut vec = Vec::with_capacity(1+2*tdn.dialects2.len());
+                                vec.push(1);
+                                for d in &tdn.dialects {
+                                    vec.extend(d);
+                                }
+                                state.fingerprint_hasher.update(vec);
+                                state.fingerprint_state = SMBFingerprintState::SMB1Nego;
+                            }
                         }
                     }
                     true

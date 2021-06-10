@@ -438,16 +438,28 @@ pub fn parse_smb_trans_response_record(i: &[u8]) -> IResult<&[u8], SmbRecordTran
 
 #[derive(Debug,PartialEq)]
 pub struct SmbRecordSetupAndX<'a> {
+    pub maxbuffer: u16,
+    pub maxmpx: u16,
+    pub capabilities: u32,
     pub sec_blob: &'a[u8],
 }
 
 pub fn parse_smb_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbRecordSetupAndX> {
-    let (i, _skip1) = take(15_usize)(i)?;
+    let (i, _skip1) = take(5_usize)(i)?;
+    let (i, maxbuffer) = le_u16(i)?;
+    let (i, maxmpx) = le_u16(i)?;
+    let (i, _skip2) = take(6_usize)(i)?;
     let (i, sec_blob_len) = le_u16(i)?;
-    let (i, _skip2) = take(8_usize)(i)?;
+    let (i, _skip3) = take(4_usize)(i)?;
+    let (i, capabilities) = le_u32(i)?;
     let (i, _bcc) = le_u16(i)?;
     let (i, sec_blob) = take(sec_blob_len)(i)?;
-    let record = SmbRecordSetupAndX { sec_blob };
+    let record = SmbRecordSetupAndX {
+        maxbuffer,
+        maxmpx,
+        capabilities,
+        sec_blob
+    };
     Ok((i, record))
 }
 

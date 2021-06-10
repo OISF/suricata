@@ -41,6 +41,7 @@ use crate::frames::*;
 use crate::conf::*;
 use crate::filecontainer::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
+use md5::{Md5, Digest};
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -732,6 +733,18 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
     return [o1, o2, o3, o4]
 }
 
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+pub enum SMBFingerprintState {
+    NotStarted = 0,
+    SMB1Nego = 1, // SMB1 negotiation seen, waiting for session setup
+    Finished = 2,
+}
+
+impl Default for SMBFingerprintState {
+    fn default() -> Self { SMBFingerprintState::NotStarted }
+}
+
 #[derive(Default, Debug)]
 pub struct SMBState<> {
     /// map ssn/tree/msgid to vec (guid/name/share)
@@ -781,6 +794,9 @@ pub struct SMBState<> {
     pub dialect: u16,
     /// contains name of SMB1 dialect
     pub dialect_vec: Option<Vec<u8>>, // used if dialect == 0
+
+    pub fingerprint_hasher: md5::Md5,
+    pub fingerprint_state: SMBFingerprintState,
 
     /// dcerpc interfaces, stored here to be able to match
     /// them while inspecting DCERPC REQUEST txs
@@ -832,6 +848,8 @@ impl SMBState {
             tx_id:0,
             dialect:0,
             dialect_vec: None,
+            fingerprint_hasher: Md5::new(),
+            fingerprint_state: SMBFingerprintState::NotStarted,
             dcerpc_ifaces: None,
             ts: 0,
             ..Default::default()
