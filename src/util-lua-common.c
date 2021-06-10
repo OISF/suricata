@@ -821,8 +821,9 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
         }
     }
 
+    lua_Integer tx_id = LuaStateGetTxId(luastate);
     lua_pushinteger(luastate, file->file_store_id);
-    lua_pushinteger(luastate, file->txid);
+    lua_pushinteger(luastate, tx_id);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
     lua_pushinteger(luastate, FileTrackedSize(file));
     lua_pushstring (luastate,
