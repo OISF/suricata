@@ -54,6 +54,7 @@ ThreadVars *LuaStateGetThreadVars(lua_State *luastate);
 
 Packet *LuaStateGetPacket(lua_State *luastate);
 void *LuaStateGetTX(lua_State *luastate);
+uint64_t LuaStateGetTxId(lua_State *luastate);
 
 /** \brief get flow pointer from lua state
  *
