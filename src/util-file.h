@@ -253,4 +253,10 @@ uint64_t FileTrackedSize(const File *file);
 
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction);
 
+#ifdef DEBUG
+void FilePrintFlags(const File *file);
+#else
+#define FilePrintFlags(file)
+#endif
+
 #endif /* __UTIL_FILE_H__ */
