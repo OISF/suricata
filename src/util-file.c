@@ -388,12 +388,44 @@ static int FilePruneFile(File *file)
     SCReturnInt(0);
 }
 
+#ifdef DEBUG
+#define P(file, flag) ((file)->flags & (flag)) ? "true" : "false"
+void FilePrintFlags(const File *file)
+{
+    SCLogDebug("file %p flags %04x "
+               "FILE_TRUNCATED %s "
+               "FILE_NOMAGIC %s "
+               "FILE_NOMD5 %s "
+               "FILE_MD5 %s "
+               "FILE_NOSHA1 %s "
+               "FILE_SHA1 %s "
+               "FILE_NOSHA256 %s "
+               "FILE_SHA256 %s "
+               "FILE_LOGGED %s "
+               "FILE_NOSTORE %s "
+               "FILE_STORE %s "
+               "FILE_STORED %s "
+               "FILE_NOTRACK %s "
+               "FILE_USE_DETECT %s "
+               "FILE_HAS_GAPS %s",
+            file, file->flags, P(file, FILE_TRUNCATED), P(file, FILE_NOMAGIC), P(file, FILE_NOMD5),
+            P(file, FILE_MD5), P(file, FILE_NOSHA1), P(file, FILE_SHA1), P(file, FILE_NOSHA256),
+            P(file, FILE_SHA256), P(file, FILE_LOGGED), P(file, FILE_NOSTORE), P(file, FILE_STORE),
+            P(file, FILE_STORED), P(file, FILE_NOTRACK), P(file, FILE_USE_DETECT),
+            P(file, FILE_HAS_GAPS));
+}
+#undef P
+#endif
+
 void FilePrune(FileContainer *ffc)
 {
     File *file = ffc->head;
     File *prev = NULL;
 
     while (file) {
+#ifdef DEBUG
+        FilePrintFlags(file);
+#endif
         if (FilePruneFile(file) == 0) {
             prev = file;
             file = file->next;
