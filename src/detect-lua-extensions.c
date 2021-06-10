@@ -499,7 +499,7 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
         if (f && f->alstate) {
             void *txptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
             if (txptr) {
-                LuaStateSetTX(lua_state, txptr);
+                LuaStateSetTX(lua_state, txptr, det_ctx->tx_id);
             }
         }
     }

@@ -75,7 +75,7 @@ int LuaStateGetDirection(lua_State *luastate);
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
-void LuaStateSetTX(lua_State *luastate, void *tx);
+void LuaStateSetTX(lua_State *luastate, void *tx, const uint64_t tx_id);
 
 /** \brief set a flow pointer in the lua state
  *
