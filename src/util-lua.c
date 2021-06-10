@@ -87,6 +87,8 @@ void LuaReturnState(lua_State *s)
 const char lua_ext_key_tv[] = "suricata:lua:tv:ptr";
 /* key for tx pointer */
 const char lua_ext_key_tx[] = "suricata:lua:tx:ptr";
+/* key for tx id */
+const char lua_ext_key_tx_id[] = "suricata:lua:tx_id";
 /* key for p (packet) pointer */
 const char lua_ext_key_p[] = "suricata:lua:pkt:ptr";
 /* key for f (flow) pointer */
@@ -148,10 +150,22 @@ void *LuaStateGetTX(lua_State *luastate)
     return tx;
 }
 
-void LuaStateSetTX(lua_State *luastate, void *txptr)
+/** \brief get tx id from the lua state */
+uint64_t LuaStateGetTxId(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    uint64_t tx_id = lua_tointeger(luastate, -1);
+    return tx_id;
+}
+void LuaStateSetTX(lua_State *luastate, void *txptr, const uint64_t tx_id)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx);
     lua_pushlightuserdata(luastate, (void *)txptr);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
+    lua_pushinteger(luastate, tx_id);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
