@@ -107,7 +107,7 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    LuaStateSetTX(td->lua_ctx->luastate, txptr, tx_id);
     LuaStateSetFlow(td->lua_ctx->luastate, f);
 
     /* prepare data to pass to script */
@@ -151,7 +151,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
-        LuaStateSetTX(td->lua_ctx->luastate, txptr);
+        LuaStateSetTX(td->lua_ctx->luastate, txptr, tx_id);
     LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f);
     LuaStateSetStreamingBuffer(td->lua_ctx->luastate, &b);
 
@@ -212,7 +212,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-        LuaStateSetTX(td->lua_ctx->luastate, txptr);
+        LuaStateSetTX(td->lua_ctx->luastate, txptr, pa->tx_id);
         LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
@@ -310,7 +310,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     if (p->flow && p->flow->alstate) {
         void *txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
         if (txptr) {
-            LuaStateSetTX(td->lua_ctx->luastate, txptr);
+            LuaStateSetTX(td->lua_ctx->luastate, txptr, ff->txid);
         }
     }
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
