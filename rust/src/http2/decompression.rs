@@ -34,6 +34,7 @@ pub enum HTTP2ContentEncoding {
 }
 
 //a cursor turning EOF into blocking errors
+#[derive(Debug)]
 pub struct HTTP2cursor {
     pub cursor: Cursor<Vec<u8>>,
 }
@@ -78,6 +79,26 @@ pub enum HTTP2Decompresser {
     BROTLI(brotli::Decompressor<HTTP2cursor>),
 }
 
+impl std::fmt::Debug for HTTP2Decompresser {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HTTP2Decompresser::UNASSIGNED => write!(f, "UNASSIGNED"),
+            HTTP2Decompresser::GZIP(_) => write!(f, "GZIP"),
+            HTTP2Decompresser::BROTLI(_) => write!(f, "BROTLI"),
+        }
+    }
+}
+impl std::fmt::Display for HTTP2Decompresser {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HTTP2Decompresser::UNASSIGNED => write!(f, "UNASSIGNED"),
+            HTTP2Decompresser::GZIP(_) => write!(f, "GZIP"),
+            HTTP2Decompresser::BROTLI(_) => write!(f, "BROTLI"),
+        }
+    }
+}
+
+#[derive(Debug)]
 struct HTTP2DecoderHalf {
     encoding: HTTP2ContentEncoding,
     decoder: HTTP2Decompresser,
@@ -192,6 +213,7 @@ impl HTTP2DecoderHalf {
     }
 }
 
+#[derive(Debug)]
 pub struct HTTP2Decoder {
     decoder_tc: HTTP2DecoderHalf,
     decoder_ts: HTTP2DecoderHalf,

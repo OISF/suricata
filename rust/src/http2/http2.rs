@@ -84,6 +84,7 @@ pub struct HTTP2FrameUnhandled {
     pub reason: HTTP2FrameUnhandledReason,
 }
 
+#[derive(Debug)]
 pub enum HTTP2FrameTypeData {
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
@@ -114,11 +115,13 @@ pub enum HTTP2TransactionState {
     HTTP2StateGlobal = 8,
 }
 
+#[derive(Debug)]
 pub struct HTTP2Frame {
     pub header: parser::HTTP2FrameHeader,
     pub data: HTTP2FrameTypeData,
 }
 
+#[derive(Debug)]
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,

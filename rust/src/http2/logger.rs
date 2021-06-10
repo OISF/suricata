@@ -21,7 +21,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 use std::collections::HashMap;
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Debug)]
 enum HeaderName {
     Method,
     Path,
