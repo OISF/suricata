@@ -21,6 +21,10 @@ use crate::smb::smb::*;
 use crate::smb::events::*;
 use crate::smb::auth::*;
 
+use md5::Digest;
+use byteorder::LittleEndian;
+use crate::byteorder::WriteBytesExt;
+
 #[derive(Debug)]
 pub struct SessionSetupRequest {
     pub native_os: Vec<u8>,
@@ -130,6 +134,7 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
         Ok((rem, setup)) => {
             let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                     r.ssn_id as u64, 0, r.multiplex_id as u64);
+            let fps = state.fingerprint_state;
             let tx = state.new_sessionsetup_tx(hdr);
             tx.vercmd.set_smb1_cmd(r.command);
 
@@ -142,6 +147,19 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
                     None => { },
                 }
                 td.request_host = Some(smb1_session_setup_request_host_info(r, rem));
+                if fps == SMBFingerprintState::SMB1Nego {
+                    if let Some(rh) = &td.request_host {
+                        let mut vec = Vec::with_capacity(8 + rh.native_os.len() + rh.native_lm.len() + rh.primary_domain.len());
+                        vec.write_u16::<LittleEndian>(setup.maxbuffer).unwrap();
+                        vec.write_u16::<LittleEndian>(setup.maxmpx).unwrap();
+                        vec.write_u32::<LittleEndian>(setup.capabilities).unwrap();
+                        vec.extend(&rh.native_os);
+                        vec.extend(&rh.native_lm);
+                        vec.extend(&rh.primary_domain);
+                        state.fingerprint_hasher.update(vec);
+                        state.fingerprint_state = SMBFingerprintState::Finished;
+                    }
+                }
             }
         },
         _ => {

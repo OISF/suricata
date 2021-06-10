@@ -22,6 +22,8 @@ use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_U
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 use crate::detect::detect_match_uint;
 
+use md5::Digest;
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
                                             buffer: *mut *const u8,
@@ -169,4 +171,30 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
         }
     }
     return 0;
+}
+
+pub fn smb_get_fingerprint(state: &SMBState, tx : &SMBTransaction, outbuf: &mut [u8; 16]) -> Result<(), ()> {
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref _x)) => {
+            if state.fingerprint_state == SMBFingerprintState::Finished {
+                let result = state.fingerprint_hasher.clone();
+                let rs1 = result.finalize();
+                let rs2 = rs1.as_slice();
+                outbuf.clone_from_slice(rs2);
+                return Ok(());
+            }
+        }
+        _ => {}
+    }
+    return Err(());
+}
+
+#[no_mangle]
+pub extern "C" fn rs_smb_get_fingerprint(
+    state: &mut SMBState, tx: &mut SMBTransaction, outbuf: &mut [u8; 16],
+) -> std::os::raw::c_int {
+    if let Ok(_) = smb_get_fingerprint(&state, &tx, outbuf) {
+        return 0;
+    }
+    return -1;
 }

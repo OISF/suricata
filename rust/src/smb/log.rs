@@ -25,6 +25,9 @@ use crate::smb::smb2::*;
 use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
 
+use crate::smb::detect::smb_get_fingerprint;
+use crate::common::to_hex;
+
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> { Ok(()) }
 
@@ -136,6 +139,11 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 
     match tx.type_data {
         Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            let mut outbuf: [u8; 16] = [0; 16];
+            if let Ok(_) = smb_get_fingerprint(&state, tx, &mut outbuf) {
+                jsb.set_string("fingerprint", &to_hex(&outbuf[..]))?;
+            }
+
             if let Some(ref ntlmssp) = x.ntlmssp {
                 jsb.open_object("ntlmssp")?;
                 let domain = String::from_utf8_lossy(&ntlmssp.domain);

@@ -293,6 +293,7 @@ noinst_HEADERS = \
 	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
 	detect-smb-share.h \
+	detect-smb-fp.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
 	detect-snmp-usm.h \
@@ -889,6 +890,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sip-stat-msg.c \
 	detect-sip-uri.c \
 	detect-smb-share.c \
+	detect-smb-fp.c \
 	detect-snmp-community.c \
 	detect-snmp-pdu_type.c \
 	detect-snmp-usm.c \
@@ -1250,6 +1252,7 @@ EXTRA_DIST = \
 	tests/detect-tls-ja3s-string.c \
 	tests/detect-tls-sni.c \
 	tests/detect-tls-version.c \
+	tests/detect-smb-fp.c \
 	tests/detect.c \
 	tests/stream-tcp.c
 

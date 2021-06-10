@@ -29,6 +29,7 @@ Suricata Rules
    rfb-keywords
    mqtt-keywords
    ike-keywords
+   smb-keywords
    http2-keywords
    quic-keywords
    app-layer

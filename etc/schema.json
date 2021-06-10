@@ -3105,6 +3105,9 @@
                 "filename": {
                     "type": "string"
                 },
+                "fingerprint": {
+                    "type": "string"
+                },
                 "fuid": {
                     "type": "string"
                 },

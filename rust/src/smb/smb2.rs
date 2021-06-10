@@ -27,6 +27,8 @@ use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
 
+use md5::Digest;
+
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL:      u16 = 0;
 pub const SMB2_COMMAND_SESSION_SETUP:           u16 = 1;
 pub const SMB2_COMMAND_SESSION_LOGOFF:          u16 = 2;
@@ -493,12 +495,22 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         None => { false },
                     };
                     if !found {
+                        let fps = state.fingerprint_state;
                         let tx = state.new_negotiate_tx(2);
+                        tx.request_done = true;
                         if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                             tdn.dialects2 = dialects;
                             tdn.client_guid = Some(rd.client_guid.to_vec());
+                            if fps == SMBFingerprintState::NotStarted {
+                                let mut vec = Vec::with_capacity(1+2*tdn.dialects2.len());
+                                vec.push(2);
+                                for d in &tdn.dialects2 {
+                                    vec.extend(d);
+                                }
+                                state.fingerprint_hasher.update(vec);
+                                state.fingerprint_state = SMBFingerprintState::Finished;
+                            }
                         }
-                        tx.request_done = true;
                     }
                     true
                 },
