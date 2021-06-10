@@ -55,7 +55,7 @@ Add::
     suricatasc -c "add-hostbit <ip> <bit name> <expire in seconds>"
     suricatasc -c "add-hostbit 1.2.3.4 blacklist 3600"
 
-If an hostbit is added for an existing hostbit, it's expiry timer is updated.
+If a hostbit is added for an existing hostbit, it's expiry timer is updated.
 
 Remove::
 
