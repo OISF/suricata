@@ -66,7 +66,7 @@ void MacSetRegisterFlowStorage(void)
        has the ethernet setting enabled */
     if (root != NULL) {
         TAILQ_FOREACH(node, &root->head, next) {
-            if (strcmp(node->val, "eve-log") == 0) {
+            if (node->val && strcmp(node->val, "eve-log") == 0) {
                 const char *enabled = ConfNodeLookupChildValue(node->head.tqh_first, "enabled");
                 if (enabled != NULL && ConfValIsTrue(enabled)) {
                     const char *ethernet = ConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
