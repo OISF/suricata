@@ -5196,7 +5196,9 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s", p->pcap_cnt,
+            p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
+                    : "noflow");
 
     if (!(PKT_IS_TCP(p))) {
         return TM_ECODE_OK;
