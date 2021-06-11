@@ -35,6 +35,8 @@
 #define STREAM_MIDSTREAM    BIT_U8(6)
 #define STREAM_FLUSH        BIT_U8(7)
 
+#define STREAM_FLAGS_FOR_PACKET(p) PKT_IS_TOSERVER((p)) ? STREAM_TOSERVER : STREAM_TOCLIENT
+
 typedef int (*StreamSegmentCallback)(const Packet *, void *, const uint8_t *, uint32_t);
 int StreamSegmentForEach(const Packet *p, uint8_t flag,
                          StreamSegmentCallback CallbackFunc,
