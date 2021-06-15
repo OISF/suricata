@@ -108,6 +108,7 @@ bool stats_stream_events = false;
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
+static int StatsTableRecordsSortByName(const void *a, const void *b);
 
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
@@ -628,6 +629,17 @@ static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 }
 
 /**
+ *  \brief Qsort comparison function to sort StatsTable by StatsRecord
+ */
+static int StatsTableRecordsSortByName(const void *a, const void *b)
+{
+    const StatsRecord *s0 = a;
+    const StatsRecord *s1 = b;
+
+    return strcmp(s0->name, s1->name);
+}
+
+/**
  * \brief The output interface for the Stats API
  */
 static int StatsOutput(ThreadVars *tv)
@@ -801,6 +813,9 @@ static int StatsOutput(ThreadVars *tv)
                 break;
         }
     }
+
+    /* sort stats table */
+    qsort(stats_table.stats, stats_table.nstats, sizeof(StatsRecord), StatsTableRecordsSortByName);
 
     /* invoke logger(s) */
     if (stats_loggers_active) {
@@ -1550,6 +1565,71 @@ static int StatsTestCounterValues11(void)
     PASS;
 }
 
+static int StatsTestQSortStatsTable(void)
+{
+    uint32_t nstats = 14;
+    StatsRecord *test_table = SCCalloc(nstats, sizeof(StatsRecord));
+
+    StatsRecord test1 = { "stats-test", NULL, 10, 0 };
+    StatsRecord test2 = { "stats.field1.sub-field1", NULL, 11, 0 };
+    StatsRecord test3 = { "stats.field1.sub-field2", NULL, 14, 0 };
+    StatsRecord test4 = { "stats.field2", NULL, 11, 0 };
+    StatsRecord test5 = { "stats.field4", NULL, 11, 0 };
+    StatsRecord test6 = { "stats.field3", NULL, 11, 0 };
+    StatsRecord test7 = { "stats.field2.sub-field1", NULL, 11, 0 };
+    StatsRecord test8 = { "stats.field5.sub-field1", NULL, 11, 0 };
+    StatsRecord test9 = { "stats.field5.sub-field2", NULL, 11, 0 };
+    StatsRecord test10 = { "stats.field5.sub-field3", NULL, 11, 0 };
+    StatsRecord test11 = { "stats.field7.sub-field1", NULL, 11, 0 };
+    StatsRecord test12 = { "stats.field6.sub-field2", NULL, 11, 0 };
+    StatsRecord test13 = { "stats.field6.sub-field1", NULL, 11, 0 };
+    StatsRecord test14 = { "stats.field6.sub-field3", NULL, 11, 0 };
+
+    test_table[0] = test1;
+    test_table[1] = test2;
+    test_table[2] = test3;
+    test_table[3] = test4;
+    test_table[4] = test5;
+    test_table[5] = test6;
+    test_table[6] = test7;
+    test_table[7] = test8;
+    test_table[8] = test9;
+    test_table[9] = test10;
+    test_table[10] = test11;
+    test_table[11] = test12;
+    test_table[12] = test13;
+    test_table[13] = test14;
+
+    for (int i = 0; i < (int)nstats; i++) {
+        SCLogDebug("-- Element %i of unsorted test table is %s", i, test_table[i].name);
+    }
+
+    /* Given a StatsRecord array, qsort it*/
+
+    qsort(test_table, nstats, sizeof(StatsRecord), StatsTableRecordsSortByName);
+
+    FAIL_IF(strcmp(test_table[0].name, "stats-test") != 0);
+    FAIL_IF(strcmp(test_table[1].name, "stats.field1.sub-field1") != 0);
+    FAIL_IF(strcmp(test_table[2].name, "stats.field1.sub-field2") != 0);
+    FAIL_IF(strcmp(test_table[3].name, "stats.field2") != 0);
+    FAIL_IF(strcmp(test_table[4].name, "stats.field2.sub-field1") != 0);
+    FAIL_IF(strcmp(test_table[5].name, "stats.field3") != 0);
+    FAIL_IF(strcmp(test_table[6].name, "stats.field4") != 0);
+    FAIL_IF(strcmp(test_table[7].name, "stats.field5.sub-field1") != 0);
+    FAIL_IF(strcmp(test_table[8].name, "stats.field5.sub-field2") != 0);
+    FAIL_IF(strcmp(test_table[9].name, "stats.field5.sub-field3") != 0);
+    FAIL_IF(strcmp(test_table[10].name, "stats.field6.sub-field1") != 0);
+    FAIL_IF(strcmp(test_table[11].name, "stats.field6.sub-field2") != 0);
+    FAIL_IF(strcmp(test_table[12].name, "stats.field6.sub-field3") != 0);
+    FAIL_IF(strcmp(test_table[13].name, "stats.field7.sub-field1") != 0);
+
+    for (int i = 0; i < (int)nstats; i++) {
+        SCLogDebug("-- Element %i of sorted test table is %s", i, test_table[i].name);
+    }
+
+    PASS;
+}
+
 #endif
 
 void StatsRegisterTests(void)
@@ -1566,5 +1646,6 @@ void StatsRegisterTests(void)
     UtRegisterTest("StatsTestUpdateGlobalCounter10",
                    StatsTestUpdateGlobalCounter10);
     UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11);
+    UtRegisterTest("StatsTestQSortStatsTable", StatsTestQSortStatsTable);
 #endif
 }
