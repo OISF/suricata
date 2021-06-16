@@ -3,7 +3,7 @@
 AUTOMAKE_OPTIONS = foreign 1.4
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
-             threshold.config \
+             threshold.config SECURITY.md \
              $(SURICATA_UPDATE_DIR) \
 	     lua \
 	     acsite.m4 \
