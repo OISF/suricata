@@ -555,6 +555,11 @@ logging:
   # This value is overridden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
+  # Display an error log when a signal unexpectedly terminates Suricata.
+  # Requires --enable-libunwind. Displays a brief diagnostic message with the
+  # offending stacktrace when enabled _and_ configured.
+  #stacktrace-on-signal: on
+
   # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default: console output.
   outputs:
