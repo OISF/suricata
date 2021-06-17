@@ -292,6 +292,53 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
 }
+#ifndef OS_WIN32
+#if HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
+{
+    char msg[SC_LOG_MAX_LOG_MSG_LEN];
+    unw_cursor_t cursor;
+    int r;
+    if ((r = unw_init_local(&cursor, (unw_context_t *)(context)) != 0)) {
+        fprintf(stderr, "unable to obtain stack trace: unw_init_local: %s\n", unw_strerror(r));
+        goto terminate;
+    }
+
+    char *temp = msg;
+    int cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "stacktrace:sig %d:", sig_num);
+    temp += cw;
+    r = 1;
+    while (r > 0) {
+        if (unw_is_signal_frame(&cursor) == 0) {
+            unw_word_t off;
+            char name[256];
+            if (unw_get_proc_name(&cursor, name, sizeof(name), &off) == UNW_ENOMEM) {
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "[unknown]:");
+            } else {
+                cw = snprintf(
+                        temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "%s+0x%08" PRIx64, name, off);
+            }
+            temp += cw;
+        }
+
+        r = unw_step(&cursor);
+        if (r > 0) {
+            cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), ";");
+            temp += cw;
+        }
+    }
+    SCLogError(SC_ERR_SIGNAL, "%s", msg);
+
+terminate:
+    // Terminate with SIGABRT ... but first, restore that signal's default handling
+    signal(SIGABRT, SIG_DFL);
+    abort();
+}
+#undef UNW_LOCAL_ONLY
+#endif /* HAVE_LIBUNWIND */
+#endif /* !OS_WIN32 */
 #endif
 
 #ifndef OS_WIN32
@@ -1962,6 +2009,27 @@ static int MayDaemonize(SCInstance *suri)
 /* Initialize the user and group Suricata is to run as. */
 static int InitRunAs(SCInstance *suri)
 {
+    /* registering signals we use */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#if HAVE_LIBUNWIND
+    int enabled;
+    if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
+        enabled = 0;
+    }
+
+    if (enabled) {
+        SCLogInfo("Preparing unexpected signal handling");
+        struct sigaction stacktrace_action;
+        memset(&stacktrace_action, 0, sizeof(stacktrace_action));
+        stacktrace_action.sa_sigaction = SignalHandlerUnexpected;
+        stacktrace_action.sa_flags = SA_SIGINFO;
+        sigaction(SIGSEGV, &stacktrace_action, NULL);
+        sigaction(SIGABRT, &stacktrace_action, NULL);
+    }
+#endif /* HAVE_LIBUNWIND */
+#endif
 #ifndef OS_WIN32
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
