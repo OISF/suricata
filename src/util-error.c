@@ -385,6 +385,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ERR_DPDK_EAL_DEINIT);
         CASE_CODE(SC_ERR_DPDK_CONF);
         CASE_CODE(SC_WARN_DPDK_CONF);
+        CASE_CODE(SC_ERR_SIGNAL);
 
         CASE_CODE (SC_ERR_MAX);
     }
