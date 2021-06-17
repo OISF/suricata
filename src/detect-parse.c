@@ -1243,6 +1243,16 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
         memset(input, 0x00, buffer_size);
         memcpy(input, parser->opts, strlen(parser->opts)+1);
 
+        /* Make sure that options have a "sid" field at all.
+         * This is necessary because when Suricata doesn't parse "sid",
+         * it won't call the functions to check and validate that
+         * field, and Suri won't consider there's something wrong,
+         * even if sid was missing. */
+        if (strstr(input, "sid:") == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature missing required value \"sid\".");
+            SCReturnInt(-1);
+        }
+
         /* loop the option parsing. Each run processes one option
          * and returns the rest of the option string through the
          * output variable. */
@@ -2807,13 +2817,15 @@ static int SigParseTest11(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\";) ");
+    s = DetectEngineAppendSig(de_ctx,
+            "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;) ");
     if (s == NULL) {
         printf("sig 1 didn't parse: ");
         goto end;
     }
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;)            ");
+    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking "
+                                      "the http link\"; sid:2;)            ");
     if (s == NULL) {
         printf("sig 2 didn't parse: ");
         goto end;
