@@ -544,6 +544,11 @@ logging:
   # This value is overridden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
+  # Requires libunwind to be available when Suricata is configured and built.
+  # If a signal unexpectedly terminates Suricata, displays a brief diagnostic
+  # message with the offending stacktrace if enabled.
+  #stacktrace-on-signal: on
+
   # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default: console output.
   outputs:
