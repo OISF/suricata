@@ -379,6 +379,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ERR_RULE_INVALID_UTF8);
         CASE_CODE(SC_ERR_HASHING_DISABLED);
         CASE_CODE(SC_WARN_THRESH_CONFIG);
+        CASE_CODE(SC_ERR_SIGNAL);
 
         CASE_CODE (SC_ERR_MAX);
     }
