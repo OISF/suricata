@@ -555,6 +555,10 @@ logging:
   # This value is overridden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
+  # Requires --enable-libunwind. Display a brief diagnostic message with the
+  # offending stacktrace when enabled _and_ configured.
+  #sigsegv-stacktrace: on
+
   # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default: console output.
   outputs:
