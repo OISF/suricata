@@ -117,6 +117,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         f->alproto = data[0];
     }
 
+    FLOWLOCK_WRLOCK(f);
     /*
      * We want to fuzz multiple calls to AppLayerParserParse
      * because some parts of the code are only reached after
@@ -163,6 +164,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 alsize = 0;
                 break;
             }
+
+            AppLayerParserTransactionsCleanup(f);
         }
         alsize -= alnext - albuffer + 4;
         albuffer = alnext + 4;
@@ -191,6 +194,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         free(isolatedBuffer);
     }
 
+    FLOWLOCK_UNLOCK(f);
     FlowFree(f);
 
     return 0;
