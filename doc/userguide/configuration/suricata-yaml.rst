@@ -2246,6 +2246,21 @@ inspected for possible presence of Teredo.
 Advanced Options
 ----------------
 
+stacktrace
+~~~~~~~~~~
+Display diagnostic stacktraces when a signal unexpectedly terminates Suricata, e.g., such as
+SIGSEGV or SIGABRT. Requires the ``libunwind`` library to be available. The default value is
+to display the diagnostic message if a signal unexpectedly terminates Suricata -- e.g.,
+``SIGABRT`` or ``SIGSEGV`` occurs while Suricata is running.
+
+::
+
+    logging:
+        # Requires libunwind to be available when Suricata is configured and built.
+        # If a signal unexpectedly terminates Suricata, displays a brief diagnostic
+        # message with the offending stacktrace if enabled.
+        #stacktrace-on-signal: on
+
 luajit
 ~~~~~~
 
