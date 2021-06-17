@@ -1786,6 +1786,20 @@
     ;;
     esac
 
+    AC_ARG_ENABLE(libunwind,
+	        AS_HELP_STRING([--enable-libunwind],[Enable Libunwind support for diagnostic stacktraces]),
+	        [ enable_libunwind="$enableval"],
+	        [ enable_libunwind="no"])
+
+    if test "$enable_libunwind" = "yes"; then
+        AC_CHECK_LIB(unwind,unw_backtrace,,LIBUNW="no")
+        if test "$LIBUNW" = "no"; then
+            echo
+            echo "   libunwind library and development headers not found"
+            echo "   stacktrace on unexpected termination due to signal not possible"
+            echo
+        fi;
+    fi;
 
     AC_ARG_ENABLE(ebpf,
 	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
