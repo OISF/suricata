@@ -290,6 +290,53 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
 }
+#ifndef OS_WIN32
+#if HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+static void SignalHandlerSigsegv(int sig_num, siginfo_t *info, void *context)
+{
+    char msg[SC_LOG_MAX_LOG_MSG_LEN];
+    unw_cursor_t cursor;
+    int r;
+    if ((r = unw_init_local(&cursor, (unw_context_t *)(context)) != 0)) {
+        fprintf(stderr, "unable to obtain stack trace: unw_init_local: %s\n", unw_strerror(r));
+        // Abort here!  Clearly nothing is going to work.
+        abort();
+    }
+
+    char *temp = msg;
+    int cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "stacktrace:");
+    temp += cw;
+    r = 1;
+    while (r > 0) {
+        if (unw_is_signal_frame(&cursor) == 0) {
+            unw_word_t off;
+            char name[256];
+            if (unw_get_proc_name(&cursor, name, sizeof(name), &off) == UNW_ENOMEM) {
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "[unknown]:");
+            } else {
+                cw = snprintf(
+                        temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "%s+0x%08" PRIx64, name, off);
+            }
+            temp += cw;
+        }
+
+        r = unw_step(&cursor);
+        if (r > 0) {
+            cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), ";");
+            temp += cw;
+        }
+    }
+    SCLogError(SC_ERR_SIGSEGV, "%s", msg);
+
+    // Die to death, previously this was calling exit which meant that sending SIGSEGV didn't core
+    // dump.
+    abort();
+}
+#undef UNW_LOCAL_ONLY
+#endif /* HAVE_LIBUNWIND */
+#endif /* !OS_WIN32 */
 #endif
 
 #ifndef OS_WIN32
@@ -1947,6 +1994,18 @@ static int InitSignalHandler(SCInstance *suri)
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#if HAVE_LIBUNWIND
+    int enabled;
+    if (ConfGetBool("logging.sigsegv-stacktrace", &enabled) == 1) {
+        if (enabled) {
+            struct sigaction stacktrace_action;
+            memset(&stacktrace_action, 0, sizeof(stacktrace_action));
+            stacktrace_action.sa_sigaction = SignalHandlerSigsegv;
+            stacktrace_action.sa_flags = SA_SIGINFO;
+            sigaction(SIGSEGV, &stacktrace_action, NULL);
+        }
+    }
+#endif
 #endif
 #ifndef OS_WIN32
     UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
