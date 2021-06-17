@@ -119,6 +119,22 @@ static int SidTestParse03(void)
     PASS;
 }
 
+static int SidTestParse04(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    FAIL_IF_NOT_NULL(DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (content:\"ABC\"; sid: 0;)"));
+
+    /* Let's also make sure that Suricata fails a rule which doesn't have a sid at all */
+    FAIL_IF_NOT_NULL(
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"ABC\";)"));
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /**
  * \brief Register DetectSid unit tests.
  */
@@ -127,5 +143,6 @@ static void DetectSidRegisterTests(void)
     UtRegisterTest("SidTestParse01", SidTestParse01);
     UtRegisterTest("SidTestParse02", SidTestParse02);
     UtRegisterTest("SidTestParse03", SidTestParse03);
+    UtRegisterTest("SidTestParse04", SidTestParse04);
 }
 #endif /* UNITTESTS */
