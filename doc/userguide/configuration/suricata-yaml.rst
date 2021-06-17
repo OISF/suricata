@@ -2229,6 +2229,19 @@ inspected for possible presence of Teredo.
 Advanced Options
 ----------------
 
+sigsegv
+~~~~~~~
+Diagnostic stacktraces when a SIGSEGV occurs are available when Suricata is configured with
+``--enable-libunwind`` and the ``libunwind`` library is available. The default value
+is to display the diagnostic message if a ``SIGSEGV`` occurs.
+
+::
+
+    logging:
+        # Requires --enable-libunwind. Display a brief diagnostic message with the
+        # offending stacktrace when enabled _and_ configured.
+        # sigsegv-stacktrace: on
+
 luajit
 ~~~~~~
 
