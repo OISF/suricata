@@ -1466,7 +1466,7 @@ configuration (console, file, syslog) if not otherwise set.
           line option <cmdline-option-v>`.
 
 The ``default-log-level`` set in the configuration value can be
-overriden by the ``SC_LOG_LEVEL`` environment variable.
+overridden by the ``SC_LOG_LEVEL`` environment variable.
 
 Default Log Format
 ~~~~~~~~~~~~~~~~~~
