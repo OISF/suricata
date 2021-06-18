@@ -80,7 +80,7 @@ static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
         return ALPROTO_UNKNOWN;
     }
 
-    const int r = rs_smb_probe_tcp(direction, input, len, rdir);
+    const int r = rs_smb_probe_tcp(f, direction, input, len, rdir);
     switch (r) {
         case 1:
             return ALPROTO_SMB;
@@ -145,7 +145,8 @@ static AppLayerGetTxIterTuple SMBGetTxIterator(
         void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
         AppLayerGetTxIterState *istate)
 {
-    return rs_smb_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
+    return rs_smb_state_get_tx_iterator(
+            ipproto, alproto, alstate, min_tx_id, max_tx_id, (uint64_t *)istate);
 }
 
 
@@ -167,7 +168,7 @@ static int SMBSetTxDetectState(void *tx, DetectEngineState *s)
 
 static FileContainer *SMBGetFiles(void *state, uint8_t direction)
 {
-    return rs_smb_getfiles(direction, state);
+    return rs_smb_getfiles(state, direction);
 }
 
 static AppLayerDecoderEvents *SMBGetEvents(void *tx)
