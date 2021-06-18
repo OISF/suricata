@@ -227,7 +227,7 @@ int AppLayerParserSetup(void)
 }
 
 // default value is 4096
-uint32_t g_alparser_tx_max = 0x1000;
+uint32_t g_alparser_tx_max = 0x100;
 
 void AppLayerParserPostStreamSetup(void)
 {
@@ -894,7 +894,6 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 #define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
 
 extern int g_detect_disabled;
-extern uint32_t g_alparser_tx_max;
 
 void AppLayerParserUpdateDisrupt(uint64_t id, Flow *f, uint8_t *flags)
 {
