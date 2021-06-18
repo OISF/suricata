@@ -291,7 +291,10 @@ int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, s
     // first check if we have a current allocated buffer to copy to
     // in the case of an unordered range being handled
     if (c->current) {
-        if (c->current->offset + len <= c->current->buflen) {
+        if (data == NULL) {
+            // just feed the gap in the current position, instead of its right one
+            return FileAppendData(c->container->files, data, len);
+        } else if (c->current->offset + len <= c->current->buflen) {
             memcpy(c->current->buffer + c->current->offset, data, len);
             c->current->offset += len;
         } else {
@@ -307,7 +310,13 @@ int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, s
             return 0;
         } // else
         DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
-        int r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
+        int r;
+        if (data == NULL) {
+            // gap overlaping already known data
+            r = FileAppendData(c->container->files, data, len - c->toskip);
+        } else {
+            r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
+        }
         c->toskip = 0;
         return r;
     } // else {
