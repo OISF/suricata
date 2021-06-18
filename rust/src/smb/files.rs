@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use std;
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
@@ -189,9 +190,10 @@ impl SMBState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_getfiles(direction: u8, ptr: *mut SMBState) -> * mut FileContainer {
+pub extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *ptr };
+    let ptr = cast_pointer!(ptr, SMBState);
+    let parser = &mut *ptr;
     parser.getfiles(direction)
 }
 
