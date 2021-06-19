@@ -41,6 +41,13 @@ typedef struct GREHdr_
 
 } __attribute__((__packed__)) GREHdr;
 
+/* Enhanced GRE header - https://tools.ietf.org/html/rfc2637#section-4.1 */
+typedef struct GREPPtPHdr_ {
+    GREHdr greh;             /** base GRE packet header */
+    uint16_t payload_length; /** PPP payload length */
+    uint16_t call_id;        /** PPP peer id */
+} __attribute__((__packed__)) GREPPtPHd;
+
 /* Generic Routing Encapsulation Source Route Entries (SREs).
  * The header is followed by a variable amount of Routing Information.
  */

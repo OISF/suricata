@@ -50,6 +50,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
     uint32_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
+    GREPPtPHd *gre_pptp_h = NULL;
 
     StatsIncr(tv, dtv->counter_gre);
 
@@ -179,6 +180,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             }
 
             header_len += GRE_KEY_LEN;
+            /* key is set and proto == PPP */
+            gre_pptp_h = (GREPPtPHd *)pkt;
 
             /* Adjust header length based on content */
 
@@ -214,6 +217,9 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
         case GRE_PROTO_PPP:
         {
+            if (gre_pptp_h && !gre_pptp_h->payload_length)
+                return TM_ECODE_OK;
+
             Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
                     len - header_len, DECODE_TUNNEL_PPP);
             if (tp != NULL) {
