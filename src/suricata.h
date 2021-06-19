@@ -198,7 +198,7 @@ int InitGlobal(void);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
 
-void PreRunInit(const int runmode);
+void PreRunInit(const SCInstance *suri, const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
 void PostRunDeinit(const int runmode, struct timeval *start_time);
 void RegisterAllModules(void);

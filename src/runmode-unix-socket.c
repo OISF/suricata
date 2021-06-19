@@ -571,7 +571,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     SCLogInfo("Starting run for '%s'", this->current_file->filename);
 
-    PreRunInit(RUNMODE_PCAP_FILE);
+    PreRunInit(NULL, RUNMODE_PCAP_FILE);
     PreRunPostPrivsDropInit(RUNMODE_PCAP_FILE);
     RunModeDispatch(RUNMODE_PCAP_FILE, NULL, NULL, NULL);
 

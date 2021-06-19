@@ -389,7 +389,8 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
 
     SCLogDebug("name '%s' load '%s' save '%s'", name, load, save);
-    Dataset *set = DatasetGet(name, type, save, load, memcap, hashsize);
+    /* Do not set uid and gid as we already are in low privilege mode here */
+    Dataset *set = DatasetGet(name, type, save, load, memcap, hashsize, 0, 0);
     if (set == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
                 "failed to set up dataset '%s'.", name);
