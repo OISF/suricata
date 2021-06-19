@@ -28,7 +28,7 @@
 use std;
 use std::mem::transmute;
 use std::str;
-use std::ffi::{self, CStr};
+use std::ffi::{self, CStr, CString};
 
 use std::collections::HashMap;
 
@@ -37,6 +37,7 @@ use nom;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
+use crate::conf::*;
 use crate::filecontainer::*;
 
 use crate::smb::nbss_records::*;
@@ -2188,4 +2189,144 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c
         return -1;
     }
     0
+}
+
+pub extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
+    let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
+    let f = cast_pointer!(f, Flow);
+        if unsafe { retval != ALPROTO_SMB } {
+            return retval;
+        }
+        let (sp, dp) = f.get_ports();
+        let flags = f.get_flags();
+        let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
+        let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
+        if fsp == 445 && fdp != 445 {
+            unsafe {
+            if dir & STREAM_TOSERVER != 0 {
+                *rdir = STREAM_TOCLIENT;
+            } else {
+                *rdir = STREAM_TOSERVER;
+            }
+            }
+        }
+    return unsafe { ALPROTO_SMB };
+}
+
+fn register_pattern_probe() -> i8 {
+    let mut r = 0;
+    unsafe {
+        // SMB1
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOSERVER, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOCLIENT, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        // SMB2/3
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOSERVER, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOCLIENT, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        // SMB3 encrypted records
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOSERVER, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
+                                                     b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
+                                                     STREAM_TOCLIENT, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+    }
+
+    if r == 0 {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+// Parser name as a C style string.
+const PARSER_NAME: &'static [u8] = b"smb\0";
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_register_parser() {
+    let default_port = CString::new("445").unwrap();
+    let mut stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_TCP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_smb_state_new,
+        state_free: rs_smb_state_free,
+        tx_free: rs_smb_state_tx_free,
+        parse_ts: rs_smb_parse_request_tcp,
+        parse_tc: rs_smb_parse_response_tcp,
+        get_tx_count: rs_smb_state_get_tx_count,
+        get_tx: rs_smb_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_smb_tx_get_alstate_progress,
+        get_de_state: rs_smb_state_get_tx_detect_state,
+        set_de_state: rs_smb_state_set_tx_detect_state,
+        get_events: Some(rs_smb_state_get_events),
+        get_eventinfo: Some(rs_smb_state_get_event_info),
+        get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: Some(rs_smb_getfiles),
+        get_tx_iterator: Some(rs_smb_state_get_tx_iterator),
+        get_tx_data: rs_smb_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: Some(rs_smb_state_truncate),
+    };
+
+    let ip_proto_str = CString::new("tcp").unwrap();
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_SMB = alproto;
+        if register_pattern_probe() < 0 {
+            return;
+        }
+
+        let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
+                    IPPROTO_TCP as u8, parser.name, ALPROTO_SMB, 0,
+                    MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
+
+        if have_cfg == 0 {
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8, parser.default_port, ALPROTO_SMB,
+                                          0, MIN_REC_SIZE, STREAM_TOSERVER, rs_smb_probe_tcp, rs_smb_probe_tcp);
+        }
+
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogDebug!("Rust SMB parser registered.");
+        let retval = conf_get("app-layer.protocols.smb.stream-depth");
+        if let Some(val) = retval {
+            let val = val.parse::<i32>().unwrap();
+            if val < 0 {
+                SCLogError!("invalid value for stream-depth");
+            } else {
+                stream_depth = val as u32;
+           }
+            AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
+        }
+    } else {
+        SCLogDebug!("Protocol detector and parser disabled for SMB.");
+    }
 }
