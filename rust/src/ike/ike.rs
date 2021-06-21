@@ -57,7 +57,7 @@ pub struct IkeHeaderWrapper {
     pub msg_id: u32,
     pub flags: u8,
     pub ikev1_transforms: Vec<Vec<SaAttribute>>,
-    pub ikev2_transforms: Vec<Vec<IkeV2Transform>>,
+    pub ikev2_transforms: Vec<IkeV2Transform>,
     pub ikev1_header: IkeV1Header,
     pub ikev2_header: IkeV2Header,
 }
@@ -135,6 +135,12 @@ impl IKETransaction {
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
         }
+    }
+
+    /// Set an event.
+    pub fn set_event(&mut self, event: IkeEvent) {
+        let ev = event as u8;
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, ev);
     }
 }
 
