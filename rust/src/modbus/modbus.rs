@@ -534,7 +534,7 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         set_de_state: rs_modbus_state_set_tx_detect_state,
         get_tx_data: rs_modbus_state_get_tx_data,
         apply_tx_config: None,
-        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        flags: 0,
         truncate: None,
     };
 
