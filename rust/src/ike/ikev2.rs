@@ -22,7 +22,7 @@ use crate::core::STREAM_TOCLIENT;
 use crate::ike::ipsec_parser::*;
 
 use super::ipsec_parser::IkeV2Transform;
-use crate::ike::ike::{IKEState, IkeEvent};
+use crate::ike::ike::{IKEState, IKETransaction, IkeEvent};
 use crate::ike::parser::IsakmpHeader;
 use ipsec_parser::{IkeExchangeType, IkePayloadType, IkeV2Header};
 
@@ -69,9 +69,6 @@ pub struct Ikev2Container {
     /// The transforms proposed by the initiator
     pub client_transforms: Vec<Vec<IkeV2Transform>>,
 
-    /// The transforms selected by the responder
-    pub server_transforms: Vec<Vec<IkeV2Transform>>,
-
     /// The encryption algorithm selected by the responder
     pub alg_enc: IkeTransformEncType,
     /// The authentication algorithm selected by the responder
@@ -92,7 +89,6 @@ impl Default for Ikev2Container {
             connection_state: IKEV2ConnectionState::Init,
             dh_group: IkeTransformDHType::None,
             client_transforms: Vec::new(),
-            server_transforms: Vec::new(),
             alg_enc: IkeTransformEncType::ENCR_NULL,
             alg_auth: IkeTransformAuthType::NONE,
             alg_prf: IkeTransformPRFType::PRF_NULL,
@@ -128,7 +124,6 @@ pub fn handle_ikev2(
     tx.hdr.min_ver = isakmp_header.min_ver;
     tx.hdr.msg_id = isakmp_header.msg_id;
     tx.hdr.flags = isakmp_header.flags;
-    state.transactions.push(tx);
     let mut payload_types = Vec::new();
     let mut errors = 0;
     let mut notify_types = Vec::new();
@@ -140,7 +135,7 @@ pub fn handle_ikev2(
                     IkeV2PayloadContent::Dummy => (),
                     IkeV2PayloadContent::SA(ref prop) => {
                         // if hdr.flags & IKEV2_FLAG_INITIATOR != 0 {
-                        add_proposals(state, prop, direction);
+                        add_proposals(state, &mut tx, prop, direction);
                         // }
                     }
                     IkeV2PayloadContent::KE(ref kex) => {
@@ -171,50 +166,22 @@ pub fn handle_ikev2(
                 }
                 state.ikev2_container.connection_state =
                     state.ikev2_container.connection_state.advance(payload);
-                if let Some(tx) = state.transactions.last_mut() {
-                    // borrow back tx to update it
-                    tx.payload_types
-                        .ikev2_payload_types
-                        .append(&mut payload_types);
-                    tx.errors = errors;
-                    tx.notify_types.append(&mut notify_types);
-
-                    if direction == STREAM_TOCLIENT
-                        && state.ikev2_container.server_transforms.len() > 0
-                    {
-                        tx.hdr.ikev2_transforms.clear();
-                        for transforms in &state.ikev2_container.server_transforms {
-                            let mut proposal = Vec::new();
-                            transforms.iter().for_each(|t| match *t {
-                                IkeV2Transform::Encryption(ref e) => {
-                                    proposal.push(IkeV2Transform::Encryption(*e))
-                                }
-                                IkeV2Transform::Auth(ref e) => {
-                                    proposal.push(IkeV2Transform::Auth(*e))
-                                }
-                                IkeV2Transform::PRF(ref e) => {
-                                    proposal.push(IkeV2Transform::PRF(*e))
-                                }
-                                IkeV2Transform::DH(ref e) => proposal.push(IkeV2Transform::DH(*e)),
-                                IkeV2Transform::ESN(ref e) => {
-                                    proposal.push(IkeV2Transform::ESN(*e))
-                                }
-                                _ => (),
-                            });
-                            tx.hdr.ikev2_transforms.push(proposal);
-                        }
-                    }
-                }
+                tx.payload_types
+                    .ikev2_payload_types
+                    .append(&mut payload_types);
+                tx.errors = errors;
+                tx.notify_types.append(&mut notify_types);
             }
         }
         _e => {
             SCLogDebug!("parse_ikev2_payload_with_type: {:?}", _e);
         }
     }
+    state.transactions.push(tx);
     return AppLayerResult::ok();
 }
 
-fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8) {
+fn add_proposals(state: &mut IKEState, tx: &mut IKETransaction, prop: &Vec<IkeV2Proposal>, direction: u8) {
     for p in prop {
         let transforms: Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
         // Rule 1: warn on weak or unknown transforms
@@ -234,7 +201,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         | IkeTransformEncType::ENCR_NULL => {
                             SCLogDebug!("Weak Encryption: {:?}", enc);
                             // XXX send event only if direction == STREAM_TOCLIENT ?
-                            state.set_event(IkeEvent::WeakCryptoEnc);
+                            tx.set_event(IkeEvent::WeakCryptoEnc);
                         }
                         _ => (),
                     }
@@ -242,11 +209,11 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                 IkeV2Transform::PRF(ref prf) => match *prf {
                     IkeTransformPRFType::PRF_NULL => {
                         SCLogDebug!("'Null' PRF transform proposed");
-                        state.set_event(IkeEvent::InvalidProposal);
+                        tx.set_event(IkeEvent::InvalidProposal);
                     }
                     IkeTransformPRFType::PRF_HMAC_MD5 | IkeTransformPRFType::PRF_HMAC_SHA1 => {
                         SCLogDebug!("Weak PRF: {:?}", prf);
-                        state.set_event(IkeEvent::WeakCryptoPrf);
+                        tx.set_event(IkeEvent::WeakCryptoPrf);
                     }
                     _ => (),
                 },
@@ -264,7 +231,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         | IkeTransformAuthType::AUTH_HMAC_MD5_128
                         | IkeTransformAuthType::AUTH_HMAC_SHA1_160 => {
                             SCLogDebug!("Weak auth: {:?}", auth);
-                            state.set_event(IkeEvent::WeakCryptoAuth);
+                            tx.set_event(IkeEvent::WeakCryptoAuth);
                         }
                         _ => (),
                     }
@@ -272,20 +239,20 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                 IkeV2Transform::DH(ref dh) => match *dh {
                     IkeTransformDHType::None => {
                         SCLogDebug!("'None' DH transform proposed");
-                        state.set_event(IkeEvent::InvalidProposal);
+                        tx.set_event(IkeEvent::InvalidProposal);
                     }
                     IkeTransformDHType::Modp768
                     | IkeTransformDHType::Modp1024
                     | IkeTransformDHType::Modp1024s160
                     | IkeTransformDHType::Modp1536 => {
                         SCLogDebug!("Weak DH: {:?}", dh);
-                        state.set_event(IkeEvent::WeakCryptoDh);
+                        tx.set_event(IkeEvent::WeakCryptoDh);
                     }
                     _ => (),
                 },
                 IkeV2Transform::Unknown(_tx_type, _tx_id) => {
                     SCLogDebug!("Unknown proposal: type={:?}, id={}", _tx_type, _tx_id);
-                    state.set_event(IkeEvent::UnknownProposal);
+                    tx.set_event(IkeEvent::UnknownProposal);
                 }
                 _ => (),
             }
@@ -296,12 +263,12 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
             _ => false,
         }) {
             SCLogDebug!("No DH transform found");
-            state.set_event(IkeEvent::WeakCryptoNoDh);
+            tx.set_event(IkeEvent::WeakCryptoNoDh);
         }
         // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
         if p.protocol_id == ProtocolID::AH {
             SCLogDebug!("Proposal uses protocol AH - no confidentiality");
-            state.set_event(IkeEvent::NoEncryption);
+            tx.set_event(IkeEvent::NoEncryption);
         }
         // Rule 4: lack of integrity is accepted only if using an AEAD proposal
         // Look if no auth was proposed, including if proposal is Auth::None
@@ -315,21 +282,35 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                 _ => false,
             }) {
                 SCLogDebug!("No integrity transform found");
-                state.set_event(IkeEvent::WeakCryptoNoAuth);
+                tx.set_event(IkeEvent::WeakCryptoNoAuth);
             }
         }
         // Finally
         if direction == STREAM_TOCLIENT {
             transforms.iter().for_each(|t| match *t {
-                IkeV2Transform::Encryption(ref e) => state.ikev2_container.alg_enc = *e,
-                IkeV2Transform::Auth(ref a) => state.ikev2_container.alg_auth = *a,
-                IkeV2Transform::PRF(ref p) => state.ikev2_container.alg_prf = *p,
-                IkeV2Transform::DH(ref dh) => state.ikev2_container.alg_dh = *dh,
-                IkeV2Transform::ESN(ref e) => state.ikev2_container.alg_esn = *e,
-                _ => (),
+                IkeV2Transform::Encryption(ref e) => {
+                    state.ikev2_container.alg_enc = *e;
+                    tx.hdr.ikev2_transforms.push(IkeV2Transform::Encryption(*e));
+                }
+                IkeV2Transform::Auth(ref a) => {
+                    state.ikev2_container.alg_auth = *a;
+                    tx.hdr.ikev2_transforms.push(IkeV2Transform::Auth(*a));
+                }
+                IkeV2Transform::PRF(ref p) => {
+                    state.ikev2_container.alg_prf = *p;
+                    tx.hdr.ikev2_transforms.push(IkeV2Transform::PRF(*p));
+                }
+                IkeV2Transform::DH(ref dh) => {
+                    state.ikev2_container.alg_dh = *dh;
+                    tx.hdr.ikev2_transforms.push(IkeV2Transform::DH(*dh));
+                }
+                IkeV2Transform::ESN(ref e) => {
+                    state.ikev2_container.alg_esn = *e;
+                    tx.hdr.ikev2_transforms.push(IkeV2Transform::ESN(*e));
+                }
+                _ => {},
             });
             SCLogDebug!("Selected transforms: {:?}", transforms);
-            state.ikev2_container.server_transforms.push(transforms);
         } else {
             SCLogDebug!("Proposed transforms: {:?}", transforms);
             state.ikev2_container.client_transforms.push(transforms);
