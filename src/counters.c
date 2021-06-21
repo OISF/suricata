@@ -838,6 +838,9 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
 
 static void StatsLogSummary(void)
 {
+    if (!stats_enabled) {
+        return;
+    }
     uint64_t alerts = 0;
     SCMutexLock(&stats_table_mutex);
     if (stats_table.start_time != 0) {
