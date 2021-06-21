@@ -204,7 +204,7 @@ void DetectMQTTUnsubscribeTopicRegister (void)
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     intmax_t val = 0;
-    if (ConfGetInt("mqtt.unsubscribe-topic-match-limit", &val)) {
+    if (ConfGetInt("app-layer.protocols.mqtt.unsubscribe-topic-match-limit", &val)) {
         unsubscribe_topic_match_limit = val;
     }
     if (unsubscribe_topic_match_limit <= 0) {

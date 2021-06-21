@@ -204,7 +204,7 @@ void DetectMQTTSubscribeTopicRegister (void)
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     intmax_t val = 0;
-    if (ConfGetInt("mqtt.subscribe-topic-match-limit", &val)) {
+    if (ConfGetInt("app-layer.protocols.mqtt.subscribe-topic-match-limit", &val)) {
         subscribe_topic_match_limit = val;
     }
     if (subscribe_topic_match_limit <= 0) {
