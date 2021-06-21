@@ -67,6 +67,7 @@ pub struct TemplateState {
     tx_id: u64,
     transactions: Vec<TemplateTransaction>,
     request_gap: bool,
+    #[allow(dead_code)]
     response_gap: bool,
 }
 
