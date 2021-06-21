@@ -64,6 +64,9 @@ macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }
 
+// Flow flags
+pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
+
 // Defined in app-layer-protos.h
 extern {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
