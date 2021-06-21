@@ -851,7 +851,9 @@ static void StatsLogSummary(void)
         }
     }
     SCMutexUnlock(&stats_table_mutex);
-    SCLogInfo("Alerts: %"PRIu64, alerts);
+    if (stats_enabled) {
+        SCLogInfo("Alerts: %"PRIu64, alerts);
+    }
 }
 
 /**
