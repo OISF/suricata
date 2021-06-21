@@ -13,22 +13,23 @@ Table of Contents
 _`General Concepts`
 ===================
 
-Transactions are abstractions that help detecting and logging in Suricata. They’ll also help during the detection phase,
+Transactions are abstractions that help detecting and logging in Suricata. They also help during the detection phase,
 when dealing with protocols that can have large PDUs, like TCP, in controlling state for partial rule matching, in case of rules that mention more than one field.
 
-Transactions are implemented and stored in the per-flow state. The engine interacts with it using a set of callbacks the parser registers.
+Transactions are implemented and stored in the per-flow state. The engine interacts with them using a set of callbacks the parser registers.
 
 _`How the engine uses transactions`
 ===================================
 
 Logging
-~~~~~~~~
+~~~~~~~
 
-Suricata controls when logging should happen based on transaction completeness. For simpler protocols, that will most
-likely happen once per transaction, by the time of its completion. In other cases, like with HTTP, this may happen also at intermediary states.
+Suricata controls when logging should happen based on transaction completeness. For simpler protocols, such as ``dns``
+or ``ntp``, that will most
+likely happen once per transaction, by the time of its completion. In other cases, like with HTTP, this may happen at intermediary states.
 
 In ``OutputTxLog``, the engine will compare current state with the value defined for the logging to happen, per flow
-direction (``logger->tc_log_progress``, ``logger->ts_log_progress``). If state is lesser than that value, the engine skips to
+direction (``logger->tc_log_progress``, ``logger->ts_log_progress``). If state is less than that value, the engine skips to
 the next logger. Code snippet from: suricata/src/output-tx.c:
 
 .. code-block:: c
@@ -65,9 +66,9 @@ the next logger. Code snippet from: suricata/src/output-tx.c:
     }
 
 Rule Matching
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
-Transactions progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
+Transaction progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
 
 As seen in ```DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister2``, which expects ``int tx_min_progress``, for instance. In the code snippet,
 ``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions.
@@ -117,7 +118,7 @@ progresses. A state will start at 0. The higher its value, the closer the transa
 The engine interacts with transactions state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 
 In Summary - Transactions and State
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Initial state value: ``0``
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
@@ -127,7 +128,7 @@ _`Examples`
 ===========
 
 Enums
-~~~~~~
+~~~~~
 
 Code snippet from: rust/src/ssh/ssh.rs:
 
@@ -152,7 +153,7 @@ From src/app-layer-ftp.h:
 
 
 API Callbacks
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 In Rust, this is done via the RustParser struct. As seen in rust/src/applayer.rs:
 
@@ -215,8 +216,8 @@ _`Common words and abbreviations`
 - al, applayer: application layer
 - alproto: application layer protocol
 - alstate: application layer state
-- engine: refers to Suricata core
-- flow: a bidirectional flow of packets with the same 5 tuple elements (protocol, source ip, destination ip, source port, destination port. Vlans can be added as well)
+- engine: refers to Suricata core detection logic
+- flow: a bidirectional flow of packets with the same 5-tuple elements (protocol, source ip, destination ip, source port, destination port. Vlans can be added as well)
 - PDU: Protocol Data Unit
 - rs: rust
 - tc: to client
