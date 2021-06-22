@@ -62,12 +62,14 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError
     )?;
     do_parse!(
         blob,
-        base_o: parse_der_oid >>
-        tok_id: le_u16 >>
+        // marking those as potentially unused because they are only used in
+        // debug messages
+        _base_o: parse_der_oid >>
+        _tok_id: le_u16 >>
         ap_req: parse_ap_req >>
         ({
-            SCLogDebug!("parse_kerberos5_request: base_o {:?}", base_o.as_oid());
-            SCLogDebug!("parse_kerberos5_request: tok_id {}", tok_id);
+            SCLogDebug!("parse_kerberos5_request: base_o {:?}", _base_o.as_oid());
+            SCLogDebug!("parse_kerberos5_request: tok_id {}", _tok_id);
             ap_req
         })
     )
