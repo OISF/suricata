@@ -2,13 +2,7 @@
 Transactions
 ************
 
-Table of Contents
-=================
-- `General Concepts`_
-- `How the engine uses transactions`_
-- `Progress Tracking`_
-- `Examples`_
-- `Common words and abbreviations`_
+.. contents:: Table of Contents
 
 _`General Concepts`
 ===================
@@ -209,6 +203,77 @@ In C, callback usage would be as follows:
 
     AppLayerParserRegisterStateProgressCompletionStatus(
         ALPROTO_FTP, FTP_STATE_FINISHED, FTP_STATE_FINISHED);
+
+Sequence Diagrams
+~~~~~~~~~~~~~~~~~
+
+A DNS transaction in Suricata can be considered unidirectional:
+
+..
+    MSC Sequence Diagram Example: DNS Query Transaction
+
+.. mscgen::
+
+    msc {
+        arcgradient = "10", hscale = "1.2";
+
+        a [ label = "Client" ], b [ label = "Server" ];
+
+        a =>> b [ label = "DNS Request" ];
+        --- [ label = "Transaction Completed" ];
+    }
+
+An HTTP2 transaction is an example of a bidirectional transaction, in Suricata:
+
+..
+    MSC Sequence Diagram Example: HTTP2 Transaction
+
+.. mscgen::
+
+    msc {
+    
+        # Chart options
+        arcgradient = "10", hscale = "1.2";
+    
+        # Entitties
+        a [ label = "Client" ], b [ label = "Server" ];
+    
+        # Message flow
+        a =>> b [ label = "Request" ];
+        b =>> a [ label = "Response" ];
+        |||;
+        --- [ label = "Transaction completed" ];
+    
+        # Reference: https://tools.ietf.org/html/rfc7540#section-8.1
+    }
+
+A TLS Handshake is a more complex example, where several messages are exchanged before the transaction is considered
+completed:
+
+..
+    MSC Sequence Diagram Example: TLS Handshake Transaction
+
+.. mscgen::
+
+    msc {
+        # Chart Options
+        arcgradient = "10", hscale = "1.2";
+    
+        # Entitties
+        a [ label = "Client" ], b [ label = "Server"];
+    
+        # Message Flow
+        a =>> b [ label = "ClientHello"];
+        b =>> a [ label = "ServerHello"];
+        b =>> a [ label = "ServerCertificate"];
+        b =>> a [ label = "ServerHello Done"];
+        a =>> b [ label = "ClientCertificate"];
+        a =>> b [ label = "ClientKeyExchange"];
+        a =>> b [ label = "Finished" ];
+        b =>> a [ label = "Finished" ];
+    
+        --- [ label = "Transaction Completed" ];
+    }
 
 _`Common words and abbreviations`
 =================================
