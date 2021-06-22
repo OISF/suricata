@@ -572,9 +572,9 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
         do {
             if (ret <= 0) {
                 if (ret == 0) {
-                    SCLogInfo("Unix socket: lost connection with client");
+                    SCLogDebug("Unix socket: lost connection with client");
                 } else {
-                    SCLogInfo("Unix socket: error on recv() from client: %s",
+                    SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
                             strerror(errno));
                 }
                 UnixCommandClose(this, client->fd);
