@@ -436,9 +436,13 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
         if ((modbus = DetectModbusFunctionParse(de_ctx, str_ptr)) == NULL) {
             if ((modbus = DetectModbusAccessParse(de_ctx, str_ptr)) == NULL) {
                 SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
+                if (str_ptr != NULL)
+                    pcre_free_substring(str_ptr);
                 goto error;
             }
         }
+        if (str_ptr != NULL)
+            pcre_free_substring(str_ptr);
     } else {
         /* We have only unit id Modbus option */
         modbus = (DetectModbus *) SCCalloc(1, sizeof(DetectModbus));
