@@ -13,7 +13,7 @@ import sys
 import os
 import shlex
 import re
-import sphinxcontrib
+import sphinxcontrib.mscgen
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
