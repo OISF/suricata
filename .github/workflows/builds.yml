@@ -1024,6 +1024,7 @@ jobs:
       - name: Install packages for generating documentation
         run: |
           DEBIAN_FRONTEND=noninteractive apt -y install \
+                mscgen \
                 sphinx-doc \
                 sphinx-common \
                 texlive-latex-base \
