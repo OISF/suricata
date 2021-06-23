@@ -1031,6 +1031,7 @@ jobs:
                 texlive-fonts-recommended \
                 texlive-fonts-extra \
                 texlive-latex-extra
+      - run:  pip install sphinxcontrib-mscgen
       - name: Install Coccinelle
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
