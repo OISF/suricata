@@ -231,19 +231,19 @@ An HTTP2 transaction is an example of a bidirectional transaction, in Suricata:
 .. mscgen::
 
     msc {
-    
+
         # Chart options
         arcgradient = "10", hscale = "1.2";
-    
-        # Entitties
+
+        # Entities
         a [ label = "Client" ], b [ label = "Server" ];
-    
+
         # Message flow
         a =>> b [ label = "Request" ];
         b =>> a [ label = "Response" ];
         |||;
-        --- [ label = "Transaction completed" ];
-    
+        --- [ label = "Transaction Completed" ];
+
         # Reference: https://tools.ietf.org/html/rfc7540#section-8.1
     }
 
@@ -258,10 +258,10 @@ completed:
     msc {
         # Chart Options
         arcgradient = "10", hscale = "1.2";
-    
+
         # Entitties
         a [ label = "Client" ], b [ label = "Server"];
-    
+
         # Message Flow
         a =>> b [ label = "ClientHello"];
         b =>> a [ label = "ServerHello"];
@@ -271,7 +271,7 @@ completed:
         a =>> b [ label = "ClientKeyExchange"];
         a =>> b [ label = "Finished" ];
         b =>> a [ label = "Finished" ];
-    
+
         --- [ label = "Transaction Completed" ];
     }
 
