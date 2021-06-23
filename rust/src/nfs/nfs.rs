@@ -21,13 +21,14 @@ use std;
 use std::cmp;
 use std::mem::transmute;
 use std::collections::{HashMap};
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 
 use nom;
 
 use crate::applayer;
-use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::applayer::{AppLayerResult, AppLayerTxData, *};
 use crate::core::*;
+use crate::conf::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
 
@@ -1926,5 +1927,152 @@ pub extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, flags: 
     let parser = unsafe { &mut *ptr };
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)
+}
+
+// Parser name as a C style string.
+const PARSER_NAME: &'static [u8] = b"nfs\0";
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_nfs_register_parser() {
+    let default_port = CString::new("[2049]").unwrap();
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_TCP,
+        probe_ts: Some(rs_nfs_probe),
+        probe_tc: Some(rs_nfs_probe),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_nfs_state_new,
+        state_free: rs_nfs_state_free,
+        tx_free: rs_nfs_state_tx_free,
+        parse_ts: rs_nfs_parse_request,
+        parse_tc: rs_nfs_parse_response,
+        get_tx_count: rs_nfs_state_get_tx_count,
+        get_tx: rs_nfs_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_nfs_tx_get_alstate_progress,
+        get_de_state: rs_nfs_state_get_tx_detect_state,
+        set_de_state: rs_nfs_state_set_tx_detect_state,
+        get_events: Some(rs_nfs_state_get_events),
+        get_eventinfo: Some(rs_nfs_state_get_event_info),
+        get_eventinfo_byid : Some(rs_nfs_state_get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: Some(rs_nfs_getfiles),
+        get_tx_iterator: Some(rs_nfs_state_get_tx_iterator),
+        get_tx_data: rs_nfs_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("tcp").unwrap();
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_NFS = alproto;
+
+        let midstream = conf_get_bool("stream.midstream");
+        if midstream == true {
+            if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP as u8,
+                    parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
+                    rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
+                SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP
+                            detection TCP detection on port {:?}.",
+                            default_port);
+                /* register 'midstream' probing parsers if midstream is enabled. */
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8,
+                    default_port.as_ptr(), ALPROTO_NFS, 0,
+                    NFS_MIN_FRAME_LEN, STREAM_TOSERVER,
+                    rs_nfs_probe_ms, rs_nfs_probe_ms);
+            }
+        }
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogNotice!("Rust nfs parser registered.");
+    } else {
+        SCLogNotice!("Protocol detector and parser disabled for nfs.");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
+    let default_port = CString::new("[2049]").unwrap();
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_UDP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_nfs_state_new,
+        state_free: rs_nfs_state_free,
+        tx_free: rs_nfs_state_tx_free,
+        parse_ts: rs_nfs_parse_request_udp,
+        parse_tc: rs_nfs_parse_response_udp,
+        get_tx_count: rs_nfs_state_get_tx_count,
+        get_tx: rs_nfs_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_nfs_tx_get_alstate_progress,
+        get_de_state: rs_nfs_state_get_tx_detect_state,
+        set_de_state: rs_nfs_state_set_tx_detect_state,
+        get_events: Some(rs_nfs_state_get_events),
+        get_eventinfo: Some(rs_nfs_state_get_event_info),
+        get_eventinfo_byid : None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: Some(rs_nfs_getfiles),
+        get_tx_iterator: Some(rs_nfs_state_get_tx_iterator),
+        get_tx_data: rs_nfs_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("udp").unwrap();
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_NFS = alproto;
+
+        if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP as u8,
+                parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
+                rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
+            SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP
+                        detection UDP detection on port {:?}.",
+                        default_port);
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP as u8,
+                default_port.as_ptr(), ALPROTO_NFS, 0,
+                NFS_MIN_FRAME_LEN, STREAM_TOSERVER,
+                rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc);
+        }
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogNotice!("Rust nfs parser registered.");
+    } else {
+        SCLogNotice!("Protocol detector and parser disabled for nfs.");
+    }
 }
 
