@@ -84,6 +84,7 @@ static void RangeContainerFree(ContainerUrlRange *c)
         SCFree(range);
         range = next;
     }
+    c->ranges = NULL;
 }
 
 // base data stays in hash
@@ -171,9 +172,11 @@ uint32_t ContainersTimeoutHash(struct timeval *ts)
                 h->next = NULL;
                 h->prev = NULL;
                 ContainerUrlRange *c = h->data;
+                SCMutexLock(&c->mutex);
                 FileCloseFile(c->files, NULL, 0, FILE_TRUNCATED);
-                // we should log it somehow...
+                // we should log the timed out file somehow...
                 RangeContainerFree(c);
+                SCMutexUnlock(&c->mutex);
                 THashDataMoveToSpare(ContainerUrlRangeList.ht, h->data);
             }
             h = n;
@@ -267,17 +270,6 @@ ContainerUrlRangeFile *ContainerUrlRangeOpenFile(ContainerUrlRange *c, uint64_t 
     range->buflen = buflen;
     range->start = start;
 
-    if (c->ranges == NULL || range->start < c->ranges->start) {
-        range->next = c->ranges;
-        c->ranges = range;
-    } else {
-        RangeContainer *next = c->ranges;
-        while (next->next != NULL && range->start >= next->next->start) {
-            next = next->next;
-        }
-        range->next = next->next;
-        next->next = range;
-    }
     curf->current = range;
     SCMutexUnlock(&c->mutex);
     return curf;
@@ -333,15 +325,7 @@ static void ContainerUrlRangeFileClose(ContainerUrlRange *c, uint16_t flags)
     DEBUG_VALIDATE_BUG_ON(c->nbref == 0);
     c->nbref--;
 
-    // move ownership to flow
-    RangeContainer *range = c->ranges;
-    while (range) {
-        RangeContainer *next = range->next;
-        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
-        range->tofree = true;
-        range = next;
-    }
-
+    RangeContainerFree(c);
     THashRemoveFromHash(ContainerUrlRangeList.ht, c);
 }
 
@@ -354,9 +338,23 @@ File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags)
     } else if (c->current) {
         // a stored range
         SCMutexLock(&c->container->mutex);
-        if (c->current->tofree) {
+        // if the range has become obsolete because we received the data already
+        if (c->container->files &&
+                c->container->files->tail->size >= c->current->start + c->current->buflen) {
             SCFree(c->current->buffer);
             SCFree(c->current);
+            // otherwise insert in linked list
+        } else if (c->container->ranges == NULL ||
+                   c->current->start < c->container->ranges->start) {
+            c->current->next = c->container->ranges;
+            c->container->ranges = c->current;
+        } else {
+            RangeContainer *next = c->container->ranges;
+            while (next->next != NULL && c->current->start >= next->next->start) {
+                next = next->next;
+            }
+            c->current->next = next->next;
+            next->next = c->current;
         }
         SCMutexUnlock(&c->container->mutex);
         c->current = NULL;

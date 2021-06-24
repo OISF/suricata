@@ -36,8 +36,6 @@ typedef struct RangeContainer {
     uint64_t start;
     // offset of bytes written in buffer (relative to the start of the range)
     uint64_t offset;
-    // to be freed by the flow thread
-    bool tofree;
 } RangeContainer;
 
 // Item in hash table for a file in multiple ranges
