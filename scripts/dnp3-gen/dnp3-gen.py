@@ -157,6 +157,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "output-json-dnp3-objects.h"
 #include "output-json.h"
 
+// clang-format off
 void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
@@ -171,11 +172,7 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
 {% elif field.type in ["flt32", "flt64"] %}
             jb_set_float(js, "{{field.name}}", data->{{field.name}});
 {% elif field.type == "bytearray" %}
-            unsigned long {{field.name}}_b64_len = BASE64_BUFFER_SIZE(data->{{field.len_field}});
-            uint8_t {{field.name}}_b64[{{field.name}}_b64_len];
-            Base64Encode(data->{{field.name}}, data->{{field.len_field}},
-                {{field.name}}_b64, &{{field.name}}_b64_len);
-            jb_set_string(js, "data->{{field.name}}", (char *){{field.name}}_b64);
+            jb_set_base64(js, "data->{{field.name}}", data->{{field.name}}, data->{{field.len_field}});
 {% elif field.type == "vstr4" %}
             jb_set_string(js, "data->{{field.name}}", data->{{field.name}});
 {% elif field.type == "chararray" %}
@@ -207,6 +204,7 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     }
 
 }
+// clang-format on
 
 """
 
