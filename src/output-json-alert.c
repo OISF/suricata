@@ -423,11 +423,7 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
 static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js, const Packet *p)
 {
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-        unsigned long len = BASE64_BUFFER_SIZE(p->payload_len);
-        uint8_t encoded[len];
-        if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
-            jb_set_string(js, "payload", (char *)encoded);
-        }
+        jb_set_base64(js, "payload", p->payload, p->payload_len);
     }
 
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
@@ -687,10 +683,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                     (void *)payload);
                 if (payload->offset) {
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = BASE64_BUFFER_SIZE(json_output_ctx->payload_buffer_size);
-                        uint8_t encoded[len];
-                        Base64Encode(payload->buffer, payload->offset, encoded, &len);
-                        jb_set_string(jb, "payload", (char *)encoded);
+                        jb_set_base64(jb, "payload", payload->buffer, payload->offset);
                     }
 
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
