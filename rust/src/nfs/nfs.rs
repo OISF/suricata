@@ -39,6 +39,8 @@ use crate::nfs::nfs3_records::*;
 
 pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
+pub const NFS_MIN_FRAME_LEN: u16 = 32;
+
 static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
 /*
  * Record parsing.
