@@ -267,12 +267,7 @@ static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
         return;
     }
 
-    unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
-    uint8_t encoded[len];
-    if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
-                     SC_BASE64_OK) {
-        jb_set_string(js, "certificate", (char *)encoded);
-    }
+    jb_set_base64(js, "certificate", cert->cert_data, cert->cert_len);
 }
 
 static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
@@ -285,12 +280,7 @@ static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
 
     SSLCertsChain *cert;
     TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
-        unsigned long len = BASE64_BUFFER_SIZE(cert->cert_len);
-        uint8_t encoded[len];
-        if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
-                         SC_BASE64_OK) {
-            jb_append_string(js, (char *)encoded);
-        }
+        jb_append_base64(js, cert->cert_data, cert->cert_len);
     }
 
     jb_close(js);

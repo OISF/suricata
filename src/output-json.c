@@ -451,11 +451,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
 {
     unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
-    unsigned long len = BASE64_BUFFER_SIZE(max_len);
-    uint8_t encoded_packet[len];
-    if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
-        jb_set_string(js, "packet", (char *)encoded_packet);
-    }
+    jb_set_base64(js, "packet", GET_PKT_DATA(p), max_len);
 
     if (!jb_open_object(js, "packet_info")) {
         return;
