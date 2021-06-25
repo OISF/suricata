@@ -1458,7 +1458,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
     state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
-/// C binding parse a DNS request. Returns 1 on success, -1 on failure.
+/// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
                                        state: *mut std::os::raw::c_void,
