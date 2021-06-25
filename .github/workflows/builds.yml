@@ -185,6 +185,7 @@ jobs:
                 automake \
                 cargo-vendor \
                 diffutils \
+                dpdk \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -587,7 +588,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
-                curl
+                curl \
+                dpdk
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -663,7 +665,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
-                curl
+                curl \
+                dpdk
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -741,7 +744,8 @@ jobs:
                 exuberant-ctags \
                 unzip \
                 curl \
-                wget
+                wget \
+                dpdk
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -810,7 +814,8 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
-                exuberant-ctags
+                exuberant-ctags \
+                dpdk
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -883,6 +888,7 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
+                dpdk
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
