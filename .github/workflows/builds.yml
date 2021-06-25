@@ -1014,6 +1014,7 @@ jobs:
                 libjansson-dev \
                 libpython2.7 \
                 make \
+                mscgen \
                 parallel \
                 python3-yaml \
                 rustc \
