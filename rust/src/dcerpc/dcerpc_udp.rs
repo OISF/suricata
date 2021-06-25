@@ -345,10 +345,9 @@ fn register_pattern_probe() -> i8 {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
-    let default_port = CString::new("[0:65535]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: core::IPPROTO_UDP,
         probe_ts: None,
         probe_tc: None,
