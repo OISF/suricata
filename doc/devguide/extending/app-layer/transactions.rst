@@ -2,13 +2,7 @@
 Transactions
 ************
 
-Table of Contents
-=================
-- `General Concepts`_
-- `How the engine uses transactions`_
-- `Progress Tracking`_
-- `Examples`_
-- `Common words and abbreviations`_
+.. contents:: Table of Contents
 
 _`General Concepts`
 ===================
@@ -70,7 +64,7 @@ Rule Matching
 
 Transaction progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
 
-As seen in ```DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister2``, which expects ``int tx_min_progress``, for instance. In the code snippet,
+As seen in ``DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister2``, which expects ``int tx_min_progress``, for instance. In the code snippet,
 ``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions.
 
 
@@ -209,6 +203,27 @@ In C, callback usage would be as follows:
 
     AppLayerParserRegisterStateProgressCompletionStatus(
         ALPROTO_FTP, FTP_STATE_FINISHED, FTP_STATE_FINISHED);
+
+Sequence Diagrams
+~~~~~~~~~~~~~~~~~
+
+A DNS transaction in Suricata can be considered unidirectional:
+
+.. image:: img/DnsRequestUnidirectionalTransaction.png
+  :width: 600
+  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "DNS Request". After that, there is a dotted line labeled "Transaction Completed".
+
+An HTTP2 transaction is an example of a bidirectional transaction, in Suricata:
+
+.. image:: img/HTTP2BidirectionalTransaction.png
+  :width: 600
+  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Clientto the Server labeled "Request" and below that an arrow going from Server to Client labeled "Response". Below those arrows, a dotted line indicates that the transaction is completed.
+
+A TLS Handshake is a more complex example, where several messages are exchanged before the transaction is considered completed:
+
+.. image:: img/TlsHandshake.png
+  :width: 600
+  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server labeled "ClientHello" and below that an arrow going from Server to Client labeled "ServerHello". Below those arrows, several more follow from Server to Client and vice-versa, before a dotted line indicates that the transaction is finally completed.
 
 _`Common words and abbreviations`
 =================================
