@@ -1363,7 +1363,7 @@ impl NFSState {
     }
     fn setfileflags(&mut self, direction: u8, flags: u16) {
         SCLogDebug!("direction: {}, flags: {}", direction, flags);
-        if direction == 1 {
+        if direction == STREAM_TOCLIENT {
             self.files.flags_tc = flags;
         } else {
             self.files.flags_ts = flags;
