@@ -1360,7 +1360,7 @@ impl NFSState {
     }
     fn setfileflags(&mut self, direction: u8, flags: u16) {
         SCLogDebug!("direction: {}, flags: {}", direction, flags);
-        if direction == 1 {
+        if direction == STREAM_TOCLIENT {
             self.files.flags_tc = flags;
         } else {
             self.files.flags_ts = flags;
@@ -1399,6 +1399,12 @@ pub extern "C" fn rs_nfs_parse_request(flow: *const Flow,
 {
     let state = cast_pointer!(state, NFSState);
     let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    rs_nfs_setfileflags(STREAM_TOSERVER, state, file_flags);
+
+    if input.is_null() == true && input_len > 0 {
+        return rs_nfs_parse_request_tcp_gap(state, input_len);
+    }
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
@@ -1427,6 +1433,12 @@ pub extern "C" fn rs_nfs_parse_response(flow: *const Flow,
 {
     let state = cast_pointer!(state, NFSState);
     let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    rs_nfs_setfileflags(STREAM_TOCLIENT, state, file_flags);
+
+    if input.is_null() == true && input_len > 0 {
+        return rs_nfs_parse_response_tcp_gap(state, input_len);
+    }
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
@@ -1445,7 +1457,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request_udp(_f: *const Flow,
+pub extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -1454,6 +1466,8 @@ pub extern "C" fn rs_nfs_parse_request_udp(_f: *const Flow,
                                        _flags: u8) -> AppLayerResult
 {
     let state = cast_pointer!(state, NFSState);
+    let file_flags = unsafe { FileFlowToFlags(f, STREAM_TOSERVER) };
+    rs_nfs_setfileflags(STREAM_TOSERVER, state, file_flags);
 
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
@@ -1461,7 +1475,7 @@ pub extern "C" fn rs_nfs_parse_request_udp(_f: *const Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response_udp(_f: *const Flow,
+pub extern "C" fn rs_nfs_parse_response_udp(f: *const Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
@@ -1470,7 +1484,8 @@ pub extern "C" fn rs_nfs_parse_response_udp(_f: *const Flow,
                                         _flags: u8) -> AppLayerResult
 {
     let state = cast_pointer!(state, NFSState);
-
+    let file_flags = unsafe { FileFlowToFlags(f, STREAM_TOCLIENT) };
+    rs_nfs_setfileflags(STREAM_TOCLIENT, state, file_flags);
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     state.parse_udp_tc(buf)
