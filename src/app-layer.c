@@ -578,14 +578,13 @@ static int TCPProtoDetect(ThreadVars *tv,
  *  \param stream ptr-to-ptr to stream object. Might change if flow dir is
  *                reversed.
  */
-int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Packet *p, Flow *f,
-                          TcpSession *ssn, TcpStream **stream,
-                          uint8_t *data, uint32_t data_len,
-                          uint8_t flags)
+static int AppLayerHandleTCPDataSuricata(void *tvp, void *ra_ctxp, Packet *p, Flow *f,
+        TcpSession *ssn, TcpStream **stream, uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
 
+    ThreadVars *tv = (ThreadVars *)tvp;
+    TcpReassemblyThreadCtx *ra_ctx = (TcpReassemblyThreadCtx *)ra_ctxp;
     DEBUG_ASSERT_FLOW_LOCKED(f);
     DEBUG_VALIDATE_BUG_ON(data_len > (uint32_t)INT_MAX);
 
@@ -840,6 +839,7 @@ int AppLayerSetup(void)
 {
     SCEnter();
 
+    AppLayerHandleTCPData = AppLayerHandleTCPDataSuricata;
     AppLayerProtoDetectSetup();
     AppLayerParserSetup();
 

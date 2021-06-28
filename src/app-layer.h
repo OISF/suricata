@@ -38,14 +38,13 @@
 
 /***** L7 layer dispatchers *****/
 
+typedef int (*libsuricata_tcp_cb)(void *tv, void *ra_ctx, Packet *p, Flow *f, TcpSession *ssn,
+        TcpStream **stream, uint8_t *data, uint32_t data_len, uint8_t flags);
+
 /**
  * \brief Handles reassembled tcp stream.
  */
-int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Packet *p, Flow *f,
-                          TcpSession *ssn, TcpStream **stream,
-                          uint8_t *data, uint32_t data_len,
-                          uint8_t flags);
+libsuricata_tcp_cb AppLayerHandleTCPData;
 
 /**
  * \brief Handles an udp chunk.
