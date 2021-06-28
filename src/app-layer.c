@@ -570,6 +570,10 @@ static int TCPProtoDetect(ThreadVars *tv,
     SCReturnInt(0);
 }
 
+#ifdef LIBSURICATA_BUILD
+libsuricata_tcp_cb AppLayerTCPDataCallback = NULL;
+#endif
+
 /** \brief handle TCP data for the app-layer.
  *
  *  First run protocol detection and then when the protocol is known invoke
@@ -592,14 +596,22 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
     AppProto alproto;
     int r = 0;
+    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+
+#ifdef LIBSURICATA_BUILD
+    if (AppLayerTCPDataCallback != NULL) {
+        if (AppLayerTCPDataCallback(data, data_len, flags, f)) {
+            StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+            goto end;
+        }
+    }
+#endif
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
         SCLogDebug("STREAMTCP_FLAG_APP_LAYER_DISABLED is set");
         goto end;
     }
-
-    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     if (flags & STREAM_TOSERVER) {
         alproto = f->alproto_ts;

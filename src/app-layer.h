@@ -145,4 +145,8 @@ void AppLayerUnittestsRegister(void);
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step);
 
+#ifdef LIBSURICATA_BUILD
+typedef bool (*libsuricata_tcp_cb)(uint8_t *data, uint32_t data_len, uint8_t flags, Flow *f);
+#endif
+
 #endif
