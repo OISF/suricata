@@ -52,6 +52,9 @@ use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
+pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
+pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
