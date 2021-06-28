@@ -222,7 +222,7 @@ static int HTTPUriTest01(void)
     f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
@@ -262,7 +262,7 @@ static int HTTPUriTest01(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -291,7 +291,7 @@ static int HTTPUriTest02(void)
     f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
@@ -331,7 +331,7 @@ static int HTTPUriTest02(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -360,7 +360,7 @@ static int HTTPUriTest03(void)
     f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
@@ -400,7 +400,7 @@ static int HTTPUriTest03(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -430,7 +430,7 @@ static int HTTPUriTest04(void)
     f.alproto = ALPROTO_HTTP1;
     f.flags |= FLOW_IPV4;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1,
@@ -470,7 +470,7 @@ static int HTTPUriTest04(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -534,7 +534,7 @@ static int DetectUriSigTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -607,7 +607,7 @@ end:
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -650,7 +650,7 @@ static int DetectUriSigTest03(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -747,7 +747,7 @@ end:
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -971,7 +971,7 @@ static int DetectUriSigTest05(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     p = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1030,7 +1030,7 @@ static int DetectUriSigTest05(void)
     UTHRemoveSessionFromFlow(f);
     UTHFreeFlow(f);
     UTHFreePackets(&p, 1);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1050,7 +1050,7 @@ static int DetectUriSigTest06(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     p = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1119,7 +1119,7 @@ static int DetectUriSigTest06(void)
     UTHRemoveSessionFromFlow(f);
     UTHFreeFlow(f);
     UTHFreePackets(&p, 1);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 
@@ -1139,7 +1139,7 @@ static int DetectUriSigTest07(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     p = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1208,7 +1208,7 @@ static int DetectUriSigTest07(void)
     UTHRemoveSessionFromFlow(f);
     UTHFreeFlow(f);
     UTHFreePackets(&p, 1);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PASS;
 }
 

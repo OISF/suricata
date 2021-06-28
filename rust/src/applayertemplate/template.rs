@@ -335,7 +335,7 @@ pub extern "C" fn rs_template_parse_request(
     };
 
     if eof {
-        // If needed, handled EOF, or pass it into the parser.
+        // If needed, handle EOF, or pass it into the parser.
         return AppLayerResult::ok();
     }
 

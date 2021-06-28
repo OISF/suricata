@@ -147,6 +147,10 @@ enum {
 
     IEEE8021AH_HEADER_TOO_SMALL,
 
+    /* VNTAG EVENTS */
+    VNTAG_HEADER_TOO_SMALL, /**< vntag header smaller than minimum size */
+    VNTAG_UNKNOWN_TYPE,     /**< vntag unknown type */
+
     /* RAW EVENTS */
     IPRAW_INVALID_IPV, /**< invalid ip version in ip raw */
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,16 +72,13 @@
 #define TX_ID_UNUSED UINT64_MAX
 
 typedef struct AnomalyJsonOutputCtx_ {
-    LogFileCtx* file_ctx;
     uint16_t flags;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } AnomalyJsonOutputCtx;
 
 typedef struct JsonAnomalyLogThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
-    MemBuffer *json_buffer;
     AnomalyJsonOutputCtx* json_output_ctx;
+    OutputJsonThreadCtx *ctx;
 } JsonAnomalyLogThread;
 
 /*
@@ -108,7 +105,6 @@ static void OutputAnomalyLoggerDisable(void)
 static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                   const Packet *p)
 {
-    const bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
     const uint16_t log_type = aft->json_output_ctx->flags;
     const bool log_stream = log_type & LOG_JSON_STREAM_TYPE;
     const bool log_decode = log_type & LOG_JSON_DECODE_TYPE;
@@ -121,15 +117,10 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_decode && !log_stream)
             continue;
 
-        MemBufferReset(aft->json_buffer);
-
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
+        JsonBuilder *js = CreateEveHeader(
+                p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
-        }
-
-        if (is_ip_pkt) {
-            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
@@ -154,7 +145,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
             EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         }
 
-        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx);
         jb_free(js);
     }
 
@@ -173,20 +164,18 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                 tx_id != TX_ID_UNUSED ? "tx" : "no-tx");
 
     for (int i = decoder_events->event_last_logged; i < decoder_events->cnt; i++) {
-        MemBufferReset(aft->json_buffer);
-
         JsonBuilder *js;
         if (tx_id != TX_ID_UNUSED) {
-            js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET,
-                                          ANOMALY_EVENT_TYPE, NULL, tx_id);
+            js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, tx_id,
+                    aft->json_output_ctx->eve_ctx);
         } else {
-            js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
+            js = CreateEveHeader(
+                    p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         }
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
 
@@ -214,7 +203,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         /* anomaly */
         jb_close(js);
-        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        OutputJsonBuilderBuffer(js, aft->ctx);
         jb_free(js);
 
         /* Current implementation assumes a single owner for this value */
@@ -311,16 +300,11 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
         goto error_exit;
     }
 
-    aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->json_buffer == NULL) {
-        goto error_exit;
-    }
-
     /** Use the Output Context (file pointer and mutex) */
     AnomalyJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(json_output_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, json_output_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
     aft->json_output_ctx = json_output_ctx;
@@ -329,9 +313,6 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->json_buffer != NULL) {
-        MemBufferFree(aft->json_buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -343,7 +324,7 @@ static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->json_buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAnomalyLogThread));
@@ -431,9 +412,8 @@ static OutputInitResult JsonAnomalyLogInitCtxHelper(ConfNode *conf, OutputCtx *p
         goto error;
     }
 
-    json_output_ctx->file_ctx = ajt->file_ctx;
     JsonAnomalyLogConf(json_output_ctx, conf);
-    json_output_ctx->cfg = ajt->cfg;
+    json_output_ctx->eve_ctx = ajt;
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAnomalyLogDeInitCtxSubHelper;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,14 +55,13 @@
 #include "rust.h"
 
 typedef struct LogTemplateFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCtx *eve_ctx;
 } LogTemplateFileCtx;
 
 typedef struct LogTemplateLogThread_ {
     LogTemplateFileCtx *templatelog_ctx;
-    LogFileCtx *file_ctx;
-    MemBuffer          *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogTemplateLogThread;
 
 static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
@@ -71,7 +70,8 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     SCLogNotice("JsonTemplateLogger");
     LogTemplateLogThread *thread = thread_data;
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "template-rust", NULL);
+    JsonBuilder *js = CreateEveHeader(
+            p, LOG_DIR_PACKET, "template-rust", NULL, thread->templatelog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -82,8 +82,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     }
     jb_close(js);
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -110,7 +109,7 @@ static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf,
     if (unlikely(templatelog_ctx == NULL)) {
         return result;
     }
-    templatelog_ctx->file_ctx = ajt->file_ctx;
+    templatelog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -141,14 +140,9 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, const void *initdata, vo
         goto error_exit;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
     thread->templatelog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->templatelog_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
+    thread->ctx = CreateEveThreadCtx(t, thread->templatelog_ctx->eve_ctx);
+    if (!thread->ctx) {
         goto error_exit;
     }
     *data = (void *)thread;
@@ -156,9 +150,6 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, const void *initdata, vo
     return TM_ECODE_OK;
 
 error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
     SCFree(thread);
     return TM_ECODE_FAILED;
 }
@@ -169,9 +160,7 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

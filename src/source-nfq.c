@@ -201,7 +201,7 @@ void TmModuleDecodeNFQRegister (void)
  *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
  *                  be get printed.
  */
-void NFQInitConfig(char quiet)
+void NFQInitConfig(bool quiet)
 {
     intmax_t value = 0;
     const char *nfq_mode = NULL;

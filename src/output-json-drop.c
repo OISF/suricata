@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,15 +61,13 @@
 #define LOG_DROP_ALERTS 1
 
 typedef struct JsonDropOutputCtx_ {
-    LogFileCtx *file_ctx;
     uint8_t flags;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
-    LogFileCtx *file_ctx;
     JsonDropOutputCtx *drop_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonDropLogThread;
 
 /* default to true as this has been the default behavior for a long time */
@@ -91,16 +89,11 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr, drop_ctx->eve_ctx);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    EveAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
-
     jb_open_object(js, "drop");
-
-    /* reset */
-    MemBufferReset(aft->buffer);
 
     uint16_t proto = 0;
     if (PKT_IS_IPV4(p)) {
@@ -175,7 +168,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -193,15 +186,10 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->drop_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->drop_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->drop_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -209,9 +197,6 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -223,7 +208,7 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(*aft));
@@ -235,8 +220,6 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
 static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
 {
     if (drop_ctx != NULL) {
-        if (drop_ctx->file_ctx != NULL)
-            LogFileFreeCtx(drop_ctx->file_ctx);
         SCFree(drop_ctx);
     }
 }
@@ -292,8 +275,7 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
         }
     }
 
-    drop_ctx->file_ctx = ajt->file_ctx;
-    drop_ctx->cfg = ajt->cfg;
+    drop_ctx->eve_ctx = ajt;
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;

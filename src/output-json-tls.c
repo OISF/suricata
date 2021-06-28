@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -98,17 +98,15 @@ TlsFields tls_fields[] = {
 };
 
 typedef struct OutputTlsCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t flags;  /** Store mode */
     uint64_t fields; /** Store fields */
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } OutputTlsCtx;
 
 
 typedef struct JsonTlsLogThread_ {
-    LogFileCtx *file_ctx;
     OutputTlsCtx *tlslog_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonTlsLogThread;
 
 static void JsonTlsLogSubject(JsonBuilder *js, SSLState *ssl_state)
@@ -414,17 +412,12 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL, aft->tlslog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return 0;
     }
 
-    EveAddCommonOptions(&tls_ctx->cfg, p, f, js);
-
     jb_open_object(js, "tls");
-
-    /* reset */
-    MemBufferReset(aft->buffer);
 
     /* log custom fields */
     if (tls_ctx->flags & LOG_TLS_CUSTOM) {
@@ -449,7 +442,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* Close the tls object. */
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
     jb_free(js);
 
     return 0;
@@ -467,25 +460,17 @@ static TmEcode JsonTlsLogThreadInit(ThreadVars *t, const void *initdata, void **
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /* use the Output Context (file pointer and mutex) */
     aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(aft->tlslog_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->tlslog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
     *data = (void *)aft;
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -497,7 +482,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonTlsLogThread));
@@ -586,8 +571,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
         return result;
     }
 
-    tls_ctx->file_ctx = ojc->file_ctx;
-    tls_ctx->cfg = ojc->cfg;
+    tls_ctx->eve_ctx = ojc;
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {

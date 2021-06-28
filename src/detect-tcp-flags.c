@@ -554,7 +554,7 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     const uint8_t flags = p->tcph->th_flags;
@@ -582,8 +582,8 @@ PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == a->modifier &&
         v.u8[1] == a->flags &&
         v.u8[2] == a->ignored_flags)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -601,10 +601,10 @@ static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /*

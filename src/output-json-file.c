@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,20 +70,19 @@
 #include "stream-tcp-reassemble.h"
 
 typedef struct OutputFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t file_cnt;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
+    OutputJsonCtx *eve_ctx;
 } OutputFileCtx;
 
 typedef struct JsonFileLogThread_ {
     OutputFileCtx *filelog_ctx;
-    LogFileCtx *file_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } JsonFileLogThread;
 
-JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg)
+JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool stored,
+        uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCtx *eve_ctx)
 {
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
@@ -119,7 +118,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         }
     }
 
-    JsonBuilder *js = CreateEveHeader(p, fdir, "fileinfo", &addr);
+    JsonBuilder *js = CreateEveHeader(p, fdir, "fileinfo", &addr, eve_ctx);
     if (unlikely(js == NULL))
         return NULL;
 
@@ -202,19 +201,18 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
-                                const File *ff, uint32_t dir)
+static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff,
+        uint32_t dir, OutputJsonCtx *eve_ctx)
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
-    JsonBuilder *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false, dir, xff_cfg);
+    JsonBuilder *js = JsonBuildFileInfoRecord(
+            p, ff, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, eve_ctx);
     if (unlikely(js == NULL)) {
         return;
     }
 
-    MemBufferReset(aft->buffer);
-    OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->buffer);
+    OutputJsonBuilderBuffer(js, aft->ctx);
     jb_free(js);
 }
 
@@ -228,7 +226,7 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     SCLogDebug("ff %p", ff);
 
-    FileWriteJsonRecord(aft, p, ff, dir);
+    FileWriteJsonRecord(aft, p, ff, dir, aft->filelog_ctx->eve_ctx);
     return 0;
 }
 
@@ -245,15 +243,10 @@ static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        goto error_exit;
-    }
-
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->filelog_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = LogFileEnsureExists(aft->filelog_ctx->file_ctx, t->id);
-    if (!aft->file_ctx) {
+    aft->ctx = CreateEveThreadCtx(t, aft->filelog_ctx->eve_ctx);
+    if (!aft->ctx) {
         goto error_exit;
     }
 
@@ -261,9 +254,6 @@ static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (aft->buffer != NULL) {
-        MemBufferFree(aft->buffer);
-    }
     SCFree(aft);
     return TM_ECODE_FAILED;
 }
@@ -275,7 +265,8 @@ static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    FreeEveThreadCtx(aft->ctx);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonFileLogThread));
 
@@ -312,8 +303,6 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
 
-    output_file_ctx->file_ctx = ojc->file_ctx;
-
     if (conf) {
         const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
         if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
@@ -339,6 +328,7 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
         output_file_ctx->parent_xff_cfg = ojc->xff_cfg;
     }
 
+    output_file_ctx->eve_ctx = ojc;
     output_ctx->data = output_file_ctx;
     output_ctx->DeInit = OutputFileLogDeinitSub;
 

@@ -94,6 +94,7 @@ enum PktSrcEnum {
 #include "decode-raw.h"
 #include "decode-null.h"
 #include "decode-vlan.h"
+#include "decode-vntag.h"
 #include "decode-vxlan.h"
 #include "decode-mpls.h"
 #include "decode-nsh.h"
@@ -670,6 +671,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
     uint16_t counter_vxlan;
+    uint16_t counter_vntag;
     uint16_t counter_ieee8021ah;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
@@ -970,6 +972,7 @@ int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint
 int DecodeESP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeVNTag(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeGeneve(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1288,6 +1291,9 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             } else {
                 DecodeEthernet(tv, dtv, p, data, len);
             }
+            break;
+        case ETHERNET_TYPE_VNTAG:
+            DecodeVNTag(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_NSH:
             DecodeNSH(tv, dtv, p, data, len);

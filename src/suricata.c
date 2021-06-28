@@ -119,7 +119,6 @@
 #include "app-layer-ssh.h"
 #include "app-layer-ftp.h"
 #include "app-layer-smtp.h"
-#include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-smb.h"
@@ -2027,8 +2026,14 @@ void PreRunPostPrivsDropInit(const int runmode)
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
 
-    if (runmode == RUNMODE_UNIX_SOCKET)
+    if (runmode == RUNMODE_UNIX_SOCKET) {
+        /* As the above did some necessary startup initialization, it
+         * also setup some outputs where only one is allowed, so
+         * deinitialize to the state that unix-mode does after every
+         * pcap. */
+        PostRunDeinit(RUNMODE_PCAP_FILE, NULL);
         return;
+    }
 
     StatsSetupPostConfigPostOutput();
 }
@@ -2504,7 +2509,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
 #ifdef NFQ
     if (suri->run_mode == RUNMODE_NFQ)
-        NFQInitConfig(FALSE);
+        NFQInitConfig(false);
 #endif
 
     /* Load the Host-OS lookup. */

@@ -167,22 +167,22 @@ static bool DetectTlsSerialValidateCallback(const Signature *s,
 
         /* no need to worry about this if the content is short enough */
         if (cd->content_len <= 2)
-            return TRUE;
+            return true;
 
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
             if (cd->content[u] == ':')
-                return TRUE;
+                return true;
 
         *sigerror = "No colon delimiters ':' detected in content after "
                     "tls.cert_serial. This rule will therefore never "
                     "match.";
         SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
 
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
@@ -196,13 +196,13 @@ static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        bool changed = FALSE;
+        bool changed = false;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {
             if (islower(cd->content[u])) {
                 cd->content[u] = toupper(cd->content[u]);
-                changed = TRUE;
+                changed = true;
             }
         }
 

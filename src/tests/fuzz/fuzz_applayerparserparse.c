@@ -15,6 +15,7 @@
 #define HEADER_LEN 6
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+int LLVMFuzzerInitialize(int *argc, char ***argv);
 
 AppLayerParserThreadCtx *alp_tctx = NULL;
 
@@ -33,6 +34,30 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
 SCInstance surifuzz;
 uint64_t forceLayer = 0;
+
+int LLVMFuzzerInitialize(int *argc, char ***argv)
+{
+    char *target_suffix = strrchr((*argv)[0], '_');
+    if (target_suffix != NULL) {
+        AppProto applayer = StringToAppProto(target_suffix + 1);
+        if (applayer != ALPROTO_UNKNOWN) {
+            forceLayer = applayer;
+            printf("Forcing %s=%" PRIu64 "\n", AppProtoToString(forceLayer), forceLayer);
+            return 0;
+        }
+    }
+    // else
+    const char *forceLayerStr = getenv("FUZZ_APPLAYER");
+    if (forceLayerStr) {
+        if (ByteExtractStringUint64(&forceLayer, 10, 0, forceLayerStr) < 0) {
+            forceLayer = 0;
+            printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
+        } else {
+            printf("Forcing %s\n", AppProtoToString(forceLayer));
+        }
+    }
+    return 0;
+}
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -67,15 +92,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
-        const char* forceLayerStr = getenv("FUZZ_APPLAYER");
-        if (forceLayerStr) {
-            if (ByteExtractStringUint64(&forceLayer, 10, 0, forceLayerStr) < 0) {
-                forceLayer = 0;
-                printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
-            } else {
-                printf("Forcing %s\n", AppProtoToString(forceLayer));
-            }
-        }
     }
 
     if (data[0] >= ALPROTO_MAX) {

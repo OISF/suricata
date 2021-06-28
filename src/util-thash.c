@@ -466,7 +466,7 @@ static uint32_t THashGetKey(const THashConfig *cnf, void *data)
 
 static inline int THashCompare(const THashConfig *cnf, void *a, void *b)
 {
-    if (cnf->DataCompare(a, b) == TRUE)
+    if (cnf->DataCompare(a, b))
         return 1;
     return 0;
 }

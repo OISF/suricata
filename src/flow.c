@@ -513,7 +513,7 @@ void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
-void FlowInitConfig(char quiet)
+void FlowInitConfig(bool quiet)
 {
     SCLogDebug("initializing flow engine...");
 
@@ -618,14 +618,14 @@ void FlowInitConfig(char quiet)
     }
     (void) SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("allocated %"PRIu64" bytes of memory for the flow hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
     }
     FlowSparePoolInit();
-    if (quiet == FALSE) {
+    if (!quiet) {
         SCLogConfig("flow memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), SC_ATOMIC_GET(flow_config.memcap));
     }
@@ -978,7 +978,7 @@ void FlowInitFlowProto(void)
                                             strlen(emergency_bypassed),
                                             emergency_bypassed) > 0) {
 
-                flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
+                flow_timeouts_emerg[FLOW_PROTO_ICMP].bypassed_timeout = configval;
             }
         }
     }

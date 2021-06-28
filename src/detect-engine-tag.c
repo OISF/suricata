@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,19 +45,19 @@
 SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */
-static int host_tag_id = -1;                /**< Host storage id for tags */
-static int flow_tag_id = -1;                /**< Flow storage id for tags */
+static HostStorageId host_tag_id = { .id = -1 }; /**< Host storage id for tags */
+static FlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
 
 void TagInitCtx(void)
 {
     SC_ATOMIC_INIT(num_tags);
 
     host_tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
-    if (host_tag_id == -1) {
+    if (host_tag_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate host storage for tag");
     }
     flow_tag_id = FlowStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
-    if (flow_tag_id == -1) {
+    if (flow_tag_id.id == -1) {
         FatalError(SC_ERR_FATAL, "Can't initiate flow storage for tag");
     }
 }
@@ -117,7 +117,7 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
  * \param p pointer to the current packet
  * \param tde pointer to the new DetectTagDataEntry
  *
- * \retval 0 if the tde was added succesfuly
+ * \retval 0 if the tde was added successfully
  * \retval 1 if an entry of this sid/gid already exist and was updated
  */
 int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
@@ -775,12 +775,12 @@ static int DetectTagTestPacket02 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 2 || i == 3 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -892,12 +892,12 @@ static int DetectTagTestPacket03 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 3 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -1027,12 +1027,12 @@ static int DetectTagTestPacket04 (void)
 
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 4 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 
@@ -1174,12 +1174,12 @@ static int DetectTagTestPacket05 (void)
 
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
-        int expect;
+        bool expect;
         if (i == 0 || i == 5 || i == 6)
-            expect = FALSE;
+            expect = false;
         else
-            expect = TRUE;
-        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            expect = true;
+        if (((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect)
             goto cleanup;
     }
 

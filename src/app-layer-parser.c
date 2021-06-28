@@ -890,7 +890,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxData != NULL && !g_detect_disabled);
+    const bool has_tx_detect_flags = !g_detect_disabled;
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -951,7 +951,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
-                    tx_skipped = skipped = true;
+                    tx_skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -961,7 +961,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
-                    tx_skipped = skipped = true;
+                    tx_skipped = true;
                 } else {
                     inspected = true;
                 }
@@ -972,6 +972,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         // been inspected.
         if (!is_unidir && tx_skipped) {
             SCLogDebug("%p/%" PRIu64 " !is_unidir && tx_skipped", tx, i);
+            skipped = true;
             goto next;
         }
 
@@ -981,6 +982,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         // tx inspected flag checked.
         if (is_unidir && tx_skipped && !inspected) {
             SCLogDebug("%p/%" PRIu64 " is_unidir && tx_skipped && !inspected", tx, i);
+            skipped = true;
             goto next;
         }
 
@@ -1054,7 +1056,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t flags)
 {
     SCEnter();
-    int r = 0;
+    int r;
     if (unlikely(IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
@@ -1067,18 +1069,14 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
 uint64_t AppLayerParserGetTxCnt(const Flow *f, void *alstate)
 {
     SCEnter();
-    uint64_t r = 0;
-    r = alp_ctx.ctxs[f->protomap][f->alproto].
-               StateGetTxCnt(alstate);
+    uint64_t r = alp_ctx.ctxs[f->protomap][f->alproto].StateGetTxCnt(alstate);
     SCReturnCT(r, "uint64_t");
 }
 
 void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id)
 {
     SCEnter();
-    void * r = NULL;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetTx(alstate, tx_id);
+    void *r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTx(alstate, tx_id);
     SCReturnPtr(r, "void *");
 }
 
@@ -1094,7 +1092,7 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
                     int *event_id, AppLayerEventType *event_type)
 {
     SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo == NULL) ?
                 -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo(event_name, event_id, event_type);
     SCReturnInt(r);
@@ -1104,7 +1102,7 @@ int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_
                     const char **event_name, AppLayerEventType *event_type)
 {
     SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
     *event_name = (const char *)NULL;
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById == NULL) ?
                 -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById(event_id, event_name, event_type);
@@ -1114,9 +1112,7 @@ int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
-    uint8_t r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-               first_data_dir;
+    uint8_t r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].first_data_dir;
     SCReturnCT(r, "uint8_t");
 }
 
@@ -1126,11 +1122,10 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
     SCEnter();
 
     uint64_t active_id;
-
     uint64_t log_id = pstate->log_id;
     uint64_t inspect_id = pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
     if (alp_ctx.ctxs[f->protomap][f->alproto].logger == true) {
-        active_id = (log_id < inspect_id) ? log_id : inspect_id;
+        active_id = MIN(log_id, inspect_id);
     } else {
         active_id = inspect_id;
     }
@@ -1150,59 +1145,35 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
-int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
-{
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState != NULL)
-        return TRUE;
-    return FALSE;
-}
-
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
-    DetectEngineState *s;
-    s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx);
+    DetectEngineState *s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx);
     SCReturnPtr(s, "DetectEngineState");
 }
 
 int AppLayerParserSetTxDetectState(const Flow *f,
                                    void *tx, DetectEngineState *s)
 {
-    int r;
     SCEnter();
-    if ((alp_ctx.ctxs[f->protomap][f->alproto].GetTxDetectState(tx) != NULL))
-        SCReturnInt(-EBUSY);
-    r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(tx, s);
+    int r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(tx, s);
     SCReturnInt(r);
-}
-
-bool AppLayerParserSupportsTxDetectFlags(AppProto alproto)
-{
-    SCEnter();
-    for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
-        if (alp_ctx.ctxs[p][alproto].GetTxData != NULL) {
-            SCReturnBool(true);
-        }
-    }
-    SCReturnBool(false);
 }
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData) {
-        AppLayerTxData *d = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData(tx);
-        SCReturnPtr(d, "AppLayerTxData");
-    }
-    SCReturnPtr(NULL, "AppLayerTxData");
+    AppLayerTxData *d = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData(tx);
+    SCReturnPtr(d, "AppLayerTxData");
 }
 
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig config)
 {
     SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig(state, tx, mode, config);
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
+    if (alp_ctx.ctxs[ipproto_map][alproto].ApplyTxConfig) {
+        alp_ctx.ctxs[ipproto_map][alproto].ApplyTxConfig(state, tx, mode, config);
     }
     SCReturn;
 }
@@ -1577,9 +1548,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
-        goto bad;
-    }
     if (ctx->GetTxData == NULL) {
         goto bad;
     }
@@ -1823,7 +1791,7 @@ static int AppLayerParserTest01(void)
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_TCP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
@@ -1833,7 +1801,7 @@ static int AppLayerParserTest01(void)
     FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
 
     AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -1866,7 +1834,7 @@ static int AppLayerParserTest02(void)
     f->proto = IPPROTO_UDP;
     f->protomap = FlowGetProtoMapping(f->proto);
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
                                 STREAM_TOSERVER | STREAM_EOF, testbuf,
@@ -1874,7 +1842,7 @@ static int AppLayerParserTest02(void)
     FAIL_IF(r != -1);
 
     AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }

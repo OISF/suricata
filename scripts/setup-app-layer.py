@@ -90,7 +90,7 @@ def patch_makefile_am(protoname):
     output = io.StringIO()
     with open("src/Makefile.am") as infile:
         for line in infile:
-            if line.startswith("app-layer-template.c"):
+            if line.lstrip().startswith("app-layer-template."):
                 output.write(line.replace("template", protoname.lower()))
             output.write(line)
     open("src/Makefile.am", "w").write(output.getvalue())
@@ -277,7 +277,7 @@ def logger_patch_makefile_am(protoname):
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
-            if line.startswith("output-json-template.c"):
+            if line.lstrip().startswith("output-json-template."):
                 output.write(line.replace("template", protoname.lower()))
             output.write(line)
     open(filename, "w").write(output.getvalue())
@@ -337,14 +337,14 @@ def detect_patch_makefile_am(protoname, buffername):
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
-            if line.startswith("detect-template-buffer.c"):
+            if line.lstrip().startswith("detect-template-buffer."):
                 new = line.replace("template-buffer", "%s-%s" % (
                     protoname.lower(), buffername.lower()))
                 output.write(new)
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def detect_patch_detect_enginer_register_c(protoname, buffername):
+def detect_patch_detect_engine_register_c(protoname, buffername):
     filename = "src/detect-engine-register.c"
     print("Patching %s." % (filename))
     output = io.StringIO()
@@ -364,7 +364,7 @@ def detect_patch_detect_enginer_register_c(protoname, buffername):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def detect_patch_detect_enginer_register_h(protoname, buffername):
+def detect_patch_detect_engine_register_h(protoname, buffername):
     filename = "src/detect-engine-register.h"
     print("Patching %s." % (filename))
     output = io.StringIO()
@@ -392,13 +392,13 @@ name specified on the command line. This is done by copying and
 patching src/app-layer-template.[ch] then linking the new files into
 the build system.
 
-By default both the parser and logger will be generate. To generate
+By default both the parser and logger will be generated. To generate
 just one or the other use the --parser or --logger command line flags.
 
 Examples:
 
-    %(progname)s DNP3
-    %(progname)s Gopher
+    %(progname)s --logger DNP3
+    %(progname)s --parser Gopher
 
 This script can also setup a detect buffer. This is a separate
 operation that must be done after creating the parser.
@@ -486,13 +486,13 @@ def main():
             raise SetupError("no app-layer parser exists for %s" % (proto))
         detect_copy_templates(proto, args.buffer, args.rust)
         detect_patch_makefile_am(proto, args.buffer)
-        detect_patch_detect_enginer_register_c(proto, args.buffer)
-        detect_patch_detect_enginer_register_h(proto, args.buffer)
+        detect_patch_detect_engine_register_c(proto, args.buffer)
+        detect_patch_detect_engine_register_h(proto, args.buffer)
 
     if parser:
         if args.rust:
             print("""
-An application detector and parser for the protocol %(proto)s has
+An application detector and parser for the protocol %(proto)s have
 now been setup in the files:
 
     rust/src/applayer%(proto_lower)s/mod.rs
@@ -502,7 +502,7 @@ now been setup in the files:
         })
         else:
             print("""
-An application detector and parser for the protocol %(proto)s has
+An application detector and parser for the protocol %(proto)s have
 now been setup in the files:
 
     src/app-layer-%(proto_lower)s.h
@@ -545,7 +545,7 @@ The following files have been created and linked into the build:
 
     if parser or logger:
         print("""
-Suricata should now build cleanly. Try running "make".
+Suricata should now build cleanly. Try running "./configure" and "make".
 """)
 
 if __name__ == "__main__":

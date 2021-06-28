@@ -66,7 +66,7 @@ static int IkeParserTest(void)
     f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_IKE;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     static const unsigned char initiator_sa[] = { 0xe4, 0x7a, 0x59, 0x1f, 0xd0, 0x57, 0x58, 0x7f,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00,
@@ -176,7 +176,7 @@ static int IkeParserTest(void)
     if (alp_tctx != NULL) {
         AppLayerParserThreadCtxFree(alp_tctx);
     }
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,10 +33,6 @@
 
 #include "suricata-plugin.h"
 
-typedef struct {
-    uint16_t fileno;
-} PcieFile;
-
 enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
@@ -56,17 +52,22 @@ typedef struct LogThreadedFileCtx_ {
     char *append;
 } LogThreadedFileCtx;
 
+typedef struct LogFilePluginCtx_ {
+    SCPluginFileType *plugin;
+    void *init_data;
+    void *thread_data;
+} LogFilePluginCtx;
+
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
-        PcieFile *pcie_fp;
-        LogThreadedFileCtx *threads;
         void *plugin_data;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
     };
+    LogThreadedFileCtx *threads;
 
     union {
         SyslogSetup syslog_setup;
@@ -78,7 +79,7 @@ typedef struct LogFileCtx_ {
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
 
-    SCPluginFileType *plugin;
+    LogFilePluginCtx plugin;
 
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
@@ -167,5 +168,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx, int thread_id);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
+bool SCLogOpenThreadedFile(
+        const char *log_path, const char *append, LogFileCtx *parent_ctx, int slot_count);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -44,16 +44,14 @@
 #include "output-json-dnp3-objects.h"
 
 typedef struct LogDNP3FileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t    flags;
     uint8_t     include_object_data;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
-    LogFileCtx *file_ctx;
     LogDNP3FileCtx *dnp3log_ctx;
-    MemBuffer      *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogDNP3LogThread;
 
 static void JsonDNP3LogLinkControl(JsonBuilder *js, uint8_t lc)
@@ -218,21 +216,17 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
-
-    MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
+        JsonBuilder *js =
+                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
-
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->ctx);
         jb_free(js);
     }
 
@@ -246,20 +240,17 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    MemBuffer *buffer = (MemBuffer *)thread->buffer;
-
-    MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
-        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL);
+        JsonBuilder *js =
+                CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);
-        OutputJsonBuilderBuffer(js, thread->file_ctx, &buffer);
+        OutputJsonBuilderBuffer(js, thread->ctx);
         jb_free(js);
     }
 
@@ -285,8 +276,7 @@ static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_c
     if (unlikely(dnp3log_ctx == NULL)) {
         return result;
     }
-    dnp3log_ctx->file_ctx = json_ctx->file_ctx;
-    dnp3log_ctx->cfg = json_ctx->cfg;
+    dnp3log_ctx->eve_ctx = json_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -318,14 +308,9 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
     thread->dnp3log_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->dnp3log_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
+    thread->ctx = CreateEveThreadCtx(t, thread->dnp3log_ctx->eve_ctx);
+    if (thread->ctx == NULL) {
         goto error_exit;
     }
 
@@ -334,9 +319,6 @@ static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 
 error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
     SCFree(thread);
     return TM_ECODE_FAILED;
 }
@@ -347,9 +329,7 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

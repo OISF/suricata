@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,17 +47,6 @@
 
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
-
-typedef struct LogFTPFileCtx_ {
-    LogFileCtx *file_ctx;
-    OutputJsonCommonSettings cfg;
-} LogFTPFileCtx;
-
-typedef struct LogFTPLogThread_ {
-    LogFileCtx *file_ctx;
-    LogFTPFileCtx *ftplog_ctx;
-    MemBuffer          *buffer;
-} LogFTPLogThread;
 
 static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
 {
@@ -150,6 +139,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SCEnter();
+    OutputJsonThreadCtx *thread = thread_data;
 
     const char *event_type;
     if (f->alproto == ALPROTO_FTPDATA) {
@@ -158,12 +148,10 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
         event_type = "ftp";
     }
     FTPTransaction *tx = vtx;
-    LogFTPLogThread *thread = thread_data;
-    LogFTPFileCtx *ftp_ctx = thread->ftplog_ctx;
 
-    JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id);
+    JsonBuilder *jb =
+            CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id, thread->ctx);
     if (likely(jb)) {
-        EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb);
         jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
             EveFTPDataAddMetadata(f, jb);
@@ -175,8 +163,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
             goto fail;
         }
 
-        MemBufferReset(thread->buffer);
-        OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+        OutputJsonBuilderBuffer(jb, thread);
 
         jb_free(jb);
     }
@@ -187,108 +174,23 @@ fail:
     return TM_ECODE_FAILED;
 }
 
-static void OutputFTPLogDeInitCtxSub(OutputCtx *output_ctx)
-{
-    LogFTPFileCtx *ftplog_ctx = (LogFTPFileCtx *)output_ctx->data;
-    SCFree(ftplog_ctx);
-    SCFree(output_ctx);
-}
-
-
 static OutputInitResult OutputFTPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
-    OutputInitResult result = { NULL, false };
-    OutputJsonCtx *ajt = parent_ctx->data;
-
-    LogFTPFileCtx *ftplog_ctx = SCCalloc(1, sizeof(*ftplog_ctx));
-    if (unlikely(ftplog_ctx == NULL)) {
-        return result;
-    }
-    ftplog_ctx->file_ctx = ajt->file_ctx;
-    ftplog_ctx->cfg = ajt->cfg;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
-    if (unlikely(output_ctx == NULL)) {
-        SCFree(ftplog_ctx);
-        return result;
-    }
-    output_ctx->data = ftplog_ctx;
-    output_ctx->DeInit = OutputFTPLogDeInitCtxSub;
-
-    SCLogDebug("FTP log sub-module initialized.");
-
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTP);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTPDATA);
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
-static TmEcode JsonFTPLogThreadInit(ThreadVars *t, const void *initdata, void **data)
-{
-    LogFTPLogThread *thread = SCCalloc(1, sizeof(*thread));
-    if (unlikely(thread == NULL)) {
-        return TM_ECODE_FAILED;
-    }
-
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogFTP.  \"initdata\" is NULL.");
-        goto error_exit;
-    }
-
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
-    thread->ftplog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ftplog_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
-        goto error_exit;
-    }
-
-    *data = (void *)thread;
-
-    return TM_ECODE_OK;
-
-error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
-    return TM_ECODE_FAILED;
-}
-
-static TmEcode JsonFTPLogThreadDeinit(ThreadVars *t, void *data)
-{
-    LogFTPLogThread *thread = (LogFTPLogThread *)data;
-    if (thread == NULL) {
-        return TM_ECODE_OK;
-    }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    /* clear memory */
-    memset(thread, 0, sizeof(LogFTPLogThread));
-    SCFree(thread);
-    return TM_ECODE_OK;
+    return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
 void JsonFTPLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog",
-                              "eve-log.ftp", OutputFTPLogInitSub,
-                              ALPROTO_FTP, JsonFTPLogger,
-                              JsonFTPLogThreadInit, JsonFTPLogThreadDeinit,
-                              NULL);
-    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog",
-                              "eve-log.ftp", OutputFTPLogInitSub,
-                              ALPROTO_FTPDATA, JsonFTPLogger,
-                              JsonFTPLogThreadInit, JsonFTPLogThreadDeinit,
-                              NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog", "eve-log.ftp",
+            OutputFTPLogInitSub, ALPROTO_FTP, JsonFTPLogger, JsonLogThreadInit, JsonLogThreadDeinit,
+            NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_FTP, "eve-log", "JsonFTPLog", "eve-log.ftp",
+            OutputFTPLogInitSub, ALPROTO_FTPDATA, JsonFTPLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
 
     SCLogDebug("FTP JSON logger registered.");
 }

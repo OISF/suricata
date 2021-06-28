@@ -240,6 +240,12 @@ payload for a match, use within.
 
 .. image:: payload-keywords/within_distance2.png
 
+rawbytes
+--------
+
+The rawbytes keyword has no effect but is included to be comaptible with
+signatures that use it, for example signatures used with Snort.
+
 isdataat
 --------
 

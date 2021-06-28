@@ -1820,6 +1820,7 @@
         if test "$have_xdp" = "yes"; then
             AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
         fi
+        AC_CHECK_FUNCS(bpf_program__section_name)
     fi;
 
   # Check for DAG support.
@@ -2527,6 +2528,8 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+    AC_CHECK_LIB(fuzzpcap, FPC_IsFuzzPacketCapture, HAS_FUZZPCAP="yes")
+    AM_CONDITIONAL([HAS_FUZZPCAP], [test "x$HAS_FUZZPCAP" = "xyes"])
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])

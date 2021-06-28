@@ -54,7 +54,7 @@
 #include "util-memcmp.h"
 
 /* HASSH fingerprints are disabled by default */
-#define SSH_CONFIG_DEFAULT_HASSH FALSE
+#define SSH_CONFIG_DEFAULT_HASSH false
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
@@ -177,7 +177,7 @@ static int SSHParserTest01(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -205,7 +205,7 @@ static int SSHParserTest01(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -228,7 +228,7 @@ static int SSHParserTest02(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -255,7 +255,7 @@ static int SSHParserTest02(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -278,7 +278,7 @@ static int SSHParserTest03(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -309,7 +309,7 @@ static int SSHParserTest03(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -330,7 +330,7 @@ static int SSHParserTest04(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
@@ -358,7 +358,7 @@ static int SSHParserTest04(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -380,7 +380,7 @@ static int SSHParserTest05(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
@@ -407,7 +407,7 @@ static int SSHParserTest05(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -429,7 +429,7 @@ static int SSHParserTest06(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
@@ -462,7 +462,7 @@ static int SSHParserTest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -689,7 +689,7 @@ static int SSHParserTest11(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER, sshbuf1, sshlen1);
@@ -721,7 +721,7 @@ static int SSHParserTest11(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -746,7 +746,7 @@ static int SSHParserTest12(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER, sshbuf1, sshlen1);
@@ -784,7 +784,7 @@ static int SSHParserTest12(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -1456,7 +1456,7 @@ static int SSHParserTest23(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -1469,7 +1469,7 @@ static int SSHParserTest23(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -1490,7 +1490,7 @@ static int SSHParserTest24(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -1516,7 +1516,7 @@ static int SSHParserTest24(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -1537,7 +1537,7 @@ static int SSHParserTest25(void)
     f.protoctx = (void *)&ssn;
     f.alproto = ALPROTO_SSH;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
@@ -1552,7 +1552,7 @@ static int SSHParserTest25(void)
     FAIL_IF (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
 }

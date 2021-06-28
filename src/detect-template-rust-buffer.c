@@ -61,7 +61,7 @@ void DetectTemplateRustBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].name =
         "template_rust_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].desc =
-        "Template content modififier to match on the template buffers";
+            "Template content modifier to match on the template buffers";
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].Setup =
         DetectTemplateRustBufferSetup;
 #ifdef UNITTESTS
@@ -152,7 +152,7 @@ static int DetectTemplateRustBufferTest(void)
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -197,7 +197,7 @@ static int DetectTemplateRustBufferTest(void)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 

@@ -391,7 +391,7 @@ static int PrefilterSetupPacketHeaderCommon(DetectEngineCtx *de_ctx,
         }
     }
 
-    if (u8hash == FALSE) {
+    if (!u8hash) {
         SetupSingle(de_ctx, hash_table, sgh, sm_type, Compare, Match);
     } else {
         SetupU8Hash(de_ctx, hash_table, sgh, sm_type, Set, Compare, Match);
@@ -411,8 +411,7 @@ int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
         void (*Match)(DetectEngineThreadCtx *det_ctx,
                       Packet *p, const void *pectx))
 {
-    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type,
-            Set, Compare, Match, TRUE);
+    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type, Set, Compare, Match, true);
 }
 
 int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
@@ -422,6 +421,5 @@ int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
         void (*Match)(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx))
 {
-    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type,
-            Set, Compare, Match, FALSE);
+    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type, Set, Compare, Match, false);
 }

@@ -215,7 +215,7 @@ static int LuaGetFlowvar(lua_State *luastate)
         return ret;
 
     if (lua_isnumber(luastate, 1)) {
-        ret = GetFlowVarById(luastate, f, &fv, FALSE, NULL);
+        ret = GetFlowVarById(luastate, f, &fv, false, NULL);
         if (ret != 0 || fv == NULL)
             return ret;
     } else if (lua_isstring(luastate, 1)) {
@@ -246,7 +246,7 @@ static int LuaSetFlowvarById(lua_State *luastate)
     if (ret != 0)
         return ret;
 
-    ret = GetFlowVarById(luastate, f, &fv, TRUE, &idx);
+    ret = GetFlowVarById(luastate, f, &fv, true, &idx);
     if (ret != 0)
         return ret;
 
@@ -359,7 +359,7 @@ static int LuaGetFlowint(lua_State *luastate)
     if (ret != 0)
         return ret;
 
-    ret = GetFlowIntById(luastate, f, &fv, FALSE, NULL);
+    ret = GetFlowIntById(luastate, f, &fv, false, NULL);
     if (ret != 0)
         return ret;
 
@@ -429,7 +429,7 @@ static int LuaIncrFlowint(lua_State *luastate)
     if (ret != 0)
         return ret;
 
-    ret = GetFlowIntById(luastate, f, &fv, TRUE, &idx);
+    ret = GetFlowIntById(luastate, f, &fv, true, &idx);
     if (ret != 0)
         return ret;
 
@@ -461,7 +461,7 @@ static int LuaDecrFlowint(lua_State *luastate)
     if (ret != 0)
         return ret;
 
-    ret = GetFlowIntById(luastate, f, &fv, TRUE, &idx);
+    ret = GetFlowIntById(luastate, f, &fv, true, &idx);
     if (ret != 0)
         return ret;
 

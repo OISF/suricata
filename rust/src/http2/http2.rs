@@ -131,7 +131,8 @@ pub struct HTTP2Transaction {
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
-    ft: FileTransferTracker,
+    ft_tc: FileTransferTracker,
+    ft_ts: FileTransferTracker,
 
     //temporary escaped header for detection
     //must be attached to transaction for memory management (be freed at the right time)
@@ -151,7 +152,8 @@ impl HTTP2Transaction {
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-            ft: FileTransferTracker::new(),
+            ft_tc: FileTransferTracker::new(),
+            ft_ts: FileTransferTracker::new(),
             escaped: Vec::with_capacity(16),
         }
     }
@@ -180,18 +182,33 @@ impl HTTP2Transaction {
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
         let xid: u32 = self.tx_id as u32;
-        self.ft.new_chunk(
-            sfcm,
-            files,
-            flags,
-            b"",
-            decompressed,
-            self.ft.tracked, //offset = append
-            decompressed.len() as u32,
-            0,
-            over,
-            &xid,
-        );
+        if dir == STREAM_TOCLIENT {
+            self.ft_tc.new_chunk(
+                sfcm,
+                files,
+                flags,
+                b"",
+                decompressed,
+                self.ft_tc.tracked, //offset = append
+                decompressed.len() as u32,
+                0,
+                over,
+                &xid,
+            );
+        } else {
+            self.ft_ts.new_chunk(
+                sfcm,
+                files,
+                flags,
+                b"",
+                decompressed,
+                self.ft_ts.tracked, //offset = append
+                decompressed.len() as u32,
+                0,
+                over,
+                &xid,
+            );
+        };
         return Ok(());
     }
 
@@ -807,7 +824,11 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let mut tx_same = &mut self.transactions[index - 1];
-                                    tx_same.ft.tx_id = tx_same.tx_id - 1;
+                                    if dir == STREAM_TOCLIENT {
+                                        tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
+                                    } else {
+                                        tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
+                                    }
                                     let (files, flags) = self.files.get(dir);
                                     match tx_same.decompress(
                                         &rem[..hlsafe],

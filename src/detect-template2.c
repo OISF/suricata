@@ -281,7 +281,7 @@ error:
 }
 
 /**
- * \brief this function is used to atemplate2d the parsed template2 data into the current signature
+ * \brief this function is used to add the parsed template2 data into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -345,7 +345,7 @@ PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const v
     /* during setup Suricata will automatically see if there is another
      * check that can be added: alproto, sport or dport */
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     /* if we match, add all the sigs that use this prefilter. This means
@@ -373,8 +373,8 @@ PrefilterPacketTemplate2Compare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == a->mode &&
         v.u8[1] == a->arg1 &&
         v.u8[2] == a->arg2)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -391,10 +391,10 @@ static bool PrefilterTemplate2IsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_TEMPLATE2:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

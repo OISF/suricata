@@ -132,7 +132,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                             memcpy(&values, tcp_opts[tcp_opt_cnt].data, sizeof(values));
                             p->tcpvars.ts_val = SCNtohl(values[0]);
                             p->tcpvars.ts_ecr = SCNtohl(values[1]);
-                            p->tcpvars.ts_set = TRUE;
+                            p->tcpvars.ts_set = true;
                         }
                     }
                     break;

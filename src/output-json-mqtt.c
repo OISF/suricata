@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,14 +50,14 @@
 #define MQTT_DEFAULTS (MQTT_LOG_PASSWORDS)
 
 typedef struct LogMQTTFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCtx *eve_ctx;
 } LogMQTTFileCtx;
 
 typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
     uint32_t        count;
-    MemBuffer      *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
 bool JsonMQTTAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -85,7 +85,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         dir = LOG_DIR_FLOW_TOSERVER;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, dir, "mqtt", NULL);
+    JsonBuilder *js = CreateEveHeader(p, dir, "mqtt", NULL, thread->mqttlog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -93,8 +93,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     if (!rs_mqtt_logger_log(state, tx, thread->mqttlog_ctx->flags, js))
         goto error;
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->mqttlog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -135,7 +134,7 @@ static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
     if (unlikely(mqttlog_ctx == NULL)) {
         return result;
     }
-    mqttlog_ctx->file_ctx = ajt->file_ctx;
+    mqttlog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -167,13 +166,13 @@ static TmEcode JsonMQTTLogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
+    thread->mqttlog_ctx = ((OutputCtx *)initdata)->data;
+    thread->ctx = CreateEveThreadCtx(t, thread->mqttlog_ctx->eve_ctx);
+    if (unlikely(thread->ctx == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;
     }
 
-    thread->mqttlog_ctx = ((OutputCtx *)initdata)->data;
     *data = (void *)thread;
 
     return TM_ECODE_OK;
@@ -185,9 +184,7 @@ static TmEcode JsonMQTTLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

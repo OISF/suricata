@@ -179,16 +179,16 @@ static bool DetectTlsJa3HashValidateCallback(const Signature *s,
         }
 
         if (cd->content_len == 32)
-            return TRUE;
+            return true;
 
         *sigerror = "Invalid length of the specified JA3 hash (should "
                     "be 32 characters long). This rule will therefore "
                     "never match.";
         SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
@@ -202,13 +202,13 @@ static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        bool changed = FALSE;
+        bool changed = false;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {
             if (isupper(cd->content[u])) {
                 cd->content[u] = tolower(cd->content[u]);
-                changed = TRUE;
+                changed = true;
             }
         }
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,14 +54,13 @@
 #define LOG_IKE_EXTENDED (1 << 0)
 
 typedef struct LogIKEFileCtx_ {
-    LogFileCtx *file_ctx;
     uint32_t flags;
+    OutputJsonCtx *eve_ctx;
 } LogIKEFileCtx;
 
 typedef struct LogIKELogThread_ {
-    LogFileCtx *file_ctx;
     LogIKEFileCtx *ikelog_ctx;
-    MemBuffer *buffer;
+    OutputJsonThreadCtx *ctx;
 } LogIKELogThread;
 
 bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -81,7 +80,8 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         void *tx, uint64_t tx_id)
 {
     LogIKELogThread *thread = thread_data;
-    JsonBuilder *jb = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL);
+    JsonBuilder *jb =
+            CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL, thread->ikelog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -91,8 +91,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         goto error;
     }
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(jb, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(jb, thread->ctx);
 
     jb_free(jb);
     return TM_ECODE_OK;
@@ -118,7 +117,7 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
     if (unlikely(ikelog_ctx == NULL)) {
         return result;
     }
-    ikelog_ctx->file_ctx = ajt->file_ctx;
+    ikelog_ctx->eve_ctx = ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -156,14 +155,9 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
         goto error_exit;
     }
 
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
     thread->ikelog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->ikelog_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
+    thread->ctx = CreateEveThreadCtx(t, thread->ikelog_ctx->eve_ctx);
+    if (!thread->ctx) {
         goto error_exit;
     }
 
@@ -171,9 +165,6 @@ static TmEcode JsonIKELogThreadInit(ThreadVars *t, const void *initdata, void **
     return TM_ECODE_OK;
 
 error_exit:
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
     SCFree(thread);
     return TM_ECODE_FAILED;
 }
@@ -184,9 +175,7 @@ static TmEcode JsonIKELogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
 }

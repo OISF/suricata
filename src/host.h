@@ -133,7 +133,7 @@ SC_ATOMIC_EXTERN(uint64_t,host_memuse);
 SC_ATOMIC_EXTERN(uint32_t,host_counter);
 SC_ATOMIC_EXTERN(uint32_t,host_prune_idx);
 
-void HostInitConfig(char quiet);
+void HostInitConfig(bool quiet);
 void HostShutdown(void);
 void HostCleanup(void);
 

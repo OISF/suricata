@@ -77,7 +77,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
     uint16_t seqn;
 
     if (PKT_IS_PSEUDOPKT(p))
-        return FALSE;
+        return false;
 
     if (PKT_IS_ICMPV4(p)) {
         switch (ICMPV4_GET_TYPE(p)){
@@ -97,7 +97,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
                 break;
             default:
                 SCLogDebug("Packet has no seq field");
-                return FALSE;
+                return false;
         }
     } else if (PKT_IS_ICMPV6(p)) {
 
@@ -112,15 +112,15 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
                 break;
             default:
                 SCLogDebug("Packet has no seq field");
-                return FALSE;
+                return false;
         }
     } else {
         SCLogDebug("Packet not ICMPV4 nor ICMPV6");
-        return FALSE;
+        return false;
     }
 
     *seq = seqn;
-    return TRUE;
+    return true;
 }
 
 /**
@@ -139,7 +139,7 @@ static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 {
     uint16_t seqn;
 
-    if (GetIcmpSeq(p, &seqn) == FALSE)
+    if (!GetIcmpSeq(p, &seqn))
         return 0;
 
     const DetectIcmpSeqData *iseq = (const DetectIcmpSeqData *)ctx;
@@ -278,7 +278,7 @@ PrefilterPacketIcmpSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const voi
 
     uint16_t seqn;
 
-    if (GetIcmpSeq(p, &seqn) == FALSE)
+    if (!GetIcmpSeq(p, &seqn))
         return;
 
     if (seqn == ctx->v1.u16[0])
@@ -300,8 +300,8 @@ PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpSeqData *a = smctx;
     if (v.u16[0] == a->seq)
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -318,10 +318,10 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_SEQ:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

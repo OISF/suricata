@@ -1021,7 +1021,7 @@ static int DetectCsumICMPV6Test01(void)
     memset(&tv, 0, sizeof(tv));
     memset(&dtv, 0, sizeof(dtv));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     FlowInitConfig(FLOW_QUIET);
 
     de_ctx = DetectEngineCtxInit();
@@ -1045,7 +1045,7 @@ static int DetectCsumICMPV6Test01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);

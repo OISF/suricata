@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,16 +47,13 @@
 
 
 typedef struct LogDHCPFileCtx_ {
-    LogFileCtx *file_ctx;
-    uint32_t    flags;
     void       *rs_logger;
-    OutputJsonCommonSettings cfg;
+    OutputJsonCtx *eve_ctx;
 } LogDHCPFileCtx;
 
 typedef struct LogDHCPLogThread_ {
     LogDHCPFileCtx *dhcplog_ctx;
-    MemBuffer      *buffer;
-    LogFileCtx *file_ctx;
+    OutputJsonThreadCtx *thread;
 } LogDHCPLogThread;
 
 static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
@@ -69,17 +66,14 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL);
+    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL, ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->dhcplog_ctx->cfg, p, f, js);
-
     rs_dhcp_logger_log(ctx->rs_logger, tx, js);
 
-    MemBufferReset(thread->buffer);
-    OutputJsonBuilderBuffer(js, thread->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->thread);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -97,14 +91,12 @@ static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
-    OutputJsonCtx *ajt = parent_ctx->data;
 
     LogDHCPFileCtx *dhcplog_ctx = SCCalloc(1, sizeof(*dhcplog_ctx));
     if (unlikely(dhcplog_ctx == NULL)) {
         return result;
     }
-    dhcplog_ctx->file_ctx = ajt->file_ctx;
-    dhcplog_ctx->cfg = ajt->cfg;
+    dhcplog_ctx->eve_ctx = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
@@ -123,39 +115,22 @@ static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
     return result;
 }
 
-
 static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDHCPLogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {
         return TM_ECODE_FAILED;
     }
-
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogDHCP.  \"initdata\" is NULL.");
-        goto error_exit;
-    }
-
-    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        goto error_exit;
-    }
-
-    thread->dhcplog_ctx = ((OutputCtx *)initdata)->data;
-    thread->file_ctx = LogFileEnsureExists(thread->dhcplog_ctx->file_ctx, t->id);
-    if (!thread->file_ctx) {
-        goto error_exit;
+    LogDHCPFileCtx *ctx = ((OutputCtx *)initdata)->data;
+    thread->dhcplog_ctx = ctx;
+    thread->thread = CreateEveThreadCtx(t, ctx->eve_ctx);
+    if (thread->thread == NULL) {
+        SCFree(thread);
+        return TM_ECODE_FAILED;
     }
 
     *data = (void *)thread;
     return TM_ECODE_OK;
-
-error_exit:
-    if (unlikely(thread->buffer != NULL)) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
-    return TM_ECODE_FAILED;
 }
 
 static TmEcode JsonDHCPLogThreadDeinit(ThreadVars *t, void *data)
@@ -164,9 +139,7 @@ static TmEcode JsonDHCPLogThreadDeinit(ThreadVars *t, void *data)
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
+    FreeEveThreadCtx(thread->thread);
     SCFree(thread);
     return TM_ECODE_OK;
 }

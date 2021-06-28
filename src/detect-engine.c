@@ -798,7 +798,7 @@ void DetectBufferTypeSupportsPacket(const char *name)
     DetectBufferTypeRegister(name);
     DetectBufferType *exists = DetectBufferTypeLookupByName(name);
     BUG_ON(!exists);
-    exists->packet = TRUE;
+    exists->packet = true;
     SCLogDebug("%p %s -- %d supports packet inspection", exists, name, exists->id);
 }
 
@@ -808,7 +808,7 @@ void DetectBufferTypeSupportsMpm(const char *name)
     DetectBufferTypeRegister(name);
     DetectBufferType *exists = DetectBufferTypeLookupByName(name);
     BUG_ON(!exists);
-    exists->mpm = TRUE;
+    exists->mpm = true;
     SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
 }
 
@@ -881,7 +881,7 @@ bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const 
 {
     const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
-        return FALSE;
+        return false;
     SCLogDebug("map %p id %d packet? %d", map, id, map->packet);
     return map->packet;
 }
@@ -890,7 +890,7 @@ bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int
 {
     const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
-        return FALSE;
+        return false;
     SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
     return map->mpm;
 }
@@ -931,7 +931,7 @@ bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx,
     if (map && map->ValidateCallback) {
         return map->ValidateCallback(s, sigerror);
     }
-    return TRUE;
+    return true;
 }
 
 int DetectBufferSetActiveList(Signature *s, const int list)

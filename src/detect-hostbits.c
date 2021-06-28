@@ -454,7 +454,7 @@ static void HostBitsTestSetup(void)
     StorageInit();
     HostBitInitCtx();
     StorageFinalize();
-    HostInitConfig(TRUE);
+    HostInitConfig(true);
 }
 
 static void HostBitsTestShutdown(void)

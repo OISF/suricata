@@ -437,13 +437,10 @@ typedef enum {
     LOGGER_UNDEFINED,
 
     /* TX loggers first for low logger IDs */
-    LOGGER_DNS_TS,
-    LOGGER_DNS_TC,
     LOGGER_HTTP,
     LOGGER_TLS_STORE,
     LOGGER_TLS,
-    LOGGER_JSON_DNS_TS,
-    LOGGER_JSON_DNS_TC,
+    LOGGER_JSON_DNS,
     LOGGER_JSON_HTTP,
     LOGGER_JSON_SMTP,
     LOGGER_JSON_TLS,
@@ -456,6 +453,7 @@ typedef enum {
     LOGGER_JSON_SMB,
     LOGGER_JSON_IKE,
     LOGGER_JSON_KRB5,
+    LOGGER_JSON_MODBUS,
     LOGGER_JSON_DHCP,
     LOGGER_JSON_SNMP,
     LOGGER_JSON_SIP,
@@ -467,11 +465,14 @@ typedef enum {
     LOGGER_JSON_DCERPC,
     LOGGER_JSON_HTTP2,
 
+    /** \warning when we exceed what we can express as a u32 flag here we need to update
+     *           LoggerFlags::flags (u32) and `tx_logged` in src/output-tx.c */
+
+    /* non-tx loggers below */
+
     LOGGER_ALERT_DEBUG,
     LOGGER_ALERT_FAST,
-    LOGGER_UNIFIED2,
     LOGGER_ALERT_SYSLOG,
-    LOGGER_DROP,
     LOGGER_JSON_ALERT,
     LOGGER_JSON_ANOMALY,
     LOGGER_JSON_DROP,

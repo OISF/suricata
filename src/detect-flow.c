@@ -431,7 +431,7 @@ PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     if (FlowMatch(p->flags, p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
@@ -455,9 +455,9 @@ PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
     if (v.u8[0] == fb->flags &&
         v.u8[1] == fb->match_cnt)
     {
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
@@ -474,10 +474,10 @@ static bool PrefilterFlowIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLOW:
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 #ifdef UNITTESTS

@@ -41,29 +41,59 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
+OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx)
+{
+    OutputJsonThreadCtx *thread = SCCalloc(1, sizeof(*thread));
+    if (unlikely(thread == NULL)) {
+        return NULL;
+    }
+
+    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
+    if (unlikely(thread->buffer == NULL)) {
+        goto error;
+    }
+
+    thread->file_ctx = LogFileEnsureExists(ctx->file_ctx, t->id);
+    if (!thread->file_ctx) {
+        goto error;
+    }
+
+    thread->ctx = ctx;
+
+    return thread;
+
+error:
+    if (thread->buffer) {
+        MemBufferFree(thread->buffer);
+    }
+    SCFree(thread);
+    return NULL;
+}
+
+void FreeEveThreadCtx(OutputJsonThreadCtx *ctx)
+{
+    if (ctx != NULL && ctx->buffer != NULL) {
+        MemBufferFree(ctx->buffer);
+    }
+    if (ctx != NULL) {
+        SCFree(ctx);
+    }
+}
+
 static void OutputJsonLogDeInitCtxSub(OutputCtx *output_ctx)
 {
-    SCFree(output_ctx->data);
     SCFree(output_ctx);
 }
 
 OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
-    OutputJsonCtx *ajt = parent_ctx->data;
-
-    OutputJsonCtx *log_ctx = SCCalloc(1, sizeof(*log_ctx));
-    if (unlikely(log_ctx == NULL)) {
-        return result;
-    }
-    *log_ctx = *ajt;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
-        SCFree(log_ctx);
         return result;
     }
-    output_ctx->data = log_ctx;
+    output_ctx->data = parent_ctx->data;
     output_ctx->DeInit = OutputJsonLogDeInitCtxSub;
 
     result.ctx = output_ctx;
@@ -89,7 +119,6 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     }
 
     thread->ctx = ((OutputCtx *)initdata)->data;
-    LogFileEnsureExists(thread->ctx->file_ctx, t->id);
     thread->file_ctx = LogFileEnsureExists(thread->ctx->file_ctx, t->id);
     if (!thread->file_ctx) {
         goto error_exit;
@@ -109,12 +138,6 @@ error_exit:
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data)
 {
     OutputJsonThreadCtx *thread = (OutputJsonThreadCtx *)data;
-    if (thread == NULL) {
-        return TM_ECODE_OK;
-    }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
+    FreeEveThreadCtx(thread);
     return TM_ECODE_OK;
 }

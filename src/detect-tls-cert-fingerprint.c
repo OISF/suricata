@@ -163,25 +163,25 @@ static bool DetectTlsFingerprintValidateCallback(const Signature *s,
             *sigerror = "Invalid length of the specified fingerprint. "
                         "This rule will therefore never match.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
-            return FALSE;
+            return false;
         }
 
-        bool have_delimiters = FALSE;
+        bool have_delimiters = false;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {
             if (cd->content[u] == ':') {
-                have_delimiters = TRUE;
+                have_delimiters = true;
                 break;
             }
         }
 
-        if (have_delimiters == FALSE) {
+        if (!have_delimiters) {
             *sigerror = "No colon delimiters ':' detected in content after "
                         "tls.cert_fingerprint. This rule will therefore "
                         "never match.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
-            return FALSE;
+            return false;
         }
 
         if (cd->flags & DETECT_CONTENT_NOCASE) {
@@ -192,7 +192,7 @@ static bool DetectTlsFingerprintValidateCallback(const Signature *s,
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
@@ -206,13 +206,13 @@ static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        bool changed = FALSE;
+        bool changed = false;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {
             if (isupper(cd->content[u])) {
                 cd->content[u] = tolower(cd->content[u]);
-                changed = TRUE;
+                changed = true;
             }
         }
 

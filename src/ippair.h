@@ -130,7 +130,7 @@ SC_ATOMIC_EXTERN(uint64_t,ippair_memuse);
 SC_ATOMIC_EXTERN(uint32_t,ippair_counter);
 SC_ATOMIC_EXTERN(uint32_t,ippair_prune_idx);
 
-void IPPairInitConfig(char quiet);
+void IPPairInitConfig(bool quiet);
 void IPPairShutdown(void);
 void IPPairCleanup(void);
 

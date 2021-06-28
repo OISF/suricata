@@ -1931,7 +1931,7 @@ static int SMTPParserTest01(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -2035,7 +2035,7 @@ static int SMTPParserTest01(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -2286,7 +2286,7 @@ static int SMTPParserTest02(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -2819,7 +2819,7 @@ static int SMTPParserTest02(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -2925,7 +2925,7 @@ static int SMTPParserTest03(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3031,7 +3031,7 @@ static int SMTPParserTest03(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3078,7 +3078,7 @@ static int SMTPParserTest04(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3125,7 +3125,7 @@ static int SMTPParserTest04(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3227,7 +3227,7 @@ static int SMTPParserTest05(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3373,7 +3373,7 @@ static int SMTPParserTest05(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3528,7 +3528,7 @@ static int SMTPParserTest06(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3722,7 +3722,7 @@ static int SMTPParserTest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3768,7 +3768,7 @@ static int SMTPParserTest07(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3837,7 +3837,7 @@ static int SMTPParserTest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3883,7 +3883,7 @@ static int SMTPParserTest08(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -3952,7 +3952,7 @@ static int SMTPParserTest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -3998,7 +3998,7 @@ static int SMTPParserTest09(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -4067,7 +4067,7 @@ static int SMTPParserTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -4113,7 +4113,7 @@ static int SMTPParserTest10(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -4182,7 +4182,7 @@ static int SMTPParserTest10(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -4222,7 +4222,7 @@ static int SMTPParserTest11(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -4272,7 +4272,7 @@ static int SMTPParserTest11(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -4322,7 +4322,7 @@ static int SMTPParserTest12(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     de_ctx = DetectEngineCtxInit();
@@ -4396,7 +4396,7 @@ end:
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -4465,7 +4465,7 @@ static int SMTPParserTest13(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     de_ctx = DetectEngineCtxInit();
@@ -4557,7 +4557,7 @@ end:
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
     return result;
@@ -4744,7 +4744,7 @@ static int SMTPParserTest14(void)
     f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SMTP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
     FLOWLOCK_WRLOCK(&f);
@@ -5083,7 +5083,7 @@ static int SMTPParserTest14(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     return result;
 }

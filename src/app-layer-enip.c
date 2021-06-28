@@ -617,7 +617,7 @@ static int ALDecodeENIPTest(void)
     f.proto     = IPPROTO_TCP;
     f.alproto   = ALPROTO_ENIP;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
             listIdentity, sizeof(listIdentity));
@@ -632,7 +632,7 @@ static int ALDecodeENIPTest(void)
     FAIL_IF(tx->header.command != 99);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
 
     PASS;

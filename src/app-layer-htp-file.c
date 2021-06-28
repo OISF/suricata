@@ -384,7 +384,7 @@ static int HTPFileParserTest01(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -406,7 +406,7 @@ static int HTPFileParserTest01(void)
     FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -448,7 +448,7 @@ static int HTPFileParserTest02(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -482,7 +482,7 @@ static int HTPFileParserTest02(void)
     FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -529,7 +529,7 @@ static int HTPFileParserTest03(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -577,7 +577,7 @@ static int HTPFileParserTest03(void)
     FAIL_IF(FileDataSize(http_state->files_ts->head) != 11);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -624,7 +624,7 @@ static int HTPFileParserTest04(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -671,7 +671,7 @@ static int HTPFileParserTest04(void)
     FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -709,7 +709,7 @@ static int HTPFileParserTest05(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     int r = AppLayerParserParse(
@@ -744,7 +744,7 @@ static int HTPFileParserTest05(void)
     FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
                 (uint8_t *)"FILECONTENT", 11) != 1);
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -783,7 +783,7 @@ static int HTPFileParserTest06(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     int r = AppLayerParserParse(
@@ -819,7 +819,7 @@ static int HTPFileParserTest06(void)
                 (uint8_t *)"FILECONTENT", 11) != 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -847,7 +847,7 @@ static int HTPFileParserTest07(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     int r = AppLayerParserParse(
@@ -875,7 +875,7 @@ static int HTPFileParserTest07(void)
                 (uint8_t *)"FILECONTENT", 11) != 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -907,7 +907,7 @@ static int HTPFileParserTest08(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -932,7 +932,7 @@ static int HTPFileParserTest08(void)
     FAIL_IF(decoder_events->cnt != 2);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -975,7 +975,7 @@ static int HTPFileParserTest09(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -1010,7 +1010,7 @@ static int HTPFileParserTest09(void)
     FAIL_IF(decoder_events->cnt != 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -1051,7 +1051,7 @@ static int HTPFileParserTest10(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -1083,7 +1083,7 @@ static int HTPFileParserTest10(void)
     FAIL_IF_NOT_NULL(decoder_events);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }
@@ -1152,7 +1152,7 @@ static int HTPFileParserTest11(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(true);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     int r = AppLayerParserParse(
@@ -1196,7 +1196,7 @@ static int HTPFileParserTest11(void)
                 (uint8_t *)"FILECONTENT", 11) != 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
 }

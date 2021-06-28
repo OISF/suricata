@@ -1679,7 +1679,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
-        if (DetectContentPMATCHValidateCallback(s) == FALSE)
+        if (!DetectContentPMATCHValidateCallback(s))
             SCReturnInt(0);
     }
 
@@ -1705,7 +1705,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 }
             }
 
-            if (DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror) == FALSE) {
+            if (!DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror)) {
                 SCReturnInt(0);
             }
         }
