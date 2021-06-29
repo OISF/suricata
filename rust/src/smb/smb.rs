@@ -1824,8 +1824,13 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    rs_smb_setfileflags(STREAM_TOSERVER, state, file_flags|FILE_USE_DETECT);
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
+    if input.is_null() && input_len > 0 {
+        return rs_smb_parse_request_tcp_gap(state, input_len);
+    }
     /* START with MISTREAM set: record might be starting the middle. */
     if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
         state.ts_gap = true;
@@ -1857,6 +1862,12 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
 {
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
+    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    rs_smb_setfileflags(STREAM_TOCLIENT, state, file_flags|FILE_USE_DETECT);
+
+    if input.is_null() && input_len > 0 {
+        return rs_smb_parse_response_tcp_gap(state, input_len);
+    }
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
@@ -1948,6 +1959,9 @@ pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
+    if len < MIN_REC_SIZE as u32 {
+        return ALPROTO_UNKNOWN;
+    }
     let slice = build_slice!(input, len as usize);
     if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
         if smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
