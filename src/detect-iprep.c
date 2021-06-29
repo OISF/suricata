@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2020 Open Information Security Foundation
+/* Copyright (C) 2012-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -447,15 +447,15 @@ static int DetectIPRepTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     de_ctx->flags |= DE_QUIET;
@@ -465,20 +465,15 @@ static int DetectIPRepTest01(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1;rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:any,BadHosts,>,1; sid:1;rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -486,21 +481,17 @@ static int DetectIPRepTest01(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
 
-    result = 1;
-end:
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    PASS;
 }
 
 static int DetectIPRepTest02(void)
@@ -509,15 +500,15 @@ static int DetectIPRepTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     de_ctx->flags |= DE_QUIET;
@@ -527,20 +518,15 @@ static int DetectIPRepTest02(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:src,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:src,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -548,21 +534,16 @@ static int DetectIPRepTest02(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    PASS;
 }
 
 static int DetectIPRepTest03(void)
@@ -571,15 +552,15 @@ static int DetectIPRepTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
     de_ctx->flags |= DE_QUIET;
@@ -589,20 +570,15 @@ static int DetectIPRepTest03(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:dst,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:dst,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -610,21 +586,16 @@ static int DetectIPRepTest03(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    PASS;
 }
 
 static int DetectIPRepTest04(void)
@@ -633,15 +604,15 @@ static int DetectIPRepTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
@@ -652,20 +623,15 @@ static int DetectIPRepTest04(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:both,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:both,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -673,21 +639,16 @@ static int DetectIPRepTest04(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    PASS;
 }
 
 static int DetectIPRepTest05(void)
@@ -696,15 +657,15 @@ static int DetectIPRepTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     de_ctx->flags |= DE_QUIET;
@@ -714,20 +675,15 @@ static int DetectIPRepTest05(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -735,21 +691,16 @@ static int DetectIPRepTest05(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 0);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result == 0;
+    PASS;
 }
 
 static int DetectIPRepTest06(void)
@@ -758,15 +709,15 @@ static int DetectIPRepTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     de_ctx->flags |= DE_QUIET;
@@ -776,20 +727,15 @@ static int DetectIPRepTest06(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    fd = DetectIPRepGenerateNetworksDummy();
+    fd = DetectIPRepGenerateNetworksDummy2();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -797,21 +743,16 @@ static int DetectIPRepTest06(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result == 0;
+    PASS;
 }
 
 static int DetectIPRepTest07(void)
@@ -820,15 +761,15 @@ static int DetectIPRepTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.0.0.2");
     de_ctx->flags |= DE_QUIET;
@@ -838,20 +779,15 @@ static int DetectIPRepTest07(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    fd = DetectIPRepGenerateNetworksDummy();
+    fd = DetectIPRepGenerateNetworksDummy2();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -859,21 +795,16 @@ static int DetectIPRepTest07(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result == 0;
+    PASS;
 }
 
 static int DetectIPRepTest08(void)
@@ -882,15 +813,15 @@ static int DetectIPRepTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.0.0.2");
@@ -901,20 +832,15 @@ static int DetectIPRepTest08(void)
 
     fd = DetectIPRepGenerateCategoriesDummy();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value "
+                                        "badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -922,21 +848,16 @@ static int DetectIPRepTest08(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 0);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result == 0;
+    PASS;
 }
 
 static int DetectIPRepTest09(void)
@@ -945,15 +866,15 @@ static int DetectIPRepTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     Signature *sig = NULL;
     FILE *fd = NULL;
-    int result = 0, r = 0;
+    int r = 0;
     Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
 
-    if (de_ctx == NULL || p == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
 
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("192.168.0.2");
@@ -964,20 +885,15 @@ static int DetectIPRepTest09(void)
 
     fd = DetectIPRepGenerateCategoriesDummy2();
     r = SRepLoadCatFileFromFD(fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     fd = DetectIPRepGenerateNetworksDummy2();
     r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
-    if (r < 0) {
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"test\"; iprep:src,BadHosts,>,9; sid:1; rev:1;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"test\"; iprep:src,BadHosts,>,9; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -985,21 +901,16 @@ static int DetectIPRepTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        goto end;
-    }
+    FAIL_IF(p->alerts.cnt != 1);
+    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
 
-    result = 1;
-end:
     UTHFreePacket(p);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    PASS;
 }
 
 /**
