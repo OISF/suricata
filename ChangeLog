@@ -1,3 +1,22 @@
+5.0.7 -- 2021-06-30
+
+Security #4454: Buffer overread in SMTP SMTPParseCommandBDAT
+Security #4485: heap-buffer-overflow WRITE in InspectionBufferSetup with use of InspectionBufferGetMulti
+Security #4486: Infinite loops in when using InspectionBufferMultipleForList
+Security #4513: Evasion possibility on wrong/unexpected ACK value in crafted SYN packets
+Bug #4410: eve.drop: alerts option logs lowest priority alert
+Bug #4412: segv in ApplyToU8Hash
+Bug #4414: threshold: slow startup on threshold.config with many addresses in suppression
+Bug #4418: detect: "drop" on protocol detect only rule doesn't drop flow
+Bug #4422: Applayer Mismatch protocol both directions for kerberos AS-REQ/KDC_ERR_PREAUTH_REQUIRED exchange
+Bug #4449: Properly set the ICMP emergency-bypassed value
+Bug #4451: ipv6 & ftp & passive mode & error
+Bug #4464: ftp: "g_expectation_data_id" and "g_expectation_id" in AppLayerExpectationHandle function
+Bug #4469: SC_ERROR_CONF_YAML_ERROR anomaly logger error when in socket mode
+Bug #4488: Timeout in ftp parsing rs_ftp_active_eprt
+Bug #4543: modbus: Memory leak in signature parsing with pcre
+Bug #4546: SWF decompression overread
+
 5.0.6 -- 2021-03-02
 
 Bug #4230: tcp/async: incorrect flagging of ACK values as invalid
