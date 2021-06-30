@@ -1,3 +1,40 @@
+6.0.3 -- 2021-06-30
+
+Security #4420: Heap-use-after-free READ 8 · JsonDNP3LoggerToClient
+Security #4455: Buffer overread in SMTP SMTPParseCommandBDAT
+Security #4458: Rust panic in suricata::dcerpc::detect::handle_input_data (buffer overread)
+Security #4483: heap-buffer-overflow WRITE in InspectionBufferSetup with use of InspectionBufferGetMulti
+Security #4512: Evasion possibility on wrong/unexpected ACK value in crafted SYN packets
+Feature #4489: decode: add VNTAG decoder (6.0.x)
+Feature #4501: http2: body compression handling (6.0.x)
+Bug #4405: 6.0.x: eve/mqtt: mqtt logging crashes when eve is multithreaded
+Bug #4411: eve.drop: alerts option logs lowest priority alert
+Bug #4413: segv in ApplyToU8Hash
+Bug #4415: threshold: slow startup on threshold.config with many addresses in suppression
+Bug #4416: apparent 1000 character limit in threshold.conf IP lists
+Bug #4417: Panic in Rust HTTP2 dynamic headers table eviction
+Bug #4419: detect: "drop" on protocol detect only rule doesn't drop flow
+Bug #4423: Applayer Mismatch protocol both directions for kerberos AS-REQ/KDC_ERR_PREAUTH_REQUIRED exchange
+Bug #4441: 6.0.x: dns: high resource usage on long lived dns connections
+Bug #4443: 6.0.x: build: Build failure on FreeBSD
+Bug #4450: Properly set the ICMP emergency-bypassed value
+Bug #4452: ipv6 & ftp & passive mode & error
+Bug #4453: Null-dereference in HTTP2MimicHttp1Request in midstream
+Bug #4459: threaded eve: files not closed on deinitialization
+Bug #4461: ftp: Memory leak with duplicate FTP expectation
+Bug #4463: Incorrect AppLayerResult::incomplete for RDP
+Bug #4465: ftp: "g_expectation_data_id" and "g_expectation_id" in AppLayerExpectationHandle function
+Bug #4470: SC_ERROR_CONF_YAML_ERROR anomaly logger error when in socket mode
+Bug #4471: Duplicate alert record in eve log when using unix-socket mode
+Bug #4484: Infinite loops in when using InspectionBufferMultipleForList
+Bug #4487: Timeout in ftp parsing rs_ftp_active_eprt
+Bug #4510: Incorrect flags in Rust
+Bug #4518: Buffer overflow in "by_rule" threshold context
+Bug #4531: segv with --set cmdline option if incorrect key is provided
+Bug #4535: Timeout in ikev2 parsing
+Bug #4538: modbus: Memory leak in signature parsing with pcre
+Bug #4545: SWF decompression overread
+
 6.0.2 -- 2021-03-02
 
 Bug #4209: Suricata crashes with multi-threaded eve logger and HTTP/2 traffic
