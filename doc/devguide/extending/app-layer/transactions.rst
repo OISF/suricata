@@ -114,12 +114,14 @@ The engine interacts with transactions state using a set of callbacks the parser
 In Summary - Transactions and State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Initial state value: ``0``
+- Initial state value: ``0``.
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
 - Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SMB).
 
 _`Examples`
 ===========
+
+This section shares some examples from Suricata codebase, to help visualize how Transactions work and are handled by the engine.
 
 Enums
 ~~~~~
@@ -144,7 +146,6 @@ From src/app-layer-ftp.h:
         FTP_STATE_PORT_DONE,
         FTP_STATE_FINISHED,
     };
-
 
 API Callbacks
 ~~~~~~~~~~~~~
@@ -219,13 +220,66 @@ An HTTP2 transaction is an example of a bidirectional transaction, in Suricata:
 
 .. image:: img/HTTP2BidirectionalTransaction.png
   :width: 600
-  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Clientto the Server labeled "Request" and below that an arrow going from Server to Client labeled "Response". Below those arrows, a dotted line indicates that the transaction is completed.
+  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server labeled "Request" and below that an arrow going from Server to Client labeled "Response". Below those arrows, a dotted line indicates that the transaction is completed.
 
 A TLS Handshake is a more complex example, where several messages are exchanged before the transaction is considered completed:
 
 .. image:: img/TlsHandshake.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server labeled "ClientHello" and below that an arrow going from Server to Client labeled "ServerHello". Below those arrows, several more follow from Server to Client and vice-versa, before a dotted line indicates that the transaction is finally completed.
+
+Template Protocol
+~~~~~~~~~~~~~~~~~
+
+Suricata has a template protocol for educational purposes, which has simple bidirectional transactions. 
+
+A completed transaction for the template looks like this:
+
+.. image:: img/TemplateRequest.png
+  :width: 600
+  :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "Request". An arrow below that first one goes from Server to Client. 
+
+Following are the functions that check whether a transaction is considered completed, for the Template Protocol. Those are called by the Suricata API. Similar functions exist for each protocol, and may present implementation differences, based on what is considered a transaction for that given protocol.
+
+In C:
+
+.. code-block:: c
+
+    static int TemplateGetStateProgress(void *txv, uint8_t direction)
+    {
+        TemplateTransaction *tx = txv;
+    
+        SCLogNotice("Transaction progress requested for tx ID %"PRIu64
+            ", direction=0x%02x", tx->tx_id, direction);
+    
+        if (direction & STREAM_TOCLIENT && tx->response_done) {
+            return 1;
+        }
+        else if (direction & STREAM_TOSERVER) {
+            /* For the template, just the existence of the transaction means the
+             * request is done. */
+            return 1;
+        }
+    
+        return 0;
+    }
+
+And in Rust:
+
+.. code-block:: rust
+
+    pub extern "C" fn rs_template_tx_get_alstate_progress(
+        tx: *mut std::os::raw::c_void,
+        _direction: u8,
+    ) -> std::os::raw::c_int {
+        let tx = cast_pointer!(tx, TemplateTransaction);
+    
+        // Transaction is done if we have a response.
+        if tx.response.is_some() {
+            return 1;
+        }
+        return 0;
+    }
 
 _`Common words and abbreviations`
 =================================
