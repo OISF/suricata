@@ -175,31 +175,33 @@ In C, the callback API is:
 
 Simple scenario described, in Rust:
 
-.. code-block:: rust
+rust/src/dhcp/dhcp.rs:
 
-    rust/src/dhcp/dhcp.rs:
+.. code-block:: rust
 
     tx_comp_st_ts: 1
     tx_comp_st_tc: 1
 
 For SSH, this looks like this:
 
-.. code-block:: rust
+rust/src/ssh/ssh.rs:
 
-    rust/src/ssh/ssh.rs:
+.. code-block:: rust
 
     tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
     tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
 
 In C, callback usage would be as follows:
 
-.. code-block:: c
+src/app-layer-dcerpc.c:
 
-    src/app-layer-dcerpc.c:
+.. code-block:: c
 
     AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DCERPC, 1, 1);
 
-    src/app-layer-ftp.c:
+src/app-layer-ftp.c:
+
+.. code-block:: c
 
     AppLayerParserRegisterStateProgressCompletionStatus(
         ALPROTO_FTP, FTP_STATE_FINISHED, FTP_STATE_FINISHED);
