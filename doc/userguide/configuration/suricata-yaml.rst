@@ -1501,7 +1501,7 @@ configuration (console, file, syslog) if not otherwise set.
           line option <cmdline-option-v>`.
 
 The ``default-log-level`` set in the configuration value can be
-overriden by the ``SC_LOG_LEVEL`` environment variable.
+overridden by the ``SC_LOG_LEVEL`` environment variable.
 
 Default Log Format
 ~~~~~~~~~~~~~~~~~~
@@ -2228,6 +2228,19 @@ inspected for possible presence of Teredo.
 
 Advanced Options
 ----------------
+
+sigsegv
+~~~~~~~
+Diagnostic stacktraces when a SIGSEGV occurs are available when Suricata is configured with
+``--enable-libunwind`` and the ``libunwind`` library is available. The default value
+is to display the diagnostic message if a ``SIGSEGV`` occurs.
+
+::
+
+    logging:
+        # Requires --enable-libunwind. Display a brief diagnostic message with the
+        # offending stacktrace when enabled _and_ configured.
+        # sigsegv-stacktrace: on
 
 luajit
 ~~~~~~
