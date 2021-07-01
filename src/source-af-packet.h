@@ -74,9 +74,9 @@ struct ebpf_timeout_config {
 
 /* In kernel the allocated block size is allocated using the formula
  * page_size << order. So default value is using the same formula with
- * an order of 3 which guarantee we have some room in the block compared
- * to standard frame size */
-#define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
+ * an order of 5 which guarantee we have some room in the block compared
+ * to standard frame size and default localhost frame size */
+#define AFP_BLOCK_SIZE_DEFAULT_ORDER 5
 
 typedef struct AFPIfaceConfig_
 {
