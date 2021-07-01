@@ -427,6 +427,8 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (1) {
         if (suricata_ctl_flags != 0)
             break;
