@@ -235,7 +235,7 @@ Suricata has a template protocol for educational purposes, which has simple bidi
 
 A completed transaction for the template looks like this:
 
-.. image:: img/TemplateRequest.png
+.. image:: img/TemplateTransaction.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "Request". An arrow below that first one goes from Server to Client. 
 
