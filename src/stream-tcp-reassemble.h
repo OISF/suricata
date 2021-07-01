@@ -140,5 +140,7 @@ static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
     return false;
 }
 
+uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 
