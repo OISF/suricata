@@ -18,6 +18,7 @@ Suricata Rules
    ssh-keywords
    ja3-keywords
    modbus-keyword
+   dcerpc-keywords
    dnp3-keywords
    enip-keyword
    ftp-keywords
