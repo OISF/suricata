@@ -139,17 +139,18 @@ static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse (const char *krb5str)
     DetectKrb5ErrCodeData *krb5d = NULL;
     char arg1[4] = "";
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, krb5str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, krb5str, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
-    res = pcre_copy_substring((char *) krb5str, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    pcre2len = sizeof(arg1);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

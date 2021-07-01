@@ -246,39 +246,39 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     char *cmd_str = NULL, *name = NULL, *op_str = NULL, *value = NULL;
     uint8_t cmd = 0;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for iprep", rawstr);
         return -1;
     }
 
     const char *str_ptr;
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         return -1;
     }
     cmd_str = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     name = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     op_str = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     value = (char *)str_ptr;
@@ -340,13 +340,13 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     cd->val = val;
     SCLogDebug("cmd %u, cat %u, op %u, val %u", cd->cmd, cd->cat, cd->op, cd->val);
 
-    pcre_free_substring(name);
+    pcre2_substring_free((PCRE2_UCHAR *)name);
     name = NULL;
-    pcre_free_substring(cmd_str);
+    pcre2_substring_free((PCRE2_UCHAR *)cmd_str);
     cmd_str = NULL;
-    pcre_free_substring(op_str);
+    pcre2_substring_free((PCRE2_UCHAR *)op_str);
     op_str = NULL;
-    pcre_free_substring(value);
+    pcre2_substring_free((PCRE2_UCHAR *)value);
     value = NULL;
 
     /* Okay so far so good, lets get this into a SigMatch
@@ -364,13 +364,13 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
 error:
     if (name != NULL)
-        pcre_free_substring(name);
+        pcre2_substring_free((PCRE2_UCHAR *)name);
     if (cmd_str != NULL)
-        pcre_free_substring(cmd_str);
+        pcre2_substring_free((PCRE2_UCHAR *)cmd_str);
     if (op_str != NULL)
-        pcre_free_substring(op_str);
+        pcre2_substring_free((PCRE2_UCHAR *)op_str);
     if (value != NULL)
-        pcre_free_substring(value);
+        pcre2_substring_free((PCRE2_UCHAR *)value);
     if (cd != NULL)
         SCFree(cd);
     if (sm != NULL)

@@ -321,7 +321,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
     DetectBytejumpData *data = NULL;
     char args[10][64];
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     int numargs = 0;
     int i = 0;
     uint32_t nbytes;
@@ -331,7 +331,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
     memset(args, 0x00, sizeof(args));
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, optstr,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
     if (ret < 2 || ret > 10) {
         SCLogError(SC_ERR_PCRE_PARSE,"parse error, ret %" PRId32
                ", string \"%s\"", ret, optstr);
@@ -343,11 +343,11 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
      * supports 9 substrings, sigh.
      */
     char str[512] = "";
-    res = pcre_copy_substring((char *)optstr, ov,
-                             MAX_SUBSTRINGS, 1, str, sizeof(str));
+    pcre2len = sizeof(str);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed "
-               "for arg 1");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                              "for arg 1");
         goto error;
     }
 
@@ -373,9 +373,12 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
 
     /* The remaining args are directly from PCRE substrings */
     for (i = 1; i < (ret - 1); i++) {
-        res = pcre_copy_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, args[i+1], sizeof(args[0]));
+        pcre2len = sizeof(args[0]);
+        res = pcre2_substring_copy_bynumber(
+                parse_regex.match, i + 1, (PCRE2_UCHAR8 *)args[i + 1], &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed for arg %d", i + 1);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed for arg %d",
+                    i + 1);
             goto error;
         }
         numargs++;

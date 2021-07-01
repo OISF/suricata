@@ -135,20 +135,20 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char value1[20] = "";
     char *endptr = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, value1,
-                              sizeof(value1));
+    pcre2len = sizeof(value1);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

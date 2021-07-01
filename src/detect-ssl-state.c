@@ -154,31 +154,32 @@ static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
 static DetectSslStateData *DetectSslStateParse(const char *arg)
 {
     int ret = 0, res = 0;
-    int ov1[MAX_SUBSTRINGS];
-    int ov2[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char str1[64];
     char str2[64];
     int negate = 0;
     uint32_t flags = 0, mask = 0;
     DetectSslStateData *ssd = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex1, arg, 0, 0, ov1, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex1, arg, 0, 0);
     if (ret < 1) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
                    "ssl_state keyword.", arg);
         goto error;
     }
 
-    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
+    pcre2len = sizeof(str1);
+    res = pcre2_substring_copy_bynumber(parse_regex1.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
     negate = !strcmp("!", str1);
 
-    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 2, str1, sizeof(str1));
+    pcre2len = sizeof(str1);
+    res = pcre2_substring_copy_bynumber(parse_regex1.match, 2, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -208,29 +209,32 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         goto error;
     }
 
-    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 3, str1, sizeof(str1));
+    pcre2len = sizeof(str1);
+    res = pcre2_substring_copy_bynumber(parse_regex1.match, 3, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
-    while (res > 0) {
-        ret = DetectParsePcreExec(&parse_regex2, str1,  0, 0, ov2, MAX_SUBSTRINGS);
+    while (res >= 0 && strlen(str1) > 0) {
+        ret = DetectParsePcreExec(&parse_regex2, str1, 0, 0);
         if (ret < 1) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
                        "ssl_state keyword.", arg);
             goto error;
         }
 
-        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 1, str2, sizeof(str2));
+        pcre2len = sizeof(str2);
+        res = pcre2_substring_copy_bynumber(parse_regex2.match, 1, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         negate = !strcmp("!", str2);
 
-        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 2, str2, sizeof(str2));
-        if (res <= 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        pcre2len = sizeof(str2);
+        res = pcre2_substring_copy_bynumber(parse_regex2.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
         if (strcmp("client_hello", str2) == 0) {
@@ -259,9 +263,10 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             goto error;
         }
 
-        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 3, str2, sizeof(str2));
+        pcre2len = sizeof(str2);
+        res = pcre2_substring_copy_bynumber(parse_regex2.match, 3, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
 

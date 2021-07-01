@@ -35,6 +35,7 @@
 #include "util-debug.h"
 #include "util-fmemopen.h"
 #include "util-byte.h"
+#include <pcre2.h>
 
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
@@ -48,8 +49,8 @@
 #define SC_CLASS_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/classification.config"
 #endif
 
-static pcre *regex = NULL;
-static pcre_extra *regex_study = NULL;
+static pcre2_code *regex = NULL;
+static pcre2_match_data *regex_match = NULL;
 
 uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
@@ -63,36 +64,34 @@ static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
 
 void SCClassConfInit(void)
 {
-    const char *eb = NULL;
-    int eo;
+    int en;
+    PCRE2_SIZE eo;
     int opts = 0;
 
-    regex = pcre_compile(DETECT_CLASSCONFIG_REGEX, opts, &eb, &eo, NULL);
+    regex = pcre2_compile(
+            (PCRE2_SPTR8)DETECT_CLASSCONFIG_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_CLASSCONFIG_REGEX, eo, eb);
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogWarning(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                DETECT_CLASSCONFIG_REGEX, (int)eo, errbuffer);
         return;
     }
-
-    regex_study = pcre_study(regex, 0, &eb);
-    if (eb != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-        SCLogDebug("pcre study failed: %s", eb);
-        return;
-    }
+    regex_match = pcre2_match_data_create_from_pattern(regex, NULL);
     return;
 }
 
 void SCClassConfDeinit(void)
 {
     if (regex != NULL) {
-        pcre_free(regex);
+        pcre2_code_free(regex);
         regex = NULL;
     }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
+    if (regex_match != NULL) {
+        pcre2_match_data_free(regex_match);
+        regex_match = NULL;
     }
 }
 
@@ -251,35 +250,36 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
     SCClassConfClasstype *ct_new = NULL;
     SCClassConfClasstype *ct_lookup = NULL;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
-    int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    ret = pcre2_match(regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_match, NULL);
     if (ret < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid Classtype in "
                    "classification.config file");
         goto error;
     }
 
+    size_t copylen = sizeof(ct_name);
     /* retrieve the classtype name */
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, ct_name, sizeof(ct_name));
+    ret = pcre2_substring_copy_bynumber(regex_match, 1, (PCRE2_UCHAR8 *)ct_name, &copylen);
     if (ret < 0) {
-        SCLogInfo("pcre_copy_substring() failed");
+        SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;
     }
 
     /* retrieve the classtype description */
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, ct_desc, sizeof(ct_desc));
+    copylen = sizeof(ct_desc);
+    ret = pcre2_substring_copy_bynumber(regex_match, 2, (PCRE2_UCHAR8 *)ct_desc, &copylen);
     if (ret < 0) {
-        SCLogInfo("pcre_copy_substring() failed");
+        SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;
     }
 
     /* retrieve the classtype priority */
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 3, ct_priority_str, sizeof(ct_priority_str));
+    copylen = sizeof(ct_priority_str);
+    ret = pcre2_substring_copy_bynumber(regex_match, 3, (PCRE2_UCHAR8 *)ct_priority_str, &copylen);
     if (ret < 0) {
-        SCLogInfo("pcre_copy_substring() failed");
+        SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;
     }
     if (StringParseUint32(&ct_priority, 10, 0, (const char *)ct_priority_str) < 0) {

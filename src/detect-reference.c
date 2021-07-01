@@ -96,11 +96,11 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     SCEnter();
 
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char key[REFERENCE_SYSTEM_NAME_MAX] = "";
     char content[REFERENCE_CONTENT_NAME_MAX] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 2) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.", rawstr);
@@ -112,15 +112,17 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         return NULL;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, key, sizeof(key));
+    pcre2len = sizeof(key);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)key, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, content, sizeof(content));
+    pcre2len = sizeof(content);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)content, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

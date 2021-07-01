@@ -82,19 +82,19 @@ void DetectTargetRegister(void) {
 static int DetectTargetParse(Signature *s, const char *targetstr)
 {
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char value[10];
 
-    ret = DetectParsePcreExec(&parse_regex, targetstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, targetstr, 0, 0);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, targetstr);
         return -1;
     }
 
-    res = pcre_copy_substring(targetstr, ov, MAX_SUBSTRINGS, 1,
-                              value, sizeof(value));
+    pcre2len = sizeof(value);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)value, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 

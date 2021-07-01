@@ -123,9 +123,9 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     int i;
     DetectEngineEventData *de = NULL;
     int ret = 0, res = 0, found = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32
                 ", string %s", ret, rawstr);
@@ -133,11 +133,11 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     }
 
     char copy_str[128] = "";
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 0,
-            copy_str, sizeof(copy_str));
+    pcre2len = sizeof(copy_str);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 0, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
 
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

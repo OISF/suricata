@@ -129,24 +129,26 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
 {
     char arg1[4] = "";
     char arg2[4] = "";
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    int ret = DetectParsePcreExec(&parse_regex, templatestr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, templatestr, 0, 0);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;
     }
 
-    ret = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    pcre2len = sizeof(arg1);
+    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    ret = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
+    pcre2len = sizeof(arg2);
+    ret = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return NULL;
     }
     SCLogDebug("Arg2 \"%s\"", arg2);

@@ -271,13 +271,13 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     char *test_value =  NULL;
     char *data_offset = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     int i;
     uint32_t nbytes;
     const char *str_ptr = NULL;
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
     if (ret < 4 || ret > 9) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                ", string %s", ret, optstr);
@@ -286,11 +286,13 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     /* Subtract two since two values  are conjoined */
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
-                                 i + 1, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
-                   "for arg %d", i + 1);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                    "pcre2_substring_get_bynumber failed "
+                    "for arg %d",
+                    i + 1);
             goto error;
         }
         /* args[2] is comma separated test value, offset */
@@ -366,9 +368,9 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     if (test_value) {
         /*
-         * test_value was created while fetching strings and contains the test value and offset, comma separated. The
-         * values was allocated by test_value (pcre_get_substring) and data_offset (SCStrdup), respectively; e.g.,
-         * test_value,offset
+         * test_value was created while fetching strings and contains the test value and offset,
+         * comma separated. The values was allocated by test_value (pcre2_substring_get_bynumber)
+         * and data_offset (SCStrdup), respectively; e.g., test_value,offset
          */
         char *end_ptr = test_value;
         while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
@@ -503,18 +505,22 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     }
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     if (data_offset) SCFree(data_offset);
-    if (test_value) SCFree(test_value);
+    if (test_value)
+        pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
     return data;
 
 error:
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     if (data_offset) SCFree(data_offset);
-    if (test_value) SCFree(test_value);
+    if (test_value)
+        pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
     if (data) SCFree(data);
     return NULL;
 }

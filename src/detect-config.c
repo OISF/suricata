@@ -167,9 +167,8 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     DetectConfigData *fd = NULL;
     SigMatch *sm = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 #if 0
     /* filestore and bypass keywords can't work together */
     if (s->flags & SIG_FLAG_BYPASS) {
@@ -195,14 +194,15 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     char scopeval[32];
     SCLogDebug("str %s", str);
 
-    ret = DetectParsePcreExec(&parse_regex,  str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (ret != 7) {
         SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "config is rather picky at this time");
         goto error;
     }
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, subsys, sizeof(subsys));
+    pcre2len = sizeof(subsys);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)subsys, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -212,9 +212,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCLogDebug("subsys %s", subsys);
 
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 2, state, sizeof(state));
+    pcre2len = sizeof(state);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)state, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -224,9 +225,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCLogDebug("state %s", state);
 
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 3, type, sizeof(type));
+    pcre2len = sizeof(type);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)type, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -236,9 +238,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCLogDebug("type %s", type);
 
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 4, typeval, sizeof(typeval));
+    pcre2len = sizeof(typeval);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 4, (PCRE2_UCHAR8 *)typeval, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -248,9 +251,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCLogDebug("typeval %s", typeval);
 
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 5, scope, sizeof(scope));
+    pcre2len = sizeof(scope);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 5, (PCRE2_UCHAR8 *)scope, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
@@ -260,9 +264,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCLogDebug("scope %s", scope);
 
-    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 6, scopeval, sizeof(scopeval));
+    pcre2len = sizeof(scopeval);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 6, (PCRE2_UCHAR8 *)scopeval, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

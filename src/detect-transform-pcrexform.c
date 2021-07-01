@@ -25,12 +25,16 @@
 
 #include "suricata-common.h"
 
+#include <pcre2.h>
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-transform-pcrexform.h"
 
-typedef DetectParseRegex DetectTransformPcrexformData;
+typedef struct DetectTransformPcrexformData {
+    pcre2_code *regex;
+    pcre2_match_data *match_data;
+} DetectTransformPcrexformData;
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformPcrexformFree(DetectEngineCtx *, void *);
@@ -61,9 +65,12 @@ static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *) ptr;
+        pcre2_code_free(pxd->regex);
+        pcre2_match_data_free(pxd->match_data);
         SCFree(pxd);
     }
 }
+
 /**
  *  \internal
  *  \brief Apply the pcrexform keyword to the last pattern match
@@ -78,20 +85,43 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     SCEnter();
 
     // Create pxd from regexstr
-    DetectTransformPcrexformData *pxd = SCCalloc(sizeof(*pxd), 1);
+    DetectTransformPcrexformData *pxd = SCCalloc(1, sizeof(*pxd));
     if (pxd == NULL) {
         SCLogDebug("pxd allocation failed");
         SCReturnInt(-1);
     }
 
-    if (!DetectSetupParseRegexesOpts(regexstr, pxd, 0)) {
+    int en;
+    PCRE2_SIZE eo;
+    pxd->regex = pcre2_compile((PCRE2_SPTR8)regexstr, PCRE2_ZERO_TERMINATED, 0, &en, &eo, NULL);
+    if (pxd->regex == NULL) {
+        PCRE2_UCHAR buffer[256];
+        pcre2_get_error_message(en, buffer, sizeof(buffer));
+        SCLogError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                regexstr, (int)eo, buffer);
         SCFree(pxd);
         SCReturnInt(-1);
     }
+    // check pcd->regex has exactly one capture expression
+    uint32_t nb;
+    if (pcre2_pattern_info(pxd->regex, PCRE2_INFO_CAPTURECOUNT, &nb) < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "pcrexform failed getting info about capturecount");
+        DetectTransformPcrexformFree(de_ctx, pxd);
+        SCReturnInt(-1);
+    }
+    if (nb != 1) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "pcrexform needs exactly one substring capture, found %" PRIu32, nb);
+        DetectTransformPcrexformFree(de_ctx, pxd);
+        SCReturnInt(-1);
+    }
+    pxd->match_data = pcre2_match_data_create_from_pattern(pxd->regex, NULL);
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
-        SCFree(pxd);
+        DetectTransformPcrexformFree(de_ctx, pxd);
     }
 
     SCReturnInt(r);
@@ -103,17 +133,16 @@ static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
     const uint32_t input_len = buffer->inspect_len;
     DetectTransformPcrexformData *pxd = options;
 
-    int ov[MAX_SUBSTRINGS];
-    int ret = DetectParsePcreExecLen(pxd, input, input_len, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, pxd->match_data, NULL);
 
     if (ret > 0) {
         const char *str;
-        ret = pcre_get_substring((char *) buffer->inspect, ov,
-                                  MAX_SUBSTRINGS, ret - 1, &str);
+        PCRE2_SIZE caplen;
+        ret = pcre2_substring_get_bynumber(pxd->match_data, 0, (PCRE2_UCHAR8 **)&str, &caplen);
 
         if (ret >= 0) {
-            InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t) ret);
-            pcre_free_substring(str);
+            InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
+            pcre2_substring_free((PCRE2_UCHAR8 *)str);
         }
     }
 }

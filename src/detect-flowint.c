@@ -230,28 +230,28 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     char *varval = NULL;
     char *modstr = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     uint8_t modifier = FLOWINT_MODIFIER_UNKNOWN;
     unsigned long long value_long = 0;
     const char *str_ptr;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 3 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
         return NULL;
     }
 
     /* Get our flowint varname */
-    res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     varname = (char *)str_ptr;
 
-    res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     modstr = (char *)str_ptr;
@@ -295,10 +295,11 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         if (ret < 4)
             goto error;
 
-        res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         varval = (char *)str_ptr;
         if (res < 0 || varval == NULL || strcmp(varval, "") == 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
 
@@ -333,18 +334,18 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     SCLogDebug("sfd->name %s id %u", sfd->name, sfd->idx);
     sfd->modifier = modifier;
 
-    pcre_free_substring(varname);
-    pcre_free_substring(modstr);
+    pcre2_substring_free((PCRE2_UCHAR *)varname);
+    pcre2_substring_free((PCRE2_UCHAR *)modstr);
     if (varval)
-        pcre_free_substring(varval);
+        pcre2_substring_free((PCRE2_UCHAR *)varval);
     return sfd;
 error:
     if (varname)
-        pcre_free_substring(varname);
+        pcre2_substring_free((PCRE2_UCHAR *)varname);
     if (varval)
-        pcre_free_substring(varval);
+        pcre2_substring_free((PCRE2_UCHAR *)varval);
     if (modstr)
-        pcre_free_substring(modstr);
+        pcre2_substring_free((PCRE2_UCHAR *)modstr);
     if (sfd != NULL)
         SCFree(sfd);
     return NULL;

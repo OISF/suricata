@@ -69,20 +69,21 @@ void DetectClasstypeRegister(void)
  */
 static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t outsize)
 {
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
     const size_t esize = CLASSTYPE_NAME_MAX_LEN + 8;
     char e[esize];
 
-    int ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         return -1;
     }
 
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, e, esize);
+    pcre2len = esize;
+    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)e, &pcre2len);
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 

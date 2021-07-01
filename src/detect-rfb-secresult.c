@@ -170,11 +170,9 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
 {
     int i;
     DetectRfbSecresultData *de = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, found = 0;
-    int ov[MAX_SUBSTRINGS];
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
