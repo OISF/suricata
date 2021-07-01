@@ -1242,7 +1242,7 @@ flow-timeouts:
 # engine is configured.
 #
 # stream:
-#   memcap: 32mb                # Can be specified in kb, mb, gb.  Just a
+#   memcap: 64mb                # Can be specified in kb, mb, gb.  Just a
 #                               # number indicates it's in bytes.
 #   checksum-validation: yes    # To validate the checksum of received
 #                               # packet. If csum validation is specified as
@@ -1264,7 +1264,7 @@ flow-timeouts:
 #                               # the bypass.
 #
 #   reassembly:
-#     memcap: 64mb              # Can be specified in kb, mb, gb.  Just a number
+#     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
 #     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
