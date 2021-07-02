@@ -423,8 +423,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
-            IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
+    rp = PacketDefragPktSetup(p, NULL, 0, 0);
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
                 "fragmentation re-assembly, dumping fragments.");
