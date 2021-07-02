@@ -80,8 +80,8 @@
 //#define DEBUG
 
 #define STREAMTCP_DEFAULT_PREALLOC              2048
-#define STREAMTCP_DEFAULT_MEMCAP                (32 * 1024 * 1024) /* 32mb */
-#define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     (64 * 1024 * 1024) /* 64mb */
+#define STREAMTCP_DEFAULT_MEMCAP                (64 * 1024 * 1024)  /* 64mb */
+#define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     (256 * 1024 * 1024) /* 256mb */
 #define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
@@ -2510,6 +2510,66 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
     SCReturnUInt(ack);
 }
 
+/** \internal
+ *  \brief check if a ACK packet is outdated so processing can be fast tracked
+ *
+ *  Consider a packet outdated ack if:
+ *  - state is >= ESTABLISHED
+ *  - ACK < last_ACK
+ *  - SACK acks nothing new
+ *  - packet has no data
+ *  - SEQ == next_SEQ
+ *  - flags has ACK set but don't contain SYN/FIN/RST
+ *
+ *  \todo the most likely explanation for this packet is that we already
+ *        accepted a "newer" ACK. We will not consider an outdated timestamp
+ *        option an issue for this packet, but we should probably still
+ *        check if the ts isn't too far off.
+ */
+static bool StreamTcpPacketIsOutdatedAck(TcpSession *ssn, Packet *p)
+{
+    if (ssn->state < TCP_ESTABLISHED)
+        return false;
+    if (p->payload_len != 0)
+        return false;
+    if ((p->tcph->th_flags & (TH_ACK | TH_SYN | TH_FIN | TH_RST)) != TH_ACK)
+        return false;
+
+    /* lets see if this is a packet that is entirely eclipsed by earlier ACKs */
+    if (PKT_IS_TOSERVER(p)) {
+        if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq) &&
+                SEQ_LT(TCP_GET_ACK(p), ssn->server.last_ack)) {
+            if (!TCP_HAS_SACK(p)) {
+                SCLogDebug("outdated ACK (no SACK, SEQ %u vs next_seq %u)", TCP_GET_SEQ(p),
+                        ssn->client.next_seq);
+                return true;
+            }
+
+            if (StreamTcpSackPacketIsOutdated(&ssn->server, p)) {
+                SCLogDebug("outdated ACK (have SACK, SEQ %u vs next_seq %u)", TCP_GET_SEQ(p),
+                        ssn->client.next_seq);
+                return true;
+            }
+        }
+    } else {
+        if (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq) &&
+                SEQ_LT(TCP_GET_ACK(p), ssn->client.last_ack)) {
+            if (!TCP_HAS_SACK(p)) {
+                SCLogDebug("outdated ACK (no SACK, SEQ %u vs next_seq %u)", TCP_GET_SEQ(p),
+                        ssn->client.next_seq);
+                return true;
+            }
+
+            if (StreamTcpSackPacketIsOutdated(&ssn->client, p)) {
+                SCLogDebug("outdated ACK (have SACK, SEQ %u vs next_seq %u)", TCP_GET_SEQ(p),
+                        ssn->client.next_seq);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 /**
  *  \brief  Function to handle the TCP_ESTABLISHED state. The function handles
  *          ACK, FIN, RST packets and correspondingly changes the connection
@@ -4701,16 +4761,19 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
     SCLogDebug("ssn: %p", ssn);
     switch (state) {
         case TCP_SYN_SENT:
+            SCLogDebug("packet received on TCP_SYN_SENT state");
             if (StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_SYN_RECV:
+            SCLogDebug("packet received on TCP_SYN_RECV state");
             if (StreamTcpPacketStateSynRecv(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_ESTABLISHED:
+            SCLogDebug("packet received on TCP_ESTABLISHED state");
             if (StreamTcpPacketStateEstablished(tv, p, stt, ssn, pq)) {
                 return -1;
             }
@@ -4890,10 +4953,14 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         /* if packet is not a valid window update, check if it is perhaps
          * a bad window update that we should ignore (and alert on) */
-        if (StreamTcpPacketIsFinShutdownAck(ssn, p) == 0)
-            if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0)
+        if (StreamTcpPacketIsFinShutdownAck(ssn, p) == 0) {
+            if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0) {
                 if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
                     goto skip;
+                if (StreamTcpPacketIsOutdatedAck(ssn, p))
+                    goto skip;
+            }
+        }
 
         /* handle the per 'state' logic */
         if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->state) < 0)

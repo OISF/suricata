@@ -25,7 +25,6 @@
 #define __STREAM_TCP_SACK_H__
 
 #include "suricata-common.h"
-#include "util-optimize.h"
 
 /**
  *  \brief Get the size of the SACKed ranges
@@ -40,6 +39,7 @@ static inline uint32_t StreamTcpSackedSize(TcpStream *stream)
 }
 
 int StreamTcpSackUpdatePacket(TcpStream *, Packet *);
+bool StreamTcpSackPacketIsOutdated(TcpStream *stream, Packet *p);
 void StreamTcpSackPruneList(TcpStream *);
 void StreamTcpSackFreeList(TcpStream *);
 void StreamTcpSackRegisterTests (void);
