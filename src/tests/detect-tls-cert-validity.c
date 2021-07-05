@@ -379,6 +379,43 @@ static int ValidityTestParse23 (void)
 }
 
 /**
+ * \test This is a test for a valid value of 1970-01-01T00:00:00
+ * that is at epoch 0, within the range of acceptable
+ * values (1950-2049) as per RFC 5280. (https://tools.ietf.org/html/rfc5280#section-4.1.2.5.1)
+ *
+ * \retval 1 on success.
+ * \retval 0 on failure.
+ */
+static int ValidityTestParse24(void)
+{
+    DetectTlsValidityData *dd = NULL;
+    dd = DetectTlsValidityParse("1970-01-01T00:00:00");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->epoch == 0 && dd->mode == DETECT_TLS_VALIDITY_EQ);
+    DetectTlsValidityFree(NULL, dd);
+    PASS;
+}
+
+/**
+ * \test This is a test for a valid value of 1965-10-22T23:59:59
+ * that is lower than epoch 0, but within the range of
+ * acceptable values (1950-2049) as per RFC 5280.
+ * (https://tools.ietf.org/html/rfc5280#section-4.1.2.5.1)
+ *
+ * \retval 1 on success.
+ * \retval 0 on failure.
+ */
+static int ValidityTestParse25(void)
+{
+    DetectTlsValidityData *dd = NULL;
+    dd = DetectTlsValidityParse("1965-10-22T23:59:59");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->epoch == -132192001 && dd->mode == DETECT_TLS_VALIDITY_EQ);
+    DetectTlsValidityFree(NULL, dd);
+    PASS;
+}
+
+/**
  * \test Test matching on validity dates in a certificate.
  *
  * \retval 1 on success.
@@ -1341,6 +1378,8 @@ void TlsNotBeforeRegisterTests(void)
     UtRegisterTest("ValidityTestParse19", ValidityTestParse19);
     UtRegisterTest("ValidityTestParse21", ValidityTestParse21);
     UtRegisterTest("ValidityTestParse23", ValidityTestParse23);
+    UtRegisterTest("ValidityTestParse24", ValidityTestParse24);
+    UtRegisterTest("ValidityTestParse25", ValidityTestParse25);
     UtRegisterTest("ValidityTestDetect01", ValidityTestDetect01);
 }
 
