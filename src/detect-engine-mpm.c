@@ -230,6 +230,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         /* default to whatever the global setting is */
         int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
         /* see if we use a unique or shared mpm ctx for this type */
         int confshared = 0;
         char confstring[256] = "detect.mpm.";
@@ -237,6 +238,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         strlcat(confstring, ".shared", sizeof(confstring));
         if (ConfGetBool(confstring, &confshared) == 1)
             shared = confshared;
+#endif
 
         if (shared == 0) {
             if (!(de_ctx->flags & DE_QUIET)) {
