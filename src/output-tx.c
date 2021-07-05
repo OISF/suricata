@@ -192,8 +192,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
     const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
     const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC) != 0;
-    const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
-    const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
+    uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
+    uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
     uint64_t max_id = tx_id;
@@ -239,6 +239,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             goto next_tx;
         }
 
+        AppLayerParserUpdateDisrupt(tx_id, f, &ts_disrupt_flags);
+        AppLayerParserUpdateDisrupt(tx_id, f, &tc_disrupt_flags);
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(p->proto, alproto, tx, ts_disrupt_flags);
         const int tx_progress_tc =

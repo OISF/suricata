@@ -164,6 +164,11 @@ struct AppLayerParserState_ {
 
     uint64_t min_id;
 
+    /* There are incomplete transactions which should get removed
+     * between min_id and purge_before_tx_id
+     */
+    uint64_t purge_before_tx_id;
+
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
 };
@@ -221,6 +226,9 @@ int AppLayerParserSetup(void)
     SCReturnInt(0);
 }
 
+// default value is 0x1000
+uint32_t g_alparser_tx_max = 4096;
+
 void AppLayerParserPostStreamSetup(void)
 {
     AppProto alproto = 0;
@@ -234,6 +242,16 @@ void AppLayerParserPostStreamSetup(void)
                 alp_ctx.ctxs[flow_proto][alproto].stream_depth =
                     stream_config.reassembly_depth;
             }
+        }
+    }
+
+    const char *conf_val;
+    uint32_t configval;
+    if ((ConfGet("app-layer.max_tx", &conf_val)) == 1) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0) {
+            g_alparser_tx_max = configval;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for app-layer.max_tx");
         }
     }
 }
@@ -876,6 +894,18 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 #define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
 
 extern int g_detect_disabled;
+
+void AppLayerParserUpdateDisrupt(uint64_t id, Flow *f, uint8_t *flags)
+{
+    AppLayerParserState *const alparser = f->alparser;
+    // fake STREAM_DEPTH to fake disruption
+    if (id < alparser->purge_before_tx_id) {
+        *flags |= STREAM_DEPTH;
+    } else {
+        *flags &= ~STREAM_DEPTH;
+    }
+}
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -902,8 +932,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
     const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
-    const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
-    const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
+    uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
+    uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
@@ -914,6 +944,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     bool skipped = false;
     const bool is_unidir =
             AppLayerParserGetOptionFlags(f->protomap, f->alproto) & APP_LAYER_PARSER_OPT_UNIDIR_TXS;
+    uint64_t nbtx = 0;
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -923,9 +954,11 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         bool tx_skipped = false;
         void *tx = ires.tx_ptr;
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
+        nbtx++;
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
 
+        AppLayerParserUpdateDisrupt(i, f, &tc_disrupt_flags);
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
         if (tx_progress_tc < tx_end_state_tc) {
@@ -933,6 +966,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             skipped = true;
             goto next;
         }
+        AppLayerParserUpdateDisrupt(i, f, &ts_disrupt_flags);
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
         if (tx_progress_ts < tx_end_state_ts) {
@@ -996,6 +1030,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         /* if we are here, the tx can be freed. */
         p->StateTransactionFree(alstate, i);
+        nbtx--;
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
@@ -1018,6 +1053,18 @@ next:
             break;
         }
         i++;
+    }
+    memset(&state, 0, sizeof(state));
+    alparser->purge_before_tx_id = new_min;
+    while (g_alparser_tx_max > 0 && nbtx > g_alparser_tx_max) {
+        AppLayerGetTxIterTuple ires = IterFunc(
+                ipproto, alproto, alstate, alparser->purge_before_tx_id, total_txs, &state);
+        if (ires.tx_ptr == NULL) {
+            alparser->purge_before_tx_id++;
+            continue;
+        }
+        alparser->purge_before_tx_id = ires.tx_id + 1;
+        nbtx--;
     }
 
     /* see if we need to bring all trackers up to date. */

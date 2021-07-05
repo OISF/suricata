@@ -274,6 +274,9 @@ void AppLayerParserStateFree(AppLayerParserState *pstate);
 
 void AppLayerParserTransactionsCleanup(Flow *f);
 
+// fake a disruption if tx id is before purge_before_tx_id
+void AppLayerParserUpdateDisrupt(uint64_t id, Flow *f, uint8_t *flags);
+
 #ifdef DEBUG
 void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);
 #endif
