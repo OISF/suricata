@@ -17,7 +17,7 @@
 
 use crate::core::STREAM_TOCLIENT;
 use brotli;
-use flate2::read::GzDecoder;
+use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
 use std::io;
 use std::io::{Cursor, Read, Write};
@@ -30,7 +30,8 @@ pub enum HTTP2ContentEncoding {
     HTTP2ContentEncodingUnknown = 0,
     HTTP2ContentEncodingGzip = 1,
     HTTP2ContentEncodingBr = 2,
-    HTTP2ContentEncodingUnrecognized = 3,
+    HTTP2ContentEncodingDeflate = 3,
+    HTTP2ContentEncodingUnrecognized = 4,
 }
 
 //a cursor turning EOF into blocking errors
@@ -77,6 +78,7 @@ pub enum HTTP2Decompresser {
     UNASSIGNED,
     GZIP(GzDecoder<HTTP2cursor>),
     BROTLI(brotli::Decompressor<HTTP2cursor>),
+    DEFLATE(DeflateDecoder<HTTP2cursor>),
 }
 
 impl std::fmt::Debug for HTTP2Decompresser {
@@ -85,15 +87,7 @@ impl std::fmt::Debug for HTTP2Decompresser {
             HTTP2Decompresser::UNASSIGNED => write!(f, "UNASSIGNED"),
             HTTP2Decompresser::GZIP(_) => write!(f, "GZIP"),
             HTTP2Decompresser::BROTLI(_) => write!(f, "BROTLI"),
-        }
-    }
-}
-impl std::fmt::Display for HTTP2Decompresser {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            HTTP2Decompresser::UNASSIGNED => write!(f, "UNASSIGNED"),
-            HTTP2Decompresser::GZIP(_) => write!(f, "GZIP"),
-            HTTP2Decompresser::BROTLI(_) => write!(f, "BROTLI"),
+            HTTP2Decompresser::DEFLATE(_) => write!(f, "DEFLATE"),
         }
     }
 }
@@ -109,6 +103,12 @@ pub trait GetMutCursor {
 }
 
 impl GetMutCursor for GzDecoder<HTTP2cursor> {
+    fn get_mut(&mut self) -> &mut HTTP2cursor {
+        return self.get_mut();
+    }
+}
+
+impl GetMutCursor for DeflateDecoder<HTTP2cursor> {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
         return self.get_mut();
     }
@@ -171,6 +171,9 @@ impl HTTP2DecoderHalf {
             if *input == "gzip".as_bytes().to_vec() {
                 self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingGzip;
                 self.decoder = HTTP2Decompresser::GZIP(GzDecoder::new(HTTP2cursor::new()));
+            } else if *input == "deflate".as_bytes().to_vec() {
+                self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingDeflate;
+                self.decoder = HTTP2Decompresser::DEFLATE(DeflateDecoder::new(HTTP2cursor::new()));
             } else if *input == "br".as_bytes().to_vec() {
                 self.encoding = HTTP2ContentEncoding::HTTP2ContentEncodingBr;
                 self.decoder = HTTP2Decompresser::BROTLI(brotli::Decompressor::new(
@@ -199,6 +202,16 @@ impl HTTP2DecoderHalf {
             }
             HTTP2Decompresser::BROTLI(ref mut br_decoder) => {
                 let r = http2_decompress(br_decoder, input, output);
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::UNASSIGNED;
+                    }
+                    _ => {}
+                }
+                return r;
+            }
+            HTTP2Decompresser::DEFLATE(ref mut df_decoder) => {
+                let r = http2_decompress(df_decoder, input, output);
                 match r {
                     Err(_) => {
                         self.decoder = HTTP2Decompresser::UNASSIGNED;
