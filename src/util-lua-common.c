@@ -334,7 +334,7 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
     } else if (PKT_IS_IPV6(p)) {
         ipver = 6;
     }
-    lua_pushnumber (luastate, ipver);
+    lua_pushinteger(luastate, ipver);
     if (ipver == 0)
         return 1;
 
@@ -351,17 +351,17 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
     lua_pushstring (luastate, dstip);
 
     /* proto and ports (or type/code) */
-    lua_pushnumber (luastate, p->proto);
+    lua_pushinteger(luastate, p->proto);
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-        lua_pushnumber (luastate, p->sp);
-        lua_pushnumber (luastate, p->dp);
+        lua_pushinteger(luastate, p->sp);
+        lua_pushinteger(luastate, p->dp);
 
     } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, p->icmp_s.type);
-        lua_pushnumber (luastate, p->icmp_s.code);
+        lua_pushinteger(luastate, p->icmp_s.type);
+        lua_pushinteger(luastate, p->icmp_s.code);
     } else {
-        lua_pushnumber (luastate, 0);
-        lua_pushnumber (luastate, 0);
+        lua_pushinteger(luastate, 0);
+        lua_pushinteger(luastate, 0);
     }
 
     return 6;
@@ -397,7 +397,7 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
     } else if (FLOW_IS_IPV6(f)) {
         ipver = 6;
     }
-    lua_pushnumber (luastate, ipver);
+    lua_pushinteger(luastate, ipver);
     if (ipver == 0)
         return 1;
 
@@ -414,17 +414,17 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
     lua_pushstring (luastate, dstip);
 
     /* proto and ports (or type/code) */
-    lua_pushnumber (luastate, f->proto);
+    lua_pushinteger(luastate, f->proto);
     if (f->proto == IPPROTO_TCP || f->proto == IPPROTO_UDP) {
-        lua_pushnumber (luastate, f->sp);
-        lua_pushnumber (luastate, f->dp);
+        lua_pushinteger(luastate, f->sp);
+        lua_pushinteger(luastate, f->dp);
 
     } else if (f->proto == IPPROTO_ICMP || f->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, f->icmp_s.type);
-        lua_pushnumber (luastate, f->icmp_s.code);
+        lua_pushinteger(luastate, f->icmp_s.type);
+        lua_pushinteger(luastate, f->icmp_s.code);
     } else {
-        lua_pushnumber (luastate, 0);
-        lua_pushnumber (luastate, 0);
+        lua_pushinteger(luastate, 0);
+        lua_pushinteger(luastate, 0);
     }
 
     return 6;
