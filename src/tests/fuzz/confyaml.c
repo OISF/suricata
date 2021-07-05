@@ -14,58 +14,9 @@ outputs:\n\
       enabled: yes\n\
       filename: /dev/null\n\
   - eve-log:\n\
-      enabled: yes\n\
+      enabled: no\n\
       filetype: regular\n\
       filename: /dev/null\n\
-      xff:\n\
-        enabled: yes\n\
-        mode: extra-data\n\
-        deployment: reverse\n\
-        header: X-Forwarded-For\n\
-      types:\n\
-        - alert:\n\
-            payload: yes\n\
-            payload-printable: yes\n\
-            packet: yes\n\
-            metadata: yes\n\
-            http-body: yes\n\
-            http-body-printable: yes\n\
-            tagged-packets: yes\n\
-        - anomaly:\n\
-            enabled: yes\n\
-            types:\n\
-              decode: yes\n\
-              stream: yes\n\
-              applayer: yes\n\
-            packethdr: yes\n\
-        - http:\n\
-            extended: yes\n\
-            dump-all-headers: both\n\
-        - dns\n\
-        - tls:\n\
-            extended: yes\n\
-            session-resumption: yes\n\
-        - files\n\
-        - smtp:\n\
-            extended: yes\n\
-        - dnp3\n\
-        - ftp\n\
-        - rdp\n\
-        - nfs\n\
-        - smb\n\
-        - tftp\n\
-        - ike\n\
-        - krb5\n\
-        - snmp\n\
-        - rfb\n\
-        - sip\n\
-        - dhcp:\n\
-            enabled: yes\n\
-            extended: yes\n\
-        - ssh\n\
-        - flow\n\
-        - netflow\n\
-        - metadata\n\
   - http-log:\n\
       enabled: yes\n\
       filename: /dev/null\n\
