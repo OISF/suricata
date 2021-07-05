@@ -44,7 +44,7 @@ typedef int (*libsuricata_tcp_cb)(void *tv, void *ra_ctx, Packet *p, Flow *f, Tc
 /**
  * \brief Handles reassembled tcp stream.
  */
-libsuricata_tcp_cb AppLayerHandleTCPData;
+extern libsuricata_tcp_cb AppLayerHandleTCPData;
 
 /**
  * \brief Handles an udp chunk.

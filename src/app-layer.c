@@ -718,6 +718,8 @@ static int AppLayerHandleTCPDataSuricata(void *tvp, void *ra_ctxp, Packet *p, Fl
     SCReturnInt(r);
 }
 
+libsuricata_tcp_cb AppLayerHandleTCPData = AppLayerHandleTCPDataSuricata;
+
 /**
  *  \brief Handle a app layer UDP message
  *
@@ -839,7 +841,6 @@ int AppLayerSetup(void)
 {
     SCEnter();
 
-    AppLayerHandleTCPData = AppLayerHandleTCPDataSuricata;
     AppLayerProtoDetectSetup();
     AppLayerParserSetup();
 
