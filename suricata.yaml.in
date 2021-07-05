@@ -766,6 +766,8 @@ app-layer:
     # HTTP2: Experimental HTTP 2 support. Disabled by default.
     http2:
       enabled: no
+      # use http keywords on HTTP2 traffic
+      http1-rules: no
     smtp:
       enabled: yes
       raw-extraction: no
