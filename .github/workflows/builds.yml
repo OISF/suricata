@@ -102,6 +102,7 @@ jobs:
               cd suricata-verify
               git fetch origin pull/${sv_pr}/head:prep
               git checkout prep
+              git rebase ${DEFAULT_SV_BRANCH}
               cd ..
           fi
           tar zcf suricata-verify.tar.gz suricata-verify
