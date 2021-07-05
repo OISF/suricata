@@ -215,6 +215,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
     const DetectBufferMpmRegistery *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP];
+    DetectBufferMpmRegistery *toadd = de_ctx->app_mpms_list;
     while (list != NULL) {
         DetectBufferMpmRegistery *n = SCCalloc(1, sizeof(*n));
         BUG_ON(n == NULL);
@@ -222,14 +223,12 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         *n = *list;
         n->next = NULL;
 
-        if (de_ctx->app_mpms_list == NULL) {
+        if (toadd == NULL) {
+            toadd = n;
             de_ctx->app_mpms_list = n;
         } else {
-            DetectBufferMpmRegistery *t = de_ctx->app_mpms_list;
-            while (t->next != NULL) {
-                t = t->next;
-            }
-            t->next = n;
+            toadd->next = n;
+            toadd = toadd->next;
         }
 
         /* default to whatever the global setting is */

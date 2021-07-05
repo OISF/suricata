@@ -322,6 +322,7 @@ static void DetectAppLayerInspectEngineCopy(
 static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
 {
     const DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
     while (t) {
         DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
         if (unlikely(new_engine == NULL)) {
@@ -334,16 +335,12 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->progress = t->progress;
         new_engine->v2 = t->v2;
 
-        if (de_ctx->app_inspect_engines == NULL) {
+        if (list == NULL) {
             de_ctx->app_inspect_engines = new_engine;
         } else {
-            DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
-            while (list->next != NULL) {
-                list = list->next;
-            }
-
             list->next = new_engine;
         }
+        list = new_engine;
 
         t = t->next;
     }
