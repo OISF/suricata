@@ -304,6 +304,33 @@ impl JsonBuilder {
         }
     }
 
+    /// Add a safe string to an array.
+    ///
+    /// A safe string is one that is guaranteed to be valid for JSON
+    /// and not require any escaping.
+    pub fn append_string_safe(&mut self, val: &str) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ArrayFirst => {
+                self.buf.push('"');
+                self.buf.push_str(val);
+                self.buf.push('"');
+                self.set_state(State::ArrayNth);
+                Ok(self)
+            }
+            State::ArrayNth => {
+                self.buf.push(',');
+                self.buf.push('"');
+                self.buf.push_str(val);
+                self.buf.push('"');
+                Ok(self)
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                Err(JsonError::InvalidState)
+            }
+        }
+    }
+
     pub fn append_string_from_bytes(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
             Ok(s) => self.append_string(s),
@@ -406,6 +433,31 @@ impl JsonBuilder {
         self.buf.push_str(key);
         self.buf.push_str("\":");
         self.encode_string(val)?;
+        Ok(self)
+    }
+
+    /// Set a key and safe string value type on an object.
+    ///
+    /// A safe string is one that is guaranteed to be valid for JSON
+    /// and not require any escaping.
+    pub fn set_string_safe(&mut self, key: &str, val: &str) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.buf.push(',');
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.buf.push('"');
+        self.buf.push_str(key);
+        self.buf.push_str("\":\"");
+        self.buf.push_str(val);
+        self.buf.push('"');
         Ok(self)
     }
 
@@ -649,6 +701,21 @@ pub unsafe extern "C" fn jb_set_string(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn jb_set_string_safe(
+    js: &mut JsonBuilder, key: *const c_char, val: *const c_char,
+) -> bool {
+    if val == std::ptr::null() {
+        return false;
+    }
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        if let Ok(val) = CStr::from_ptr(val).to_str() {
+            return js.set_string_safe(key, val).is_ok();
+        }
+    }
+    return false;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn jb_set_string_from_bytes(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
@@ -692,6 +759,17 @@ pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_ch
     }
     if let Ok(val) = CStr::from_ptr(val).to_str() {
         return js.append_string(val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_append_string_safe(js: &mut JsonBuilder, val: *const c_char) -> bool {
+    if val == std::ptr::null() {
+        return false;
+    }
+    if let Ok(val) = CStr::from_ptr(val).to_str() {
+        return js.append_string_safe(val).is_ok();
     }
     return false;
 }
@@ -1059,6 +1137,32 @@ mod test {
         jb.append_float(2.2).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[1.1,2.2]"#);
+    }
+
+    #[test]
+    fn test_set_string_safe() {
+        let mut jb = JsonBuilder::new_object();
+        jb.set_string_safe("a", "1").unwrap();
+        assert_eq!(jb.buf, r#"{"a":"1""#);
+
+        // But we can do bad things as well, like a quote inside the
+        // string which leads to invalid JSON.
+        let mut jb = JsonBuilder::new_object();
+        jb.set_string_safe("a", r#"1""#).unwrap();
+        assert_eq!(jb.buf, r#"{"a":"1"""#);
+    }
+
+    #[test]
+    fn test_append_string_safe() {
+        let mut jb = JsonBuilder::new_array();
+        jb.append_string_safe("1").unwrap();
+        assert_eq!(jb.buf, r#"["1""#);
+        jb.append_string_safe("2").unwrap();
+        assert_eq!(jb.buf, r#"["1","2""#);
+
+        // Add like set_string_safe, we can append bad JSON as well.
+        jb.append_string_safe("3\"").unwrap();
+        assert_eq!(jb.buf, r#"["1","2","3"""#);
     }
 }
 
