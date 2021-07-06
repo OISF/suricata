@@ -8,8 +8,8 @@ msc {
     a [ label = "Client" ], b [ label = "Server" ];
 
     # Message Flow
-    a =>> b [ label = "Request" ];
-    b =>> a [ label = "Response" ];
+    a =>> b [ label = "Request ('12:HelloWorld!')" ];
+    b =>> a [ label = "Response ('3:Bye')" ];
     |||;
     --- [ label = "Transaction Completed" ];
 }

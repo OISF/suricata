@@ -216,7 +216,10 @@ A DNS transaction in Suricata can be considered unidirectional:
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "DNS Request". After that, there is a dotted line labeled "Transaction Completed".
 
-An HTTP2 transaction is an example of a bidirectional transaction, in Suricata:
+An HTTP2 transaction is an example of a bidirectional transaction, in Suricata (note that transactions in HTTP2 may
+overlap, scenario not shown in this Sequence Diagram):
+
+.. TODO add another example for overlapping HTTP2 transaction
 
 .. image:: img/HTTP2BidirectionalTransaction.png
   :width: 600
