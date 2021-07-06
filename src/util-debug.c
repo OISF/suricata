@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,12 +72,20 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
     { NULL,             -1 }
 };
 
+/* TLS values to track thread name (length) */
+static thread_local char _sc_subsystem[16];
+
 #if defined (OS_WIN32)
 /**
  * \brief Used for synchronous output on WIN32
  */
 static SCMutex sc_log_stream_lock;
 #endif /* OS_WIN32 */
+
+/**
+ * \brief Transform the module name into display module name for logging
+ */
+static const char *SCTransformModule(const char *module_name, int *dn_len);
 
 /**
  * \brief Holds the config state for the logging module
@@ -181,7 +189,7 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
 }
 
 /**
- * \brief Output function that logs a character string throught the syslog iface
+ * \brief Output function that logs a character string through the syslog iface
  *
  * \param syslog_log_level Holds the syslog_log_level that the message should be
  *                         logged as
@@ -203,64 +211,130 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
 /**
  */
 static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
-        SCLogLevel log_level, const char *file,
-        unsigned line, const char *function, SCError error_code,
-        const char *message)
+        SCLogLevel log_level, const char *file, unsigned line, const char *function,
+        const char *module, SCError error_code, const char *message)
 {
-    json_t *js = json_object();
+    JsonBuilder *js = jb_new_object();
     if (unlikely(js == NULL))
-        goto error;
-    json_t *ejs = json_object();
-    if (unlikely(ejs == NULL))
         goto error;
 
     char timebuf[64];
     CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
-    json_object_set_new(js, "timestamp", json_string(timebuf));
+    jb_set_string(js, "timestamp", timebuf);
 
     const char *s = SCMapEnumValueToName(log_level, sc_log_level_map);
     if (s != NULL) {
-        json_object_set_new(js, "log_level", json_string(s));
+        jb_set_string(js, "log_level", s);
     } else {
-        json_object_set_new(js, "log_level", json_string("INVALID"));
+        JB_SET_STRING(js, "log_level", "INVALID");
     }
 
-    json_object_set_new(js, "event_type", json_string("engine"));
+    JB_SET_STRING(js, "event_type", "engine");
+    jb_open_object(js, "engine");
 
     if (error_code > 0) {
-        json_object_set_new(ejs, "error_code", json_integer(error_code));
-        json_object_set_new(ejs, "error", json_string(SCErrorToString(error_code)));
+        jb_set_uint(js, "error_code", error_code);
+        jb_set_string(js, "error", SCErrorToString(error_code));
     }
 
     if (message)
-        json_object_set_new(ejs, "message", json_string(message));
+        jb_set_string(js, "message", message);
+
+    if (_sc_subsystem[0] != '\0') {
+        jb_set_string(js, "subsystem", _sc_subsystem);
+    }
+
+    if (module) {
+        /* Determine how much of module name to display */
+        int dn_len = 0;
+        const char *dn_name;
+        dn_name = SCTransformModule(module, &dn_len);
+        jb_set_string(js, "module", dn_name);
+    }
 
     if (log_level >= SC_LOG_DEBUG) {
         if (function)
-            json_object_set_new(ejs, "function", json_string(function));
+            jb_set_string(js, "function", function);
 
         if (file)
-            json_object_set_new(ejs, "file", json_string(file));
+            jb_set_string(js, "file", file);
 
         if (line > 0)
-            json_object_set_new(ejs, "line", json_integer(line));
+            jb_set_uint(js, "line", line);
     }
+    jb_close(js); // engine
 
-    json_object_set_new(js, "engine", ejs);
+    jb_close(js);
+    memcpy(buffer, jb_ptr(js), MIN(buffer_size, jb_len(js)));
 
-    char *js_s = json_dumps(js,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
-    snprintf(buffer, buffer_size, "%s", js_s);
-    free(js_s);
-
-    json_object_del(js, "engine");
-    json_object_clear(js);
-    json_decref(js);
+    jb_free(js);
 
     return 0;
+
 error:
     return -1;
+}
+
+static const int TranfromMaxSegmentCount = 2; /* The maximum segment count to display */
+/*
+ * \brief Return a display name for the given module name for logging.
+ *
+ * The transformation is dependent upon the source code module names
+ * that use the dash character to separate incremental refinements of
+ * the subsystem.
+ *
+ * The transformation uses the local constant "TranfromMaxSegmentCount" to determine
+ * how many segments to display; the transformed name will never consist
+ * of more than this many segments.
+ *
+ * E.g., "detect-http-content-len" ==> "detect-http" when the max is 2
+ *
+ * \param module_name The source code module name to be transformed.
+ * \param dn_len The number of characters in the display name to print.
+ *
+ * \retval Pointer to the display name
+ */
+static const char *SCTransformModule(const char *module_name, int *dn_len)
+{
+    /*
+     * special case for source code module names beginning with:
+     *    Prefixes skipped
+     *        tm-*
+     *        util-*
+     *        source-*
+     *    No transformation
+     *        app-layer-*
+     */
+    if (strncmp("tm-", module_name, 3) == 0) {
+        *dn_len = strlen(module_name) - 3;
+        return module_name + 3;
+    } else if (strncmp("util-", module_name, 5) == 0) {
+        *dn_len = strlen(module_name) - 5;
+        return module_name + 5;
+    } else if (strncmp("source-", module_name, 7) == 0) {
+        *dn_len = strlen(module_name) - 7;
+        return module_name + 7;
+    } else if (strncmp("app-layer-", module_name, 10) == 0) {
+        *dn_len = strlen(module_name);
+        return module_name;
+    }
+
+    int seg_cnt = 0;
+
+    char *last;
+    char *w = (char *)module_name;
+    while (w && (w = strchr(w, '-')) != NULL && seg_cnt < TranfromMaxSegmentCount) {
+        seg_cnt++;
+        last = w;
+        w++; /* skip past '-' */
+    }
+
+    if (seg_cnt < TranfromMaxSegmentCount)
+        *dn_len = strlen(module_name);
+    else
+        *dn_len = last - module_name;
+
+    return module_name;
 }
 
 /**
@@ -274,17 +348,20 @@ error:
  *
  * \retval SC_OK on success; else an error code
  */
-static SCError SCLogMessageGetBuffer(
-        struct timeval *tval, int color, SCLogOPType type,
-                     char *buffer, size_t buffer_size,
-                     const char *log_format,
-
-                     const SCLogLevel log_level, const char *file,
-                     const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPType type,
+        char *buffer, size_t buffer_size, const char *log_format, const SCLogLevel log_level,
+        const char *file, const unsigned int line, const char *function, const char *module,
+        const SCError error_code, const char *message)
 {
+    if (_sc_subsystem[0] == '\0') {
+        if (SCGetThreadName(_sc_subsystem, 16) < 0) {
+            memset(_sc_subsystem, 0, 16);
+        }
+    }
+
     if (type == SC_LOG_OP_TYPE_JSON)
-        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, error_code, message);
+        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, module,
+                error_code, message);
 
     char *temp = buffer;
     const char *s = NULL;
@@ -367,17 +444,8 @@ static SCError SCLogMessageGetBuffer(
 
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
-/* disabled to prevent dead lock:
- * log or alloc (which calls log on error) can call TmThreadsGetCallingThread
- * which will lock tv_root_lock. This can happen while we already hold this
- * lock. */
-#if 0
-                ThreadVars *tv = TmThreadsGetCallingThread();
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
-                              "%s%s", substr, ((tv != NULL)? tv->name: "UNKNOWN TM"));
-#endif
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%s", substr, "N/A");
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s", substr,
+                        _sc_subsystem[0] == '\0' ? "N/A" : _sc_subsystem);
                 if (cw < 0)
                     return SC_ERR_SPRINTF;
                 temp += cw;
@@ -438,6 +506,28 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_SUBSYSTEM:
+                temp_fmt[0] = '\0';
+
+                /* Determine how much of module name to display */
+                int dn_len = 0;
+                const char *dn_name;
+                if (module) {
+                    dn_name = SCTransformModule(module, &dn_len);
+                }
+
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s%.*s%s",
+                        substr, green, _sc_subsystem[0] == '\0' ? "" : _sc_subsystem,
+                        _sc_subsystem[0] == '\0' ? "" : ":", dn_len, module == NULL ? "" : dn_name,
+                        reset);
+                if (cw < 0)
+                    return SC_ERR_SPRINTF;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
@@ -450,6 +540,24 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_ERRCODE:
+                temp_fmt[0] = '\0';
+                if (SC_OK != error_code) {
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                            "%s[%sERRCODE%s: %s%s%s(%s%d%s)] - ", substr, yellow, reset, red,
+                            SCErrorToString(error_code), reset, yellow, error_code, reset);
+                    if (cw < 0)
+                        return SC_ERR_SPRINTF;
+                } else {
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", substr);
+                    if (cw < 0)
+                        return SC_ERR_SPRINTF;
+                }
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
         }
         temp_fmt++;
 	}
@@ -463,18 +571,6 @@ static SCError SCLogMessageGetBuffer(
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
         return SC_OK;
-    }
-
-    if (error_code != SC_OK) {
-        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                "[%sERRCODE%s: %s%s%s(%s%d%s)] - ", yellow, reset, red, SCErrorToString(error_code), reset, yellow, error_code, reset);
-        if (cw < 0) {
-            return SC_ERR_SPRINTF;
-        }
-        temp += cw;
-        if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-            return SC_OK;
-        }
     }
 
     const char *hi = "";
@@ -538,9 +634,8 @@ static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
  *
  * \retval SC_OK on success; else an error code
  */
-SCError SCLogMessage(const SCLogLevel log_level, const char *file,
-                     const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+SCError SCLogMessage(const SCLogLevel log_level, const char *file, const unsigned int line,
+        const char *function, const char *module, const SCError error_code, const char *message)
 {
     char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
@@ -565,22 +660,18 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
         switch (op_iface_ctx->iface) {
             case SC_LOG_OP_IFACE_CONSOLE:
                 if (SCLogMessageGetBuffer(&tval, op_iface_ctx->use_color, op_iface_ctx->type,
-                                          buffer, sizeof(buffer),
-                                          op_iface_ctx->log_format ?
-                                              op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
-                                          error_code, message) == 0)
-                {
+                            buffer, sizeof(buffer),
+                            op_iface_ctx->log_format ? op_iface_ctx->log_format
+                                                     : sc_log_config->log_format,
+                            log_level, file, line, function, module, error_code, message) == 0) {
                     SCLogPrintToStream((log_level == SC_LOG_ERROR)? stderr: stdout, buffer);
                 }
                 break;
             case SC_LOG_OP_IFACE_FILE:
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
-                                          op_iface_ctx->log_format ?
-                                              op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
-                                          error_code, message) == 0)
-                {
+                            op_iface_ctx->log_format ? op_iface_ctx->log_format
+                                                     : sc_log_config->log_format,
+                            log_level, file, line, function, module, error_code, message) == 0) {
                     int r = 0;
                     SCMutexLock(&op_iface_ctx->fp_mutex);
                     if (op_iface_ctx->rotation_flag) {
@@ -599,11 +690,9 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
-                                          op_iface_ctx->log_format ?
-                                              op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
-                                          error_code, message) == 0)
-                {
+                            op_iface_ctx->log_format ? op_iface_ctx->log_format
+                                                     : sc_log_config->log_format,
+                            log_level, file, line, function, module, error_code, message) == 0) {
                     SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level), buffer);
                 }
                 break;
@@ -615,7 +704,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
     return SC_OK;
 }
 
-void SCLog(int x, const char *file, const char *func, const int line,
+void SCLog(int x, const char *file, const char *func, const int line, const char *module,
         const char *fmt, ...)
 {
     if (sc_log_global_log_level >= x &&
@@ -630,11 +719,11 @@ void SCLog(int x, const char *file, const char *func, const int line,
         va_start(ap, fmt);
         vsnprintf(msg, sizeof(msg), fmt, ap);
         va_end(ap);
-        SCLogMessage(x, file, line, func, SC_OK, msg);
+        SCLogMessage(x, file, line, func, module, SC_OK, msg);
     }
 }
 
-void SCLogErr(int x, const char *file, const char *func, const int line,
+void SCLogErr(int x, const char *file, const char *func, const int line, const char *module,
         const int err, const char *fmt, ...)
 {
     if (sc_log_global_log_level >= x &&
@@ -649,7 +738,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
         va_start(ap, fmt);
         vsnprintf(msg, sizeof(msg), fmt, ap);
         va_end(ap);
-        SCLogMessage(x, file, line, func, err, msg);
+        SCLogMessage(x, file, line, func, module, err, msg);
     }
 }
 
@@ -713,11 +802,10 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx(void)
 {
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
-    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+    if ((iface_ctx = SCCalloc(1, sizeof(SCLogOPIfaceCtx))) == NULL) {
         FatalError(SC_ERR_FATAL,
                    "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
     }
-    memset(iface_ctx, 0, sizeof(SCLogOPIfaceCtx));
 
     return iface_ctx;
 }
@@ -1147,7 +1235,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
 /**
  * \brief Returns a pointer to a new SCLogInitData.  This is a public interface
- *        intended to be used after the logging paramters are read from the
+ *        intended to be used after the logging parameters are read from the
  *        conf file
  *
  * \retval sc_lid Pointer to the newly created SCLogInitData
@@ -1157,11 +1245,8 @@ SCLogInitData *SCLogAllocLogInitData(void)
 {
     SCLogInitData *sc_lid = NULL;
 
-    /* not using SCMalloc here because if it fails we can't log */
-    if ( (sc_lid = SCMalloc(sizeof(SCLogInitData))) == NULL)
+    if ((sc_lid = SCCalloc(1, sizeof(SCLogInitData))) == NULL)
         return NULL;
-
-    memset(sc_lid, 0, sizeof(SCLogInitData));
 
     return sc_lid;
 }
@@ -1314,11 +1399,10 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 #endif /* OS_WIN32 */
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
+    if ((sc_log_config = SCCalloc(1, sizeof(SCLogConfig))) == NULL) {
         FatalError(SC_ERR_FATAL,
                    "Fatal error encountered in SCLogInitLogModule. Exiting...");
     }
-    memset(sc_log_config, 0, sizeof(SCLogConfig));
 
     SCLogSetLogLevel(sc_lid, sc_log_config);
     SCLogSetLogFormat(sc_lid, sc_log_config);
