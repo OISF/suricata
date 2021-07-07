@@ -36,6 +36,11 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
 
     HashListTable *ht = NULL;
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (size > 256) {
+        size = MIN(size/4, 1024);
+    }
+#endif
     if (size == 0) {
         goto error;
     }
