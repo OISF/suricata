@@ -175,7 +175,7 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
             json_object_set_new(js, "{{field.name}}",
                 json_real(data->{{field.name}}));
 {% elif field.type == "bytearray" %}
-            unsigned long {{field.name}}_b64_len = data->{{field.len_field}} * 2;
+            unsigned long {{field.name}}_b64_len = BASE64_BUFFER_SIZE(data->{{field.len_field}});
             uint8_t {{field.name}}_b64[{{field.name}}_b64_len];
             Base64Encode(data->{{field.name}}, data->{{field.len_field}},
                 {{field.name}}_b64, &{{field.name}}_b64_len);
