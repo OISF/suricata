@@ -64,6 +64,9 @@ macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }
 
+// Flow flags
+pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
+
 // Defined in app-layer-protos.h
 extern {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
@@ -226,6 +229,9 @@ pub enum Flow {}
 /// Extern functions operating on Flow.
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
+    pub fn FlowGetFlags(flow: &Flow) -> u32;
+    pub fn FlowGetSourcePort(flow: &Flow) -> u16;
+    pub fn FlowGetDestinationPort(flow: &Flow) -> u16;
 }
 
 /// Rust implementation of Flow.
@@ -240,5 +246,15 @@ impl Flow {
             FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
             std::time::Duration::new(secs, usecs as u32 * 1000)
         }
+    }
+
+    /// Return the flow flags.
+    pub fn get_flags(&self) -> u32 {
+        unsafe { FlowGetFlags(self) }
+    }
+
+    /// Return flow ports
+    pub fn get_ports(&self) -> (u16, u16) {
+        unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
     }
 }
