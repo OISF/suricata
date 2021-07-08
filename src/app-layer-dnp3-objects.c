@@ -7153,6 +7153,9 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
         }
+        if (prefix - (offset - *len) >= 255) {
+          goto error;
+        }
         object->optional_text_len = prefix - (offset - *len);
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
@@ -7216,6 +7219,9 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         }
         if (!DNP3ReadUint32(buf, len, &object->block_number)) {
             goto error;
+        }
+        if (prefix - (offset - *len) >= 255) {
+          goto error;
         }
         object->file_data_len = prefix - (offset - *len);
         if (object->file_data_len > 0) {
@@ -7283,6 +7289,9 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         }
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
+        }
+        if (prefix - (offset - *len) >= 255) {
+          goto error;
         }
         object->optional_text_len = prefix - (offset - *len);
         if (object->optional_text_len > 0) {
@@ -7413,6 +7422,9 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
 
         offset = *len;
 
+        if (prefix - (offset - *len) >= 65535) {
+          goto error;
+        }
         object->file_specification_len = prefix - (offset - *len);
         if (object->file_specification_len > 0) {
             if (*len < object->file_specification_len) {
@@ -8157,6 +8169,9 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
         }
         if (!DNP3ReadUint48(buf, len, &object->time_of_error)) {
             goto error;
+        }
+        if (prefix - (offset - *len) >= 65535) {
+          goto error;
         }
         object->error_text_len = prefix - (offset - *len);
         if (object->error_text_len > 0) {
