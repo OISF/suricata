@@ -1,4 +1,5 @@
 /* Copyright (C) 2012 BAE Systems
+ * Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,10 +94,13 @@ typedef enum MimeDecRetCode {
  *
  */
 typedef struct MimeDecConfig {
-    int decode_base64;  /**< Decode base64 bodies */
-    int decode_quoted_printable;  /**< Decode quoted-printable bodies */
-    int extract_urls;  /**< Extract and store URLs in data structure */
-    int body_md5;  /**< Compute md5 sum of body */
+    bool decode_base64;             /**< Decode base64 bodies */
+    bool decode_quoted_printable;   /**< Decode quoted-printable bodies */
+    bool extract_urls;              /**< Extract and store URLs in data structure */
+    ConfNode *extract_urls_schemes; /**< List of schemes of which to
+                                         extract urls  */
+    bool log_url_scheme;            /**< Log the scheme of extracted URLs */
+    bool body_md5;                  /**< Compute md5 sum of body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
 } MimeDecConfig;
@@ -157,7 +161,7 @@ typedef struct MimeDecStackNode {
     MimeDecEntity *data;  /**< Pointer to the entity data structure */
     uint8_t *bdef;  /**< Copy of boundary definition for child entity */
     uint32_t bdef_len;  /**< Boundary length for child entity */
-    int is_encap;  /**< Flag indicating entity is encapsulated in message */
+    bool is_encap;      /**< Flag indicating entity is encapsulated in message */
     struct MimeDecStackNode *next;  /**< Pointer to next item on the stack */
 } MimeDecStackNode;
 
