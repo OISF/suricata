@@ -518,6 +518,9 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         }
 {% elif field.type == "chararray" %}
 {% if field.len_from_prefix %}
+        if (prefix - (offset - *len) >= {{field.size}}) {
+            goto error;
+        }
         object->{{field.len_field}} = prefix - (offset - *len);
 {% endif %}
         if (object->{{field.len_field}} > 0) {
