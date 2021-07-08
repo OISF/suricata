@@ -9,7 +9,11 @@ if HAS_FUZZPCAP
 endif
 endif
 
-noinst_HEADERS = \
+HEADERS_PUBLIC = \
+	output-json-filetypes.h \
+	suricata-plugin.h
+
+HEADERS_PRIVATE = \
 	action-globals.h \
 	alert-debuglog.h \
 	alert-fastlog.h \
@@ -411,6 +415,7 @@ noinst_HEADERS = \
 	output-json-template-rust.h \
 	output-json-tftp.h \
 	output-json-tls.h \
+	output-eve-syslog.h \
 	output-lua.h \
 	output-packet.h \
 	output-stats.h \
@@ -465,7 +470,6 @@ noinst_HEADERS = \
 	stream-tcp-util.h \
 	suricata-common.h \
 	suricata.h \
-	suricata-plugin.h \
 	threads-debug.h \
 	threads.h \
 	threads-profile.h \
@@ -591,6 +595,10 @@ noinst_HEADERS = \
 	win32-service.h \
 	win32-syscall.h \
 	win32-syslog.h
+
+noinst_HEADERS = \
+	$(HEADERS_PUBLIC) \
+	$(HEADERS_PRIVATE)
 
 libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
@@ -963,6 +971,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-drop.c \
 	output-json-email-common.c \
 	output-json-file.c \
+	output-json-filetypes.c \
 	output-json-flow.c \
 	output-json-ftp.c \
 	output-json-http2.c \
@@ -986,6 +995,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-template-rust.c \
 	output-json-tftp.c \
 	output-json-tls.c \
+	output-eve-syslog.c \
 	output-lua.c \
 	output-packet.c \
 	output-stats.c \
@@ -1213,9 +1223,12 @@ EXTRA_DIST = \
 	tests/stream-tcp.c
 
 install-headers:
-	mkdir -p $(DESTDIR)${includedir}/suricata
-	for header in $(noinst_HEADERS); do \
+	mkdir -p $(DESTDIR)${includedir}/suricata/private
+	for header in $(HEADERS_PUBLIC); do \
 		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
+	done
+	for header in $(HEADERS_PRIVATE); do \
+		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata/private"; \
 	done
 
 # set the include path found by configure

@@ -2,3 +2,6 @@
 # we expect the default formatting rules to be used.
 
 fn_args_layout = "compressed"
+
+# Disable conversion of 'extern {' to 'extern "C" {'
+force_explicit_abi = false

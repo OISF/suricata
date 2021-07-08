@@ -493,6 +493,7 @@ typedef enum {
 #ifndef SURICATA_PLUGIN
 #include <htp/htp.h>
 #endif
+#include "queue.h"
 #include "threads.h"
 #include "tm-threads-common.h"
 #include "util-debug.h"

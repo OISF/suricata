@@ -392,7 +392,7 @@ jobs:
       - run: test ! -e /usr/local/lib/libsuricata_c.a
       - run: test ! -e /usr/local/include/suricata
       - run: make install-headers
-      - run: test -e /usr/local/include/suricata/suricata.h
+      - run: test -e /usr/local/include/suricata/suricata-plugin.h
       - run: make install-library
       - run: test -e /usr/local/lib/libsuricata_c.a
       - run: test -e /usr/local/lib/libsuricata_rust.a
@@ -838,7 +838,7 @@ jobs:
       - run: test ! -e /usr/local/lib/libsuricata_c.a
       - run: test ! -e /usr/local/include/suricata
       - run: make install-headers
-      - run: test -e /usr/local/include/suricata/suricata.h
+      - run: test -e /usr/local/include/suricata/suricata-plugin.h
       - run: make install-library
       - run: test -e /usr/local/lib/libsuricata_c.a
       - run: test -e /usr/local/lib/libsuricata_rust.a

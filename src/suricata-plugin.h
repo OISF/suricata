@@ -21,7 +21,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "conf.h"
+/**
+ * Forward declaration of ConfNode as we don't have a public header for
+ * the configuration API yet. Plugins can still use it by pulling the
+ * private header. */
+typedef struct ConfNode_ ConfNode;
 
 /**
  * The size of the data chunk inside each packet structure a plugin
@@ -39,30 +43,7 @@ typedef struct SCPlugin_ {
     void (*Init)(void);
 } SCPlugin;
 
-/**
- * Structure used to define a file type plugin.
- *
- * Currently only used by the Eve output type.
- *
- * name -- The plugin name. This name is used to identify the plugin: eve-log.filetype and in the
- * plugins: section
- */
-typedef struct SCPluginFileType_ {
-    char *name;
-    /* Init Called on first access */
-    int (*Init)(ConfNode *conf, bool threaded, void **init_data);
-    /* Write - Called on each write to the object */
-    int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
-    /* Close - Called on final close */
-    void (*Deinit)(void *init_data);
-    /* ThreadInit - Called for each thread using file object*/
-    int (*ThreadInit)(void *init_data, int thread_id, void **thread_data);
-    /* ThreadDeinit - Called for each thread using file object */
-    int (*ThreadDeinit)(void *init_data, void *thread_data);
-    TAILQ_ENTRY(SCPluginFileType_) entries;
-} SCPluginFileType;
-
-bool SCPluginRegisterFileType(SCPluginFileType *);
+typedef SCPlugin *(*SCPluginRegisterFunc)(void);
 
 typedef struct SCCapturePlugin_ {
     char *name;
