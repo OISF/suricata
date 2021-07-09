@@ -26,18 +26,19 @@ pub const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
 pub const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
 
 #[derive(Debug, PartialEq)]
-struct PgsqlParameter {
-    param_name: Vec<u8>,
-    param_value: Vec<u8>,
+pub struct PgsqlParameter {
+    pub param_name: Vec<u8>,
+    pub param_value: Vec<u8>,
 }
 
 // TODO I think I can simplify this by having a vector of pgsqlparams
 // (but I didn't manage to make this work without overcomplicating things...)
 #[derive(Debug, PartialEq)]
 pub struct PgsqlStartupParameters {
-    user: PgsqlParameter,
-    database: Option<PgsqlParameter>,
-    optional_params: Option<Vec<PgsqlParameter>>,
+    pub user: PgsqlParameter,
+    pub database: Option<PgsqlParameter>,
+    // TODO get rid of this Option<vec>
+    pub optional_params: Option<Vec<PgsqlParameter>>,
 }
 
 impl fmt::Display for PgsqlStartupParameters {
@@ -55,10 +56,10 @@ pub struct DummyStartupPacket {
 
 #[derive(Debug, PartialEq)]
 pub struct StartupPacket{
-    length: u32,
-    proto_major: u16,
-    proto_minor: u16,
-    params: PgsqlStartupParameters,
+    pub length: u32,
+    pub proto_major: u16,
+    pub proto_minor: u16,
+    pub params: PgsqlStartupParameters,
 }
 
 impl fmt::Display for StartupPacket {
