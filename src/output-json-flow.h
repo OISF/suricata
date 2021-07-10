@@ -24,8 +24,11 @@
 #ifndef __OUTPUT_JSON_FLOW_H__
 #define __OUTPUT_JSON_FLOW_H__
 
+#define FLOW_LOG_NO_DIR      0
+#define FLOW_LOG_DIR_VERBOSE 1
+
 void JsonFlowLogRegister(void);
-void EveAddFlow(Flow *f, JsonBuilder *js);
+void EveAddFlow(Flow *f, JsonBuilder *js, uint8_t dir_log);
 void EveAddAppProto(Flow *f, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */

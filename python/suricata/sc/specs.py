@@ -194,4 +194,11 @@ argsd = {
             "required": 1,
         },
     ],
+    "get-flow": [
+        {
+            "name": "flow_id",
+            "type": int,
+            "required": 1,
+        },
+    ],
     }

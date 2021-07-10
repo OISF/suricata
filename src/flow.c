@@ -186,6 +186,18 @@ int FlowHasAlerts(const Flow *f)
     return 0;
 }
 
+int FlowHasGaps(const Flow *f)
+{
+    if (f->proto == IPPROTO_TCP) {
+        TcpSession *ssn = (TcpSession *)f->protoctx;
+        if (ssn != NULL) {
+            if (ssn->flags & STREAMTCP_FLAG_HAS_GAP)
+                return 1;
+        }
+    }
+    return 0;
+}
+
 /** \brief Set flag to indicate to change proto for the flow
  *
  * \param f flow
