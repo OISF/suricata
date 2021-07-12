@@ -133,6 +133,11 @@ typedef struct ThreadVars_ {
 
     struct FlowQueue_ *flow_queue;
 
+#ifdef HAVE_DPDK
+    /** For DPDK thread exit */
+    uint32_t lcore_id;
+#endif /* HAVE_DPDK */
+
 } ThreadVars;
 
 /** Thread setup flags: */

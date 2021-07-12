@@ -43,6 +43,11 @@
 #include "util-signal.h"
 #include "queue.h"
 
+#ifdef HAVE_DPDK
+#include <rte_launch.h>
+#include <rte_lcore.h>
+#endif
+
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
 thread_local uint64_t mutex_lock_wait_ticks;
@@ -248,7 +253,14 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                                  " tmqh_out=%p",
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        pthread_exit((void *) -1);
+#ifdef HAVE_DPDK
+        if (tv->lcore_id == LCORE_ID_ANY) {
+            pthread_exit((void *)-1);
+        }
+#else
+        pthread_exit((void *)-1);
+#endif /* HAVE_DPDK */
+
         return NULL;
     }
 
@@ -277,7 +289,13 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+#ifdef HAVE_DPDK
+                if (tv->lcore_id == LCORE_ID_ANY) {
+                    pthread_exit((void *)-1);
+                }
+#else
+                pthread_exit((void *)-1);
+#endif /* HAVE_DPDK */
                 return NULL;
             }
         /* setup a queue */
@@ -292,7 +310,13 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+#ifdef HAVE_DPDK
+                if (tv->lcore_id == LCORE_ID_ANY) {
+                    pthread_exit((void *)-1);
+                }
+#else
+                pthread_exit((void *)-1);
+#endif /* HAVE_DPDK */
                 return NULL;
             }
         }
@@ -351,12 +375,24 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     tv->stream_pq = NULL;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
-    pthread_exit((void *) 0);
+#ifdef HAVE_DPDK
+    if (tv->lcore_id == LCORE_ID_ANY) {
+        pthread_exit((void *)0);
+    }
+#else
+    pthread_exit((void *)0);
+#endif /* HAVE_DPDK */
     return NULL;
 
 error:
     tv->stream_pq = NULL;
-    pthread_exit((void *) -1);
+#ifdef HAVE_DPDK
+    if (tv->lcore_id == LCORE_ID_ANY) {
+        pthread_exit((void *)-1);
+    }
+#else
+    pthread_exit((void *)-1);
+#endif /* HAVE_DPDK */
     return NULL;
 }
 
@@ -957,6 +993,10 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
 
+#ifdef HAVE_DPDK
+    tv->lcore_id = LCORE_ID_ANY;
+#endif /* HAVE_DPDK */
+
     /* set the incoming queue */
     if (inq_name != NULL && strcmp(inq_name, "packetpool") != 0) {
         SCLogDebug("inq_name \"%s\"", inq_name);
@@ -1291,7 +1331,16 @@ static int TmThreadKillThread(ThreadVars *tv)
     }
 
     /* join it and flag it as dead */
-    pthread_join(tv->t, NULL);
+#ifdef HAVE_DPDK
+    if (tv->lcore_id != LCORE_ID_ANY && tv->type == TVT_PPT) {
+        rte_eal_wait_lcore(tv->lcore_id);
+    } else {
+#endif /* HAVE_DPDK */
+        pthread_join(tv->t, NULL);
+#ifdef HAVE_DPDK
+    }
+#endif /* HAVE_DPDK */
+
     SCLogDebug("thread %s stopped", tv->name);
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
@@ -1713,16 +1762,29 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         return TM_ECODE_FAILED;
     }
 
-    /* Initialize and set thread detached attribute */
-    pthread_attr_init(&attr);
+#ifdef HAVE_DPDK
+    if (tv->lcore_id != LCORE_ID_ANY) {
+        int rc = rte_eal_remote_launch(tv->tm_func, (void *)tv, tv->lcore_id);
+        if (rc != 0) {
+            SCLogError(SC_ERR_DPDK_INIT, "Err (%" PRIu32 ") Can not launch function on lcore", rc);
+            return TM_ECODE_FAILED;
+        }
 
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    } else {
+#endif /* HAVE_DPDK */
+        /* Initialize and set thread detached attribute */
+        pthread_attr_init(&attr);
 
-    int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
-    if (rc) {
-        printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
-        return TM_ECODE_FAILED;
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+        int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
+        if (rc) {
+            printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
+            return TM_ECODE_FAILED;
+        }
+#ifdef HAVE_DPDK
     }
+#endif /* HAVE_DPDK */
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 

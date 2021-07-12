@@ -1584,6 +1584,96 @@ computers etc.)
 Packet Acquisition
 ------------------
 
+Data Plane Development Kit (DPDK)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Data Plane Development Kit <https://www.dpdk.org/>`_ consists of libraries to accelerate packet processing
+workloads running on a wide variety of CPU architectures.
+DPDK `Environment Abstraction Layer (EAL) <https://doc.dpdk.org/guides/prog_guide/env_abstraction_layer.html>`_
+provides a generic interface to low-level resources. It is a unique way how DPDK libraries access
+NICs. EAL creates an API for application to access NIC resources from the userspace level. In DPDK, packets
+are not retrieved via interrupt handling. Instead, the application
+`polls <https://doc.dpdk.org/guides/prog_guide/poll_mode_drv.html>`_ NIC for newly received packets.
+
+EAL allows the user space application to directly access memory where NIC stores the packets.
+As a result, neither DPDK nor the application copies the packets for the inspection. The application directly
+processes packets via passed packet descriptors.
+
+
+.. figure:: suricata-yaml/dpdk.png
+    :align: center
+    :alt: DPDK basic architecture
+    :figclass: align-center
+
+    `High-level overview of DPDK application`
+
+
+Suricata makes use of DPDK for packet acquisition in workers runmode.
+The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
+2 main subnodes and those are eal-params and interfaces.
+
+::
+
+    dpdk:
+        eal-params:
+            l: 0-1
+            a: 0000:3b:00.0
+        interfaces:
+            - interface: 0000:3b:00.0 # PCIe address of the NIC port
+                # Suricata settings
+                threads: auto # or number of threads - auto takes all lcores
+                copy-mode: ips
+                copy-iface: 0000:3b:00.0 # PCIe address of the second interface
+                # NIC settings
+                promisc: true
+                multicast: true # enables also detection on multicast packets
+                checksum-checks: true # if Suricata should validate checksums
+                checksum-checks-offload: true # if possible offload checksum validation to the NIC
+                mtu: 3000 # Set MTU of the device in bytes # default 1526
+                # DPDK settings
+                mempool-size: 65356 # 64*1024
+                mempool-cache-size: 250
+                rx-descriptors: 1024
+                tx-descriptors: 1024
+
+
+The node `dpdk.eal-params` consists of `DPDK arguments <https://doc.dpdk.org/guides/linux_gsg/linux_eal_parameters.html>`_
+that are usually passed through command line. These arguments are used to initialize and configure EAL.
+Arguments can be specified in either long or short forms.
+Among other settings, this configuration node is able to configure affinity of lcores or allowed NICs.
+It is advised to carefully set lcores. In case cpu-affinity is enabled, core ids of workers must match specified
+lcores in the EAL parameters. DPDK runmode warns the user if the NIC and the lcore does not reside on the same NUMA node.
+Management threads do not need to be assigned to lcores.
+
+The node `dpdk.interfaces` wraps a list of interface configurations. Items of the list follows the structure that can
+be found in other capture runmodes. The individual items contain the usual configuration options
+such as threads/copy-mode/checksum settings. Other capture runmodes, such as AF_PACKET, rely on the user that NICs are appropriately configured.
+However, these settings do not apply when DPDK is enabled and NICs must be configured before start of Suricata.
+Therefore, the items of the `dpdk.interfaces` list provides additional settings how NICs can be configured.
+At the start of the configuration process, all NIC offloads are disabled to prevent any packet modification.
+According to the configuration, checksum validation offload can be enabled to drop invalid packets.
+Other offloads can not be currently enabled.
+Additionally, the list items of `dpdk.interfaces` contains DPDK specific settings such as mempool-size or rx-descriptors.
+These settings adjust individual parameters of EAL.
+
+When Suricata has enabled at least 2 (or more) workers, the incoming traffic is load balanced across the worker threads
+by Receive Side Scaling (RSS). Internally, DPDK runmode uses
+a `symmetric hash (0x6d5a) <https://www.ran-lifshitz.com/2014/08/28/symmetric-rss-receive-side-scaling/>`_
+that redirects entire flows to specific workers.
+
+Before Suricata can be run, it is required to allocate sufficient number of hugepages. Suricata allocates continuously allocates memory.
+For efficiency, CPU allocates memory in RAM in chunks. These chunks are usually in size of 4096 bytes. DPDK and other memory intensive applications makes use of hugepages.
+Hugepages start at the size of 2MB but they can be as large as 1GB. Lower count of pages (memory chunks) allows faster lookup of page entries.
+
+::
+
+    ## To check number of allocated hugepages:
+    grep Huge /proc/meminfo
+
+    ## Allocate hugepages:
+    echo 8192 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+
+
 Pf-ring
 ~~~~~~~
 

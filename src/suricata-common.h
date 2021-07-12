@@ -40,6 +40,11 @@
 #include <autoconf.h>
 #endif
 
+#ifdef HAVE_DPDK
+#define HAVE_STRLCAT 1
+#define HAVE_STRLCPY 1
+#endif
+
 #ifndef CLS
 #warning "L1 cache line size not detected during build. Assuming 64 bytes."
 #define CLS 64
