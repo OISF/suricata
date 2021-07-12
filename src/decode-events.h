@@ -146,6 +146,7 @@ enum {
     VLAN_HEADER_TOO_MANY_LAYERS,
 
     IEEE8021AH_HEADER_TOO_SMALL,
+    IEEE8021BR_HEADER_TOO_SMALL,
 
     /* VNTAG EVENTS */
     VNTAG_HEADER_TOO_SMALL, /**< vntag header smaller than minimum size */
