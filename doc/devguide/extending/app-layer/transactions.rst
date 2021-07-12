@@ -4,8 +4,8 @@ Transactions
 
 .. contents:: Table of Contents
 
-_`General Concepts`
-===================
+General Concepts
+================
 
 For Suricata, transactions are abstractions that help with detecting and logging. An example of complete transaction is
 a pair of messages Request (from frontend to backend) and Response (from backend to frontend) in HTTP.
@@ -16,8 +16,8 @@ when dealing with protocols that can have large PDUs, like TCP, in controlling s
 
 Transactions are implemented and stored in the per-flow state. The engine interacts with them using a set of callbacks the parser registers.
 
-_`How the engine uses transactions`
-===================================
+How the engine uses transactions
+================================
 
 Logging
 ~~~~~~~
@@ -95,8 +95,8 @@ As seen in ``DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter
         .
     }
 
-_`Progress Tracking`
-====================
+Progress Tracking
+=================
 
 As a rule of thumb, transactions will follow a request-response model: if a transaction has had a request and a response, it is complete.
 
@@ -122,8 +122,8 @@ In Summary - Transactions and State
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
 - Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, HTTP2, DNS, SMB).
 
-_`Examples`
-===========
+Examples
+========
 
 This section shares some examples from Suricata codebase, to help visualize how Transactions work and are handled by the engine.
 
@@ -288,8 +288,15 @@ And in Rust:
         return 0;
     }
 
-_`Common words and abbreviations`
-=================================
+Work In Progress changes
+========================
+
+Currently we are working to have files be part of the transaction instead of the per-flow state, as seen in https://redmine.openinfosecfoundation.org/issues/4444.
+
+Another work in progress is to limit the number of transactions per flow, to prevent Denial of Service by quadratic complexity (see  https://redmine.openinfosecfoundation.org/issues/4530).
+
+Common words and abbreviations
+==============================
 
 - al, applayer: application layer
 - alproto: application layer protocol
