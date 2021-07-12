@@ -11,6 +11,8 @@ for FILE in *.msc ; do
     # if command fails, lets inform about that
     if [ $? -ne 0 ]; then
         echo "$FILE couldn't be converted in the devguide"
+        # let's exit to make it more evident something is amiss
+        exit 1
     fi
 done
 
