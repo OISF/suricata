@@ -408,7 +408,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * when we handle them */
                 SET_TUNNEL_PKT_VERDICTED(p);
 
-                PACKET_PROFILING_END(p);
+                PACKET_PROFILING_END(t, p);
                 SCMutexUnlock(m);
                 SCReturn;
             }
@@ -459,7 +459,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         p->root = NULL;
     }
 
-    PACKET_PROFILING_END(p);
+    PACKET_PROFILING_END(t, p);
 
     PACKET_RELEASE_REFS(p);
     p->ReleasePacket(p);
