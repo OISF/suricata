@@ -7,8 +7,12 @@ Transactions
 _`General Concepts`
 ===================
 
-Transactions are abstractions that help detecting and logging in Suricata. They also help during the detection phase,
-when dealing with protocols that can have large PDUs, like TCP, in controlling state for partial rule matching, in case of rules that mention more than one field.
+For Suricata, transactions are abstractions that help with detecting and logging. An example of complete transaction is
+a pair of messages Request (from frontend to backend) and Response (from backend to frontend) in HTTP.
+
+In order to know when to log an event for a given protocol, the engine tracks the progress of each transaction - that
+is, when is it complete, or when does it reach a key intermediary stage. They aid during the detection phase,
+when dealing with protocols that can have large PDUs, like TCP, in controlling state for partial rule matching -- in case of rules that mention more than one field.
 
 Transactions are implemented and stored in the per-flow state. The engine interacts with them using a set of callbacks the parser registers.
 
@@ -116,7 +120,7 @@ In Summary - Transactions and State
 
 - Initial state value: ``0``.
 - Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
-- Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, DNS, SMB).
+- Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, HTTP2, DNS, SMB).
 
 _`Examples`
 ===========
