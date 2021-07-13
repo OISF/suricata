@@ -358,21 +358,34 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 Ok((_, rd)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", rd);
 
-                    if let Some(ref ren) = rd.rename {
-                        let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                        let mut newname = ren.name.to_vec();
-                        newname.retain(|&i|i != 0x00);
-                        let oldname = match state.guid2name_map.get(rd.guid) {
-                            Some(n) => { n.to_vec() },
-                            None => { b"<unknown>".to_vec() },
-                        };
-                        let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
-                        tx.hdr = tx_hdr;
-                        tx.request_done = true;
-                        tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
-                        true
-                    } else {
-                        false
+                    match rd.data {
+                        Smb2SetInfoRequestData::RENAME(ref ren) => {
+                            let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                            let mut newname = ren.name.to_vec();
+                            newname.retain(|&i|i != 0x00);
+                            let oldname = match state.guid2name_map.get(rd.guid) {
+                                Some(n) => { n.to_vec() },
+                                None => { b"<unknown>".to_vec() },
+                            };
+                            let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                            tx.hdr = tx_hdr;
+                            tx.request_done = true;
+                            tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
+                            true
+                        }
+                        Smb2SetInfoRequestData::DISPOSITION(ref dis) => {
+                            let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                            let fname = match state.guid2name_map.get(rd.guid) {
+                                Some(n) => { n.to_vec() },
+                                None => { b"<unknown>".to_vec() },
+                            };
+                            let tx = state.new_setfileinfo_tx(fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
+                            tx.hdr = tx_hdr;
+                            tx.request_done = true;
+                            tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
+                            true
+                        }
+                        _ => false,
                     }
                 },
                 Err(nom::Err::Incomplete(_n)) => {
