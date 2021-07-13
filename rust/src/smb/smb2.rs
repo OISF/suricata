@@ -377,7 +377,15 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
                             let fname = match state.guid2name_map.get(rd.guid) {
                                 Some(n) => { n.to_vec() },
-                                None => { b"<unknown>".to_vec() },
+                                None => {
+                                    // try to find latest created file in case of chained commands
+                                    let mut guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
+                                    guid_key.msg_id = guid_key.msg_id - 1;
+                                    match state.ssn2vec_map.get(&guid_key) {
+                                        Some(n) => { n.to_vec() },
+                                        None => { b"<unknown>".to_vec()},
+                                    }
+                                },
                             };
                             let tx = state.new_setfileinfo_tx(fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
                             tx.hdr = tx_hdr;
