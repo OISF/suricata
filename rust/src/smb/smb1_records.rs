@@ -594,7 +594,6 @@ pub struct Trans2RecordParamSetFileInfoDisposition<> {
 named!(pub parse_trans2_request_data_set_file_info_disposition<Trans2RecordParamSetFileInfoDisposition>,
     do_parse!(
             delete: le_u8
-        >>  _reserved: take!(3)
         >> (Trans2RecordParamSetFileInfoDisposition {
                 delete: delete & 1 == 1,
             })
@@ -691,16 +690,17 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
         >>  _timeout: le_u32
         >>  _reserved2: take!(2)
         >>  param_cnt: le_u16
-        >>  _param_offset: le_u16
+        >>  param_offset: le_u16
         >>  data_cnt: le_u16
-        >>  _data_offset: le_u16
+        >>  data_offset: le_u16
         >>  _setup_cnt: le_u8
         >>  _reserved3: take!(1)
         >>  subcmd: le_u16
         >>  _bcc: le_u16
+        //TODO test and use param_offset
         >>  _padding: take!(3)
-        //TODO test and use _param_offset and _data_offset
         >>  setup_blob: take!(param_cnt)
+        >>  _padding2: cond!(data_offset > param_offset + param_cnt, take!(data_offset - param_offset - param_cnt))
         >>  data_blob: take!(data_cnt)
 
         >> (SmbRequestTrans2Record {
