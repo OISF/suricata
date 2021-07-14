@@ -1059,7 +1059,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
-        if (reply_code == SMTP_REPLY_250) {
+        if (reply_code == SMTP_REPLY_250 &&
+                !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionComplete(state);
         }
     } else {
