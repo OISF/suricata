@@ -397,6 +397,15 @@ static int TCPProtoDetect(ThreadVars *tv,
                 DisableAppLayer(tv, f, p);
                 SCReturnInt(-1);
             }
+            if (FlowChangeProto(f)) {
+                /* We have the first data which requested a protocol change from P1 to P2
+                 * even if it was not recognized at first as being P1
+                 * As the second data was recognized as P1, the protocol did not change !
+                 */
+                FlowUnsetChangeProtoFlag(f);
+                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                 APPLAYER_UNEXPECTED_PROTOCOL);
+            }
         }
 
         /* if the parser operates such that it needs to see data from
