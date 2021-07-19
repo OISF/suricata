@@ -169,6 +169,7 @@ enum {
     IPV6_FRAG_PKT_TOO_LARGE,
     IPV4_FRAG_OVERLAP,
     IPV6_FRAG_OVERLAP,
+    IPV6_FRAG_INVALID_LENGTH,
 
     /* Fragment ignored due to internal error */
     IPV4_FRAG_IGNORED,

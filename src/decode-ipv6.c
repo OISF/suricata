@@ -453,6 +453,12 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     plen -= hdrextlen;
                     break;
                 }
+                if (p->ip6eh.fh_more_frags_set != 0 && plen % 8 != 0) {
+                    // cf https://datatracker.ietf.org/doc/html/rfc2460#section-4.5
+                    // each, except possibly the last ("rightmost") one,
+                    // being an integer multiple of 8 octets long.
+                    ENGINE_SET_EVENT(p, IPV6_FRAG_INVALID_LENGTH);
+                }
 
                 /* the rest is parsed upon reassembly */
                 p->flags |= PKT_IS_FRAGMENT;
