@@ -80,13 +80,13 @@ impl Drop for RdpTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_get_tx(
+pub unsafe extern "C" fn rs_rdp_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return transmute(tx);
         }
         None => {
             return std::ptr::null_mut();
@@ -95,7 +95,7 @@ pub extern "C" fn rs_rdp_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
@@ -385,7 +385,7 @@ pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -408,7 +408,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 
 /// probe for T.123 message, whether to client or to server
 #[no_mangle]
-pub extern "C" fn rs_rdp_probe_ts_tc(
+pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
@@ -419,7 +419,7 @@ pub extern "C" fn rs_rdp_probe_ts_tc(
         // https://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=view&target=rdp-ssl.pcap.gz
         // but this callback will not be exercised, so `probe_tls_handshake` not needed here.
         if probe_rdp(slice) {
-            return unsafe { ALPROTO_RDP };
+            return ALPROTO_RDP;
         }
     }
     return ALPROTO_UNKNOWN;
@@ -435,7 +435,7 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 //
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_parse_ts(
+pub unsafe extern "C" fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -446,7 +446,7 @@ pub extern "C" fn rs_rdp_parse_ts(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_parse_tc(
+pub unsafe extern "C" fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {

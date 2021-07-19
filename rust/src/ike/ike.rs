@@ -323,21 +323,21 @@ export_tx_set_detect_state!(rs_ike_tx_set_detect_state, IKETransaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub extern "C" fn rs_ike_probing_parser(
+pub unsafe extern "C" fn rs_ike_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len < 28 {
         // at least the ISAKMP_HEADER must be there, not ALPROTO_UNKNOWN because over UDP
-        return unsafe { ALPROTO_FAILED };
+        return ALPROTO_FAILED;
     }
 
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice, direction, rdir) {
-            return unsafe { ALPROTO_IKE };
+            return ALPROTO_IKE;
         }
     }
-    return unsafe { ALPROTO_FAILED };
+    return ALPROTO_FAILED;
 }
 
 #[no_mangle]
@@ -356,13 +356,13 @@ pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_parse_request(
+pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -373,7 +373,7 @@ pub extern "C" fn rs_ike_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_parse_response(
+pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -383,13 +383,13 @@ pub extern "C" fn rs_ike_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx(
+pub unsafe extern "C" fn rs_ike_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, IKEState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return transmute(tx);
         }
         None => {
             return std::ptr::null_mut();
@@ -398,7 +398,7 @@ pub extern "C" fn rs_ike_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
@@ -417,7 +417,7 @@ pub extern "C" fn rs_ike_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_logged(
+pub unsafe extern "C" fn rs_ike_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -425,7 +425,7 @@ pub extern "C" fn rs_ike_tx_get_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_set_logged(
+pub unsafe extern "C" fn rs_ike_tx_set_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -433,7 +433,7 @@ pub extern "C" fn rs_ike_tx_set_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_events(
+pub unsafe extern "C" fn rs_ike_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -509,14 +509,14 @@ pub extern "C" fn rs_ike_state_get_event_info(
 static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, IKEState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = transmute(tx);
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

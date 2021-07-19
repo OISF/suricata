@@ -1935,7 +1935,7 @@ fn rs_smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
 // probing parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(flags: u8,
+pub unsafe extern "C" fn rs_smb_probe_tcp(flags: u8,
         input: *const u8, len: u32,
         rdir: *mut u8)
     -> i8
@@ -2050,7 +2050,7 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_get_tx_data(
+pub unsafe extern "C" fn rs_smb_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -2094,7 +2094,7 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SMBTransaction);

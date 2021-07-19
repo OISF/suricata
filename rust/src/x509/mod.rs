@@ -66,7 +66,7 @@ pub unsafe extern "C" fn rs_x509_decode(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -76,7 +76,7 @@ pub extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -86,7 +86,7 @@ pub extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }

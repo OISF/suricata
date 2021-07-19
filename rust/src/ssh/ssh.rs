@@ -370,7 +370,7 @@ export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_get_events(
+pub unsafe extern "C" fn rs_ssh_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -446,7 +446,7 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_parse_request(
+pub unsafe extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -461,7 +461,7 @@ pub extern "C" fn rs_ssh_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_parse_response(
+pub unsafe extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -476,11 +476,11 @@ pub extern "C" fn rs_ssh_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_get_tx(
+pub unsafe extern "C" fn rs_ssh_state_get_tx(
     state: *mut std::os::raw::c_void, _tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SSHState);
-    return unsafe { transmute(&state.transaction) };
+    return transmute(&state.transaction);
 }
 
 #[no_mangle]
@@ -489,7 +489,7 @@ pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_tx_get_flags(
+pub unsafe extern "C" fn rs_ssh_tx_get_flags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -501,7 +501,7 @@ pub extern "C" fn rs_ssh_tx_get_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -590,7 +590,7 @@ pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
+pub unsafe extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
     
     if rs_ssh_hassh_is_enabled() {

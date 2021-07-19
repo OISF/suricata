@@ -211,7 +211,7 @@ fn asn1_decode<'a>(
 /// input must be a valid buffer of at least input_len bytes
 /// pointer must be freed using `rs_asn1_free`
 #[no_mangle]
-pub extern "C" fn rs_asn1_decode(
+pub unsafe extern "C" fn rs_asn1_decode(
     input: *const u8, input_len: u16, buffer_offset: u32, ad_ptr: *const DetectAsn1Data,
 ) -> *mut Asn1<'static> {
     if input.is_null() || input_len == 0 || ad_ptr.is_null() {
@@ -220,7 +220,7 @@ pub extern "C" fn rs_asn1_decode(
 
     let slice = build_slice!(input, input_len as usize);
 
-    let ad = unsafe { &*ad_ptr };
+    let ad = &*ad_ptr;
 
     let res = asn1_decode(slice, buffer_offset, ad);
 

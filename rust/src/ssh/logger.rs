@@ -62,7 +62,7 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
     if let Ok(x) = log_ssh(tx, js) {
         return x;
