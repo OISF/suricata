@@ -153,10 +153,26 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.sctp.pkt_too_small", SCTP_PKT_TOO_SMALL, },
 
     /* Fragmentation reasembly events. */
-    { "decoder.ipv4.frag_pkt_too_large", IPV4_FRAG_PKT_TOO_LARGE, },
-    { "decoder.ipv6.frag_pkt_too_large", IPV6_FRAG_PKT_TOO_LARGE, },
-    { "decoder.ipv4.frag_overlap", IPV4_FRAG_OVERLAP, },
-    { "decoder.ipv6.frag_overlap", IPV6_FRAG_OVERLAP, },
+    {
+            "decoder.ipv4.frag_pkt_too_large",
+            IPV4_FRAG_PKT_TOO_LARGE,
+    },
+    {
+            "decoder.ipv6.frag_pkt_too_large",
+            IPV6_FRAG_PKT_TOO_LARGE,
+    },
+    {
+            "decoder.ipv4.frag_overlap",
+            IPV4_FRAG_OVERLAP,
+    },
+    {
+            "decoder.ipv6.frag_overlap",
+            IPV6_FRAG_OVERLAP,
+    },
+    {
+            "decoder.ipv6.frag_invalid_length",
+            IPV6_FRAG_INVALID_LENGTH,
+    },
     /* Fragment ignored due to internal error */
     { "decoder.ipv4.frag_ignored", IPV4_FRAG_IGNORED, },
     { "decoder.ipv6.frag_ignored", IPV6_FRAG_IGNORED, },

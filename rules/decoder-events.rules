@@ -104,6 +104,7 @@ alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large";
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Fragmentation overlap"; decode-event:ipv4.frag_overlap; classtype:protocol-command-decode; sid:2200070; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Packet size too large"; decode-event:ipv6.frag_pkt_too_large; classtype:protocol-command-decode; sid:2200071; rev:3;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Fragmentation overlap"; decode-event:ipv6.frag_overlap; classtype:protocol-command-decode; sid:2200072; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Fragment invalid length"; decode-event:ipv6.frag_invalid_length; classtype:protocol-command-decode; sid:2200119; rev:1;)
 
 # checksum rules
 alert ip any any -> any any (msg:"SURICATA IPv4 invalid checksum"; ipv4-csum:invalid; classtype:protocol-command-decode; sid:2200073; rev:2;)
@@ -145,4 +146,4 @@ alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-eve
 
 alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; decode-event:too_many_layers; classtype:protocol-command-decode; sid:2200116; rev:1;)
 
-# next sid is 2200117
+# next sid is 2200120
