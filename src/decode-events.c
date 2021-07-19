@@ -452,6 +452,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.ipv6.frag_overlap",
             IPV6_FRAG_OVERLAP,
     },
+    {
+            "decoder.ipv6.frag_invalid_length",
+            IPV6_FRAG_INVALID_LENGTH,
+    },
     /* Fragment ignored due to internal error */
     {
             "decoder.ipv4.frag_ignored",
