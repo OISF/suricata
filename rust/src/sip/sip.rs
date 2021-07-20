@@ -24,7 +24,7 @@ use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::sip::parser::*;
 use std;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 
 #[repr(u32)]
 pub enum SIPEvent {
@@ -169,15 +169,15 @@ impl Drop for SIPTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_sip_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = SIPState::new();
     let boxed = Box::new(state);
-    return unsafe { std::mem::transmute(boxed) };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_free(state: *mut std::os::raw::c_void) {
-    let mut state: Box<SIPState> = unsafe { std::mem::transmute(state) };
+pub unsafe extern "C" fn rs_sip_state_free(state: *mut c_void) {
+    let mut state = Box::from_raw(state as *mut SIPState);
     state.free();
 }
 

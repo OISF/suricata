@@ -24,7 +24,7 @@ use crate::dcerpc::dcerpc::{
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
 use std;
-use std::ffi::CString;
+use std::ffi::{c_void, CString};
 use crate::dcerpc::parser;
 
 // Constant DCERPC UDP Header length
@@ -220,15 +220,15 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCUDPState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_dcerpc_udp_state_free(state: *mut c_void) {
+    std::mem::drop(Box::from_raw(state as *mut DCERPCUDPState));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]

@@ -21,7 +21,7 @@ use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr,CString,c_void};
 use std::mem::transmute;
 
 static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
@@ -299,15 +299,12 @@ pub unsafe extern "C" fn rs_dhcp_state_tx_free(
 pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DHCPState::new();
     let boxed = Box::new(state);
-    return unsafe {
-        transmute(boxed)
-    };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<DHCPState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(state as *mut DHCPState));
 }
 
 #[no_mangle]

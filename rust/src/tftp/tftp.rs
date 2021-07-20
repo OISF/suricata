@@ -21,7 +21,7 @@ extern crate nom;
 
 use std::str;
 use std;
-use std::mem::transmute;
+use std::ffi::c_void;
 use nom::*;
 
 use crate::applayer::AppLayerTxData;
@@ -86,15 +86,15 @@ impl TFTPTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_alloc() -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_tftp_state_alloc() -> *mut c_void {
     let state = TFTPState { transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_free(state: *mut std::os::raw::c_void) {
-    let _state : Box<TFTPState> = unsafe{transmute(state)};
+pub unsafe extern "C" fn rs_tftp_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(state as *mut TFTPState));
 }
 
 #[no_mangle]

@@ -23,7 +23,7 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
 use crate::applayer::{self, *};
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr,CString,c_void};
 
 use nom;
 
@@ -175,18 +175,17 @@ impl Drop for NTPTransaction {
 
 /// Returns *mut NTPState
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_ntp_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 /// Params:
 /// - state: *mut NTPState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut ntp_state: Box<NTPState> = unsafe{std::mem::transmute(state)};
+pub unsafe extern "C" fn rs_ntp_state_free(state: *mut c_void) {
+    let mut ntp_state = Box::from_raw(state as *mut NTPState);
     ntp_state.free();
 }
 

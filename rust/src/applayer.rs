@@ -258,7 +258,7 @@ pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        flags: u8) -> AppLayerResult;
 pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
-pub type StateFreeFn  = extern "C" fn (*mut c_void);
+pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = unsafe 
 extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;

@@ -26,7 +26,7 @@ use crate::filecontainer::*;
 use crate::filetracker::*;
 use nom;
 use std;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 use std::fmt;
 use std::io;
 use std::mem::transmute;
@@ -1000,11 +1000,11 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_new(
-    orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
+    orig_state: *mut c_void, _orig_proto: AppProto,
+) -> *mut c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
-    let r = unsafe { transmute(boxed) };
+    let r = Box::into_raw(boxed) as *mut c_void;
     if orig_state != std::ptr::null_mut() {
         //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
@@ -1015,9 +1015,8 @@ pub extern "C" fn rs_http2_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut state: Box<HTTP2State> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_http2_state_free(state: *mut c_void) {
+    let mut state = Box::from_raw(state as *mut HTTP2State);
     state.free();
 }
 

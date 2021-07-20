@@ -23,7 +23,7 @@ use nom::error::ErrorKind;
 use nom::number::Endianness;
 use nom;
 use std::cmp;
-use std::ffi::CString;
+use std::ffi::{c_void, CString};
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -1190,15 +1190,15 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _state: Box<DCERPCState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut c_void) {
+    std::mem::drop(Box::from_raw(state as *mut DCERPCState));
 }
 
 #[no_mangle]

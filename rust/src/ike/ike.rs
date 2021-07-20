@@ -31,7 +31,7 @@ use crate::ike::parser::*;
 use nom;
 use std;
 use std::collections::HashSet;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 use std::mem::transmute;
 
 #[repr(u32)]
@@ -342,17 +342,16 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_new(
-    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
+    _orig_state: *mut c_void, _orig_proto: AppProto,
+) -> *mut c_void {
     let state = IKEState::default();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<IKEState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_ike_state_free(state: *mut c_void) {
+    std::mem::drop(Box::from_raw(state as *mut IKEState));
 }
 
 #[no_mangle]

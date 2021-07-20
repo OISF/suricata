@@ -28,7 +28,7 @@
 use std;
 use std::mem::transmute;
 use std::str;
-use std::ffi::CStr;
+use std::ffi::{CStr, c_void};
 
 use std::collections::HashMap;
 
@@ -1788,20 +1788,19 @@ impl SMBState {
 
 /// Returns *mut SMBState
 #[no_mangle]
-pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_smb_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 /// Params:
 /// - state: *mut SMBState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
+pub unsafe extern "C" fn rs_smb_state_free(state: *mut c_void) {
     SCLogDebug!("freeing state");
-    let mut smb_state: Box<SMBState> = unsafe{transmute(state)};
+    let mut smb_state = Box::from_raw(state as *mut SMBState);
     smb_state.free();
 }
 

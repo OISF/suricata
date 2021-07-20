@@ -25,7 +25,7 @@ use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO
 use num_traits::FromPrimitive;
 use nom;
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr,CString,c_void};
 use std::mem::transmute;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
@@ -578,15 +578,15 @@ pub unsafe extern "C" fn rs_mqtt_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_mqtt_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = MQTTState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<MQTTState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(state as *mut MQTTState));
 }
 
 #[no_mangle]

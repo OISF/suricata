@@ -16,7 +16,7 @@
  */
 
 use std;
-use std::os::raw::c_void;
+use std::ffi::c_void;
 
 use crate::dhcp::dhcp::*;
 use crate::dhcp::parser::{DHCPOptionWrapper,DHCPOptGeneric};
@@ -256,15 +256,15 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) {
-    let _: Box<DHCPLogger> = unsafe{std::mem::transmute(logger)};
+pub unsafe extern "C" fn rs_dhcp_logger_free(logger: *mut c_void) {
+    std::mem::drop(Box::from_raw(logger as *mut DHCPLogger));
 }
 
 #[no_mangle]

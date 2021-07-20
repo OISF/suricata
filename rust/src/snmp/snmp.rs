@@ -22,7 +22,7 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr,CString,c_void};
 use std::mem::transmute;
 
 use der_parser::ber::BerObjectContent;
@@ -297,18 +297,17 @@ impl<'a> Drop for SNMPTransaction<'a> {
 
 /// Returns *mut SNMPState
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_snmp_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = SNMPState::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 /// Params:
 /// - state: *mut SNMPState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut snmp_state: Box<SNMPState> = unsafe{std::mem::transmute(state)};
+pub unsafe extern "C" fn rs_snmp_state_free(state: *mut c_void) {
+    let mut snmp_state = Box::from_raw(state as *mut SNMPState);
     snmp_state.free();
 }
 

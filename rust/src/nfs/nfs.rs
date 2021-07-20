@@ -21,7 +21,7 @@ use std;
 use std::cmp;
 use std::mem::transmute;
 use std::collections::{HashMap};
-use std::ffi::CStr;
+use std::ffi::{CStr, c_void};
 
 use nom;
 
@@ -1369,20 +1369,20 @@ impl NFSState {
 
 /// Returns *mut NFSState
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_nfs_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 /// Params:
 /// - state: *mut NFSState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut _nfs_state: Box<NFSState> = unsafe{transmute(state)};
+    std::mem::drop(Box::from_raw(state as *mut NFSState));
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.

@@ -19,7 +19,7 @@ use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use std::mem::transmute;
 use crate::applayer::{self, *};
-use std::ffi::CString;
+use std::ffi::{c_void, CString};
 use nom;
 use super::parser;
 
@@ -295,16 +295,15 @@ pub unsafe extern "C" fn rs_template_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_template_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<TemplateState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_template_state_free(state: *mut c_void) {
+    std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
 #[no_mangle]

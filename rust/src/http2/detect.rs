@@ -20,8 +20,7 @@ use super::http2::{
 };
 use super::parser;
 use crate::core::STREAM_TOSERVER;
-use std::ffi::CStr;
-use std::mem::transmute;
+use std::ffi::{CStr, c_void};
 use std::str::FromStr;
 
 fn http2_tx_has_frametype(
@@ -229,21 +228,20 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_window(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
     str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
+) -> *mut c_void {
     let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = parser::http2_parse_settingsctx(s) {
             let boxed = Box::new(ctx);
-            return transmute(boxed); //unsafe
+            return Box::into_raw(boxed) as *mut c_void;
         }
     }
     return std::ptr::null_mut();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = transmute(ctx);
+pub unsafe extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut parser::DetectHTTP2settingsSigCtx));
 }
 
 fn http2_detect_settings_match(
@@ -324,21 +322,20 @@ pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_u64_parse(
     str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
+) -> *mut c_void {
     let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = parser::detect_parse_u64(s) {
             let boxed = Box::new(ctx);
-            return transmute(boxed); //unsafe
+            return Box::into_raw(boxed) as *mut c_void;
         }
     }
     return std::ptr::null_mut();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _ctx: Box<parser::DetectU64Data> = transmute(ctx);
+pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut parser::DetectU64Data));
 }
 
 fn http2_detect_sizeupdate_match(
