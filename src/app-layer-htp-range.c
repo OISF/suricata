@@ -243,6 +243,7 @@ HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, ui
         return curf;
     } else if (start < c->files->tail->size && c->files->tail->size - start >= buflen) {
         // only overlap
+        c->nbref--;
         curf->toskip = buflen;
         SCMutexUnlock(&c->mutex);
         return curf;
@@ -261,6 +262,7 @@ HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, ui
         // TODOask release memory for others RangeContainerFree(c);
         // skips this range
         curf->toskip = buflen;
+        c->nbref--;
         SCMutexUnlock(&c->mutex);
         return curf;
     }
@@ -336,14 +338,17 @@ static void ContainerUrlRangeFileClose(HttpRangeContainerFile *c, uint16_t flags
 
 File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
 {
-    SCMutexLock(&c->container->mutex);
     if (c->toskip > 0) {
         // was only an overlapping range
         c->toskip = 0;
-        c->container->nbref--;
-        SCMutexUnlock(&c->container->mutex);
+        if (c->container != NULL) {
+            SCMutexLock(&c->container->mutex);
+            c->container->nbref--;
+            SCMutexUnlock(&c->container->mutex);
+        }
         return NULL;
     } else if (c->current) {
+        SCMutexLock(&c->container->mutex);
         // if the range has become obsolete because we received the data already
         if (c->container->files && c->container->files->tail &&
                 c->container->files->tail->size >= c->current->start + c->current->offset) {
@@ -369,10 +374,9 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     } // else {
     if (c->container == NULL) {
         // everything was skipped
-        c->container->nbref--;
-        SCMutexUnlock(&c->container->mutex);
         return NULL;
     }
+    SCMutexLock(&c->container->mutex);
     c->container->appending = false;
     DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
     File *f = c->container->files->tail;
