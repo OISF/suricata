@@ -324,7 +324,8 @@ int HTPFileOpenWithRange(HtpState *s, const uint8_t *filename, uint16_t filename
         return HTPFileOpen(
                 s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    ContainerUrlRange *file_range_container = ContainerUrlRangeGet(keyurl, keylen, &s->f->lastts);
+    HttpRangeContainerFile *file_range_container =
+            HttpRangeContainerUrlGet(keyurl, keylen, &s->f->lastts);
     SCFree(keyurl);
     if (file_range_container == NULL) {
         // probably reached memcap

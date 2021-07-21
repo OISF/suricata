@@ -30,6 +30,7 @@ noinst_HEADERS = \
 	app-layer-htp.h \
 	app-layer-htp-libhtp.h \
 	app-layer-htp-mem.h \
+	app-layer-htp-range.h \
 	app-layer-htp-xff.h \
 	app-layer-http2.h \
 	app-layer-ike.h \
@@ -58,7 +59,6 @@ noinst_HEADERS = \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \
-	containers.h \
 	counters.h \
 	datasets.h \
 	datasets-md5.h \
@@ -612,6 +612,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-file.c \
 	app-layer-htp-libhtp.c \
 	app-layer-htp-mem.c \
+	app-layer-htp-range.c \
 	app-layer-htp-xff.c \
 	app-layer-http2.c \
 	app-layer-ike.c \
@@ -637,7 +638,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-tftp.c \
 	conf.c \
 	conf-yaml-loader.c \
-	containers.c \
 	counters.c \
 	datasets.c \
 	datasets-md5.c \

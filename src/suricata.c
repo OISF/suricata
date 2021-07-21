@@ -68,7 +68,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "containers.h"
+#include "app-layer-htp-range.h"
 #include "datasets.h"
 
 #include "stream-tcp.h"
@@ -342,7 +342,7 @@ static void GlobalsDestroy(SCInstance *suri)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
-    ContainersDestroy();
+    HttpRangeContainersDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -2001,7 +2001,7 @@ void PreRunInit(const int runmode)
 {
     /* Initialize Datasets to be able to use them with unix socket */
     DatasetsInit();
-    ContainersInit();
+    HttpRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 

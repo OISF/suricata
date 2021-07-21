@@ -15,19 +15,19 @@
  * 02110-1301, USA.
  */
 
-#ifndef __CONTAINERS_H__
-#define __CONTAINERS_H__
+#ifndef __APP_LAYER_HTP_RANGE_H__
+#define __APP_LAYER_HTP_RANGE_H__
 
-void ContainersInit(void);
-void ContainersDestroy(void);
-uint32_t ContainersTimeoutHash(struct timeval *ts);
+void HttpRangeContainersInit(void);
+void HttpRangeContainersDestroy(void);
+uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts);
 
-void *ContainerUrlRangeGet(const uint8_t *key, size_t keylen, struct timeval *ts);
+void *HttpRangeContainerUrlGet(const uint8_t *key, size_t keylen, struct timeval *ts);
 
 // linked list of ranges : buffer with offset
-typedef struct RangeContainer {
+typedef struct HttpRangeContainerBuffer {
     // next item in lined list
-    struct RangeContainer *next;
+    struct HttpRangeContainerBuffer *next;
     // allocated buffer
     uint8_t *buffer;
     // length of buffer
@@ -36,10 +36,10 @@ typedef struct RangeContainer {
     uint64_t start;
     // offset of bytes written in buffer (relative to the start of the range)
     uint64_t offset;
-} RangeContainer;
+} HttpRangeContainerBuffer;
 
 // Item in hash table for a file in multiple ranges
-typedef struct ContainerUrlRange {
+typedef struct HttpRangeContainerFile {
     // key for hashtable
     uint8_t *key;
     // key length
@@ -55,27 +55,27 @@ typedef struct ContainerUrlRange {
     // file container, with only one file
     FileContainer *files;
     // linked list of ranges which came out of order
-    RangeContainer *ranges;
+    HttpRangeContainerBuffer *ranges;
     // mutex
     SCMutex mutex;
     // wether a range file is currently appending
     bool appending;
-} ContainerUrlRange;
+} HttpRangeContainerFile;
 
-typedef struct ContainerUrlRangeFile {
+typedef struct HttpRangeContainerBlock {
     // state where we skip content
     uint64_t toskip;
     // current out of order range to write into
-    RangeContainer *current;
+    HttpRangeContainerBuffer *current;
     // file container, with only one file
-    ContainerUrlRange *container;
-} ContainerUrlRangeFile;
+    HttpRangeContainerFile *container;
+} HttpRangeContainerBlock;
 
-int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, size_t len);
-File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags);
+int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, size_t len);
+File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 
-ContainerUrlRangeFile *ContainerUrlRangeOpenFile(ContainerUrlRange *c, uint64_t start, uint64_t end,
-        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
-        uint16_t flags);
+HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
+        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
+        uint16_t name_len, uint16_t flags);
 
-#endif /* __CONTAINERS_H__ */
+#endif /* __APP_LAYER_HTP_RANGE_H__ */
