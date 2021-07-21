@@ -414,6 +414,7 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
         ContainerUrlRangeFileClose(c->container, flags);
         // move ownership to caller
     } else {
+        c->container->nbref--;
         f = NULL;
     }
     SCMutexUnlock(&c->container->mutex);
