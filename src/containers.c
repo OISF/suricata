@@ -218,12 +218,14 @@ ContainerUrlRangeFile *ContainerUrlRangeOpenFile(ContainerUrlRange *c, uint64_t 
     if (c->files->tail == NULL) {
         if (FileOpenFileWithId(c->files, sbcfg, 0, name, name_len, NULL, 0, flags) != 0) {
             SCLogDebug("open file for range failed");
+            c->nbref--;
             SCMutexUnlock(&c->mutex);
             return NULL;
         }
     }
     ContainerUrlRangeFile *curf = SCCalloc(1, sizeof(ContainerUrlRangeFile));
     if (curf == NULL) {
+        c->nbref--;
         SCMutexUnlock(&c->mutex);
         return NULL;
     }
@@ -319,25 +321,28 @@ int ContainerUrlRangeAppendData(ContainerUrlRangeFile *c, const uint8_t *data, s
 
 static void ContainerUrlRangeFileClose(ContainerUrlRange *c, uint16_t flags)
 {
-    FileCloseFile(c->files, NULL, 0, c->flags | flags);
-    c->files->head = NULL;
-    c->files->tail = NULL;
     DEBUG_VALIDATE_BUG_ON(c->nbref == 0);
     c->nbref--;
+    if (c->nbref == 0) {
+        FileCloseFile(c->files, NULL, 0, c->flags | flags);
+        c->files->head = NULL;
+        c->files->tail = NULL;
 
-    RangeContainerFree(c);
-    THashRemoveFromHash(ContainerUrlRangeList.ht, c);
+        RangeContainerFree(c);
+        THashRemoveFromHash(ContainerUrlRangeList.ht, c);
+    }
 }
 
 File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags)
 {
+    SCMutexLock(&c->container->mutex);
     if (c->toskip > 0) {
         // was only an overlapping range
         c->toskip = 0;
+        c->container->nbref--;
+        SCMutexUnlock(&c->container->mutex);
         return NULL;
     } else if (c->current) {
-        // a stored range
-        SCMutexLock(&c->container->mutex);
         // if the range has become obsolete because we received the data already
         if (c->container->files && c->container->files->tail &&
                 c->container->files->tail->size >= c->current->start + c->current->offset) {
@@ -356,15 +361,17 @@ File *ContainerUrlRangeClose(ContainerUrlRangeFile *c, uint16_t flags)
             c->current->next = next->next;
             next->next = c->current;
         }
+        c->container->nbref--;
         SCMutexUnlock(&c->container->mutex);
         c->current = NULL;
         return NULL;
     } // else {
     if (c->container == NULL) {
         // everything was skipped
+        c->container->nbref--;
+        SCMutexUnlock(&c->container->mutex);
         return NULL;
     }
-    SCMutexLock(&c->container->mutex);
     c->container->appending = false;
     DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
     File *f = c->container->files->tail;
