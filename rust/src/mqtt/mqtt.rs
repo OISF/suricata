@@ -585,12 +585,12 @@ pub extern "C" fn rs_mqtt_state_new(_orig_state: *mut c_void, _orig_proto: AppPr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_mqtt_state_free(state: *mut std::ffi::c_void) {
     std::mem::drop(Box::from_raw(state as *mut MQTTState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, MQTTState);
     state.free_tx(tx_id);
 }
@@ -598,11 +598,11 @@ pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void,
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_parse_request(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
@@ -613,11 +613,11 @@ pub unsafe extern "C" fn rs_mqtt_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_parse_response(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
@@ -627,9 +627,9 @@ pub unsafe extern "C" fn rs_mqtt_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_state_get_tx(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
-) -> *mut std::os::raw::c_void {
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, MQTTState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -642,13 +642,13 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, MQTTState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
+pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::ffi::c_void) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
         return 1;
@@ -658,7 +658,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void)
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -678,8 +678,8 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
+    _state: *mut std::ffi::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, MQTTTransaction);
     return tx.logged.get();
@@ -687,8 +687,8 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
+    _state: *mut std::ffi::c_void,
+    tx: *mut std::ffi::c_void,
     logged: u32,
 ) {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -697,7 +697,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_state_get_events(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, MQTTTransaction);
     return tx.events;
@@ -767,7 +767,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::
 pub unsafe extern "C" fn rs_mqtt_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     min_tx_id: u64,
     _max_tx_id: u64,
     istate: &mut u64,

@@ -93,7 +93,7 @@ pub extern "C" fn rs_tftp_state_alloc() -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_tftp_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_tftp_state_free(state: *mut std::ffi::c_void) {
     std::mem::drop(Box::from_raw(state as *mut TFTPState));
 }
 
@@ -105,7 +105,7 @@ pub extern "C" fn rs_tftp_state_tx_free(state: &mut TFTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
-                                    tx_id: u64) -> *mut std::os::raw::c_void {
+                                    tx_id: u64) -> *mut std::ffi::c_void {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => unsafe{std::mem::transmute(tx)},
         None     => std::ptr::null_mut(),
@@ -173,7 +173,7 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_tftp_get_tx_data(
-    tx: *mut std::os::raw::c_void)
+    tx: *mut std::ffi::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, TFTPTransaction);

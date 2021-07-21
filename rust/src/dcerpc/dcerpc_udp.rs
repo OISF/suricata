@@ -208,8 +208,8 @@ impl DCERPCUDPState {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const core::Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
     if input_len > 0 && input != std::ptr::null_mut() {
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_free(state: *mut c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::ffi::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
@@ -233,7 +233,7 @@ pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut c_void, _orig_proto:
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
-    state: *mut std::os::raw::c_void, tx_id: u64,
+    state: *mut std::ffi::c_void, tx_id: u64,
 ) {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     SCLogDebug!("freeing tx {}", tx_id as u64);
@@ -242,7 +242,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
+    vtx: *mut std::ffi::c_void,
 ) -> *mut core::DetectEngineState {
     let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     match dce_state.de_state {
@@ -253,7 +253,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+    vtx: *mut std::ffi::c_void, de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     dce_state.de_state = Some(de_state);
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
-    tx: *mut std::os::raw::c_void)
+    tx: *mut std::ffi::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
@@ -271,8 +271,8 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    state: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
@@ -285,7 +285,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::ffi::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.tx_id
 }

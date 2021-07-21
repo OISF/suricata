@@ -78,7 +78,7 @@ impl AppLayerTxData {
 macro_rules!export_tx_data_get {
     ($name:ident, $type:ty) => {
         #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
+        pub unsafe extern "C" fn $name(tx: *mut std::ffi::c_void)
             -> *mut crate::applayer::AppLayerTxData
         {
             let tx = &mut *(tx as *mut $type);
@@ -331,13 +331,13 @@ extern {
 
 #[repr(C)]
 pub struct AppLayerGetTxIterTuple {
-    tx_ptr: *mut std::os::raw::c_void,
+    tx_ptr: *mut std::ffi::c_void,
     tx_id: u64,
     has_next: bool,
 }
 
 impl AppLayerGetTxIterTuple {
-    pub fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
+    pub fn with_values(tx_ptr: *mut std::ffi::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
         AppLayerGetTxIterTuple {
             tx_ptr: tx_ptr, tx_id: tx_id, has_next: has_next,
         }
@@ -377,7 +377,7 @@ impl LoggerFlags {
 macro_rules!export_tx_get_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
+        pub unsafe extern "C" fn $name(tx: *mut std::ffi::c_void)
             -> *mut core::DetectEngineState
         {
             let tx = cast_pointer!(tx, $type);
@@ -398,7 +398,7 @@ macro_rules!export_tx_get_detect_state {
 macro_rules!export_tx_set_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void,
+        pub unsafe extern "C" fn $name(tx: *mut std::ffi::c_void,
                 de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
         {
             let tx = cast_pointer!(tx, $type);

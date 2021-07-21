@@ -994,7 +994,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
 /// Extern functions operating on HTTP2.
 extern "C" {
     pub fn HTTP2MimicHttp1Request(
-        orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
+        orig_state: *mut std::ffi::c_void, new_state: *mut std::ffi::c_void,
     );
 }
 
@@ -1021,15 +1021,15 @@ pub unsafe extern "C" fn rs_http2_state_free(state: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, HTTP2State);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_ts(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
@@ -1041,8 +1041,8 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_tc(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
@@ -1053,8 +1053,8 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    state: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, HTTP2State);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -1067,27 +1067,27 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
+pub unsafe extern "C" fn rs_http2_tx_get_state(tx: *mut std::ffi::c_void) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void, _direction: u8,
+    tx: *mut std::ffi::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return rs_http2_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_state_get_events(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.events;
@@ -1156,7 +1156,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
 }
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _ipproto: u8, _alproto: AppProto, state: *mut std::ffi::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, HTTP2State);
@@ -1174,7 +1174,7 @@ pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
-    state: *mut std::os::raw::c_void, direction: u8,
+    state: *mut std::ffi::c_void, direction: u8,
 ) -> *mut FileContainer {
     let state = cast_pointer!(state, HTTP2State);
     if direction == STREAM_TOCLIENT {

@@ -1145,8 +1145,8 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_request(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
@@ -1168,8 +1168,8 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_response(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
+    flow: *const core::Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1190,7 +1190,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut c_void, _orig_proto: core::AppProto) -> *mut std::ffi::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
@@ -1202,14 +1202,14 @@ pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let dce_state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("freeing tx {}", tx_id as u64);
     dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
+pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::ffi::c_void, direction: u8) {
     let dce_state = cast_pointer!(state, DCERPCState);
     if direction & core::STREAM_TOSERVER != 0 {
         dce_state.ts_ssn_trunc = true;
@@ -1234,7 +1234,7 @@ pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
+    vtx: *mut std::ffi::c_void,
 ) -> *mut core::DetectEngineState {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
     match dce_tx.de_state {
@@ -1245,7 +1245,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+    vtx: *mut std::ffi::c_void, de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
     dce_tx.de_state = Some(de_state);
@@ -1254,8 +1254,8 @@ pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_get_tx(
-    vtx: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    vtx: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => transmute(tx),
@@ -1264,13 +1264,13 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::ffi::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
+pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::ffi::c_void, direction: u8
                                                  )-> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == core::STREAM_TOSERVER && tx.req_done {
@@ -1286,7 +1286,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
-    tx: *mut std::os::raw::c_void)
+    tx: *mut std::ffi::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);

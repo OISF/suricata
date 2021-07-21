@@ -1379,7 +1379,7 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut c_void, _orig_proto: AppPro
 /// Params:
 /// - state: *mut NFSState as void pointer
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_nfs_state_free(state: *mut std::ffi::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
     std::mem::drop(Box::from_raw(state as *mut NFSState));
@@ -1389,10 +1389,10 @@ pub unsafe extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
                                        state: &mut NFSState,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut std::ffi::c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       _data: *mut std::os::raw::c_void)
+                                       _data: *mut std::ffi::c_void)
                                        -> AppLayerResult
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1414,10 +1414,10 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
                                         state: &mut NFSState,
-                                        _pstate: *mut std::os::raw::c_void,
+                                        _pstate: *mut std::ffi::c_void,
                                         input: *const u8,
                                         input_len: u32,
-                                        _data: *mut std::os::raw::c_void)
+                                        _data: *mut std::ffi::c_void)
                                         -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
@@ -1440,10 +1440,10 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        state: &mut NFSState,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut std::ffi::c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       _data: *mut std::os::raw::c_void)
+                                       _data: *mut std::ffi::c_void)
                                        -> AppLayerResult
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1454,10 +1454,10 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         state: &mut NFSState,
-                                        _pstate: *mut std::os::raw::c_void,
+                                        _pstate: *mut std::ffi::c_void,
                                         input: *const u8,
                                         input_len: u32,
-                                        _data: *mut std::os::raw::c_void)
+                                        _data: *mut std::ffi::c_void)
                                         -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
@@ -1534,7 +1534,7 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_get_tx_data(
-    tx: *mut std::os::raw::c_void)
+    tx: *mut std::ffi::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, NFSTransaction);
@@ -1567,7 +1567,7 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::ffi::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, NFSTransaction);

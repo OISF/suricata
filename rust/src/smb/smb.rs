@@ -1808,10 +1808,10 @@ pub unsafe extern "C" fn rs_smb_state_free(state: *mut c_void) {
 #[no_mangle]
 pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
                                        state: &mut SMBState,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut std::ffi::c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       _data: *mut std::os::raw::c_void,
+                                       _data: *mut std::ffi::c_void,
                                        flags: u8)
                                        -> AppLayerResult
 {
@@ -1840,10 +1840,10 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
                                         state: &mut SMBState,
-                                        _pstate: *mut std::os::raw::c_void,
+                                        _pstate: *mut std::ffi::c_void,
                                         input: *const u8,
                                         input_len: u32,
-                                        _data: *mut std::os::raw::c_void,
+                                        _data: *mut std::ffi::c_void,
                                         flags: u8)
                                         -> AppLayerResult
 {
@@ -2050,7 +2050,7 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: &mut SMBTransaction,
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_get_tx_data(
-    tx: *mut std::os::raw::c_void)
+    tx: *mut std::ffi::c_void)
     -> *mut AppLayerTxData
 {
     let tx = cast_pointer!(tx, SMBTransaction);
@@ -2093,7 +2093,7 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::ffi::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SMBTransaction);

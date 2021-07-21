@@ -268,8 +268,8 @@ pub unsafe extern "C" fn rs_dhcp_logger_free(logger: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
-                                     tx: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dhcp_logger_log(logger: *mut std::ffi::c_void,
+                                     tx: *mut std::ffi::c_void,
                                      js: &mut JsonBuilder) -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);
@@ -277,8 +277,8 @@ pub unsafe extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_logger_do_log(logger: *mut std::os::raw::c_void,
-                                        tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_dhcp_logger_do_log(logger: *mut std::ffi::c_void,
+                                        tx: *mut std::ffi::c_void)
                                         -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);

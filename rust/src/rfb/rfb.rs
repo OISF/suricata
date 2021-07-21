@@ -531,7 +531,7 @@ pub unsafe extern "C" fn rs_rfb_state_free(state: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_state_tx_free(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
 ) {
     let state = cast_pointer!(state, RFBState);
@@ -541,11 +541,11 @@ pub unsafe extern "C" fn rs_rfb_state_tx_free(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
@@ -556,11 +556,11 @@ pub unsafe extern "C" fn rs_rfb_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_parse_response(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
@@ -570,9 +570,9 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_state_get_tx(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
-) -> *mut std::os::raw::c_void {
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, RFBState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -586,7 +586,7 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, RFBState);
     return state.tx_id;
@@ -594,7 +594,7 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, RFBTransaction);
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_state_get_events(
-    tx: *mut std::os::raw::c_void
+    tx: *mut std::ffi::c_void
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, RFBTransaction);
     return tx.events;
@@ -632,7 +632,7 @@ pub extern "C" fn rs_rfb_state_get_event_info_by_id(_event_id: std::os::raw::c_i
 pub unsafe extern "C" fn rs_rfb_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     min_tx_id: u64,
     _max_tx_id: u64,
     istate: &mut u64,

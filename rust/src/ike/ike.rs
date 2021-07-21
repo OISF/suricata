@@ -355,15 +355,15 @@ pub unsafe extern "C" fn rs_ike_state_free(state: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     let buf = build_slice!(input, input_len as usize);
@@ -373,8 +373,8 @@ pub unsafe extern "C" fn rs_ike_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     let buf = build_slice!(input, input_len as usize);
@@ -383,8 +383,8 @@ pub unsafe extern "C" fn rs_ike_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    state: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, IKEState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -397,7 +397,7 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
@@ -410,14 +410,14 @@ pub extern "C" fn rs_ike_state_progress_completion_status(_direction: u8) -> std
 
 #[no_mangle]
 pub extern "C" fn rs_ike_tx_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void, _direction: u8,
+    _tx: *mut std::ffi::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return 1;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_tx_get_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
+    _state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
     return tx.logged.get();
@@ -425,7 +425,7 @@ pub unsafe extern "C" fn rs_ike_tx_get_logged(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_tx_set_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
+    _state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, IKETransaction);
     tx.logged.set(logged);
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_state_get_events(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, IKETransaction);
     return tx.events;
@@ -509,7 +509,7 @@ static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _ipproto: u8, _alproto: AppProto, state: *mut std::ffi::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, IKEState);

@@ -21,7 +21,7 @@ use std::ptr;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_tx_get_protocol(
-    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
+    tx: *mut std::ffi::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_protocol(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_tx_get_software(
-    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
+    tx: *mut std::ffi::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
@@ -81,7 +81,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_software(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_tx_get_hassh(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     buffer: *mut *const u8,
     buffer_len: *mut u32,
     direction: u8,
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_hassh(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_tx_get_hassh_string(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     buffer: *mut *const u8,
     buffer_len: *mut u32,
     direction: u8,

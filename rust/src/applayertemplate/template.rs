@@ -308,7 +308,7 @@ pub unsafe extern "C" fn rs_template_state_free(state: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_state_tx_free(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
 ) {
     let state = cast_pointer!(state, TemplateState);
@@ -318,11 +318,11 @@ pub unsafe extern "C" fn rs_template_state_tx_free(
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_parse_request(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let eof = {
@@ -354,11 +354,11 @@ pub unsafe extern "C" fn rs_template_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_parse_response(
     _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let _eof = {
@@ -383,9 +383,9 @@ pub unsafe extern "C" fn rs_template_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_state_get_tx(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
-) -> *mut std::os::raw::c_void {
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -399,7 +399,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
@@ -407,7 +407,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx_count(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_state_get_events(
-    tx: *mut std::os::raw::c_void
+    tx: *mut std::ffi::c_void
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, TemplateTransaction);
     return tx.events;
@@ -447,7 +447,7 @@ pub extern "C" fn rs_template_state_get_event_info_by_id(_event_id: std::os::raw
 pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     min_tx_id: u64,
     _max_tx_id: u64,
     istate: &mut u64,
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
 /// pointer to the request buffer from C for detection.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_get_request_buffer(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     buf: *mut *const u8,
     len: *mut u32,
 ) -> u8
@@ -494,7 +494,7 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
 /// Get the response buffer for a transaction from C.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_get_response_buffer(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     buf: *mut *const u8,
     len: *mut u32,
 ) -> u8

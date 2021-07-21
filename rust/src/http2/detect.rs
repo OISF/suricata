@@ -44,7 +44,7 @@ fn http2_tx_has_frametype(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_has_frametype(
-    tx: *mut std::os::raw::c_void, direction: u8, value: u8,
+    tx: *mut std::ffi::c_void, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_tx_has_frametype(tx, direction, value);
@@ -104,7 +104,7 @@ fn http2_tx_has_errorcode(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_has_errorcode(
-    tx: *mut std::os::raw::c_void, direction: u8, code: u32,
+    tx: *mut std::ffi::c_void, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_tx_has_errorcode(tx, direction, code);
@@ -177,7 +177,7 @@ fn http2_tx_get_next_priority(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
-    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+    tx: *mut std::ffi::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_tx_get_next_priority(tx, direction, nb);
@@ -219,7 +219,7 @@ fn http2_tx_get_next_window(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_next_window(
-    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+    tx: *mut std::ffi::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return http2_tx_get_next_window(tx, direction, nb);
@@ -312,7 +312,7 @@ fn http2_detect_settingsctx_match(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
-    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+    ctx: *const std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -412,7 +412,7 @@ fn http2_detect_sizeupdatectx_match(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
-    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+    ctx: *const std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectU64Data);
     let tx = cast_pointer!(tx, HTTP2Transaction);

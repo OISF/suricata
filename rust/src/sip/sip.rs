@@ -183,9 +183,9 @@ pub unsafe extern "C" fn rs_sip_state_free(state: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_state_get_tx(
-    state: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
     tx_id: u64,
-) -> *mut std::os::raw::c_void {
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, SIPState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => std::mem::transmute(tx),
@@ -194,20 +194,20 @@ pub unsafe extern "C" fn rs_sip_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_sip_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, SIPState);
     state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_sip_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SIPState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_sip_tx_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void,
+    _tx: *mut std::ffi::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
     1
@@ -215,7 +215,7 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
     de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn rs_sip_state_set_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::DetectEngineState {
     let tx = cast_pointer!(tx, SIPTransaction);
     match tx.de_state {
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn rs_sip_state_get_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_state_get_events(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, SIPTransaction);
     return tx.events;
@@ -323,11 +323,11 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(
     _flow: *const core::Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let buf = build_slice!(input, input_len as usize);
@@ -338,11 +338,11 @@ pub unsafe extern "C" fn rs_sip_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_response(
     _flow: *const core::Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    state: *mut std::ffi::c_void,
+    _pstate: *mut std::ffi::c_void,
     input: *const u8,
     input_len: u32,
-    _data: *const std::os::raw::c_void,
+    _data: *const std::ffi::c_void,
     _flags: u8,
 ) -> AppLayerResult {
     let buf = build_slice!(input, input_len as usize);

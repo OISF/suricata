@@ -338,26 +338,26 @@ pub extern "C" fn rs_modbus_probe(
 
 #[no_mangle]
 pub extern "C" fn rs_modbus_state_new(
-    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
-) -> *mut std::os::raw::c_void {
-    Box::into_raw(Box::new(ModbusState::new())) as *mut std::os::raw::c_void
+    _orig_state: *mut std::ffi::c_void, _orig_proto: AppProto,
+) -> *mut std::ffi::c_void {
+    Box::into_raw(Box::new(ModbusState::new())) as *mut std::ffi::c_void
 }
 
 #[no_mangle]
-pub extern "C" fn rs_modbus_state_free(state: *mut std::os::raw::c_void) {
+pub extern "C" fn rs_modbus_state_free(state: *mut std::ffi::c_void) {
     let _state: Box<ModbusState> = unsafe { Box::from_raw(state as *mut ModbusState) };
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, ModbusState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const core::Flow, state: *mut std::ffi::c_void, pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     if input_len == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
@@ -375,8 +375,8 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const core::Flow, state: *mut std::ffi::c_void, pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     if input_len == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
@@ -393,25 +393,25 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_modbus_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, ModbusState);
     state.tx_id
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    state: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, ModbusState);
     match state.get_tx(tx_id) {
-        Some(tx) => (tx as *mut ModbusTransaction) as *mut std::os::raw::c_void,
+        Some(tx) => (tx as *mut ModbusTransaction) as *mut std::ffi::c_void,
         None => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void, _direction: u8,
+    tx: *mut std::ffi::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
     tx.response.is_some() as std::os::raw::c_int
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_events(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, ModbusTransaction);
     tx.events
@@ -474,7 +474,7 @@ pub extern "C" fn rs_modbus_state_get_event_info_by_id(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut core::DetectEngineState {
     let tx = cast_pointer!(tx, ModbusTransaction);
     match tx.de_state {
@@ -485,7 +485,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+    tx: *mut std::ffi::c_void, de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
     tx.de_state = Some(de_state);
@@ -494,7 +494,7 @@ pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
-    tx: *mut std::os::raw::c_void,
+    tx: *mut std::ffi::c_void,
 ) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, ModbusTransaction);
     &mut tx.tx_data
@@ -840,7 +840,7 @@ pub mod test {
 
     #[no_mangle]
     pub unsafe extern "C" fn rs_modbus_state_get_tx_request(
-        state: *mut std::os::raw::c_void, tx_id: u64,
+        state: *mut std::ffi::c_void, tx_id: u64,
     ) -> ModbusMessage {
         let state = cast_pointer!(state, ModbusState);
         if let Some(tx) = state.get_tx(tx_id) {
@@ -856,7 +856,7 @@ pub mod test {
 
     #[no_mangle]
     pub unsafe extern "C" fn rs_modbus_state_get_tx_response(
-        state: *mut std::os::raw::c_void, tx_id: u64,
+        state: *mut std::ffi::c_void, tx_id: u64,
     ) -> ModbusMessage {
         let state = cast_pointer!(state, ModbusState);
         if let Some(tx) = state.get_tx(tx_id) {

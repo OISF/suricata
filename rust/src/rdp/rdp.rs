@@ -82,8 +82,8 @@ impl Drop for RdpTransaction {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_state_get_tx(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut std::os::raw::c_void {
+    state: *mut std::ffi::c_void, tx_id: u64,
+) -> *mut std::ffi::c_void {
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -96,14 +96,14 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::ffi::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_tx_get_progress(
-    _tx: *mut std::os::raw::c_void, _direction: u8,
+    _tx: *mut std::ffi::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // tx complete when `rs_rdp_tx_get_progress(...) == rs_rdp_tx_get_progress_complete(...)`
     // here, all transactions are immediately complete on insert
@@ -386,7 +386,7 @@ pub unsafe extern "C" fn rs_rdp_state_free(state: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -437,8 +437,8 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
@@ -448,8 +448,8 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    _flow: *const Flow, state: *mut std::ffi::c_void, _pstate: *mut std::ffi::c_void,
+    input: *const u8, input_len: u32, _data: *const std::ffi::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);

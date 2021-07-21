@@ -16,7 +16,7 @@
  */
 
 use std::os::raw::c_char;
-use std::os::raw::c_void;
+use std::ffi::c_void;
 use std::os::raw::c_int;
 use std::ffi::{CString, CStr};
 use std::ptr;
