@@ -70,22 +70,22 @@ impl fmt::Display for StartupPacket {
 
 #[derive(Debug, PartialEq)]
 pub struct RegularPacket{
-    identifier: u8,
-    length: u32,
-    payload: Vec<u8>,
+    pub identifier: u8,
+    pub length: u32,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct PgsqlErrorNoticeMessageField{
-    field_type: PgsqlErrorNoticeFieldTypes,
-    field_value: Option<Vec<u8>>,
+    pub field_type: PgsqlErrorNoticeFieldType,
+    pub field_value: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ErrorNoticeMessage {
-    identifier: u8,
-    length: u32,
-    message_body: Vec<PgsqlErrorNoticeMessageField>,
+    pub identifier: u8,
+    pub length: u32,
+    pub message_body: Vec<PgsqlErrorNoticeMessageField>,
 }
 
 impl ErrorNoticeMessage {
@@ -125,26 +125,37 @@ impl From<char> for SslResponseMessage {
     }
 }
 
+// TODO refine this
+impl fmt::Display for SslResponseMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SslResponseMessage::SslAccepted => write!(f, "SSL Accepted"),
+            SslResponseMessage::SslRejected => write!(f, "SSL Rejected"),
+            _ => write!(f, "Invalid server response"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ParameterStatusMessage {
-    identifier: u8,
-    length: u32,
-    param: PgsqlParameter,
+    pub identifier: u8,
+    pub length: u32,
+    pub param: PgsqlParameter,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct BackendKeyDataMessage {
-    identifier: u8,
-    length: u32,
+    pub identifier: u8,
+    pub length: u32,
     pub backend_pid: u32,
     pub secret_key: u32,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ReadyForQueryMessage {
-    identifier: u8,
-    length: u32,
-    transaction_status: u8,
+    pub identifier: u8,
+    pub length: u32,
+    pub transaction_status: u8,
 }
 
 #[derive(Debug, PartialEq)]
@@ -195,7 +206,7 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::AuthenticationSASLFinal(_) => "AuthenticationSASLFinal",
             PgsqlBEMessage::ParameterStatus(_) => "ParameterStatus",
             PgsqlBEMessage::BackendKeyData(_) => "BackendKeyData",
-            PgsqlBEMessage::CommandComplete(_) => "CommandComplete",
+            PgsqlBEMessage::CommandComplete(_) => "CommandCompleted",
             PgsqlBEMessage::ReadyForQuery(_) => "ReadyForQuery",
             PgsqlBEMessage::RowDescription(_) => "RowDescription",
             PgsqlBEMessage::DataRow(_) => "DataRow",
@@ -214,10 +225,22 @@ impl PgsqlBEMessage {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum SASLAuthenticationMechanism {
+pub enum SASLAuthenticationMechanism {
     ScramSha256,
     ScramSha256Plus,
     // UnknownMechanism,
+}
+
+impl fmt::Display for SASLAuthenticationMechanism {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TerminationMessage {
+    pub identifier: u8,
+    pub length: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -228,6 +251,7 @@ pub enum PgsqlFEMessage {
     SASLInitialResponse(SASLInitialResponsePacket),
     SASLResponse(RegularPacket),
     SimpleQuery(RegularPacket),
+    Terminate(TerminationMessage),
 }
 
 impl fmt::Display for PgsqlFEMessage {
@@ -236,21 +260,35 @@ impl fmt::Display for PgsqlFEMessage {
     }
 }
 
+impl PgsqlFEMessage {
+    pub fn get_message_type(&self) -> &str {
+        match self {
+            PgsqlFEMessage::StartupMessage(_) => "startup message",
+            PgsqlFEMessage::SslRequest(_) => "ssl request",
+            PgsqlFEMessage::PasswordMessage(_) => "password message",
+            PgsqlFEMessage::SASLInitialResponse(_) => "sasl initial response",
+            PgsqlFEMessage::SASLResponse(_) => "sasl response",
+            PgsqlFEMessage::SimpleQuery(_) => "simple query",
+            PgsqlFEMessage::Terminate(_) => "termination message",
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct AuthenticationMessage {
-    identifier: u8,
-    length: u32,
-    auth_type: u32,
-    payload: Option<Vec<u8>>,
+    pub identifier: u8,
+    pub length: u32,
+    pub auth_type: u32,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct SASLInitialResponsePacket {
-    identifier: u8,
-    length: u32,
-    auth_mechanism: SASLAuthenticationMechanism,
-    param_length: u32,
-    sasl_param: Vec<u8>,
+    pub identifier: u8,
+    pub length: u32,
+    pub auth_mechanism: SASLAuthenticationMechanism,
+    pub param_length: u32,
+    pub sasl_param: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -263,46 +301,47 @@ pub struct AuthenticationSASLMechanismMessage {
 
 #[derive(Debug, PartialEq)]
 pub struct RowField {
-    field_name: Vec<u8>,
-    table_oid: u32,
-    column_index: u16,
-    data_type_oid: u32,
+    pub field_name: Vec<u8>,
+    pub table_oid: u32,
+    pub column_index: u16,
+    pub data_type_oid: u32,
     // "see pg_type.typlen. Note that negative values denote variable-width types"
-    data_type_size: i16,
+    pub data_type_size: i16,
     // "The value will generally be -1 for types that do not need pg_attribute.atttypmod."
-    type_modifier: i32,
+    pub type_modifier: i32,
     // "The format code being used for the field. Currently will be zero (text) or one (binary). In a RowDescription returned from the variant of Describe, will always be zero"
-    format_code: u16,
+    pub format_code: u16,
 }
 
 // TODO should I have a constructor here?
 #[derive(Debug, PartialEq)]
 pub struct RowDescriptionMessage {
-    identifier: u8,
-    length: u32,
-    field_count: u16,
-    fields: Vec<RowField>,
+    pub identifier: u8,
+    pub length: u32,
+    pub field_count: u16,
+    pub fields: Vec<RowField>,
 }
 
 #[derive(Debug, PartialEq)]
-struct ColumnFieldValue {
+pub struct ColumnFieldValue {
     // Can be 0, or -1 as a special NULL column value
-    value_length: i32,
+    pub value_length: i32,
     // If length is -1, no value bytes will follow
     // value will have `value_length` bytes
-    value: Option<Vec<u8>>,
+    // TODO - get rid of "option"?
+    pub value: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct DataRowMessage {
-    identifier: u8,
-    length: u32,
-    field_count: u16,
-    fields: Vec<ColumnFieldValue>,
+    pub identifier: u8,
+    pub length: u32,
+    pub field_count: u16,
+    pub fields: Vec<ColumnFieldValue>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum PgsqlErrorNoticeFieldTypes {
+pub enum PgsqlErrorNoticeFieldType {
     SeverityLocalizable,
     SeverityNonLocalizable,
     CodeSqlStateCode,
@@ -325,56 +364,56 @@ pub enum PgsqlErrorNoticeFieldTypes {
     UnknownFieldType,
 }
 
-impl From<char> for PgsqlErrorNoticeFieldTypes {
-    fn from(identifier: char) -> PgsqlErrorNoticeFieldTypes {
+impl From<char> for PgsqlErrorNoticeFieldType {
+    fn from(identifier: char) -> PgsqlErrorNoticeFieldType {
         match identifier {
-            'S' => PgsqlErrorNoticeFieldTypes::SeverityLocalizable,
-            'V' => PgsqlErrorNoticeFieldTypes::SeverityNonLocalizable,
-            'C' => PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            'M' => PgsqlErrorNoticeFieldTypes::Message,
-            'D' => PgsqlErrorNoticeFieldTypes::Detail,
-            'H' => PgsqlErrorNoticeFieldTypes::Hint,
-            'P' => PgsqlErrorNoticeFieldTypes::Position,
-            'p' => PgsqlErrorNoticeFieldTypes::InternalPosition,
-            'q' => PgsqlErrorNoticeFieldTypes::InternalQuery,
-            'W' => PgsqlErrorNoticeFieldTypes::Where,
-            's' => PgsqlErrorNoticeFieldTypes::SchemaName,
-            't' => PgsqlErrorNoticeFieldTypes::TableName,
-            'c' => PgsqlErrorNoticeFieldTypes::ColumnName,
-            'd' => PgsqlErrorNoticeFieldTypes::DataType,
-            'n' => PgsqlErrorNoticeFieldTypes::ConstraintName,
-            'F' => PgsqlErrorNoticeFieldTypes::File,
-            'L' => PgsqlErrorNoticeFieldTypes::Line,
-            'R' => PgsqlErrorNoticeFieldTypes::Routine,
-            '\u{0}' => PgsqlErrorNoticeFieldTypes::TerminatorToken,
-            _ => PgsqlErrorNoticeFieldTypes::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
+            'S' => PgsqlErrorNoticeFieldType::SeverityLocalizable,
+            'V' => PgsqlErrorNoticeFieldType::SeverityNonLocalizable,
+            'C' => PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            'M' => PgsqlErrorNoticeFieldType::Message,
+            'D' => PgsqlErrorNoticeFieldType::Detail,
+            'H' => PgsqlErrorNoticeFieldType::Hint,
+            'P' => PgsqlErrorNoticeFieldType::Position,
+            'p' => PgsqlErrorNoticeFieldType::InternalPosition,
+            'q' => PgsqlErrorNoticeFieldType::InternalQuery,
+            'W' => PgsqlErrorNoticeFieldType::Where,
+            's' => PgsqlErrorNoticeFieldType::SchemaName,
+            't' => PgsqlErrorNoticeFieldType::TableName,
+            'c' => PgsqlErrorNoticeFieldType::ColumnName,
+            'd' => PgsqlErrorNoticeFieldType::DataType,
+            'n' => PgsqlErrorNoticeFieldType::ConstraintName,
+            'F' => PgsqlErrorNoticeFieldType::File,
+            'L' => PgsqlErrorNoticeFieldType::Line,
+            'R' => PgsqlErrorNoticeFieldType::Routine,
+            '\u{0}' => PgsqlErrorNoticeFieldType::TerminatorToken,
+            _ => PgsqlErrorNoticeFieldType::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
         }
     }
 }
 
-impl From<u8> for PgsqlErrorNoticeFieldTypes {
-    fn from(identifier: u8) -> PgsqlErrorNoticeFieldTypes {
+impl From<u8> for PgsqlErrorNoticeFieldType {
+    fn from(identifier: u8) -> PgsqlErrorNoticeFieldType {
         match identifier {
-            b'S' => PgsqlErrorNoticeFieldTypes::SeverityLocalizable,
-            b'V' => PgsqlErrorNoticeFieldTypes::SeverityNonLocalizable,
-            b'C' => PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            b'M' => PgsqlErrorNoticeFieldTypes::Message,
-            b'D' => PgsqlErrorNoticeFieldTypes::Detail,
-            b'H' => PgsqlErrorNoticeFieldTypes::Hint,
-            b'P' => PgsqlErrorNoticeFieldTypes::Position,
-            b'p' => PgsqlErrorNoticeFieldTypes::InternalPosition,
-            b'q' => PgsqlErrorNoticeFieldTypes::InternalQuery,
-            b'W' => PgsqlErrorNoticeFieldTypes::Where,
-            b's' => PgsqlErrorNoticeFieldTypes::SchemaName,
-            b't' => PgsqlErrorNoticeFieldTypes::TableName,
-            b'c' => PgsqlErrorNoticeFieldTypes::ColumnName,
-            b'd' => PgsqlErrorNoticeFieldTypes::DataType,
-            b'n' => PgsqlErrorNoticeFieldTypes::ConstraintName,
-            b'F' => PgsqlErrorNoticeFieldTypes::File,
-            b'L' => PgsqlErrorNoticeFieldTypes::Line,
-            b'R' => PgsqlErrorNoticeFieldTypes::Routine,
-            b'\0' => PgsqlErrorNoticeFieldTypes::TerminatorToken,
-            _ => PgsqlErrorNoticeFieldTypes::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
+            b'S' => PgsqlErrorNoticeFieldType::SeverityLocalizable,
+            b'V' => PgsqlErrorNoticeFieldType::SeverityNonLocalizable,
+            b'C' => PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            b'M' => PgsqlErrorNoticeFieldType::Message,
+            b'D' => PgsqlErrorNoticeFieldType::Detail,
+            b'H' => PgsqlErrorNoticeFieldType::Hint,
+            b'P' => PgsqlErrorNoticeFieldType::Position,
+            b'p' => PgsqlErrorNoticeFieldType::InternalPosition,
+            b'q' => PgsqlErrorNoticeFieldType::InternalQuery,
+            b'W' => PgsqlErrorNoticeFieldType::Where,
+            b's' => PgsqlErrorNoticeFieldType::SchemaName,
+            b't' => PgsqlErrorNoticeFieldType::TableName,
+            b'c' => PgsqlErrorNoticeFieldType::ColumnName,
+            b'd' => PgsqlErrorNoticeFieldType::DataType,
+            b'n' => PgsqlErrorNoticeFieldType::ConstraintName,
+            b'F' => PgsqlErrorNoticeFieldType::File,
+            b'L' => PgsqlErrorNoticeFieldType::Line,
+            b'R' => PgsqlErrorNoticeFieldType::Routine,
+            b'\0' => PgsqlErrorNoticeFieldType::TerminatorToken,
+            _ => PgsqlErrorNoticeFieldType::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
         }
     }
 }
@@ -547,6 +586,16 @@ named!(parse_simple_query<PgsqlFEMessage>,
             }))
     ));
 
+named!(parse_terminate_message<PgsqlFEMessage>,
+    do_parse!(
+        identifier: verify!(be_u8, |&x| x == b'X')
+        >> length: verify!(be_u32, |&x| x == 4)
+        >> (PgsqlFEMessage::Terminate(TerminationMessage{
+            identifier,
+            length,
+        }))
+    ));
+
 // TODO messages that begin with 'p' but are not password ones are not parsed (yet) here
 // we may need to bring some context logic to pgsql.rs, as content interpretation
 // of such messages is context (transaction, I believe) dependent
@@ -554,10 +603,9 @@ named!(pub parse_request<PgsqlFEMessage>,
     do_parse!(
         tag: peek!(be_u8)
         >> message: switch!(value!(tag),
-                        b'\0' => call!(pgsql_parse_startup_packet) | // TODO this will probably be taken away from here.
-                        // b'p' =>  call!(parse_password_message) - this shall be called per case, from pgsql.rs
-                        b'Q' => dbg_dmp!(call!(parse_simple_query))
-                )
+                        b'\0' => call!(pgsql_parse_startup_packet) |
+                        b'Q' => dbg_dmp!(call!(parse_simple_query)) |
+                        b'X' => dbg_dmp!(call!(parse_terminate_message)))
         >> (message)
     ));
 
@@ -566,20 +614,21 @@ named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
         identifier: verify!(be_u8, |&x| x == b'R')
         >> length: verify!(be_u32, |&x| x >= 8 )
         >> auth_type: be_u32
+        >> payload: peek!(rest)
         >> message: flat_map!(take!(length - 8), switch!(value!(auth_type),
             0 => value!(PgsqlBEMessage::AuthenticationOk(
                     AuthenticationMessage {
                         identifier,
                         length,
                         auth_type,
-                        payload: None,
+                        payload: payload.to_vec(),
                     }))  |
             3 => value!(PgsqlBEMessage::AuthenticationCleartextPassword(
                     AuthenticationMessage {
                         identifier,
                         length,
                         auth_type,
-                        payload: None,
+                        payload: payload.to_vec(),
                     }))  |
             5 => do_parse!(
                 salt: exact!(take!(4))
@@ -588,7 +637,7 @@ named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
                             identifier,
                             length,
                             auth_type,
-                            payload: Some(salt.to_vec()),
+                            payload: salt.to_vec(),
                         }))
                 ) |
             9 => value!(PgsqlBEMessage::AuthenticationSSPI(
@@ -596,7 +645,7 @@ named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
                         identifier,
                         length,
                         auth_type,
-                        payload: None,
+                        payload: payload.to_vec(),
                     })) |
             // TODO - Question: For SASL, should I parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
             10 => do_parse!(
@@ -616,7 +665,7 @@ named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
                         identifier,
                         length,
                         auth_type,
-                        payload: Some(sasl_challenge.to_vec())
+                        payload: sasl_challenge.to_vec(),
                     }))
                 ) |
             12 => do_parse!(
@@ -626,7 +675,7 @@ named!(pgsql_parse_authentication_message<PgsqlBEMessage>,
                         identifier,
                         length,
                         auth_type,
-                        payload: Some(signature.to_vec()),
+                        payload: signature.to_vec(),
                     }
                 ))
             )
@@ -745,19 +794,19 @@ named!(parse_data_row_value<ColumnFieldValue>,
     do_parse!(
         // TODO make sure that the -1s here don't mess up with everything
         value_length: be_i32
-        >> value: dbg_dmp!(cond!(value_length >= 0, take!(value_length)))
+        >> value: cond!(value_length >= 0, take!(value_length))
         >> (ColumnFieldValue {
             value_length,
             value: {
                 match value {
-                    Some(data) => Some(data.to_vec()),
-                    None => None,
+                    Some(data) => data.to_vec(),
+                    None => {[].to_vec()},
                 }
             },
         })
     ));
 
-named!(pub parse_row_data<PgsqlBEMessage>,
+named!(pub parse_data_row<PgsqlBEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'D')
         >> length: verify!(be_u32, |&x| x > 6)
@@ -798,8 +847,8 @@ named!(pub parse_error_response_code<PgsqlErrorNoticeMessageField>,
         field_type: char!('C')
         >> field_value: flat_map!(take!(6), call!(alphanumeric1))
         >> (PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            field_value: Some(field_value.to_vec())
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: field_value.to_vec(),
         })
     ));
 
@@ -812,8 +861,8 @@ named!(pub parse_error_response_severity<PgsqlErrorNoticeMessageField>,
         // TODO change this, make sure \x00 is included in the vectors
         >> tag!("\x00")
         >> (PgsqlErrorNoticeMessageField{
-                field_type: PgsqlErrorNoticeFieldTypes::from(field_type),
-                field_value: Some(field_value.to_vec())
+                field_type: PgsqlErrorNoticeFieldType::from(field_type),
+                field_value: field_value.to_vec(),
         })
     ));
 
@@ -823,8 +872,8 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
             field_type: be_u8
             >> data: eof!()
             >> (PgsqlErrorNoticeMessageField{
-                field_type: PgsqlErrorNoticeFieldTypes::from(field_type),
-                field_value: None
+                field_type: PgsqlErrorNoticeFieldType::from(field_type),
+                field_value: data.to_vec(),
             })
         ) |
         b'V' => call!(parse_error_response_severity) |
@@ -837,8 +886,8 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
             >> field_value: take_until1!("\x00")
             >> tag!("\x00")
             >> (PgsqlErrorNoticeMessageField{
-                field_type: PgsqlErrorNoticeFieldTypes::from(field_type),
-                field_value: Some(field_value.to_vec()),
+                field_type: PgsqlErrorNoticeFieldType::from(field_type),
+                field_value: field_value.to_vec(),
             })
         ) |
         _ => do_parse!(
@@ -847,8 +896,8 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
             >> field_value: opt!(take_until1!("\x00"))
             >> tag!("\x00")
             >> (PgsqlErrorNoticeMessageField{
-                field_type: PgsqlErrorNoticeFieldTypes::UnknownFieldType,
-                field_value: Some(field_value.unwrap().to_vec()),
+                field_type: PgsqlErrorNoticeFieldType::UnknownFieldType,
+                field_value: field_value.unwrap().to_vec(),
             })
         ))
 );
@@ -899,18 +948,11 @@ named!(pub pgsql_parse_response<PgsqlBEMessage>,
             b'C' => call!(parse_command_complete) |
             b'Z' => call!(parse_ready_for_query) |
             b'T' => call!(parse_row_description) |
-            b'D' => call!(parse_row_data)
+            b'D' => call!(parse_data_row)
             // _ => {} // TODO question should I add an unknown message type here, or maybe an error?
         ))
         >> (message)
     ));
-
-// TODO decide whether to keep this or not. If I have to parse length in more
-// than one place, it does sound reasonable,
-// to avoid writing take!(len - 4) everywhere and any possible related mistakes...
-fn _parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
-    input.parse::<u32>()
-}
 
 #[cfg(test)]
 mod tests {
@@ -1087,9 +1129,15 @@ mod tests {
         let result = parse_request(&buf);
         assert!(result.is_err());
 
+        // A termination message
+        let buf: &[u8] = &[ 0x58, 0x00, 0x00, 0x00, 0x04];
+        let result = parse_request(&buf);
+        assert!(result.is_ok());
+
+        let result = parse_request(&buf[0..3]);
+        assert!(result.is_err());
 
         // TODO add other messages
-
     }
 
     #[test]
@@ -1097,8 +1145,8 @@ mod tests {
         let buf: &[u8] = &[0x43, 0x32, 0x38, 0x30, 0x30, 0x30, 0x00];
         let value_str = "28000".as_bytes();
         let ok_res = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            field_value: Some(value_str.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: value_str.to_vec(),
         };
         let result = parse_error_response_code(&buf);
         assert!(result.is_ok());
@@ -1166,8 +1214,8 @@ mod tests {
 
         let value_str = "FATAL".as_bytes();
         let ok_res = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::SeverityNonLocalizable,
-            field_value: Some(value_str.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::SeverityNonLocalizable,
+            field_value: value_str.to_vec(),
         };
 
         let (remainder, result) = parse_error_response_field(&input).unwrap();
@@ -1190,8 +1238,8 @@ mod tests {
 
         let value_str = br#"no pg_hba.conf entry for replication connection from host "192.168.50.11", user "rep", SSL off"#;
         let ok_res = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::Message,
-            field_value: Some(value_str.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::Message,
+            field_value: value_str.to_vec(),
         };
 
         let (remainder, result) = parse_error_response_field(&input).unwrap();
@@ -1206,8 +1254,8 @@ mod tests {
         let input: &[u8] = &[0x43, 0x32, 0x38, 0x30, 0x30, 0x30, 0x00];
         let value_str = "28000".as_bytes();
         let ok_res = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            field_value: Some(value_str.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: value_str.to_vec(),
         };
         let (remainder, result) = parse_error_response_field(&input).unwrap();
         assert_eq!(result, ok_res);
@@ -1287,20 +1335,20 @@ mod tests {
         let input: &[u8] = &[0x53, 0x46, 0x41, 0x54, 0x41, 0x4c, 0x00, 0x00];
 
         let field1 = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::SeverityLocalizable,
-            field_value: Some(br#"FATAL"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::SeverityLocalizable,
+            field_value: br#"FATAL"#.to_vec(),
         };
         let field2 = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            field_value: Some(br#"28000"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: br#"28000"#.to_vec(),
         };
         let field3 = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::Message,
-            field_value: Some(br#"no pg_hba.conf entry for replication connection from host "192.168.50.11", user "rep", SSL off"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::Message,
+            field_value: br#"no pg_hba.conf entry for replication connection from host "192.168.50.11", user "rep", SSL off"#.to_vec(),
         };
         let field4 = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::TerminatorToken,
-            field_value: None,
+            field_type: PgsqlErrorNoticeFieldType::TerminatorToken,
+            field_value: br#""#.to_vec(),
         };
 
         let mut ok_res: Vec<PgsqlErrorNoticeMessageField> = Vec::new();
@@ -1316,8 +1364,8 @@ mod tests {
         ok_res.push(field3);
 
         let field4 = PgsqlErrorNoticeMessageField{
-            field_type: PgsqlErrorNoticeFieldTypes::TerminatorToken,
-            field_value: None,
+            field_type: PgsqlErrorNoticeFieldType::TerminatorToken,
+            field_value: br#""#.to_vec(),
         };
 
         ok_res.push(field4);
@@ -1399,32 +1447,32 @@ mod tests {
         // declare expected result
 
         let field1 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::SeverityLocalizable,
-            field_value: Some(br#"FATAL"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::SeverityLocalizable,
+            field_value: br#"FATAL"#.to_vec(),
         };
         let field2 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::CodeSqlStateCode,
-            field_value: Some(br#"28000"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: br#"28000"#.to_vec(),
         };
         let field3 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::Message,
-            field_value: Some(br#"no pg_hba.conf entry for replication connection from host "192.168.50.11", user "rep", SSL off"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::Message,
+            field_value: br#"no pg_hba.conf entry for replication connection from host "192.168.50.11", user "rep", SSL off"#.to_vec(),
         };
         let field4 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::File,
-            field_value: Some(br#"auth.c"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::File,
+            field_value: br#"auth.c"#.to_vec(),
         };
         let field5 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::Line,
-            field_value: Some(br#"481"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::Line,
+            field_value: br#"481"#.to_vec(),
         };
         let field6 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::Routine,
-            field_value: Some(br#"ClientAuthentication"#.to_vec()),
+            field_type: PgsqlErrorNoticeFieldType::Routine,
+            field_value: br#"ClientAuthentication"#.to_vec(),
         };
         let field7 = PgsqlErrorNoticeMessageField {
-            field_type: PgsqlErrorNoticeFieldTypes::TerminatorToken,
-            field_value: None,
+            field_type: PgsqlErrorNoticeFieldType::TerminatorToken,
+            field_value: br#""#.to_vec(),
         };
 
         let mut payload = ErrorNoticeMessage::new(b'E', 150);
@@ -1575,7 +1623,7 @@ mod tests {
                 identifier: b'R',
                 length: 92,
                 auth_type: 11,
-                payload: Some(br#"r=/z+giZiTxAH7r8sNAeHr7cvpqV3uo7G/bJBIJO3pjVM7t3ng,s=4UV68bIkC8f9/X8xH7aPhg==,i=4096"#.to_vec()),
+                payload: br#"r=/z+giZiTxAH7r8sNAeHr7cvpqV3uo7G/bJBIJO3pjVM7t3ng,s=4UV68bIkC8f9/X8xH7aPhg==,i=4096"#.to_vec(),
         });
 
         let result = pgsql_parse_response(&buf);
@@ -1616,7 +1664,7 @@ mod tests {
                 identifier: b'R',
                 length: 54,
                 auth_type: 12,
-                payload: Some(br#"v=d1PXa8TKFPZrR3MBRjLy3+J6yxrfw/zzp8YT9exV7s8="#.to_vec()),
+                payload: br#"v=d1PXa8TKFPZrR3MBRjLy3+J6yxrfw/zzp8YT9exV7s8="#.to_vec(),
         });
 
         let result = pgsql_parse_response(&buf);
@@ -1742,7 +1790,7 @@ mod tests {
                     identifier: b'R',
                     length: 8,
                     auth_type: 9,
-                    payload: None,
+                    payload: Vec::<u8>::new(),
                 });
 
         let (_remainder, result) = pgsql_parse_response(&buf).unwrap();
@@ -1779,7 +1827,7 @@ mod tests {
                     identifier: b'R',
                     length: 12,
                     auth_type: 5,
-                    payload: Some(vec![0xf2, 0x11, 0xa3, 0xed]),
+                    payload: vec![0xf2, 0x11, 0xa3, 0xed],
                 });
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1807,7 +1855,7 @@ mod tests {
                     identifier: b'R',
                     length: 8,
                     auth_type: 3,
-                    payload: None,
+                    payload: Vec::<u8>::new(),
                 });
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1842,7 +1890,7 @@ mod tests {
                     identifier: b'R',
                     length: 8,
                     auth_type: 0,
-                    payload: None,
+                    payload: Vec::<u8>::new(),
                 });
         let result = pgsql_parse_response(&buf);
         match result {
@@ -1967,15 +2015,15 @@ mod tests {
 
         let field1 = ColumnFieldValue {
             value_length: 7,
-            value: Some([0x65, 0x74, 0x2f, 0x6f, 0x70,0x65, 0x6e].to_vec()),
+            value: [0x65, 0x74, 0x2f, 0x6f, 0x70,0x65, 0x6e].to_vec(),
         };
         let field2 = ColumnFieldValue {
             value_length: 3,
-            value: Some([0x36, 0x2e, 0x30].to_vec()),
+            value: [0x36, 0x2e, 0x30].to_vec(),
         };
         let field3 = ColumnFieldValue {
             value_length: 7,
-            value: Some([0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31].to_vec()),
+            value: [0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31].to_vec(),
         };
         rows_vec.push(field1);
         rows_vec.push(field2);
@@ -1989,7 +2037,7 @@ mod tests {
                 fields: rows_vec,
             });
 
-        let result = parse_row_data(&buffer);
+        let result = parse_data_row(&buffer);
 
         match result {
             Ok((rem, message)) => {
