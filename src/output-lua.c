@@ -765,7 +765,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 
         int r = LuaScriptInit(path, &opts);
         if (r != 0) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't initialize scipt");
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't initialize script");
             goto error;
         }
 
