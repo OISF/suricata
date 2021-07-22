@@ -9,5 +9,5 @@ do
     rm -rf corpus_$target
     unzip -q public.zip -d corpus_$target
     #run target on corpus.
-    ./src/$target corpus_$target
+    /usr/bin/time -v ./src/$target corpus_$target
 done
