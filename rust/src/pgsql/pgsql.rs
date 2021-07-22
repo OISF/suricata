@@ -164,7 +164,7 @@ impl PgsqlState {
         let mut tx = PgsqlTransaction::new();
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        SCLogNotice!("Creating new transaction. tx_id: {}", tx.tx_id);
+        SCLogDebug!("Creating new transaction. tx_id: {}", tx.tx_id);
         return tx;
     }
 
@@ -174,6 +174,7 @@ impl PgsqlState {
     fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
         // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
         if  self.state_progress == PgsqlStateProgress::IdleState ||
+            self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
             self.state_progress == PgsqlStateProgress::ConnectionCompleted ||
             self.state_progress == PgsqlStateProgress::ReadyForQueryReceived ||
             self.state_progress == PgsqlStateProgress::SslRejectedReceived {
@@ -216,6 +217,7 @@ impl PgsqlState {
                 PgsqlStateProgress::IdleState |
                 PgsqlStateProgress::ConnectionCompleted |
                 PgsqlStateProgress::SslRejectedReceived |
+                PgsqlStateProgress::SslAcceptedReceived |
                 PgsqlStateProgress::ReadyForQueryReceived |
                 PgsqlStateProgress::CommandCompletedReceived => {
                     match parser::parse_request(start) {
@@ -389,7 +391,7 @@ impl PgsqlState {
                     },
                     Err(nom::Err::Error((rem, nom::error::ErrorKind::Verify))) => {
                         // We want to know if we got an ErrorMessage here
-                        SCLogDebug!("Nom error while parsing SSL Response. Unparsed input: {:?}", rem);
+                        SCLogDebug!("Error while parsing SSL Response. Unparsed input: {:?}", rem);
                         SCLogDebug!("Unparsed input is: {:?}", rem);
                         return AppLayerResult::err();
                     },
@@ -409,6 +411,7 @@ impl PgsqlState {
                             "SslAccepted" => { // SSL Response
                                 self.state_progress = PgsqlStateProgress::SslRequestReceived;
                                 // TODO we must upgrade to TLS here.
+                                SCLogDebug!("SSL Request accepted");
                             },
                             "BackendKeyData" => { // BackendKeyDataMessage
                                 self.backend_pid = response.get_backendkey_info().0;
@@ -515,14 +518,12 @@ fn probe_ts(input: &[u8]) -> bool {
 /// Probe for a valid PostgreSQL response
 ///
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
-/// Doesn't probe for SSL responses, at the moment
 fn probe_tc(input: &[u8]) -> bool {
-    SCLogNotice!("We are in probe_tc");
     if parser::pgsql_parse_response(input).is_ok() ||
         parser::parse_ssl_response(input).is_ok() {
         return true;
         }
-    SCLogNotice!("probe_tc is false");
+    SCLogDebug!("probe_tc is false");
     false
 }
 
