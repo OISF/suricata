@@ -73,7 +73,6 @@ int main(int argc, char **argv)
                 if (dir->d_type != DT_REG) {
                     continue;
                 }
-                printf("lol running %s\n", dir->d_name);
                 r = runOneFile(dir->d_name);
                 if (r != 0) {
                     return r;
