@@ -1,118 +1,90 @@
-Suricata
-========
+This is a branch that enables you to load rules into a database table and have suricata read / reload those rules from the db. 
 
-[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/suricata.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:suricata)
-[![codecov](https://codecov.io/gh/OISF/suricata/branch/master/graph/badge.svg?token=QRyyn2BSo1)](https://codecov.io/gh/OISF/suricata)
+You need to download this repository and switch to the branch *mysql.
 
-Introduction
-------------
+Do that by cloning the repository sudo git clone https://github.com/CosmoRied/suricata.git then changing to the branch. git checkout remotes/origin/mysql.
 
-Suricata is a network IDS, IPS and NSM engine.
+Now that you're in that branch, you have to configure, make and make install the program to compile and install this feature. 
 
+Run,
 
-Installation
-------------
+> sudo sh autogen.sh
 
-https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
+Don't forget that mysql support isn't supported by the suricata team, so you'll have to add a couple of lines in the ./configure option to get it to make properly.
 
-User Guide
-----------
+Run this command on the command line to get the list of compiler flags and libraries you need to include in your configure options before make.
 
-You can follow the [Suricata user guide](https://suricata.readthedocs.io/en/latest/) to get started.
+> mysql_config --cflags --libs
 
-Our deprecated (but still useful) user guide is also [available](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_User_Guide).
+The output should look like this:
 
+> -I/usr/include/mysql 
 
-Contributing
-------------
+> -L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv
 
-We're happily taking patches and other contributions. Please see https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Contributing for how to get started.
+Now you can use those with your configure command to build inn mysql support.
 
-Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences:
+eg.
 
-* in IPS mode a crash may knock a network offline;
-* in passive mode a compromise of the IDS may lead to loss of critical and confidential data;
-* missed detection may lead to undetected compromise of the network.
+> sudo ./configure LIBS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv" CFLAGS="-I/usr/include/mysql"
 
-In other words, we think the stakes are pretty high, especially since in many common cases the IDS/IPS will be directly reachable by an attacker.
+Install the necessary packages required by suricata, eg. cbindgen or libhtp (I needed to add cbindgen using apt-get install cbindgen).
 
-For this reason, we have developed a QA process that is quite extensive. A consequence is that contributing to Suricata can be a somewhat lengthy process.
+Now you're ready to:
 
-On a high level, the steps are:
+> sudo make && sudo make install.
 
-1. Travis-CI based build & unit testing. This runs automatically when a pull request is made.
+In /etc/suricata/suricata.yaml file, tell it that you want to have the path for rules files defalut path to 
 
-2. Review by devs from the team and community
+>default-rule-path: /etc/suricata/
+>
+>rule-files:
+>  - my.cnf
 
-3. QA runs
+my.cnf file looks like this:
 
+>[client]
 
+>database = suricata
 
+>user = db_username
 
-### Overview of Suricata's QA steps
+>password = db_password
 
-Trusted devs and core team members are able to submit builds to our (semi) public Buildbot instance. It will run a series of build tests and a regression suite to confirm no existing features break.
+>default-character-set = utf8
 
-The final QA run takes a few hours minimally, and is started by Victor. It currently runs:
+Start suricata: 
 
-- extensive build tests on different OS', compilers, optimization levels, configure features
-- static code analysis using cppcheck, scan-build
-- runtime code analysis using valgrind, DrMemory, AddressSanitizer, LeakSanitizer
-- regression tests for past bugs
-- output validation of logging
-- unix socket testing
-- pcap based fuzz testing using ASAN and LSAN
+> sudo suricata -c /etc/suricata/suricata.yaml -i eth0
 
-Next to these tests, based on the type of code change further tests can be run manually:
+Load your database with rules
 
-- traffic replay testing (multi-gigabit)
-- large pcap collection processing (multi-terabytes)
-- fuzz testing (might take multiple days or even weeks)
-- pcap based performance testing
-- live performance testing
-- various other manual tests based on evaluation of the proposed changes
+> sudo suricata-update --database --mysqlconf /etc/suricata/my.cnf
 
+It creates a table called "signatures" in a database named in your my.cnf file. If no databse exists you need to run "CREATE DATABASE suricata" in mysql shell, and tell it to the configureation file. 
 
-It's important to realize that almost all of the tests above are used as acceptance tests. If something fails, it's up to you to address this in your code.
+Now, reload suricata rules with: 
 
+> sudo suricatasc -c reload-rules
 
-One step of the QA is currently run post-merge. We submit builds to the Coverity Scan program. Due to limitations of this (free) service, we can submit once a day max.
-Of course it can happen that after the merge the community will find issues. For both cases we request you to help address the issues as they may come up.
+You'll see that suricata reloads the rules from the database! 
+
+# Why bother?
+
+You need a database to organise your rules! 
+
+There's way too many rules to easily find and update one, so including a database is a good start if you need to configure and tune your rule-sets. 
+
+Now you host your database on one server with the update utilty & have suricata instances connect to remotely.
 
 
 
 
-### FAQ
-
-__Q: Will you accept my PR?__
-
-A: That depends on a number of things, including the code quality. With new features it also depends on whether the team and/or the community think the feature is useful, how much it affects other code and features, the risk of performance regressions, etc.
 
 
-__Q: When will my PR be merged?__
-
-A: It depends, if it's a major feature or considered a high risk change, it will probably go into the next major version.
 
 
-__Q: Why was my PR closed?__
-
-A: As documented in the Suricata Github workflow here https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Github_work_flow, we expect a new pull request for every change.
-
-Normally, the team (or community) will give feedback on a pull request after which it is expected to be replaced by an improved PR. So look at the comments. If you disagree with the comments we can still discuss them in the closed PR.
-
-If the PR was closed without comments it's likely due to QA failure. If the Travis-CI check failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
 
 
-__Q: the compiler/code analyser/tool is wrong, what now?__
-
-A: To assist in the automation of the QA, we're not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.g. valgrind, DrMemory). Some warnings can be disabled. In some exceptional cases the only 'solution' is to refactor the code to work around a static code checker limitation false positive. While frustrating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
 
 
-__Q: I think your QA test is wrong__
-
-A: If you really think it is, we can discuss how to improve it. But don't come to this conclusion too quickly, more often it's the code that turns out to be wrong.
-
-
-__Q: do you require signing of a contributor license agreement?__
-
-A: Yes, we do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See http://suricata-ids.org/about/open-source/ and http://suricata-ids.org/about/contribution-agreement/
