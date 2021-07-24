@@ -1,3 +1,5 @@
+Database support
+
 This is a branch that enables you to load rules into a database table and have suricata read / reload those rules from the db. 
 
 You need to download this repository and switch to the branch *mysql.
@@ -30,7 +32,7 @@ eg.
 
 Install the necessary packages required by suricata, eg. cbindgen or libhtp (I needed to add cbindgen using apt-get install cbindgen).
 
-Now you're ready to:
+When the configure command completes succesfully, only then can you make and make install...
 
 > sudo make && sudo make install.
 
