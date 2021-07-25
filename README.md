@@ -1,5 +1,3 @@
-Database support
-
 This is a branch that enables you to load rules into a database table and have suricata read / reload those rules from the db. 
 
 You need to download this repository and switch to the branch *mysql.
