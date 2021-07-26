@@ -190,16 +190,16 @@ impl SMBState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
+pub unsafe extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = cast_pointer!(ptr, SMBState);
     parser.getfiles(direction)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
+pub unsafe extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *ptr };
+    let parser = &mut *ptr;
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)
 }

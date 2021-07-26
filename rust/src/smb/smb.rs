@@ -1811,7 +1811,7 @@ pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
+pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
                                        state: *mut ffi::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -1820,10 +1820,10 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
                                        flags: u8)
                                        -> AppLayerResult
 {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    let file_flags = FileFlowToFlags(flow, STREAM_TOSERVER);
     rs_smb_setfileflags(STREAM_TOSERVER, state, file_flags|FILE_USE_DETECT);
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
@@ -1850,7 +1850,7 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 
 
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
+pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
                                         state: *mut ffi::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
@@ -1861,14 +1861,14 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
 {
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    let file_flags = FileFlowToFlags(flow, STREAM_TOCLIENT);
     rs_smb_setfileflags(STREAM_TOCLIENT, state, file_flags|FILE_USE_DETECT);
 
     if input.is_null() && input_len > 0 {
         return rs_smb_parse_response_tcp_gap(state, input_len);
     }
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
 
     /* START with MISTREAM set: record might be starting the middle. */
     if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
@@ -1954,7 +1954,7 @@ fn smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
 // probing parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
+pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
@@ -1964,14 +1964,14 @@ pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
     let slice = build_slice!(input, len as usize);
     if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
         if smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
-            return unsafe { ALPROTO_SMB };
+            return ALPROTO_SMB;
         }
     }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {
             if hdr.is_smb() {
                 SCLogDebug!("smb found");
-                return unsafe { ALPROTO_SMB };
+                return ALPROTO_SMB;
             } else if hdr.needs_more(){
                 return 0;
             } else if hdr.is_valid() &&
@@ -1984,7 +1984,7 @@ pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
                         Ok((_, ref hdr2)) => {
                             if hdr2.is_smb() {
                                 SCLogDebug!("smb found");
-                                return unsafe { ALPROTO_SMB };
+                                return ALPROTO_SMB;
                             }
                         }
                         _ => {}
@@ -1999,11 +1999,11 @@ pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
         _ => { },
     }
     SCLogDebug!("no smb");
-    return unsafe { ALPROTO_FAILED };
+    return ALPROTO_FAILED;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
+pub unsafe extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state, SMBState);
@@ -2012,7 +2012,7 @@ pub extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
+pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
                                       tx_id: u64)
                                       -> *mut ffi::c_void
 {
@@ -2029,7 +2029,7 @@ pub extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
 
 // for use with the C API call StateGetTxIterator
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_smb_state_get_tx_iterator(
                                                _ipproto: u8,
                                                _alproto: AppProto,
                                                state: *mut std::os::raw::c_void,
@@ -2052,7 +2052,7 @@ pub extern "C" fn rs_smb_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
+pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state, SMBState);
@@ -2061,7 +2061,7 @@ pub extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
+pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
                                                   direction: u8)
                                                   -> i32
 {
@@ -2081,7 +2081,7 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 
 
 #[no_mangle]
-pub extern "C" fn rs_smb_get_tx_data(
+pub unsafe extern "C" fn rs_smb_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -2090,7 +2090,7 @@ pub extern "C" fn rs_smb_get_tx_data(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_smb_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut DetectEngineState
 {
@@ -2106,7 +2106,7 @@ pub extern "C" fn rs_smb_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_smb_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut DetectEngineState) -> std::os::raw::c_int
 {
@@ -2116,7 +2116,7 @@ pub extern "C" fn rs_smb_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_truncate(
+pub unsafe extern "C" fn rs_smb_state_truncate(
         state: *mut std::ffi::c_void,
         direction: u8)
 {
@@ -2129,7 +2129,7 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SMBTransaction);
@@ -2137,7 +2137,7 @@ pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                               event_name: *mut *const std::os::raw::c_char,
                                               event_type: *mut AppLayerEventType)
                                               -> i8
@@ -2153,10 +2153,8 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
             SMBEvent::FileOverlap => { "file_overlap\0" },
         };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
+        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
         0
     } else {
         -1
@@ -2164,7 +2162,7 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c_char,
+pub unsafe extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut AppLayerEventType)
                                               -> i32
@@ -2172,27 +2170,25 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c
     if event_name == std::ptr::null() {
         return -1;
     }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let c_event_name: &CStr = CStr::from_ptr(event_name);
     let event = match c_event_name.to_str() {
         Ok(s) => {
             smb_str_to_event(s)
         },
         Err(_) => -1, // UTF-8 conversion failed
     };
-    unsafe {
-        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_id = event as std::os::raw::c_int;
     if event == -1 {
         return -1;
     }
     0
 }
 
-pub extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
+pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
     let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
     let f = cast_pointer!(f, Flow);
-    if unsafe { retval != ALPROTO_SMB } {
+    if retval != ALPROTO_SMB {
         return retval;
     }
     let (sp, dp) = f.get_ports();
@@ -2200,15 +2196,13 @@ pub extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len:
     let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
     let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
     if fsp == 445 && fdp != 445 {
-        unsafe {
-            if dir & STREAM_TOSERVER != 0 {
-                *rdir = STREAM_TOCLIENT;
-            } else {
-                *rdir = STREAM_TOSERVER;
-            }
+        if dir & STREAM_TOSERVER != 0 {
+            *rdir = STREAM_TOCLIENT;
+        } else {
+            *rdir = STREAM_TOSERVER;
         }
     }
-    return unsafe { ALPROTO_SMB };
+    return ALPROTO_SMB;
 }
 
 fn register_pattern_probe() -> i8 {

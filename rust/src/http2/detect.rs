@@ -43,7 +43,7 @@ fn http2_tx_has_frametype(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_has_frametype(
+pub unsafe extern "C" fn rs_http2_tx_has_frametype(
     tx: *mut std::os::raw::c_void, direction: u8, value: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -103,7 +103,7 @@ fn http2_tx_has_errorcode(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_has_errorcode(
+pub unsafe extern "C" fn rs_http2_tx_has_errorcode(
     tx: *mut std::os::raw::c_void, direction: u8, code: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -176,7 +176,7 @@ fn http2_tx_get_next_priority(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_next_priority(
+pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -218,7 +218,7 @@ fn http2_tx_get_next_window(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_next_window(
+pub unsafe extern "C" fn rs_http2_tx_get_next_window(
     tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -312,7 +312,7 @@ fn http2_detect_settingsctx_match(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_detect_settingsctx_match(
+pub unsafe extern "C" fn rs_http2_detect_settingsctx_match(
     ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
@@ -413,7 +413,7 @@ fn http2_detect_sizeupdatectx_match(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
+pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
     ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectU64Data);
@@ -704,7 +704,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_set_method(
+pub unsafe extern "C" fn rs_http2_tx_set_method(
     state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
 ) {
     let slice = build_slice!(buffer, buffer_len as usize);
@@ -712,7 +712,7 @@ pub extern "C" fn rs_http2_tx_set_method(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_set_uri(state: &mut HTTP2State, buffer: *const u8, buffer_len: u32) {
+pub unsafe extern "C" fn rs_http2_tx_set_uri(state: &mut HTTP2State, buffer: *const u8, buffer_len: u32) {
     let slice = build_slice!(buffer, buffer_len as usize);
     http2_tx_set_header(state, ":path".as_bytes(), slice)
 }
@@ -853,7 +853,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_add_header(
+pub unsafe extern "C" fn rs_http2_tx_add_header(
     state: &mut HTTP2State, name: *const u8, name_len: u32, value: *const u8, value_len: u32,
 ) {
     let slice_name = build_slice!(name, name_len as usize);
