@@ -493,9 +493,9 @@ static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
  */
 static int LuaCallbackStatsPushToStackFromFlow(lua_State *luastate, const Flow *f)
 {
-    lua_pushnumber(luastate, f->todstpktcnt);
+    lua_pushinteger(luastate, f->todstpktcnt);
     lua_pushnumber(luastate, f->todstbytecnt);
-    lua_pushnumber(luastate, f->tosrcpktcnt);
+    lua_pushinteger(luastate, f->tosrcpktcnt);
     lua_pushnumber(luastate, f->tosrcbytecnt);
     return 4;
 }
@@ -557,9 +557,9 @@ static int LuaCallbackFlowId(lua_State *luastate)
  */
 static int LuaCallbackRuleIdsPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
 {
-    lua_pushnumber (luastate, pa->s->id);
-    lua_pushnumber (luastate, pa->s->rev);
-    lua_pushnumber (luastate, pa->s->gid);
+    lua_pushinteger(luastate, pa->s->id);
+    lua_pushinteger(luastate, pa->s->rev);
+    lua_pushinteger(luastate, pa->s->gid);
     return 3;
 }
 
