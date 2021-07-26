@@ -288,7 +288,7 @@ pub extern "C" fn rs_krb5_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -300,7 +300,7 @@ pub extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_krb5_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,KRB5State);
@@ -308,7 +308,7 @@ pub extern "C" fn rs_krb5_state_get_tx_count(state: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_tx_free(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_krb5_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,KRB5State);
@@ -324,7 +324,7 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_krb5_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
@@ -334,7 +334,7 @@ pub extern "C" fn rs_krb5_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_krb5_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
@@ -346,7 +346,7 @@ pub extern "C" fn rs_krb5_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+pub unsafe extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                                      event_name: *mut *const std::os::raw::c_char,
                                                      event_type: *mut core::AppLayerEventType)
                                                      -> i8
@@ -356,10 +356,8 @@ pub extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_i
             KRB5Event::MalformedData  => { "malformed_data\0" },
             KRB5Event::WeakEncryption => { "weak_encryption\0" },
         };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
+        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         0
     } else {
         -1
@@ -367,7 +365,7 @@ pub extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_i
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, KRB5Transaction);
@@ -375,13 +373,13 @@ pub extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const std::os::raw::c_char,
+pub unsafe extern "C" fn rs_krb5_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut core::AppLayerEventType)
                                               -> std::os::raw::c_int
 {
     if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let c_event_name: &CStr = CStr::from_ptr(event_name);
     let event = match c_event_name.to_str() {
         Ok(s) => {
             match s {
@@ -392,31 +390,29 @@ pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const std::os::raw::
         },
         Err(_) => -1, // UTF-8 conversion failed
     };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
+    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_id = event as std::os::raw::c_int;
     0
 }
 static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
+pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
         _direction: u8,
         input:*const u8, input_len: u32,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_KRB5 };
-    if slice.len() <= 10 { return unsafe{ALPROTO_FAILED}; }
+    let alproto = ALPROTO_KRB5;
+    if slice.len() <= 10 { return ALPROTO_FAILED; }
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != BerClass::Application { return unsafe{ALPROTO_FAILED}; }
+            if hdr.class != BerClass::Application { return ALPROTO_FAILED; }
             // Tag number should be <= 30
-            if hdr.tag.0 > 30 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.tag.0 > 30 { return ALPROTO_FAILED; }
             // Kerberos messages contain sequences
-            if rem.is_empty() || rem[0] != 0x30 { return unsafe{ALPROTO_FAILED}; }
+            if rem.is_empty() || rem[0] != 0x30 { return ALPROTO_FAILED; }
             // Check kerberos version
             if let Ok((rem,_hdr)) = der_read_element_header(rem) {
                 if rem.len() > 5 {
@@ -427,29 +423,29 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
                     }
                 }
             }
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
         Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
+pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
         direction: u8,
         input:*const u8, input_len: u32,
         rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
+    if slice.len() <= 14 { return ALPROTO_FAILED; }
     match be_u32(slice) as IResult<&[u8],u32> {
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
-            if record_mark > 16384 { return unsafe{ALPROTO_FAILED}; }
+            if record_mark > 16384 { return ALPROTO_FAILED; }
             return rs_krb5_probing_parser(_flow, direction,
                     rem.as_ptr(), rem.len() as u32, rdir);
         },
@@ -457,13 +453,13 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -479,7 +475,7 @@ pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -495,7 +491,7 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -554,7 +550,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,

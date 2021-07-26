@@ -190,7 +190,7 @@ pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -206,7 +206,7 @@ pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -222,7 +222,7 @@ pub extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -234,7 +234,7 @@ pub extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,NTPState);
@@ -242,7 +242,7 @@ pub extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,NTPState);
@@ -258,7 +258,7 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_ntp_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
@@ -268,7 +268,7 @@ pub extern "C" fn rs_ntp_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_ntp_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
@@ -280,7 +280,7 @@ pub extern "C" fn rs_ntp_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+pub unsafe extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                                     event_name: *mut *const std::os::raw::c_char,
                                                     event_type: *mut core::AppLayerEventType)
                                                     -> i8
@@ -292,10 +292,8 @@ pub extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_in
             NTPEvent::NotRequest          => { "not_request\0" },
             NTPEvent::NotResponse         => { "not_response\0" },
         };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
+        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         0
     } else {
         -1
@@ -303,7 +301,7 @@ pub extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_in
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, NTPTransaction);
@@ -311,13 +309,13 @@ pub extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os::raw::c_char,
+pub unsafe extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut core::AppLayerEventType)
                                               -> std::os::raw::c_int
 {
     if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let c_event_name: &CStr = CStr::from_ptr(event_name);
     let event = match c_event_name.to_str() {
         Ok(s) => {
             match s {
@@ -327,10 +325,8 @@ pub extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os::raw::c
         },
         Err(_) => -1, // UTF-8 conversion failed
     };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
+    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_id = event as std::os::raw::c_int;
     0
 }
 

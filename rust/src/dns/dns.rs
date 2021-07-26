@@ -155,23 +155,21 @@ impl DNSEvent {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_event_info_by_id(
+pub unsafe extern "C" fn rs_dns_state_get_event_info_by_id(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
     if let Some(e) = DNSEvent::from_id(event_id as u32) {
-        unsafe {
-            *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        }
+        *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
     return -1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_event_info(
+pub unsafe extern "C" fn rs_dns_state_get_event_info(
     event_name: *const std::os::raw::c_char,
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType
@@ -180,13 +178,11 @@ pub extern "C" fn rs_dns_state_get_event_info(
         return -1;
     }
 
-    let event_name = unsafe { std::ffi::CStr::from_ptr(event_name) };
+    let event_name = std::ffi::CStr::from_ptr(event_name);
     if let Ok(event_name) = event_name.to_str() {
         if let Some(event) = DNSEvent::from_string(event_name) {
-            unsafe {
-                *event_id = event as std::os::raw::c_int;
-                *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-            }
+            *event_id = event as std::os::raw::c_int;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
         } else {
             // Unknown event...
             return -1;
@@ -739,7 +735,7 @@ pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state, DNSState);
@@ -748,7 +744,7 @@ pub extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -757,7 +753,7 @@ pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
                                        _flags: u8)
                                        -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
     if state.parse_request(buf) {
         AppLayerResult::ok()
     } else {
@@ -766,7 +762,7 @@ pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
@@ -775,7 +771,7 @@ pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
                                         _flags: u8)
                                         -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
     if state.parse_response(buf) {
         AppLayerResult::ok()
     } else {
@@ -785,7 +781,7 @@ pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            state: *mut std::os::raw::c_void,
                                            _pstate: *mut std::os::raw::c_void,
                                            input: *const u8,
@@ -796,8 +792,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if input != std::ptr::null_mut() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.parse_request_tcp(buf);
         }
         state.request_gap(input_len);
@@ -806,7 +801,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             state: *mut std::os::raw::c_void,
                                             _pstate: *mut std::os::raw::c_void,
                                             input: *const u8,
@@ -817,8 +812,7 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if input != std::ptr::null_mut() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.parse_response_tcp(buf);
         }
         state.response_gap(input_len);
@@ -838,7 +832,7 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state, DNSState);
@@ -847,7 +841,7 @@ pub extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -873,7 +867,7 @@ pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_dns_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
@@ -883,7 +877,7 @@ pub extern "C" fn rs_dns_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_dns_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
@@ -899,7 +893,7 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, DNSTransaction);
@@ -907,7 +901,7 @@ pub extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_data(
+pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -916,7 +910,7 @@ pub extern "C" fn rs_dns_state_get_tx_data(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
+pub unsafe extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        i: u32,
                                        buf: *mut *const u8,
                                        len: *mut u32)
@@ -926,10 +920,8 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
-                unsafe {
-                    *len = query.name.len() as u32;
-                    *buf = query.name.as_ptr();
-                }
+                *len = query.name.len() as u32;
+                *buf = query.name.as_ptr();
                 return 1;
             }
         }
@@ -957,7 +949,7 @@ pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
+pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
                                          i: u16,
                                          rrtype: *mut u16)
                                          -> u8
@@ -966,9 +958,7 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
-                unsafe {
-                    *rrtype = query.rrtype;
-                }
+                *rrtype = query.rrtype;
                 return 1;
             }
         }
@@ -977,7 +967,7 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe(
+pub unsafe extern "C" fn rs_dns_probe(
     _flow: *const core::Flow,
     _dir: u8,
     input: *const u8,
@@ -987,9 +977,7 @@ pub extern "C" fn rs_dns_probe(
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     let (is_dns, is_request, _) = probe(slice, slice.len());
     if is_dns {
         let dir = if is_request {
@@ -997,16 +985,14 @@ pub extern "C" fn rs_dns_probe(
         } else {
             core::STREAM_TOCLIENT
         };
-        unsafe {
-            *rdir = dir;
-            return ALPROTO_DNS;
-        }
+        *rdir = dir;
+        return ALPROTO_DNS;
     }
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe_tcp(
+pub unsafe extern "C" fn rs_dns_probe_tcp(
     _flow: *const core::Flow,
     direction: u8,
     input: *const u8,
@@ -1016,9 +1002,7 @@ pub extern "C" fn rs_dns_probe_tcp(
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
     let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
@@ -1028,15 +1012,15 @@ pub extern "C" fn rs_dns_probe_tcp(
             core::STREAM_TOCLIENT
         };
         if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            unsafe { *rdir = dir };
+            *rdir = dir;
         }
-        return unsafe { ALPROTO_DNS };
+        return ALPROTO_DNS;
     }
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_apply_tx_config(
+pub unsafe extern "C" fn rs_dns_apply_tx_config(
     _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void,
     _mode: std::os::raw::c_int, config: AppLayerTxConfig
 ) {
