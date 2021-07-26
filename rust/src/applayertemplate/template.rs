@@ -17,7 +17,6 @@
 
 use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use std::mem::transmute;
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
@@ -298,13 +297,12 @@ pub extern "C" fn rs_template_probing_parser(
 pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<TemplateState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut TemplateState) });
 }
 
 #[no_mangle]
@@ -390,7 +388,7 @@ pub extern "C" fn rs_template_state_get_tx(
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -456,7 +454,7 @@ pub extern "C" fn rs_template_state_get_tx_iterator(
     let state = cast_pointer!(state, TemplateState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx,
                 out_tx_id,

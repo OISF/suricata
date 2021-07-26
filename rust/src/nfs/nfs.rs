@@ -19,7 +19,6 @@
 
 use std;
 use std::cmp;
-use std::mem::transmute;
 use std::collections::{HashMap};
 use std::ffi::{CStr, CString};
 
@@ -1377,7 +1376,7 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
@@ -1386,7 +1385,7 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut _nfs_state: Box<NFSState> = unsafe{transmute(state)};
+    std::mem::drop(unsafe { Box::from_raw(state as *mut NFSState) });
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
@@ -1511,7 +1510,7 @@ pub extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, NFSState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -1533,7 +1532,7 @@ pub extern "C" fn rs_nfs_state_get_tx_iterator(
     let state = cast_pointer!(state, NFSState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

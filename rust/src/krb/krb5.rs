@@ -276,15 +276,14 @@ pub fn test_weak_encryption(alg:EncryptionType) -> bool {
 pub extern "C" fn rs_krb5_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = KRB5State::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
 /// - state: *mut KRB5State as void pointer
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut state: Box<KRB5State> = unsafe{std::mem::transmute(state)};
+    let mut state: Box<KRB5State> = unsafe{Box::from_raw(state as _)};
     state.free();
 }
 
@@ -295,7 +294,7 @@ pub extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,KRB5State);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => tx as *const _ as *mut _,
         None     => std::ptr::null_mut(),
     }
 }

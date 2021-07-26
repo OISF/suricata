@@ -178,15 +178,14 @@ impl Drop for NTPTransaction {
 pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
 /// - state: *mut NTPState as void pointer
 #[no_mangle]
 pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut ntp_state: Box<NTPState> = unsafe{std::mem::transmute(state)};
+    let mut ntp_state = unsafe{ Box::from_raw(state as *mut NTPState) };
     ntp_state.free();
 }
 
@@ -229,7 +228,7 @@ pub extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,NTPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => tx as *const _ as *mut _,
         None     => std::ptr::null_mut(),
     }
 }

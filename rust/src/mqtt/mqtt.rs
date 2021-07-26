@@ -26,7 +26,6 @@ use num_traits::FromPrimitive;
 use nom;
 use std;
 use std::ffi::{CStr,CString};
-use std::mem::transmute;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
 // packet in a connection. Note that there is no risk of collision with a
@@ -581,12 +580,12 @@ pub extern "C" fn rs_mqtt_probing_parser(
 pub extern "C" fn rs_mqtt_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = MQTTState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<MQTTState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut MQTTState) });
 }
 
 #[no_mangle]
@@ -633,7 +632,7 @@ pub extern "C" fn rs_mqtt_state_get_tx(
     let state = cast_pointer!(state, MQTTState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -775,7 +774,7 @@ pub extern "C" fn rs_mqtt_state_get_tx_iterator(
     let state = cast_pointer!(state, MQTTState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

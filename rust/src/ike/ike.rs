@@ -32,7 +32,6 @@ use nom;
 use std;
 use std::collections::HashSet;
 use std::ffi::{CStr, CString};
-use std::mem::transmute;
 
 #[repr(u32)]
 pub enum IkeEvent {
@@ -346,13 +345,13 @@ pub extern "C" fn rs_ike_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<IKEState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut IKEState) });
 }
 
 #[no_mangle]
@@ -389,7 +388,7 @@ pub extern "C" fn rs_ike_state_get_tx(
     let state = cast_pointer!(state, IKEState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -516,7 +515,7 @@ pub extern "C" fn rs_ike_state_get_tx_iterator(
     let state = cast_pointer!(state, IKEState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

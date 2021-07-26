@@ -20,7 +20,6 @@ use crate::applayer::*;
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use std::ffi::{CStr, CString};
-use std::mem::transmute;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
@@ -431,13 +430,12 @@ pub extern "C" fn rs_ssh_state_get_event_info_by_id(
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<SSHState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut SSHState) });
 }
 
 #[no_mangle]
@@ -480,7 +478,7 @@ pub extern "C" fn rs_ssh_state_get_tx(
     state: *mut std::os::raw::c_void, _tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SSHState);
-    return unsafe { transmute(&state.transaction) };
+    return &state.transaction as *const _ as *mut _;
 }
 
 #[no_mangle]

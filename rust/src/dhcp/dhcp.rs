@@ -22,7 +22,6 @@ use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_
 use crate::dhcp::parser::*;
 use std;
 use std::ffi::{CStr,CString};
-use std::mem::transmute;
 
 static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
@@ -256,7 +255,7 @@ pub extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -299,15 +298,12 @@ pub extern "C" fn rs_dhcp_state_tx_free(
 pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DHCPState::new();
     let boxed = Box::new(state);
-    return unsafe {
-        transmute(boxed)
-    };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<DHCPState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DHCPState) });
 }
 
 #[no_mangle]
@@ -379,7 +375,7 @@ pub extern "C" fn rs_dhcp_state_get_tx_iterator(
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx, out_tx_id, has_next);
             return ires;

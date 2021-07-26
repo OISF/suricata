@@ -108,7 +108,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
     };
 
     match parse_opcode(&arg) {
-        Ok(detect) => std::mem::transmute(Box::new(detect)),
+        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
     if ptr != std::ptr::null_mut() {
-        let _: Box<DetectDnsOpcode> = std::mem::transmute(ptr);
+        std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
     }
 }
 
