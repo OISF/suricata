@@ -221,7 +221,7 @@ impl DHCPState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
+pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
                                          _direction: u8,
                                          input: *const u8,
                                          input_len: u32,
@@ -234,7 +234,7 @@ pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
     let slice = build_slice!(input, input_len as usize);
     match parse_header(slice) {
         Ok((_, _)) => {
-            return unsafe { ALPROTO_DHCP };
+            return ALPROTO_DHCP;
         }
         _ => {
             return ALPROTO_UNKNOWN;
@@ -250,7 +250,7 @@ pub extern "C" fn rs_dhcp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
                                        tx_id: u64) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
@@ -264,13 +264,13 @@ pub extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DHCPState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 state: *mut std::os::raw::c_void,
                                 _pstate: *mut std::os::raw::c_void,
                                 input: *const u8,
@@ -286,7 +286,7 @@ pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_tx_free(
+pub unsafe extern "C" fn rs_dhcp_state_tx_free(
     state: *mut std::os::raw::c_void,
     tx_id: u64)
 {
@@ -302,8 +302,8 @@ pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _ori
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DHCPState) });
+pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(state as *mut DHCPState));
 }
 
 #[no_mangle]
@@ -327,7 +327,7 @@ pub extern "C" fn rs_dhcp_state_get_event_info_by_id(event_id: std::os::raw::c_i
     }
 }
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
                                            -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, DHCPTransaction);
@@ -363,7 +363,7 @@ pub extern "C" fn rs_dhcp_state_get_event_info(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_dhcp_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
     state: *mut std::os::raw::c_void,

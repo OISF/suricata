@@ -1532,7 +1532,7 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_get_tx_data(
+pub unsafe extern "C" fn rs_nfs_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -1566,7 +1566,7 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, NFSTransaction);
@@ -1784,7 +1784,7 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
 
 /// MIDSTREAM
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ms(
+pub unsafe extern "C" fn rs_nfs_probe_ms(
         direction: u8, input: *const u8,
         len: u32, rdir: *mut u8) -> i8
 {
@@ -1802,7 +1802,7 @@ pub extern "C" fn rs_nfs_probe_ms(
             if r == 1 {
                 SCLogDebug!("nfs_probe success: dir {:02x} adir {:02x}", direction, adirection);
                 if (direction & (STREAM_TOSERVER|STREAM_TOCLIENT)) != adirection {
-                    unsafe { *rdir = adirection; }
+                    *rdir = adirection;
                 }
                 return 1;
             }
@@ -1818,7 +1818,7 @@ pub extern "C" fn rs_nfs_probe_ms(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe(direction: u8,
+pub unsafe extern "C" fn rs_nfs_probe(direction: u8,
         input: *const u8, len: u32)
     -> i8
 {
@@ -1829,7 +1829,7 @@ pub extern "C" fn rs_nfs_probe(direction: u8,
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
+pub unsafe extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
                                -> i8
 {
     let slice: &[u8] = build_slice!(input, len as usize);
@@ -1838,7 +1838,7 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
+pub unsafe extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
                                -> i8
 {
     let slice: &[u8] = build_slice!(input, len as usize);

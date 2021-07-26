@@ -551,7 +551,7 @@ export_tx_get_detect_state!(rs_mqtt_tx_get_detect_state, MQTTTransaction);
 export_tx_set_detect_state!(rs_mqtt_tx_set_detect_state, MQTTTransaction);
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_probing_parser(
+pub unsafe extern "C" fn rs_mqtt_probing_parser(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -563,16 +563,16 @@ pub extern "C" fn rs_mqtt_probing_parser(
         Ok((_, hdr)) => {
             // reject unassigned message type
             if hdr.message_type == MQTTTypeCode::UNASSIGNED {
-                return unsafe { ALPROTO_FAILED } ;
+                return ALPROTO_FAILED;
             }
             // with 2 being the highest valid QoS level
             if hdr.qos_level > 2 {
-                return unsafe { ALPROTO_FAILED };
+                return ALPROTO_FAILED;
             }
-            return unsafe { ALPROTO_MQTT };
+            return ALPROTO_MQTT;
         },
         Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        Err(_) => unsafe { ALPROTO_FAILED }
+        Err(_) => ALPROTO_FAILED
     }
 }
 
@@ -589,13 +589,13 @@ pub extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, MQTTState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_parse_request(
+pub unsafe extern "C" fn rs_mqtt_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -610,7 +610,7 @@ pub extern "C" fn rs_mqtt_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_parse_response(
+pub unsafe extern "C" fn rs_mqtt_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -625,7 +625,7 @@ pub extern "C" fn rs_mqtt_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx(
+pub unsafe extern "C" fn rs_mqtt_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -641,13 +641,13 @@ pub extern "C" fn rs_mqtt_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, MQTTState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
+pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
         return 1;
@@ -656,7 +656,7 @@ pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     direction: u8,
 ) -> std::os::raw::c_int {
@@ -676,7 +676,7 @@ pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_logged(
+pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
     _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
 ) -> u32 {
@@ -685,7 +685,7 @@ pub extern "C" fn rs_mqtt_tx_get_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_set_logged(
+pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
     _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
     logged: u32,
@@ -695,7 +695,7 @@ pub extern "C" fn rs_mqtt_tx_set_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_events(
+pub unsafe extern "C" fn rs_mqtt_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -763,7 +763,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_mqtt_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
     state: *mut std::os::raw::c_void,

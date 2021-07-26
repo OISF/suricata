@@ -182,7 +182,7 @@ pub extern "C" fn rs_sip_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_get_tx(
+pub unsafe extern "C" fn rs_sip_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -194,13 +194,13 @@ pub extern "C" fn rs_sip_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, SIPState);
     state.tx_id
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SIPState);
     state.free_tx(tx_id);
 }
@@ -214,7 +214,7 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_sip_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
@@ -224,7 +224,7 @@ pub extern "C" fn rs_sip_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_sip_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -235,7 +235,7 @@ pub extern "C" fn rs_sip_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_get_events(
+pub unsafe extern "C" fn rs_sip_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -293,7 +293,7 @@ pub extern "C" fn rs_sip_state_get_event_info_by_id(
 static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_sip_probing_parser_ts(
+pub unsafe extern "C" fn rs_sip_probing_parser_ts(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -302,13 +302,13 @@ pub extern "C" fn rs_sip_probing_parser_ts(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_request(buf).is_ok() {
-        return unsafe { ALPROTO_SIP };
+        return ALPROTO_SIP;
     }
     return ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_probing_parser_tc(
+pub unsafe extern "C" fn rs_sip_probing_parser_tc(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -317,13 +317,13 @@ pub extern "C" fn rs_sip_probing_parser_tc(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_response(buf).is_ok() {
-        return unsafe { ALPROTO_SIP };
+        return ALPROTO_SIP;
     }
     return ALPROTO_UNKNOWN;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_parse_request(
+pub unsafe extern "C" fn rs_sip_parse_request(
     _flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -338,7 +338,7 @@ pub extern "C" fn rs_sip_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_parse_response(
+pub unsafe extern "C" fn rs_sip_parse_response(
     _flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,

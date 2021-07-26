@@ -171,7 +171,7 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_get_tx_data(
+pub unsafe extern "C" fn rs_tftp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
