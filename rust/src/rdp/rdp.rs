@@ -24,7 +24,6 @@ use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPR
 use crate::rdp::parser::*;
 use nom;
 use std;
-use std::mem::transmute;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
@@ -86,7 +85,7 @@ pub extern "C" fn rs_rdp_state_get_tx(
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -376,12 +375,12 @@ impl RdpState {
 pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
-    return unsafe { std::mem::transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<RdpState> = unsafe { std::mem::transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut RdpState) });
 }
 
 #[no_mangle]

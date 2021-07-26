@@ -23,7 +23,6 @@ use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,S
 use crate::applayer::{self, *};
 use std;
 use std::ffi::{CStr,CString};
-use std::mem::transmute;
 
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
@@ -300,15 +299,14 @@ impl<'a> Drop for SNMPTransaction<'a> {
 pub extern "C" fn rs_snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SNMPState::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
 /// - state: *mut SNMPState as void pointer
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut snmp_state: Box<SNMPState> = unsafe{std::mem::transmute(state)};
+    let mut snmp_state = unsafe{ Box::from_raw(state as *mut SNMPState) };
     snmp_state.free();
 }
 
@@ -345,7 +343,7 @@ pub extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,SNMPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => tx as *const _ as *mut _,
         None     => std::ptr::null_mut(),
     }
 }
@@ -463,7 +461,7 @@ pub extern "C" fn rs_snmp_state_get_tx_iterator(
 {
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -485,7 +483,7 @@ pub extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
     let state = cast_pointer!(alstate,SNMPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

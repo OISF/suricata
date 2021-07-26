@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use std::mem::transmute;
 use crate::applayer::*;
 use crate::core::{self, *};
 use crate::dcerpc::parser;
@@ -1193,12 +1192,12 @@ pub extern "C" fn rs_dcerpc_parse_response(
 pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _state: Box<DCERPCState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
 }
 
 #[no_mangle]
@@ -1258,7 +1257,7 @@ pub extern "C" fn rs_dcerpc_get_tx(
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
-        Some(tx) => unsafe { transmute(tx) },
+        Some(tx) => tx as *const _ as *mut _,
         None => std::ptr::null_mut(),
     }
 }
