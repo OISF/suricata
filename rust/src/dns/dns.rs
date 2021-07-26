@@ -19,7 +19,6 @@ extern crate nom;
 
 use std;
 use std::ffi::CString;
-use std::mem::transmute;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
@@ -720,7 +719,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Returns *mut DNSState
@@ -728,7 +727,7 @@ pub extern "C" fn rs_dns_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
     let state = DNSState::new_tcp();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
@@ -736,7 +735,7 @@ pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
 #[no_mangle]
 pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<DNSState> = unsafe{transmute(state)};
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DNSState) });
 }
 
 #[no_mangle]
@@ -855,7 +854,7 @@ pub extern "C" fn rs_dns_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, DNSState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();

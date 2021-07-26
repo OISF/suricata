@@ -29,7 +29,6 @@ use std;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::io;
-use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
@@ -1004,7 +1003,7 @@ pub extern "C" fn rs_http2_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
-    let r = unsafe { transmute(boxed) };
+    let r = Box::into_raw(boxed) as *mut _;
     if orig_state != std::ptr::null_mut() {
         //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
@@ -1016,8 +1015,7 @@ pub extern "C" fn rs_http2_state_new(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut state: Box<HTTP2State> = unsafe { transmute(state) };
+    let mut state: Box<HTTP2State> = unsafe { Box::from_raw(state as _) };
     state.free();
 }
 
@@ -1059,7 +1057,7 @@ pub extern "C" fn rs_http2_state_get_tx(
     let state = cast_pointer!(state, HTTP2State);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -1163,7 +1161,7 @@ pub extern "C" fn rs_http2_state_get_tx_iterator(
     let state = cast_pointer!(state, HTTP2State);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

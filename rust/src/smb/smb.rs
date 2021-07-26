@@ -26,7 +26,6 @@
 // written by Victor Julien
 
 use std;
-use std::mem::transmute;
 use std::str;
 use std::ffi::CStr;
 
@@ -1792,16 +1791,15 @@ pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return unsafe{transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
 /// - state: *mut SMBState as void pointer
 #[no_mangle]
 pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
     SCLogDebug!("freeing state");
-    let mut smb_state: Box<SMBState> = unsafe{transmute(state)};
+    let mut smb_state = unsafe { Box::from_raw(state as *mut SMBState) };
     smb_state.free();
 }
 
@@ -1996,7 +1994,7 @@ pub extern "C" fn rs_smb_state_get_tx(state: &mut SMBState,
 {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -2014,7 +2012,7 @@ pub extern "C" fn rs_smb_state_get_tx_iterator(
 {
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }

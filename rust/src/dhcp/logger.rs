@@ -259,12 +259,12 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
 pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut std::os::raw::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) {
-    let _: Box<DHCPLogger> = unsafe{std::mem::transmute(logger)};
+    std::mem::drop(unsafe { Box::from_raw(logger as *mut DHCPLogger) });
 }
 
 #[no_mangle]
