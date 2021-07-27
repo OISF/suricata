@@ -190,27 +190,27 @@ impl fmt::Display for PgsqlBEMessage {
 impl PgsqlBEMessage {
     pub fn get_message_type(&self) -> &str {
         match self {
-            PgsqlBEMessage::SslResponse(SslResponseMessage::SslAccepted) => "SslAccepted",
-            PgsqlBEMessage::SslResponse(SslResponseMessage::SslRejected) => "SslRejected",
-            PgsqlBEMessage::ErrorResponse(_) => "ErrorResponse",
-            PgsqlBEMessage::NoticeResponse(_) => "NoticeResponse",
-            PgsqlBEMessage::AuthenticationOk(_) => "AuthenticationOk",
-            PgsqlBEMessage::AuthenticationKerb5(_) => "AuthenticationKerb5",
-            PgsqlBEMessage::AuthenticationCleartextPassword(_) => "AuthenticationCleartextPassword",
-            PgsqlBEMessage::AuthenticationMD5Password(_) => "AuthenticationMD5Password",
-            PgsqlBEMessage::AuthenticationGSS(_) => "AuthenticationGSS",
-            PgsqlBEMessage::AuthenticationSSPI(_) => "AuthenticationSSPI",
-            PgsqlBEMessage::AuthenticationGSSContinue(_) => "AuthenticationGSSContinue",
-            PgsqlBEMessage::AuthenticationSASL(_) => "AuthenticationSASL",
-            PgsqlBEMessage::AuthenticationSASLContinue(_) => "AuthenticationSASLContinue",
-            PgsqlBEMessage::AuthenticationSASLFinal(_) => "AuthenticationSASLFinal",
-            PgsqlBEMessage::ParameterStatus(_) => "ParameterStatus",
-            PgsqlBEMessage::BackendKeyData(_) => "BackendKeyData",
-            PgsqlBEMessage::CommandComplete(_) => "CommandCompleted",
-            PgsqlBEMessage::ReadyForQuery(_) => "ReadyForQuery",
-            PgsqlBEMessage::RowDescription(_) => "RowDescription",
-            PgsqlBEMessage::DataRow(_) => "DataRow",
-            PgsqlBEMessage::SslResponse(SslResponseMessage::InvalidResponse) => "InvalidBEMessage",
+            PgsqlBEMessage::SslResponse(SslResponseMessage::SslAccepted) => "ssl_accepted",
+            PgsqlBEMessage::SslResponse(SslResponseMessage::SslRejected) => "ssl_rejected",
+            PgsqlBEMessage::ErrorResponse(_) => "error_response",
+            PgsqlBEMessage::NoticeResponse(_) => "notice_response",
+            PgsqlBEMessage::AuthenticationOk(_) => "authentication_ok",
+            PgsqlBEMessage::AuthenticationKerb5(_) => "authentication_kerb5",
+            PgsqlBEMessage::AuthenticationCleartextPassword(_) => "authentication_cleartext_password",
+            PgsqlBEMessage::AuthenticationMD5Password(_) => "authentication_md5_password",
+            PgsqlBEMessage::AuthenticationGSS(_) => "authentication_gss",
+            PgsqlBEMessage::AuthenticationSSPI(_) => "authentication_sspi",
+            PgsqlBEMessage::AuthenticationGSSContinue(_) => "authentication_gss_continue",
+            PgsqlBEMessage::AuthenticationSASL(_) => "authentication_sasl",
+            PgsqlBEMessage::AuthenticationSASLContinue(_) => "authentication_sasl_continue",
+            PgsqlBEMessage::AuthenticationSASLFinal(_) => "authentication_sasl_final",
+            PgsqlBEMessage::ParameterStatus(_) => "parameter_status",
+            PgsqlBEMessage::BackendKeyData(_) => "backend_key_data",
+            PgsqlBEMessage::CommandComplete(_) => "command_completed",
+            PgsqlBEMessage::ReadyForQuery(_) => "ready_for_query",
+            PgsqlBEMessage::RowDescription(_) => "row_description",
+            PgsqlBEMessage::DataRow(_) => "data_row",
+            PgsqlBEMessage::SslResponse(SslResponseMessage::InvalidResponse) => "invalid_be_message",
         }
     }
 
@@ -263,13 +263,13 @@ impl fmt::Display for PgsqlFEMessage {
 impl PgsqlFEMessage {
     pub fn get_message_type(&self) -> &str {
         match self {
-            PgsqlFEMessage::StartupMessage(_) => "startup message",
-            PgsqlFEMessage::SslRequest(_) => "ssl request",
-            PgsqlFEMessage::PasswordMessage(_) => "password message",
-            PgsqlFEMessage::SASLInitialResponse(_) => "sasl initial response",
-            PgsqlFEMessage::SASLResponse(_) => "sasl response",
-            PgsqlFEMessage::SimpleQuery(_) => "simple query",
-            PgsqlFEMessage::Terminate(_) => "termination message",
+            PgsqlFEMessage::StartupMessage(_) => "startup_message",
+            PgsqlFEMessage::SslRequest(_) => "ssl_request",
+            PgsqlFEMessage::PasswordMessage(_) => "password_message",
+            PgsqlFEMessage::SASLInitialResponse(_) => "sasl_initial_response",
+            PgsqlFEMessage::SASLResponse(_) => "sasl_response",
+            PgsqlFEMessage::SimpleQuery(_) => "simple_query",
+            PgsqlFEMessage::Terminate(_) => "termination_message",
         }
     }
 }
@@ -531,7 +531,7 @@ named!(pub pgsql_parse_startup_packet<PgsqlFEMessage>,
                         PGSQL_DUMMY_PROTO_MAJOR => do_parse!(
                                         proto_major: be_u16
                                         >> proto_minor: exact!(be_u16)
-                                        >> message: switch!(value!(proto_minor),
+                                        >> _message: switch!(value!(proto_minor),
                                             PGSQL_DUMMY_PROTO_MINOR_SSL => tuple!(
                                                         value!(len),
                                                         value!(proto_major),
@@ -844,7 +844,7 @@ named!(parse_sasl_mechanisms<Vec<SASLAuthenticationMechanism>>,
 
 named!(pub parse_error_response_code<PgsqlErrorNoticeMessageField>,
     do_parse!(
-        field_type: char!('C')
+        _field_type: char!('C')
         >> field_value: flat_map!(take!(6), call!(alphanumeric1))
         >> (PgsqlErrorNoticeMessageField{
             field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
@@ -883,8 +883,7 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
         => do_parse!(
             field_type: be_u8
             // TODO change this, make sure \x00 is included in the vectors
-            >> field_value: take_until1!("\x00")
-            >> tag!("\x00")
+            >> field_value: take_until_and_consume!("\x00")
             >> (PgsqlErrorNoticeMessageField{
                 field_type: PgsqlErrorNoticeFieldType::from(field_type),
                 field_value: field_value.to_vec(),
@@ -893,10 +892,9 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
         _ => do_parse!(
             field_type: be_u8
             // TODO change this, make sure \x00 is included in the vectors
-            >> field_value: opt!(take_until1!("\x00"))
-            >> tag!("\x00")
+            >> field_value: opt!(take_until_and_consume!("\x00"))
             >> (PgsqlErrorNoticeMessageField{
-                field_type: PgsqlErrorNoticeFieldType::UnknownFieldType,
+                field_type: PgsqlErrorNoticeFieldType::from(field_type),
                 field_value: field_value.unwrap().to_vec(),
             })
         ))

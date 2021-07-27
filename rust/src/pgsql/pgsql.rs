@@ -367,12 +367,12 @@ impl PgsqlState {
                         SCLogDebug!("SSL Response received");
                         SCLogDebug!("Response: {:?}", &response);
                         let message_type = response.get_message_type();
-                        if message_type == "SslAccepted" {
+                        if message_type == "ssl_accepted" {
                             SCLogDebug!("SSL Request accepted, we must upgrade to TSL");
                             tx.responses.push(response);
                             self.state_progress = PgsqlStateProgress::SslAcceptedReceived;
                             // TODO do we upgrade to TLS here, or leave that for elsewhere?
-                        } else if message_type == "SslRejected" {
+                        } else if message_type == "ssl_rejected" {
                             SCLogDebug!("SSL Request rejected");
                             tx.responses.push(response);
                             self.state_progress = PgsqlStateProgress::SslRejectedReceived;
@@ -408,34 +408,34 @@ impl PgsqlState {
                         let message_type = response.get_message_type();
                         // We must also match on response type, so we can change state...
                         match message_type {
-                            "SslAccepted" => { // SSL Response
+                            "ssl_accepted" => { // SSL Response
                                 self.state_progress = PgsqlStateProgress::SslRequestReceived;
                                 // TODO we must upgrade to TLS here.
                                 SCLogDebug!("SSL Request accepted");
                             },
-                            "BackendKeyData" => { // BackendKeyDataMessage
+                            "backend_key_data" => { // BackendKeyDataMessage
                                 self.backend_pid = response.get_backendkey_info().0;
                                 self.backend_secrete_key = response.get_backendkey_info().1;
                             },
-                            "ReadyForQuery" => { // ReadyForQueryMessage
+                            "ready_for_query" => { // ReadyForQueryMessage
                                 self.state_progress = PgsqlStateProgress::ReadyForQueryReceived;
                                 SCLogDebug!("Received 'ReadyForQuery' message, state: {:?}", &self.state_progress);
                             },
                             // TODO Question: find out if we should store any of the Parameter Statuses in the State.
-                            "AuthenticationMD5Password" |
-                            "AuthenticationCleartextPassword" => {
+                            "authentication_md5_password" |
+                            "authentication_cleartext_password" => {
                                 SCLogDebug!("Message type is {}", &message_type);
                                 self.state_progress = PgsqlStateProgress::SimpleAuthenticationReceived;
                             },
-                            "RowDescription" => {
+                            "row_description" => {
                                 self.state_progress = PgsqlStateProgress::RowDescriptionReceived;
                                 SCLogDebug!("State is: {:?}", &self.state_progress);
                             },
-                            "DataRow" => {
+                            "data_row" => {
                                 self.state_progress = PgsqlStateProgress::DataRowReceived;
                                 SCLogDebug!("State is: {:?}", &self.state_progress);
                             },
-                            "CommandCompleted" => {
+                            "command_completed" => {
                                 self.state_progress = PgsqlStateProgress::CommandCompletedReceived;
                                 // TODO here, we may want to compare the command that was stored when query was sent with what we received here
                                 SCLogDebug!("State is: {:?}", &self.state_progress);
@@ -607,22 +607,15 @@ pub extern "C" fn rs_pgsql_parse_request(
     _flags: u8,
 ) -> AppLayerResult {
 
-    let mut eof = false;
     if input_len == 0 {
         unsafe {
             if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
+                SCLogDebug!(" Suricata reached `eof`");
                 return AppLayerResult::ok();
             } else {
                 return AppLayerResult::err();
             }
         }
-    }
-
-    if eof {
-        // If needed, handle EOF, or pass it into the parser.
-        // TODO Victor thinks we can still have data here, so we'd have to process that
-        SCLogDebug!(" Suricata reached `eof`");
-        return AppLayerResult::ok();
     }
 
     let state = cast_pointer!(state, PgsqlState);
