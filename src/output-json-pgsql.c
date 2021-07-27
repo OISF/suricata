@@ -54,17 +54,6 @@
 #include "output-json-pgsql.h"
 #include "rust.h"
 
-// typedef struct LogPgsqlFileCtx_ {
-//     LogFileCtx *file_ctx;
-//     uint32_t flags;
-// } LogPgsqlFileCtx;
-
-// typedef struct LogPgsqlLogThread_ {
-//     LogPgsqlFileCtx *pgsqllog_ctx;
-//     LogFileCtx *file_ctx;
-//     MemBuffer *buffer;
-// } LogPgsqlLogThread;
-
 typedef struct OutputPgsqlCtx_ {
     uint32_t flags;
     OutputJsonCtx *eve_ctx;
@@ -80,7 +69,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
 {
     PgsqlTransaction *pgsql_tx = tx;
     LogPgsqlLogThread *thread = thread_data;
-    SCLogNotice("Logging pgsql transaction %" PRIu64 ".", tx_id);
+    SCLogDebug("Logging pgsql transaction %" PRIu64 ".", tx_id);
 
     // TODO must figure out the best way to pass that new argument
     JsonBuilder *jb =
