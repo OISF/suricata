@@ -404,6 +404,8 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
             continue;
         }
 
+        f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
         RemoveFromHash(f, prev_f);
 
         FlowQueuePrivateAppendFlow(&td->aside_queue, f);
