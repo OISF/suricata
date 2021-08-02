@@ -409,9 +409,8 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     File *f = c->container->files->tail;
 
     // have we reached a saved range ?
-    HttpRangeContainerBuffer *range;
-    RB_FOREACH(range, HTTP_RANGES, &c->container->fragment_tree)
-    {
+    HttpRangeContainerBuffer *range, *safe = NULL;
+    RB_FOREACH_SAFE (range, HTTP_RANGES, &c->container->fragment_tree, safe) {
         if (f->size < range->start) {
             break;
         }
@@ -437,7 +436,10 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
             }
         }
         // anyways, remove this range from the linked list, as we are now beyond it
-        RB_REMOVE(HTTP_RANGES, &c->container->fragment_tree, range);
+        HTTP_RANGES_RB_REMOVE(&c->container->fragment_tree, range);
+        (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, range->buflen);
+        SCFree(range->buffer);
+        SCFree(range);
     }
 
     if (f->size >= c->container->totalsize) {
