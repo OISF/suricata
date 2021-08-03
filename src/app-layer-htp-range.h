@@ -55,18 +55,18 @@ typedef struct HttpRangeContainerFile {
     uint8_t *key;
     /** key length */
     uint32_t len;
-    /** pointer to hashtable data, for use count */
-    THashData *hdata;
     /** expire time in epoch */
     uint32_t expire;
+    /** pointer to hashtable data, for use count */
+    THashData *hdata;
     /** total epxected size of the file in ranges */
     uint64_t totalsize;
-    /** file flags */
-    uint16_t flags;
     /** file container, with only one file */
     FileContainer *files;
     /** red and black tree list of ranges which came out of order */
     struct HTTP_RANGES fragment_tree;
+    /** file flags */
+    uint16_t flags;
     /** wether a range file is currently appending */
     bool appending;
     /** mutex */
