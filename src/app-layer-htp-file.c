@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -333,15 +333,51 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         return HTPFileOpen(
                 s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    s->file_range = ContainerUrlRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
+    DEBUG_VALIDATE_BUG_ON(s->file_range);
+    s->file_range = HttpRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
             crparsed.size, &s->cfg->response.sbcfg, filename, filename_len, flags, data, data_len);
+    SCLogDebug("s->file_range == %p", s->file_range);
     if (s->file_range == NULL) {
+        SCLogDebug("s->file_range == NULL");
+        THashDecrUsecnt(file_range_container->hdata);
+        DEBUG_VALIDATE_BUG_ON(
+                SC_ATOMIC_GET(file_range_container->hdata->use_cnt) > (uint32_t)INT_MAX);
+        THashDataUnlock(file_range_container->hdata);
+
         // probably reached memcap
         return HTPFileOpen(
                 s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        /* in some cases we don't take a reference, so decr use cnt */
+    } else if (s->file_range->container == NULL) {
+        THashDecrUsecnt(file_range_container->hdata);
+    } else {
+        SCLogDebug("container %p use_cnt %u", s->file_range,
+                SC_ATOMIC_GET(s->file_range->container->hdata->use_cnt));
+        DEBUG_VALIDATE_BUG_ON(
+                SC_ATOMIC_GET(s->file_range->container->hdata->use_cnt) > (uint32_t)INT_MAX);
     }
 
+    /* we're done, so unlock. But since we have a reference in s->file_range keep use_cnt. */
+    THashDataUnlock(file_range_container->hdata);
     SCReturnInt(0);
+}
+
+static void HTPFileStoreChunkHandleRange(
+        HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
+{
+    if (c->container) {
+        THashDataLock(c->container->hdata);
+        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->container->hdata->use_cnt) == 0);
+        if (HttpRangeAppendData(c, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
+        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->container->hdata->use_cnt) > (uint32_t)INT_MAX);
+        THashDataUnlock(c->container->hdata);
+    } else if (c->toskip > 0) {
+        if (HttpRangeProcessSkip(c, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
+    }
 }
 
 /**
@@ -382,10 +418,9 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     if (s->file_range != NULL) {
-        if (ContainerUrlRangeAppendData(s->file_range, data, data_len) < 0) {
-            SCLogDebug("Failed to append data");
-        }
+        HTPFileStoreChunkHandleRange(s->file_range, data, data_len);
     }
+
     result = FileAppendData(files, data, data_len);
     if (result == -1) {
         SCLogDebug("appending data failed");
@@ -396,6 +431,33 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
 
 end:
     SCReturnInt(retval);
+}
+
+void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags, HttpRangeContainerBlock *c,
+        const uint8_t *data, uint32_t data_len)
+{
+    if (c->container) {
+        THashDataLock(c->container->hdata);
+        if (c->container->error) {
+            SCLogDebug("range in ERROR state");
+        }
+        if (HttpRangeAppendData(c, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
+        File *ranged = HttpRangeClose(c, flags);
+        if (ranged) {
+            /* HtpState owns the constructed file now */
+            FileContainerAdd(files, ranged);
+        }
+        SCLogDebug("c->container->files->tail %p", c->container->files->tail);
+        THashDataUnlock(c->container->hdata);
+    } else {
+        if (c->toskip > 0) {
+            if (HttpRangeProcessSkip(c, data, data_len) < 0) {
+                SCLogDebug("Failed to append data");
+            }
+        }
+    }
 }
 
 /**
@@ -444,15 +506,10 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
     } else if (result == -2) {
         retval = -2;
     }
+
     if (s->file_range != NULL) {
-        if (ContainerUrlRangeAppendData(s->file_range, data, data_len) < 0) {
-            SCLogDebug("Failed to append data");
-        }
-        File *ranged = ContainerUrlRangeClose(s->file_range, flags);
-        if (ranged) {
-            FileContainerAdd(files, ranged);
-        }
-        SCFree(s->file_range);
+        HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+        HttpRangeFreeBlock(s->file_range);
         s->file_range = NULL;
     }
 
