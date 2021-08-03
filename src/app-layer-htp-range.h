@@ -57,7 +57,7 @@ typedef struct HttpRangeContainerFile {
     uint32_t len;
     /** expire time in epoch */
     uint32_t expire;
-    /** pointer to hashtable data, for use count */
+    /** pointer to hashtable data, for locking and use count */
     THashData *hdata;
     /** total epxected size of the file in ranges */
     uint64_t totalsize;
@@ -69,8 +69,8 @@ typedef struct HttpRangeContainerFile {
     uint16_t flags;
     /** wether a range file is currently appending */
     bool appending;
-    /** mutex */
-    SCMutex mutex;
+    /** error condition for this range. Its up to timeout handling to cleanup */
+    bool error;
 } HttpRangeContainerFile;
 
 /** A structure representing a single range request :
@@ -87,11 +87,14 @@ typedef struct HttpRangeContainerBlock {
     HttpRangeContainerFile *container;
 } HttpRangeContainerBlock;
 
-int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, size_t len);
-File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
+int HttpRangeProcessSkip(HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len);
+int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
+File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 
-HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
-        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
-        uint16_t name_len, uint16_t flags, const uint8_t *data, size_t len);
+HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start, uint64_t end,
+        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
+        uint16_t flags, const uint8_t *data, uint32_t len);
+
+void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
 
 #endif /* __APP_LAYER_HTP_RANGE_H__ */
