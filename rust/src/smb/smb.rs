@@ -2194,22 +2194,22 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c
 pub extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
     let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
     let f = cast_pointer!(f, Flow);
-        if unsafe { retval != ALPROTO_SMB } {
-            return retval;
-        }
-        let (sp, dp) = f.get_ports();
-        let flags = f.get_flags();
-        let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
-        let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
-        if fsp == 445 && fdp != 445 {
-            unsafe {
+    if unsafe { retval != ALPROTO_SMB } {
+        return retval;
+    }
+    let (sp, dp) = f.get_ports();
+    let flags = f.get_flags();
+    let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
+    let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
+    if fsp == 445 && fdp != 445 {
+        unsafe {
             if dir & STREAM_TOSERVER != 0 {
                 *rdir = STREAM_TOCLIENT;
             } else {
                 *rdir = STREAM_TOSERVER;
             }
-            }
         }
+    }
     return unsafe { ALPROTO_SMB };
 }
 
