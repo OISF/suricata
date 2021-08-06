@@ -1917,8 +1917,7 @@ pub extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
 #[no_mangle]
 pub extern "C" fn rs_nfs_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let ptr = cast_pointer!(ptr, NFSState);
-    let parser = &mut *ptr;
+    let parser = cast_pointer!(ptr, NFSState);
     parser.getfiles(direction)
 }
 #[no_mangle]
