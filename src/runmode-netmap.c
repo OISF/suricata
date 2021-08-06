@@ -487,7 +487,7 @@ int RunModeIdsNetmapWorkers(void)
 int RunModeIdsNetmapAutoFp(void)
 {
     SCEnter();
-    FatalError("Netmap not configured");
+    FatalError(SC_ERR_FATAL,"Netmap not configured");
     SCReturnInt(0);
 }
 
@@ -497,7 +497,7 @@ int RunModeIdsNetmapAutoFp(void)
 int RunModeIdsNetmapSingle(void)
 {
     SCEnter();
-    FatalError("Netmap not configured");
+    FatalError(SC_ERR_FATAL,"Netmap not configured");
     SCReturnInt(0);
 }
 
@@ -510,7 +510,7 @@ int RunModeIdsNetmapSingle(void)
 int RunModeIdsNetmapWorkers(void)
 {
     SCEnter();
-    FatalError("Netmap not configured");
+    FatalError(SC_ERR_FATAL,"Netmap not configured");
     SCReturnInt(0);
 }
 #endif // #ifdef HAVE_NETMAP
