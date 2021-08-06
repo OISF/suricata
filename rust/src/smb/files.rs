@@ -192,8 +192,7 @@ impl SMBState {
 #[no_mangle]
 pub extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let ptr = cast_pointer!(ptr, SMBState);
-    let parser = &mut *ptr;
+    let parser = cast_pointer!(ptr, SMBState);
     parser.getfiles(direction)
 }
 
