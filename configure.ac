@@ -1580,7 +1580,7 @@
         #endif
         ])], [have_gtv13_netmap="yes"])
         if test "x$have_gtv13_netmap" = "xyes"; then
-            have_netmap_version="> v13"
+            have_netmap_version="v14+"
             AC_CHECK_HEADER(libnetmap.h,,[AC_MSG_ERROR(libnetmap.h not found ...)],)
             LIBNETMAP=""
             AC_SEARCH_LIBS([nmport_open],[netmap],,[LIBNETMAP="no"])
