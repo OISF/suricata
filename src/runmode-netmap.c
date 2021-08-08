@@ -286,7 +286,6 @@ static void *ParseNetmapConfig(const char *iface_name)
             if_root = ConfFindDeviceConfig(netmap_node, out_iface);
             ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
 
-#ifndef HAVE_NETMAP_V14
             /* if one side of the IPS peering uses a sw_ring, we will default
              * to using a single ring/thread on the other side as well. Only
              * if thread variable is set to 'auto'. So the user can override
@@ -296,7 +295,6 @@ static void *ParseNetmapConfig(const char *iface_name)
             } else if (aconf->in.sw_ring && aconf->out.threads_auto) {
                 aconf->out.threads = aconf->in.threads = 1;
             }
-#endif
         }
     }
 
@@ -304,13 +302,9 @@ static void *ParseNetmapConfig(const char *iface_name)
     SCLogNotice("%s -- %d rings", aconf->iface_name, ring_count);
 
     for (int i = 0; i < ring_count; i++) {
-        char *live_buf = SCCalloc(1, 32);
-        if (live_buf == NULL) {
-            FatalError(SC_ERR_FATAL, "Unable to allocate live device name buffer for ring %d", i);
-        }
-        snprintf(live_buf, 32, "netmap%d", i);
+        char live_buf[32] = {0};
+        snprintf(live_buf, sizeof(live_buf), "netmap%d", i);
         LiveRegisterDevice(live_buf);
-        SCFree(live_buf);
     }
 
     /* netmap needs all offloading to be disabled */
