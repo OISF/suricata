@@ -589,6 +589,7 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
 uint32_t FlowGetFlags(Flow *flow);
 uint16_t FlowGetSourcePort(Flow *flow);
 uint16_t FlowGetDestinationPort(Flow *flow);
+void *FlowGetProtoCtx(Flow *flow);
 
 /** ----- Inline functions ----- */
 

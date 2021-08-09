@@ -1188,21 +1188,31 @@ uint16_t FlowGetSourcePort(Flow *flow)
  * A function to get the flow dport useful when the caller only has an
  * opaque pointer to the flow structure.
  */
-
 uint16_t FlowGetDestinationPort(Flow *flow)
 {
     return flow->dp;
 }
+
 /**
  * \brief Get flow flags.
  *
  * A function to get the flow flags useful when the caller only has an
  * opaque pointer to the flow structure.
  */
-
 uint32_t FlowGetFlags(Flow *flow)
 {
     return flow->flags;
+}
+
+/**
+ * \brief Get flow protoctx.
+ *
+ * A function to get the flow flags useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+void *FlowGetProtoCtx(Flow *flow)
+{
+    return flow->protoctx;
 }
 /************************************Unittests*******************************/
 

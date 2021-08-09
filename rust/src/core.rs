@@ -19,6 +19,7 @@
 
 use std;
 use crate::filecontainer::*;
+use std::os::raw::c_void;
 
 /// Opaque C types.
 pub enum DetectEngineState {}
@@ -232,6 +233,7 @@ extern {
     pub fn FlowGetFlags(flow: &Flow) -> u32;
     pub fn FlowGetSourcePort(flow: &Flow) -> u16;
     pub fn FlowGetDestinationPort(flow: &Flow) -> u16;
+    pub fn FlowGetProtoCtx(flow: &Flow) -> *const c_void;
 }
 
 /// Rust implementation of Flow.
@@ -256,5 +258,10 @@ impl Flow {
     /// Return flow ports
     pub fn get_ports(&self) -> (u16, u16) {
         unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
+    }
+
+    /// Return flow protoctx
+    pub fn get_protoctx(&self) -> *const c_void {
+        unsafe { FlowGetProtoCtx(self) }
     }
 }
