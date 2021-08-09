@@ -405,6 +405,95 @@ static void SMTPNewFile(SMTPTransaction *tx, File *file)
             smtp_config.content_inspect_min_size);
 }
 
+static int SMTPFileContainerAlloc(SMTPState *smtp_state)
+{
+    /* Make sure file container allocated */
+    if (smtp_state->files_ts == NULL) {
+        smtp_state->files_ts = FileContainerAlloc();
+        if (smtp_state->files_ts == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
+            return MIME_DEC_ERR_MEM;
+        }
+    }
+    return MIME_DEC_OK;
+}
+
+static int SMTPFileAppend(FileContainer *files, const uint8_t *chunk, uint32_t len)
+{
+    SCLogDebug("Appending file...%u bytes", len);
+    /* 0 is ok, -2 is not stored, -1 is error */
+    int ret = FileAppendData(files, (uint8_t *) chunk, len);
+    if (ret == -2) {
+        SCLogDebug("FileAppendData() - file no longer being extracted");
+        return 0; // TODO This is also MIME_DEC_OK
+    } else if (ret < 0) {
+        SCLogDebug("FileAppendData() failed: %d", ret);
+        return MIME_DEC_ERR_DATA;
+    }
+    return ret;
+}
+
+static void DebugPrintFileBytes(MimeDecEntity *entity, uint32_t chunk_l)
+{
+    uint32_t fname_l = entity->filename_len;
+    if (SCLogDebugEnabled()) {
+        SCLogDebug("Opening file...%u bytes", chunk_l);
+        printf("File - ");
+        for (uint32_t i = 0; i < fname_l; i++) {
+            printf("%c", entity->filename[i]);
+        }
+        printf("\n");
+    }
+}
+
+static int SMTPOpenOrCreateFile(MimeDecParseState *mdp_state,
+                            const uint8_t *chunk, uint32_t len,
+                            uint16_t flags, FileContainer *files)
+{
+    int ret = MIME_DEC_OK;
+    Flow *flow = (Flow *) mdp_state->data;
+    SMTPState *smtp_state = (SMTPState *) flow->alstate;
+    MimeDecEntity *entity = (MimeDecEntity *) mdp_state->stack->top->data;
+
+    if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,
+                (uint8_t *) entity->filename, entity->filename_len,
+                (uint8_t *) chunk, len, flags) != 0) {
+        SCLogDebug("FileOpenFile() failed");
+        ret = MIME_DEC_ERR_DATA;
+    }
+    SMTPNewFile(smtp_state->curr_tx, files->tail);
+    return ret;
+}
+
+static int SMTPCleanCloseFile(const uint8_t *chunk, uint32_t len,
+        uint16_t flags, FileContainer * files)
+{
+    int ret = MIME_DEC_OK;
+    SCLogDebug("Closing file...%u bytes", len);
+    if (files->tail && files->tail->state == FILE_STATE_OPENED) {
+        ret = FileCloseFile(files, (uint8_t *) chunk, len, flags);
+        if (ret != 0) {
+            SCLogDebug("FileCloseFile() failed: %d", ret);
+            ret = MIME_DEC_ERR_DATA;
+        }
+    } else {
+        SCLogDebug("File already closed");
+    }
+    return ret;
+}
+
+static void SMTPSetMinInspectDepth(uint32_t ctnt_min_size,
+        uint64_t ts_data_cnt, uint64_t ts_last_ds,
+        Flow *flow, uint16_t dir, bool trigger_reassembly)
+{
+    uint32_t depth = ctnt_min_size + ts_data_cnt - ts_last_ds;
+    if (trigger_reassembly) {
+        AppLayerParserTriggerRawStreamReassembly(flow, dir);
+    }
+    SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
+    StreamTcpReassemblySetMinInspectDepth(flow->protoctx, dir, depth);
+}
+
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state)
 {
@@ -421,131 +510,52 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
-
-        /* Make sure file container allocated */
-        if (smtp_state->files_ts == NULL) {
-            smtp_state->files_ts = FileContainerAlloc();
-            if (smtp_state->files_ts == NULL) {
-                ret = MIME_DEC_ERR_MEM;
-                SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
-                SCReturnInt(ret);
-            }
+        if (SMTPFileContainerAlloc(smtp_state) == MIME_DEC_ERR_MEM) {
+            SCReturnInt(-2);
         }
         files = smtp_state->files_ts;
-
         /* Open file if necessary */
         if (state->body_begin) {
-
-            if (SCLogDebugEnabled()) {
-                SCLogDebug("Opening file...%u bytes", len);
-                printf("File - ");
-                for (uint32_t i = 0; i < entity->filename_len; i++) {
-                    printf("%c", entity->filename[i]);
-                }
-                printf("\n");
-            }
-
+            DebugPrintFileBytes(entity, len);
             /* Set storage flag if applicable since only the first file in the
              * flow seems to be processed by the 'filestore' detector */
             if (files->head != NULL && (files->head->flags & FILE_STORE)) {
                 flags |= FILE_STORE;
             }
-
-            uint32_t depth = smtp_config.content_inspect_min_size +
-                (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
-            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32, depth);
-            StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
-
-            if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,
-                        (uint8_t *) entity->filename, entity->filename_len,
-                        (uint8_t *) chunk, len, flags) != 0) {
-                ret = MIME_DEC_ERR_DATA;
-                SCLogDebug("FileOpenFile() failed");
-            }
-            SMTPNewFile(smtp_state->curr_tx, files->tail);
-
+            SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+                    smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
+                    flow, STREAM_TOSERVER, false);
+            ret = SMTPOpenOrCreateFile(state, chunk, len, flags, files);
             /* If close in the same chunk, then pass in empty bytes */
             if (state->body_end) {
-
-                SCLogDebug("Closing file...%u bytes", len);
-
-                if (files->tail->state == FILE_STATE_OPENED) {
-                    ret = FileCloseFile(files, (uint8_t *) NULL, 0, flags);
-                    if (ret != 0) {
-                        SCLogDebug("FileCloseFile() failed: %d", ret);
-                        ret = MIME_DEC_ERR_DATA;
-                    }
-                } else {
-                    SCLogDebug("File already closed");
-                }
-                depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
-
-                AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER,
-                        depth);
-            }
+                ret = SMTPCleanCloseFile(NULL, 0, flags, files);
+                SMTPSetMinInspectDepth(0, smtp_state->toserver_data_count,
+                        smtp_state->toserver_last_data_stamp, flow, STREAM_TOSERVER, true);
+             }
         } else if (state->body_end) {
             /* Close file */
-            SCLogDebug("Closing file...%u bytes", len);
-
-            if (files->tail && files->tail->state == FILE_STATE_OPENED) {
-                ret = FileCloseFile(files, (uint8_t *) chunk, len, flags);
-                if (ret != 0) {
-                    SCLogDebug("FileCloseFile() failed: %d", ret);
-                    ret = MIME_DEC_ERR_DATA;
-                }
+            ret = SMTPCleanCloseFile(chunk, len, flags, files);
+            SMTPSetMinInspectDepth(0, smtp_state->toserver_data_count,
+                    smtp_state->toserver_last_data_stamp, flow, STREAM_TOSERVER, true);
             } else {
-                SCLogDebug("File already closed");
-            }
-            uint32_t depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
-            AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                    depth);
-            StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                    STREAM_TOSERVER, depth);
-        } else {
             /* Append data chunk to file */
-            SCLogDebug("Appending file...%u bytes", len);
-
-            /* 0 is ok, -2 is not stored, -1 is error */
-            ret = FileAppendData(files, (uint8_t *) chunk, len);
-            if (ret == -2) {
-                ret = 0;
-                SCLogDebug("FileAppendData() - file no longer being extracted");
-            } else if (ret < 0) {
-                SCLogDebug("FileAppendData() failed: %d", ret);
-                ret = MIME_DEC_ERR_DATA;
-            }
-
+            ret = SMTPFileAppend(files, chunk, len);
             if (files->tail && files->tail->content_inspected == 0 &&
                     files->tail->size >= smtp_config.content_inspect_min_size) {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
-                AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, depth);
-
+                SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+                        smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
+                        flow, STREAM_TOSERVER, true);
             /* after the start of the body inspection, disable the depth logic */
             } else if (files->tail && files->tail->content_inspected > 0) {
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, 0);
-
+                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, 0);
             /* expand the limit as long as we get file data, as the file data is bigger on the
              * wire due to base64 */
             } else {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32,
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, depth);
+                SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+                        smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
+                        flow, STREAM_TOSERVER, false);
             }
         }
-
         if (ret == 0) {
             SCLogDebug("Successfully processed file data!");
         }
