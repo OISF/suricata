@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -555,7 +555,7 @@ void StreamTcpInitConfig(bool quiet)
     int randomize = 0;
     if ((ConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
         /* randomize by default if value not set
-         * In ut mode we disable, to get predictible test results */
+         * In ut mode we disable, to get predictable test results */
         if (!(RunmodeIsUnittests()))
             randomize = 1;
     }
@@ -898,7 +898,7 @@ static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
  *          packets while the session state is None which means a newly
  *          initialized structure, or a fully closed session.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  *
@@ -1408,7 +1408,7 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
  *          SYN, SYN/ACK, RST packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -1649,8 +1649,8 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
     } else if (p->tcph->th_flags & TH_ACK) {
         /* Handle the asynchronous stream, when we receive a  SYN packet
-           and now istead of receving a SYN/ACK we receive a ACK from the
-           same host, which sent the SYN, this suggests the ASNYC streams.*/
+           and now instead of receiving a SYN/ACK we receive a ACK from the
+           same host, which sent the SYN, this suggests the ASYNC streams.*/
         if (stream_config.async_oneside == FALSE)
             return 0;
 
@@ -1726,7 +1726,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
  *          SYN, SYN/ACK, ACK, FIN, RST packets and correspondingly changes
  *          the connection state.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  *
@@ -2156,7 +2156,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
  *
  *  Timestamp has already been checked at this point.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
@@ -2343,7 +2343,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
  *
  *  Timestamp has already been checked at this point.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
@@ -2576,7 +2576,7 @@ static bool StreamTcpPacketIsOutdatedAck(TcpSession *ssn, Packet *p)
  *          state. The function handles the data inside packets and call
  *          StreamTcpReassembleHandleSegment(tv, ) to handle the reassembling.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -2780,7 +2780,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
  *  \brief  Function to handle the FIN packets for states TCP_SYN_RECV and
  *          TCP_ESTABLISHED and changes to another TCP state as required.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  *
@@ -2897,7 +2897,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
  *          ACK, FIN, RST packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  *
@@ -3342,7 +3342,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
  *          ACK, RST, FIN packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -3645,7 +3645,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
  *          the connection goes to TCP_TIME_WAIT state. The state has been
  *          reached as both end application has been closed.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -3809,7 +3809,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
  *          packet from server the connection goes to TCP_LAST_ACK state.
  *          The state is possible only for server host.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -4112,7 +4112,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
  *          the connection goes to TCP_CLOSED state and stream memory is
  *          returned back to pool. The state is possible only for server host.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -4237,7 +4237,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
  *          the connection goes to TCP_CLOSED state and stream memory is
  *          returned back to pool.
  *
- *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
@@ -5633,7 +5633,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         }
 
         if (receiver_stream->os_policy == OS_POLICY_HPUX11) {
-            /* HPUX11 igoners the timestamp of out of order packets */
+            /* HPUX11 ignores the timestamp of out of order packets */
             if (!SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
                 check_ts = 0;
         }
@@ -5648,7 +5648,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                     /* Old Linux and windows allowed packet with 0 timestamp. */
                     break;
                 default:
-                    /* other OS simply drop the pakcet with 0 timestamp, when
+                    /* other OS simply drop the packet with 0 timestamp, when
                      * 3whs has valid timestamp*/
                     goto invalid;
             }
@@ -5777,7 +5777,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
         }
 
         if (receiver_stream->os_policy == OS_POLICY_HPUX11) {
-            /*HPUX11 igoners the timestamp of out of order packets*/
+            /*HPUX11 ignores the timestamp of out of order packets*/
             if (!SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
                 check_ts = 0;
         }
@@ -5792,7 +5792,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                     /* Old Linux and windows allowed packet with 0 timestamp. */
                     break;
                 default:
-                    /* other OS simply drop the pakcet with 0 timestamp, when
+                    /* other OS simply drop the packet with 0 timestamp, when
                      * 3whs has valid timestamp*/
                     goto invalid;
             }
@@ -6059,7 +6059,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
     else
         p->root = parent;
 
-    /* copy packet and set lenght, proto */
+    /* copy packet and set length, proto */
     p->proto = parent->proto;
     p->datalink = parent->datalink;
 
