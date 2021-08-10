@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -467,10 +467,10 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
 /**
  * \brief Statistics processing loop
  *
- * Instantiated on the stats thread.  Periodically retrieives
+ * Instantiated on the stats thread. Periodically retrieves
  * statistics from the Napatech card and updates the packet counters
  *
- * \param arg Pointer that is caste into a TheardVars structure
+ * \param arg Pointer that is cast into a TheardVars structure
  */
 static void *NapatechStatsLoop(void *arg)
 {
