@@ -66,10 +66,14 @@ static int ContainerUrlRangeSet(void *dst, void *src)
     HttpRangeContainerFile *dst_s = dst;
     dst_s->len = src_s->len;
     dst_s->key = SCMalloc(dst_s->len);
-    BUG_ON(dst_s->key == NULL);
+    if (dst_s->key == NULL)
+        return -1;
     memcpy(dst_s->key, src_s->key, dst_s->len);
     dst_s->files = FileContainerAlloc();
-    BUG_ON(dst_s->files == NULL);
+    if (dst_s->files == NULL) {
+        SCFree(dst_s->key);
+        return -1;
+    }
     RB_INIT(&dst_s->fragment_tree);
     dst_s->flags = 0;
     dst_s->totalsize = 0;
