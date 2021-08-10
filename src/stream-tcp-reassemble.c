@@ -378,7 +378,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.prealloc_segments = segment_prealloc;
 
     int overlap_diff_data = 0;
-    ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
+    (void)ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
     if (overlap_diff_data) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
