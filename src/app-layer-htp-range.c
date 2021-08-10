@@ -141,7 +141,7 @@ void HttpRangeContainersInit(void)
     const char *str = NULL;
     uint64_t memcap = HTTP_RANGE_DEFAULT_MEMCAP;
     uint32_t timeout = HTTP_RANGE_DEFAULT_TIMEOUT;
-    if (ConfGetValue("app-layer.protocols.http.urlrange.memcap", &str) == 1) {
+    if (ConfGetValue("app-layer.protocols.http.byterange.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "memcap value cannot be deduced: %s,"
@@ -150,7 +150,7 @@ void HttpRangeContainersInit(void)
             memcap = 0;
         }
     }
-    if (ConfGetValue("app-layer.protocols.http.urlrange.timeout", &str) == 1) {
+    if (ConfGetValue("app-layer.protocols.http.byterange.timeout", &str) == 1) {
         if (StringParseUint32(&timeout, 10, strlen(str), str) <= 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "timeout value cannot be deduced: %s,"
@@ -161,7 +161,7 @@ void HttpRangeContainersInit(void)
     }
 
     ContainerUrlRangeList.ht =
-            THashInit("app-layer.protocols.http.urlrange", sizeof(HttpRangeContainerFile),
+            THashInit("app-layer.protocols.http.byterange", sizeof(HttpRangeContainerFile),
                     ContainerUrlRangeSet, ContainerUrlRangeFree, ContainerUrlRangeHash,
                     ContainerUrlRangeCompare, false, memcap, CONTAINER_URLRANGE_HASH_SIZE);
     ContainerUrlRangeList.timeout = timeout;
