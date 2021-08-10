@@ -73,6 +73,11 @@ extern {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
 
+// Defined in stream-tcp-reassemble.h
+extern {
+    pub fn StreamTcpReassemblySetMinInspectDepth(ssn: *const std::os::raw::c_void,
+                                                 direction: u16, depth: u32);
+}
 //
 // Function types for calls into C.
 //
