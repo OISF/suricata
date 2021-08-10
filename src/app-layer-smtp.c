@@ -482,18 +482,6 @@ static int SMTPCleanCloseFile(const uint8_t *chunk, uint32_t len,
     return ret;
 }
 
-static void SMTPSetMinInspectDepth(uint32_t ctnt_min_size,
-        uint64_t ts_data_cnt, uint64_t ts_last_ds,
-        Flow *flow, uint16_t dir, bool trigger_reassembly)
-{
-    uint32_t depth = ctnt_min_size + ts_data_cnt - ts_last_ds;
-    if (trigger_reassembly) {
-        AppLayerParserTriggerRawStreamReassembly(flow, dir);
-    }
-    SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
-    StreamTcpReassemblySetMinInspectDepth(flow->protoctx, dir, depth);
-}
-
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state)
 {
@@ -522,38 +510,38 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             if (files->head != NULL && (files->head->flags & FILE_STORE)) {
                 flags |= FILE_STORE;
             }
-            SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+            set_min_inspect_depth(flow, smtp_config.content_inspect_min_size,
                     smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
-                    flow, STREAM_TOSERVER, false);
+                    STREAM_TOSERVER, false);
             ret = SMTPOpenOrCreateFile(state, chunk, len, flags, files);
             /* If close in the same chunk, then pass in empty bytes */
             if (state->body_end) {
                 ret = SMTPCleanCloseFile(NULL, 0, flags, files);
-                SMTPSetMinInspectDepth(0, smtp_state->toserver_data_count,
-                        smtp_state->toserver_last_data_stamp, flow, STREAM_TOSERVER, true);
+                set_min_inspect_depth(flow, 0, smtp_state->toserver_data_count,
+                        smtp_state->toserver_last_data_stamp, STREAM_TOSERVER, true);
              }
         } else if (state->body_end) {
             /* Close file */
             ret = SMTPCleanCloseFile(chunk, len, flags, files);
-            SMTPSetMinInspectDepth(0, smtp_state->toserver_data_count,
-                    smtp_state->toserver_last_data_stamp, flow, STREAM_TOSERVER, true);
+            set_min_inspect_depth(flow, 0, smtp_state->toserver_data_count,
+                    smtp_state->toserver_last_data_stamp, STREAM_TOSERVER, true);
             } else {
             /* Append data chunk to file */
             ret = SMTPFileAppend(files, chunk, len);
             if (files->tail && files->tail->content_inspected == 0 &&
                     files->tail->size >= smtp_config.content_inspect_min_size) {
-                SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+                set_min_inspect_depth(flow, smtp_config.content_inspect_min_size,
                         smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
-                        flow, STREAM_TOSERVER, true);
+                        STREAM_TOSERVER, true);
             /* after the start of the body inspection, disable the depth logic */
             } else if (files->tail && files->tail->content_inspected > 0) {
                 StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, 0);
             /* expand the limit as long as we get file data, as the file data is bigger on the
              * wire due to base64 */
             } else {
-                SMTPSetMinInspectDepth(smtp_config.content_inspect_min_size,
+                set_min_inspect_depth(flow, smtp_config.content_inspect_min_size,
                         smtp_state->toserver_data_count, smtp_state->toserver_last_data_stamp,
-                        flow, STREAM_TOSERVER, false);
+                        STREAM_TOSERVER, false);
             }
         }
         if (ret == 0) {
