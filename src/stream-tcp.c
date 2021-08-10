@@ -419,14 +419,14 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int imidstream;
-    ConfGetBool("stream.midstream", &imidstream);
+    (void)ConfGetBool("stream.midstream", &imidstream);
     stream_config.midstream = imidstream != 0;
 
     if (!quiet) {
         SCLogConfig("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
     }
 
-    ConfGetBool("stream.async-oneside", &stream_config.async_oneside);
+    (void)ConfGetBool("stream.async-oneside", &stream_config.async_oneside);
 
     if (!quiet) {
         SCLogConfig("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
