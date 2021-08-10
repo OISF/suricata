@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -537,17 +537,17 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 /** \brief Fatal error IF we're starting up, and configured to consider
  *         errors to be fatal errors */
 #if !defined(__clang_analyzer__)
-#define FatalErrorOnInit(x, ...) do {                                       \
-    SC_ATOMIC_EXTERN(unsigned int, engine_stage);                           \
-    int init_errors_fatal = 0;                                              \
-    ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);           \
-    if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT))\
-    {                                                                       \
-        SCLogError(x, __VA_ARGS__);                                         \
-        exit(EXIT_FAILURE);                                                 \
-    }                                                                       \
-    SCLogWarning(x, __VA_ARGS__);                                           \
-} while(0)
+#define FatalErrorOnInit(x, ...)                                                                   \
+    do {                                                                                           \
+        SC_ATOMIC_EXTERN(unsigned int, engine_stage);                                              \
+        int init_errors_fatal = 0;                                                                 \
+        (void)ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);                        \
+        if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT)) {                 \
+            SCLogError(x, __VA_ARGS__);                                                            \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
+        SCLogWarning(x, __VA_ARGS__);                                                              \
+    } while (0)
 /* make it simpler for scan-build */
 #else
 #define FatalErrorOnInit(x, ...) FatalError(x, __VA_ARGS__)
