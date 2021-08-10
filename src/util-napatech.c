@@ -878,7 +878,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
         }
 
     } else {
-        ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity);
+        (void)ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity);
         if (NapatechIsAutoConfigEnabled() && (set_cpu_affinity == 1)) {
             start = 0;
             end = CountWorkerThreads() - 1;
