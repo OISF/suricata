@@ -16,7 +16,7 @@
  */
 
 use crate::applayer::*;
-use crate::core;
+use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
@@ -314,14 +314,16 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
     //is_incomplete is checked by caller
     let (is_dcerpc, is_request) = probe(slice);
     if is_dcerpc {
-        let dir = if is_request {
-            core::STREAM_TOSERVER
+        let dir: Direction = (direction & DIR_BOTH).into();
+        if is_request {
+            if dir != Direction::ToServer {
+                *rdir = Direction::ToServer.into();
+            }
         } else {
-            core::STREAM_TOCLIENT
+            if dir != Direction::ToClient {
+                *rdir = Direction::ToClient.into();
+            }
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            *rdir = dir;
-        }
         return ALPROTO_DCERPC;
     }
     return core::ALPROTO_FAILED;
@@ -331,7 +333,7 @@ fn register_pattern_probe() -> i8 {
     unsafe {
         if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP as u8, ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_udp, 0, 0) < 0 {
+                                                     Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
