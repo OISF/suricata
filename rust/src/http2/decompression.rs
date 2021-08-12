@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 
-use crate::core::STREAM_TOCLIENT;
+use crate::core::Direction;
 use brotli;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
@@ -240,8 +240,8 @@ impl HTTP2Decoder {
         }
     }
 
-    pub fn http2_encoding_fromvec(&mut self, input: &Vec<u8>, dir: u8) {
-        if dir == STREAM_TOCLIENT {
+    pub fn http2_encoding_fromvec(&mut self, input: &Vec<u8>, dir: Direction) {
+        if dir == Direction::ToClient {
             self.decoder_tc.http2_encoding_fromvec(input);
         } else {
             self.decoder_ts.http2_encoding_fromvec(input);
@@ -249,9 +249,9 @@ impl HTTP2Decoder {
     }
 
     pub fn decompress<'a>(
-        &mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: u8,
+        &mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: Direction,
     ) -> io::Result<&'a [u8]> {
-        if dir == STREAM_TOCLIENT {
+        if dir == Direction::ToClient {
             return self.decoder_tc.decompress(input, output);
         } else {
             return self.decoder_ts.decompress(input, output);
