@@ -77,7 +77,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
 {
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            let vref = if direction == STREAM_TOSERVER {
+            let vref = if direction == Direction::ToServer as u8 {
                 &x.stub_data_ts
             } else {
                 &x.stub_data_tc
