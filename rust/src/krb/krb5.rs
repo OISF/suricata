@@ -27,8 +27,7 @@ use der_parser::ber::BerClass;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
-use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
+use crate::core::{self, *};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -104,7 +103,7 @@ impl KRB5State {
     /// Parse a Kerberos request message
     ///
     /// Returns 0 in case of success, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
+    fn parse(&mut self, i: &[u8], _direction: Direction) -> i32 {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
@@ -417,7 +416,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    if state.parse(buf, STREAM_TOSERVER) < 0 {
+    if state.parse(buf, Direction::ToServer) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -433,7 +432,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    if state.parse(buf, STREAM_TOCLIENT) < 0 {
+    if state.parse(buf, Direction::ToClient) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -484,7 +483,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
             }
         }
         if cur_i.len() >= state.record_ts {
-            if state.parse(cur_i, STREAM_TOSERVER) < 0 {
+            if state.parse(cur_i, Direction::ToServer) < 0 {
                 return AppLayerResult::err();
             }
             state.record_ts = 0;
@@ -543,7 +542,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
             }
         }
         if cur_i.len() >= state.record_tc {
-            if state.parse(cur_i, STREAM_TOCLIENT) < 0 {
+            if state.parse(cur_i, Direction::ToClient) < 0 {
                 return AppLayerResult::err();
             }
             state.record_tc = 0;
