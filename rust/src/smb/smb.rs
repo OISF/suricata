@@ -1145,9 +1145,9 @@ impl SMBState {
      * can handle gaps. For the file transactions we set the current
      * (flow) time and prune them in 60 seconds if no update for them
      * was received. */
-    fn post_gap_housekeeping(&mut self, dir: u8)
+    fn post_gap_housekeeping(&mut self, dir: Direction)
     {
-        if self.ts_ssn_gap && dir == STREAM_TOSERVER {
+        if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
@@ -1165,7 +1165,7 @@ impl SMBState {
                     tx.request_done = true;
                 }
             }
-        } else if self.tc_ssn_gap && dir == STREAM_TOCLIENT {
+        } else if self.tc_ssn_gap && dir == Direction::ToClient {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
@@ -1188,10 +1188,10 @@ impl SMBState {
         }
     }
 
-    pub fn set_file_left(&mut self, direction: u8, rec_size: u32, data_size: u32, fuid: Vec<u8>)
+    pub fn set_file_left(&mut self, direction: Direction, rec_size: u32, data_size: u32, fuid: Vec<u8>)
     {
         let left = rec_size.saturating_sub(data_size);
-        if direction == STREAM_TOSERVER {
+        if direction == Direction::ToServer {
             self.file_ts_left = left;
             self.file_ts_guid = fuid;
         } else {
@@ -1200,10 +1200,10 @@ impl SMBState {
         }
     }
 
-    pub fn set_skip(&mut self, direction: u8, rec_size: u32, data_size: u32)
+    pub fn set_skip(&mut self, direction: Direction, rec_size: u32, data_size: u32)
     {
         let skip = rec_size.saturating_sub(data_size);
-        if direction == STREAM_TOSERVER {
+        if direction == Direction::ToServer {
             self.skip_ts = skip;
         } else {
             self.skip_tc = skip;
@@ -1211,8 +1211,8 @@ impl SMBState {
     }
 
     // return how much data we consumed
-    fn handle_skip(&mut self, direction: u8, input_size: u32) -> u32 {
-        let mut skip_left = if direction == STREAM_TOSERVER {
+    fn handle_skip(&mut self, direction: Direction, input_size: u32) -> u32 {
+        let mut skip_left = if direction == Direction::ToServer {
             self.skip_ts
         } else {
             self.skip_tc
@@ -1234,7 +1234,7 @@ impl SMBState {
             skip_left -= input_size;
         }
 
-        if direction == STREAM_TOSERVER {
+        if direction == Direction::ToServer {
             self.skip_ts = skip_left;
         } else {
             self.skip_tc = skip_left;
@@ -1329,7 +1329,7 @@ impl SMBState {
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
     {
         let mut cur_i = i;
-        let consumed = self.handle_skip(STREAM_TOSERVER, cur_i.len() as u32);
+        let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1339,7 +1339,7 @@ impl SMBState {
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i, 0);
+        let consumed = self.filetracker_update(Direction::ToServer, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1476,7 +1476,7 @@ impl SMBState {
             }
         };
 
-        self.post_gap_housekeeping(STREAM_TOSERVER);
+        self.post_gap_housekeeping(Direction::ToServer);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
             self.post_gap_files_checked = true;
@@ -1568,7 +1568,7 @@ impl SMBState {
     pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
     {
         let mut cur_i = i;
-        let consumed = self.handle_skip(STREAM_TOCLIENT, cur_i.len() as u32);
+        let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1578,7 +1578,7 @@ impl SMBState {
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i, 0);
+        let consumed = self.filetracker_update(Direction::ToClient, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
@@ -1717,7 +1717,7 @@ impl SMBState {
                 },
             }
         };
-        self.post_gap_housekeeping(STREAM_TOCLIENT);
+        self.post_gap_housekeeping(Direction::ToClient);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
             self.post_gap_files_checked = true;
@@ -1729,12 +1729,12 @@ impl SMBState {
     /// handle a gap in the TOSERVER direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
-        let consumed = self.handle_skip(STREAM_TOSERVER, gap_size);
+        let consumed = self.handle_skip(Direction::ToServer, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
-            let consumed2 = self.filetracker_update(STREAM_TOSERVER, &gap, new_gap_size);
+            let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
@@ -1750,12 +1750,12 @@ impl SMBState {
     /// handle a gap in the TOCLIENT direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
-        let consumed = self.handle_skip(STREAM_TOCLIENT, gap_size);
+        let consumed = self.handle_skip(Direction::ToClient, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
-            let consumed2 = self.filetracker_update(STREAM_TOCLIENT, &gap, new_gap_size);
+            let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
@@ -1825,8 +1825,8 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
-    rs_smb_setfileflags(STREAM_TOSERVER, state, file_flags|FILE_USE_DETECT);
+    let file_flags = unsafe { FileFlowToFlags(flow, Direction::ToServer as u8) };
+    rs_smb_setfileflags(Direction::ToServer as u8, state, file_flags|FILE_USE_DETECT);
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     if input.is_null() && input_len > 0 {
@@ -1863,8 +1863,8 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
 {
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
-    rs_smb_setfileflags(STREAM_TOCLIENT, state, file_flags|FILE_USE_DETECT);
+    let file_flags = unsafe { FileFlowToFlags(flow, Direction::ToClient as u8) };
+    rs_smb_setfileflags(Direction::ToClient as u8, state, file_flags|FILE_USE_DETECT);
 
     if input.is_null() && input_len > 0 {
         return rs_smb_parse_response_tcp_gap(state, input_len);
@@ -1890,7 +1890,7 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
-fn smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
+fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8) -> i8
 {
     match search_smb_record(slice) {
         Ok((_, ref data)) => {
@@ -1904,13 +1904,13 @@ fn smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
                             Ok((_, ref smb_record)) => {
                                 if smb_record.flags & 0x80 != 0 {
                                     SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
-                                    if direction & STREAM_TOSERVER != 0 {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                    if direction == Direction::ToServer {
+                                        unsafe { *rdir = Direction::ToClient as u8; }
                                     }
                                 } else {
                                     SCLogDebug!("REQUEST {:02x}", smb_record.flags);
-                                    if direction & STREAM_TOCLIENT != 0 {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                    if direction == Direction::ToClient {
+                                        unsafe { *rdir = Direction::ToServer as u8; }
                                     }
                                 }
                                 return 1;
@@ -1921,15 +1921,15 @@ fn smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
                         SCLogDebug!("SMB2 record");
                         match parse_smb2_record_direction(data) {
                             Ok((_, ref smb_record)) => {
-                                if direction & STREAM_TOSERVER != 0 {
-                                    SCLogDebug!("direction STREAM_TOSERVER smb_record {:?}", smb_record);
+                                if direction == Direction::ToServer {
+                                    SCLogDebug!("direction Direction::ToServer smb_record {:?}", smb_record);
                                     if !smb_record.request {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                        unsafe { *rdir = Direction::ToClient as u8; }
                                     }
                                 } else {
-                                    SCLogDebug!("direction STREAM_TOCLIENT smb_record {:?}", smb_record);
+                                    SCLogDebug!("direction Direction::ToClient smb_record {:?}", smb_record);
                                     if smb_record.request {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                        unsafe { *rdir = Direction::ToServer as u8; }
                                     }
                                 }
                             },
@@ -1965,7 +1965,7 @@ pub extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
     }
     let slice = build_slice!(input, len as usize);
     if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
-        if smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
+        if smb_probe_tcp_midstream(flags.into(), slice, rdir) == 1 {
             return unsafe { ALPROTO_SMB };
         }
     }
@@ -2069,14 +2069,14 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 {
     let tx = cast_pointer!(tx, SMBTransaction);
 
-    if direction == STREAM_TOSERVER && tx.request_done {
+    if direction == Direction::ToServer as u8 && tx.request_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.id, tx);
         return 1;
-    } else if direction == STREAM_TOCLIENT && tx.response_done {
+    } else if direction == Direction::ToClient as u8 && tx.response_done {
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.id, tx);
         return 1;
     } else {
-        SCLogDebug!("tx {} direction {} progress 0", tx.id, direction);
+        SCLogDebug!("tx {} direction {:?} progress 0", tx.id, direction);
         return 0;
     }
 }
@@ -2123,7 +2123,7 @@ pub extern "C" fn rs_smb_state_truncate(
         direction: u8)
 {
     let state = cast_pointer!(state, SMBState);
-    if (direction & STREAM_TOSERVER) != 0 {
+    if direction == Direction::ToServer as u8 {
         state.trunc_ts();
     } else {
         state.trunc_tc();
@@ -2203,10 +2203,10 @@ pub extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len:
     let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
     if fsp == 445 && fdp != 445 {
         unsafe {
-            if dir & STREAM_TOSERVER != 0 {
-                *rdir = STREAM_TOCLIENT;
+            if dir == Direction::ToServer as u8 {
+                *rdir = Direction::ToClient as u8;
             } else {
-                *rdir = STREAM_TOSERVER;
+                *rdir = Direction::ToServer as u8;
             }
         }
     }
@@ -2219,24 +2219,24 @@ fn register_pattern_probe() -> i8 {
         // SMB1
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOSERVER, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToServer as u8, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOCLIENT, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB2/3
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOSERVER, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToServer as u8, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOCLIENT, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, rs_smb_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB3 encrypted records
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOSERVER, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToServer as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     STREAM_TOCLIENT, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
     }
 
     if r == 0 {
@@ -2305,7 +2305,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
 
         if have_cfg == 0 {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8, parser.default_port, ALPROTO_SMB,
-                                          0, MIN_REC_SIZE, STREAM_TOSERVER, rs_smb_probe_tcp, rs_smb_probe_tcp);
+                                          0, MIN_REC_SIZE, Direction::ToServer as u8, rs_smb_probe_tcp, rs_smb_probe_tcp);
         }
 
         if AppLayerParserConfParserEnabled(
