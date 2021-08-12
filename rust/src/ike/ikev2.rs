@@ -18,7 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::applayer::*;
-use crate::core::STREAM_TOCLIENT;
+use crate::core::Direction;
 use crate::ike::ipsec_parser::*;
 
 use super::ipsec_parser::IkeV2Transform;
@@ -103,7 +103,7 @@ impl Default for Ikev2Container {
 }
 
 pub fn handle_ikev2(
-    mut state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: u8,
+    mut state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
     let hdr = IkeV2Header {
         init_spi: isakmp_header.init_spi,
@@ -145,7 +145,7 @@ pub fn handle_ikev2(
                     }
                     IkeV2PayloadContent::KE(ref kex) => {
                         SCLogDebug!("KEX {:?}", kex.dh_group);
-                        if direction == STREAM_TOCLIENT {
+                        if direction == Direction::ToClient {
                             state.ikev2_container.dh_group = kex.dh_group;
                         }
                     }
@@ -179,7 +179,7 @@ pub fn handle_ikev2(
                     tx.errors = errors;
                     tx.notify_types.append(&mut notify_types);
 
-                    if direction == STREAM_TOCLIENT
+                    if direction == Direction::ToClient
                         && state.ikev2_container.server_transforms.len() > 0
                     {
                         tx.hdr.ikev2_transforms.clear();
@@ -215,7 +215,7 @@ pub fn handle_ikev2(
     return AppLayerResult::ok();
 }
 
-fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8) {
+fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: Direction) {
     for ref p in prop {
         let transforms: Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
         // Rule 1: warn on weak or unknown transforms
@@ -234,7 +234,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         | IkeTransformEncType::ENCR_DES_IV32
                         | IkeTransformEncType::ENCR_NULL => {
                             SCLogDebug!("Weak Encryption: {:?}", enc);
-                            // XXX send event only if direction == STREAM_TOCLIENT ?
+                            // XXX send event only if direction == Direction::ToClient ?
                             state.set_event(IkeEvent::WeakCryptoEnc);
                         }
                         _ => (),
@@ -321,7 +321,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
             }
         }
         // Finally
-        if direction == STREAM_TOCLIENT {
+        if direction == Direction::ToClient {
             transforms.iter().for_each(|t| match *t {
                 IkeV2Transform::Encryption(ref e) => state.ikev2_container.alg_enc = *e,
                 IkeV2Transform::Auth(ref a) => state.ikev2_container.alg_auth = *a,

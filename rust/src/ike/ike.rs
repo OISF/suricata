@@ -22,9 +22,7 @@ use self::ipsec_parser::*;
 
 use crate::applayer;
 use crate::applayer::*;
-use crate::core::{
-    self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, STREAM_TOCLIENT, STREAM_TOSERVER,
-};
+use crate::core::{self, *};
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
@@ -216,7 +214,7 @@ impl IKEState {
         }
     }
 
-    fn handle_input(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
+    fn handle_input(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -274,13 +272,13 @@ impl IKEState {
 }
 
 /// Probe to see if this input looks like a request or response.
-fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
+fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> bool {
     match parse_isakmp_header(input) {
         Ok((_, isakmp_header)) => {
             if isakmp_header.maj_ver == 1 {
-                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                if isakmp_header.resp_spi == 0 && direction != Direction::ToServer {
                     unsafe {
-                        *rdir = STREAM_TOSERVER;
+                        *rdir = Direction::ToServer as u8;
                     }
                 }
                 return true;
@@ -303,9 +301,9 @@ fn probe(input: &[u8], direction: u8, rdir: *mut u8) -> bool {
                     return false;
                 }
 
-                if isakmp_header.resp_spi == 0 && direction != STREAM_TOSERVER {
+                if isakmp_header.resp_spi == 0 && direction != Direction::ToServer {
                     unsafe {
-                        *rdir = STREAM_TOSERVER;
+                        *rdir = Direction::ToServer as u8;
                     }
                 }
                 return true;
@@ -333,7 +331,7 @@ pub extern "C" fn rs_ike_probing_parser(
 
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
-        if probe(slice, direction, rdir) {
+        if probe(slice, direction.into(), rdir) {
             return unsafe { ALPROTO_IKE };
         }
     }
@@ -369,7 +367,7 @@ pub extern "C" fn rs_ike_parse_request(
     let state = cast_pointer!(state, IKEState);
     let buf = build_slice!(input, input_len as usize);
 
-    return state.handle_input(buf, STREAM_TOSERVER);
+    return state.handle_input(buf, Direction::ToServer);
 }
 
 #[no_mangle]
@@ -379,7 +377,7 @@ pub extern "C" fn rs_ike_parse_response(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
     let buf = build_slice!(input, input_len as usize);
-    return state.handle_input(buf, STREAM_TOCLIENT);
+    return state.handle_input(buf, Direction::ToClient);
 }
 
 #[no_mangle]
