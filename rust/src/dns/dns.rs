@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 
 use crate::applayer::*;
-use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
+use crate::core::{self, *};
 use crate::dns::parser;
 
 use nom::IResult;
@@ -994,12 +994,12 @@ pub extern "C" fn rs_dns_probe(
     let (is_dns, is_request, _) = probe(slice, slice.len());
     if is_dns {
         let dir = if is_request {
-            core::STREAM_TOSERVER
+            Direction::ToServer
         } else {
-            core::STREAM_TOCLIENT
+            Direction::ToClient
         };
         unsafe {
-            *rdir = dir;
+            *rdir = dir as u8;
             return ALPROTO_DNS;
         }
     }
@@ -1024,12 +1024,12 @@ pub extern "C" fn rs_dns_probe_tcp(
     let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
         let dir = if is_request {
-            core::STREAM_TOSERVER
+            Direction::ToServer
         } else {
-            core::STREAM_TOCLIENT
+            Direction::ToClient
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            unsafe { *rdir = dir };
+        if direction & (Direction::ToServer as u8 | Direction::ToClient as u8) != dir as u8 {
+            unsafe { *rdir = dir as u8 };
         }
         return unsafe { ALPROTO_DNS };
     }
