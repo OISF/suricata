@@ -474,7 +474,7 @@ impl NFSState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = self.files.get(tx.file_tx_direction);
+                        let (files, flags) = self.files.get(tx.file_tx_direction.into());
                         f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
@@ -594,7 +594,7 @@ impl NFSState {
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        let (files, flags) = self.files.get(direction);
+        let (files, flags) = self.files.get(direction.into());
         return (tx_ref.unwrap(), files, flags)
     }
 
@@ -608,7 +608,7 @@ impl NFSState {
                 tx.file_handle == fh
             {
                 SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
-                let (files, flags) = self.files.get(direction);
+                let (files, flags) = self.files.get(direction.into());
                 return Some((tx, files, flags));
             }
         }

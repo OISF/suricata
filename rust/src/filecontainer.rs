@@ -37,9 +37,9 @@ pub struct Files {
 }
 
 impl Files {
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
+    pub fn get(&mut self, direction: Direction) -> (&mut FileContainer, u16)
     {
-        if direction == STREAM_TOSERVER {
+        if direction == Direction::ToServer {
             (&mut self.files_ts, self.flags_ts)
         } else {
             (&mut self.files_tc, self.flags_tc)
