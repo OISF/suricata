@@ -814,7 +814,7 @@ impl HTTP2State {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                         tx_same.ft_ts.file_open
                                     };
-                                    let (files, flags) = self.files.get(dir);
+                                    let (files, flags) = self.files.get(dir.into());
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
                                         dir,

@@ -77,7 +77,7 @@ impl SMBState {
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        let (files, flags) = self.files.get(direction);
+        let (files, flags) = self.files.get(direction.into());
         return (tx_ref.unwrap(), files, flags)
     }
 
@@ -95,7 +95,7 @@ impl SMBState {
 
             if found {
                 SCLogDebug!("SMB: Found SMB file TX with ID {}", tx.id);
-                let (files, flags) = self.files.get(direction);
+                let (files, flags) = self.files.get(direction.into());
                 return Some((tx, files, flags));
             }
         }
