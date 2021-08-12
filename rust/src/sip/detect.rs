@@ -17,7 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::Direction;
 use crate::sip::sip::SIPTransaction;
 use std::ptr;
 
@@ -70,8 +70,8 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
     buffer_len: *mut u32,
     direction: u8,
 ) -> u8 {
-    match direction {
-        STREAM_TOSERVER => {
+    match direction.into() {
+        Direction::ToServer => {
             if let Some(ref r) = tx.request {
                 let v = &r.version;
                 if v.len() > 0 {
@@ -81,7 +81,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
                 }
             }
         }
-        STREAM_TOCLIENT => {
+        Direction::ToClient => {
             if let Some(ref r) = tx.response {
                 let v = &r.version;
                 if v.len() > 0 {
@@ -91,7 +91,6 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
                 }
             }
         }
-        _ => {}
     }
 
     *buffer = ptr::null();
