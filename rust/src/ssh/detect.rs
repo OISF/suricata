@@ -16,7 +16,7 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::Direction;
 use std::ptr;
 
 #[no_mangle]
@@ -24,8 +24,8 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
     tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match direction {
-        STREAM_TOSERVER => {
+    match direction.into() {
+        Direction::ToServer => {
             let m = &tx.cli_hdr.protover;
             if m.len() > 0 {
                 unsafe {
@@ -35,7 +35,7 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
                 return 1;
             }
         }
-        STREAM_TOCLIENT => {
+        Direction::ToClient => {
             let m = &tx.srv_hdr.protover;
             if m.len() > 0 {
                 unsafe {
@@ -45,7 +45,6 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
                 return 1;
             }
         }
-        _ => {}
     }
     unsafe {
         *buffer = ptr::null();
@@ -60,8 +59,8 @@ pub extern "C" fn rs_ssh_tx_get_software(
     tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match direction {
-        STREAM_TOSERVER => {
+    match direction.into() {
+        Direction::ToServer => {
             let m = &tx.cli_hdr.swver;
             if m.len() > 0 {
                 unsafe {
@@ -71,7 +70,7 @@ pub extern "C" fn rs_ssh_tx_get_software(
                 return 1;
             }
         }
-        STREAM_TOCLIENT => {
+        Direction::ToClient => {
             let m = &tx.srv_hdr.swver;
             if m.len() > 0 {
                 unsafe {
@@ -81,7 +80,6 @@ pub extern "C" fn rs_ssh_tx_get_software(
                 return 1;
             }
         }
-        _ => {}
     }
     unsafe {
         *buffer = ptr::null();
@@ -99,8 +97,8 @@ pub extern "C" fn rs_ssh_tx_get_hassh(
     direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match direction {
-        STREAM_TOSERVER => {
+    match direction.into() {
+        Direction::ToServer => {
             let m = &tx.cli_hdr.hassh;
             if m.len() > 0 {
                 unsafe {
@@ -110,7 +108,7 @@ pub extern "C" fn rs_ssh_tx_get_hassh(
                 return 1;
             }
         }
-        STREAM_TOCLIENT => {
+        Direction::ToClient => {
             let m = &tx.srv_hdr.hassh;
             if m.len() > 0 {
                 unsafe {
@@ -120,7 +118,6 @@ pub extern "C" fn rs_ssh_tx_get_hassh(
                 return 1;
             }
         }
-        _ => {}
     }
     unsafe {
         *buffer = ptr::null();
@@ -138,8 +135,8 @@ pub extern "C" fn rs_ssh_tx_get_hassh_string(
     direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match direction {
-        STREAM_TOSERVER => {
+    match direction.into() {
+        Direction::ToServer => {
             let m = &tx.cli_hdr.hassh_string;
             if m.len() > 0 {
                 unsafe {
@@ -149,7 +146,7 @@ pub extern "C" fn rs_ssh_tx_get_hassh_string(
                 return 1;
             }
         }
-        STREAM_TOCLIENT => {
+        Direction::ToClient => {
             let m = &tx.srv_hdr.hassh_string;
             if m.len() > 0 {
                 unsafe {
@@ -159,7 +156,6 @@ pub extern "C" fn rs_ssh_tx_get_hassh_string(
                 return 1;
             }
         }
-        _ => {}
     }
     unsafe {
         *buffer = ptr::null();

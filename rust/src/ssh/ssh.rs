@@ -17,8 +17,7 @@
 
 use super::parser;
 use crate::applayer::*;
-use crate::core::STREAM_TOSERVER;
-use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{self, *};
 use std::ffi::{CStr, CString};
 use std::mem::transmute;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -493,7 +492,7 @@ pub extern "C" fn rs_ssh_tx_get_flags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
-    if direction == STREAM_TOSERVER {
+    if direction == Direction::ToServer as u8 {
         return tx.cli_hdr.flags;
     } else {
         return tx.srv_hdr.flags;
@@ -512,7 +511,7 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
         return SSHConnectionState::SshStateFinished as i32;
     }
 
-    if direction == STREAM_TOSERVER {
+    if direction == Direction::ToServer as u8 {
         if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
