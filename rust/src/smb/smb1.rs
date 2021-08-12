@@ -148,7 +148,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
 {
     // we can have created 2 txs for a FID: one for reads
     // and one for writes. So close both.
-    match state.get_file_tx_by_fuid(fid, STREAM_TOSERVER) {
+    match state.get_file_tx_by_fuid(fid, Direction::ToServer) {
         Some((tx, files, flags)) => {
             SCLogDebug!("found tx {}", tx.id);
             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -163,7 +163,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
         },
         None => { },
     }
-    match state.get_file_tx_by_fuid(fid, STREAM_TOCLIENT) {
+    match state.get_file_tx_by_fuid(fid, Direction::ToClient) {
         Some((tx, files, flags)) => {
             SCLogDebug!("found tx {}", tx.id);
             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -976,7 +976,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 None => b"<unknown>".to_vec(),
             };
             let mut set_event_fileoverlap = false;
-            let found = match state.get_file_tx_by_fuid(&file_fid, STREAM_TOSERVER) {
+            let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToServer) {
                 Some((tx, files, flags)) => {
                     let file_id : u32 = tx.id as u32;
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -1004,7 +1004,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     let vercmd = SMBVerCmdStat::new1_with_ntstatus(command, r.nt_status);
                     smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
                 } else {
-                    let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOSERVER);
+                    let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, Direction::ToServer);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
@@ -1023,7 +1023,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                 state.set_event(SMBEvent::FileOverlap);
             }
 
-            state.set_file_left(STREAM_TOSERVER, rd.len, rd.data.len() as u32, file_fid.to_vec());
+            state.set_file_left(Direction::ToServer, rd.len, rd.data.len() as u32, file_fid.to_vec());
 
             if command == SMB1_COMMAND_WRITE_AND_CLOSE {
                 SCLogDebug!("closing FID {:?}", file_fid);
@@ -1052,7 +1052,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     None => {
                         SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
                                 rd.len - rd.data.len() as u32, rd);
-                        state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                        state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                         return;
                     },
                 };
@@ -1069,7 +1069,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         None => Vec::new(),
                     };
                     let mut set_event_fileoverlap = false;
-                    let found = match state.get_file_tx_by_fuid(&file_fid, STREAM_TOCLIENT) {
+                    let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToClient) {
                         Some((tx, files, flags)) => {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                 let file_id : u32 = tx.id as u32;
@@ -1086,7 +1086,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         None => { false },
                     };
                     if !found {
-                        let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOCLIENT);
+                        let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, Direction::ToClient);
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                             let file_id : u32 = tx.id as u32;
                             SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
@@ -1114,7 +1114,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     smb_read_dcerpc_record(state, vercmd, hdr, pure_fid, rd.data);
                 }
 
-                state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_fid.to_vec());
+                state.set_file_left(Direction::ToClient, rd.len, rd.data.len() as u32, file_fid.to_vec());
             }
             _ => {
                 events.push(SMBEvent::MalformedData);

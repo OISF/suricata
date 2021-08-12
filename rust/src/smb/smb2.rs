@@ -124,7 +124,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
             } else if r.nt_status != SMB_NTSTATUS_SUCCESS {
                 SCLogDebug!("SMBv2: read response error code received: skip record");
-                state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                 return;
             }
 
@@ -137,7 +137,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 Some(o) => (o.offset, o.guid),
                 None => {
                     SCLogDebug!("SMBv2 READ response: reply to unknown request {:?}",rd);
-                    state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                    state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                     return;
                 },
             };
@@ -145,7 +145,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
             let mut set_event_fileoverlap = false;
             // look up existing tracker and if we have it update it
-            let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOCLIENT) {
+            let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToClient) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
@@ -200,13 +200,13 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     smb_read_dcerpc_record(state, vercmd, hdr, &file_guid, rd.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe");
-                    state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                    state.set_skip(Direction::ToClient, rd.len, rd.data.len() as u32);
                 } else {
                     let file_name = match state.guid2name_map.get(&file_guid) {
                         Some(n) => { n.to_vec() },
                         None => { b"<unknown>".to_vec() },
                     };
-                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOCLIENT);
+                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, Direction::ToClient);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if offset < tdf.file_tracker.tracked {
@@ -226,7 +226,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             if set_event_fileoverlap {
                 state.set_event(SMBEvent::FileOverlap);
             }
-            state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_guid.to_vec());
+            state.set_file_left(Direction::ToClient, rd.len, rd.data.len() as u32, file_guid.to_vec());
         }
         _ => {
             SCLogDebug!("SMBv2: failed to parse read response");
@@ -256,7 +256,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             };
 
             let mut set_event_fileoverlap = false;
-            let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOSERVER) {
+            let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToServer) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
@@ -311,9 +311,9 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     smb_write_dcerpc_record(state, vercmd, hdr, wr.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
-                    state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
+                    state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
                 } else {
-                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOSERVER);
+                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
@@ -332,7 +332,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             if set_event_fileoverlap {
                 state.set_event(SMBEvent::FileOverlap);
             }
-            state.set_file_left(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32, file_guid.to_vec());
+            state.set_file_left(Direction::ToServer, wr.wr_len, wr.data.len() as u32, file_guid.to_vec());
         },
         _ => {
             state.set_event(SMBEvent::MalformedData);
@@ -521,7 +521,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
                 Ok((_, cd)) => {
-                    let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOSERVER) {
+                    let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToServer) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -535,7 +535,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         },
                         None => { false },
                     };
-                    let found_tc = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOCLIENT) {
+                    let found_tc = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToClient) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -635,7 +635,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         Vec::new()
                     },
                 };
-                let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOCLIENT) {
+                let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToClient) {
                     Some((tx, files, flags)) => {
                         if !tx.request_done {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
