@@ -21,10 +21,7 @@ use super::parser;
 use super::range;
 
 use crate::applayer::{self, *};
-use crate::core::{
-    self, AppProto, Flow, HttpRangeContainerBlock, SuricataFileContext, ALPROTO_FAILED,
-    ALPROTO_UNKNOWN, IPPROTO_TCP, SC, STREAM_TOCLIENT, STREAM_TOSERVER,
-};
+use crate::core::{self, *};
 use crate::filecontainer::*;
 use crate::filetracker::*;
 use nom;
@@ -195,7 +192,7 @@ impl HTTP2Transaction {
         core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, ev);
     }
 
-    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
+    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
         for i in 0..blocks.len() {
             if blocks[i].name == "content-encoding".as_bytes().to_vec() {
                 self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
@@ -204,13 +201,13 @@ impl HTTP2Transaction {
     }
 
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: u8, sfcm: &'static SuricataFileContext, over: bool,
-        files: &mut FileContainer, flags: u16, flow: *const Flow,
+        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext,
+        over: bool, files: &mut FileContainer, flags: u16, flow: *const Flow,
     ) -> io::Result<()> {
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
         let xid: u32 = self.tx_id as u32;
-        if dir == STREAM_TOCLIENT {
+        if dir == Direction::ToClient {
             self.ft_tc.tx_id = self.tx_id - 1;
             if !self.ft_tc.file_open {
                 // we are now sure that new_chunk will open a file
@@ -218,7 +215,7 @@ impl HTTP2Transaction {
                 self.tx_data.incr_files_opened();
                 if let Ok(value) = detect::http2_frames_get_header_value_vec(
                     self,
-                    STREAM_TOCLIENT,
+                    Direction::ToClient,
                     "content-range",
                 ) {
                     match range::http2_parse_check_content_range(&value) {
@@ -276,12 +273,12 @@ impl HTTP2Transaction {
     }
 
     fn handle_frame(
-        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
     ) {
         //handle child_stream_id changes
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
-                if dir == STREAM_TOCLIENT {
+                if dir == Direction::ToClient {
                     //we could set an event if self.child_stream_id != 0
                     if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
                         self.child_stream_id = hs.stream_id;
@@ -291,7 +288,7 @@ impl HTTP2Transaction {
                 self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
-                if dir == STREAM_TOCLIENT
+                if dir == Direction::ToClient
                     && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
                 {
                     self.child_stream_id = 0;
@@ -299,7 +296,7 @@ impl HTTP2Transaction {
                 self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
-                if dir == STREAM_TOCLIENT {
+                if dir == Direction::ToClient {
                     self.child_stream_id = 0;
                 }
                 self.handle_headers(&hs.blocks, dir);
@@ -316,12 +313,12 @@ impl HTTP2Transaction {
                     match self.state {
                         HTTP2TransactionState::HTTP2StateHalfClosedClient
                         | HTTP2TransactionState::HTTP2StateDataServer => {
-                            if dir == STREAM_TOCLIENT {
+                            if dir == Direction::ToClient {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
                         }
                         HTTP2TransactionState::HTTP2StateHalfClosedServer => {
-                            if dir == STREAM_TOSERVER {
+                            if dir == Direction::ToServer {
                                 self.state = HTTP2TransactionState::HTTP2StateClosed;
                             }
                         }
@@ -329,7 +326,7 @@ impl HTTP2Transaction {
                         HTTP2TransactionState::HTTP2StateClosed => {}
                         HTTP2TransactionState::HTTP2StateGlobal => {}
                         _ => {
-                            if dir == STREAM_TOCLIENT {
+                            if dir == Direction::ToClient {
                                 self.state = HTTP2TransactionState::HTTP2StateHalfClosedServer;
                             } else {
                                 self.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
@@ -338,7 +335,7 @@ impl HTTP2Transaction {
                     }
                 } else if header.ftype == parser::HTTP2FrameType::DATA as u8 {
                     //not end of stream
-                    if dir == STREAM_TOSERVER {
+                    if dir == Direction::ToServer {
                         if self.state < HTTP2TransactionState::HTTP2StateDataClient {
                             self.state = HTTP2TransactionState::HTTP2StateDataClient;
                         }
@@ -498,7 +495,7 @@ impl HTTP2State {
     }
 
     pub fn find_or_create_tx(
-        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
     ) -> &mut HTTP2Transaction {
         if header.stream_id == 0 {
             return self.create_global_tx();
@@ -507,7 +504,7 @@ impl HTTP2State {
             //yes, the right stream_id for Suricata is not the header one
             HTTP2FrameTypeData::PUSHPROMISE(hs) => hs.stream_id,
             HTTP2FrameTypeData::CONTINUATION(_) => {
-                if dir == STREAM_TOCLIENT {
+                if dir == Direction::ToClient {
                     //continuation of a push promise
                     self.find_child_stream_id(header.stream_id)
                 } else {
@@ -539,7 +536,7 @@ impl HTTP2State {
         }
     }
 
-    fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
+    fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
         let (mut update, mut sizeup) = (false, 0);
         for i in 0..blocks.len() {
             if blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
@@ -555,7 +552,7 @@ impl HTTP2State {
         }
         if update {
             //borrow checker forbids to pass directly dyn_headers
-            let dyn_headers = if dir == STREAM_TOCLIENT {
+            let dyn_headers = if dir == Direction::ToClient {
                 &mut self.dynamic_headers_tc
             } else {
                 &mut self.dynamic_headers_ts
@@ -565,7 +562,7 @@ impl HTTP2State {
     }
 
     fn parse_frame_data(
-        &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: u8,
+        &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: Direction,
     ) -> HTTP2FrameTypeData {
         match num::FromPrimitive::from_u8(ftype) {
             Some(parser::HTTP2FrameType::GOAWAY) => {
@@ -593,7 +590,7 @@ impl HTTP2State {
                         for i in 0..set.len() {
                             if set[i].id == parser::HTTP2SettingsId::SETTINGSHEADERTABLESIZE {
                                 //reverse order as this is what we accept from the other endpoint
-                                let dyn_headers = if dir == STREAM_TOCLIENT {
+                                let dyn_headers = if dir == Direction::ToClient {
                                     &mut self.dynamic_headers_ts
                                 } else {
                                     &mut self.dynamic_headers_tc
@@ -692,7 +689,7 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::PUSHPROMISE) => {
-                let dyn_headers = if dir == STREAM_TOCLIENT {
+                let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
                     &mut self.dynamic_headers_ts
@@ -726,7 +723,7 @@ impl HTTP2State {
                 return HTTP2FrameTypeData::DATA;
             }
             Some(parser::HTTP2FrameType::CONTINUATION) => {
-                let dyn_headers = if dir == STREAM_TOCLIENT {
+                let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
                     &mut self.dynamic_headers_ts
@@ -757,7 +754,7 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::HEADERS) => {
-                let dyn_headers = if dir == STREAM_TOCLIENT {
+                let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
                 } else {
                     &mut self.dynamic_headers_ts
@@ -803,7 +800,7 @@ impl HTTP2State {
     }
 
     fn parse_frames(
-        &mut self, mut input: &[u8], il: usize, dir: u8, flow: *const Flow,
+        &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
     ) -> AppLayerResult {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
@@ -853,7 +850,7 @@ impl HTTP2State {
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
-                    if dir == STREAM_TOSERVER {
+                    if dir == Direction::ToServer {
                         tx.frames_ts.push(HTTP2Frame {
                             header: head,
                             data: txdata,
@@ -871,7 +868,7 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let tx_same = &mut self.transactions[index - 1];
-                                    let (files, flags) = self.files.get(dir.into());
+                                    let (files, flags) = self.files.get(dir);
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
                                         dir,
@@ -949,7 +946,7 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        let r = self.parse_frames(input, il, STREAM_TOSERVER, flow);
+        let r = self.parse_frames(input, il, Direction::ToServer, flow);
         if r.status == 1 {
             //adds bytes consumed by banner to incomplete result
             return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
@@ -973,7 +970,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        return self.parse_frames(input, il, STREAM_TOCLIENT, flow);
+        return self.parse_frames(input, il, Direction::ToClient, flow);
     }
 
     fn tx_iterator(
@@ -1078,7 +1075,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
 
-    state.files.flags_ts = FileFlowToFlags(flow, STREAM_TOSERVER);
+    state.files.flags_ts = FileFlowToFlags(flow, Direction::ToServer.into());
     state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
     return state.parse_ts(buf, flow);
 }
@@ -1090,7 +1087,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
-    state.files.flags_tc = FileFlowToFlags(flow, STREAM_TOCLIENT);
+    state.files.flags_tc = FileFlowToFlags(flow, Direction::ToClient.into());
     state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
     return state.parse_tc(buf, flow);
 }
@@ -1162,7 +1159,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
     let state = cast_pointer!(state, HTTP2State);
-    if direction == STREAM_TOCLIENT {
+    if direction == Direction::ToClient.into() {
         &mut state.files.files_tc as *mut FileContainer
     } else {
         &mut state.files.files_ts as *mut FileContainer
