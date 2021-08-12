@@ -18,8 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::snmp::snmp_parser::*;
-use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
+use crate::core::{self, *};
 use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
@@ -131,7 +130,7 @@ impl<'a> SNMPState<'a> {
         tx.info = Some(pdu_info);
     }
 
-    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: u8) -> i32 {
+    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: Direction) -> i32 {
         let mut tx = self.new_tx();
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
@@ -144,7 +143,7 @@ impl<'a> SNMPState<'a> {
         0
     }
 
-    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: u8) -> i32 {
+    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> i32 {
         let mut tx = self.new_tx();
         if self.version != msg.version {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
@@ -173,7 +172,7 @@ impl<'a> SNMPState<'a> {
     /// Parse an SNMP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &'a [u8], direction: u8) -> i32 {
+    fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
         if self.version == 0 {
             match parse_pdu_enveloppe_version(i) {
                 Ok((_,x)) => self.version = x,
@@ -310,7 +309,7 @@ pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOSERVER).into()
+    state.parse(buf, Direction::ToServer).into()
 }
 
 #[no_mangle]
@@ -323,7 +322,7 @@ pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOCLIENT).into()
+    state.parse(buf, Direction::ToClient).into()
 }
 
 #[no_mangle]
