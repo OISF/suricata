@@ -17,7 +17,7 @@
 
 use super::detect;
 use crate::core::{
-    Flow, HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC, STREAM_TOSERVER,
+    Direction, Flow, HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
 };
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
@@ -105,7 +105,7 @@ pub unsafe extern "C" fn rs_http_parse_content_range(
 }
 
 fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()> {
-    let hostv = detect::http2_frames_get_header_value_vec(tx, STREAM_TOSERVER, ":authority")?;
+    let hostv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":authority")?;
     let mut hostv = &hostv[..];
     match hostv.iter().position(|&x| x == b':') {
         Some(p) => {
@@ -113,7 +113,7 @@ fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()
         }
         None => {}
     }
-    let uriv = detect::http2_frames_get_header_value_vec(tx, STREAM_TOSERVER, ":path")?;
+    let uriv = detect::http2_frames_get_header_value_vec(tx, Direction::ToServer, ":path")?;
     let mut uriv = &uriv[..];
     match uriv.iter().position(|&x| x == b'?') {
         Some(p) => {
