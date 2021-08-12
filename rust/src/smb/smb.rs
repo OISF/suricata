@@ -1131,7 +1131,7 @@ impl SMBState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = self.files.get(f.direction);
+                        let (files, flags) = self.files.get(f.direction.into());
                         f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
