@@ -21,7 +21,7 @@ use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
-use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{self, *};
 use nom7::Err;
 use std;
 use std::ffi::CString;
@@ -660,11 +660,11 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.complete {
-        if direction == core::STREAM_TOSERVER {
+        if direction == Direction::ToServer.into() {
             if tx.toserver {
                 return 1;
             }
-        } else if direction == core::STREAM_TOCLIENT {
+        } else if direction == Direction::ToClient.into() {
             if tx.toclient {
                 return 1;
             }
