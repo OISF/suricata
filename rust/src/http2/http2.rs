@@ -871,7 +871,7 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let tx_same = &mut self.transactions[index - 1];
-                                    let (files, flags) = self.files.get(dir);
+                                    let (files, flags) = self.files.get(dir.into());
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
                                         dir,
