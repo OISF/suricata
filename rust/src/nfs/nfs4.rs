@@ -60,7 +60,7 @@ impl NFSState {
             Vec::new()
         };
 
-        let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+        let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some((tx, files, flags)) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -78,7 +78,7 @@ impl NFSState {
             None => false,
         };
         if !found {
-            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
+            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, w.data, w.offset,
@@ -110,7 +110,7 @@ impl NFSState {
         SCLogDebug!("COMMIT, closing shop");
 
         let file_handle = fh.to_vec();
-        if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+        if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                 tdf.file_tracker.close(files, flags);
                 tdf.file_last_xid = r.hdr.xid;
