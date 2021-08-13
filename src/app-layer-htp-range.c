@@ -245,9 +245,9 @@ void *HttpRangeContainerUrlGet(const uint8_t *key, size_t keylen, struct timeval
     return NULL;
 }
 
-static HttpRangeContainerBlock *ContainerUrlRangeOpenFileAux(HttpRangeContainerFile *c,
-        uint64_t start, uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg,
-        const uint8_t *name, uint16_t name_len, uint16_t flags)
+static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, uint64_t start,
+        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
+        uint16_t name_len, uint16_t flags)
 {
     DEBUG_VALIDATE_BUG_ON(c->files == NULL);
 
@@ -318,13 +318,13 @@ static HttpRangeContainerBlock *ContainerUrlRangeOpenFileAux(HttpRangeContainerF
     return curf;
 }
 
-HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
-        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
-        uint16_t name_len, uint16_t flags, const uint8_t *data, uint32_t len)
+HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start, uint64_t end,
+        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
+        uint16_t flags, const uint8_t *data, uint32_t len)
 {
     HttpRangeContainerBlock *r =
-            ContainerUrlRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
-    if (ContainerUrlRangeAppendData(r, data, len) < 0) {
+            HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
+    if (HttpRangeAppendData(r, data, len) < 0) {
         SCLogDebug("Failed to append data while openeing");
     }
     return r;
@@ -333,8 +333,7 @@ HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, ui
 /**
  * \note if we are called with a non-null c->container, it is locked
  */
-int ContainerUrlRangeProcessSkip(
-        HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len)
+int HttpRangeProcessSkip(HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len)
 {
     SCLogDebug("update toskip: adding %u bytes to block %p", (uint32_t)len, c);
     if (c->toskip >= len) {
@@ -354,7 +353,7 @@ int ContainerUrlRangeProcessSkip(
     return r;
 }
 
-int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len)
+int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len)
 {
     if (len == 0) {
         return 0;
@@ -384,7 +383,7 @@ int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data,
         return 0;
         // then check if we are skipping
     } else if (c->toskip > 0) {
-        return ContainerUrlRangeProcessSkip(c, data, len);
+        return HttpRangeProcessSkip(c, data, len);
     }
     // last we are ordered, simply append
     DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
@@ -392,7 +391,7 @@ int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data,
     return FileAppendData(c->container->files, data, len);
 }
 
-static void ContainerUrlRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
+static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
 {
     SCLogDebug("closing range %p flags %04x", c, flags);
     DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->hdata->use_cnt) == 0);
@@ -405,7 +404,7 @@ static void ContainerUrlRangeFileClose(HttpRangeContainerFile *c, uint16_t flags
 /**
  *  \note if `f` is non-NULL, the ownership of the file is transfered to the caller.
  */
-File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
+File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
 {
     SCLogDebug("c %p c->container %p c->current %p", c, c->container, c->current);
 
@@ -456,7 +455,7 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
         if (f->size == range->start) {
             // a new range just begins where we ended, append it
             if (FileAppendData(c->container->files, range->buffer, range->offset) != 0) {
-                ContainerUrlRangeFileClose(c->container, flags | FILE_TRUNCATED);
+                HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                 c->container->error = true;
                 return f;
             }
@@ -468,7 +467,7 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                 // in this case of overlap, only add the extra data
                 if (FileAppendData(c->container->files, range->buffer + overlap,
                             range->offset - overlap) != 0) {
-                    ContainerUrlRangeFileClose(c->container, flags | FILE_TRUNCATED);
+                    HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                     c->container->error = true;
                     return f;
                 }
@@ -483,7 +482,7 @@ File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
 
     if (f->size >= c->container->totalsize) {
         // we finished the whole file
-        ContainerUrlRangeFileClose(c->container, flags);
+        HttpRangeFileClose(c->container, flags);
     } else {
         // we are expecting more ranges
         f = NULL;

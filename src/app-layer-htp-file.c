@@ -332,7 +332,7 @@ int HTPFileOpenWithRange(HtpState *s, const uint8_t *filename, uint16_t filename
         return HTPFileOpen(
                 s, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
-    s->file_range = ContainerUrlRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
+    s->file_range = HttpRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
             crparsed.size, &s->cfg->response.sbcfg, filename, filename_len, flags, data, data_len);
     if (s->file_range == NULL) {
         SCLogDebug("s->file_range == NULL");
@@ -356,12 +356,12 @@ static void HTPFileStoreChunkHandleRange(
     if (c->container) {
         THashDataLock(c->container->hdata);
         BUG_ON(SC_ATOMIC_GET(c->container->hdata->use_cnt) == 0);
-        if (ContainerUrlRangeAppendData(c, data, data_len) < 0) {
+        if (HttpRangeAppendData(c, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
         THashDataUnlock(c->container->hdata);
     } else if (c->toskip > 0) {
-        if (ContainerUrlRangeProcessSkip(c, data, data_len) < 0) {
+        if (HttpRangeProcessSkip(c, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
@@ -428,10 +428,10 @@ static void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags,
         if (c->container->error) {
             SCLogDebug("range in ERROR state");
         }
-        if (ContainerUrlRangeAppendData(c, data, data_len) < 0) {
+        if (HttpRangeAppendData(c, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
-        File *ranged = ContainerUrlRangeClose(c, flags);
+        File *ranged = HttpRangeClose(c, flags);
         if (ranged) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
@@ -441,11 +441,11 @@ static void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags,
         THashDataUnlock(c->container->hdata);
     } else {
         if (c->toskip > 0) {
-            if (ContainerUrlRangeProcessSkip(c, data, data_len) < 0) {
+            if (HttpRangeProcessSkip(c, data, data_len) < 0) {
                 SCLogDebug("Failed to append data");
             }
         }
-        File *ranged = ContainerUrlRangeClose(c, flags);
+        File *ranged = HttpRangeClose(c, flags);
         if (ranged) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);

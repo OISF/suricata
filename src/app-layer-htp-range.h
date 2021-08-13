@@ -87,13 +87,12 @@ typedef struct HttpRangeContainerBlock {
     HttpRangeContainerFile *container;
 } HttpRangeContainerBlock;
 
-int ContainerUrlRangeProcessSkip(
-        HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len);
-int ContainerUrlRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
-File *ContainerUrlRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
+int HttpRangeProcessSkip(HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len);
+int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
+File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 
-HttpRangeContainerBlock *ContainerUrlRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
-        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
-        uint16_t name_len, uint16_t flags, const uint8_t *data, uint32_t len);
+HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start, uint64_t end,
+        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
+        uint16_t flags, const uint8_t *data, uint32_t len);
 
 #endif /* __APP_LAYER_HTP_RANGE_H__ */
