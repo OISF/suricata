@@ -392,17 +392,19 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
 
         Flow *next_flow = f->next;
 
-        counters->flows_timeout++;
-
         /* never prune a flow that is used by a packet we
          * are currently processing in one of the threads */
         if (f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters)) {
             FLOWLOCK_UNLOCK(f);
             prev_f = f;
-            counters->flows_timeout_inuse++;
+            if (f->use_cnt > 0) {
+                counters->flows_timeout_inuse++;
+            }
             f = f->next;
             continue;
         }
+
+        counters->flows_timeout++;
 
         RemoveFromHash(f, prev_f);
 
