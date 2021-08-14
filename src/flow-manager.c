@@ -208,6 +208,16 @@ static int FlowManagerFlowTimeout(Flow *f, struct timeval *ts, int32_t *next_ts,
     return 1;
 }
 
+/** \internal
+ *  \brief check timeout of captured bypassed flow by querying capture method
+ *
+ *  \param f Flow
+ *  \param ts timestamp
+ *  \param counters Flow timeout counters
+ *
+ *  \retval 0 not timeout
+ *  \retval 1 timeout (or not capture bypassed)
+ */
 static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
                                       FlowTimeoutCounters *counters)
 {
