@@ -33,6 +33,7 @@
 #include "util-byte.h"
 
 #include "util-hash-lookup3.h"
+#include "util-validate.h"
 
 static THashData *THashGetUsed(THashTableContext *ctx);
 static void THashDataEnqueue (THashDataQueue *q, THashData *h);
@@ -186,6 +187,8 @@ error:
 static void THashDataFree(THashTableContext *ctx, THashData *h)
 {
     if (h != NULL) {
+        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) != 0);
+
         if (h->data != NULL) {
             ctx->config.DataFree(h->data);
         }
