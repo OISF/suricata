@@ -168,6 +168,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
 {
     Flow *f;
     while ((f = FlowQueuePrivateGetFromTop(fq)) != NULL) {
+        FLOWLOCK_WRLOCK(f);
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
 
         const FlowStateType state = f->flow_state;
