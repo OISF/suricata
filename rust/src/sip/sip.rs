@@ -83,7 +83,7 @@ impl SIPState {
         let tx = self
             .transactions
             .iter()
-            .position(|ref tx| tx.id == tx_id + 1);
+            .position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -350,7 +350,7 @@ pub unsafe extern "C" fn rs_sip_parse_response(
 
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
 
-const PARSER_NAME: &'static [u8] = b"sip\0";
+const PARSER_NAME: &[u8] = b"sip\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_register_parser() {

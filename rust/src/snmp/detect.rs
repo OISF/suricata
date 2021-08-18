@@ -34,7 +34,7 @@ pub unsafe extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
 {
     match tx.community {
         Some(ref c) => {
-            *buf = (&c).as_ptr();
+            *buf = c.as_ptr();
             *len = c.len() as u32;
         },
         None        => ()

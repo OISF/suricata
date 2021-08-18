@@ -33,7 +33,8 @@ pub struct NbssRecord<'a> {
 
 impl<'a> NbssRecord<'a> {
     pub fn is_valid(&self) -> bool {
-        let valid = match self.message_type {
+        
+        match self.message_type {
             NBSS_MSGTYPE_SESSION_MESSAGE |
             NBSS_MSGTYPE_SESSION_REQUEST |
             NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE |
@@ -41,22 +42,16 @@ impl<'a> NbssRecord<'a> {
             NBSS_MSGTYPE_RETARG_RESPONSE |
             NBSS_MSGTYPE_KEEP_ALIVE => true,
             _ => false,
-        };
-        valid
+        }
     }
     pub fn needs_more(&self) -> bool {
         return self.is_valid() && self.length >= 4 && self.data.len() < 4;
     }
     pub fn is_smb(&self) -> bool {
         let valid = self.is_valid();
-        let smb = if self.data.len() >= 4 &&
-            self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8 &&
-            (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD')
-        {
-            true
-        } else {
-            false
-        };
+        let smb = self.data.len() >= 4 &&
+            self.data[1] == b'S' && self.data[2] == b'M' && self.data[3] == b'B' &&
+            (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD');
 
         valid && smb
     }
@@ -109,7 +104,7 @@ mod tests {
                            0x64, 0x0b, 0x66, 0xba, 0x4a, 0xbb, 0x81, 0xe1, 0xea,
                            0x54, 0xae, 0xb8, 0x66];
 
-        let result = parse_nbss_record(&buff);
+        let result = parse_nbss_record(buff);
         match result {
             Ok((remainder, p)) => {
                 assert_eq!(p.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);
@@ -152,7 +147,7 @@ mod tests {
                                0x64, 0x0b, 0x66, 0xba, 0x4a, 0xbb, 0x81, 0xe1, 0xea,
                                0x54, 0xae, 0xb8, 0x66];
 
-        let result_not_smb = parse_nbss_record(&buff_not_smb);
+        let result_not_smb = parse_nbss_record(buff_not_smb);
         match result_not_smb {
             Ok((remainder, p_not_smb)) => {
                 assert_eq!(p_not_smb.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);
@@ -193,7 +188,7 @@ mod tests {
                             0x02, 0x08, 0xbd, 0x20, 0x02, 0x08, 0x06, 0x00,
                             0x02, 0x40, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00];
 
-        let result = parse_nbss_record_partial(&buff);
+        let result = parse_nbss_record_partial(buff);
         match result {
             Ok((remainder, p)) => {
                 assert_eq!(p.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);

@@ -266,7 +266,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 {
     match unsafe {SURICATA_NFS_FILE_CONFIG} {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
+            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
         None => panic!("no SURICATA_NFS_FILE_CONFIG"),
     }
@@ -613,7 +613,7 @@ impl NFSState {
 
     pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
         // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
+        let is_last = w.stable == 2;
 
         let mut fill_bytes = 0;
         let pad = w.file_len % 4;
@@ -1214,7 +1214,7 @@ impl NFSState {
                             SCLogDebug!("large record {}, likely file xfer", rec_size);
 
                             // quick peek, are in READ mode?
-                            if self.peek_reply_record(&rpc_hdr) == NFSPROC3_READ {
+                            if self.peek_reply_record(rpc_hdr) == NFSPROC3_READ {
                                 SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
 
                                 // we should have enough data to parse the RPC record
@@ -1404,7 +1404,7 @@ pub unsafe extern "C" fn rs_nfs_parse_request(flow: *const Flow,
     let file_flags = FileFlowToFlags(flow, STREAM_TOSERVER);
     rs_nfs_setfileflags(STREAM_TOSERVER, state, file_flags);
 
-    if input.is_null() == true && input_len > 0 {
+    if input.is_null() && input_len > 0 {
         return rs_nfs_parse_request_tcp_gap(state, input_len);
     }
     let buf = std::slice::from_raw_parts(input, input_len as usize);
@@ -1438,7 +1438,7 @@ pub unsafe extern "C" fn rs_nfs_parse_response(flow: *const Flow,
     let file_flags = FileFlowToFlags(flow, STREAM_TOCLIENT);
     rs_nfs_setfileflags(STREAM_TOCLIENT, state, file_flags);
 
-    if input.is_null() == true && input_len > 0 {
+    if input.is_null() && input_len > 0 {
         return rs_nfs_parse_response_tcp_gap(state, input_len);
     }
     SCLogDebug!("parsing {} bytes of response data", input_len);
@@ -1916,7 +1916,7 @@ pub unsafe extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, 
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"nfs\0";
+const PARSER_NAME: &[u8] = b"nfs\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_register_parser() {
@@ -1965,7 +1965,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
-        if midstream == true {
+        if midstream {
             if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP as u8,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
                     rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {

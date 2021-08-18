@@ -45,10 +45,10 @@ fn convert_varint(continued: Vec<u8>, last: u8) -> u32 {
     let mut multiplier = 1u32;
     let mut value = 0u32;
     for val in &continued {
-        value = value + ((val & 127) as u32 * multiplier);
-        multiplier = multiplier * 128u32;
+        value += (val & 127) as u32 * multiplier;
+        multiplier *= 128u32;
     }
-    value = value + ((last & 127) as u32 * multiplier);
+    value += (last & 127) as u32 * multiplier;
     return value;
 }
 
@@ -59,7 +59,7 @@ named!(#[inline], pub parse_mqtt_string<String>,
            length: be_u16
            >> content: take!(length)
            >>  (
-                 String::from_utf8_lossy(&content).to_string()
+                 String::from_utf8_lossy(content).to_string()
                )
        ));
 
@@ -124,7 +124,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
                         props.push(val);
                         let curparselen = (newrem.len() - rem.len()) as u32;
                         proplen -= curparselen;
-                        newrem = &rem;
+                        newrem = rem;
                     }
                     Err(e) => return Err(e),
                 }
@@ -503,7 +503,7 @@ pub fn parse_message(input: &[u8], protocol_version: u8, max_msg_size: usize) ->
                 // In this case we return the full input buffer, since this is
                 // what the skipped_length value also refers to: header _and_
                 // remaining length.
-                return Ok((&input, msg));
+                return Ok((input, msg));
             }
 
             // We have not exceeded the maximum length limit, but still do not

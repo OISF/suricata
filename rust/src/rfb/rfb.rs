@@ -655,7 +655,7 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx_iterator(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"rfb\0";
+const PARSER_NAME: &[u8] = b"rfb\0";
 
 export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 

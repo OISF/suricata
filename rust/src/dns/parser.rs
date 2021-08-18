@@ -74,7 +74,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
             match length_data(be_u8)(pos) as IResult<&[u8],_> {
                 Ok((rem, label)) => {
                     if name.len() > 0 {
-                        name.push('.' as u8);
+                        name.push(b'.');
                     }
                     name.extend(label);
                     pos = rem;

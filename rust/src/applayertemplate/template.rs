@@ -324,11 +324,7 @@ pub unsafe extern "C" fn rs_template_parse_request(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> AppLayerResult {
-    let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
-        true
-    } else {
-        false
-    };
+    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
     if eof {
         // If needed, handle EOF, or pass it into the parser.
@@ -358,11 +354,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> AppLayerResult {
-    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-        true
-    } else {
-        false
-    };
+    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TemplateState);
 
     if input == std::ptr::null_mut() && input_len > 0 {
@@ -372,7 +364,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
         AppLayerResult::ok()
     } else {
         let buf = build_slice!(input, input_len as usize);
-        state.parse_response(buf).into()
+        state.parse_response(buf)
     }
 }
 
@@ -508,7 +500,7 @@ pub unsafe extern "C" fn rs_template_get_response_buffer(
 export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"template-rust\0";
+const PARSER_NAME: &[u8] = b"template-rust\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_register_parser() {

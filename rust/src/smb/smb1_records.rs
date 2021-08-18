@@ -372,7 +372,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let res = SmbRecordTransRequest {
         params: params, pipe: pipe, txname: n, data: recdata,
     };
-    Ok((&rem, res))
+    Ok((rem, res))
 }
 
 
@@ -582,7 +582,7 @@ pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
        >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,
                 create_options: create_options,
-                file_name: file_name.unwrap_or(Vec::new()),
+                file_name: file_name.unwrap_or_default(),
            }))
 }
 

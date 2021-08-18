@@ -209,14 +209,14 @@ pub fn handle_ikev2(
         }
         _e => {
             SCLogDebug!("parse_ikev2_payload_with_type: {:?}", _e);
-            ()
+            
         }
     }
     return AppLayerResult::ok();
 }
 
 fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8) {
-    for ref p in prop {
+    for p in prop {
         let transforms: Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
         // Rule 1: warn on weak or unknown transforms
         for xform in &transforms {
@@ -256,7 +256,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         IkeTransformAuthType::NONE => {
                             // Note: this could be expected with an AEAD encription alg.
                             // See rule 4
-                            ()
+                            
                         }
                         IkeTransformAuthType::AUTH_HMAC_MD5_96
                         | IkeTransformAuthType::AUTH_HMAC_SHA1_96
@@ -311,14 +311,12 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
             IkeV2Transform::Auth(IkeTransformAuthType::NONE) => false,
             IkeV2Transform::Auth(_) => true,
             _ => false,
-        }) {
-            if !transforms.iter().any(|x| match *x {
+        }) && !transforms.iter().any(|x| match *x {
                 IkeV2Transform::Encryption(ref enc) => enc.is_aead(),
                 _ => false,
             }) {
-                SCLogDebug!("No integrity transform found");
-                state.set_event(IkeEvent::WeakCryptoNoAuth);
-            }
+            SCLogDebug!("No integrity transform found");
+            state.set_event(IkeEvent::WeakCryptoNoAuth);
         }
         // Finally
         if direction == STREAM_TOCLIENT {

@@ -179,7 +179,7 @@ impl IKEState {
         let tx = self
             .transactions
             .iter()
-            .position(|ref tx| tx.tx_id == tx_id + 1);
+            .position(|tx| tx.tx_id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -522,8 +522,8 @@ pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ike\0";
-const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
+const PARSER_NAME: &[u8] = b"ike\0";
+const PARSER_ALIAS: &[u8] = b"ikev2\0";
 
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 

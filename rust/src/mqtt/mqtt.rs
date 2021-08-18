@@ -606,7 +606,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_request(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf).into();
+    return state.parse_request(buf);
 }
 
 #[no_mangle]
@@ -621,7 +621,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_response(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf).into();
+    return state.parse_response(buf);
 }
 
 #[no_mangle]
@@ -666,10 +666,8 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
             if tx.toserver {
                 return 1;
             }
-        } else if direction == core::STREAM_TOCLIENT {
-            if tx.toclient {
-                return 1;
-            }
+        } else if direction == core::STREAM_TOCLIENT && tx.toclient {
+            return 1;
         }
     }
     return 0;
@@ -781,7 +779,7 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx_iterator(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"mqtt\0";
+const PARSER_NAME: &[u8] = b"mqtt\0";
 
 export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
 

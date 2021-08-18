@@ -453,7 +453,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
 
     match &answer.data {
         DNSRData::A(addr) | DNSRData::AAAA(addr) => {
-            jsa.set_string("rdata", &dns_print_addr(&addr))?;
+            jsa.set_string("rdata", &dns_print_addr(addr))?;
         }
         DNSRData::CNAME(bytes) |
         DNSRData::MX(bytes) |
@@ -461,16 +461,16 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         DNSRData::TXT(bytes) |
         DNSRData::NULL(bytes) |
         DNSRData::PTR(bytes) => {
-            jsa.set_string_from_bytes("rdata", &bytes)?;
+            jsa.set_string_from_bytes("rdata", bytes)?;
         }
         DNSRData::SOA(soa) => {
-            jsa.set_object("soa", &dns_log_soa(&soa)?)?;
+            jsa.set_object("soa", &dns_log_soa(soa)?)?;
         }
         DNSRData::SSHFP(sshfp) => {
-            jsa.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
+            jsa.set_object("sshfp", &dns_log_sshfp(sshfp)?)?;
         }
         DNSRData::SRV(srv) => {
-            jsa.set_object("srv", &dns_log_srv(&srv)?)?;
+            jsa.set_object("srv", &dns_log_srv(srv)?)?;
         }
         _ => {}
     }
@@ -528,7 +528,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string(&dns_print_addr(&addr))?;
+                            a.append_string(&dns_print_addr(addr))?;
                         }
                     }
                     DNSRData::CNAME(bytes) |
@@ -542,7 +542,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string_from_bytes(&bytes)?;
+                            a.append_string_from_bytes(bytes)?;
                         }
                     },
                     DNSRData::SOA(soa) => {
@@ -551,7 +551,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_soa(&soa)?)?;
+                            a.append_object(&dns_log_soa(soa)?)?;
                         }
                     },
                     DNSRData::SSHFP(sshfp) => {
@@ -560,7 +560,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_sshfp(&sshfp)?)?;
+                            a.append_object(&dns_log_sshfp(sshfp)?)?;
                         }
                     },
                     DNSRData::SRV(srv) => {
@@ -569,7 +569,7 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_srv(&srv)?)?;
+                            a.append_object(&dns_log_srv(srv)?)?;
                         }
                     },
                     _ => {}
@@ -712,7 +712,7 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
 
     match &answer.data {
         DNSRData::A(addr) | DNSRData::AAAA(addr) => {
-            js.set_string("rdata", &dns_print_addr(&addr))?;
+            js.set_string("rdata", &dns_print_addr(addr))?;
         }
         DNSRData::CNAME(bytes) |
         DNSRData::MX(bytes) |
@@ -720,13 +720,13 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNSRData::TXT(bytes) |
         DNSRData::NULL(bytes) |
         DNSRData::PTR(bytes) => {
-            js.set_string_from_bytes("rdata", &bytes)?;
+            js.set_string_from_bytes("rdata", bytes)?;
         }
         DNSRData::SOA(soa) => {
-            js.set_object("soa", &dns_log_soa(&soa)?)?;
+            js.set_object("soa", &dns_log_soa(soa)?)?;
         }
         DNSRData::SSHFP(sshfp) => {
-            js.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
+            js.set_object("sshfp", &dns_log_sshfp(sshfp)?)?;
         }
         _ => {}
     }
@@ -742,7 +742,7 @@ fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
         return Ok(None);
     }
 
-    let ref query = r.queries[index];
+    let query = &r.queries[index];
 
     if !dns_log_rrtype_enabled(query.rrtype, flags) {
         return Ok(None);

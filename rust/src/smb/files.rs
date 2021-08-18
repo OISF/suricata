@@ -51,7 +51,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
+            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
@@ -174,8 +174,8 @@ impl SMBState {
                     }
 
                     let file_data = &data[0..data_to_handle_len];
-                    let cs = tdf.file_tracker.update(files, flags, file_data, gap_size);
-                    cs
+                    
+                    tdf.file_tracker.update(files, flags, file_data, gap_size)
                 } else {
                     0
                 }

@@ -132,7 +132,7 @@ impl NTPState {
     }
 
     fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
+        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -360,7 +360,7 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
 
 export_tx_data_get!(rs_ntp_get_tx_data, NTPTransaction);
 
-const PARSER_NAME : &'static [u8] = b"ntp\0";
+const PARSER_NAME : &[u8] = b"ntp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_ntp_parser() {

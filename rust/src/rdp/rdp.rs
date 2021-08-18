@@ -175,7 +175,7 @@ impl RdpState {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
-                match parse_tls_plaintext(&available) {
+                match parse_tls_plaintext(available) {
                     Ok((remainder, _tls)) => {
                         // bytes available for futher parsing are what remain
                         available = remainder;
@@ -195,7 +195,7 @@ impl RdpState {
                 }
             } else {
                 // every message should be encapsulated within a T.123 tpkt
-                match parse_t123_tpkt(&available) {
+                match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
                         // bytes available for futher parsing are what remain
@@ -268,7 +268,7 @@ impl RdpState {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
-                match parse_tls_plaintext(&available) {
+                match parse_tls_plaintext(available) {
                     Ok((remainder, tls)) => {
                         // bytes available for futher parsing are what remain
                         available = remainder;
@@ -307,7 +307,7 @@ impl RdpState {
                 }
             } else {
                 // every message should be encapsulated within a T.123 tpkt
-                match parse_t123_tpkt(&available) {
+                match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
                         // bytes available for futher parsing are what remain
@@ -461,7 +461,7 @@ export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);
 // registration
 //
 
-const PARSER_NAME: &'static [u8] = b"rdp\0";
+const PARSER_NAME: &[u8] = b"rdp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_register_parser() {
@@ -518,25 +518,25 @@ mod tests {
     #[test]
     fn test_probe_rdp() {
         let buf: &[u8] = &[0x03, 0x00];
-        assert_eq!(true, probe_rdp(&buf));
+        assert_eq!(true, probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_rdp_other() {
         let buf: &[u8] = &[0x04, 0x00];
-        assert_eq!(false, probe_rdp(&buf));
+        assert_eq!(false, probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake() {
         let buf: &[u8] = &[0x16, 0x00];
-        assert_eq!(true, probe_tls_handshake(&buf));
+        assert_eq!(true, probe_tls_handshake(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake_other() {
         let buf: &[u8] = &[0x17, 0x00];
-        assert_eq!(false, probe_tls_handshake(&buf));
+        assert_eq!(false, probe_tls_handshake(buf));
     }
 
     #[test]
@@ -549,10 +549,10 @@ mod tests {
         ];
         let mut state = RdpState::new();
         // will consume 0, request length + 1
-        assert_eq!(AppLayerResult::incomplete(0, 9), state.parse_ts(&buf_1));
+        assert_eq!(AppLayerResult::incomplete(0, 9), state.parse_ts(buf_1));
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
-        assert_eq!(AppLayerResult::ok(), state.parse_ts(&buf_2));
+        assert_eq!(AppLayerResult::ok(), state.parse_ts(buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
             cdt: 0,
@@ -573,7 +573,7 @@ mod tests {
     fn test_parse_ts_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_ts(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_ts(buf));
     }
 
     #[test]
@@ -582,10 +582,10 @@ mod tests {
         let buf_2: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02, 0xf0, 0x80, 0x7f, 0x66];
         let mut state = RdpState::new();
         // will consume 0, request length + 1
-        assert_eq!(AppLayerResult::incomplete(0, 6), state.parse_tc(&buf_1));
+        assert_eq!(AppLayerResult::incomplete(0, 6), state.parse_tc(buf_1));
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
-        assert_eq!(AppLayerResult::ok(), state.parse_tc(&buf_2));
+        assert_eq!(AppLayerResult::ok(), state.parse_tc(buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
         assert_eq!(item, state.transactions[0].item);
@@ -595,7 +595,7 @@ mod tests {
     fn test_parse_tc_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_tc(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_tc(buf));
     }
 
     #[test]

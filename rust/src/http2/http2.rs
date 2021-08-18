@@ -281,10 +281,8 @@ impl HTTP2Transaction {
                         if self.state < HTTP2TransactionState::HTTP2StateDataClient {
                             self.state = HTTP2TransactionState::HTTP2StateDataClient;
                         }
-                    } else {
-                        if self.state < HTTP2TransactionState::HTTP2StateDataServer {
-                            self.state = HTTP2TransactionState::HTTP2StateDataServer;
-                        }
+                    } else if self.state < HTTP2TransactionState::HTTP2StateDataServer {
+                        self.state = HTTP2TransactionState::HTTP2StateDataServer;
                     }
                 }
             }
@@ -889,7 +887,7 @@ impl HTTP2State {
                 self.progress = HTTP2ConnectionState::Http2StateMagicDone;
             } else {
                 //still more buffer
-                return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
+                return AppLayerResult::incomplete(0_u32, HTTP2_MAGIC_LEN as u32);
             }
         }
         //first consume frame bytes
@@ -1037,7 +1035,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
     let buf = build_slice!(input, input_len as usize);
 
     state.files.flags_ts = FileFlowToFlags(flow, STREAM_TOSERVER);
-    state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
+    state.files.flags_ts |= FILE_USE_DETECT;
     return state.parse_ts(buf);
 }
 
@@ -1049,7 +1047,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
     state.files.flags_tc = FileFlowToFlags(flow, STREAM_TOCLIENT);
-    state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
+    state.files.flags_tc |= FILE_USE_DETECT;
     return state.parse_tc(buf);
 }
 
@@ -1183,7 +1181,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"http2\0";
+const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {

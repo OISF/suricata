@@ -291,7 +291,7 @@ impl SSHState {
                     return r;
                 }
                 Err(nom::Err::Incomplete(_)) => {
-                    return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
+                    return AppLayerResult::incomplete(0_u32, (input.len() + 1) as u32);
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
@@ -331,7 +331,7 @@ impl SSHState {
             Err(nom::Err::Incomplete(_)) => {
                 if input.len() < SSH_MAX_BANNER_LEN {
                     //0 consumed, needs at least one more byte
-                    return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
+                    return AppLayerResult::incomplete(0_u32, (input.len() + 1) as u32);
                 } else {
                     SCLogDebug!(
                         "SSH banner too long {} vs {} and waiting for eol",
@@ -510,17 +510,15 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
         if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
-    } else {
-        if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-            return SSHConnectionState::SshStateBannerDone as i32;
-        }
+    } else if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
+        return SSHConnectionState::SshStateBannerDone as i32;
     }
 
     return SSHConnectionState::SshStateInProgress as i32;
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ssh\0";
+const PARSER_NAME: &[u8] = b"ssh\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_register_parser() {
@@ -593,11 +591,9 @@ pub unsafe extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_v
             return true; 
         }
     }
-    else {
-        if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
-            tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
-            return true;
-        }
+    else if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
+        tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+        return true;
     }
     return false;
 }

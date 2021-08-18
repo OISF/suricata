@@ -126,7 +126,7 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
 fn http2_tx_get_next_priority(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
@@ -134,7 +134,7 @@ fn http2_tx_get_next_priority(
                     if pos == nb {
                         return prio.weight as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -142,7 +142,7 @@ fn http2_tx_get_next_priority(
                         if pos == nb {
                             return prio.weight as i32;
                         } else {
-                            pos = pos + 1;
+                            pos += 1;
                         }
                     }
                 }
@@ -156,7 +156,7 @@ fn http2_tx_get_next_priority(
                     if pos == nb {
                         return prio.weight as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 HTTP2FrameTypeData::HEADERS(hd) => {
@@ -164,7 +164,7 @@ fn http2_tx_get_next_priority(
                         if pos == nb {
                             return prio.weight as i32;
                         } else {
-                            pos = pos + 1;
+                            pos += 1;
                         }
                     }
                 }
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
 fn http2_tx_get_next_window(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32,
 ) -> std::os::raw::c_int {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match tx.frames_ts[i].data {
@@ -194,7 +194,7 @@ fn http2_tx_get_next_window(
                     if pos == nb {
                         return wu.sizeinc as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 _ => {}
@@ -207,7 +207,7 @@ fn http2_tx_get_next_window(
                     if pos == nb {
                         return wu.sizeinc as i32;
                     } else {
-                        pos = pos + 1;
+                        pos += 1;
                     }
                 }
                 _ => {}
@@ -289,7 +289,7 @@ fn http2_detect_settingsctx_match(
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(&set, ctx) != 0 {
+                    if http2_detect_settings_match(set, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -300,7 +300,7 @@ fn http2_detect_settingsctx_match(
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(&set, ctx) != 0 {
+                    if http2_detect_settings_match(set, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -390,7 +390,7 @@ fn http2_detect_sizeupdatectx_match(
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
-                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                    if http2_detect_sizeupdate_match(hd, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -401,7 +401,7 @@ fn http2_detect_sizeupdatectx_match(
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
-                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                    if http2_detect_sizeupdate_match(hd, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
@@ -438,7 +438,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + hd.blocks.len() as u32;
+                        pos += hd.blocks.len() as u32;
                     }
                 }
                 _ => {}
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + hd.blocks.len() as u32;
+                        pos += hd.blocks.len() as u32;
                     }
                 }
                 _ => {}
@@ -572,12 +572,10 @@ pub unsafe extern "C" fn rs_http2_tx_get_cookie(
             *buffer_len = value.len() as u32;
             return 1;
         }
-    } else {
-        if let Ok(value) = http2_frames_get_header_value(&tx.frames_tc, "set-cookie") {
-            *buffer = value.as_ptr(); //unsafe
-            *buffer_len = value.len() as u32;
-            return 1;
-        }
+    } else if let Ok(value) = http2_frames_get_header_value(&tx.frames_tc, "set-cookie") {
+        *buffer = value.as_ptr(); //unsafe
+        *buffer_len = value.len() as u32;
+        return 1;
     }
     return 0;
 }
@@ -609,16 +607,16 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
     let mut vec = Vec::with_capacity(normalsize);
     for j in 0..hd.blocks[i as usize].name.len() {
         vec.push(hd.blocks[i as usize].name[j]);
-        if hd.blocks[i as usize].name[j] == ':' as u8 {
-            vec.push(':' as u8);
+        if hd.blocks[i as usize].name[j] == b':' {
+            vec.push(b':');
         }
     }
-    vec.push(':' as u8);
-    vec.push(' ' as u8);
+    vec.push(b':');
+    vec.push(b' ');
     for j in 0..hd.blocks[i as usize].value.len() {
         vec.push(hd.blocks[i as usize].value[j]);
-        if hd.blocks[i as usize].value[j] == ':' as u8 {
-            vec.push(':' as u8);
+        if hd.blocks[i as usize].value[j] == b':' {
+            vec.push(b':');
         }
     }
     return vec;
@@ -628,13 +626,13 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
 pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    let mut pos = 0 as u32;
+    let mut pos = 0_u32;
     if direction & STREAM_TOSERVER != 0 {
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        let ehdr = http2_escape_header(hd, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];
@@ -642,7 +640,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + hd.blocks.len() as u32;
+                        pos += hd.blocks.len() as u32;
                     }
                 }
                 _ => {}
@@ -653,7 +651,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        let ehdr = http2_escape_header(hd, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];
@@ -661,7 +659,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         *buffer_len = value.len() as u32;
                         return 1;
                     } else {
-                        pos = pos + hd.blocks.len() as u32;
+                        pos += hd.blocks.len() as u32;
                     }
                 }
                 _ => {}

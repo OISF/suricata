@@ -189,7 +189,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
 
             /* if this isn't the first frag, simply update the existing
              * tx with the additional stub data */
-            if dcer.packet_type == DCERPC_TYPE_REQUEST && dcer.first_frag == false {
+            if dcer.packet_type == DCERPC_TYPE_REQUEST && !dcer.first_frag {
                 SCLogDebug!("NOT the first frag. Need to find an existing TX");
                 match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
                     Ok((_, recr)) => {
@@ -199,7 +199,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                                         dcer.packet_type, tx.id, tx);
                                 if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                     SCLogDebug!("additional frag of size {}", recr.data.len());
-                                    tdn.stub_data_ts.extend_from_slice(&recr.data);
+                                    tdn.stub_data_ts.extend_from_slice(recr.data);
                                     tdn.frag_cnt_ts += 1;
                                     SCLogDebug!("stub_data now {}", tdn.stub_data_ts.len());
                                 }
@@ -233,7 +233,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             SCLogDebug!("DCERPC: REQUEST {:?}", recr);
                             if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                 SCLogDebug!("first frag size {}", recr.data.len());
-                                tdn.stub_data_ts.extend_from_slice(&recr.data);
+                                tdn.stub_data_ts.extend_from_slice(recr.data);
                                 tdn.opnum = recr.opnum;
                                 tdn.frag_cnt_ts += 1;
                                 SCLogDebug!("DCERPC: REQUEST opnum {} stub data len {}",
@@ -252,7 +252,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                     }
                 },
                 DCERPC_TYPE_BIND => {
-                    let brec = if dcer.little_endian == true {
+                    let brec = if dcer.little_endian {
                         parse_dcerpc_bind_record(dcer.data)
                     } else {
                         parse_dcerpc_bind_record_big(dcer.data)
@@ -264,7 +264,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             if bindr.ifaces.len() > 0 {
                                 let mut ifaces: Vec<DCERPCIface> = Vec::new();
                                 for i in bindr.ifaces {
-                                    let x = if dcer.little_endian == true {
+                                    let x = if dcer.little_endian {
                                         vec![i.iface[3],  i.iface[2],  i.iface[1],  i.iface[0],
                                              i.iface[5],  i.iface[4],  i.iface[7],  i.iface[6],
                                              i.iface[8],  i.iface[9],  i.iface[10], i.iface[11],
@@ -343,7 +343,7 @@ fn smb_dcerpc_response_bindack(
                             }
                             ifaces[i].ack_result = r.ack_result;
                             ifaces[i].acked = true;
-                            i = i + 1;
+                            i += 1;
                         }
                     },
                     _ => {},
@@ -397,7 +397,7 @@ fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
                     if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                         SCLogDebug!("CMD 11 found at tx {}", tx.id);
                         tdn.set_result(DCERPC_TYPE_RESPONSE);
-                        tdn.stub_data_tc.extend_from_slice(&respr.data);
+                        tdn.stub_data_tc.extend_from_slice(respr.data);
                         tdn.frag_cnt_tc += 1;
                     }
                     tx.vercmd.set_ntstatus(ntstatus);
@@ -446,13 +446,13 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
     SCLogDebug!("lets first see if we have prior data");
     // msg_id 0 as this data crosses cmd/reply pairs
     let ehdr = SMBHashKeyHdrGuid::new(SMBCommonHdr::new(SMBHDR_TYPE_TRANS_FRAG,
-            hdr.ssn_id as u64, hdr.tree_id as u32, 0 as u64), guid.to_vec());
+            hdr.ssn_id as u64, hdr.tree_id as u32, 0_u64), guid.to_vec());
     let mut prevdata = match state.ssnguid2vec_map.remove(&ehdr) {
         Some(s) => s,
         None => Vec::new(),
     };
     SCLogDebug!("indata {} prevdata {}", indata.len(), prevdata.len());
-    prevdata.extend_from_slice(&indata);
+    prevdata.extend_from_slice(indata);
     let data = prevdata;
 
     let mut malformed = false;

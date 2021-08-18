@@ -180,7 +180,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 if share_name.len() == 0 && !is_pipe {
                     SCLogDebug!("SMBv2/READ: no tree connect seen, we don't know if we are a pipe");
 
-                    if smb_dcerpc_probe(rd.data) == true {
+                    if smb_dcerpc_probe(rd.data) {
                         SCLogDebug!("SMBv2/READ: looks like dcerpc");
                         // insert fake tree to assist in follow up lookups
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
@@ -280,7 +280,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     _ => { (Vec::new(), false) },
                 };
                 let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
-                    match state.get_service_for_guid(&wr.guid) {
+                    match state.get_service_for_guid(wr.guid) {
                         (_, x) => x,
                     }
                 } else {
@@ -293,7 +293,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 if share_name.len() == 0 && !is_pipe {
                     SCLogDebug!("SMBv2/WRITE: no tree connect seen, we don't know if we are a pipe");
 
-                    if smb_dcerpc_probe(wr.data) == true {
+                    if smb_dcerpc_probe(wr.data) {
                         SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
 
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
@@ -498,7 +498,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, &r);
+            smb2_write_request_record(state, r);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
@@ -547,14 +547,12 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
     };
     /* if we don't have a tx, create it here (maybe) */
-    if !have_tx {
-        if smb2_create_new_tx(r.command) {
-            let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(2, r.command, tx_key);
-            SCLogDebug!("TS TX {} command {} created with session_id {} tree_id {} message_id {}",
-                    tx.id, r.command, r.session_id, r.tree_id, r.message_id);
-            tx.set_events(events);
-        }
+    if !have_tx && smb2_create_new_tx(r.command) {
+        let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(2, r.command, tx_key);
+        SCLogDebug!("TS TX {} command {} created with session_id {} tree_id {} message_id {}",
+                tx.id, r.command, r.session_id, r.tree_id, r.message_id);
+        tx.set_events(events);
     }
 }
 
@@ -604,7 +602,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_READ => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS ||
                r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                smb2_read_response_record(state, &r);
+                smb2_read_response_record(state, r);
                 false
 
             } else if r.nt_status == SMB_NTSTATUS_END_OF_FILE {

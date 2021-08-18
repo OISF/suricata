@@ -126,7 +126,7 @@ fn match_backuuid(
                 }
             }
             let ctxid = tx.get_req_ctxid();
-            ret = ret & ((uuidentry.ctxid == ctxid) as u8);
+            ret &= (uuidentry.ctxid == ctxid) as u8;
             if ret == 0 {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;
@@ -280,7 +280,7 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_iface_data(&arg) {
+    match parse_iface_data(arg) {
         Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }
@@ -327,7 +327,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_opnum_data(&arg) {
+    match parse_opnum_data(arg) {
         Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }

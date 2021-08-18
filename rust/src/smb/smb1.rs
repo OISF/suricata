@@ -148,7 +148,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
 {
     // we can have created 2 txs for a FID: one for reads
     // and one for writes. So close both.
-    match state.get_file_tx_by_fuid(&fid, STREAM_TOSERVER) {
+    match state.get_file_tx_by_fuid(fid, STREAM_TOSERVER) {
         Some((tx, files, flags)) => {
             SCLogDebug!("found tx {}", tx.id);
             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -163,7 +163,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
         },
         None => { },
     }
-    match state.get_file_tx_by_fuid(&fid, STREAM_TOCLIENT) {
+    match state.get_file_tx_by_fuid(fid, STREAM_TOCLIENT) {
         Some((tx, files, flags)) => {
             SCLogDebug!("found tx {}", tx.id);
             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -582,15 +582,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
             false
         },
     };
-    if !have_tx {
-        if smb1_create_new_tx(command) {
-            let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-            let tx = state.new_generic_tx(1, command as u16, tx_key);
-            SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
-            tx.set_events(events);
-            if no_response_expected {
-                tx.response_done = true;
-            }
+    if !have_tx && smb1_create_new_tx(command) {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(1, command as u16, tx_key);
+        SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
+        tx.set_events(events);
+        if no_response_expected {
+            tx.response_done = true;
         }
     }
     return 0;
@@ -634,7 +632,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
 
     let have_tx = match command {
         SMB1_COMMAND_READ_ANDX => {
-            smb1_read_response_record(state, &r, *andx_offset);
+            smb1_read_response_record(state, r, *andx_offset);
             true // tx handling in func
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -895,7 +893,7 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 SCLogDebug!("SMBv1 TRANS TO PIPE");
                 let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
                 let vercmd = SMBVerCmdStat::new1(r.command);
-                smb_write_dcerpc_record(state, vercmd, hdr, &rd.data.data);
+                smb_write_dcerpc_record(state, vercmd, hdr, rd.data.data);
             }
         },
         _ => {
@@ -940,7 +938,7 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 SCLogDebug!("SMBv1 TRANS TO PIPE");
                 let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
                 let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
-                smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
+                smb_read_dcerpc_record(state, vercmd, hdr, &fid, rd.data);
             }
         },
         _ => {
@@ -1004,7 +1002,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     SCLogDebug!("SMBv1 WRITE TO PIPE");
                     let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
                     let vercmd = SMBVerCmdStat::new1_with_ntstatus(command, r.nt_status);
-                    smb_write_dcerpc_record(state, vercmd, hdr, &rd.data);
+                    smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
                 } else {
                     let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOSERVER);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -1113,7 +1111,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     // hack: we store fid with ssn id mixed in, but here we want the
                     // real thing instead.
                     let pure_fid = if file_fid.len() > 2 { &file_fid[0..2] } else { &[] };
-                    smb_read_dcerpc_record(state, vercmd, hdr, &pure_fid, &rd.data);
+                    smb_read_dcerpc_record(state, vercmd, hdr, pure_fid, rd.data);
                 }
 
                 state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_fid.to_vec());

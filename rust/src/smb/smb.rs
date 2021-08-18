@@ -1000,11 +1000,7 @@ impl SMBState {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
-                    if x.smb_ver == smb_ver {
-                        true
-                    } else {
-                        false
-                    }
+                    x.smb_ver == smb_ver
                 },
                 _ => { false },
             };
@@ -1073,7 +1069,7 @@ impl SMBState {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::CREATE(ref _d)) => {
-                    tx.hdr.compare(&hdr)
+                    tx.hdr.compare(hdr)
                 },
                 _ => { false },
             };
@@ -1116,7 +1112,7 @@ impl SMBState {
             _ => { ("UNKNOWN", false) },
         };
         SCLogDebug!("service {} is_dcerpc {}", name, is_dcerpc);
-        (&name, is_dcerpc)
+        (name, is_dcerpc)
     }
 
     fn post_gap_housekeeping_for_files(&mut self)
@@ -1268,12 +1264,12 @@ impl SMBState {
             Ok((output, ref nbss_part_hdr)) => {
                 SCLogDebug!("parse_nbss_record_partial ok, output len {}", output.len());
                 if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
-                    match parse_smb_version(&nbss_part_hdr.data) {
+                    match parse_smb_version(nbss_part_hdr.data) {
                         Ok((_, ref smb)) => {
                             SCLogDebug!("SMB {:?}", smb);
                             if smb.version == 0xff_u8 { // SMB1
                                 SCLogDebug!("SMBv1 record");
-                                match parse_smb_record(&nbss_part_hdr.data) {
+                                match parse_smb_record(nbss_part_hdr.data) {
                                     Ok((_, ref r)) => {
                                         if r.command == SMB1_COMMAND_WRITE_ANDX {
                                             // see if it's a write to a pipe. We only handle those
@@ -1298,7 +1294,7 @@ impl SMBState {
                             } else if smb.version == 0xfe_u8 { // SMB2
                                 SCLogDebug!("NBSS record {:?}", nbss_part_hdr);
                                 SCLogDebug!("SMBv2 record");
-                                match parse_smb2_request_record(&nbss_part_hdr.data) {
+                                match parse_smb2_request_record(nbss_part_hdr.data) {
                                     Ok((_, ref smb_record)) => {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
@@ -1372,7 +1368,7 @@ impl SMBState {
                         if consumed < 4 {
                             consumed = 0;
                         } else {
-                            consumed = consumed - 3;
+                            consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed as u32, 8);
@@ -1386,12 +1382,12 @@ impl SMBState {
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
                         // let's parse it
-                        match parse_smb_version(&nbss_hdr.data) {
+                        match parse_smb_version(nbss_hdr.data) {
                             Ok((_, ref smb)) => {
                                 SCLogDebug!("SMB {:?}", smb);
                                 if smb.version == 0xff_u8 { // SMB1
                                     SCLogDebug!("SMBv1 record");
-                                    match parse_smb_record(&nbss_hdr.data) {
+                                    match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
                                             smb1_request_record(self, smb_record);
                                         },
@@ -1404,7 +1400,7 @@ impl SMBState {
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv2 record");
-                                        match parse_smb2_request_record(&nbss_data) {
+                                        match parse_smb2_request_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
 
@@ -1421,7 +1417,7 @@ impl SMBState {
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv3 transform record");
-                                        match parse_smb3_transform_record(&nbss_data) {
+                                        match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {
                                                 nbss_data = nbss_data_rem;
                                             },
@@ -1510,12 +1506,12 @@ impl SMBState {
             Ok((output, ref nbss_part_hdr)) => {
                 SCLogDebug!("parse_nbss_record_partial ok, output len {}", output.len());
                 if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
-                    match parse_smb_version(&nbss_part_hdr.data) {
+                    match parse_smb_version(nbss_part_hdr.data) {
                         Ok((_, ref smb)) => {
                             SCLogDebug!("SMB {:?}", smb);
                             if smb.version == 255u8 { // SMB1
                                 SCLogDebug!("SMBv1 record");
-                                match parse_smb_record(&nbss_part_hdr.data) {
+                                match parse_smb_record(nbss_part_hdr.data) {
                                     Ok((_, ref r)) => {
                                         SCLogDebug!("SMB1: partial record {}",
                                                 r.command);
@@ -1538,7 +1534,7 @@ impl SMBState {
                                 }
                             } else if smb.version == 254u8 { // SMB2
                                 SCLogDebug!("SMBv2 record");
-                                match parse_smb2_response_record(&nbss_part_hdr.data) {
+                                match parse_smb2_response_record(nbss_part_hdr.data) {
                                     Ok((_, ref smb_record)) => {
                                         SCLogDebug!("SMB2: partial record {}",
                                                 &smb2_command_string(smb_record.command));
@@ -1611,7 +1607,7 @@ impl SMBState {
                         if consumed < 4 {
                             consumed = 0;
                         } else {
-                            consumed = consumed - 3;
+                            consumed -= 3;
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed as u32, 8);
@@ -1625,12 +1621,12 @@ impl SMBState {
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
                         // let's parse it
-                        match parse_smb_version(&nbss_hdr.data) {
+                        match parse_smb_version(nbss_hdr.data) {
                             Ok((_, ref smb)) => {
                                 SCLogDebug!("SMB {:?}", smb);
                                 if smb.version == 0xff_u8 { // SMB1
                                     SCLogDebug!("SMBv1 record");
-                                    match parse_smb_record(&nbss_hdr.data) {
+                                    match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
                                             smb1_response_record(self, smb_record);
                                         },
@@ -1643,7 +1639,7 @@ impl SMBState {
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv2 record");
-                                        match parse_smb2_response_record(&nbss_data) {
+                                        match parse_smb2_response_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 smb2_response_record(self, smb_record);
                                                 nbss_data = nbss_data_rem;
@@ -1658,7 +1654,7 @@ impl SMBState {
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv3 transform record");
-                                        match parse_smb3_transform_record(&nbss_data) {
+                                        match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {
                                                 nbss_data = nbss_data_rem;
                                             },
@@ -1891,7 +1887,7 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
 fn smb_probe_tcp_midstream(direction: u8, slice: &[u8], rdir: *mut u8) -> i8
 {
     match search_smb_record(slice) {
-        Ok((_, ref data)) => {
+        Ok((_, data)) => {
             SCLogDebug!("smb found");
             match parse_smb_version(data) {
                 Ok((_, ref smb)) => {
@@ -1962,10 +1958,8 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
         return ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
-    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM {
-        if smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
-            return ALPROTO_SMB;
-        }
+    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM && smb_probe_tcp_midstream(flags, slice, rdir) == 1 {
+        return ALPROTO_SMB;
     }
     match parse_nbss_record_partial(slice) {
         Ok((_, ref hdr)) => {
@@ -2239,7 +2233,7 @@ fn register_pattern_probe() -> i8 {
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"smb\0";
+const PARSER_NAME: &[u8] = b"smb\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_register_parser() {

@@ -384,7 +384,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx_iterator(
 
 export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
 
-const PARSER_NAME: &'static [u8] = b"dhcp\0";
+const PARSER_NAME: &[u8] = b"dhcp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_register_parser() {

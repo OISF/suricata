@@ -131,7 +131,7 @@ impl<'a> SNMPState<'a> {
             SnmpPdu::Bulk(_) => {
             },
             SnmpPdu::TrapV1(ref t)    => {
-                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr.clone()));
+                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr));
             }
         }
 
@@ -170,7 +170,7 @@ impl<'a> SNMPState<'a> {
         }
         match msg.security_params {
             SecurityParameters::USM(usm) => {
-                tx.usm = Some(usm.msg_user_name.clone());
+                tx.usm = Some(usm.msg_user_name);
             },
             _                            => {
                 self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
@@ -218,7 +218,7 @@ impl<'a> SNMPState<'a> {
     }
 
     fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
+        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -537,7 +537,7 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
 
 export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
 
-const PARSER_NAME : &'static [u8] = b"snmp\0";
+const PARSER_NAME : &[u8] = b"snmp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_snmp_parser() {

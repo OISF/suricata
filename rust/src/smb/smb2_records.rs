@@ -545,5 +545,5 @@ pub fn search_smb_record<'a>(i: &'a [u8]) -> nom::IResult<&'a [u8], &'a [u8]> {
         }
         d = &d[1..];
     }
-    Err(nom::Err::Incomplete(nom::Needed::Size(4 as usize - d.len())))
+    Err(nom::Err::Incomplete(nom::Needed::Size(4_usize - d.len())))
 }

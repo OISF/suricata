@@ -32,13 +32,13 @@ fn log(tx: &ModbusTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 
     if let Some(req) = &tx.request {
         js.open_object("request")?;
-        log_message(&req, js)?;
+        log_message(req, js)?;
         js.close()?;
     }
 
     if let Some(resp) = &tx.response {
         js.open_object("response")?;
-        log_message(&resp, js)?;
+        log_message(resp, js)?;
         js.close()?;
     }
 
@@ -67,14 +67,14 @@ fn log_message(msg: &Message, js: &mut JsonBuilder) -> Result<(), JsonError> {
             js.open_object("diagnostic")?;
             js.set_uint("raw", func.raw.into())?;
             js.set_string("code", &func.code.to_string())?;
-            js.set_string_from_bytes("data", &data)?;
+            js.set_string_from_bytes("data", data)?;
             js.close()?;
         }
         Data::MEI { mei_type, data } => {
             js.open_object("mei")?;
             js.set_uint("raw", mei_type.raw.into())?;
             js.set_string("code", &mei_type.code.to_string())?;
-            js.set_string_from_bytes("data", &data)?;
+            js.set_string_from_bytes("data", data)?;
             js.close()?;
         }
         Data::Read(read) => {
@@ -96,7 +96,7 @@ fn log_message(msg: &Message, js: &mut JsonBuilder) -> Result<(), JsonError> {
             js.close()?;
         }
         Data::ByteVec(data) => {
-            js.set_string_from_bytes("data", &data)?;
+            js.set_string_from_bytes("data", data)?;
         }
         Data::Empty => {}
     }
@@ -111,7 +111,7 @@ fn log_read(read: &Read, js: &mut JsonBuilder) -> Result<(), JsonError> {
             js.set_uint("quantity", (*quantity).into())?;
         }
         Read::Response(data) => {
-            js.set_string_from_bytes("data", &data)?;
+            js.set_string_from_bytes("data", data)?;
         }
     }
 
@@ -127,7 +127,7 @@ fn log_write(write: &Write, js: &mut JsonBuilder) -> Result<(), JsonError> {
         } => {
             js.set_uint("address", (*address).into())?;
             js.set_uint("quantity", (*quantity).into())?;
-            js.set_string_from_bytes("data", &data)?;
+            js.set_string_from_bytes("data", data)?;
         }
         Write::Mask {
             address,

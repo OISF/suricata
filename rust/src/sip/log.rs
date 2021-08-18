@@ -30,7 +30,7 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     }
 
     if let Some(req_line) = &tx.request_line {
-        js.set_string("request_line", &req_line)?;
+        js.set_string("request_line", req_line)?;
     }
 
     if let Some(resp) = &tx.response {
@@ -40,7 +40,7 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     }
 
     if let Some(resp_line) = &tx.response_line {
-        js.set_string("response_line", &resp_line)?;
+        js.set_string("response_line", resp_line)?;
     }
 
     js.close()?;

@@ -27,13 +27,13 @@ use der_parser::der::{parse_der_oid, parse_der_sequence};
 
 fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8], SecBlobError>
 {
-    let (rem, base_o) = der_parser::parse_der(blob).map_err(|e| nom::Err::convert(e))?;
+    let (rem, base_o) = der_parser::parse_der(blob).map_err(nom::Err::convert)?;
     SCLogDebug!("parse_secblob_get_spnego: base_o {:?}", base_o);
     let d = match base_o.content.as_slice() {
         Err(_) => { return Err(nom::Err::Error(SecBlobError::NotSpNego)); },
         Ok(d) => d,
     };
-    let (next, o) = parse_der_oid(d).map_err(|e| nom::Err::convert(e))?;
+    let (next, o) = parse_der_oid(d).map_err(nom::Err::convert)?;
     SCLogDebug!("parse_secblob_get_spnego: sub_o {:?}", o);
 
     let oid = match o.content.as_oid() {
@@ -60,7 +60,7 @@ fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8], SecBlobError>
 
 fn parse_secblob_spnego_start(blob: &[u8]) -> IResult<&[u8], &[u8], SecBlobError>
 {
-    let (rem, o) = der_parser::parse_der(blob).map_err(|e| nom::Err::convert(e))?;
+    let (rem, o) = der_parser::parse_der(blob).map_err(nom::Err::convert)?;
     let d = match o.content.as_slice() {
         Ok(d) => {
             SCLogDebug!("d: next data len {}",d.len());
@@ -123,7 +123,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
                     }
                 }
             },
-            BerObjectContent::OctetString(ref os) => {
+            BerObjectContent::OctetString(os) => {
                 if have_kerberos {
                     match parse_kerberos5_request(os) {
                         Ok((_, t)) => {
