@@ -325,7 +325,7 @@ impl ModbusState {
 
 /// Probe input to see if it looks like Modbus.
 #[no_mangle]
-pub extern "C" fn rs_modbus_probe(
+pub extern fn rs_modbus_probe(
     _flow: *const core::Flow, _direction: u8, input: *const u8, len: u32, _rdir: *mut u8,
 ) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
@@ -337,25 +337,25 @@ pub extern "C" fn rs_modbus_probe(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_modbus_state_new(
+pub extern fn rs_modbus_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     Box::into_raw(Box::new(ModbusState::new())) as *mut std::os::raw::c_void
 }
 
 #[no_mangle]
-pub extern "C" fn rs_modbus_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_modbus_state_free(state: *mut std::os::raw::c_void) {
     let _state: Box<ModbusState> = unsafe { Box::from_raw(state as *mut ModbusState) };
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, ModbusState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_parse_request(
+pub unsafe extern fn rs_modbus_parse_request(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -374,7 +374,7 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_parse_response(
+pub unsafe extern fn rs_modbus_parse_response(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -393,13 +393,13 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_modbus_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, ModbusState);
     state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx(
+pub unsafe extern fn rs_modbus_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, ModbusState);
@@ -410,7 +410,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
+pub unsafe extern fn rs_modbus_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_events(
+pub unsafe extern fn rs_modbus_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, ModbusTransaction);
@@ -426,7 +426,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_event_info(
+pub unsafe extern fn rs_modbus_state_get_event_info(
     event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
@@ -441,7 +441,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_event_info(
                 *event_id = event as std::os::raw::c_int;
                 *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
                 0
-            },
+            }
             Err(_) => {
                 SCLogError!(
                     "event {} not present in modbus's enum map table.",
@@ -456,7 +456,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_event_info(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_event_info_by_id(
+pub unsafe extern fn rs_modbus_state_get_event_info_by_id(
     event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
@@ -471,7 +471,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_event_info_by_id(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
+pub unsafe extern fn rs_modbus_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
     let tx = cast_pointer!(tx, ModbusTransaction);
@@ -482,7 +482,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
+pub unsafe extern fn rs_modbus_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
@@ -491,7 +491,7 @@ pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
+pub unsafe extern fn rs_modbus_state_get_tx_data(
     tx: *mut std::os::raw::c_void,
 ) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, ModbusTransaction);
@@ -499,7 +499,7 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_register_parser() {
+pub unsafe extern fn rs_modbus_register_parser() {
     let default_port = std::ffi::CString::new("[502]").unwrap();
     let parser = RustParser {
         name: b"modbus\0".as_ptr() as *const std::os::raw::c_char,
@@ -553,14 +553,14 @@ pub mod test {
     pub struct ModbusMessage(*const c_void);
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_function(msg: *const ModbusMessage) -> u8 {
+    pub unsafe extern fn rs_modbus_message_get_function(msg: *const ModbusMessage) -> u8 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         msg.function.raw
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_subfunction(msg: *const ModbusMessage) -> u16 {
+    pub unsafe extern fn rs_modbus_message_get_subfunction(msg: *const ModbusMessage) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         if let Data::Diagnostic { func, data: _ } = &msg.data {
@@ -571,7 +571,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_read_request_address(
+    pub unsafe extern fn rs_modbus_message_get_read_request_address(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -588,7 +588,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_read_request_quantity(
+    pub unsafe extern fn rs_modbus_message_get_read_request_quantity(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -605,7 +605,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_rw_multreq_read_address(
+    pub unsafe extern fn rs_modbus_message_get_rw_multreq_read_address(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -626,7 +626,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_rw_multreq_read_quantity(
+    pub unsafe extern fn rs_modbus_message_get_rw_multreq_read_quantity(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -647,7 +647,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_rw_multreq_write_address(
+    pub unsafe extern fn rs_modbus_message_get_rw_multreq_write_address(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -669,7 +669,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_rw_multreq_write_quantity(
+    pub unsafe extern fn rs_modbus_message_get_rw_multreq_write_quantity(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -691,7 +691,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_rw_multreq_write_data(
+    pub unsafe extern fn rs_modbus_message_get_rw_multreq_write_data(
         msg: *const ModbusMessage, data_len: *mut usize,
     ) -> *const u8 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -714,7 +714,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_write_multreq_address(
+    pub unsafe extern fn rs_modbus_message_get_write_multreq_address(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -732,7 +732,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_write_multreq_quantity(
+    pub unsafe extern fn rs_modbus_message_get_write_multreq_quantity(
         msg: *const ModbusMessage,
     ) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -750,7 +750,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_write_multreq_data(
+    pub unsafe extern fn rs_modbus_message_get_write_multreq_data(
         msg: *const ModbusMessage, data_len: *mut usize,
     ) -> *const u8 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -769,7 +769,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_and_mask(msg: *const ModbusMessage) -> u16 {
+    pub unsafe extern fn rs_modbus_message_get_and_mask(msg: *const ModbusMessage) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         if let Data::Write(Write::Mask {
@@ -785,7 +785,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_or_mask(msg: *const ModbusMessage) -> u16 {
+    pub unsafe extern fn rs_modbus_message_get_or_mask(msg: *const ModbusMessage) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         if let Data::Write(Write::Mask {
@@ -801,7 +801,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_write_address(msg: *const ModbusMessage) -> u16 {
+    pub unsafe extern fn rs_modbus_message_get_write_address(msg: *const ModbusMessage) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         if let Data::Write(Write::Other { address, data: _ }) = &msg.data {
@@ -812,7 +812,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_write_data(msg: *const ModbusMessage) -> u16 {
+    pub unsafe extern fn rs_modbus_message_get_write_data(msg: *const ModbusMessage) -> u16 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
         let msg = msg.as_ref().unwrap();
         if let Data::Write(Write::Other { address: _, data }) = &msg.data {
@@ -823,7 +823,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_message_get_bytevec_data(
+    pub unsafe extern fn rs_modbus_message_get_bytevec_data(
         msg: *const ModbusMessage, data_len: *mut usize,
     ) -> *const u8 {
         let msg = msg.as_ref().unwrap().0 as *const Message;
@@ -837,7 +837,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_state_get_tx_request(
+    pub unsafe extern fn rs_modbus_state_get_tx_request(
         state: *mut std::os::raw::c_void, tx_id: u64,
     ) -> ModbusMessage {
         let state = cast_pointer!(state, ModbusState);
@@ -853,7 +853,7 @@ pub mod test {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rs_modbus_state_get_tx_response(
+    pub unsafe extern fn rs_modbus_state_get_tx_response(
         state: *mut std::os::raw::c_void, tx_id: u64,
     ) -> ModbusMessage {
         let state = cast_pointer!(state, ModbusState);

@@ -19,6 +19,6 @@
 
 extern crate snmp_parser;
 
-pub mod snmp;
-pub mod log;
 pub mod detect;
+pub mod log;
+pub mod snmp;

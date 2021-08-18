@@ -49,14 +49,14 @@ impl SMBEvent {
 pub fn smb_str_to_event(instr: &str) -> i32 {
     SCLogDebug!("checking {}", instr);
     match instr {
-        "internal_error"                => SMBEvent::InternalError as i32,
-        "malformed_data"                => SMBEvent::MalformedData as i32,
-        "record_overflow"               => SMBEvent::RecordOverflow as i32,
-        "malformed_ntlmssp_request"     => SMBEvent::MalformedNtlmsspRequest as i32,
-        "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
-        "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
-        "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
-        "file_overlap"                  => SMBEvent::FileOverlap as i32,
+        "internal_error" => SMBEvent::InternalError as i32,
+        "malformed_data" => SMBEvent::MalformedData as i32,
+        "record_overflow" => SMBEvent::RecordOverflow as i32,
+        "malformed_ntlmssp_request" => SMBEvent::MalformedNtlmsspRequest as i32,
+        "malformed_ntlmssp_response" => SMBEvent::MalformedNtlmsspResponse as i32,
+        "duplicate_negotiate" => SMBEvent::DuplicateNegotiate as i32,
+        "negotiate_malformed_dialects" => SMBEvent::NegotiateMalformedDialects as i32,
+        "file_overlap" => SMBEvent::FileOverlap as i32,
         _ => -1,
     }
 }

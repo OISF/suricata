@@ -322,7 +322,7 @@ export_tx_set_detect_state!(rs_ike_tx_set_detect_state, IKETransaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_probing_parser(
+pub unsafe extern fn rs_ike_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len < 28 {
@@ -333,14 +333,14 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice, direction, rdir) {
-            return ALPROTO_IKE ;
+            return ALPROTO_IKE;
         }
     }
     return ALPROTO_FAILED;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_new(
+pub extern fn rs_ike_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
@@ -349,19 +349,19 @@ pub extern "C" fn rs_ike_state_new(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(Box::from_raw(state as *mut IKEState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_request(
+pub unsafe extern fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -372,7 +372,7 @@ pub unsafe extern "C" fn rs_ike_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_response(
+pub unsafe extern fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -382,7 +382,7 @@ pub unsafe extern "C" fn rs_ike_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx(
+pub unsafe extern fn rs_ike_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, IKEState);
@@ -397,26 +397,26 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
+pub extern fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_alstate_progress(
+pub extern fn rs_ike_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_get_logged(
+pub unsafe extern fn rs_ike_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -424,7 +424,7 @@ pub unsafe extern "C" fn rs_ike_tx_get_logged(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_set_logged(
+pub unsafe extern fn rs_ike_tx_set_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -432,7 +432,7 @@ pub unsafe extern "C" fn rs_ike_tx_set_logged(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_events(
+pub unsafe extern fn rs_ike_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn rs_ike_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_event_info_by_id(
+pub unsafe extern fn rs_ike_state_get_event_info_by_id(
     event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
@@ -468,7 +468,7 @@ pub unsafe extern "C" fn rs_ike_state_get_event_info_by_id(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_event_info(
+pub unsafe extern fn rs_ike_state_get_event_info(
     event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
@@ -501,10 +501,10 @@ pub unsafe extern "C" fn rs_ike_state_get_event_info(
     0
 }
 
-static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
+pub unsafe extern fn rs_ike_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
@@ -528,39 +528,39 @@ const PARSER_ALIAS: &[u8] = b"ikev2\0";
 export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_register_parser() {
+pub unsafe extern fn rs_ike_register_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
-        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : default_port.as_ptr(),
-        ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(rs_ike_probing_parser),
-        probe_tc           : Some(rs_ike_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : rs_ike_state_new,
-        state_free         : rs_ike_state_free,
-        tx_free            : rs_ike_state_tx_free,
-        parse_ts           : rs_ike_parse_request,
-        parse_tc           : rs_ike_parse_response,
-        get_tx_count       : rs_ike_state_get_tx_count,
-        get_tx             : rs_ike_state_get_tx,
-        tx_comp_st_ts      : 1,
-        tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_ike_tx_get_alstate_progress,
-        get_de_state       : rs_ike_tx_get_detect_state,
-        set_de_state       : rs_ike_tx_set_detect_state,
-        get_events         : Some(rs_ike_state_get_events),
-        get_eventinfo      : Some(rs_ike_state_get_event_info),
-        get_eventinfo_byid : Some(rs_ike_state_get_event_info_by_id),
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_files          : None,
-        get_tx_iterator    : None,
-        get_tx_data        : rs_ike_get_tx_data,
-        apply_tx_config    : None,
-        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
-        truncate           : None,
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: Some(rs_ike_probing_parser),
+        probe_tc: Some(rs_ike_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_ike_state_new,
+        state_free: rs_ike_state_free,
+        tx_free: rs_ike_state_tx_free,
+        parse_ts: rs_ike_parse_request,
+        parse_tc: rs_ike_parse_response,
+        get_tx_count: rs_ike_state_get_tx_count,
+        get_tx: rs_ike_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_ike_tx_get_alstate_progress,
+        get_de_state: rs_ike_tx_get_detect_state,
+        set_de_state: rs_ike_tx_set_detect_state,
+        get_events: Some(rs_ike_state_get_events),
+        get_eventinfo: Some(rs_ike_state_get_event_info),
+        get_eventinfo_byid: Some(rs_ike_state_get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_ike_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

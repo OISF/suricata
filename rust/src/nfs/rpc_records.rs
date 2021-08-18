@@ -17,22 +17,22 @@
 
 //! Nom parsers for RPCv2
 
-use nom::IResult;
 use nom::combinator::rest;
 use nom::number::streaming::be_u32;
+use nom::IResult;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum RpcRequestCreds<'a> {
     Unix(RpcRequestCredsUnix<'a>),
     GssApi(RpcRequestCredsGssApi<'a>),
-    Unknown(&'a[u8]),
+    Unknown(&'a [u8]),
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcRequestCredsUnix<'a> {
     pub stamp: u32,
     pub machine_name_len: u32,
-    pub machine_name_buf: &'a[u8],
+    pub machine_name_buf: &'a [u8],
     pub uid: u32,
     pub gid: u32,
     pub aux_gids: Option<Vec<u32>>,
@@ -43,7 +43,8 @@ pub struct RpcRequestCredsUnix<'a> {
 //    many0!(be_u32)
 //);
 
-named!(parse_rpc_request_creds_unix<RpcRequestCreds>,
+named!(
+    parse_rpc_request_creds_unix<RpcRequestCreds>,
     do_parse!(
         stamp: be_u32
     >>  machine_name_len: be_u32
@@ -59,45 +60,47 @@ named!(parse_rpc_request_creds_unix<RpcRequestCreds>,
             gid:gid,
             aux_gids:None,
         }))
-));
+    )
+);
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcRequestCredsGssApi<'a> {
     pub version: u32,
     pub procedure: u32,
     pub seq_num: u32,
     pub service: u32,
 
-    pub ctx: &'a[u8],
+    pub ctx: &'a [u8],
 }
 
-named!(parse_rpc_request_creds_gssapi<RpcRequestCreds>,
+named!(
+    parse_rpc_request_creds_gssapi<RpcRequestCreds>,
     do_parse!(
         version: be_u32
-    >>  procedure: be_u32
-    >>  seq_num: be_u32
-    >>  service: be_u32
-    >>  ctx_len: be_u32
-    >>  ctx: take!(ctx_len)
-    >> (RpcRequestCreds::GssApi(RpcRequestCredsGssApi {
-            version: version,
-            procedure: procedure,
-            seq_num: seq_num,
-            service: service,
-            ctx: ctx,
-        }))
-));
+            >> procedure: be_u32
+            >> seq_num: be_u32
+            >> service: be_u32
+            >> ctx_len: be_u32
+            >> ctx: take!(ctx_len)
+            >> (RpcRequestCreds::GssApi(RpcRequestCredsGssApi {
+                version: version,
+                procedure: procedure,
+                seq_num: seq_num,
+                service: service,
+                ctx: ctx,
+            }))
+    )
+);
 
-named!(parse_rpc_request_creds_unknown<RpcRequestCreds>,
-    do_parse!(
-        blob: rest
-    >> (RpcRequestCreds::Unknown(blob) )
-));
+named!(
+    parse_rpc_request_creds_unknown<RpcRequestCreds>,
+    do_parse!(blob: rest >> (RpcRequestCreds::Unknown(blob)))
+);
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcGssApiIntegrity<'a> {
     pub seq_num: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 // Parse the GSSAPI Integrity envelope to get to the
@@ -113,19 +116,22 @@ named!(pub parse_rpc_gssapi_integrity<RpcGssApiIntegrity>,
         })
 ));
 
-#[derive(Debug,PartialEq)]
-pub struct RpcPacketHeader<> {
+#[derive(Debug, PartialEq)]
+pub struct RpcPacketHeader {
     pub frag_is_last: bool,
     pub frag_len: u32,
     pub xid: u32,
     pub msgtype: u32,
 }
 
-fn parse_bits(i:&[u8]) -> IResult<&[u8],(u8,u32)> {
-    bits!(i,
+fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
+    bits!(
+        i,
         tuple!(
-            take_bits!(1u8),       // is_last
-            take_bits!(31u32)))    // len
+            take_bits!(1u8), // is_last
+            take_bits!(31u32)
+        )
+    ) // len
 }
 
 named!(pub parse_rpc_packet_header<RpcPacketHeader>,
@@ -143,22 +149,22 @@ named!(pub parse_rpc_packet_header<RpcPacketHeader>,
         ))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcReplyPacket<'a> {
-    pub hdr: RpcPacketHeader<>,
+    pub hdr: RpcPacketHeader,
 
     pub verifier_flavor: u32,
     pub verifier_len: u32,
-    pub verifier: Option<&'a[u8]>,
+    pub verifier: Option<&'a [u8]>,
 
     pub reply_state: u32,
     pub accept_state: u32,
 
-    pub prog_data: &'a[u8],
+    pub prog_data: &'a [u8],
 }
 
 // top of request packet, just to get to procedure
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcRequestPacketPartial {
     pub hdr: RpcPacketHeader,
 
@@ -186,9 +192,9 @@ named!(pub parse_rpc_request_partial<RpcRequestPacketPartial>,
           ))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct RpcPacket<'a> {
-    pub hdr: RpcPacketHeader<>,
+    pub hdr: RpcPacketHeader,
 
     pub rpcver: u32,
     pub program: u32,
@@ -200,9 +206,9 @@ pub struct RpcPacket<'a> {
 
     pub verifier_flavor: u32,
     pub verifier_len: u32,
-    pub verifier: &'a[u8],
+    pub verifier: &'a [u8],
 
-    pub prog_data: &'a[u8],
+    pub prog_data: &'a [u8],
 }
 
 named!(pub parse_rpc<RpcPacket>,
@@ -376,13 +382,17 @@ mod tests {
     fn test_partial_input_too_short() {
         let buf: &[u8] = &[
             0x80, 0x00, 0x00, 0x9c, // flags
-            0x8e, 0x28, 0x02, 0x7e  // xid
+            0x8e, 0x28, 0x02, 0x7e, // xid
         ];
 
         let r = parse_rpc_request_partial(buf);
         match r {
-            Err(Incomplete(s)) => { assert_eq!(s, Size(4)); },
-            _ => { panic!("failed {:?}",r); }
+            Err(Incomplete(s)) => {
+                assert_eq!(s, Size(4));
+            }
+            _ => {
+                panic!("failed {:?}", r);
+            }
         }
     }
     #[test]
@@ -398,23 +408,25 @@ mod tests {
         ];
         let expected = RpcRequestPacketPartial {
             hdr: RpcPacketHeader {
-                    frag_is_last: true,
-                    frag_len: 156,
-                    xid: 2384986750,
-                    msgtype: 1
-                },
+                frag_is_last: true,
+                frag_len: 156,
+                xid: 2384986750,
+                msgtype: 1,
+            },
             rpcver: 2,
             program: 3,
             progver: 4,
-            procedure: 5
+            procedure: 5,
         };
         let r = parse_rpc_request_partial(buf);
         match r {
             Ok((rem, hdr)) => {
                 assert_eq!(rem.len(), 0);
                 assert_eq!(hdr, expected);
-            },
-            _ => { panic!("failed {:?}",r); }
+            }
+            _ => {
+                panic!("failed {:?}", r);
+            }
         }
     }
 }

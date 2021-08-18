@@ -16,7 +16,6 @@
  */
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-
 // Clippy lints we want to suppress due to style, or simply too noisy
 // and not a priority right now.
 #![allow(clippy::missing_safety_doc)]
@@ -60,29 +59,29 @@ pub mod kerberos;
 #[cfg(feature = "lua")]
 pub mod lua;
 
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-pub mod krb;
 pub mod dcerpc;
+pub mod dns;
+pub mod ftp;
+pub mod krb;
 pub mod modbus;
+pub mod nfs;
+pub mod smb;
 
 pub mod ike;
 pub mod snmp;
 
-pub mod ntp;
-pub mod tftp;
-pub mod dhcp;
-pub mod sip;
-pub mod rfb;
-pub mod mqtt;
 pub mod applayertemplate;
-pub mod rdp;
-pub mod x509;
 pub mod asn1;
-pub mod ssh;
-pub mod http2;
-pub mod plugin;
-pub mod util;
+pub mod dhcp;
 pub mod ffi;
+pub mod http2;
+pub mod mqtt;
+pub mod ntp;
+pub mod plugin;
+pub mod rdp;
+pub mod rfb;
+pub mod sip;
+pub mod ssh;
+pub mod tftp;
+pub mod util;
+pub mod x509;

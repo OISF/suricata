@@ -48,10 +48,8 @@ pub struct X509(X509Certificate<'static>);
 ///
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_decode(
-    input: *const u8,
-    input_len: u32,
-    err_code: *mut u32,
+pub unsafe extern fn rs_x509_decode(
+    input: *const u8, input_len: u32, err_code: *mut u32,
 ) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = parse_x509_der(slice);
@@ -66,7 +64,7 @@ pub unsafe extern "C" fn rs_x509_decode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
+pub unsafe extern fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -76,7 +74,7 @@ pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
+pub unsafe extern fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -86,7 +84,7 @@ pub unsafe extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
+pub unsafe extern fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -103,10 +101,8 @@ pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
 ///
 /// ptr must be a valid object obtained using `rs_x509_decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_validity(
-    ptr: *const X509,
-    not_before: *mut i64,
-    not_after: *mut i64,
+pub unsafe extern fn rs_x509_get_validity(
+    ptr: *const X509, not_before: *mut i64, not_after: *mut i64,
 ) -> i32 {
     if ptr.is_null() {
         return -1;
@@ -125,7 +121,7 @@ pub unsafe extern "C" fn rs_x509_get_validity(
 ///
 /// ptr must be a valid object obtained using `rs_x509_decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
+pub unsafe extern fn rs_x509_free(ptr: *mut X509) {
     if ptr.is_null() {
         return;
     }

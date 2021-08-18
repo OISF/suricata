@@ -19,6 +19,6 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_check_utf8(val: *const c_char) -> bool {
+pub unsafe extern fn rs_check_utf8(val: *const c_char) -> bool {
     CStr::from_ptr(val).to_str().is_ok()
 }

@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-use std;
 use crate::core::*;
-use crate::filetracker::*;
 use crate::filecontainer::*;
+use crate::filetracker::*;
+use std;
 
 use crate::smb::smb::*;
 
@@ -40,27 +40,38 @@ impl SMBTransactionFile {
         return Self {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
-        }
+        };
     }
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
-        chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
-{
-    match unsafe {SURICATA_SMB_FILE_CONFIG} {
+pub fn filetracker_newchunk(
+    ft: &mut FileTransferTracker, files: &mut FileContainer, flags: u16, name: &Vec<u8>,
+    data: &[u8], chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32,
+) {
+    match unsafe { SURICATA_SMB_FILE_CONFIG } {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
-                    chunk_size, fill_bytes, is_last, xid); }
+            ft.new_chunk(
+                sfcm,
+                files,
+                flags,
+                name,
+                data,
+                chunk_offset,
+                chunk_size,
+                fill_bytes,
+                is_last,
+                xid,
+            );
+        }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
-        -> (&mut SMBTransaction, &mut FileContainer, u16)
-    {
+    pub fn new_file_tx(
+        &mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: u8,
+    ) -> (&mut SMBTransaction, &mut FileContainer, u16) {
         let mut tx = self.new_tx();
         tx.type_data = Some(SMBTransactionTypeData::FILE(SMBTransactionFile::new()));
         match tx.type_data {
@@ -69,27 +80,30 @@ impl SMBState {
                 d.fuid = fuid.to_vec();
                 d.file_name = file_name.to_vec();
                 d.file_tracker.tx_id = tx.id - 1;
-            },
-            _ => { },
+            }
+            _ => {}
         }
-        SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
-                tx.id, String::from_utf8_lossy(file_name));
+        SCLogDebug!(
+            "SMB: new_file_tx: TX FILE created: ID {} NAME {}",
+            tx.id,
+            String::from_utf8_lossy(file_name)
+        );
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
         let (files, flags) = self.files.get(direction);
-        return (tx_ref.unwrap(), files, flags)
+        return (tx_ref.unwrap(), files, flags);
     }
 
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: u8)
-        -> Option<(&mut SMBTransaction, &mut FileContainer, u16)>
-    {
+    pub fn get_file_tx_by_fuid(
+        &mut self, fuid: &Vec<u8>, direction: u8,
+    ) -> Option<(&mut SMBTransaction, &mut FileContainer, u16)> {
         let f = fuid.to_vec();
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::FILE(ref mut d)) => {
                     direction == d.direction && f == d.fuid
-                },
-                _ => { false },
+                }
+                _ => false,
             };
 
             if found {
@@ -102,7 +116,7 @@ impl SMBState {
         return None;
     }
 
-    fn getfiles(&mut self, direction: u8) -> * mut FileContainer {
+    fn getfiles(&mut self, direction: u8) -> *mut FileContainer {
         //SCLogDebug!("direction: {}", direction);
         if direction == STREAM_TOCLIENT {
             &mut self.files.files_tc as *mut FileContainer
@@ -128,7 +142,7 @@ impl SMBState {
             self.file_tc_left
         };
         if chunk_left == 0 {
-            return 0
+            return 0;
         }
         SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
         let file_handle = if direction == STREAM_TOSERVER {
@@ -162,8 +176,12 @@ impl SMBState {
                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     if ssn_gap {
                         let queued_data = tdf.file_tracker.get_queued_size();
-                        if queued_data > 2000000 { // TODO should probably be configurable
-                            SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
+                        if queued_data > 2000000 {
+                            // TODO should probably be configurable
+                            SCLogDebug!(
+                                "QUEUED size {} while we've seen GAPs. Truncating file.",
+                                queued_data
+                            );
                             tdf.file_tracker.trunc(files, flags);
                         }
                     }
@@ -174,15 +192,16 @@ impl SMBState {
                     }
 
                     let file_data = &data[0..data_to_handle_len];
-                    
+
                     tdf.file_tracker.update(files, flags, file_data, gap_size)
                 } else {
                     0
                 }
-            },
+            }
             None => {
                 SCLogDebug!("not found for handle {:?}", file_handle);
-                0 },
+                0
+            }
         };
 
         return consumed;
@@ -190,15 +209,21 @@ impl SMBState {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
-    if ptr.is_null() { panic!("NULL ptr"); };
+pub unsafe extern fn rs_smb_getfiles(
+    ptr: *mut std::ffi::c_void, direction: u8,
+) -> *mut FileContainer {
+    if ptr.is_null() {
+        panic!("NULL ptr");
+    };
     let parser = cast_pointer!(ptr, SMBState);
     parser.getfiles(direction)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
-    if ptr.is_null() { panic!("NULL ptr"); };
+pub unsafe extern fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
+    if ptr.is_null() {
+        panic!("NULL ptr");
+    };
     let parser = &mut *ptr;
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)

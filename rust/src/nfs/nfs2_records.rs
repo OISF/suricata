@@ -16,13 +16,13 @@
  */
 
 //! Nom parsers for NFSv2 records
+use crate::nfs::nfs_records::*;
 use nom::combinator::rest;
 use nom::number::streaming::be_u32;
-use crate::nfs::nfs_records::*;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Nfs2Handle<'a> {
-    pub value: &'a[u8],
+    pub value: &'a [u8],
 }
 
 named!(pub parse_nfs2_handle<Nfs2Handle>,
@@ -35,7 +35,7 @@ named!(pub parse_nfs2_handle<Nfs2Handle>,
         ))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Nfs2RequestLookup<'a> {
     pub handle: Nfs2Handle<'a>,
     pub name_vec: Vec<u8>,
@@ -55,7 +55,7 @@ named!(pub parse_nfs2_request_lookup<Nfs2RequestLookup>,
         ))
 );
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Nfs2RequestRead<'a> {
     pub handle: Nfs2Handle<'a>,
     pub offset: u32,
@@ -93,8 +93,8 @@ named!(pub parse_nfs2_reply_read<NfsReplyRead>,
         ))
 );
 
-#[derive(Debug,PartialEq)]
-pub struct Nfs2Attributes<> {
+#[derive(Debug, PartialEq)]
+pub struct Nfs2Attributes {
     pub atype: u32,
     pub asize: u32,
 }

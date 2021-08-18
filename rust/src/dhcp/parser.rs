@@ -18,9 +18,9 @@
 use std::cmp::min;
 
 use crate::dhcp::dhcp::*;
-use nom::IResult;
 use nom::combinator::rest;
-use nom::number::streaming::{be_u8, be_u16, be_u32};
+use nom::number::streaming::{be_u16, be_u32, be_u8};
+use nom::IResult;
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -174,23 +174,23 @@ named!(pub parse_generic_option<DHCPOption>,
 // Parse a single DHCP option. When option 255 (END) is parsed, the remaining
 // data will be consumed.
 named!(pub parse_option<DHCPOption>,
-       switch!(peek!(be_u8),
-               // End of options case. We consume the rest of the data
-               // so the parse is not called again. But is there a
-               // better way to "break"?
-               DHCP_OPT_END => do_parse!(
-                   code: be_u8 >>
-                   data: rest >> (DHCPOption{
-                       code: code,
-                       data: Some(data.to_vec()),
-                       option: DHCPOptionWrapper::End,
-                   })) |
-               DHCP_OPT_CLIENT_ID => call!(parse_clientid_option) |
-               DHCP_OPT_ADDRESS_TIME => call!(parse_address_time_option) |
-               DHCP_OPT_RENEWAL_TIME => call!(parse_address_time_option) |
-               DHCP_OPT_REBINDING_TIME => call!(parse_address_time_option) |
-               _ => call!(parse_generic_option)
-       ));
+switch!(peek!(be_u8),
+        // End of options case. We consume the rest of the data
+        // so the parse is not called again. But is there a
+        // better way to "break"?
+        DHCP_OPT_END => do_parse!(
+            code: be_u8 >>
+            data: rest >> (DHCPOption{
+                code: code,
+                data: Some(data.to_vec()),
+                option: DHCPOptionWrapper::End,
+            })) |
+        DHCP_OPT_CLIENT_ID => call!(parse_clientid_option) |
+        DHCP_OPT_ADDRESS_TIME => call!(parse_address_time_option) |
+        DHCP_OPT_RENEWAL_TIME => call!(parse_address_time_option) |
+        DHCP_OPT_REBINDING_TIME => call!(parse_address_time_option) |
+        _ => call!(parse_generic_option)
+));
 
 // Parse and return all the options. Upon the end of option indicator
 // all the data will be consumed.
@@ -257,8 +257,10 @@ mod tests {
                 assert_eq!(header.yourip, &[0, 0, 0, 0]);
                 assert_eq!(header.serverip, &[0, 0, 0, 0]);
                 assert_eq!(header.giaddr, &[0, 0, 0, 0]);
-                assert_eq!(&header.clienthw[..(header.hlen as usize)],
-                           &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]);
+                assert_eq!(
+                    &header.clienthw[..(header.hlen as usize)],
+                    &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]
+                );
                 assert!(header.servername.iter().all(|&x| x == 0));
                 assert!(header.bootfilename.iter().all(|&x| x == 0));
                 assert_eq!(header.magic, &[0x63, 0x82, 0x53, 0x63]);
@@ -283,37 +285,34 @@ mod tests {
     fn test_parse_client_id_too_short() {
         // Length field of 0.
         let buf: &[u8] = &[
-            0x01,
-            0x00, // Length of 0.
-            0x01,
-            0x01, // Junk data start here.
-            0x02,
-            0x03,
+            0x01, 0x00, // Length of 0.
+            0x01, 0x01, // Junk data start here.
+            0x02, 0x03,
         ];
         let r = parse_clientid_option(buf);
         assert!(r.is_err());
 
         // Length field of 1.
         let buf: &[u8] = &[
-            0x01,
-            0x01, // Length of 1.
-            0x01,
-            0x41,
+            0x01, 0x01, // Length of 1.
+            0x01, 0x41,
         ];
         let r = parse_clientid_option(buf);
         assert!(r.is_err());
 
         // Length field of 2 -- OK.
         let buf: &[u8] = &[
-            0x01,
-            0x02, // Length of 2.
-            0x01,
-            0x41,
+            0x01, 0x02, // Length of 2.
+            0x01, 0x41,
         ];
         let r = parse_clientid_option(buf);
         match r {
-            Ok((rem, _)) => { assert_eq!(rem.len(), 0); },
-            _ => { panic!("failed"); }
+            Ok((rem, _)) => {
+                assert_eq!(rem.len(), 0);
+            }
+            _ => {
+                panic!("failed");
+            }
         }
     }
 }

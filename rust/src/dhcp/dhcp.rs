@@ -17,11 +17,11 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
-use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
+use crate::core::{sc_app_layer_decoder_events_free_events, sc_detect_engine_state_free};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::dhcp::parser::*;
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr, CString};
 
 static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
@@ -116,7 +116,6 @@ impl DHCPTransaction {
             _ => {}
         }
     }
-
 }
 
 impl Drop for DHCPTransaction {
@@ -194,15 +193,14 @@ impl DHCPState {
 
     fn set_event(&mut self, event: DHCPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            core::sc_app_layer_decoder_events_set_event_raw(
-                &mut tx.events, event as u8);
+            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
             self.events += 1;
         }
     }
 
-    fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&DHCPTransaction, u64, bool)>
-    {
+    fn get_tx_iterator(
+        &mut self, min_tx_id: u64, state: &mut u64,
+    ) -> Option<(&DHCPTransaction, u64, bool)> {
         let mut index = *state as usize;
         let len = self.transactions.len();
 
@@ -215,18 +213,15 @@ impl DHCPState {
             *state = index as u64;
             return Some((tx, tx.tx_id - 1, (len - index) > 1));
         }
-        
+
         return None;
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
-                                         _direction: u8,
-                                         input: *const u8,
-                                         input_len: u32,
-                                         _rdir: *mut u8) -> AppProto
-{
+pub unsafe extern fn rs_dhcp_probing_parser(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+) -> AppProto {
     if input_len < DHCP_MIN_FRAME_LEN {
         return ALPROTO_UNKNOWN;
     }
@@ -243,15 +238,17 @@ pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                  _direction: u8) -> std::os::raw::c_int {
+pub extern fn rs_dhcp_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void, _direction: u8,
+) -> std::os::raw::c_int {
     // As this is a stateless parser, simply use 1.
     return 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
-                                       tx_id: u64) -> *mut std::os::raw::c_void {
+pub unsafe extern fn rs_dhcp_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -264,19 +261,16 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DHCPState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
-                                state: *mut std::os::raw::c_void,
-                                _pstate: *mut std::os::raw::c_void,
-                                input: *const u8,
-                                input_len: u32,
-                                _data: *const std::os::raw::c_void,
-                                _flags: u8) -> AppLayerResult {
+pub unsafe extern fn rs_dhcp_parse(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
     let state = cast_pointer!(state, DHCPState);
     let buf = build_slice!(input, input_len as usize);
     if state.parse(buf) {
@@ -286,36 +280,34 @@ pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64)
-{
+pub unsafe extern fn rs_dhcp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, DHCPState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_dhcp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = DHCPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut DHCPState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                     event_name: *mut *const std::os::raw::c_char,
-                                                     event_type: *mut core::AppLayerEventType)
-                                                     -> i8
-{
+pub unsafe extern fn rs_dhcp_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
     if let Some(e) = DHCPEvent::from_i32(event_id as i32) {
         let estr = match e {
-            DHCPEvent::TruncatedOptions => { "truncated_options\0" },
-            DHCPEvent::MalformedOptions => { "malformed_options\0" },
+            DHCPEvent::TruncatedOptions => "truncated_options\0",
+            DHCPEvent::MalformedOptions => "malformed_options\0",
         };
         *event_name = estr.as_ptr() as *const std::os::raw::c_char;
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -325,20 +317,18 @@ pub unsafe extern "C" fn rs_dhcp_state_get_event_info_by_id(event_id: std::os::r
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
-                                           -> *mut core::AppLayerDecoderEvents
-{
+pub unsafe extern fn rs_dhcp_state_get_events(
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, DHCPTransaction);
     return tx.events;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType)
-    -> std::os::raw::c_int
-{
+pub unsafe extern fn rs_dhcp_state_get_event_info(
+    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
     if event_name == std::ptr::null() {
         return -1;
     }
@@ -350,7 +340,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_event_info(
                 "truncated_options" => DHCPEvent::TruncatedOptions as i32,
                 _ => -1, // unknown event
             }
-        },
+        }
         Err(_) => -1, // UTF-8 conversion failed
     };
     *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -359,21 +349,15 @@ pub unsafe extern "C" fn rs_dhcp_state_get_event_info(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64)
-    -> applayer::AppLayerGetTxIterTuple
-{
+pub unsafe extern fn rs_dhcp_state_get_tx_iterator(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx, out_tx_id, has_next);
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
         None => {
@@ -387,40 +371,40 @@ export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
 const PARSER_NAME: &[u8] = b"dhcp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_register_parser() {
+pub unsafe extern fn rs_dhcp_register_parser() {
     SCLogDebug!("Registering DHCP parser.");
     let ports = CString::new("[67,68]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : ports.as_ptr(),
-        ipproto            : IPPROTO_UDP,
-        probe_ts           : Some(rs_dhcp_probing_parser),
-        probe_tc           : Some(rs_dhcp_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : rs_dhcp_state_new,
-        state_free         : rs_dhcp_state_free,
-        tx_free            : rs_dhcp_state_tx_free,
-        parse_ts           : rs_dhcp_parse,
-        parse_tc           : rs_dhcp_parse,
-        get_tx_count       : rs_dhcp_state_get_tx_count,
-        get_tx             : rs_dhcp_state_get_tx,
-        tx_comp_st_ts      : 1,
-        tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_dhcp_tx_get_alstate_progress,
-        get_de_state       : rs_dhcp_tx_get_detect_state,
-        set_de_state       : rs_dhcp_tx_set_detect_state,
-        get_events         : Some(rs_dhcp_state_get_events),
-        get_eventinfo      : Some(rs_dhcp_state_get_event_info),
-        get_eventinfo_byid : None,
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_files          : None,
-        get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
-        get_tx_data        : rs_dhcp_get_tx_data,
-        apply_tx_config    : None,
-        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
-        truncate           : None,
+        default_port: ports.as_ptr(),
+        ipproto: IPPROTO_UDP,
+        probe_ts: Some(rs_dhcp_probing_parser),
+        probe_tc: Some(rs_dhcp_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_dhcp_state_new,
+        state_free: rs_dhcp_state_free,
+        tx_free: rs_dhcp_state_tx_free,
+        parse_ts: rs_dhcp_parse,
+        parse_tc: rs_dhcp_parse,
+        get_tx_count: rs_dhcp_state_get_tx_count,
+        get_tx: rs_dhcp_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_dhcp_tx_get_alstate_progress,
+        get_de_state: rs_dhcp_tx_get_detect_state,
+        set_de_state: rs_dhcp_tx_set_detect_state,
+        get_events: Some(rs_dhcp_state_get_events),
+        get_eventinfo: Some(rs_dhcp_state_get_event_info),
+        get_eventinfo_byid: None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: Some(rs_dhcp_state_get_tx_iterator),
+        get_tx_data: rs_dhcp_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

@@ -18,11 +18,11 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::snmp::snmp::{SNMPState,SNMPTransaction};
-use crate::snmp::snmp_parser::{NetworkAddress,PduType};
+use crate::snmp::snmp::{SNMPState, SNMPTransaction};
+use crate::snmp::snmp_parser::{NetworkAddress, PduType};
 use std::borrow::Cow;
 
-fn str_of_pdu_type(t:&PduType) -> Cow<str> {
+fn str_of_pdu_type(t: &PduType) -> Cow<str> {
     match t {
         &PduType::GetRequest => Cow::Borrowed("get_request"),
         &PduType::GetNextRequest => Cow::Borrowed("get_next_request"),
@@ -37,8 +37,9 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     }
 }
 
-fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> Result<(), JsonError>
-{
+fn snmp_log_response(
+    jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction,
+) -> Result<(), JsonError> {
     jsb.set_uint("version", state.version as u64)?;
     if tx.encrypted {
         jsb.set_string("pdu_type", "encrypted")?;
@@ -54,10 +55,12 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
                         jsb.set_string("trap_type", &format!("{:?}", trap_type))?;
                         jsb.set_string("trap_oid", &oid.to_string())?;
                         match address {
-                            NetworkAddress::IPv4(ip) => {jsb.set_string("trap_address", &ip.to_string())?;},
+                            NetworkAddress::IPv4(ip) => {
+                                jsb.set_string("trap_address", &ip.to_string())?;
+                            }
                         }
-                    },
-                    _ => ()
+                    }
+                    _ => (),
                 }
                 if info.vars.len() > 0 {
                     jsb.open_array("vars")?;
@@ -66,8 +69,8 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
                     }
                     jsb.close()?;
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         }
         if let Some(community) = &tx.community {
             jsb.set_string("community", community)?;
@@ -81,7 +84,8 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> bool
-{
+pub extern fn rs_snmp_log_json_response(
+    jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction,
+) -> bool {
     snmp_log_response(jsb, state, tx).is_ok()
 }

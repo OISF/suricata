@@ -40,7 +40,6 @@ pub struct LuaState {
 }
 
 impl LuaState {
-
     pub fn newtable(&self) {
         unsafe {
             lua_createtable(self.lua, 0, 0);

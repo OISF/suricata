@@ -19,11 +19,11 @@
 
 extern crate ntp_parser;
 use self::ntp_parser::*;
-use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
 use crate::applayer::{self, *};
+use crate::core;
+use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN};
 use std;
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr, CString};
 
 use nom;
 
@@ -75,11 +75,9 @@ pub struct NTPTransaction {
     tx_data: applayer::AppLayerTxData,
 }
 
-
-
 impl NTPState {
     pub fn new() -> NTPState {
-        NTPState{
+        NTPState {
             transactions: Vec::new(),
             events: 0,
             tx_id: 0,
@@ -93,7 +91,7 @@ impl NTPState {
     /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match parse_ntp(i) {
-            Ok((_,ref msg)) => {
+            Ok((_, ref msg)) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
                 if msg.mode == NtpMode::SymmetricActive || msg.mode == NtpMode::Client {
                     let mut tx = self.new_tx();
@@ -102,17 +100,17 @@ impl NTPState {
                     self.transactions.push(tx);
                 }
                 0
-            },
+            }
             Err(nom::Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing NTP data");
                 self.set_event(NTPEvent::MalformedData);
                 -1
-            },
+            }
             Err(_) => {
                 SCLogDebug!("Error while parsing NTP data");
                 self.set_event(NTPEvent::MalformedData);
                 -1
-            },
+            }
         }
     }
 
@@ -175,7 +173,9 @@ impl Drop for NTPTransaction {
 
 /// Returns *mut NTPState
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_ntp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -184,21 +184,18 @@ pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 /// Params:
 /// - state: *mut NTPState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
-    let mut ntp_state = unsafe{ Box::from_raw(state as *mut NTPState) };
+pub extern fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
+    let mut ntp_state = unsafe { Box::from_raw(state as *mut NTPState) };
     ntp_state.free();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,NTPState);
+pub unsafe extern fn rs_ntp_parse_request(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
+    let buf = build_slice!(input, input_len as usize);
+    let state = cast_pointer!(state, NTPState);
     if state.parse(buf, 0) < 0 {
         return AppLayerResult::err();
     }
@@ -206,15 +203,12 @@ pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
-                                       _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
-    let state = cast_pointer!(state,NTPState);
+pub unsafe extern fn rs_ntp_parse_response(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+) -> AppLayerResult {
+    let buf = build_slice!(input, input_len as usize);
+    let state = cast_pointer!(state, NTPState);
     if state.parse(buf, 1) < 0 {
         return AppLayerResult::err();
     }
@@ -222,57 +216,49 @@ pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state,NTPState);
+pub unsafe extern fn rs_ntp_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut std::os::raw::c_void {
+    let state = cast_pointer!(state, NTPState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => tx as *const _ as *mut _,
-        None     => std::ptr::null_mut(),
+        None => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state,NTPState);
+pub unsafe extern fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+    let state = cast_pointer!(state, NTPState);
     state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state,NTPState);
+pub unsafe extern fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+    let state = cast_pointer!(state, NTPState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                 _direction: u8)
-                                                 -> std::os::raw::c_int
-{
+pub extern fn rs_ntp_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void, _direction: u8,
+) -> std::os::raw::c_int {
     1
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,NTPTransaction);
+pub unsafe extern fn rs_ntp_state_set_tx_detect_state(
+    tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, NTPTransaction);
     tx.de_state = Some(de_state);
     0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,NTPTransaction);
+pub unsafe extern fn rs_ntp_state_get_tx_detect_state(
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::DetectEngineState {
+    let tx = cast_pointer!(tx, NTPTransaction);
     match tx.de_state {
         Some(ds) => ds,
         None => std::ptr::null_mut(),
@@ -280,17 +266,16 @@ pub unsafe extern "C" fn rs_ntp_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                    event_name: *mut *const std::os::raw::c_char,
-                                                    event_type: *mut core::AppLayerEventType)
-                                                    -> i8
-{
+pub unsafe extern fn rs_ntp_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
     if let Some(e) = NTPEvent::from_i32(event_id as i32) {
         let estr = match e {
-            NTPEvent::UnsolicitedResponse => { "unsolicited_response\0" },
-            NTPEvent::MalformedData       => { "malformed_data\0" },
-            NTPEvent::NotRequest          => { "not_request\0" },
-            NTPEvent::NotResponse         => { "not_response\0" },
+            NTPEvent::UnsolicitedResponse => "unsolicited_response\0",
+            NTPEvent::MalformedData => "malformed_data\0",
+            NTPEvent::NotRequest => "not_request\0",
+            NTPEvent::NotResponse => "not_response\0",
         };
         *event_name = estr.as_ptr() as *const std::os::raw::c_char;
         *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -301,20 +286,21 @@ pub unsafe extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::ra
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
+pub unsafe extern fn rs_ntp_state_get_events(
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, NTPTransaction);
     return tx.events;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
+pub unsafe extern fn rs_ntp_state_get_event_info(
+    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    if event_name == std::ptr::null() {
+        return -1;
+    }
     let c_event_name: &CStr = CStr::from_ptr(event_name);
     let event = match c_event_name.to_str() {
         Ok(s) => {
@@ -322,7 +308,7 @@ pub unsafe extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os:
                 "malformed_data" => NTPEvent::MalformedData as i32,
                 _ => -1, // unknown event
             }
-        },
+        }
         Err(_) => -1, // UTF-8 conversion failed
     };
     *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -330,72 +316,69 @@ pub unsafe extern "C" fn rs_ntp_state_get_event_info(event_name: *const std::os:
     0
 }
 
-
-static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_NTP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
-        _direction: u8,
-        input:*const u8, input_len: u32,
-        _rdir: *mut u8) -> AppProto
-{
+pub extern fn ntp_probing_parser(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, input_len as usize) };
-    let alproto = unsafe{ ALPROTO_NTP };
+    let alproto = unsafe { ALPROTO_NTP };
     match parse_ntp(slice) {
         Ok((_, ref msg)) => {
             if msg.version == 3 || msg.version == 4 {
                 return alproto;
             } else {
-                return unsafe{ALPROTO_FAILED};
+                return unsafe { ALPROTO_FAILED };
             }
-        },
+        }
         Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
-        },
+        }
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
-        },
+            return unsafe { ALPROTO_FAILED };
+        }
     }
 }
 
 export_tx_data_get!(rs_ntp_get_tx_data, NTPTransaction);
 
-const PARSER_NAME : &[u8] = b"ntp\0";
+const PARSER_NAME: &[u8] = b"ntp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_ntp_parser() {
+pub unsafe extern fn rs_register_ntp_parser() {
     let default_port = CString::new("123").unwrap();
     let parser = RustParser {
-        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : default_port.as_ptr(),
-        ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(ntp_probing_parser),
-        probe_tc           : Some(ntp_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : rs_ntp_state_new,
-        state_free         : rs_ntp_state_free,
-        tx_free            : rs_ntp_state_tx_free,
-        parse_ts           : rs_ntp_parse_request,
-        parse_tc           : rs_ntp_parse_response,
-        get_tx_count       : rs_ntp_state_get_tx_count,
-        get_tx             : rs_ntp_state_get_tx,
-        tx_comp_st_ts      : 1,
-        tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_ntp_tx_get_alstate_progress,
-        get_de_state       : rs_ntp_state_get_tx_detect_state,
-        set_de_state       : rs_ntp_state_set_tx_detect_state,
-        get_events         : Some(rs_ntp_state_get_events),
-        get_eventinfo      : Some(rs_ntp_state_get_event_info),
-        get_eventinfo_byid : Some(rs_ntp_state_get_event_info_by_id),
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_files          : None,
-        get_tx_iterator    : None,
-        get_tx_data        : rs_ntp_get_tx_data,
-        apply_tx_config    : None,
-        flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
-        truncate           : None,
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: Some(ntp_probing_parser),
+        probe_tc: Some(ntp_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_ntp_state_new,
+        state_free: rs_ntp_state_free,
+        tx_free: rs_ntp_state_tx_free,
+        parse_ts: rs_ntp_parse_request,
+        parse_tc: rs_ntp_parse_response,
+        get_tx_count: rs_ntp_state_get_tx_count,
+        get_tx: rs_ntp_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_ntp_tx_get_alstate_progress,
+        get_de_state: rs_ntp_state_get_tx_detect_state,
+        set_de_state: rs_ntp_state_set_tx_detect_state,
+        get_events: Some(rs_ntp_state_get_events),
+        get_eventinfo: Some(rs_ntp_state_get_event_info),
+        get_eventinfo_byid: Some(rs_ntp_state_get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_ntp_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -411,7 +394,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::NTPState;
@@ -419,13 +401,11 @@ mod tests {
     #[test]
     fn test_ntp_parse_request_valid() {
         // A UDP NTP v4 request, in client mode
-        const REQ : &[u8] = &[
-            0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x18, 0x57, 0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe
+        const REQ: &[u8] = &[
+            0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x57,
+            0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe,
         ];
 
         let mut state = NTPState::new();

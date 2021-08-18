@@ -17,13 +17,13 @@
 
 //! Nom parsers for NFS
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct NfsReplyRead<'a> {
     pub status: u32,
     pub attr_follows: u32,
-    pub attr_blob: &'a[u8],
+    pub attr_blob: &'a [u8],
     pub count: u32,
     pub eof: bool,
     pub data_len: u32,
-    pub data: &'a[u8], // likely partial
+    pub data: &'a [u8], // likely partial
 }

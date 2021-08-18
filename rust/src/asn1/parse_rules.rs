@@ -33,7 +33,7 @@ const ASN1_DEFAULT_MAX_FRAMES: u16 = 30;
 ///
 /// pointer must be free'd using `rs_detect_asn1_free`
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut DetectAsn1Data {
+pub unsafe extern fn rs_detect_asn1_parse(input: *const c_char) -> *mut DetectAsn1Data {
     if input.is_null() {
         return std::ptr::null_mut();
     }
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut Dete
 ///
 /// ptr must be a valid object obtained using `rs_detect_asn1_parse`
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
+pub unsafe extern fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
     if ptr.is_null() {
         return;
     }

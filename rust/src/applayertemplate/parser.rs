@@ -22,21 +22,21 @@ fn parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
 }
 
 named!(pub parse_message<String>,
-       do_parse!(
-           len:  map_res!(
-                 map_res!(take_until!(":"), std::str::from_utf8), parse_len) >>
-           _sep: take!(1) >>
-           msg:  take_str!(len) >>
-               (
-                   msg.to_string()
-               )
-       ));
+do_parse!(
+    len:  map_res!(
+          map_res!(take_until!(":"), std::str::from_utf8), parse_len) >>
+    _sep: take!(1) >>
+    msg:  take_str!(len) >>
+        (
+            msg.to_string()
+        )
+));
 
 #[cfg(test)]
 mod tests {
 
-    use nom::*;
     use super::*;
+    use nom::*;
 
     /// Simple test of some valid data.
     #[test]
@@ -55,11 +55,9 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
     }
-
 }

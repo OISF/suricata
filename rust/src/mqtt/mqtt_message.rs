@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
@@ -110,7 +109,6 @@ impl std::str::FromStr for MQTTTypeCode {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct MQTTConnectData {

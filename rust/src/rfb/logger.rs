@@ -17,10 +17,10 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use std;
-use std::fmt::Write;
 use super::rfb::{RFBState, RFBTransaction};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std;
+use std::fmt::Write;
 
 fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("rfb")?;
@@ -63,15 +63,17 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
             }
             js.close()?;
         }
-        _ => ()
+        _ => (),
     }
     if let Some(security_result) = &tx.tc_security_result {
         let _ = match security_result.status {
             0 => js.set_string("security_result", "OK")?,
             1 => js.set_string("security-result", "FAIL")?,
             2 => js.set_string("security_result", "TOOMANY")?,
-            _ => js.set_string("security_result",
-                    &format!("UNKNOWN ({})", security_result.status))?,
+            _ => js.set_string(
+                "security_result",
+                &format!("UNKNOWN ({})", security_result.status),
+            )?,
         };
     }
     js.close()?; // Close authentication.
@@ -91,15 +93,27 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.set_string_from_bytes("name", &tc_server_init.name)?;
 
         js.open_object("pixel_format")?;
-        js.set_uint("bits_per_pixel", tc_server_init.pixel_format.bits_per_pixel as u64)?;
+        js.set_uint(
+            "bits_per_pixel",
+            tc_server_init.pixel_format.bits_per_pixel as u64,
+        )?;
         js.set_uint("depth", tc_server_init.pixel_format.depth as u64)?;
-        js.set_bool("big_endian", tc_server_init.pixel_format.big_endian_flag != 0)?;
-        js.set_bool("true_color", tc_server_init.pixel_format.true_colour_flag != 0)?;
+        js.set_bool(
+            "big_endian",
+            tc_server_init.pixel_format.big_endian_flag != 0,
+        )?;
+        js.set_bool(
+            "true_color",
+            tc_server_init.pixel_format.true_colour_flag != 0,
+        )?;
         js.set_uint("red_max", tc_server_init.pixel_format.red_max as u64)?;
         js.set_uint("green_max", tc_server_init.pixel_format.green_max as u64)?;
         js.set_uint("blue_max", tc_server_init.pixel_format.blue_max as u64)?;
         js.set_uint("red_shift", tc_server_init.pixel_format.red_shift as u64)?;
-        js.set_uint("green_shift", tc_server_init.pixel_format.green_shift as u64)?;
+        js.set_uint(
+            "green_shift",
+            tc_server_init.pixel_format.green_shift as u64,
+        )?;
         js.set_uint("blue_shift", tc_server_init.pixel_format.blue_shift as u64)?;
         js.set_uint("depth", tc_server_init.pixel_format.depth as u64)?;
         js.close()?;
@@ -113,9 +127,9 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_logger_log(_state: &mut RFBState,
-                                    tx: *mut std::os::raw::c_void,
-                                    js: &mut JsonBuilder) -> bool {
+pub unsafe extern fn rs_rfb_logger_log(
+    _state: &mut RFBState, tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+) -> bool {
     let tx = cast_pointer!(tx, RFBTransaction);
     log_rfb(tx, js).is_ok()
 }

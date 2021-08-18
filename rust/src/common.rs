@@ -66,7 +66,7 @@ pub fn rust_string_to_c(s: String) -> *mut c_char {
 ///
 /// s must be allocated by rust, using `CString::new`
 #[no_mangle]
-pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
+pub unsafe extern fn rs_cstring_free(s: *mut c_char) {
     if s.is_null() {
         return;
     }
@@ -77,7 +77,14 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
 pub fn to_hex(input: &[u8]) -> String {
     static CHARS: &[u8] = b"0123456789abcdef";
 
-    return input.iter().map(
-        |b| vec![char::from(CHARS[(b >>  4) as usize]), char::from(CHARS[(b & 0xf) as usize])]
-    ).flatten().collect();
+    return input
+        .iter()
+        .map(|b| {
+            vec![
+                char::from(CHARS[(b >> 4) as usize]),
+                char::from(CHARS[(b & 0xf) as usize]),
+            ]
+        })
+        .flatten()
+        .collect();
 }

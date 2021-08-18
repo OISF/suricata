@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
@@ -18,8 +17,8 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::mqtt::parser::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::mqtt::parser::*;
 use nom::number::streaming::*;
 use nom::*;
 

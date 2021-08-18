@@ -33,18 +33,18 @@ pub const SC_MD5_HEX_LEN: usize = 32;
 pub struct SCSha256(Sha256);
 
 #[no_mangle]
-pub extern "C" fn SCSha256New() -> *mut SCSha256 {
+pub extern fn SCSha256New() -> *mut SCSha256 {
     let hasher = Box::new(SCSha256(Sha256::new()));
     Box::into_raw(hasher)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256Update(hasher: &mut SCSha256, bytes: *const u8, len: u32) {
+pub unsafe extern fn SCSha256Update(hasher: &mut SCSha256, bytes: *const u8, len: u32) {
     update(&mut hasher.0, bytes, len);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, len: u32) {
+pub unsafe extern fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, len: u32) {
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
     finalize(hasher.0, out, len);
 }
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, l
 /// But even given the notes, this appears to be faster than the equivalent that we
 /// did in C using NSS.
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut c_char, len: u32) {
+pub unsafe extern fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut c_char, len: u32) {
     let out = &mut *(out as *mut u8);
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
@@ -74,13 +74,13 @@ pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut 
 
 /// Free an unfinalized Sha256 context.
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256Free(hasher: &mut SCSha256) {
+pub unsafe extern fn SCSha256Free(hasher: &mut SCSha256) {
     // Drop.
     let _: Box<SCSha256> = Box::from_raw(hasher);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256HashBuffer(
+pub unsafe extern fn SCSha256HashBuffer(
     buf: *const u8, buf_len: u32, out: *mut u8, len: u32,
 ) -> bool {
     if len as usize != SC_SHA256_LEN {
@@ -98,31 +98,31 @@ pub unsafe extern "C" fn SCSha256HashBuffer(
 pub struct SCSha1(Sha1);
 
 #[no_mangle]
-pub extern "C" fn SCSha1New() -> *mut SCSha1 {
+pub extern fn SCSha1New() -> *mut SCSha1 {
     let hasher = Box::new(SCSha1(Sha1::new()));
     Box::into_raw(hasher)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha1Update(hasher: &mut SCSha1, bytes: *const u8, len: u32) {
+pub unsafe extern fn SCSha1Update(hasher: &mut SCSha1, bytes: *const u8, len: u32) {
     update(&mut hasher.0, bytes, len);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: u32) {
+pub unsafe extern fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: u32) {
     let hasher: Box<SCSha1> = Box::from_raw(hasher);
     finalize(hasher.0, out, len);
 }
 
 /// Free an unfinalized Sha1 context.
 #[no_mangle]
-pub unsafe extern "C" fn SCSha1Free(hasher: &mut SCSha1) {
+pub unsafe extern fn SCSha1Free(hasher: &mut SCSha1) {
     // Drop.
     let _: Box<SCSha1> = Box::from_raw(hasher);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCSha1HashBuffer(
+pub unsafe extern fn SCSha1HashBuffer(
     buf: *const u8, buf_len: u32, out: *mut u8, len: u32,
 ) -> bool {
     if len as usize != SC_SHA1_LEN {
@@ -140,13 +140,13 @@ pub unsafe extern "C" fn SCSha1HashBuffer(
 pub struct SCMd5(Md5);
 
 #[no_mangle]
-pub extern "C" fn SCMd5New() -> *mut SCMd5 {
+pub extern fn SCMd5New() -> *mut SCMd5 {
     let hasher = Box::new(SCMd5(Md5::new()));
     Box::into_raw(hasher)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: u32) {
+pub unsafe extern fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: u32) {
     update(&mut hasher.0, bytes, len);
 }
 
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn SCMd5Update(hasher: &mut SCMd5, bytes: *const u8, len: 
 ///
 /// This function consumes the SCMd5 hash context.
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u32) {
+pub unsafe extern fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u32) {
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     finalize(hasher.0, out, len);
 }
@@ -163,7 +163,7 @@ pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u3
 ///
 /// Consumes the hash context and cannot be re-used.
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char, len: u32) {
+pub unsafe extern fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char, len: u32) {
     let out = &mut *(out as *mut u8);
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
@@ -179,13 +179,13 @@ pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char
 
 /// Free an unfinalized Sha1 context.
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5Free(hasher: &mut SCMd5) {
+pub unsafe extern fn SCMd5Free(hasher: &mut SCMd5) {
     // Drop.
     let _: Box<SCMd5> = Box::from_raw(hasher);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut u8, len: u32) {
+pub unsafe extern fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut u8, len: u32) {
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
     let hash = Md5::new().chain(data).finalize();
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut
 
 /// C binding for a function to MD5 hash a single buffer to a hex string.
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5HashBufferToHex(
+pub unsafe extern fn SCMd5HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
 ) {
     let out = &mut *(out as *mut u8);

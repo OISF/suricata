@@ -189,8 +189,14 @@ impl SSHState {
                         parser::MessageCode::SshMsgKexinit if hassh_is_enabled() => {
                             //let endkex = SSH_RECORD_HEADER_LEN + head.pkt_len - 2;
                             let endkex = input.len() - rem.len();
-                            if let Ok((_, key_exchange)) = parser::ssh_parse_key_exchange(&input[SSH_RECORD_HEADER_LEN..endkex]) {
-                                key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
+                            if let Ok((_, key_exchange)) = parser::ssh_parse_key_exchange(
+                                &input[SSH_RECORD_HEADER_LEN..endkex],
+                            ) {
+                                key_exchange.generate_hassh(
+                                    &mut hdr.hassh_string,
+                                    &mut hdr.hassh,
+                                    &resp,
+                                );
                             }
                         }
                         parser::MessageCode::SshMsgNewKeys => {
@@ -200,15 +206,15 @@ impl SSHState {
                                     AppLayerParserStateSetFlag(
                                         pstate,
                                         APP_LAYER_PARSER_NO_INSPECTION
-                                        | APP_LAYER_PARSER_NO_REASSEMBLY
-                                        | APP_LAYER_PARSER_BYPASS_READY,
+                                            | APP_LAYER_PARSER_NO_REASSEMBLY
+                                            | APP_LAYER_PARSER_BYPASS_READY,
                                     );
                                 }
                             }
                         }
                         _ => {}
                     }
-                    
+
                     input = rem;
                     //header and complete data (not returned)
                 }
@@ -219,7 +225,7 @@ impl SSHState {
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
-                            match head.msg_code { 
+                            match head.msg_code {
                                 parser::MessageCode::SshMsgNewKeys => {
                                     hdr.flags = SSHConnectionState::SshStateFinished;
                                 }
@@ -231,10 +237,9 @@ impl SSHState {
                                         hdr.record_left_msg = parser::MessageCode::SshMsgKexinit;
                                         return AppLayerResult::incomplete(
                                             (il - rem.len()) as u32,
-                                            (head.pkt_len - 2) as u32
+                                            (head.pkt_len - 2) as u32,
                                         );
-                                    }
-                                    else {
+                                    } else {
                                         SCLogDebug!("SSH buffer is bigger than maximum reassembled packet size");
                                         self.set_event(SSHEvent::LongKexRecord);
                                     }
@@ -369,7 +374,7 @@ export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_events(
+pub unsafe extern fn rs_ssh_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -377,7 +382,7 @@ pub unsafe extern "C" fn rs_ssh_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_event_info(
+pub unsafe extern fn rs_ssh_state_get_event_info(
     event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
@@ -403,7 +408,7 @@ pub unsafe extern "C" fn rs_ssh_state_get_event_info(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_event_info_by_id(
+pub unsafe extern fn rs_ssh_state_get_event_info_by_id(
     event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
@@ -423,24 +428,26 @@ pub unsafe extern "C" fn rs_ssh_state_get_event_info_by_id(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_ssh_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_ssh_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut SSHState));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) {
+pub extern fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) {
     //do nothing
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_parse_request(
+pub unsafe extern fn rs_ssh_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -455,7 +462,7 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_parse_response(
+pub unsafe extern fn rs_ssh_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -470,7 +477,7 @@ pub unsafe extern "C" fn rs_ssh_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_tx(
+pub unsafe extern fn rs_ssh_state_get_tx(
     state: *mut std::os::raw::c_void, _tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SSHState);
@@ -478,12 +485,12 @@ pub unsafe extern "C" fn rs_ssh_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -> u64 {
+pub extern fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -> u64 {
     return 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_tx_get_flags(
+pub unsafe extern fn rs_ssh_tx_get_flags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -495,7 +502,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_flags(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
+pub unsafe extern fn rs_ssh_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
@@ -521,7 +528,7 @@ pub unsafe extern "C" fn rs_ssh_tx_get_alstate_progress(
 const PARSER_NAME: &[u8] = b"ssh\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_register_parser() {
+pub unsafe extern fn rs_ssh_register_parser() {
     let default_port = CString::new("[22]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -572,27 +579,28 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_enable_hassh() {
+pub extern fn rs_ssh_enable_hassh() {
     HASSH_ENABLED.store(true, Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
+pub extern fn rs_ssh_hassh_is_enabled() -> bool {
     hassh_is_enabled()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
+pub unsafe extern fn rs_ssh_tx_get_log_condition(tx: *mut std::os::raw::c_void) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
-    
+
     if rs_ssh_hassh_is_enabled() {
-        if  tx.cli_hdr.flags == SSHConnectionState::SshStateFinished &&
-            tx.srv_hdr.flags == SSHConnectionState::SshStateFinished {
-            return true; 
+        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished
+            && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished
+        {
+            return true;
         }
-    }
-    else if  tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && 
-        tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+    } else if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone
+        && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone
+    {
         return true;
     }
     return false;

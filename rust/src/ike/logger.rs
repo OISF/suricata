@@ -19,9 +19,9 @@ use super::ike::{IKEState, IKETransaction};
 use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
 use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use num_traits::FromPrimitive;
 use std;
 use std::convert::TryFrom;
-use num_traits::FromPrimitive;
 
 const LOG_EXTENDED: u32 = 0x01;
 
@@ -224,7 +224,7 @@ fn log_ikev2(tx: &IKETransaction, jb: &mut JsonBuilder) -> Result<(), JsonError>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_logger_log(
+pub unsafe extern fn rs_ike_logger_log(
     state: &mut IKEState, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, IKETransaction);

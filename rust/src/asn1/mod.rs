@@ -101,9 +101,7 @@ impl<'a> Asn1<'a> {
                 && obj.header.is_primitive())
         {
             if let BerObjectContent::BitString(bits, _v) = &obj.content {
-                if obj.header.len > 0
-                    && *bits as u64 > obj.header.len.saturating_mul(8)
-                {
+                if obj.header.len > 0 && *bits as u64 > obj.header.len.saturating_mul(8) {
                     return Some(Asn1Check::BitstringOverflow);
                 }
             }
@@ -211,7 +209,7 @@ fn asn1_decode<'a>(
 /// input must be a valid buffer of at least input_len bytes
 /// pointer must be freed using `rs_asn1_free`
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_decode(
+pub unsafe extern fn rs_asn1_decode(
     input: *const u8, input_len: u16, buffer_offset: u32, ad_ptr: *const DetectAsn1Data,
 ) -> *mut Asn1<'static> {
     if input.is_null() || input_len == 0 || ad_ptr.is_null() {
@@ -220,7 +218,7 @@ pub unsafe extern "C" fn rs_asn1_decode(
 
     let slice = build_slice!(input, input_len as usize);
 
-    let ad = &*ad_ptr ;
+    let ad = &*ad_ptr;
 
     let res = asn1_decode(slice, buffer_offset, ad);
 
@@ -236,7 +234,7 @@ pub unsafe extern "C" fn rs_asn1_decode(
 ///
 /// ptr must be a valid object obtained using `rs_asn1_decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
+pub unsafe extern fn rs_asn1_free(ptr: *mut Asn1) {
     if ptr.is_null() {
         return;
     }
@@ -255,7 +253,7 @@ pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
 ///
 /// Returns 1 if any of the options match, 0 if not
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_checks(ptr: *const Asn1, ad_ptr: *const DetectAsn1Data) -> u8 {
+pub unsafe extern fn rs_asn1_checks(ptr: *const Asn1, ad_ptr: *const DetectAsn1Data) -> u8 {
     if ptr.is_null() || ad_ptr.is_null() {
         return 0;
     }

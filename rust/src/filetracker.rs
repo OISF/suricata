@@ -27,11 +27,10 @@
  * and new data is no longer pushed down to the lower level APIs.
  * The tracker does continue to follow the file.
  */
-
 use crate::core::*;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use crate::filecontainer::*;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct FileChunk {
@@ -48,12 +47,11 @@ impl FileChunk {
     }
 }
 
-#[derive(Debug)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct FileTransferTracker {
     file_size: u64,
     pub tracked: u64,
-    cur_ooo: u64,   // how many bytes do we have queued from ooo chunks
+    cur_ooo: u64, // how many bytes do we have queued from ooo chunks
     track_id: u32,
     chunk_left: u32,
 
@@ -72,7 +70,7 @@ pub struct FileTransferTracker {
 impl FileTransferTracker {
     pub fn new() -> FileTransferTracker {
         FileTransferTracker {
-            chunks:HashMap::new(),
+            chunks: HashMap::new(),
             ..Default::default()
         }
     }
@@ -81,9 +79,10 @@ impl FileTransferTracker {
         !self.file_open
     }
 
-    fn open(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16, name: &[u8]) -> i32
-    {
+    fn open(
+        &mut self, config: &'static SuricataFileContext, files: &mut FileContainer, flags: u16,
+        name: &[u8],
+    ) -> i32 {
         let r = files.file_open(config, &self.track_id, name, flags);
         if r == 0 {
             files.file_set_txid_on_last_file(self.tx_id);
@@ -101,7 +100,7 @@ impl FileTransferTracker {
         self.tracked = 0;
     }
 
-    pub fn trunc (&mut self, files: &mut FileContainer, flags: u16) {
+    pub fn trunc(&mut self, files: &mut FileContainer, flags: u16) {
         if self.file_is_truncated || !self.file_open {
             return;
         }
@@ -112,28 +111,38 @@ impl FileTransferTracker {
     }
 
     pub fn create(&mut self, _name: &[u8], _file_size: u64) {
-        if self.file_open { panic!("close existing file first"); }
+        if self.file_open {
+            panic!("close existing file first");
+        }
 
         SCLogDebug!("CREATE: name {:?} file_size {}", _name, _file_size);
     }
 
-    pub fn new_chunk(&mut self, config: &'static SuricataFileContext,
-            files: &mut FileContainer, flags: u16,
-            name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32,
-            fill_bytes: u8, is_last: bool, xid: &u32) -> u32
-    {
+    pub fn new_chunk(
+        &mut self, config: &'static SuricataFileContext, files: &mut FileContainer, flags: u16,
+        name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32, fill_bytes: u8,
+        is_last: bool, xid: &u32,
+    ) -> u32 {
         if self.chunk_left != 0 || self.fill_bytes != 0 {
             SCLogDebug!("current chunk incomplete: truncating");
             self.trunc(files, flags);
         }
 
-        SCLogDebug!("NEW CHUNK: chunk_size {} fill_bytes {}", chunk_size, fill_bytes);
+        SCLogDebug!(
+            "NEW CHUNK: chunk_size {} fill_bytes {}",
+            chunk_size,
+            fill_bytes
+        );
 
         // for now assume that is_last means its really the last chunk
         // so no out of order chunks coming after. This means that if
         // the last chunk is out or order, we've missed chunks before.
         if chunk_offset != self.tracked {
-            SCLogDebug!("NEW CHUNK IS OOO: expected {}, got {}", self.tracked, chunk_offset);
+            SCLogDebug!(
+                "NEW CHUNK IS OOO: expected {}, got {}",
+                self.tracked,
+                chunk_offset
+            );
             if is_last {
                 SCLogDebug!("last chunk is out of order, this means we missed data before");
                 self.trunc(files, flags);
@@ -164,11 +173,18 @@ impl FileTransferTracker {
     /// update the file tracker
     /// If gap_size > 0 'data' should not be used.
     /// return how much we consumed of data
-    pub fn update(&mut self, files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32) -> u32 {
+    pub fn update(
+        &mut self, files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32,
+    ) -> u32 {
         let mut consumed = 0_usize;
         let is_gap = gap_size > 0;
         if is_gap || gap_size > 0 {
-            SCLogDebug!("is_gap {} size {} ooo? {}", is_gap, gap_size, self.chunk_is_ooo);
+            SCLogDebug!(
+                "is_gap {} size {} ooo? {}",
+                is_gap,
+                gap_size,
+                self.chunk_is_ooo
+            );
         }
 
         if self.chunk_left + self.fill_bytes as u32 == 0 {
@@ -178,7 +194,7 @@ impl FileTransferTracker {
                 self.close(files, flags);
                 self.chunk_is_last = false;
             }
-            return 0
+            return 0;
         } else if self.chunk_left == 0 {
             SCLogDebug!("FILL BYTES {} from prev run", self.fill_bytes);
             if data.len() >= self.fill_bytes as usize {
@@ -191,7 +207,7 @@ impl FileTransferTracker {
                 SCLogDebug!("CHUNK(pre) fill bytes now still {}", self.fill_bytes);
             }
             SCLogDebug!("FILL BYTES: returning {}", consumed);
-            return consumed as u32
+            return consumed as u32;
         }
         SCLogDebug!("UPDATE: data {} chunk_left {}", data.len(), self.chunk_left);
 
@@ -202,24 +218,26 @@ impl FileTransferTracker {
                 if !self.chunk_is_ooo {
                     let res = files.file_append(&self.track_id, d, is_gap);
                     match res {
-                        0   => { },
-                        -2  => {
+                        0 => {}
+                        -2 => {
                             self.file_is_truncated = true;
-                        },
+                        }
                         _ => {
                             SCLogDebug!("got error so truncing file");
                             self.file_is_truncated = true;
-                        },
+                        }
                     }
 
                     self.tracked += self.chunk_left as u64;
                 } else {
-                    SCLogDebug!("UPDATE: appending data {} to ooo chunk at offset {}/{}",
-                            d.len(), self.cur_ooo_chunk_offset, self.tracked);
+                    SCLogDebug!(
+                        "UPDATE: appending data {} to ooo chunk at offset {}/{}",
+                        d.len(),
+                        self.cur_ooo_chunk_offset,
+                        self.tracked
+                    );
                     let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
-                        Vacant(entry) => {
-                            entry.insert(FileChunk::new(self.chunk_left))
-                        },
+                        Vacant(entry) => entry.insert(FileChunk::new(self.chunk_left)),
                         Occupied(entry) => entry.into_mut(),
                     };
                     self.cur_ooo += d.len() as u64;
@@ -248,31 +266,38 @@ impl FileTransferTracker {
                             let _offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
                                 Some(c) => {
-                                    let res = files.file_append(&self.track_id, &c.chunk, c.contains_gap);
+                                    let res =
+                                        files.file_append(&self.track_id, &c.chunk, c.contains_gap);
                                     match res {
-                                        0   => { },
-                                        -2  => {
+                                        0 => {}
+                                        -2 => {
                                             self.file_is_truncated = true;
-                                        },
+                                        }
                                         _ => {
                                             SCLogDebug!("got error so truncing file");
                                             self.file_is_truncated = true;
-                                        },
+                                        }
                                     }
 
                                     self.tracked += c.chunk.len() as u64;
                                     self.cur_ooo -= c.chunk.len() as u64;
 
                                     SCLogDebug!("STORED OOO CHUNK at offset {}, tracked now {}, stored len {}", _offset, self.tracked, c.chunk.len());
-                                },
+                                }
                                 _ => {
-                                    SCLogDebug!("NO STORED CHUNK found at _offset {}", self.tracked);
+                                    SCLogDebug!(
+                                        "NO STORED CHUNK found at _offset {}",
+                                        self.tracked
+                                    );
                                     break;
-                                },
+                                }
                             };
                         }
                     } else {
-                        SCLogDebug!("UPDATE: complete ooo chunk. Offset {}", self.cur_ooo_chunk_offset);
+                        SCLogDebug!(
+                            "UPDATE: complete ooo chunk. Offset {}",
+                            self.cur_ooo_chunk_offset
+                        );
 
                         self.chunk_is_ooo = false;
                         self.cur_ooo_chunk_offset = 0;
@@ -285,19 +310,18 @@ impl FileTransferTracker {
                 } else {
                     SCLogDebug!("NOT last chunk, keep going");
                 }
-
             } else {
                 if !self.chunk_is_ooo {
                     let res = files.file_append(&self.track_id, data, is_gap);
                     match res {
-                        0   => { },
-                        -2  => {
+                        0 => {}
+                        -2 => {
                             self.file_is_truncated = true;
-                        },
+                        }
                         _ => {
                             SCLogDebug!("got error so truncing file");
                             self.file_is_truncated = true;
-                        },
+                        }
                     }
                     self.tracked += data.len() as u64;
                 } else {

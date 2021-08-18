@@ -17,10 +17,10 @@
 
 // written by Giuseppe Longo <giuseppe@glono.it>
 
-use nom::*;
-use nom::IResult;
-use nom::character::{is_alphabetic, is_alphanumeric, is_space};
 use nom::character::streaming::crlf;
+use nom::character::{is_alphabetic, is_alphanumeric, is_space};
+use nom::IResult;
+use nom::*;
 use std;
 use std::collections::HashMap;
 
@@ -161,7 +161,7 @@ named!(pub sip_take_line<&[u8], Option<String> >,
 pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>> {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     loop {
-        match crlf(input) as IResult<&[u8],_> {
+        match crlf(input) as IResult<&[u8], _> {
             Ok((_, _)) => {
                 break;
             }

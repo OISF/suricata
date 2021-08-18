@@ -39,7 +39,7 @@ const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
+pub extern fn rs_http2_init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_HTTP2_FILE_CONFIG = Some(context);
     }
@@ -961,7 +961,7 @@ export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_probing_parser_tc(
+pub unsafe extern fn rs_http2_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
@@ -981,7 +981,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                 return ALPROTO_UNKNOWN;
             }
             Err(_) => {
-                return ALPROTO_FAILED ;
+                return ALPROTO_FAILED;
             }
         }
     }
@@ -989,7 +989,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
 }
 
 /// Extern functions operating on HTTP2.
-extern "C" {
+extern {
     pub fn HTTP2MimicHttp1Request(
         orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
     );
@@ -999,7 +999,7 @@ extern "C" {
 // is typically not unsafe.
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn rs_http2_state_new(
+pub extern fn rs_http2_state_new(
     orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
@@ -1015,19 +1015,19 @@ pub extern "C" fn rs_http2_state_new(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
     let mut state: Box<HTTP2State> = Box::from_raw(state as _);
     state.free();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, HTTP2State);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_ts(
+pub unsafe extern fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -1040,7 +1040,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_tc(
+pub unsafe extern fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -1052,7 +1052,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx(
+pub unsafe extern fn rs_http2_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, HTTP2State);
@@ -1067,26 +1067,26 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
+pub unsafe extern fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
+pub unsafe extern fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return rs_http2_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_events(
+pub unsafe extern fn rs_http2_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -1094,7 +1094,7 @@ pub unsafe extern "C" fn rs_http2_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_event_info(
+pub unsafe extern fn rs_http2_state_get_event_info(
     event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
@@ -1126,7 +1126,7 @@ pub unsafe extern "C" fn rs_http2_state_get_event_info(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_event_info_by_id(
+pub unsafe extern fn rs_http2_state_get_event_info_by_id(
     event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
@@ -1151,7 +1151,7 @@ pub unsafe extern "C" fn rs_http2_state_get_event_info_by_id(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
+pub unsafe extern fn rs_http2_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
@@ -1169,7 +1169,7 @@ pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_getfiles(
+pub unsafe extern fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
     let state = cast_pointer!(state, HTTP2State);
@@ -1184,7 +1184,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_register_parser() {
+pub unsafe extern fn rs_http2_register_parser() {
     let default_port = CString::new("[80]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

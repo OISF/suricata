@@ -17,9 +17,9 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use std::fmt;
-use nom::*;
 use nom::number::streaming::*;
+use nom::*;
+use std::fmt;
 
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
@@ -33,7 +33,7 @@ pub enum RFBGlobalState {
     TSVncResponse,
     TCSecurityResult,
     TSClientInit,
-    Message
+    Message,
 }
 
 impl fmt::Display for RFBGlobalState {
@@ -50,43 +50,43 @@ impl fmt::Display for RFBGlobalState {
             RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
             RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
             RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
-            RFBGlobalState::Message => write!(f, "Message")
+            RFBGlobalState::Message => write!(f, "Message"),
         }
     }
 }
 
 pub struct ProtocolVersion {
     pub major: String,
-    pub minor: String
+    pub minor: String,
 }
 
 pub struct SupportedSecurityTypes {
     pub number_of_types: u8,
-    pub types: Vec<u8>
+    pub types: Vec<u8>,
 }
 
 pub struct SecurityTypeSelection {
-    pub security_type: u8
+    pub security_type: u8,
 }
 
 pub struct ServerSecurityType {
-    pub security_type: u32
+    pub security_type: u32,
 }
 
 pub struct SecurityResult {
-    pub status: u32
+    pub status: u32,
 }
 
 pub struct FailureReason {
-    pub reason_string: String
+    pub reason_string: String,
 }
 
 pub struct VncAuth {
-    pub secret: Vec<u8>
+    pub secret: Vec<u8>,
 }
 
 pub struct ClientInit {
-    pub shared: u8
+    pub shared: u8,
 }
 
 pub struct PixelFormat {
@@ -107,7 +107,7 @@ pub struct ServerInit {
     pub height: u16,
     pub pixel_format: PixelFormat,
     pub name_length: u32,
-    pub name: Vec<u8>
+    pub name: Vec<u8>,
 }
 
 named!(pub parse_protocol_version<ProtocolVersion>,
@@ -258,8 +258,8 @@ named!(pub parse_server_init<ServerInit>,
 
 #[cfg(test)]
 mod tests {
-    use nom::*;
     use super::*;
+    use nom::*;
 
     /// Simple test of some valid data.
     #[test]
@@ -278,8 +278,7 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
@@ -288,13 +287,10 @@ mod tests {
     #[test]
     fn test_parse_server_init() {
         let buf = [
-            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01,
-            0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x10, 0x08,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e,
-            0x61, 0x6e, 0x65, 0x61, 0x67, 0x6c, 0x65, 0x73,
-            0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f,
-            0x73, 0x74, 0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c,
-            0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e
+            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
+            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
 
         let result = parse_server_init(&buf);
@@ -311,11 +307,9 @@ mod tests {
             Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+            Err(Err::Error(err)) | Err(Err::Failure(err)) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }
     }
-
 }

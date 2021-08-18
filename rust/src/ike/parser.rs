@@ -574,7 +574,9 @@ pub fn parse_payload<'a>(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing SecurityAssociation");
                 return Err(());
             }
@@ -590,7 +592,9 @@ pub fn parse_payload<'a>(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing Proposal");
                 return Err(());
             }
@@ -650,7 +654,9 @@ fn parse_proposal_payload<'a>(
                             transforms,
                             vendor_ids,
                             payload_types,
-                        ).is_err() {
+                        )
+                        .is_err()
+                        {
                             SCLogDebug!("Error parsing transform payload");
                             return Err(());
                         }
@@ -701,7 +707,9 @@ fn parse_security_association_payload<'a>(
                                     transforms,
                                     vendor_ids,
                                     payload_types,
-                                ).is_err() {
+                                )
+                                .is_err()
+                                {
                                     SCLogDebug!("Error parsing proposal payload");
                                     return Err(());
                                 }

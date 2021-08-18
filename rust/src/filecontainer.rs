@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
+use std::os::raw::c_void;
 use std::ptr;
-use std::os::raw::{c_void};
 
 use crate::core::*;
 
@@ -24,8 +24,7 @@ use crate::core::*;
 extern {
     pub fn FileFlowToFlags(flow: *const Flow, flags: u8) -> u16;
 }
-pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
-
+pub const FILE_USE_DETECT: u16 = BIT_U16!(13);
 
 // Generic file structure, so it can be used by different protocols
 #[derive(Debug, Default)]
@@ -37,8 +36,7 @@ pub struct Files {
 }
 
 impl Files {
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
+    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16) {
         if direction == STREAM_TOSERVER {
             (&mut self.files_ts, self.flags_ts)
         } else {
@@ -51,8 +49,8 @@ pub struct File;
 #[repr(C)]
 #[derive(Debug)]
 pub struct FileContainer {
-    head: * mut c_void,
-    tail: * mut c_void,
+    head: *mut c_void,
+    tail: *mut c_void,
 }
 
 impl Drop for FileContainer {
@@ -62,36 +60,49 @@ impl Drop for FileContainer {
 }
 
 impl Default for FileContainer {
-    fn default() -> Self { Self {
-        head: ptr::null_mut(),
-        tail: ptr::null_mut(),
-    }}
+    fn default() -> Self {
+        Self {
+            head: ptr::null_mut(),
+            tail: ptr::null_mut(),
+        }
+    }
 }
 
 impl FileContainer {
     pub fn default() -> FileContainer {
-        FileContainer { head:ptr::null_mut(), tail:ptr::null_mut() }
+        FileContainer {
+            head: ptr::null_mut(),
+            tail: ptr::null_mut(),
+        }
     }
     pub fn free(&mut self) {
         SCLogDebug!("freeing self");
-        match unsafe {SC} {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 (c.FileContainerRecycle)(self);
-            },
+            }
         }
     }
 
-    pub fn file_open(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, name: &[u8], flags: u16) -> i32 {
-        match unsafe {SC} {
+    pub fn file_open(
+        &mut self, cfg: &'static SuricataFileContext, track_id: &u32, name: &[u8], flags: u16,
+    ) -> i32 {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
 
-                
-                (c.FileOpenFile)(self, cfg.files_sbcfg, *track_id,
-                        name.as_ptr(), name.len() as u16,
-                        ptr::null(), 0u32, flags)
+                (c.FileOpenFile)(
+                    self,
+                    cfg.files_sbcfg,
+                    *track_id,
+                    name.as_ptr(),
+                    name.len() as u16,
+                    ptr::null(),
+                    0u32,
+                    flags,
+                )
             }
         }
     }
@@ -99,46 +110,37 @@ impl FileContainer {
     pub fn file_append(&mut self, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
         if data.len() == 0 {
-            return 0
+            return 0;
         }
-        match unsafe {SC} {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                
-                match is_gap {
-                    false => {
-                        SCLogDebug!("appending file data");
-                        
-                        (c.FileAppendData)(self, *track_id,
-                                data.as_ptr(), data.len() as u32)
-                    },
-                    true => {
-                        SCLogDebug!("appending GAP");
-                        
-                        (c.FileAppendGAP)(self, *track_id,
-                                data.as_ptr(), data.len() as u32)
-                    },
+            Some(c) => match is_gap {
+                false => {
+                    SCLogDebug!("appending file data");
+
+                    (c.FileAppendData)(self, *track_id, data.as_ptr(), data.len() as u32)
                 }
-            }
+                true => {
+                    SCLogDebug!("appending GAP");
+
+                    (c.FileAppendGAP)(self, *track_id, data.as_ptr(), data.len() as u32)
+                }
+            },
         }
     }
 
     pub fn file_close(&mut self, track_id: &u32, flags: u16) -> i32 {
         SCLogDebug!("FILECONTAINER: CLOSEing");
 
-        match unsafe {SC} {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                
-                (c.FileCloseFile)(self, *track_id, ptr::null(), 0u32, flags)
-            }
+            Some(c) => (c.FileCloseFile)(self, *track_id, ptr::null(), 0u32, flags),
         }
-
     }
 
     pub fn files_prune(&mut self) {
         SCLogDebug!("FILECONTAINER: pruning");
-        match unsafe {SC} {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 (c.FilePrune)(self);
@@ -147,7 +149,7 @@ impl FileContainer {
     }
 
     pub fn file_set_txid_on_last_file(&mut self, tx_id: u64) {
-        match unsafe {SC} {
+        match unsafe { SC } {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 (c.FileSetTx)(self, tx_id);

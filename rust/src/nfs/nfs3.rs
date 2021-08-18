@@ -20,18 +20,23 @@
 use crate::core::*;
 
 use crate::nfs::nfs::*;
-use crate::nfs::types::*;
-use crate::nfs::rpc_records::*;
 use crate::nfs::nfs3_records::*;
+use crate::nfs::rpc_records::*;
+use crate::nfs::types::*;
 
-use nom::IResult;
 use nom::number::streaming::be_u32;
+use nom::IResult;
 
 impl NFSState {
     /// complete NFS3 request record
     pub fn process_request_record_v3<'b>(&mut self, r: &RpcPacket<'b>) {
-        SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
-                r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
+        SCLogDebug!(
+            "REQUEST {} procedure {} ({}) blob size {}",
+            r.hdr.xid,
+            r.procedure,
+            self.requestmap.len(),
+            r.prog_data.len()
+        );
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
@@ -42,7 +47,6 @@ impl NFSState {
 
         if r.procedure == NFSPROC3_LOOKUP {
             self.process_request_record_lookup(r, &mut xidmap);
-
         } else if r.procedure == NFSPROC3_ACCESS {
             if let Ok((_, rd)) = parse_nfs3_request_access(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
@@ -118,7 +122,9 @@ impl NFSState {
             SCLogDebug!("COMMIT, closing shop");
             if let Ok((_, rd)) = parse_nfs3_request_commit(r.prog_data) {
                 let file_handle = rd.handle.value.to_vec();
-                if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+                if let Some((tx, files, flags)) =
+                    self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER)
+                {
                     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         tdf.chunk_count += 1;
                         tdf.file_additional_procs.push(NFSPROC3_COMMIT);
@@ -135,7 +141,8 @@ impl NFSState {
 
         if !(r.procedure == NFSPROC3_COMMIT || // commit handled separately
              r.procedure == NFSPROC3_WRITE  || // write handled in file tx
-             r.procedure == NFSPROC3_READ)     // read handled in file tx at reply
+             r.procedure == NFSPROC3_READ)
+        // read handled in file tx at reply
         {
             let mut tx = self.new_tx();
             tx.xid = r.hdr.xid;
@@ -155,21 +162,24 @@ impl NFSState {
                     tx.request_machine_name = u.machine_name_buf.to_vec();
                     tx.request_uid = u.uid;
                     tx.request_gid = u.gid;
-                },
-                _ => { },
+                }
+                _ => {}
             }
-            SCLogDebug!("TX created: ID {} XID {} PROCEDURE {}",
-                    tx.id, tx.xid, tx.procedure);
+            SCLogDebug!(
+                "TX created: ID {} XID {} PROCEDURE {}",
+                tx.id,
+                tx.xid,
+                tx.procedure
+            );
             self.transactions.push(tx);
-
         } else if r.procedure == NFSPROC3_READ {
-
             let found = match self.get_file_tx_by_handle(&xidmap.file_handle, STREAM_TOCLIENT) {
                 Some((_, _, _)) => true,
                 None => false,
             };
             if !found {
-                let (tx, _, _) = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, STREAM_TOCLIENT);
+                let (tx, _, _) =
+                    self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, STREAM_TOCLIENT);
                 tx.procedure = NFSPROC3_READ;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
@@ -187,7 +197,9 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v3<'b>(
+        &mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap,
+    ) {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
@@ -199,7 +211,8 @@ impl NFSState {
                 nfs_status = rd.status;
 
                 SCLogDebug!("LOOKUP handle {:?}", rd.handle);
-                self.namemap.insert(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
+                self.namemap
+                    .insert(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
                 resp_handle = rd.handle.value.to_vec();
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -212,7 +225,8 @@ impl NFSState {
 
                 if let Some(h) = rd.handle {
                     SCLogDebug!("handle {:?}", h);
-                    self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
+                    self.namemap
+                        .insert(h.value.to_vec(), xidmap.file_name.to_vec());
                     resp_handle = h.value.to_vec();
                 }
             } else {
@@ -231,7 +245,7 @@ impl NFSState {
 
                 // cut off final eof field
                 let d = if rd.data.len() >= 4 {
-                    &rd.data[..rd.data.len()-4_usize]
+                    &rd.data[..rd.data.len() - 4_usize]
                 } else {
                     rd.data
                 };
@@ -245,8 +259,7 @@ impl NFSState {
                             SCLogDebug!("e {:?}", e);
                             if let Some(ref h) = e.handle {
                                 SCLogDebug!("h {:?}", h);
-                                self.namemap.insert(h.value.to_vec(),
-                                        e.name_vec.to_vec());
+                                self.namemap.insert(h.value.to_vec(), e.name_vec.to_vec());
                             }
                         }
                     }
@@ -259,14 +272,18 @@ impl NFSState {
         }
         // for all other record types only parse the status
         else {
-            let stat : u32 = match be_u32(r.prog_data) as IResult<&[u8],_> {
+            let stat: u32 = match be_u32(r.prog_data) as IResult<&[u8], _> {
                 Ok((_, stat)) => stat,
-                _ => 0
+                _ => 0,
             };
             nfs_status = stat;
         }
-        SCLogDebug!("REPLY {} to procedure {} blob size {}",
-                r.hdr.xid, xidmap.procedure, r.prog_data.len());
+        SCLogDebug!(
+            "REPLY {} to procedure {} blob size {}",
+            r.hdr.xid,
+            xidmap.procedure,
+            r.prog_data.len()
+        );
 
         if xidmap.procedure != NFSPROC3_READ {
             self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);

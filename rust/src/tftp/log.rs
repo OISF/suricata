@@ -20,14 +20,11 @@
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::tftp::tftp::TFTPTransaction;
 
-fn tftp_log_request(tx: &mut TFTPTransaction,
-                    jb: &mut JsonBuilder)
-                    -> Result<(), JsonError>
-{
+fn tftp_log_request(tx: &mut TFTPTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> {
     match tx.opcode {
         1 => jb.set_string("packet", "read")?,
         2 => jb.set_string("packet", "write")?,
-        _ => jb.set_string("packet", "error")?
+        _ => jb.set_string("packet", "error")?,
     };
     jb.set_string("file", tx.filename.as_str())?;
     jb.set_string("mode", tx.mode.as_str())?;
@@ -35,9 +32,6 @@ fn tftp_log_request(tx: &mut TFTPTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction,
-                                           jb: &mut JsonBuilder)
-                                           -> bool
-{
+pub extern fn rs_tftp_log_json_request(tx: &mut TFTPTransaction, jb: &mut JsonBuilder) -> bool {
     tftp_log_request(tx, jb).is_ok()
 }

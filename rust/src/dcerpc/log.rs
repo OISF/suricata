@@ -114,7 +114,9 @@ fn log_dcerpc_header_udp(
         jsb.set_string("response", "UNREPLIED")?;
     }
     let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
-    let activityuuid = activityuuid.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+    let activityuuid = activityuuid
+        .map(|uuid| uuid.to_hyphenated().to_string())
+        .unwrap();
     jsb.set_string("activityuuid", &activityuuid)?;
     jsb.set_uint("seqnum", tx.seqnum as u64)?;
     jsb.set_string("rpc_version", "4.0")?;
@@ -122,14 +124,14 @@ fn log_dcerpc_header_udp(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_record_tcp(
+pub extern fn rs_dcerpc_log_json_record_tcp(
     state: &DCERPCState, tx: &DCERPCTransaction, mut jsb: &mut JsonBuilder,
 ) -> bool {
     log_dcerpc_header_tcp(&mut jsb, state, tx).is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_record_udp(
+pub extern fn rs_dcerpc_log_json_record_udp(
     state: &DCERPCUDPState, tx: &DCERPCTransaction, mut jsb: &mut JsonBuilder,
 ) -> bool {
     log_dcerpc_header_udp(&mut jsb, state, tx).is_ok()

@@ -149,7 +149,7 @@ fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
 
 /// Intermediary function between the C code and the parsing functions.
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_parse(c_arg: *const c_char) -> *mut c_void {
+pub unsafe extern fn rs_modbus_parse(c_arg: *const c_char) -> *mut c_void {
     if c_arg.is_null() {
         return std::ptr::null_mut();
     }
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn rs_modbus_parse(c_arg: *const c_char) -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_free(ptr: *mut c_void) {
+pub unsafe extern fn rs_modbus_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         let _ = Box::from_raw(ptr as *mut DetectModbusRust);
     }
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn rs_modbus_free(ptr: *mut c_void) {
 /// Compares a transaction to a signature to determine whether the transaction
 /// matches the signature. If it does, 1 is returned; otherwise 0 is returned.
 #[no_mangle]
-pub extern "C" fn rs_modbus_inspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> u8 {
+pub extern fn rs_modbus_inspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> u8 {
     // All necessary information can be found in the request (value inspection currently
     // only supports write functions, which hold the value in the request).
     // Only inspect the response in the case where there is no request.

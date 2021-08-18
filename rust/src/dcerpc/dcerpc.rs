@@ -18,9 +18,9 @@
 use crate::applayer::*;
 use crate::core::{self, *};
 use crate::dcerpc::parser;
+use nom;
 use nom::error::ErrorKind;
 use nom::number::Endianness;
-use nom;
 use std::cmp;
 use std::ffi::CString;
 
@@ -196,7 +196,7 @@ impl DCERPCTransaction {
             tx_data: AppLayerTxData::new(),
             de_state: None,
             ..Default::default()
-        }
+        };
     }
 
     pub fn free(&mut self) {
@@ -328,7 +328,8 @@ pub struct DCERPCState {
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
     pub tc_ssn_gap: bool,
-    pub ts_ssn_trunc: bool, /// true if Truncated in this direction
+    pub ts_ssn_trunc: bool,
+    /// true if Truncated in this direction
     pub tc_ssn_trunc: bool,
     pub flow: Option<*const core::Flow>,
 }
@@ -339,7 +340,7 @@ impl DCERPCState {
             data_needed_for_dir: core::STREAM_TOSERVER,
             prev_dir: core::STREAM_TOSERVER,
             ..Default::default()
-        }
+        };
     }
 
     fn create_tx(&mut self, call_id: u32) -> DCERPCTransaction {
@@ -355,13 +356,14 @@ impl DCERPCState {
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.id as u64 == tx_id { //+ 1 {
+            if tx.id as u64 == tx_id {
+                //+ 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
@@ -369,8 +371,14 @@ impl DCERPCState {
             }
         }
         if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            SCLogDebug!(
+                "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                tx_id,
+                tx_id + 1,
+                index,
+                self.transactions.len(),
+                self.tx_id
+            );
             self.transactions.remove(index);
         }
     }
@@ -560,17 +568,22 @@ impl DCERPCState {
             core::STREAM_TOSERVER => {
                 self.ts_gap = true;
                 self.ts_ssn_gap = true;
-            },
+            }
             _ => {
                 self.tc_gap = true;
                 self.tc_ssn_gap = true;
-            },
+            }
         }
         AppLayerResult::ok()
     }
 
     pub fn post_gap_housekeeping(&mut self, dir: u8) {
-        SCLogDebug!("ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}", self.ts_ssn_gap, self.tc_ssn_gap, dir);
+        SCLogDebug!(
+            "ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}",
+            self.ts_ssn_gap,
+            self.tc_ssn_gap,
+            dir
+        );
         if self.ts_ssn_gap && dir == core::STREAM_TOSERVER {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
@@ -606,7 +619,7 @@ impl DCERPCState {
         }
     }
 
-    pub fn search_dcerpc_record<'a>(&mut self, i: &'a[u8]) -> nom::IResult<&'a[u8], &'a[u8]> {
+    pub fn search_dcerpc_record<'a>(&mut self, i: &'a [u8]) -> nom::IResult<&'a [u8], &'a [u8]> {
         let mut d = i;
         while d.len() >= 2 {
             if d[0] == 0x05 && d[1] == 0x00 {
@@ -715,7 +728,10 @@ impl DCERPCState {
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        flow,
+                        core::STREAM_TOSERVER.into(),
+                    );
                 }
                 tx.frag_cnt_ts = 1;
                 self.transactions.push(tx);
@@ -800,7 +816,10 @@ impl DCERPCState {
                     tx.req_done = true;
                     tx.frag_cnt_ts = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            core::STREAM_TOSERVER.into(),
+                        );
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
@@ -815,7 +834,10 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            core::STREAM_TOCLIENT.into(),
+                        );
                     }
                 }
                 _ => {
@@ -901,7 +923,7 @@ impl DCERPCState {
                         self.transactions.push(tx);
                     }
                 }
-                
+
                 self.handle_common_stub(
                     input,
                     (input.len() - leftover_input.len()) as u16,
@@ -931,7 +953,9 @@ impl DCERPCState {
         self.query_completed = false;
 
         // Skip the record since this means that its in the middle of a known length record
-        if (self.ts_gap && direction == core::STREAM_TOSERVER) || (self.tc_gap && direction == core::STREAM_TOCLIENT) {
+        if (self.ts_gap && direction == core::STREAM_TOSERVER)
+            || (self.tc_gap && direction == core::STREAM_TOCLIENT)
+        {
             SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
             match self.search_dcerpc_record(cur_i) {
                 Ok((_, pg)) => {
@@ -941,12 +965,12 @@ impl DCERPCState {
                     match direction {
                         core::STREAM_TOSERVER => {
                             self.ts_gap = false;
-                        },
+                        }
                         _ => {
                             self.tc_gap = false;
                         }
                     }
-                },
+                }
                 _ => {
                     let mut consumed = cur_i.len();
                     // At least 2 bytes are required to know if a new record is beginning
@@ -957,7 +981,7 @@ impl DCERPCState {
                     }
                     SCLogDebug!("DCERPC record NOT found");
                     return AppLayerResult::incomplete(consumed as u32, 2);
-                },
+                }
             }
         }
 
@@ -1036,7 +1060,9 @@ impl DCERPCState {
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
-                    let tx = if let Some(tx) = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT) {
+                    let tx = if let Some(tx) =
+                        self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT)
+                    {
                         tx.resp_cmd = x;
                         tx
                     } else {
@@ -1048,7 +1074,10 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            core::STREAM_TOCLIENT.into(),
+                        );
                     }
                     self.handle_bind_cache(current_call_id, false);
                 }
@@ -1062,7 +1091,8 @@ impl DCERPCState {
                     self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    let transaction = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT);
+                    let transaction =
+                        self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT);
                     match transaction {
                         Some(tx) => {
                             tx.resp_cmd = x;
@@ -1107,8 +1137,8 @@ impl DCERPCState {
 }
 
 fn evaluate_stub_params(
-    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16,
-    stub_data_buffer: &mut Vec<u8>,stub_data_buffer_reset: &mut bool,
+    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
+    stub_data_buffer_reset: &mut bool,
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
@@ -1127,34 +1157,39 @@ fn evaluate_stub_params(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_parse_dcerpc_request_gap(
-    state: &mut DCERPCState,
-    _input_len: u32,
+pub extern fn rs_parse_dcerpc_request_gap(
+    state: &mut DCERPCState, _input_len: u32,
 ) -> AppLayerResult {
     state.parse_data_gap(core::STREAM_TOSERVER)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_parse_dcerpc_response_gap(
-    state: &mut DCERPCState,
-    _input_len: u32,
+pub extern fn rs_parse_dcerpc_response_gap(
+    state: &mut DCERPCState, _input_len: u32,
 ) -> AppLayerResult {
     state.parse_data_gap(core::STREAM_TOCLIENT)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_parse_request(
+pub unsafe extern fn rs_dcerpc_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
-    SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
-            input, input_len, flags, flags & core::STREAM_EOF != 0);
+    SCLogDebug!(
+        "Handling request: input {:p} input_len {} flags {:x} EOF {}",
+        input,
+        input_len,
+        flags,
+        flags & core::STREAM_EOF != 0
+    );
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
-    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+    if flags & (core::STREAM_START | core::STREAM_MIDSTREAM)
+        == (core::STREAM_START | core::STREAM_MIDSTREAM)
+    {
         state.ts_gap = true;
     }
     if input_len > 0 && input != std::ptr::null_mut() {
@@ -1166,7 +1201,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_parse_response(
+pub unsafe extern fn rs_dcerpc_parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
@@ -1175,7 +1210,9 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
-    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+    if flags & (core::STREAM_START | core::STREAM_MIDSTREAM)
+        == (core::STREAM_START | core::STREAM_MIDSTREAM)
+    {
         state.tc_gap = true;
     }
     if input_len > 0 && input != std::ptr::null_mut() {
@@ -1187,50 +1224,66 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_dcerpc_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto,
+) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
+pub extern fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState) });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_dcerpc_state_transaction_free(
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) {
     let dce_state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("freeing tx {}", tx_id as u64);
     dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
+pub unsafe extern fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
     let dce_state = cast_pointer!(state, DCERPCState);
     if direction & core::STREAM_TOSERVER != 0 {
         dce_state.ts_ssn_trunc = true;
         for tx in &mut dce_state.transactions {
             tx.req_done = true;
             if let Some(flow) = dce_state.flow {
-                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOSERVER.into());
+                sc_app_layer_parser_trigger_raw_stream_reassembly(
+                    flow,
+                    core::STREAM_TOSERVER.into(),
+                );
             }
         }
-        SCLogDebug!("dce_state.ts_ssn_trunc = true; txs {}", dce_state.transactions.len());
+        SCLogDebug!(
+            "dce_state.ts_ssn_trunc = true; txs {}",
+            dce_state.transactions.len()
+        );
     } else if direction & core::STREAM_TOCLIENT != 0 {
         dce_state.tc_ssn_trunc = true;
         for tx in &mut dce_state.transactions {
             tx.resp_done = true;
             if let Some(flow) = dce_state.flow {
-                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
+                sc_app_layer_parser_trigger_raw_stream_reassembly(
+                    flow,
+                    core::STREAM_TOCLIENT.into(),
+                );
             }
         }
-        SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());
+        SCLogDebug!(
+            "dce_state.tc_ssn_trunc = true; txs {}",
+            dce_state.transactions.len()
+        );
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
+pub unsafe extern fn rs_dcerpc_get_tx_detect_state(
     vtx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
@@ -1241,7 +1294,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
+pub unsafe extern fn rs_dcerpc_set_tx_detect_state(
     vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
 ) -> std::os::raw::c_int {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
@@ -1250,7 +1303,7 @@ pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx(
+pub unsafe extern fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
@@ -1261,14 +1314,15 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
-                                                 )-> std::os::raw::c_int {
+pub unsafe extern fn rs_dcerpc_get_alstate_progress(
+    tx: *mut std::os::raw::c_void, direction: u8,
+) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == core::STREAM_TOSERVER && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
@@ -1282,16 +1336,13 @@ pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
-    tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
-{
+pub unsafe extern fn rs_dcerpc_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
+pub unsafe extern fn rs_dcerpc_get_stub_data(
     tx: &mut DCERPCTransaction, buf: *mut *const u8, len: *mut u32, endianness: *mut u8, dir: u8,
 ) {
     match dir {
@@ -1314,33 +1365,33 @@ fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_header(input) {
         Ok((_, hdr)) => {
             let is_request = hdr.hdrtype == 0x00;
-            let is_dcerpc = hdr.rpc_vers == 0x05 &&
-                hdr.rpc_vers_minor == 0x00 &&
-                hdr.packed_drep[0] & 0xee == 0 &&
-                hdr.packed_drep[1] <= 3;
+            let is_dcerpc = hdr.rpc_vers == 0x05
+                && hdr.rpc_vers_minor == 0x00
+                && hdr.packed_drep[0] & 0xee == 0
+                && hdr.packed_drep[1] <= 3;
             return (is_dcerpc, is_request);
-        },
+        }
         Err(_) => (false, false),
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> AppProto
-{
+pub unsafe extern fn rs_dcerpc_probe_tcp(
+    _f: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> AppProto {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
-    let (is_dcerpc, is_request, ) = probe(slice);
+    let (is_dcerpc, is_request) = probe(slice);
     if is_dcerpc {
         let dir = if is_request {
             core::STREAM_TOSERVER
         } else {
             core::STREAM_TOCLIENT
         };
-        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
+        if direction & (core::STREAM_TOSERVER | core::STREAM_TOCLIENT) != dir {
             *rdir = dir;
         }
         return ALPROTO_DCERPC;
@@ -1350,15 +1401,33 @@ pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_DCERPC,
-                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_tcp, 0, 0) < 0 {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP as u8,
+            ALPROTO_DCERPC,
+            b"|05 00|\0".as_ptr() as *const std::os::raw::c_char,
+            2,
+            0,
+            core::STREAM_TOSERVER,
+            rs_dcerpc_probe_tcp,
+            0,
+            0,
+        ) < 0
+        {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_DCERPC,
-                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     core::STREAM_TOCLIENT, rs_dcerpc_probe_tcp, 0, 0) < 0 {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP as u8,
+            ALPROTO_DCERPC,
+            b"|05 00|\0".as_ptr() as *const std::os::raw::c_char,
+            2,
+            0,
+            core::STREAM_TOCLIENT,
+            rs_dcerpc_probe_tcp,
+            0,
+            0,
+        ) < 0
+        {
             SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -1367,12 +1436,11 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
-
 // Parser name as a C style string.
 pub const PARSER_NAME: &[u8] = b"dcerpc\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_register_parser() {
+pub unsafe extern fn rs_dcerpc_register_parser() {
     let default_port = CString::new("[0:65355]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -1396,7 +1464,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         set_de_state: rs_dcerpc_set_tx_detect_state,
         get_events: None,
         get_eventinfo: None,
-        get_eventinfo_byid : None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
@@ -1409,21 +1477,13 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DCERPC = alproto;
         if register_pattern_probe() < 0 {
             return;
         }
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust DCERPC parser registered.");

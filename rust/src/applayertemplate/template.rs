@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
-use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use crate::applayer::{self, *};
-use std::ffi::CString;
-use nom;
 use super::parser;
+use crate::applayer::{self, *};
+use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use nom;
+use std;
+use std::ffi::CString;
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
@@ -151,7 +151,7 @@ impl TemplateState {
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
                     self.transactions.push(tx);
-                },
+                }
                 Err(nom::Err::Incomplete(_)) => {
                     // Not enough data. This parser doesn't give us a good indication
                     // of how much data is missing so just ask for one more byte so the
@@ -159,10 +159,10 @@ impl TemplateState {
                     let consumed = input.len() - start.len();
                     let needed = start.len() + 1;
                     return AppLayerResult::incomplete(consumed as u32, needed as u32);
-                },
+                }
                 Err(_) => {
                     return AppLayerResult::err();
-                },
+                }
             }
         }
 
@@ -219,9 +219,7 @@ impl TemplateState {
     }
 
     fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
+        &mut self, min_tx_id: u64, state: &mut u64,
     ) -> Option<(&TemplateTransaction, u64, bool)> {
         let mut index = *state as usize;
         let len = self.transactions.len();
@@ -265,23 +263,13 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 
 // C exports.
 
-export_tx_get_detect_state!(
-    rs_template_tx_get_detect_state,
-    TemplateTransaction
-);
-export_tx_set_detect_state!(
-    rs_template_tx_set_detect_state,
-    TemplateTransaction
-);
+export_tx_get_detect_state!(rs_template_tx_get_detect_state, TemplateTransaction);
+export_tx_set_detect_state!(rs_template_tx_set_detect_state, TemplateTransaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_probing_parser(
-    _flow: *const Flow,
-    _direction: u8,
-    input: *const u8,
-    input_len: u32,
-    _rdir: *mut u8
+pub unsafe extern fn rs_template_probing_parser(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     // Need at least 2 bytes.
     if input_len > 1 && input != std::ptr::null_mut() {
@@ -294,35 +282,29 @@ pub unsafe extern "C" fn rs_template_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_template_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_template_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
-) {
+pub unsafe extern fn rs_template_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, TemplateState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_parse_request(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+pub unsafe extern fn rs_template_parse_request(
+    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
@@ -345,14 +327,9 @@ pub unsafe extern "C" fn rs_template_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_parse_response(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+pub unsafe extern fn rs_template_parse_response(
+    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TemplateState);
@@ -369,9 +346,8 @@ pub unsafe extern "C" fn rs_template_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+pub unsafe extern fn rs_template_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
@@ -385,17 +361,14 @@ pub unsafe extern "C" fn rs_template_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
+pub unsafe extern fn rs_template_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
-    _direction: u8,
+pub unsafe extern fn rs_template_tx_get_alstate_progress(
+    tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
 
@@ -407,47 +380,38 @@ pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_events(
-    tx: *mut std::os::raw::c_void
+pub unsafe extern fn rs_template_state_get_events(
+    tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, TemplateTransaction);
     return tx.events;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info(
-    _event_name: *const std::os::raw::c_char,
-    _event_id: *mut std::os::raw::c_int,
+pub extern fn rs_template_state_get_event_info(
+    _event_name: *const std::os::raw::c_char, _event_id: *mut std::os::raw::c_int,
     _event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     return -1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info_by_id(_event_id: std::os::raw::c_int,
-                                                         _event_name: *mut *const std::os::raw::c_char,
-                                                         _event_type: *mut core::AppLayerEventType
+pub extern fn rs_template_state_get_event_info_by_id(
+    _event_id: std::os::raw::c_int, _event_name: *mut *const std::os::raw::c_char,
+    _event_type: *mut core::AppLayerEventType,
 ) -> i8 {
     return -1;
 }
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64,
+pub unsafe extern fn rs_template_state_get_tx_iterator(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, TemplateState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx,
-                out_tx_id,
-                has_next,
-            );
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
         None => {
@@ -461,12 +425,9 @@ pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
 /// No required for parsing, but an example function for retrieving a
 /// pointer to the request buffer from C for detection.
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_get_request_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
+pub unsafe extern fn rs_template_get_request_buffer(
+    tx: *mut std::os::raw::c_void, buf: *mut *const u8, len: *mut u32,
+) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
         if request.len() > 0 {
@@ -480,12 +441,9 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
 
 /// Get the response buffer for a transaction from C.
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_get_response_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
+pub unsafe extern fn rs_template_get_response_buffer(
+    tx: *mut std::os::raw::c_void, buf: *mut *const u8, len: *mut u32,
+) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
         if response.len() > 0 {
@@ -503,7 +461,7 @@ export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
 const PARSER_NAME: &[u8] = b"template-rust\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_register_parser() {
+pub unsafe extern fn rs_template_register_parser() {
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -527,7 +485,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         set_de_state: rs_template_tx_set_detect_state,
         get_events: Some(rs_template_state_get_events),
         get_eventinfo: Some(rs_template_state_get_event_info),
-        get_eventinfo_byid : Some(rs_template_state_get_event_info_by_id),
+        get_eventinfo_byid: Some(rs_template_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
@@ -540,18 +498,10 @@ pub unsafe extern "C" fn rs_template_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TEMPLATE = alproto;
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogNotice!("Rust template parser registered.");
@@ -578,20 +528,55 @@ mod test {
         let buf = b"5:Hello3:bye";
 
         let r = state.parse_request(&buf[0..0]);
-        assert_eq!(r, AppLayerResult{ status: 0, consumed: 0, needed: 0});
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 0,
+                consumed: 0,
+                needed: 0
+            }
+        );
 
         let r = state.parse_request(&buf[0..1]);
-        assert_eq!(r, AppLayerResult{ status: 1, consumed: 0, needed: 2});
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 1,
+                consumed: 0,
+                needed: 2
+            }
+        );
 
         let r = state.parse_request(&buf[0..2]);
-        assert_eq!(r, AppLayerResult{ status: 1, consumed: 0, needed: 3});
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 1,
+                consumed: 0,
+                needed: 3
+            }
+        );
 
         // This is the first message and only the first message.
         let r = state.parse_request(&buf[0..7]);
-        assert_eq!(r, AppLayerResult{ status: 0, consumed: 0, needed: 0});
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 0,
+                consumed: 0,
+                needed: 0
+            }
+        );
 
         // The first message and a portion of the second.
         let r = state.parse_request(&buf[0..9]);
-        assert_eq!(r, AppLayerResult{ status: 1, consumed: 7, needed: 3});
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 1,
+                consumed: 7,
+                needed: 3
+            }
+        );
     }
 }
