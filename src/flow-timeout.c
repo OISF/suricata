@@ -401,6 +401,7 @@ static inline void FlowForceReassemblyForHash(void)
                 RemoveFromHash(f, prev_f);
                 f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
                 FlowForceReassemblyForFlow(f);
+                FLOWLOCK_UNLOCK(f);
                 f = next_f;
                 continue;
             }
