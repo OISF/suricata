@@ -2,3 +2,8 @@
 # we expect the default formatting rules to be used.
 
 fn_args_layout = "compressed"
+
+# Do not convert `extern {}` to `extern "C" {}` as it will cause cbindgen
+# to re-export those functions causing duplicate declarations when the
+# header is included in our C code.
+force_explicit_abi = false
