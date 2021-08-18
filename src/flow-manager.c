@@ -333,9 +333,9 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
                 FlowForceReassemblyNeedReassembly(f) == 1)
         {
             FlowForceReassemblyForFlow(f);
+            FLOWLOCK_UNLOCK(f);
             /* flow ownership is passed to the worker thread */
 
-            /* flow remains locked */
             counters->flows_aside_needs_work++;
             continue;
         }

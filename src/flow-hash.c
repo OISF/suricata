@@ -692,6 +692,7 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
         f->fb = NULL;
         f->next = NULL;
         FlowQueuePrivateAppendFlow(&fls->work_queue, f);
+        FLOWLOCK_UNLOCK(f);
     } else {
         /* implied: TCP but our thread does not own it. So set it
          * aside for the Flow Manager to pick it up. */
