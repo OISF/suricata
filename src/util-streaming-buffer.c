@@ -671,6 +671,10 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
 
 /**
  *  \param offset offset relative to StreamingBuffer::stream_offset
+ *
+ *  \return 0 in case of success
+ *  \return -1 on memory allocation errors
+ *  \return negative value on other errors
  */
 int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                             const uint8_t *data, uint32_t data_len,
@@ -679,7 +683,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
     BUG_ON(seg == NULL);
 
     if (offset < sb->stream_offset)
-        return -1;
+        return -2;
 
     if (sb->buf == NULL) {
         if (InitBuffer(sb) == -1)
@@ -698,7 +702,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
         }
     }
     if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
-        return -1;
+        return -2;
     }
 
     memcpy(sb->buf + rel_offset, data, data_len);
