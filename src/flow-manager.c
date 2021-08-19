@@ -334,14 +334,13 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
     while ((f = FlowQueuePrivateGetFromTop(&td->aside_queue)) != NULL) {
         /* flow is still locked */
 
-        if (f->proto == IPPROTO_TCP &&
-                !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
+        if (f->proto == IPPROTO_TCP && !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
 #ifdef CAPTURE_OFFLOAD
                 f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
 #endif
                 f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-                FlowForceReassemblyNeedReassembly(f) == 1)
-        {
+                FlowForceReassemblyNeedReassembly(f) == 1) {
+            /* Send the flow to its thread */
             FlowForceReassemblyForFlow(f);
             FLOWLOCK_UNLOCK(f);
             /* flow ownership is passed to the worker thread */
