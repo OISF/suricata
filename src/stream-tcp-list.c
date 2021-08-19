@@ -67,6 +67,10 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
  *  \param seg segment to store stream offset in
  *  \param data segment data after overlap handling (if any)
  *  \param data_len data length
+ *
+ *  \return 0 on success
+ *  \return -1 on memory allocation error
+ *  \return negative value on other errors
  */
 static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, uint8_t *data, uint16_t data_len)
 {
@@ -91,11 +95,10 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
         SCReturnInt(0);
     }
 
-    if (StreamingBufferInsertAt(&stream->sb, &seg->sbseg,
-                data + data_offset,
-                data_len - data_offset,
-                stream_offset) != 0) {
-        SCReturnInt(-1);
+    int ret = StreamingBufferInsertAt(
+            &stream->sb, &seg->sbseg, data + data_offset, data_len - data_offset, stream_offset);
+    if (ret != 0) {
+        SCReturnInt(ret);
     }
 #ifdef DEBUG
     {
@@ -540,7 +543,11 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* insert the temp buffer now that we've (possibly) updated
      * it to account for the overlap policies */
-    if (InsertSegmentDataCustom(stream, handle, buf, p->payload_len) < 0) {
+    int res = InsertSegmentDataCustom(stream, handle, buf, p->payload_len);
+    if (res < 0) {
+        if (res == -1) {
+            StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+        }
         return -1;
     }
 
@@ -575,6 +582,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         /* no overlap, straight data insert */
         int res = InsertSegmentDataCustom(stream, seg, pkt_data, pkt_datalen);
         if (res < 0) {
+            if (res == -1) {
+                StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+            }
             StatsIncr(tv, ra_ctx->counter_tcp_reass_data_normal_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
