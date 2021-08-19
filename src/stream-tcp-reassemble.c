@@ -387,7 +387,15 @@ static int StreamTcpReassemblyConfig(bool quiet)
     }
 
     stream_config.sbcnf.flags = STREAMING_BUFFER_NOFLAGS;
-    stream_config.sbcnf.buf_size = 2048;
+    /* reassembly will be done up to chunk size before we run
+     * the detection so let's allocate at least chunk size plus some margins */
+    int buf_size = stream_config.reassembly_toclient_chunk_size;
+    if (buf_size < stream_config.reassembly_toserver_chunk_size)
+        buf_size = stream_config.reassembly_toserver_chunk_size;
+    buf_size += 200;
+    if (buf_size > 4096)
+        buf_size = 4096;
+    stream_config.sbcnf.buf_size = buf_size;
     stream_config.sbcnf.Malloc = ReassembleMalloc;
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = ReassembleRealloc;
