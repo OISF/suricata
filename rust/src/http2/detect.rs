@@ -429,36 +429,39 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut pos = 0 as u32;
-    if direction == Direction::ToServer as u8 {
-        for i in 0..tx.frames_ts.len() {
-            match &tx.frames_ts[i].data {
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if nb < pos + hd.blocks.len() as u32 {
-                        let value = &hd.blocks[(nb - pos) as usize].name;
-                        *buffer = value.as_ptr(); //unsafe
-                        *buffer_len = value.len() as u32;
-                        return 1;
-                    } else {
-                        pos = pos + hd.blocks.len() as u32;
+    match direction.into() {
+        Direction::ToServer => {
+            for i in 0..tx.frames_ts.len() {
+                match &tx.frames_ts[i].data {
+                    HTTP2FrameTypeData::HEADERS(hd) => {
+                        if nb < pos + hd.blocks.len() as u32 {
+                            let value = &hd.blocks[(nb - pos) as usize].name;
+                            *buffer = value.as_ptr(); //unsafe
+                            *buffer_len = value.len() as u32;
+                            return 1;
+                        } else {
+                            pos = pos + hd.blocks.len() as u32;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            match &tx.frames_tc[i].data {
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if nb < pos + hd.blocks.len() as u32 {
-                        let value = &hd.blocks[(nb - pos) as usize].name;
-                        *buffer = value.as_ptr(); //unsafe
-                        *buffer_len = value.len() as u32;
-                        return 1;
-                    } else {
-                        pos = pos + hd.blocks.len() as u32;
+        Direction::ToClient => {
+            for i in 0..tx.frames_tc.len() {
+                match &tx.frames_tc[i].data {
+                    HTTP2FrameTypeData::HEADERS(hd) => {
+                        if nb < pos + hd.blocks.len() as u32 {
+                            let value = &hd.blocks[(nb - pos) as usize].name;
+                            *buffer = value.as_ptr(); //unsafe
+                            *buffer_len = value.len() as u32;
+                            return 1;
+                        } else {
+                            pos = pos + hd.blocks.len() as u32;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
@@ -630,46 +633,48 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     let mut pos = 0 as u32;
-    if direction == Direction::ToServer as u8 {
-        for i in 0..tx.frames_ts.len() {
-            match &tx.frames_ts[i].data {
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
-                        tx.escaped.push(ehdr);
-                        let idx = tx.escaped.len() - 1;
-                        let value = &tx.escaped[idx];
-                        *buffer = value.as_ptr(); //unsafe
-                        *buffer_len = value.len() as u32;
-                        return 1;
-                    } else {
-                        pos = pos + hd.blocks.len() as u32;
+    match direction.into() {
+        Direction::ToServer => {
+            for i in 0..tx.frames_ts.len() {
+                match &tx.frames_ts[i].data {
+                    HTTP2FrameTypeData::HEADERS(hd) => {
+                        if nb < pos + hd.blocks.len() as u32 {
+                            let ehdr = http2_escape_header(&hd, nb - pos);
+                            tx.escaped.push(ehdr);
+                            let idx = tx.escaped.len() - 1;
+                            let value = &tx.escaped[idx];
+                            *buffer = value.as_ptr(); //unsafe
+                            *buffer_len = value.len() as u32;
+                            return 1;
+                        } else {
+                            pos = pos + hd.blocks.len() as u32;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            match &tx.frames_tc[i].data {
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
-                        tx.escaped.push(ehdr);
-                        let idx = tx.escaped.len() - 1;
-                        let value = &tx.escaped[idx];
-                        *buffer = value.as_ptr(); //unsafe
-                        *buffer_len = value.len() as u32;
-                        return 1;
-                    } else {
-                        pos = pos + hd.blocks.len() as u32;
+        Direction::ToClient => {
+            for i in 0..tx.frames_tc.len() {
+                match &tx.frames_tc[i].data {
+                    HTTP2FrameTypeData::HEADERS(hd) => {
+                        if nb < pos + hd.blocks.len() as u32 {
+                            let ehdr = http2_escape_header(&hd, nb - pos);
+                            tx.escaped.push(ehdr);
+                            let idx = tx.escaped.len() - 1;
+                            let value = &tx.escaped[idx];
+                            *buffer = value.as_ptr(); //unsafe
+                            *buffer_len = value.len() as u32;
+                            return 1;
+                        } else {
+                            pos = pos + hd.blocks.len() as u32;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
-
     return 0;
 }
 
