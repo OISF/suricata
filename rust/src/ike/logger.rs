@@ -29,7 +29,7 @@ fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<
     for attribute in transform {
         js.set_string(
             attribute.attribute_type.to_string().as_str(),
-            format!("{}", attribute.attribute_value.to_string()).as_str(),
+            attribute.attribute_value.to_string().as_str(),
         )?;
 
         if let Some(numeric_value) = attribute.numeric_value {
