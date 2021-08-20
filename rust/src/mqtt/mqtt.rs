@@ -606,7 +606,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_request(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf).into();
+    return state.parse_request(buf);
 }
 
 #[no_mangle]
@@ -621,7 +621,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_response(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf).into();
+    return state.parse_response(buf);
 }
 
 #[no_mangle]

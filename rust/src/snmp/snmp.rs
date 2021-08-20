@@ -131,7 +131,7 @@ impl<'a> SNMPState<'a> {
             SnmpPdu::Bulk(_) => {
             },
             SnmpPdu::TrapV1(ref t)    => {
-                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr.clone()));
+                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr));
             }
         }
 
@@ -149,7 +149,7 @@ impl<'a> SNMPState<'a> {
             self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
         }
         self.add_pdu_info(&msg.pdu, &mut tx);
-        tx.community = Some(msg.community.clone());
+        tx.community = Some(msg.community);
         self.transactions.push(tx);
         0
     }
@@ -170,7 +170,7 @@ impl<'a> SNMPState<'a> {
         }
         match msg.security_params {
             SecurityParameters::USM(usm) => {
-                tx.usm = Some(usm.msg_user_name.clone());
+                tx.usm = Some(usm.msg_user_name);
             },
             _                            => {
                 self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
