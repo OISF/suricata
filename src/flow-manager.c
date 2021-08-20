@@ -561,8 +561,10 @@ static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td,
 
     const uint32_t min = iter * chunk_size + hash_min;
     uint32_t max = min + chunk_size;
+    /* we start at beginning of hash at next iteration so let's check
+     * hash till the end */
     if (iter + 1 == chunks) {
-        max = rows;
+        max = hash_max;
     }
     const uint32_t cnt = FlowTimeoutHash(td, ts, min, max, counters);
     return cnt;
