@@ -2149,7 +2149,7 @@ mod tests {
                     .zip(expected_uuid)
                     .map(|(x, y)| x.cmp(y))
                     .find(|&ord| ord != cmp::Ordering::Equal)
-                    .unwrap_or(bind_uuid.len().cmp(&expected_uuid.len()))
+                    .unwrap_or_else(|| bind_uuid.len().cmp(&expected_uuid.len()))
             );
         }
     }
