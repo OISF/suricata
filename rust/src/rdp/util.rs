@@ -53,7 +53,7 @@ pub fn le_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Er
 pub fn utf7_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
     let s = match memchr(b'\0', input) {
         Some(end) => &input[..end],
-        None => &input[..],
+        None => input,
     };
     match std::str::from_utf8(s) {
         Ok(s) => Ok(String::from(s)),

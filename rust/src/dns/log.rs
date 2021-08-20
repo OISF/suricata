@@ -742,7 +742,7 @@ fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
         return Ok(None);
     }
 
-    let ref query = r.queries[index];
+    let query = &r.queries[index];
 
     if !dns_log_rrtype_enabled(query.rrtype, flags) {
         return Ok(None);
