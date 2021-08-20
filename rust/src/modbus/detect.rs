@@ -522,7 +522,7 @@ mod test {
         assert_eq!(
             parse_access("access read discretes"),
             Ok(DetectModbusRust {
-                access_type: Some(Flags::from(AccessType::READ | AccessType::DISCRETES)),
+                access_type: Some((AccessType::READ | AccessType::DISCRETES)),
                 ..Default::default()
             })
         );
@@ -537,7 +537,7 @@ mod test {
         assert_eq!(
             parse_access("access write coils, address <500"),
             Ok(DetectModbusRust {
-                access_type: Some(Flags::from(AccessType::WRITE | AccessType::COILS)),
+                access_type: Some((AccessType::WRITE | AccessType::COILS)),
                 address: Some(std::u16::MIN..500),
                 ..Default::default()
             })
@@ -545,7 +545,7 @@ mod test {
         assert_eq!(
             parse_access("access write coils, address >500"),
             Ok(DetectModbusRust {
-                access_type: Some(Flags::from(AccessType::WRITE | AccessType::COILS)),
+                access_type: Some((AccessType::WRITE | AccessType::COILS)),
                 address: Some(500..std::u16::MAX),
                 ..Default::default()
             })
@@ -553,7 +553,7 @@ mod test {
         assert_eq!(
             parse_access("access write holding, address 100, value <1000"),
             Ok(DetectModbusRust {
-                access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                 address: Some(100..100),
                 value: Some(std::u16::MIN..1000),
                 ..Default::default()
@@ -562,7 +562,7 @@ mod test {
         assert_eq!(
             parse_access("access write holding, address 100, value 500<>1000"),
             Ok(DetectModbusRust {
-                access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                 address: Some(100..100),
                 value: Some(500..1000),
                 ..Default::default()
@@ -661,7 +661,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(15..15),
                     value: Some(std::u16::MIN..4660),
                     ..Default::default()
@@ -674,7 +674,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(15..15),
                     value: Some(4661..4661),
                     ..Default::default()
@@ -687,7 +687,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(16..16),
                     value: Some(20000..22136),
                     ..Default::default()
@@ -700,7 +700,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(16..16),
                     value: Some(22136..30000),
                     ..Default::default()
@@ -713,7 +713,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(15..15),
                     value: Some(4660..std::u16::MAX),
                     ..Default::default()
@@ -726,7 +726,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(16..16),
                     value: Some(std::u16::MIN..22137),
                     ..Default::default()
@@ -739,7 +739,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(16..16),
                     value: Some(std::u16::MIN..22137),
                     ..Default::default()
@@ -752,7 +752,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(17..17),
                     value: Some(39612..39612),
                     ..Default::default()
@@ -765,7 +765,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(17..17),
                     value: Some(30000..39613),
                     ..Default::default()
@@ -778,7 +778,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(15..15),
                     value: Some(4659..5000),
                     ..Default::default()
@@ -791,7 +791,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::WRITE | AccessType::HOLDING)),
+                    access_type: Some((AccessType::WRITE | AccessType::HOLDING)),
                     address: Some(17..17),
                     value: Some(39611..std::u16::MAX),
                     ..Default::default()
@@ -939,9 +939,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    category: Some(Flags::from(
-                        CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED
-                    )),
+                    category: Some((CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED)),
                     unit_id: Some(11..11),
                     ..Default::default()
                 }
@@ -977,9 +975,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    category: Some(Flags::from(
-                        CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED
-                    )),
+                    category: Some((CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED)),
                     unit_id: Some(10..10),
                     ..Default::default()
                 }
@@ -1212,7 +1208,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     ..Default::default()
                 }
             ),
@@ -1223,7 +1219,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(std::u16::MIN..9),
                     ..Default::default()
                 }
@@ -1235,7 +1231,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(5..9),
                     ..Default::default()
                 }
@@ -1247,7 +1243,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(104..std::u16::MAX),
                     ..Default::default()
                 }
@@ -1259,7 +1255,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(104..110),
                     ..Default::default()
                 }
@@ -1271,7 +1267,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(9..9),
                     ..Default::default()
                 }
@@ -1283,7 +1279,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(std::u16::MIN..10),
                     ..Default::default()
                 }
@@ -1295,7 +1291,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(5..10),
                     ..Default::default()
                 }
@@ -1307,7 +1303,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(103..std::u16::MAX),
                     ..Default::default()
                 }
@@ -1319,7 +1315,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(103..110),
                     ..Default::default()
                 }
@@ -1331,7 +1327,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
-                    access_type: Some(Flags::from(AccessType::READ | AccessType::INPUT)),
+                    access_type: Some((AccessType::READ | AccessType::INPUT)),
                     address: Some(104..104),
                     ..Default::default()
                 }

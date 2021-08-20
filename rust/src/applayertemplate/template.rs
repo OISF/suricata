@@ -372,7 +372,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
         AppLayerResult::ok()
     } else {
         let buf = build_slice!(input, input_len as usize);
-        state.parse_response(buf).into()
+        state.parse_response(buf)
     }
 }
 
