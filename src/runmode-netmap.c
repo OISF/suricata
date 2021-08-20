@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2018 Open Information Security Foundation
+/* Copyright (C) 2014-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,13 +22,14 @@
 */
 
 /**
-* \file
-*
-* \author Aleksey Katargin <gureedo@gmail.com>
-*
-* Netmap runmode
-*
-*/
+ * \file
+ *
+ * \author Aleksey Katargin <gureedo@gmail.com>
+ * \author Bill Meeks <billmeeks8@gmail.com>
+ *
+ * Netmap runmode
+ *
+ */
 
 #include "suricata-common.h"
 #include "tm-threads.h"
@@ -52,6 +53,11 @@
 #include "util-ioctl.h"
 #include "util-byte.h"
 
+#ifdef HAVE_NETMAP
+#define NETMAP_WITH_LIBS
+#include <net/netmap_user.h>
+#endif /* HAVE_NETMAP */
+
 #include "source-netmap.h"
 
 extern int max_pending_packets;
@@ -63,6 +69,15 @@ const char *RunModeNetmapGetDefaultMode(void)
 
 void RunModeIdsNetmapRegister(void)
 {
+#if HAVE_NETMAP
+    SCLogInfo("Using netmap version %d ["
+#if USE_NEW_NETMAP_API
+              "new"
+#else
+              "legacy"
+#endif
+              " API interfaces]",
+            NETMAP_API);
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single",
             "Single threaded netmap mode",
             RunModeIdsNetmapSingle);
@@ -76,6 +91,7 @@ void RunModeIdsNetmapRegister(void)
             "thread.",
             RunModeIdsNetmapAutoFp);
     return;
+#endif
 }
 
 #ifdef HAVE_NETMAP
@@ -109,6 +125,14 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         } else if (ns->iface[len-1] == '^') {
             ns->sw_ring = true;
         }
+    }
+
+    /* we will need the base interface name for later */
+    char base_name[IFNAMSIZ];
+    strlcpy(base_name, ns->iface, sizeof(base_name));
+    if (strlen(base_name) > 0 &&
+            (base_name[strlen(base_name) - 1] == '^' || base_name[strlen(base_name) - 1] == '*')) {
+        base_name[strlen(base_name) - 1] = '\0';
     }
 
     /* prefixed with netmap or vale means it's not a real interface
@@ -208,17 +232,24 @@ finalize:
 
     ns->ips = (ns->copy_mode != NETMAP_COPY_MODE_NONE);
 
+#if !USE_NEW_NETMAP_API
     if (ns->sw_ring) {
         /* just one thread per interface supported */
         ns->threads = 1;
-    } else if (ns->threads_auto) {
-        /* As NetmapGetRSSCount used to be broken on Linux,
-         * fall back to GetIfaceRSSQueuesNum if needed. */
-        ns->threads = NetmapGetRSSCount(ns->iface);
-        if (ns->threads == 0) {
-            ns->threads = GetIfaceRSSQueuesNum(ns->iface);
+    } else {
+#endif
+        if (ns->threads_auto) {
+            /* As NetmapGetRSSCount used to be broken on Linux,
+             * fall back to GetIfaceRSSQueuesNum if needed. */
+            ns->threads = NetmapGetRSSCount(ns->iface);
+            if (ns->threads == 0) {
+                /* need to use base_name of interface here */
+                ns->threads = GetIfaceRSSQueuesNum(base_name);
+            }
         }
+#if !USE_NEW_NETMAP_API
     }
+#endif
     if (ns->threads <= 0) {
         ns->threads = 1;
     }
@@ -227,15 +258,15 @@ finalize:
 }
 
 /**
-* \brief extract information from config file
-*
-* The returned structure will be freed by the thread init function.
-* This is thus necessary to or copy the structure before giving it
-* to thread or to reparse the file for each thread (and thus have
-* new structure.
-*
-* \return a NetmapIfaceConfig corresponding to the interface name
-*/
+ * \brief extract information from config file
+ *
+ * The returned structure will be freed by the thread init function.
+ * This is thus necessary to or copy the structure before giving it
+ * to thread or to reparse the file for each thread (and thus have
+ * new structure.
+ *
+ * \return a NetmapIfaceConfig corresponding to the interface name
+ */
 static void *ParseNetmapConfig(const char *iface_name)
 {
     ConfNode *if_root = NULL;
@@ -276,7 +307,7 @@ static void *ParseNetmapConfig(const char *iface_name)
         if (strlen(out_iface) > 0) {
             if_root = ConfFindDeviceConfig(netmap_node, out_iface);
             ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
-
+#if !USE_NEW_NETMAP_API
             /* if one side of the IPS peering uses a sw_ring, we will default
              * to using a single ring/thread on the other side as well. Only
              * if thread variable is set to 'auto'. So the user can override
@@ -286,9 +317,29 @@ static void *ParseNetmapConfig(const char *iface_name)
             } else if (aconf->in.sw_ring && aconf->out.threads_auto) {
                 aconf->out.threads = aconf->in.threads = 1;
             }
+#endif
         }
     }
 
+#if USE_NEW_NETMAP_API
+    int ring_count = NetmapGetRSSCount(aconf->iface_name);
+    if (strlen(aconf->iface_name) > 0 &&
+            (aconf->iface_name[strlen(aconf->iface_name) - 1] == '^' ||
+                    aconf->iface_name[strlen(aconf->iface_name) - 1] == '*')) {
+        SCLogDebug("%s -- using %d netmap host ring pair%s", aconf->iface_name, ring_count,
+                ring_count == 1 ? "" : "s");
+    } else {
+        SCLogDebug("%s -- using %d netmap ring pair%s", aconf->iface_name, ring_count,
+                ring_count == 1 ? "" : "s");
+    }
+
+    for (int i = 0; i < ring_count; i++) {
+        char live_buf[32] = { 0 };
+        snprintf(live_buf, sizeof(live_buf), "netmap%d", i);
+        LiveRegisterDevice(live_buf);
+    }
+
+#endif
     /* netmap needs all offloading to be disabled */
     if (aconf->in.real) {
         char base_name[sizeof(aconf->in.iface)];
@@ -310,6 +361,9 @@ static void *ParseNetmapConfig(const char *iface_name)
     SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
             aconf->iface_name);
 
+#if USE_NEW_NETMAP_API
+    LiveDeviceHasNoStats();
+#endif
     return aconf;
 }
 
@@ -415,12 +469,8 @@ int RunModeIdsNetmapAutoFp(void)
 
     SCLogDebug("live_dev %s", live_dev);
 
-    ret = RunModeSetLiveCaptureAutoFp(
-                              ParseNetmapConfig,
-                              NetmapConfigGeThreadsCount,
-                              "ReceiveNetmap",
-                              "DecodeNetmap", thread_name_autofp,
-                              live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(ParseNetmapConfig, NetmapConfigGeThreadsCount,
+            "ReceiveNetmap", "DecodeNetmap", thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -447,12 +497,8 @@ int RunModeIdsNetmapSingle(void)
 
     (void)ConfGet("netmap.live-interface", &live_dev);
 
-    ret = RunModeSetLiveCaptureSingle(
-                                    ParseNetmapConfig,
-                                    NetmapConfigGeThreadsCount,
-                                    "ReceiveNetmap",
-                                    "DecodeNetmap", thread_name_single,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureSingle(ParseNetmapConfig, NetmapConfigGeThreadsCount,
+            "ReceiveNetmap", "DecodeNetmap", thread_name_single, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
@@ -482,12 +528,8 @@ int RunModeIdsNetmapWorkers(void)
 
     (void)ConfGet("netmap.live-interface", &live_dev);
 
-    ret = RunModeSetLiveCaptureWorkers(
-                                    ParseNetmapConfig,
-                                    NetmapConfigGeThreadsCount,
-                                    "ReceiveNetmap",
-                                    "DecodeNetmap", thread_name_workers,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureWorkers(ParseNetmapConfig, NetmapConfigGeThreadsCount,
+            "ReceiveNetmap", "DecodeNetmap", thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError(SC_ERR_FATAL, "Unable to start runmode");
     }
