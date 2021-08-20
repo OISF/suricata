@@ -90,7 +90,7 @@ bool MacSetFlowStorageEnabled(void)
 MacSet *MacSetInit(int size)
 {
     MacSet *ms = NULL;
-    if (!FLOW_CHECK_MEMCAP(sizeof(ms))) {
+    if (!FLOW_CHECK_MEMCAP(sizeof(*ms))) {
         return NULL;
     }
     ms = SCCalloc(1, sizeof(*ms));
