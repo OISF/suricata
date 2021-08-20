@@ -381,8 +381,8 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
 fn version_to_string<'a>(ver: &RdpClientVersion, prefix: &'a str) -> String {
     let mut result = String::from(prefix);
     match ver {
-        RdpClientVersion::V4 => result.push_str("4"),
-        RdpClientVersion::V5_V8_1 => result.push_str("5"),
+        RdpClientVersion::V4 => result.push('4'),
+        RdpClientVersion::V5_V8_1 => result.push('5'),
         RdpClientVersion::V10_0 => result.push_str("10.0"),
         RdpClientVersion::V10_1 => result.push_str("10.1"),
         RdpClientVersion::V10_2 => result.push_str("10.2"),
