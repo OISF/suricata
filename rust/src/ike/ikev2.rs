@@ -209,7 +209,6 @@ pub fn handle_ikev2(
         }
         _e => {
             SCLogDebug!("parse_ikev2_payload_with_type: {:?}", _e);
-            ()
         }
     }
     return AppLayerResult::ok();
@@ -256,7 +255,6 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         IkeTransformAuthType::NONE => {
                             // Note: this could be expected with an AEAD encription alg.
                             // See rule 4
-                            ()
                         }
                         IkeTransformAuthType::AUTH_HMAC_MD5_96
                         | IkeTransformAuthType::AUTH_HMAC_SHA1_96
