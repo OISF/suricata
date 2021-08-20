@@ -102,7 +102,7 @@ impl<'a> Asn1<'a> {
         {
             if let BerObjectContent::BitString(bits, _v) = &obj.content {
                 if obj.header.len > 0
-                    && *bits as u64 > (obj.header.len.checked_mul(8).unwrap_or(std::u64::MAX))
+                    && *bits as u64 > obj.header.len.saturating_mul(8)
                 {
                     return Some(Asn1Check::BitstringOverflow);
                 }
