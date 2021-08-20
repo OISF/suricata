@@ -441,10 +441,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
 
     let opt1: Option<T123TpktChild> = {
         match opt!(data, parse_x224_connection_request_class_0) {
-            Ok((_remainder, opt)) => match opt {
-                Some(x) => Some(T123TpktChild::X224ConnectionRequest(x)),
-                None => None,
-            },
+            Ok((_remainder, opt)) => opt.map(T123TpktChild::X224ConnectionRequest),
             Err(e) => return Err(e),
         }
     };
@@ -452,10 +449,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
     let opt2: Option<T123TpktChild> = match opt1 {
         Some(x) => Some(x),
         None => match opt!(data, parse_x224_connection_confirm_class_0) {
-            Ok((_remainder, opt)) => match opt {
-                Some(x) => Some(T123TpktChild::X224ConnectionConfirm(x)),
-                None => None,
-            },
+            Ok((_remainder, opt)) => opt.map(T123TpktChild::X224ConnectionConfirm),
             Err(e) => return Err(e),
         },
     };
@@ -463,10 +457,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
     let opt3: Option<T123TpktChild> = match opt2 {
         Some(x) => Some(x),
         None => match opt!(data, parse_x223_data_class_0) {
-            Ok((_remainder, opt)) => match opt {
-                Some(x) => Some(T123TpktChild::Data(x)),
-                None => None,
-            },
+            Ok((_remainder, opt)) => opt.map(T123TpktChild::Data),
             Err(e) => return Err(e),
         },
     };
@@ -628,19 +619,13 @@ fn parse_x224_connection_confirm(input: &[u8]) -> IResult<&[u8], X224ConnectionC
 
             // it will be one of a response message or a failure message
             let opt1: Option<NegotiationFromServer> = match opt!(data, parse_negotiation_response) {
-                Ok((_remainder, opt)) => match opt {
-                    Some(x) => Some(NegotiationFromServer::Response(x)),
-                    None => None,
-                },
+                Ok((_remainder, opt)) => opt.map(NegotiationFromServer::Response),
                 Err(e) => return Err(e),
             };
             let opt2: Option<NegotiationFromServer> = match opt1 {
                 Some(x) => Some(x),
                 None => match opt!(data, parse_negotiation_failure) {
-                    Ok((_remainder, opt)) => match opt {
-                        Some(x) => Some(NegotiationFromServer::Failure(x)),
-                        None => None,
-                    },
+                    Ok((_remainder, opt)) => opt.map(NegotiationFromServer::Failure),
                     Err(e) => return Err(e),
                 },
             };
@@ -738,20 +723,14 @@ fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data, RdpError> {
     //
 
     let opt1: Option<X223DataChild> = match opt!(i3, parse_mcs_connect) {
-        Ok((_remainder, opt)) => match opt {
-            Some(x) => Some(X223DataChild::McsConnectRequest(x)),
-            None => None,
-        },
+        Ok((_remainder, opt)) => opt.map(X223DataChild::McsConnectRequest),
         Err(e) => return Err(e),
     };
 
     let opt2: Option<X223DataChild> = match opt1 {
         Some(x) => Some(x),
         None => match opt!(i3, parse_mcs_connect_response) {
-            Ok((_remainder, opt)) => match opt {
-                Some(x) => Some(X223DataChild::McsConnectResponse(x)),
-                None => None,
-            },
+            Ok((_remainder, opt)) => opt.map(X223DataChild::McsConnectResponse),
             Err(e) => return Err(e),
         },
     };
