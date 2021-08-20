@@ -83,7 +83,7 @@ impl SIPState {
         let tx = self
             .transactions
             .iter()
-            .position(|ref tx| tx.id == tx_id + 1);
+            .position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);

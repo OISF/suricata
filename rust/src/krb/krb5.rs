@@ -210,7 +210,7 @@ impl KRB5State {
     }
 
     fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
+        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);

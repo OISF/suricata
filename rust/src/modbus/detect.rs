@@ -154,9 +154,9 @@ pub unsafe extern "C" fn rs_modbus_parse(c_arg: *const c_char) -> *mut c_void {
         return std::ptr::null_mut();
     }
     if let Ok(arg) = CStr::from_ptr(c_arg).to_str() {
-        match parse_unit_id(&arg)
-            .or_else(|_| parse_function(&arg))
-            .or_else(|_| parse_access(&arg))
+        match parse_unit_id(arg)
+            .or_else(|_| parse_function(arg))
+            .or_else(|_| parse_access(arg))
         {
             Ok(detect) => return Box::into_raw(Box::new(detect)) as *mut c_void,
             Err(()) => return std::ptr::null_mut(),

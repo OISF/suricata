@@ -280,7 +280,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     _ => { (Vec::new(), false) },
                 };
                 let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
-                    match state.get_service_for_guid(&wr.guid) {
+                    match state.get_service_for_guid(wr.guid) {
                         (_, x) => x,
                     }
                 } else {
@@ -498,7 +498,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, &r);
+            smb2_write_request_record(state, r);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
@@ -604,7 +604,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_READ => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS ||
                r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                smb2_read_response_record(state, &r);
+                smb2_read_response_record(state, r);
                 false
 
             } else if r.nt_status == SMB_NTSTATUS_END_OF_FILE {

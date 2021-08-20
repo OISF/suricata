@@ -372,7 +372,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let res = SmbRecordTransRequest {
         params: params, pipe: pipe, txname: n, data: recdata,
     };
-    Ok((&rem, res))
+    Ok((rem, res))
 }
 
 

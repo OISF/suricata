@@ -266,7 +266,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 {
     match unsafe {SURICATA_NFS_FILE_CONFIG} {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
+            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
         None => panic!("no SURICATA_NFS_FILE_CONFIG"),
     }
@@ -1214,7 +1214,7 @@ impl NFSState {
                             SCLogDebug!("large record {}, likely file xfer", rec_size);
 
                             // quick peek, are in READ mode?
-                            if self.peek_reply_record(&rpc_hdr) == NFSPROC3_READ {
+                            if self.peek_reply_record(rpc_hdr) == NFSPROC3_READ {
                                 SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
 
                                 // we should have enough data to parse the RPC record

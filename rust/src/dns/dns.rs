@@ -564,7 +564,7 @@ impl DNSState {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
-            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+            let size = match be_u16(cur_i) as IResult<&[u8],u16> {
                 Ok((_, len)) => len,
                 _ => 0
             } as usize;
@@ -611,7 +611,7 @@ impl DNSState {
             if cur_i.len() == 1 {
                 return AppLayerResult::incomplete(consumed as u32, 2 as u32);
             }
-            let size = match be_u16(&cur_i) as IResult<&[u8],u16> {
+            let size = match be_u16(cur_i) as IResult<&[u8],u16> {
                 Ok((_, len)) => len,
                 _ => 0
             } as usize;

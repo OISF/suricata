@@ -364,7 +364,7 @@ fn mcs_req_to_json(mcs: &McsConnectRequest, js: &mut JsonBuilder) -> Result<(), 
                 if net.channels.len() > 0 {
                     js.open_array("channels")?;
                     for channel in &net.channels {
-                        js.append_string(&channel)?;
+                        js.append_string(channel)?;
                     }
                     js.close()?;
                 }

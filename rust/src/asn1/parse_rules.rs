@@ -45,7 +45,7 @@ pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut Dete
         }
     };
 
-    match asn1_parse_rule(&arg) {
+    match asn1_parse_rule(arg) {
         Ok((_rest, data)) => {
             let mut data = data;
 

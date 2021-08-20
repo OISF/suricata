@@ -197,7 +197,7 @@ impl NFSState {
                     xidmap.file_name = rd.filename.to_vec();
                     main_opcode = NFSPROC4_CREATE;
                 }
-                &Nfs4RequestContent::Remove(ref rd) => {
+                &Nfs4RequestContent::Remove(rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
                     main_opcode = NFSPROC4_REMOVE;
@@ -213,7 +213,7 @@ impl NFSState {
         }
 
         if main_opcode != 0 {
-            self.new_tx_v4(r, &xidmap, main_opcode, &aux_opcodes);
+            self.new_tx_v4(r, xidmap, main_opcode, &aux_opcodes);
         }
     }
 
@@ -263,7 +263,7 @@ impl NFSState {
             match parse_nfs4_request_compound(data) {
                 Ok((_, rd)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: {:?}", rd);
-                    self.compound_request(&r, &rd, &mut xidmap);
+                    self.compound_request(r, &rd, &mut xidmap);
                 },
                 Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
@@ -326,7 +326,7 @@ impl NFSState {
                             data_len: rd.data.len() as u32,
                             data: rd.data,
                         };
-                        self.process_read_record(r, &reply, Some(&xidmap));
+                        self.process_read_record(r, &reply, Some(xidmap));
                     }
                 },
                 &Nfs4ResponseContent::Open(_s, ref rd) => {
@@ -388,7 +388,7 @@ impl NFSState {
             match parse_nfs4_response_compound(data) {
                 Ok((_, rd)) => {
                     SCLogDebug!("COMPOUNDv4: {:?}", rd);
-                    self.compound_response(&r, &rd, xidmap);
+                    self.compound_response(r, &rd, xidmap);
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     self.set_event(NFSEvent::MalformedData);

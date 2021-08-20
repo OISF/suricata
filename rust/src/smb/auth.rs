@@ -123,7 +123,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
                     }
                 }
             },
-            BerObjectContent::OctetString(ref os) => {
+            BerObjectContent::OctetString(os) => {
                 if have_kerberos {
                     match parse_kerberos5_request(os) {
                         Ok((_, t)) => {

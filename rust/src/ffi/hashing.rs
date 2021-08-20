@@ -66,7 +66,7 @@ pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut 
     let output = std::slice::from_raw_parts_mut(out, len as usize);
 
     // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(&hex.as_bytes());
+    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
 
     // Terminate the string.
     output[output.len() - 1] = 0;
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char
     let output = std::slice::from_raw_parts_mut(out, len as usize);
 
     // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(&hex.as_bytes());
+    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
 
     // Terminate the string.
     output[output.len() - 1] = 0;
@@ -205,7 +205,7 @@ pub unsafe extern "C" fn SCMd5HashBufferToHex(
     let hex = format!("{:x}", &hash);
 
     // This will panic if the sizes differ.
-    output[0..len as usize - 1].copy_from_slice(&hex.as_bytes());
+    output[0..len as usize - 1].copy_from_slice(hex.as_bytes());
 
     // Terminate the string.
     output[output.len() - 1] = 0;

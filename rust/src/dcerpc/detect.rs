@@ -280,7 +280,7 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_iface_data(&arg) {
+    match parse_iface_data(arg) {
         Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }
@@ -327,7 +327,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_opnum_data(&arg) {
+    match parse_opnum_data(arg) {
         Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }

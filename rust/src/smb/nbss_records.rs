@@ -109,7 +109,7 @@ mod tests {
                            0x64, 0x0b, 0x66, 0xba, 0x4a, 0xbb, 0x81, 0xe1, 0xea,
                            0x54, 0xae, 0xb8, 0x66];
 
-        let result = parse_nbss_record(&buff);
+        let result = parse_nbss_record(buff);
         match result {
             Ok((remainder, p)) => {
                 assert_eq!(p.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);
@@ -152,7 +152,7 @@ mod tests {
                                0x64, 0x0b, 0x66, 0xba, 0x4a, 0xbb, 0x81, 0xe1, 0xea,
                                0x54, 0xae, 0xb8, 0x66];
 
-        let result_not_smb = parse_nbss_record(&buff_not_smb);
+        let result_not_smb = parse_nbss_record(buff_not_smb);
         match result_not_smb {
             Ok((remainder, p_not_smb)) => {
                 assert_eq!(p_not_smb.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);
@@ -193,7 +193,7 @@ mod tests {
                             0x02, 0x08, 0xbd, 0x20, 0x02, 0x08, 0x06, 0x00,
                             0x02, 0x40, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00];
 
-        let result = parse_nbss_record_partial(&buff);
+        let result = parse_nbss_record_partial(buff);
         match result {
             Ok((remainder, p)) => {
                 assert_eq!(p.message_type, NBSS_MSGTYPE_SESSION_MESSAGE);
