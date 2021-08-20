@@ -188,6 +188,8 @@ jobs:
                 automake \
                 cargo-vendor \
                 diffutils \
+                numactl-devel \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -236,7 +238,7 @@ jobs:
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2 distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - name: Building Rust documentation
         run: make doc
@@ -661,6 +663,7 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
+                libnuma-dev \
                 libhiredis-dev \
                 liblua5.1-dev \
                 libjansson-dev \
@@ -676,7 +679,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
-                curl
+                curl \
+                dpdk-dev
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -736,6 +740,7 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
+                libnuma-dev \
                 libhiredis-dev \
                 liblua5.1-dev \
                 libjansson-dev \
@@ -751,7 +756,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
-                curl
+                curl \
+                dpdk-dev
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -811,6 +817,7 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
+                libnuma-dev \
                 libhiredis-dev \
                 liblua5.1-dev \
                 libjansson-dev \
@@ -829,7 +836,8 @@ jobs:
                 unzip \
                 curl \
                 time \
-                wget
+                wget \
+                dpdk-dev
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -883,6 +891,7 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
+                libnuma-dev \
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
@@ -897,7 +906,8 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
-                exuberant-ctags
+                exuberant-ctags \
+                dpdk-dev
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
@@ -957,6 +967,7 @@ jobs:
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
                 libnfnetlink0 \
+                libnuma-dev \
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
@@ -969,6 +980,7 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
+                dpdk-dev
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
