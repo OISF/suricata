@@ -107,7 +107,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
         }
     };
 
-    match parse_opcode(&arg) {
+    match parse_opcode(arg) {
         Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }

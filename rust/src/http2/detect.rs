@@ -289,7 +289,7 @@ fn http2_detect_settingsctx_match(
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(&set, ctx) != 0 {
+                    if http2_detect_settings_match(set, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -300,7 +300,7 @@ fn http2_detect_settingsctx_match(
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::SETTINGS(set) => {
-                    if http2_detect_settings_match(&set, ctx) != 0 {
+                    if http2_detect_settings_match(set, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -390,7 +390,7 @@ fn http2_detect_sizeupdatectx_match(
         for i in 0..tx.frames_ts.len() {
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
-                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                    if http2_detect_sizeupdate_match(hd, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -401,7 +401,7 @@ fn http2_detect_sizeupdatectx_match(
         for i in 0..tx.frames_tc.len() {
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
-                    if http2_detect_sizeupdate_match(&hd, ctx) != 0 {
+                    if http2_detect_sizeupdate_match(hd, ctx) != 0 {
                         return 1;
                     }
                 }
@@ -634,7 +634,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_ts[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        let ehdr = http2_escape_header(hd, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];
@@ -653,7 +653,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             match &tx.frames_tc[i].data {
                 HTTP2FrameTypeData::HEADERS(hd) => {
                     if nb < pos + hd.blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&hd, nb - pos);
+                        let ehdr = http2_escape_header(hd, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];

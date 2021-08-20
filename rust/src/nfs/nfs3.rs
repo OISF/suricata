@@ -220,7 +220,7 @@ impl NFSState {
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data) {
-                self.process_read_record(r, &rd, Some(&xidmap));
+                self.process_read_record(r, &rd, Some(xidmap));
                 nfs_status = rd.status;
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -259,7 +259,7 @@ impl NFSState {
         }
         // for all other record types only parse the status
         else {
-            let stat : u32 = match be_u32(&r.prog_data) as IResult<&[u8],_> {
+            let stat : u32 = match be_u32(r.prog_data) as IResult<&[u8],_> {
                 Ok((_, stat)) => stat,
                 _ => 0
             };

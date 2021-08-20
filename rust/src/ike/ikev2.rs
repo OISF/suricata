@@ -216,7 +216,7 @@ pub fn handle_ikev2(
 }
 
 fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8) {
-    for ref p in prop {
+    for p in prop {
         let transforms: Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
         // Rule 1: warn on weak or unknown transforms
         for xform in &transforms {

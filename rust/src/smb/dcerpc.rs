@@ -199,7 +199,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                                         dcer.packet_type, tx.id, tx);
                                 if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                     SCLogDebug!("additional frag of size {}", recr.data.len());
-                                    tdn.stub_data_ts.extend_from_slice(&recr.data);
+                                    tdn.stub_data_ts.extend_from_slice(recr.data);
                                     tdn.frag_cnt_ts += 1;
                                     SCLogDebug!("stub_data now {}", tdn.stub_data_ts.len());
                                 }
@@ -233,7 +233,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                             SCLogDebug!("DCERPC: REQUEST {:?}", recr);
                             if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                 SCLogDebug!("first frag size {}", recr.data.len());
-                                tdn.stub_data_ts.extend_from_slice(&recr.data);
+                                tdn.stub_data_ts.extend_from_slice(recr.data);
                                 tdn.opnum = recr.opnum;
                                 tdn.frag_cnt_ts += 1;
                                 SCLogDebug!("DCERPC: REQUEST opnum {} stub data len {}",
@@ -397,7 +397,7 @@ fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
                     if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                         SCLogDebug!("CMD 11 found at tx {}", tx.id);
                         tdn.set_result(DCERPC_TYPE_RESPONSE);
-                        tdn.stub_data_tc.extend_from_slice(&respr.data);
+                        tdn.stub_data_tc.extend_from_slice(respr.data);
                         tdn.frag_cnt_tc += 1;
                     }
                     tx.vercmd.set_ntstatus(ntstatus);
@@ -452,7 +452,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
         None => Vec::new(),
     };
     SCLogDebug!("indata {} prevdata {}", indata.len(), prevdata.len());
-    prevdata.extend_from_slice(&indata);
+    prevdata.extend_from_slice(indata);
     let data = prevdata;
 
     let mut malformed = false;

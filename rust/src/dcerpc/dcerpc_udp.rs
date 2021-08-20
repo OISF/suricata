@@ -145,7 +145,7 @@ impl DCERPCUDPState {
 
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
-                    tx.stub_data_buffer_ts.extend_from_slice(&input);
+                    tx.stub_data_buffer_ts.extend_from_slice(input);
                     tx.frag_cnt_ts += 1;
                     if done {
                         tx.req_done = true;
@@ -153,7 +153,7 @@ impl DCERPCUDPState {
                     return true;
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    tx.stub_data_buffer_tc.extend_from_slice(&input);
+                    tx.stub_data_buffer_tc.extend_from_slice(input);
                     tx.frag_cnt_tc += 1;
                     if done {
                         tx.resp_done = true;

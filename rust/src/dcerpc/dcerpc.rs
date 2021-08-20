@@ -902,7 +902,7 @@ impl DCERPCState {
                     }
                 }
                 let parsed = self.handle_common_stub(
-                    &input,
+                    input,
                     (input.len() - leftover_input.len()) as u16,
                     core::STREAM_TOSERVER,
                 );
@@ -998,7 +998,7 @@ impl DCERPCState {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         if self.bytes_consumed < DCERPC_HDR_LEN && input_len > 0 {
-            parsed = self.process_header(&buffer);
+            parsed = self.process_header(buffer);
             if parsed == -1 {
                 self.extend_buffer(buffer, direction);
                 return AppLayerResult::ok();
@@ -1121,7 +1121,7 @@ fn evaluate_stub_params(
     }
 
     let input_slice = &input[..stub_len as usize];
-    stub_data_buffer.extend_from_slice(&input_slice);
+    stub_data_buffer.extend_from_slice(input_slice);
 
     stub_len
 }
@@ -1779,7 +1779,7 @@ mod tests {
             0x69, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(&request));
+        assert_eq!(16, dcerpc_state.process_header(request));
         assert_eq!(1008, dcerpc_state.process_request_pdu(&request[16..]));
     }
 
@@ -1864,7 +1864,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request, core::STREAM_TOSERVER)
         );
         if let Some(hdr) = dcerpc_state.header {
             assert_eq!(0, hdr.hdrtype);
@@ -1900,11 +1900,11 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(), // TODO ASK if this is correct?
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
     }
 
@@ -1970,11 +1970,11 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
         if let Some(ref bind) = dcerpc_state.bind {
             assert_eq!(16, bind.numctxitems);
@@ -1994,15 +1994,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request3, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(20, tx.stub_data_buffer_ts.len());
@@ -2018,7 +2018,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
     }
 
@@ -2032,7 +2032,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
     }
 
@@ -2052,15 +2052,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::err(),
-            dcerpc_state.handle_input_data(&fault, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(fault, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(12, tx.stub_data_buffer_ts.len());
@@ -2082,15 +2082,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request3, core::STREAM_TOSERVER)
         );
     }
 
@@ -2110,11 +2110,11 @@ mod tests {
         dcerpc_state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack1, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack1, core::STREAM_TOCLIENT)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack2, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack2, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2137,7 +2137,7 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bindbuf, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bindbuf, core::STREAM_TOSERVER)
         );
         if let Some(ref bind) = dcerpc_state.bind {
             let bind_uuid = &bind.uuid_list[0].uuid;
@@ -2171,7 +2171,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bindbuf, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bindbuf, core::STREAM_TOSERVER)
         );
     }
 
@@ -2191,7 +2191,7 @@ mod tests {
         dcerpc_state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2442,11 +2442,11 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack1, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack1, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2455,11 +2455,11 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack2, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack2, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2468,11 +2468,11 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind3, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack3, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack3, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());

@@ -70,13 +70,13 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 
     if state.dialect != 0 {
         let dialect = &smb2_dialect_string(state.dialect);
-        jsb.set_string("dialect", &dialect)?;
+        jsb.set_string("dialect", dialect)?;
     } else {
         let dialect = match &state.dialect_vec {
-            &Some(ref d) => str::from_utf8(&d).unwrap_or("invalid"),
+            &Some(ref d) => str::from_utf8(d).unwrap_or("invalid"),
             &None        => "unknown",
         };
-        jsb.set_string("dialect", &dialect)?;
+        jsb.set_string("dialect", dialect)?;
     }
 
     match tx.vercmd.get_version() {
@@ -159,7 +159,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 jsb.set_string("realm", &ticket.realm.0)?;
                 jsb.open_array("snames")?;
                 for sname in ticket.sname.name_string.iter() {
-                    jsb.append_string(&sname)?;
+                    jsb.append_string(sname)?;
                 }
                 jsb.close()?;
                 jsb.close()?;
@@ -231,14 +231,14 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             if x.smb_ver == 1 {
                 jsb.open_array("client_dialects")?;
                 for d in &x.dialects {
-                    let dialect = String::from_utf8_lossy(&d);
+                    let dialect = String::from_utf8_lossy(d);
                     jsb.append_string(&dialect)?;
                 }
                 jsb.close()?;
             } else if x.smb_ver == 2 {
                 jsb.open_array("client_dialects")?;
                 for d in &x.dialects2 {
-                    let dialect = String::from_utf8_lossy(&d);
+                    let dialect = String::from_utf8_lossy(d);
                     jsb.append_string(&dialect)?;
                 }
                 jsb.close()?;
@@ -265,11 +265,11 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 jsb.open_object("service")?;
 
                 if let Some(ref s) = x.req_service {
-                    let serv = String::from_utf8_lossy(&s);
+                    let serv = String::from_utf8_lossy(s);
                     jsb.set_string("request", &serv)?;
                 }
                 if let Some(ref s) = x.res_service {
-                    let serv = String::from_utf8_lossy(&s);
+                    let serv = String::from_utf8_lossy(s);
                     jsb.set_string("response", &serv)?;
                 }
                 jsb.close()?;

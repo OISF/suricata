@@ -40,7 +40,7 @@ fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<
         } else if let Some(hex_value) = &attribute.hex_value {
             js.set_string(
                 format!("{}_raw", attribute.attribute_type).as_str(),
-                &hex_value,
+                hex_value,
             )?;
         }
     }
@@ -89,9 +89,9 @@ fn log_ike(
         }
     } else if tx.ike_version == 2 {
         if tx.hdr.flags & IKEV2_FLAG_INITIATOR != 0 {
-            jb.set_string("role", &"initiator")?;
+            jb.set_string("role", "initiator")?;
         } else {
-            jb.set_string("role", &"responder")?;
+            jb.set_string("role", "responder")?;
             jb.set_string("alg_enc", &format!("{:?}", state.ikev2_container.alg_enc))?;
             jb.set_string("alg_auth", &format!("{:?}", state.ikev2_container.alg_auth))?;
             jb.set_string("alg_prf", &format!("{:?}", state.ikev2_container.alg_prf))?;
