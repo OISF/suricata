@@ -1352,61 +1352,29 @@
         #include <net/netmap_user.h>
         ],[
         #ifndef NETMAP_API
-        #error "outdated netmap, need one with NETMAP_API"
+        #error "Outdated netmap, need one with NETMAP_API"
         #endif
-        #if NETMAP_API < 11
-        #error "outdated netmap, need at least api version 11"
+        #if NETMAP_API < 14
+        #error "Outdated netmap, need at least API version 14"
         #endif
         ])], [have_recent_netmap="yes"])
         if test "x$have_recent_netmap" != "xyes"; then
-            echo "ERROR: outdated netmap"
+            echo "ERROR: outdated netmap; need at least v14"
             exit 1
         fi
-        have_netmap_version="unknown"
-        have_v11_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 11
-        #error "not 11"
-        #endif
-        ])], [have_v11_netmap="yes"])
-        if test "x$have_v11_netmap" = "xyes"; then
-            have_netmap_version="v11"
+        have_netmap_version="v14+"
+        AC_CHECK_HEADER(libnetmap.h,,[AC_MSG_ERROR(libnetmap.h not found ...)],)
+        LIBNETMAP=""
+        AC_SEARCH_LIBS([nmport_open],[netmap],,[LIBNETMAP="no"])
+        if test "$LIBNETMAP" = "no"; then
+            echo
+            echo "   ERROR!  libnetmap library not found!"
+            echo "   Go get it from https://github.com/luigirizzo/netmap"
+            echo "   or your distribution."
+            echo
+            exit 1
         fi
-        have_v12_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 12
-        #error "not 12"
-        #endif
-        ])], [have_v12_netmap="yes"])
-        if test "x$have_v12_netmap" = "xyes"; then
-            have_netmap_version="v12"
-        fi
-        have_v13_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API != 13
-        #error "not 13"
-        #endif
-        ])], [have_v13_netmap="yes"])
-        if test "x$have_v13_netmap" = "xyes"; then
-            have_netmap_version="v13"
-        fi
-        have_gtv13_netmap="no"
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #if NETMAP_API <= 13
-        #error "not gt 13"
-        #endif
-        ])], [have_gtv13_netmap="yes"])
-        if test "x$have_gtv13_netmap" = "xyes"; then
-            have_netmap_version="> v13"
-        fi
+        AC_DEFINE([HAVE_NETMAP_V14],[1],(NETMAP API v14 support enabled))
   ])
 
   # Suricata-Update.
