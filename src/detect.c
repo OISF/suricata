@@ -751,7 +751,7 @@ static inline void DetectRulePacketRules(
     while (match_cnt--) {
         RULE_PROFILING_START(p);
         uint8_t alert_flags = 0;
-#ifdef PROFILING
+#ifdef PROFILE_RULES
         bool smatch = false; /* signature match */
 #endif
         s = next_s;
@@ -797,7 +797,7 @@ static inline void DetectRulePacketRules(
             goto next;
         }
 
-#ifdef PROFILING
+#ifdef PROFILE_RULES
         smatch = true;
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
