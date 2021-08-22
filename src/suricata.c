@@ -2128,13 +2128,17 @@ void PreRunInit(const int runmode)
         return;
 
     StatsInit();
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     SCProfilingRulesGlobalInit();
+#endif
+#ifdef PROFILING
     SCProfilingKeywordsGlobalInit();
     SCProfilingPrefilterGlobalInit();
     SCProfilingSghsGlobalInit();
-    SCProfilingInit();
 #endif /* PROFILING */
+#ifdef PROFILE_RULES
+    SCProfilingInit();
+#endif
     DefragInit();
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);

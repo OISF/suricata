@@ -578,7 +578,7 @@ typedef struct Signature_ {
     /** port settings for this signature */
     DetectPort *sp, *dp;
 
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     uint16_t profiling_id;
 #endif
 
@@ -903,8 +903,10 @@ typedef struct DetectEngineCtx_ {
     } filedata_config[ALPROTO_MAX];
     bool filedata_config_initialized;
 
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     struct SCProfileDetectCtx_ *profile_ctx;
+#endif
+#ifdef PROFILING
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
     struct SCProfilePrefilterDetectCtx_ *profile_prefilter_ctx;
     struct SCProfileKeywordDetectCtx_ **profile_keyword_ctx_per_list;
@@ -1179,9 +1181,11 @@ typedef struct DetectEngineThreadCtx_ {
     uint64_t stream_persig_cnt;
     uint64_t stream_persig_size;
 #endif
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
+#endif
+#ifdef PROFILING
     struct SCProfileKeywordData_ *keyword_perf_data;
     struct SCProfileKeywordData_ **keyword_perf_data_per_list;
     int keyword_perf_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */

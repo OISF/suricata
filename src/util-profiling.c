@@ -1399,4 +1399,53 @@ SCProfilingRegisterTests(void)
 #endif /* UNITTESTS */
 }
 
+int SCProfileRuleStartCollection(void)
+{
+    SCReturnInt(TM_ECODE_OK);
+}
+
+int SCProfileRuleStopCollection(void)
+{
+    SCReturnInt(TM_ECODE_OK);
+}
+
+#elif PROFILE_RULES
+
+thread_local int profiling_rules_entered = 0;
+int profiling_output_to_file = 0;
+static SC_ATOMIC_DECLARE(uint64_t, samples);
+static int rate = 1;
+
+/**
+ * \brief Initialize profiling.
+ */
+void SCProfilingInit(void)
+{
+    SC_ATOMIC_INIT(samples);
+    intmax_t rate_v = 0;
+
+    (void)ConfGetInt("profiling.sample-rate", &rate_v);
+    if (rate_v > 0 && rate_v < INT_MAX) {
+        rate = (int)rate_v;
+        if (rate != 1)
+            SCLogInfo("profiling runs for every %dth packet", rate);
+        else
+            SCLogInfo("profiling runs for every packet");
+    }
+}
+
+/* see if we want to profile rules for this packet */
+int SCProfileRuleStart(Packet *p)
+{
+    uint64_t sample = SC_ATOMIC_ADD(samples, 1);
+    if (sample % rate == 0) {
+        p->flags |= PKT_PROFILE;
+        return 1;
+    }
+
+    if (p->flags & PKT_PROFILE)
+        return 1;
+    return 0;
+}
+
 #endif /* PROFILING */

@@ -2007,7 +2007,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     intmax_t v = 0;
     if (ConfGetInt("detect.profiling.inspect-logging-threshold", &v) == 1)
         de_ctx->profile_match_logging_threshold = (uint32_t)v;
-
+#endif
+#ifdef PROFILE_RULES
     SCProfilingRuleInitCounters(de_ctx);
 #endif
 

@@ -506,6 +506,7 @@
             ;;
         *)
             AC_DEFINE([PROFILING],[1],[Enable performance profiling])
+            AC_DEFINE([PROFILE_RULES],[1],[Enable performance profiling for rules])
             ;;
     esac
     ])
@@ -516,6 +517,13 @@
     AS_IF([test "x$enable_profiling_locks" = "xyes"], [
         AC_DEFINE([PROFILING],[1],[Enable performance profiling])
         AC_DEFINE([PROFILE_LOCKING],[1],[Enable performance profiling for locks])
+    ])
+
+  # profiling support, rules
+    AC_ARG_ENABLE(profiling-rules,
+           AS_HELP_STRING([--enable-profiling-rules], [Enable performance profiling for rules (enabled by global profiling too)]),[enable_profiling_rules=$enableval],[enable_profiling_rules=no])
+    AS_IF([test "x$enable_profiling_rules" = "xyes"], [
+        AC_DEFINE([PROFILE_RULES],[1],[Enable performance profiling for rules])
     ])
 
   # enable support for IPFW
@@ -2581,6 +2589,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
+  Profiling rules enabled:                 ${enable_profiling_rules}
 
   Plugin support (experimental):           ${plugin_support}
 

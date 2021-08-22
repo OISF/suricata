@@ -25,41 +25,21 @@
 #ifndef __UTIL_PROFILE_H__
 #define __UTIL_PROFILE_H__
 
-#ifdef PROFILING
+#include "util-cpu.h"
 
 #include "detect.h"
+
+#ifdef PROFILING
+
 #include "util-cpu.h"
 #include "util-profiling-locks.h"
 
 extern int profiling_rules_enabled;
 extern int profiling_packets_enabled;
 extern int profiling_sghs_enabled;
-extern thread_local int profiling_rules_entered;
 
 void SCProfilingPrintPacketProfile(Packet *);
 void SCProfilingAddPacket(Packet *);
-int SCProfileRuleStart(Packet *p);
-
-#define RULE_PROFILING_START(p) \
-    uint64_t profile_rule_start_ = 0; \
-    uint64_t profile_rule_end_ = 0; \
-    if (profiling_rules_enabled && SCProfileRuleStart((p))) { \
-        if (profiling_rules_entered > 0) { \
-            SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting."); \
-            exit(1); \
-        } \
-        profiling_rules_entered++; \
-        profile_rule_start_ = UtilCpuGetTicks(); \
-    }
-
-#define RULE_PROFILING_END(ctx, r, m, p) \
-    if (profiling_rules_enabled && ((p)->flags & PKT_PROFILE)) { \
-        profile_rule_end_ = UtilCpuGetTicks(); \
-        SCProfilingRuleUpdateCounter(ctx, r->profiling_id, \
-            profile_rule_end_ - profile_rule_start_, m); \
-        profiling_rules_entered--; \
-    }
-
 extern int profiling_keyword_enabled;
 extern thread_local int profiling_keyword_entered;
 
@@ -346,9 +326,6 @@ void SCProfilingDump(void);
 
 #else
 
-#define RULE_PROFILING_START(p)
-#define RULE_PROFILING_END(a,b,c,p)
-
 #define KEYWORD_PROFILING_SET_LIST(a,b)
 #define KEYWORD_PROFILING_START
 #define KEYWORD_PROFILING_END(a,b,c)
@@ -386,5 +363,71 @@ void SCProfilingDump(void);
 #define PREFILTER_PROFILING_ADD_BYTES(det_ctx, bytes)
 
 #endif /* PROFILING */
+
+#ifdef PROFILE_RULES
+
+extern int profiling_rules_enabled;
+extern thread_local int profiling_rules_entered;
+
+#ifndef PROFILING
+void SCProfilingInit(void);
+#endif
+/**
+ * Extra data for rule profiling.
+ */
+typedef struct SCProfileData_ {
+    uint32_t sid;
+    uint32_t gid;
+    uint32_t rev;
+    uint64_t checks;
+    uint64_t matches;
+    uint64_t max;
+    uint64_t ticks_match;
+    uint64_t ticks_no_match;
+} SCProfileData;
+
+typedef struct SCProfileDetectCtx_ {
+    uint32_t size;
+    uint32_t id;
+    SCProfileData *data;
+    pthread_mutex_t data_m;
+} SCProfileDetectCtx;
+
+void SCProfilingRulesGlobalInit(void);
+void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
+void SCProfilingRuleInitCounters(DetectEngineCtx *);
+void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
+void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
+void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
+int SCProfileRuleStart(Packet *p);
+int SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx);
+void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
+
+#define RULE_PROFILING_START(p)                                                                    \
+    uint64_t profile_rule_start_ = 0;                                                              \
+    uint64_t profile_rule_end_ = 0;                                                                \
+    if (profiling_rules_enabled && SCProfileRuleStart((p))) {                                      \
+        if (profiling_rules_entered > 0) {                                                         \
+            SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting.");                            \
+            exit(1);                                                                               \
+        }                                                                                          \
+        profiling_rules_entered++;                                                                 \
+        profile_rule_start_ = UtilCpuGetTicks();                                                   \
+    }
+
+#define RULE_PROFILING_END(ctx, r, m, p)                                                           \
+    if (profiling_rules_enabled && ((p)->flags & PKT_PROFILE)) {                                   \
+        profile_rule_end_ = UtilCpuGetTicks();                                                     \
+        SCProfilingRuleUpdateCounter(                                                              \
+                ctx, r->profiling_id, profile_rule_end_ - profile_rule_start_, m);                 \
+        profiling_rules_entered--;                                                                 \
+    }
+
+#else /* PROFILE_RULES */
+
+#define RULE_PROFILING_START(p)
+#define RULE_PROFILING_END(a, b, c, p)
+
+#endif /* PROFILE_RULES */
 
 #endif /* ! __UTIL_PROFILE_H__ */
