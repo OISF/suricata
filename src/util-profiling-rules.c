@@ -27,31 +27,11 @@
 #include "suricata-common.h"
 #include "util-profiling.h"
 
-#ifdef PROFILING
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-time.h"
 
-/**
- * Extra data for rule profiling.
- */
-typedef struct SCProfileData_ {
-    uint32_t sid;
-    uint32_t gid;
-    uint32_t rev;
-    uint64_t checks;
-    uint64_t matches;
-    uint64_t max;
-    uint64_t ticks_match;
-    uint64_t ticks_no_match;
-} SCProfileData;
-
-typedef struct SCProfileDetectCtx_ {
-    uint32_t size;
-    uint16_t id;
-    SCProfileData *data;
-    pthread_mutex_t data_m;
-} SCProfileDetectCtx;
+#ifdef PROFILE_RULES
 
 /**
  * Used for generating the summary data to print.
