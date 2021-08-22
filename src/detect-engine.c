@@ -2591,11 +2591,13 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx == NULL)
         return;
 
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     if (de_ctx->profile_ctx != NULL) {
         SCProfilingRuleDestroyCtx(de_ctx->profile_ctx);
         de_ctx->profile_ctx = NULL;
     }
+#endif
+#ifdef PROFILING
     if (de_ctx->profile_keyword_ctx != NULL) {
         SCProfilingKeywordDestroyCtx(de_ctx);//->profile_keyword_ctx);
 //        de_ctx->profile_keyword_ctx = NULL;
@@ -3265,8 +3267,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
+#endif
+#ifdef PROFILING
     SCProfilingKeywordThreadSetup(de_ctx->profile_keyword_ctx, det_ctx);
     SCProfilingPrefilterThreadSetup(de_ctx->profile_prefilter_ctx, det_ctx);
     SCProfilingSghThreadSetup(de_ctx->profile_sgh_ctx, det_ctx);
@@ -3428,8 +3432,10 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         det_ctx->tenant_array = NULL;
     }
 
-#ifdef PROFILING
+#ifdef PROFILE_RULES
     SCProfilingRuleThreadCleanup(det_ctx);
+#endif
+#ifdef PROFILING
     SCProfilingKeywordThreadCleanup(det_ctx);
     SCProfilingPrefilterThreadCleanup(det_ctx);
     SCProfilingSghThreadCleanup(det_ctx);
