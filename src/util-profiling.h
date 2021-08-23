@@ -400,7 +400,7 @@ void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, i
 void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
 int SCProfileRuleStart(Packet *p);
-int SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx);
+json_t *SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx);
 void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
 
 #define RULE_PROFILING_START(p)                                                                    \
