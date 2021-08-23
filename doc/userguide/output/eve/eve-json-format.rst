@@ -2067,3 +2067,32 @@ Example of Modbus logging of a request and response:
       "error_flags": "DATA_VALUE",
     },
   }
+
+Event type: QUIC
+-----------------
+
+Fields
+~~~~~~
+
+* "version": Version of the QUIC packet if contained in the packet, 0 if not
+* "cyu": List of found CYUs in the packet
+* "cyu[].hash": CYU hash
+* "cyu[].string": CYU string
+
+Examples
+~~~~~~~~
+
+Example of QUIC logging with a CYU hash:
+
+::
+
+
+  "quic": {
+    "version": 1362113590,
+    "cyu": [
+        {
+            "hash": "7b3ceb1adc974ad360cfa634e8d0a730",
+            "string": "46,PAD-SNI-STK-SNO-VER-CCS-NONC-AEAD-UAID-SCID-TCID-PDMD-SMHL-ICSL-NONP-PUBS-MIDS-SCLS-KEXS-XLCT-CSCT-COPT-CCRT-IRTT-CFCW-SFCW"
+        }
+    ]
+  }
