@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1029,6 +1029,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     uint32_t mydata_len;
 
     while (1) {
+        const uint8_t flags = StreamGetAppLayerFlags(ssn, *stream, p);
         GetAppBuffer(*stream, &mydata, &mydata_len, app_progress);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
@@ -1049,7 +1050,12 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
                 return 0;
 
             continue;
-        } else if (mydata == NULL || mydata_len == 0) {
+        } else if (flags & STREAM_DEPTH) {
+            // we're just called once with this flag, so make sure we pass it on
+            if (mydata == NULL && mydata_len > 0) {
+                mydata_len = 0;
+            }
+        } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
                 SCReturnInt(0);
@@ -1057,6 +1063,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             mydata = NULL;
             mydata_len = 0;
         }
+        DEBUG_VALIDATE_BUG_ON(mydata == NULL && mydata_len > 0);
+
         SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
         break;
     }
