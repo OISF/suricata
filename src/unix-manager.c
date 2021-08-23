@@ -798,12 +798,15 @@ static TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
 static TmEcode UnixManagerRulesetProfileCommand(json_t *cmd, json_t *server_msg, void *data)
 {
     SCEnter();
-    TmEcode retval;
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
 
-    retval = SCProfileRuleTriggerDump(de_ctx);
-    json_object_set_new(server_msg, "message", json_string("OK"));
-    SCReturnInt(retval);
+    json_t *js = SCProfileRuleTriggerDump(de_ctx);
+    if (js == NULL) {
+        json_object_set_new(server_msg, "message", json_string("NOK"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    json_object_set_new(server_msg, "message", js);
+    SCReturnInt(TM_ECODE_OK);
 }
 #endif
 

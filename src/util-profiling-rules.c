@@ -262,21 +262,21 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
         return s0->max > s1->max ? -1 : 1;
 }
 
-static void DumpJson(FILE *fp, SCProfileSummary *summary,
-        uint32_t count, uint64_t total_ticks,
-        const char *sort_desc)
+static json_t *BuildJson(
+        SCProfileSummary *summary, uint32_t count, uint64_t total_ticks, const char *sort_desc)
 {
+
     char timebuf[64];
     uint32_t i;
     struct timeval tval;
 
     json_t *js = json_object();
     if (js == NULL)
-        return;
+        return js;
     json_t *jsa = json_array();
     if (jsa == NULL) {
         json_decref(js);
-        return;
+        return js;
     }
 
     gettimeofday(&tval, NULL);
@@ -313,7 +313,15 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary,
         }
     }
     json_object_set_new(js, "rules", jsa);
+    return js;
+}
 
+static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64_t total_ticks,
+        const char *sort_desc)
+{
+    json_t *js = BuildJson(summary, count, total_ticks, sort_desc);
+    if (unlikely(js == NULL))
+        return;
     char *js_s = json_dumps(js,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
             JSON_ESCAPE_SLASH);
@@ -392,32 +400,33 @@ static void DumpText(FILE *fp, SCProfileSummary *summary,
  *
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-static void
-SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
+static void *SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx, int file_output)
 {
     uint32_t i;
-    FILE *fp;
+    FILE *fp = NULL;
 
     if (rules_ctx == NULL)
-        return;
+        return NULL;
 
-    if (profiling_output_to_file == 1) {
-        fp = fopen(profiling_file_name, profiling_file_mode);
+    if (file_output != 0) {
+        if (profiling_output_to_file == 1) {
+            fp = fopen(profiling_file_name, profiling_file_mode);
 
-        if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
-            return;
+            if (fp == NULL) {
+                SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
+                        strerror(errno));
+                return NULL;
+            }
+        } else {
+            fp = stdout;
         }
-    } else {
-       fp = stdout;
     }
 
     int summary_size = sizeof(SCProfileSummary) * rules_ctx->size;
     SCProfileSummary *summary = SCMalloc(summary_size);
     if (unlikely(summary == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
-        return;
+        return NULL;
     }
 
     uint32_t count = rules_ctx->size;
@@ -495,17 +504,26 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
                 break;
         }
         if (profiling_rule_json) {
-            DumpJson(fp, summary, count, total_ticks, sort_desc);
+            if (file_output != 1) {
+                json_t *js = BuildJson(summary, count, total_ticks, sort_desc);
+                SCFree(summary);
+                return js;
+            } else {
+                DumpJson(fp, summary, count, total_ticks, sort_desc);
+            }
         } else {
             DumpText(fp, summary, count, total_ticks, sort_desc);
         }
         order++;
     }
 
-    if (fp != stdout)
-        fclose(fp);
+    if (file_output != 0) {
+        if (fp != stdout)
+            fclose(fp);
+    }
     SCFree(summary);
     SCLogPerf("Done dumping profiling data.");
+    return NULL;
 }
 
 /**
@@ -562,7 +580,7 @@ static SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
 void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx)
 {
     if (ctx != NULL) {
-        SCProfilingRuleDump(ctx);
+        SCProfilingRuleDump(ctx, 1);
         if (ctx->data != NULL)
             SCFree(ctx->data);
         pthread_mutex_destroy(&ctx->data_m);
@@ -671,10 +689,9 @@ SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
     SCLogPerf("Registered %"PRIu32" rule profiling counters.", count);
 }
 
-int SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx)
+json_t *SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx)
 {
-    SCProfilingRuleDump(de_ctx->profile_ctx);
-    return TM_ECODE_OK;
+    return SCProfilingRuleDump(de_ctx->profile_ctx, 0);
 }
 
 #endif /* PROFILING */
