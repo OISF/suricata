@@ -20,6 +20,7 @@ use nom::IResult;
 use nom::combinator::rest;
 use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
+use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
@@ -535,15 +536,34 @@ named!(pub parse_smb2_response_record<Smb2Record>,
            })
 ));
 
+fn smb_basic_search(d: &[u8]) -> usize {
+    let needle = b"SMB";
+    let mut r = 0 as usize;
+    // this could be replaced by aho-corasick
+    let iter = d.windows(needle.len());
+    for window in iter {
+        if window == needle {
+            return r;
+        }
+        r = r + 1;
+    }
+    return 0;
+}
+
 pub fn search_smb_record<'a>(i: &'a [u8]) -> nom::IResult<&'a [u8], &'a [u8]> {
     let mut d = i;
     while d.len() >= 4 {
-        if &d[1..4] == b"SMB" &&
-            (d[0] == 0xfe || d[0] == 0xff || d[0] == 0xfd)
-        {
-            return Ok((&d[4..], d));
+        let index = smb_basic_search(d);
+        if index == 0 {
+            return Err(nom::Err::Error((d, nom::error::ErrorKind::Eof)));
         }
-        d = &d[1..];
+        if d[index - 1] == 0xfe || d[index - 1] == 0xff || d[index - 1] == 0xfd {
+            // if we have enough data, check nbss
+            if index < 5 || d[index-5] == NBSS_MSGTYPE_SESSION_MESSAGE {
+                return Ok((&d[index + 3..], &d[index - 1..]));
+            }
+        }
+        d = &d[index + 3..];
     }
     Err(nom::Err::Incomplete(nom::Needed::Size(4 as usize - d.len())))
 }
