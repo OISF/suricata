@@ -1150,7 +1150,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
         } else if (flags & STREAM_DEPTH) {
             // we're just called once with this flag, so make sure we pass it on
-
+            if (mydata == NULL && mydata_len > 0) {
+                mydata_len = 0;
+            }
         } else if (mydata == NULL || (mydata_len == 0 && ((flags & STREAM_EOF) == 0))) {
             /* Possibly a gap, but no new data. */
             if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
@@ -1161,6 +1163,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
             break;
         }
+        DEBUG_VALIDATE_BUG_ON(mydata == NULL && mydata_len > 0);
 
         SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
                 *stream, &(*stream)->sb, mydata_len, app_progress);
