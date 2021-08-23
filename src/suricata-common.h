@@ -177,6 +177,10 @@ typedef unsigned char u_char
 #include <sys/stat.h>
 #endif
 
+#if HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
