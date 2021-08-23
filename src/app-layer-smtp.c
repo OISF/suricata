@@ -553,6 +553,25 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     SCReturnInt(ret);
 }
 
+
+static void SMTPClearParserDetails(uint8_t *current_line_lf_seen, uint8_t *current_line_db,
+        uint8_t **db, int32_t *db_len, const uint8_t **current_line, int32_t *current_line_len)
+{
+    if (*current_line_lf_seen == 1) {
+        /* we have seen the lf for the previous line.  Clear the parser
+         * details to parse new line */
+        *current_line_lf_seen = 0;
+        if (*current_line_db == 1) {
+            *current_line_db = 0;
+            SCFree(*db);
+            *db = NULL;
+            *db_len = 0;
+            *current_line = NULL;
+            *current_line_len = 0;
+        }
+    }
+}
+
 /**
  * \internal
  * \brief Get the next line from input.  It doesn't do any length validation.
@@ -574,20 +593,8 @@ static int SMTPGetLine(SMTPState *state)
 
     /* toserver */
     if (state->direction == 0) {
-        if (state->ts_current_line_lf_seen == 1) {
-            /* we have seen the lf for the previous line.  Clear the parser
-             * details to parse new line */
-            state->ts_current_line_lf_seen = 0;
-            if (state->ts_current_line_db == 1) {
-                state->ts_current_line_db = 0;
-                SCFree(state->ts_db);
-                state->ts_db = NULL;
-                state->ts_db_len = 0;
-                state->current_line = NULL;
-                state->current_line_len = 0;
-            }
-        }
-
+        SMTPClearParserDetails(&state->ts_current_line_lf_seen, &state->ts_current_line_db,
+                &state->ts_db, &state->ts_db_len, &state->current_line, &state->current_line_len);
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
@@ -676,19 +683,8 @@ static int SMTPGetLine(SMTPState *state)
 
         /* toclient */
     } else {
-        if (state->tc_current_line_lf_seen == 1) {
-            /* we have seen the lf for the previous line.  Clear the parser
-             * details to parse new line */
-            state->tc_current_line_lf_seen = 0;
-            if (state->tc_current_line_db == 1) {
-                state->tc_current_line_db = 0;
-                SCFree(state->tc_db);
-                state->tc_db = NULL;
-                state->tc_db_len = 0;
-                state->current_line = NULL;
-                state->current_line_len = 0;
-            }
-        }
+        SMTPClearParserDetails(&state->tc_current_line_lf_seen, &state->tc_current_line_db,
+                &state->tc_db, &state->tc_db_len, &state->current_line, &state->current_line_len);
 
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
