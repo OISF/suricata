@@ -325,6 +325,7 @@ static int TCPProtoDetect(ThreadVars *tv,
 #endif
 
     bool reverse_flow = false;
+    DEBUG_VALIDATE_BUG_ON(data == NULL && data_len > 0);
     PACKET_PROFILING_APP_PD_START(app_tctx);
     *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
             f, data, data_len,
