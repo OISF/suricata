@@ -572,6 +572,96 @@ static void SMTPClearParserDetails(uint8_t *current_line_lf_seen, uint8_t *curre
     }
 }
 
+static int32_t SMTPHandleFragmentedLines(uint8_t *lf_idx, uint8_t *current_line_db, uint8_t **db,
+        int32_t *input_len, const uint8_t **input, int32_t *db_len)
+{
+    void *ptmp;
+    if (lf_idx == NULL) {
+        /* fragmented lines.  Decoder event for special cases.  Not all
+         * fragmented lines should be treated as a possible evasion
+         * attempt.  With multi payload smtp chunks we can have valid
+         * cases of fragmentation.  But within the same segment chunk
+         * if we see fragmentation then it's definitely something you
+         * should alert about */
+        if (*current_line_db == 0) {
+            *db = SCMalloc(*input_len);
+            if (*db == NULL) {
+                return -1;
+            }
+            *current_line_db = 1;
+            memcpy(*db, *input, *input_len);
+            *db_len = *input_len;
+        } else {
+            ptmp = SCRealloc(*db, (*db_len + *input_len));
+            if (ptmp == NULL) {
+                SCFree(*db);
+                *db = NULL;
+                *db_len = 0;
+                return -1;
+            }
+            *db = ptmp;
+
+            memcpy(*db + *db_len, *input, *input_len);
+            *db_len += *input_len;
+        } /* else */
+        *input += *input_len;
+        *input_len = 0;
+
+        return -1;
+    }
+    return 0;
+}
+
+static int32_t SMTPHandleNoLFIdx(uint8_t *current_line_lf_seen, uint8_t *current_line_db,
+        uint8_t **db, int32_t *db_len, const uint8_t **input, uint8_t *lf_idx,
+        uint8_t *current_line_delimiter_len, const uint8_t **current_line,
+        int32_t *current_line_len, int32_t *input_len)
+{
+    void *ptmp;
+    *current_line_lf_seen = 1;
+
+    if (*current_line_db == 1) {
+        ptmp = SCRealloc(*db, (*db_len + (lf_idx + 1 - *input)));
+        if (ptmp == NULL) {
+            SCFree(*db);
+            *db = NULL;
+            *db_len = 0;
+            return -1;
+        }
+        *db = ptmp;
+
+        memcpy(*db + *db_len, *input, (lf_idx + 1 - *input));
+        *db_len += (lf_idx + 1 - *input);
+
+        if (*db_len > 1 && *db[*db_len - 2] == 0x0D) {
+            *db_len -= 2;
+            *current_line_delimiter_len = 2;
+        } else {
+            *db_len -= 1;
+            *current_line_delimiter_len = 1;
+        }
+
+        *current_line = *db;
+        *current_line_len = *db_len;
+
+    } else {
+        *current_line = *input;
+        *current_line_len = lf_idx - *input;
+
+        if (*input != lf_idx && *(lf_idx - 1) == 0x0D) {
+            *current_line_len -= 1;
+            *current_line_delimiter_len = 2;
+        } else {
+            *current_line_delimiter_len = 1;
+        }
+    }
+
+    *input_len -= (lf_idx - *input) + 1;
+    *input = (lf_idx + 1);
+
+    return 0;
+}
+
 /**
  * \internal
  * \brief Get the next line from input.  It doesn't do any length validation.
@@ -585,7 +675,6 @@ static void SMTPClearParserDetails(uint8_t *current_line_lf_seen, uint8_t *curre
 static int SMTPGetLine(SMTPState *state)
 {
     SCEnter();
-    void *ptmp;
 
     /* we have run out of input */
     if (state->input_len <= 0)
@@ -596,91 +685,15 @@ static int SMTPGetLine(SMTPState *state)
         SMTPClearParserDetails(&state->ts_current_line_lf_seen, &state->ts_current_line_db,
                 &state->ts_db, &state->ts_db_len, &state->current_line, &state->current_line_len);
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
-
-        if (lf_idx == NULL) {
-            /* fragmented lines.  Decoder event for special cases.  Not all
-             * fragmented lines should be treated as a possible evasion
-             * attempt.  With multi payload smtp chunks we can have valid
-             * cases of fragmentation.  But within the same segment chunk
-             * if we see fragmentation then it's definitely something you
-             * should alert about */
-            if (state->ts_current_line_db == 0) {
-                state->ts_db = SCMalloc(state->input_len);
-                if (state->ts_db == NULL) {
-                    return -1;
-                }
-                state->ts_current_line_db = 1;
-                memcpy(state->ts_db, state->input, state->input_len);
-                state->ts_db_len = state->input_len;
-            } else {
-                ptmp = SCRealloc(state->ts_db,
-                                 (state->ts_db_len + state->input_len));
-                if (ptmp == NULL) {
-                    SCFree(state->ts_db);
-                    state->ts_db = NULL;
-                    state->ts_db_len = 0;
-                    return -1;
-                }
-                state->ts_db = ptmp;
-
-                memcpy(state->ts_db + state->ts_db_len,
-                       state->input, state->input_len);
-                state->ts_db_len += state->input_len;
-            } /* else */
-            state->input += state->input_len;
-            state->input_len = 0;
-
+        if (SMTPHandleFragmentedLines(lf_idx, &state->ts_current_line_db, &state->ts_db,
+                &state->input_len, &state->input, &state->ts_db_len) == -1) {
             return -1;
-
         } else {
-            state->ts_current_line_lf_seen = 1;
-
-            if (state->ts_current_line_db == 1) {
-                ptmp = SCRealloc(state->ts_db,
-                                 (state->ts_db_len + (lf_idx + 1 - state->input)));
-                if (ptmp == NULL) {
-                    SCFree(state->ts_db);
-                    state->ts_db = NULL;
-                    state->ts_db_len = 0;
-                    return -1;
-                }
-                state->ts_db = ptmp;
-
-                memcpy(state->ts_db + state->ts_db_len,
-                       state->input, (lf_idx + 1 - state->input));
-                state->ts_db_len += (lf_idx + 1 - state->input);
-
-                if (state->ts_db_len > 1 &&
-                    state->ts_db[state->ts_db_len - 2] == 0x0D) {
-                    state->ts_db_len -= 2;
-                    state->current_line_delimiter_len = 2;
-                } else {
-                    state->ts_db_len -= 1;
-                    state->current_line_delimiter_len = 1;
-                }
-
-                state->current_line = state->ts_db;
-                state->current_line_len = state->ts_db_len;
-
-            } else {
-                state->current_line = state->input;
-                state->current_line_len = lf_idx - state->input;
-
-                if (state->input != lf_idx &&
-                    *(lf_idx - 1) == 0x0D) {
-                    state->current_line_len--;
-                    state->current_line_delimiter_len = 2;
-                } else {
-                    state->current_line_delimiter_len = 1;
-                }
-            }
-
-            state->input_len -= (lf_idx - state->input) + 1;
-            state->input = (lf_idx + 1);
-
-            return 0;
+            return SMTPHandleNoLFIdx(&state->ts_current_line_lf_seen, &state->ts_current_line_db,
+                    &state->ts_db, &state->ts_db_len, &state->input, lf_idx,
+                    &state->current_line_delimiter_len, &state->current_line,
+                    &state->current_line_len, &state->input_len);
         }
-
         /* toclient */
     } else {
         SMTPClearParserDetails(&state->tc_current_line_lf_seen, &state->tc_current_line_db,
@@ -688,91 +701,16 @@ static int SMTPGetLine(SMTPState *state)
 
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
-        if (lf_idx == NULL) {
-            /* fragmented lines.  Decoder event for special cases.  Not all
-             * fragmented lines should be treated as a possible evasion
-             * attempt.  With multi payload smtp chunks we can have valid
-             * cases of fragmentation.  But within the same segment chunk
-             * if we see fragmentation then it's definitely something you
-             * should alert about */
-            if (state->tc_current_line_db == 0) {
-                state->tc_db = SCMalloc(state->input_len);
-                if (state->tc_db == NULL) {
-                    return -1;
-                }
-                state->tc_current_line_db = 1;
-                memcpy(state->tc_db, state->input, state->input_len);
-                state->tc_db_len = state->input_len;
-            } else {
-                ptmp = SCRealloc(state->tc_db,
-                                 (state->tc_db_len + state->input_len));
-                if (ptmp == NULL) {
-                    SCFree(state->tc_db);
-                    state->tc_db = NULL;
-                    state->tc_db_len = 0;
-                    return -1;
-                }
-                state->tc_db = ptmp;
-
-                memcpy(state->tc_db + state->tc_db_len,
-                       state->input, state->input_len);
-                state->tc_db_len += state->input_len;
-            } /* else */
-            state->input += state->input_len;
-            state->input_len = 0;
-
+        if (SMTPHandleFragmentedLines(lf_idx, &state->tc_current_line_db, &state->tc_db,
+                &state->input_len, &state->input, &state->tc_db_len) == -1) {
             return -1;
-
         } else {
-            state->tc_current_line_lf_seen = 1;
-
-            if (state->tc_current_line_db == 1) {
-                ptmp = SCRealloc(state->tc_db,
-                                 (state->tc_db_len + (lf_idx + 1 - state->input)));
-                if (ptmp == NULL) {
-                    SCFree(state->tc_db);
-                    state->tc_db = NULL;
-                    state->tc_db_len = 0;
-                    return -1;
-                }
-                state->tc_db = ptmp;
-
-                memcpy(state->tc_db + state->tc_db_len,
-                       state->input, (lf_idx + 1 - state->input));
-                state->tc_db_len += (lf_idx + 1 - state->input);
-
-                if (state->tc_db_len > 1 &&
-                    state->tc_db[state->tc_db_len - 2] == 0x0D) {
-                    state->tc_db_len -= 2;
-                    state->current_line_delimiter_len = 2;
-                } else {
-                    state->tc_db_len -= 1;
-                    state->current_line_delimiter_len = 1;
-                }
-
-                state->current_line = state->tc_db;
-                state->current_line_len = state->tc_db_len;
-
-            } else {
-                state->current_line = state->input;
-                state->current_line_len = lf_idx - state->input;
-
-                if (state->input != lf_idx &&
-                    *(lf_idx - 1) == 0x0D) {
-                    state->current_line_len--;
-                    state->current_line_delimiter_len = 2;
-                } else {
-                    state->current_line_delimiter_len = 1;
-                }
-            }
-
-            state->input_len -= (lf_idx - state->input) + 1;
-            state->input = (lf_idx + 1);
-
-            return 0;
+            return SMTPHandleNoLFIdx(&state->tc_current_line_lf_seen, &state->tc_current_line_db,
+                    &state->tc_db, &state->tc_db_len, &state->input, lf_idx,
+                    &state->current_line_delimiter_len, &state->current_line,
+                    &state->current_line_len, &state->input_len);
         } /* else - if (lf_idx == NULL) */
     }
-
 }
 
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state, Flow *f)
