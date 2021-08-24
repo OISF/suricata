@@ -698,9 +698,6 @@ named!(parse_parameter_status_message<PgsqlBEMessage>,
         }))
     )));
 
-// TODO This will need thinking and refactoring.
-// I believe it must be called from elsewhere, not from
-// parse_response, for that one already has other messages with the same identifier, so handling these two via events or smth, from pgsql.rs might work better
 named!(pub parse_ssl_response<PgsqlBEMessage>,
     do_parse!(
         tag: alt!(char!('N') | char!('S'))
