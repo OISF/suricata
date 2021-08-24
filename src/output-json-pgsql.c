@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,18 +15,12 @@
  * 02110-1301, USA.
  */
 
-/*
- * TODO: Update \author in this file and in output-json-pgsql.h.
- * TODO: Remove SCLogNotice statements, or convert to debug.
- * TODO: Implement your app-layers logging.
- */
-
 /**
  * \file
  *
  * \author Juliana Fajardini <jufajardini@oisf.net>
  *
- * Implement JSON/eve logging app-layer Pgsql.
+ * Implement JSON/eve logging for app-layer Pgsql.
  */
 
 #include "suricata-common.h"
