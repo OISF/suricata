@@ -15,6 +15,10 @@
  * 02110-1301, USA.
  */
 
+//! PostgreSQL parser and application layer
+//!
+//! written by Juliana Fajardini <jufajardini@oisf.net>
+
 pub mod pgsql;
 pub mod logger;
 pub mod parser;

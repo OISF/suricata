@@ -15,6 +15,10 @@
  * 02110-1301, USA.
  */
 
+// Author: Juliana Fajardini <jufajardini@oisf.net>
+
+//! PostgreSQL nom parsers
+
 use std::{fmt};
 use nom::combinator::rest;
 use nom::character::streaming::alphanumeric1;
@@ -259,6 +263,7 @@ impl fmt::Display for PgsqlFEMessage {
         write!(f, "{:?}", self)
     }
 }
+
 
 impl PgsqlFEMessage {
     pub fn get_message_type(&self) -> &str {

@@ -15,6 +15,10 @@
  * 02110-1301, USA.
  */
 
+// Author: Juliana Fajardini <jufajardini@gmail.com>
+
+//! PostgreSQL parser json logger
+
 use std;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::pgsql::pgsql::*;

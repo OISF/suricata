@@ -15,6 +15,10 @@
  * 02110-1301, USA.
  */
 
+// Author: Juliana Fajardini <jufajardini@oisf.net>
+
+//! PostgreSQL parser
+
 use std;
 use nom;
 use std::ffi::CString;
