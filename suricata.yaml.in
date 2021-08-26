@@ -1672,9 +1672,9 @@ luajit:
 #
 profiling:
   # Run profiling for every X-th packet. The default is 1, which means we
-  # profile every packet. If set to 1000, one packet is profiled for every
-  # 1000 received.
-  #sample-rate: 1000
+  # profile every packet. If set to 1024, one packet is profiled for every
+  # 1024 received. The sample rate must be a power of 2.
+  #sample-rate: 1024
 
   # rule profiling
   rules:

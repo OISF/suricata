@@ -1414,7 +1414,7 @@ int SCProfileRuleStopCollection(void)
 thread_local int profiling_rules_entered = 0;
 int profiling_output_to_file = 0;
 static SC_ATOMIC_DECLARE(uint64_t, samples);
-static int rate = 1;
+static uint64_t rate = 0;
 
 /**
  * \brief Initialize profiling.
@@ -1426,9 +1426,16 @@ void SCProfilingInit(void)
 
     (void)ConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
-        rate = (int)rate_v;
-        if (rate != 1)
-            SCLogInfo("profiling runs for every %dth packet", rate);
+        int literal_rate = (int)rate_v;
+        for (int i = literal_rate; i >= 1; i--) {
+            /* If i is a power of 2 */
+            if ((i & (i - 1)) == 0) {
+                rate = i - 1;
+                break;
+            }
+        }
+        if (rate != 0)
+            SCLogInfo("profiling runs for every %luth packet", rate + 1);
         else
             SCLogInfo("profiling runs for every packet");
     }
@@ -1438,7 +1445,7 @@ void SCProfilingInit(void)
 int SCProfileRuleStart(Packet *p)
 {
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
-    if (sample % rate == 0) {
+    if ((sample & rate) == 0) {
         p->flags |= PKT_PROFILE;
         return 1;
     }
