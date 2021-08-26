@@ -7,7 +7,7 @@ Transactions
 General Concepts
 ================
 
-For Suricata, transactions an abstraction that help with detecting and logging. An example of a complete transaction is
+For Suricata, transactions are an abstraction that help with detecting and logging. An example of a complete transaction is
 a pair of messages in the form of a request (from client to server) and a response (from server to client) in HTTP.
 
 In order to know when to log an event for a given protocol, the engine tracks the progress of each transaction - that
@@ -113,7 +113,7 @@ is completed (NFS, SMB), it is possible to create a level of abstraction to hand
 This is controlled by implementing progress states. In Suricata, those will be enums that are incremented as the parsing
 progresses. A state will start at 0. The higher its value, the closer the transaction would be to completion.
 
-The engine interacts with transactions state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
+The engine interacts with transactions' state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 
 In Summary - Transactions and State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -293,7 +293,7 @@ Work In Progress changes
 
 Currently we are working to have files be part of the transaction instead of the per-flow state, as seen in https://redmine.openinfosecfoundation.org/issues/4444.
 
-Another work in progress is to limit the number of transactions per flow, to prevent Denial of Service by quadratic complexity - a type of attack that may happen to protocols which can have multiple transactions at the same time - such as HTTP2 so-called streams (see  https://redmine.openinfosecfoundation.org/issues/4530).
+Another work in progress is to limit the number of transactions per flow, to prevent Denial of Service (DoS) by quadratic complexity - a type of attack that may happen to protocols which can have multiple transactions at the same time - such as HTTP2 so-called streams (see  https://redmine.openinfosecfoundation.org/issues/4530).
 
 Common words and abbreviations
 ==============================
