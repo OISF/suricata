@@ -372,7 +372,7 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
     }
     // then if we need to skip only some bytes
     if (c->toskip > 0) {
-        int r;
+        int r = 0;
         if (c->fileOwning) {
             DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
             if (data == NULL) {
@@ -415,8 +415,8 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
                     c->current->buflen - c->current->offset);
             c->current->offset = c->current->buflen;
         }
-        return 0;
     }
+    return 0;
 }
 
 static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
