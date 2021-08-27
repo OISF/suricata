@@ -99,6 +99,8 @@ jobs:
               cd suricata-verify
               git fetch origin pull/${sv_pr}/head:prep
               git checkout prep
+              git config --global user.email you@example.com
+              git config --global user.name You
               git rebase ${DEFAULT_SV_BRANCH}
               cd ..
           fi
