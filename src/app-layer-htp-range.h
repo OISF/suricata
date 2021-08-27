@@ -38,6 +38,8 @@ typedef struct HttpRangeContainerBuffer {
     uint64_t start;
     /** offset of bytes written in buffer (relative to the start of the range) */
     uint64_t offset;
+    /** number of gaped bytes */
+    uint64_t gap;
 } HttpRangeContainerBuffer;
 
 int HttpRangeContainerBufferCompare(HttpRangeContainerBuffer *a, HttpRangeContainerBuffer *b);
@@ -46,9 +48,13 @@ RB_HEAD(HTTP_RANGES, HttpRangeContainerBuffer);
 RB_PROTOTYPE(HTTP_RANGES, HttpRangeContainerBuffer, rb, HttpRangeContainerBufferCompare);
 
 /** Item in hash table for a file in multiple ranges
- * Thread-safety is ensured by the thread-safe hash table
+ * Thread-safety is ensured with the thread-safe hash table cf THashData
  * The number of use is increased for each flow opening a new HttpRangeContainerBlock
  * until it closes this HttpRangeContainerBlock
+ * The design goal is to have concurrency only on opening and closing a range request
+ * and have a lock-free data structure belonging to one Flow
+ * (see HttpRangeContainerBlock below)
+ * for every append in between (we suppose we have many appends per range request)
  */
 typedef struct HttpRangeContainerFile {
     /** key for hashtable */
@@ -59,16 +65,19 @@ typedef struct HttpRangeContainerFile {
     uint32_t expire;
     /** pointer to hashtable data, for locking and use count */
     THashData *hdata;
-    /** total epxected size of the file in ranges */
+    /** total expected size of the file in ranges */
     uint64_t totalsize;
+    /** size of the file after last sync */
+    uint64_t lastsize;
     /** file container, with only one file */
     FileContainer *files;
     /** red and black tree list of ranges which came out of order */
     struct HTTP_RANGES fragment_tree;
     /** file flags */
     uint16_t flags;
-    /** wether a range file is currently appending */
-    bool appending;
+    /** wether a HttpRangeContainerBlock is currently
+     owning the FileContainer in order to append to the file */
+    bool fileOwned;
     /** error condition for this range. Its up to timeout handling to cleanup */
     bool error;
 } HttpRangeContainerFile;
@@ -85,9 +94,10 @@ typedef struct HttpRangeContainerBlock {
     HttpRangeContainerBuffer *current;
     /** pointer to the main file container, where to directly append data */
     HttpRangeContainerFile *container;
+    /** we own the container's file for now */
+    bool fileOwning;
 } HttpRangeContainerBlock;
 
-int HttpRangeProcessSkip(HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len);
 int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
 File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 

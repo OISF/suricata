@@ -361,24 +361,6 @@ int HTPFileOpenWithRange(HtpState *s, const uint8_t *filename, uint16_t filename
     SCReturnInt(0);
 }
 
-static void HTPFileStoreChunkHandleRange(
-        HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
-{
-    if (c->container) {
-        THashDataLock(c->container->hdata);
-        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->container->hdata->use_cnt) == 0);
-        if (HttpRangeAppendData(c, data, data_len) < 0) {
-            SCLogDebug("Failed to append data");
-        }
-        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(c->container->hdata->use_cnt) > (uint32_t)INT_MAX);
-        THashDataUnlock(c->container->hdata);
-    } else if (c->toskip > 0) {
-        if (HttpRangeProcessSkip(c, data, data_len) < 0) {
-            SCLogDebug("Failed to append data");
-        }
-    }
-}
-
 /**
  *  \brief Store a chunk of data in the flow
  *
@@ -417,7 +399,9 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     }
 
     if (s->file_range != NULL) {
-        HTPFileStoreChunkHandleRange(s->file_range, data, data_len);
+        if (HttpRangeAppendData(s->file_range, data, data_len) < 0) {
+            SCLogDebug("Failed to append data");
+        }
     }
 
     result = FileAppendData(files, data, data_len);
@@ -435,13 +419,15 @@ end:
 static void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags,
         HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
 {
+    if (HttpRangeAppendData(c, data, data_len) < 0) {
+        SCLogDebug("Failed to append data");
+    }
     if (c->container) {
+        // we only call HttpRangeClose if we may some new data
+        // ie we do not call it if we skipped all this range request
         THashDataLock(c->container->hdata);
         if (c->container->error) {
             SCLogDebug("range in ERROR state");
-        }
-        if (HttpRangeAppendData(c, data, data_len) < 0) {
-            SCLogDebug("Failed to append data");
         }
         File *ranged = HttpRangeClose(c, flags);
         if (ranged) {
@@ -450,12 +436,6 @@ static void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags,
         }
         SCLogDebug("c->container->files->tail %p", c->container->files->tail);
         THashDataUnlock(c->container->hdata);
-    } else {
-        if (c->toskip > 0) {
-            if (HttpRangeProcessSkip(c, data, data_len) < 0) {
-                SCLogDebug("Failed to append data");
-            }
-        }
     }
 }
 
