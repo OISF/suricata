@@ -480,7 +480,6 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     c->container->fileOwned = false;
     DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
     // we update the file size now that we own it again
-    c->container->lastsize = c->container->files->tail->size;
     File *f = c->container->files->tail;
 
     /* See if we can use our stored fragments to (partly) reconstruct the file */
@@ -495,12 +494,14 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
             if (range->gap > 0) {
                 // if the range had a gap, begin by it
                 if (FileAppendData(c->container->files, NULL, range->gap) != 0) {
+                    c->container->lastsize = f->size;
                     HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                     c->container->error = true;
                     return f;
                 }
             }
             if (FileAppendData(c->container->files, range->buffer, range->offset) != 0) {
+                c->container->lastsize = f->size;
                 HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                 c->container->error = true;
                 return f;
@@ -512,6 +513,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                 if (range->gap > 0) {
                     // if the range had a gap, begin by it
                     if (FileAppendData(c->container->files, NULL, range->gap) != 0) {
+                        c->container->lastsize = f->size;
                         HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                         c->container->error = true;
                         return f;
@@ -521,6 +523,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                 // in this case of overlap, only add the extra data
                 if (FileAppendData(c->container->files, range->buffer + overlap,
                             range->offset - overlap) != 0) {
+                    c->container->lastsize = f->size;
                     HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                     c->container->error = true;
                     return f;
@@ -533,6 +536,8 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
         SCFree(range->buffer);
         SCFree(range);
     }
+    // wait until we merged all the buffers to update known size
+    c->container->lastsize = f->size;
 
     if (f->size >= c->container->totalsize) {
         // we finished the whole file
