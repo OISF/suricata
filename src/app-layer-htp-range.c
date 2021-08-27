@@ -78,6 +78,7 @@ static int ContainerUrlRangeSet(void *dst, void *src)
     }
     RB_INIT(&dst_s->fragment_tree);
     dst_s->flags = 0;
+    dst_s->lastsize = 0;
     dst_s->totalsize = 0;
     dst_s->hdata = NULL;
     dst_s->error = false;
@@ -131,6 +132,7 @@ static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, struct
     // we only timeout if we have no flow referencing us
     if ((uint32_t)ts->tv_sec > cu->expire || cu->error) {
         if (SC_ATOMIC_GET(cu->hdata->use_cnt) == 0) {
+            DEBUG_VALIDATE_BUG_ON(cu->fileOwned);
             return true;
         }
     }
@@ -260,6 +262,11 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     DEBUG_VALIDATE_BUG_ON(c->files == NULL);
 
     if (c->files->tail == NULL) {
+        DEBUG_VALIDATE_BUG_ON(c->fileOwned);
+        /* this is the first request, we open a single file in the file container
+         * this could be part of ContainerUrlRangeSet if we could have
+         * all the arguments there
+         */
         if (FileOpenFileWithId(c->files, sbcfg, 0, name, name_len, NULL, 0, flags) != 0) {
             SCLogDebug("open file for range failed");
             return NULL;
@@ -270,29 +277,45 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
         c->error = true;
         return NULL;
     }
+    curf->fileOwning = false;
     if (total > c->totalsize) {
-        // TODOask add checks about totalsize remaining the same
+        // we grow to the maximum size indicated by different range requests
+        // we could add some warning/app-layer event in this case where
+        // different range requests indicate different total sizes
         c->totalsize = total;
     }
     const uint64_t buflen = end - start + 1;
-    if (start == c->files->tail->size && !c->appending) {
+
+    /* The big part of this function is now to decide which kind of HttpRangeContainerBlock
+     * we will return :
+     * - skipping already processed data
+     * - storing out of order data for later use
+     * - directly appending to the file if we are at the right offset
+     */
+    if (start == c->lastsize && !c->fileOwned) {
         // easy case : append to current file
         curf->container = c;
-        c->appending = true;
+        curf->fileOwning = true;
+        // If we see 2 duplicate range requests with the same range,
+        // the first one takes the ownership with fileOwned
+        // protected by the lock from caller HTPFileOpenWithRange
+        c->fileOwned = true;
         return curf;
-    } else if (start < c->files->tail->size && c->files->tail->size - start >= buflen) {
+    } else if (start < c->lastsize && c->lastsize - start >= buflen) {
         // only overlap
         // redundant to be explicit that this block is independent
         curf->toskip = buflen;
         return curf;
-    } else if (start < c->files->tail->size && c->files->tail->size - start < buflen &&
-               !c->appending) {
-        // skip first overlap, then append
-        curf->toskip = c->files->tail->size - start;
-        c->appending = true;
+    } else if (start < c->lastsize && c->lastsize - start < buflen && !c->fileOwned) {
+        // some overlap, then some data to append to the file
+        curf->toskip = c->lastsize - start;
+        curf->fileOwning = true;
+        c->fileOwned = true;
         curf->container = c;
         return curf;
     }
+    // Because we are not in the previous cases, we will store the data for later use
+
     // block/range to be inserted in ordered linked list
     if (!(THASH_CHECK_MEMCAP(ContainerUrlRangeList.ht, buflen))) {
         // skips this range
@@ -319,6 +342,8 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     }
     range->buflen = buflen;
     range->start = start;
+    range->offset = 0;
+    range->gap = 0;
     curf->current = range;
     return curf;
 }
@@ -335,42 +360,47 @@ HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t s
     return r;
 }
 
-/**
- * \note if we are called with a non-null c->container, it is locked
- */
-int HttpRangeProcessSkip(HttpRangeContainerBlock *c, const uint8_t *data, const uint32_t len)
-{
-    SCLogDebug("update toskip: adding %u bytes to block %p", (uint32_t)len, c);
-    if (c->toskip >= len) {
-        c->toskip -= len;
-        return 0;
-    }
-    int r = 0;
-    if (c->container) {
-        if (data == NULL) {
-            // gap overlaping already known data
-            r = FileAppendData(c->container->files, NULL, len - c->toskip);
-        } else {
-            r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
-        }
-    }
-    c->toskip = 0;
-    return r;
-}
-
 int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len)
 {
     if (len == 0) {
         return 0;
     }
-    // first check if we have a current allocated buffer to copy to
+    // first check if we need to skip all bytes
+    if (c->toskip >= len) {
+        c->toskip -= len;
+        return 0;
+    }
+    // then if we need to skip only some bytes
+    if (c->toskip > 0) {
+        int r = 0;
+        if (c->fileOwning) {
+            DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+            if (data == NULL) {
+                // gap overlaping already known data
+                r = FileAppendData(c->container->files, NULL, len - c->toskip);
+            } else {
+                r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
+            }
+        }
+        c->toskip = 0;
+        return r;
+    }
+    // If we are owning the file to append to it, let's do it
+    if (c->fileOwning) {
+        DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+        SCLogDebug("update files (FileAppendData)");
+        return FileAppendData(c->container->files, data, len);
+    }
+    // If we are not in the previous cases, only one case remains
+    DEBUG_VALIDATE_BUG_ON(c->current == NULL);
+    // So we have a current allocated buffer to copy to
     // in the case of an unordered range being handled
     if (c->current) {
         SCLogDebug("update current: adding %u bytes to block %p", len, c);
         // GAP "data"
         if (data == NULL) {
-            // just feed the gap in the current position, instead of its right one
-            return FileAppendData(c->container->files, NULL, len);
+            // just save the length of the gap
+            c->current->gap += len;
             // data, but we're not yet complete
         } else if (c->current->offset + len < c->current->buflen) {
             memcpy(c->current->buffer + c->current->offset, data, len);
@@ -385,15 +415,8 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
                     c->current->buflen - c->current->offset);
             c->current->offset = c->current->buflen;
         }
-        return 0;
-        // then check if we are skipping
-    } else if (c->toskip > 0) {
-        return HttpRangeProcessSkip(c, data, len);
     }
-    // last we are ordered, simply append
-    DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
-    SCLogDebug("update files (FileAppendData)");
-    return FileAppendData(c->container->files, data, len);
+    return 0;
 }
 
 static void HttpRangeFileClose(HttpRangeContainerFile *c, uint16_t flags)
@@ -413,17 +436,14 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
 {
     SCLogDebug("c %p c->container %p c->current %p", c, c->container, c->current);
 
-    if (c->container == NULL) {
-        // everything was just skipped : nothing to do
-        return NULL;
-    }
+    DEBUG_VALIDATE_BUG_ON(c->container == NULL);
 
     /* we're processing an OOO chunk, won't be able to get us a full file just yet */
     if (c->current) {
         SCLogDebug("processing ooo chunk as c->current is set %p", c->current);
         // some out-or-order range is finished
         if (c->container->files->tail &&
-                c->container->files->tail->size >= c->current->start + c->current->offset) {
+                c->container->lastsize >= c->current->start + c->current->offset) {
             // if the range has become obsolete because we received the data already
             // we just free it
             (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
@@ -438,6 +458,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
                     HTTP_RANGES_RB_INSERT(&c->container->fragment_tree, c->current);
             if (res) {
                 SCLogDebug("duplicate range fragment");
+                (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
                 SCFree(c->current->buffer);
                 SCFree(c->current);
             }
@@ -455,19 +476,32 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     }
 
     // we just finished an in-order block
-    c->container->appending = false;
+    DEBUG_VALIDATE_BUG_ON(c->container->fileOwned == false);
+    c->container->fileOwned = false;
     DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
+    // we update the file size now that we own it again
     File *f = c->container->files->tail;
 
     /* See if we can use our stored fragments to (partly) reconstruct the file */
     HttpRangeContainerBuffer *range, *safe = NULL;
     RB_FOREACH_SAFE (range, HTTP_RANGES, &c->container->fragment_tree, safe) {
         if (f->size < range->start) {
+            // this next range is not reached yet
             break;
         }
         if (f->size == range->start) {
             // a new range just begins where we ended, append it
+            if (range->gap > 0) {
+                // if the range had a gap, begin by it
+                if (FileAppendData(c->container->files, NULL, range->gap) != 0) {
+                    c->container->lastsize = f->size;
+                    HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
+                    c->container->error = true;
+                    return f;
+                }
+            }
             if (FileAppendData(c->container->files, range->buffer, range->offset) != 0) {
+                c->container->lastsize = f->size;
                 HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                 c->container->error = true;
                 return f;
@@ -476,10 +510,20 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
             // the range starts before where we ended
             uint64_t overlap = f->size - range->start;
             if (overlap < range->offset) {
+                if (range->gap > 0) {
+                    // if the range had a gap, begin by it
+                    if (FileAppendData(c->container->files, NULL, range->gap) != 0) {
+                        c->container->lastsize = f->size;
+                        HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
+                        c->container->error = true;
+                        return f;
+                    }
+                }
                 // And the range ends beyond where we ended
                 // in this case of overlap, only add the extra data
                 if (FileAppendData(c->container->files, range->buffer + overlap,
                             range->offset - overlap) != 0) {
+                    c->container->lastsize = f->size;
                     HttpRangeFileClose(c->container, flags | FILE_TRUNCATED);
                     c->container->error = true;
                     return f;
@@ -492,6 +536,8 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
         SCFree(range->buffer);
         SCFree(range);
     }
+    // wait until we merged all the buffers to update known size
+    c->container->lastsize = f->size;
 
     if (f->size >= c->container->totalsize) {
         // we finished the whole file
