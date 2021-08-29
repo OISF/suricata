@@ -20,6 +20,7 @@
 #include "util-device.h"
 #include "util-ioctl.h"
 #include "util-misc.h"
+#include "util-dpdk.h"
 
 #include "device-storage.h"
 
@@ -360,6 +361,7 @@ int LiveDeviceListClean()
         }
 
         RestoreIfaceOffloading(pd);
+        DPDKCloseDevice(pd);
 
         if (pd->dev)
             SCFree(pd->dev);

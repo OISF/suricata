@@ -36,6 +36,7 @@ enum RunModes {
     RUNMODE_DAG,
     RUNMODE_AFP_DEV,
     RUNMODE_NETMAP,
+    RUNMODE_DPDK,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
     RUNMODE_UNIX_SOCKET,
@@ -110,6 +111,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
 #include "runmode-windivert.h"
+#include "runmode-dpdk.h"
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;

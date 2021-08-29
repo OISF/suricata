@@ -95,5 +95,8 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt, 
 int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, int *val);
 char *ConfLoadCompleteIncludePath(const char *);
 int ConfNodeIsSequence(const ConfNode *node);
+ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
+int ConfSetRootAndDefaultNodes(
+        const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default);
 
 #endif /* ! __CONF_H__ */
