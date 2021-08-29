@@ -652,6 +652,64 @@ af-packet:
     #use-mmap: no
     #tpacket-v3: yes
 
+dpdk:
+  eal-params:
+    proc-type: primary
+
+  # DPDK capture support
+  # RX queues (and TX queues in IPS mode) are assigned to cores in 1:1 ratio
+  interfaces:
+    - interface: 0000:3b:00.0 # PCIe address of the NIC port
+      # Threading: possible values are either "auto" or number of threads
+      # - auto takes all cores
+      # in IPS mode it is required to specify the number of cores and the numbers on both interfaces must match
+      threads: auto
+      promisc: true # promiscuous mode - capture all packets
+      multicast: true # enables also detection on multicast packets
+      checksum-checks: true # if Suricata should validate checksums
+      checksum-checks-offload: true # if possible offload checksum validation to the NIC (saves Suricata resources)
+      mtu: 1500 # Set MTU of the device in bytes
+      #
+      # start of per queue settings
+      # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
+      # Make sure you have enough allocated hugepages.
+
+      # The optimum size (in terms of memory usage) is power of two minus one: n = (2^q - 1)
+      mempool-size: 65535 # The number of elements in the mbuf pool
+      #
+      # Must be lower or equal to:
+      #     - RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and
+      #     - "mempool-size / 1.5"
+      # It is advised to choose cache_size to have "mempool-size modulo cache_size == 0".
+      # If this is not the case, some elements will always stay in the pool and will never be used.
+      # The cache can be disabled if the cache_size argument is set to 0, can be useful to avoid losing objects in cache
+      mempool-cache-size: 250
+      rx-descriptors: 1024
+      tx-descriptors: 1024
+      # end of per queue settings
+      #
+      # IPS mode for Suricata works in 3 modes - none, tap, ips
+      # - none: IDS mode only - disables IPS functionality (does not further forward packets)
+      # - tap: forwards all packets and generates alerts (omits DROP action) This is not DPDK TAP
+      # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
+      copy-mode: none
+      copy-iface: none # or PCIe address of the second interface
+
+    - interface: default
+      threads: auto
+      promisc: true
+      multicast: true
+      checksum-checks: true
+      checksum-checks-offload: true
+      mtu: 1500
+      mempool-size: 65356
+      mempool-cache-size: 250
+      rx-descriptors: 1024
+      tx-descriptors: 1024
+      copy-mode: none
+      copy-iface: none
+
+
 # Cross platform libpcap capture support
 pcap:
   - interface: eth0

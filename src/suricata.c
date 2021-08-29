@@ -92,6 +92,8 @@
 #include "source-af-packet.h"
 #include "source-netmap.h"
 
+#include "source-dpdk.h"
+
 #include "source-windivert.h"
 #include "source-windivert-prototypes.h"
 
@@ -601,6 +603,9 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
+#ifdef HAVE_DPDK
+    printf("\t--dpdk                               : run in dpdk mode, uses interfaces from suricata.yaml\n");
+#endif
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
@@ -895,6 +900,10 @@ void RegisterAllModules(void)
     TmModuleReceiveWinDivertRegister();
     TmModuleVerdictWinDivertRegister();
     TmModuleDecodeWinDivertRegister();
+
+    /* Dpdk */
+    TmModuleReceiveDPDKRegister();
+    TmModuleDecodeDPDKRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
@@ -937,6 +946,16 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
             /* not an error condition if we have a 1.0 config */
             LiveBuildDeviceList("pfring");
         }
+#ifdef HAVE_DPDK
+    } else if (runmode == RUNMODE_DPDK) {
+        char iface_selector[] = "dpdk.interfaces";
+        int ret = LiveBuildDeviceList(iface_selector);
+        if (ret == 0) {
+            SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for %s",
+                       iface_selector);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+#endif
 #ifdef HAVE_AF_PACKET
     } else if (runmode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
@@ -1115,6 +1134,28 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
 #endif
 }
 
+static int ParseCommandLineDpdk(SCInstance *suri, const char *in_arg)
+{
+#ifdef HAVE_DPDK
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_DPDK;
+    } else if (suri->run_mode == RUNMODE_DPDK) {
+        SCLogInfo("Multiple dpdk options have no effect on Suricata");
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                             "has been specified");
+        PrintUsage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+#else
+    SCLogError(SC_ERR_NO_DPDK, "DPDK not enabled. On Linux "
+                               "host, make sure to pass --enable-dpdk to "
+                               "configure when building.");
+    return TM_ECODE_FAILED;
+#endif
+}
+
 static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 {
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1192,6 +1233,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
+#ifdef HAVE_DPDK
+        {"dpdk", 0, 0, 0},
+#endif
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
@@ -1304,9 +1348,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
                 suri->capture_plugin_args = optarg;
-            }
-            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
-            {
+            } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
+                if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+            } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
                 if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
@@ -2826,6 +2872,14 @@ int SuricataMain(int argc, char **argv)
     PostRunDeinit(suricata.run_mode, &suricata.start_time);
     /* kill remaining threads */
     TmThreadKillThreads();
+
+#ifdef HAVE_DPDK
+    if (run_mode == RUNMODE_DPDK) {
+        int retval = rte_eal_cleanup();
+        if (retval != 0)
+            FatalError(SC_ERR_DPDK_EAL_INIT, "EAL cleanup failed: %s", strerror(-retval));
+    }
+#endif
 
 out:
     GlobalsDestroy(&suricata);
