@@ -1506,6 +1506,30 @@
             [[#include <linux/net_tstamp.h>]])
     ])
 
+  # DPDK support
+    AC_ARG_ENABLE(dpdk,
+            AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
+                        [enable_dpdk=$enableval],[enable_dpdk=no])
+    AS_IF([test "x$enable_dpdk" = "xyes"], [
+        AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
+        AC_DEFINE([HAVE_STRLCAT],[1],[STRLCAT is predefined by DPDK])
+        AC_DEFINE([HAVE_STRLCPY],[1],[STRLCPY is predefined by DPDK])
+        PKG_CHECK_EXISTS(libdpdk, , [with_pkgconfig_libdpdk=no])
+        if test "$with_pkgconfig_libdpdk" = "no"; then
+            echo
+            echo "   ERROR! libdpdk >= 20.11 not found by pkg-config, go get it"
+            echo "   from https://www.dpdk.org/ or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install dpdk-dev"
+            echo "   Fedora: dnf install dpdk-devel"
+            echo "   CentOS/RHEL: yum install dpdk-devel"
+            echo
+            exit 1
+        fi
+        CFLAGS="${CFLAGS} -DALLOW_EXPERIMENTAL_API `pkg-config --cflags "libdpdk >= 20.11"`"
+        LIBS="${LIBS} `pkg-config --libs "libdpdk >= 20.11"`"
+    ])
+
   # Netmap support
     AC_ARG_ENABLE(netmap,
             AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),[enable_netmap=$enableval],[enable_netmap=no])
@@ -2706,6 +2730,7 @@ AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
+  DPDK support:                            ${enable_dpdk}
   eBPF support:                            ${enable_ebpf}
   XDP support:                             ${have_xdp}
   PF_RING support:                         ${enable_pfring}
