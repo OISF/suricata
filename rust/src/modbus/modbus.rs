@@ -18,7 +18,6 @@ use crate::applayer::*;
 use crate::core::{self, AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 
 use std::ffi::CString;
-use std::str::FromStr;
 
 use sawp::error::Error as SawpError;
 use sawp::error::ErrorKind as SawpErrorKind;
@@ -31,8 +30,9 @@ pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus {};
 
 static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
 
+#[derive(AppLayerEvent)]
 enum ModbusEvent {
-    UnsolicitedResponse = 0,
+    UnsolicitedResponse,
     InvalidFunctionCode,
     InvalidLength,
     InvalidValue,
@@ -41,53 +41,6 @@ enum ModbusEvent {
     Flooded,
     InvalidProtocolId,
 }
-
-impl FromStr for ModbusEvent {
-    type Err = ();
-    fn from_str(name: &str) -> Result<ModbusEvent, Self::Err> {
-        match name {
-            "unsolicited_response" => Ok(ModbusEvent::UnsolicitedResponse),
-            "invalid_function_code" => Ok(ModbusEvent::InvalidFunctionCode),
-            "invalid_length" => Ok(ModbusEvent::InvalidLength),
-            "invalid_value" => Ok(ModbusEvent::InvalidValue),
-            "invalid_exception_code" => Ok(ModbusEvent::InvalidExceptionCode),
-            "value_mismatch" => Ok(ModbusEvent::ValueMismatch),
-            "flooded" => Ok(ModbusEvent::Flooded),
-            "invalid_protocol_id" => Ok(ModbusEvent::InvalidProtocolId),
-            _ => Err(()),
-        }
-    }
-}
-
-impl ModbusEvent {
-    pub fn to_str(&self) -> &str {
-        match *self {
-            ModbusEvent::UnsolicitedResponse => "unsolicited_response",
-            ModbusEvent::InvalidFunctionCode => "invalid_function_code",
-            ModbusEvent::InvalidLength => "invalid_length",
-            ModbusEvent::InvalidValue => "invalid_value",
-            ModbusEvent::InvalidExceptionCode => "invalid_exception_code",
-            ModbusEvent::ValueMismatch => "value_mismatch",
-            ModbusEvent::Flooded => "flooded",
-            ModbusEvent::InvalidProtocolId => "invalid_protocol_id",
-        }
-    }
-
-    pub fn from_id(id: u32) -> Option<Self> {
-        match id {
-            0 => Some(ModbusEvent::UnsolicitedResponse),
-            1 => Some(ModbusEvent::InvalidFunctionCode),
-            2 => Some(ModbusEvent::InvalidLength),
-            3 => Some(ModbusEvent::InvalidValue),
-            4 => Some(ModbusEvent::InvalidExceptionCode),
-            5 => Some(ModbusEvent::ValueMismatch),
-            6 => Some(ModbusEvent::Flooded),
-            7 => Some(ModbusEvent::InvalidProtocolId),
-            _ => None,
-        }
-    }
-}
-
 pub struct ModbusTransaction {
     pub id: u64,
 
@@ -426,51 +379,6 @@ pub unsafe extern "C" fn rs_modbus_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_event_info(
-    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    if event_name.is_null() {
-        return -1;
-    }
-
-    let event_name = std::ffi::CStr::from_ptr(event_name);
-    if let Ok(event_name) = event_name.to_str() {
-        match ModbusEvent::from_str(event_name) {
-            Ok(event) => {
-                *event_id = event as std::os::raw::c_int;
-                *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-                0
-            },
-            Err(_) => {
-                SCLogError!(
-                    "event {} not present in modbus's enum map table.",
-                    event_name
-                );
-                -1
-            }
-        }
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = ModbusEvent::from_id(event_id as u32) {
-        *event_name = e.to_str().as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        SCLogError!("event {} not present in modbus's enum map table.", event_id);
-        -1
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
@@ -520,8 +428,8 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         tx_comp_st_tc: 1,
         tx_get_progress: rs_modbus_tx_get_alstate_progress,
         get_events: Some(rs_modbus_state_get_events),
-        get_eventinfo: Some(rs_modbus_state_get_event_info),
-        get_eventinfo_byid: Some(rs_modbus_state_get_event_info_by_id),
+        get_eventinfo: Some(ModbusEvent::get_event_info),
+        get_eventinfo_byid: Some(ModbusEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
