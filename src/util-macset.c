@@ -410,7 +410,7 @@ static int MacSetTest05(void)
 {
     MacSet *ms = NULL;
     int ret = 0, i = 0;
-    SC_ATOMIC_SET(flow_config.memcap, 10);
+    SC_ATOMIC_SET(flow_config.memcap, 64);
 
     ms = MacSetInit(10);
     FAIL_IF_NULL(ms);
@@ -442,7 +442,7 @@ void MacSetRegisterTests(void)
     UtRegisterTest("MacSetTest02", MacSetTest02);
     UtRegisterTest("MacSetTest03", MacSetTest03);
     UtRegisterTest("MacSetTest04", MacSetTest04);
-    UtRegisterTest("MacSetTest04", MacSetTest05);
+    UtRegisterTest("MacSetTest05", MacSetTest05);
 #endif
 
     return;
