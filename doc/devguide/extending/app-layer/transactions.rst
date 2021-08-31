@@ -227,7 +227,7 @@ Sequence Diagrams
 
 A DNS transaction in Suricata can be considered unidirectional:
 
-.. image:: img/DnsUnidirectionalTransactions.png
+.. image:: diagrams/DnsUnidirectionalTransactions.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "DNS Request". After that, there is a dotted line labeled "Transaction Completed".
 
@@ -236,13 +236,13 @@ overlap, scenario not shown in this Sequence Diagram):
 
 .. TODO add another example for overlapping HTTP2 transaction
 
-.. image:: img/HTTP2BidirectionalTransaction.png
+.. image:: diagrams/HTTP2BidirectionalTransaction.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server labeled "Request" and below that an arrow going from Server to Client labeled "Response". Below those arrows, a dotted line indicates that the transaction is completed.
 
 A TLS Handshake is a more complex example, where several messages are exchanged before the transaction is considered completed:
 
-.. image:: img/TlsHandshake.png
+.. image:: diagrams/TlsHandshake.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server labeled "ClientHello" and below that an arrow going from Server to Client labeled "ServerHello". Below those arrows, several more follow from Server to Client and vice-versa, before a dotted line indicates that the transaction is finally completed.
 
@@ -253,7 +253,7 @@ Suricata has a template protocol for educational purposes, which has simple bidi
 
 A completed transaction for the template looks like this:
 
-.. image:: img/TemplateTransaction.png
+.. image:: diagrams/TemplateTransaction.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "Request". An arrow below that first one goes from Server to Client.
 
