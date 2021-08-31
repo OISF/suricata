@@ -216,7 +216,7 @@ Sequence Diagrams
 
 A DNS transaction in Suricata can be considered unidirectional:
 
-.. image:: img/DnsRequestUnidirectionalTransaction.png
+.. image:: img/DnsUnidirectionalTransactions.png
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "DNS Request". After that, there is a dotted line labeled "Transaction Completed".
 
