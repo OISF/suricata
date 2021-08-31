@@ -3,7 +3,7 @@
 # Script to generate Sequence Diagram images with mscgen
 #
 
-cd extending/app-layer/img
+cd extending/app-layer/diagrams
 
 for FILE in *.msc ; do
     # call mscgen and convert each file in images dir
