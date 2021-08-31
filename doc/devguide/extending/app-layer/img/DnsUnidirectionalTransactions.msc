@@ -9,7 +9,8 @@ msc {
 
     # Message Flow
     a =>> b [ label = "DNS Request" ];
-    b =>> a [ label = "DNS Response" ];
+    --- [ label = "Transaction 1 Completed" ];
     |||;
-    --- [ label = "Transaction Completed" ];
+    b =>> a [ label = "DNS Response" ];
+    --- [ label = "Transaction 2 Completed" ];
 }
