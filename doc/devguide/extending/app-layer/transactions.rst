@@ -151,6 +151,17 @@ From src/app-layer-ftp.h:
         FTP_STATE_FINISHED,
     };
 
+From src/app-layer-ssl.h:
+
+.. code-block:: c
+
+    enum {
+        TLS_STATE_IN_PROGRESS = 0,
+        TLS_STATE_CERT_READY = 1,
+        TLS_HANDSHAKE_DONE = 2,
+        TLS_STATE_FINISHED = 3
+    };
+
 API Callbacks
 ~~~~~~~~~~~~~
 
