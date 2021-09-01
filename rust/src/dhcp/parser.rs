@@ -18,9 +18,11 @@
 use std::cmp::min;
 
 use crate::dhcp::dhcp::*;
-use nom::IResult;
-use nom::combinator::rest;
-use nom::number::streaming::{be_u8, be_u16, be_u32};
+use nom7::bytes::streaming::take;
+use nom7::combinator::{complete, verify};
+use nom7::multi::many0;
+use nom7::number::streaming::{be_u16, be_u32, be_u8};
+use nom7::IResult;
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -81,120 +83,124 @@ pub struct DHCPOption {
     pub option: DHCPOptionWrapper,
 }
 
-named!(pub parse_header<DHCPHeader>,
-       do_parse!(
-           opcode: be_u8
-           >> htype: be_u8
-           >> hlen: be_u8
-           >> hops: be_u8
-           >> txid: be_u32
-           >> seconds: be_u16
-           >> flags: be_u16
-           >> clientip: take!(4)
-           >> yourip: take!(4)
-           >> serverip: take!(4)
-           >> giaddr: take!(4)
-           >> clienthw: take!(16)
-           >> servername: take!(64)
-           >> bootfilename: take!(128)
-           >> magic: take!(4)
-           >> (
-                   DHCPHeader{
-                       opcode: opcode,
-                       htype: htype,
-                       hlen: hlen,
-                       hops: hops,
-                       txid: txid,
-                       seconds: seconds,
-                       flags: flags,
-                       clientip: clientip.to_vec(),
-                       yourip: yourip.to_vec(),
-                       serverip: serverip.to_vec(),
-                       giaddr: giaddr.to_vec(),
-                       clienthw: clienthw[0..min(hlen as usize, 16)].to_vec(),
-                       servername: servername.to_vec(),
-                       bootfilename: bootfilename.to_vec(),
-                       magic: magic.to_vec(),
-                   }
-               )
-       )
-);
+pub fn parse_header(i: &[u8]) -> IResult<&[u8], DHCPHeader> {
+    let (i, opcode) = be_u8(i)?;
+    let (i, htype) = be_u8(i)?;
+    let (i, hlen) = be_u8(i)?;
+    let (i, hops) = be_u8(i)?;
+    let (i, txid) = be_u32(i)?;
+    let (i, seconds) = be_u16(i)?;
+    let (i, flags) = be_u16(i)?;
+    let (i, clientip) = take(4_usize)(i)?;
+    let (i, yourip) = take(4_usize)(i)?;
+    let (i, serverip) = take(4_usize)(i)?;
+    let (i, giaddr) = take(4_usize)(i)?;
+    let (i, clienthw) = take(16_usize)(i)?;
+    let (i, servername) = take(64_usize)(i)?;
+    let (i, bootfilename) = take(128_usize)(i)?;
+    let (i, magic) = take(4_usize)(i)?;
+    Ok((
+        i,
+        DHCPHeader {
+            opcode: opcode,
+            htype: htype,
+            hlen: hlen,
+            hops: hops,
+            txid: txid,
+            seconds: seconds,
+            flags: flags,
+            clientip: clientip.to_vec(),
+            yourip: yourip.to_vec(),
+            serverip: serverip.to_vec(),
+            giaddr: giaddr.to_vec(),
+            clienthw: clienthw[0..min(hlen as usize, 16)].to_vec(),
+            servername: servername.to_vec(),
+            bootfilename: bootfilename.to_vec(),
+            magic: magic.to_vec(),
+        },
+    ))
+}
 
-named!(pub parse_clientid_option<DHCPOption>,
-       do_parse!(
-           code:   be_u8 >>
-           len: verify!(be_u8, |&v| v > 1) >>
-           _htype: be_u8 >>
-           data:   take!(len - 1) >>
-               (
-                   DHCPOption{
-                       code: code,
-                       data: None,
-                       option: DHCPOptionWrapper::ClientId(DHCPOptClientId{
-                           htype: 1,
-                           data: data.to_vec(),
-                       }),
-                   }
-               )
-       )
-);
+pub fn parse_clientid_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
+    let (i, code) = be_u8(i)?;
+    let (i, len) = verify(be_u8, |&v| v > 1)(i)?;
+    let (i, _htype) = be_u8(i)?;
+    let (i, data) = take(len - 1)(i)?;
+    Ok((
+        i,
+        DHCPOption {
+            code: code,
+            data: None,
+            option: DHCPOptionWrapper::ClientId(DHCPOptClientId {
+                htype: 1,
+                data: data.to_vec(),
+            }),
+        },
+    ))
+}
 
-named!(pub parse_address_time_option<DHCPOption>,
-       do_parse!(
-           code:    be_u8 >>
-           _len:    be_u8 >>
-           seconds: be_u32 >>
-               (
-                   DHCPOption{
-                       code: code,
-                       data: None,
-                       option: DHCPOptionWrapper::TimeValue(DHCPOptTimeValue{
-                           seconds: seconds,
-                       }),
-                   }
-               )
-       )
-);
+pub fn parse_address_time_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
+    let (i, code) = be_u8(i)?;
+    let (i, _len) = be_u8(i)?;
+    let (i, seconds) = be_u32(i)?;
+    Ok((
+        i,
+        DHCPOption {
+            code: code,
+            data: None,
+            option: DHCPOptionWrapper::TimeValue(DHCPOptTimeValue { seconds: seconds }),
+        },
+    ))
+}
 
-named!(pub parse_generic_option<DHCPOption>,
-       do_parse!(
-           code: be_u8 >>
-           len: be_u8 >>
-           data: take!(len) >> (
-               DHCPOption{
-                   code: code,
-                   data: None,
-                   option: DHCPOptionWrapper::Generic(DHCPOptGeneric{
-                       data: data.to_vec(),
-                   }),
-               }
-           ))
-);
+pub fn parse_generic_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
+    let (i, code) = be_u8(i)?;
+    let (i, len) = be_u8(i)?;
+    let (i, data) = take(len)(i)?;
+    Ok((
+        i,
+        DHCPOption {
+            code: code,
+            data: None,
+            option: DHCPOptionWrapper::Generic(DHCPOptGeneric {
+                data: data.to_vec(),
+            }),
+        },
+    ))
+}
 
 // Parse a single DHCP option. When option 255 (END) is parsed, the remaining
 // data will be consumed.
-named!(pub parse_option<DHCPOption>,
-       switch!(peek!(be_u8),
-               // End of options case. We consume the rest of the data
-               // so the parse is not called again. But is there a
-               // better way to "break"?
-               DHCP_OPT_END => do_parse!(
-                   code: be_u8 >>
-                   data: rest >> (DHCPOption{
-                       code: code,
-                       data: Some(data.to_vec()),
-                       option: DHCPOptionWrapper::End,
-                   })) |
-               DHCP_OPT_CLIENT_ID => call!(parse_clientid_option) |
-               DHCP_OPT_ADDRESS_TIME => call!(parse_address_time_option) |
-               DHCP_OPT_RENEWAL_TIME => call!(parse_address_time_option) |
-               DHCP_OPT_REBINDING_TIME => call!(parse_address_time_option) |
-               _ => call!(parse_generic_option)
-       ));
+pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
+    let (_, opt) = be_u8(i)?;
+    match opt {
+        DHCP_OPT_END => {
+            // End of options case. We consume the rest of the data
+            // so the parser is not called again. But is there a
+            // better way to "break"?
+            let (data, code) = be_u8(i)?;
+            Ok((
+                &[],
+                DHCPOption {
+                    code,
+                    data: Some(data.to_vec()),
+                    option: DHCPOptionWrapper::End,
+                },
+            ))
+        }
+        DHCP_OPT_CLIENT_ID => parse_clientid_option(i),
+        DHCP_OPT_ADDRESS_TIME => parse_address_time_option(i),
+        DHCP_OPT_RENEWAL_TIME => parse_address_time_option(i),
+        DHCP_OPT_REBINDING_TIME => parse_address_time_option(i),
+        _ => parse_generic_option(i),
+    }
+}
 
 // Parse and return all the options. Upon the end of option indicator
 // all the data will be consumed.
-named!(pub parse_all_options<Vec<DHCPOption>>, many0!(complete!(call!(parse_option))));
+pub fn parse_all_options(i: &[u8]) -> IResult<&[u8], Vec<DHCPOption>> {
+    many0(complete(parse_option))(i)
+}
 
 pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
     match parse_header(input) {
@@ -257,8 +263,10 @@ mod tests {
                 assert_eq!(header.yourip, &[0, 0, 0, 0]);
                 assert_eq!(header.serverip, &[0, 0, 0, 0]);
                 assert_eq!(header.giaddr, &[0, 0, 0, 0]);
-                assert_eq!(&header.clienthw[..(header.hlen as usize)],
-                           &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]);
+                assert_eq!(
+                    &header.clienthw[..(header.hlen as usize)],
+                    &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]
+                );
                 assert!(header.servername.iter().all(|&x| x == 0));
                 assert!(header.bootfilename.iter().all(|&x| x == 0));
                 assert_eq!(header.magic, &[0x63, 0x82, 0x53, 0x63]);
@@ -283,37 +291,34 @@ mod tests {
     fn test_parse_client_id_too_short() {
         // Length field of 0.
         let buf: &[u8] = &[
-            0x01,
-            0x00, // Length of 0.
-            0x01,
-            0x01, // Junk data start here.
-            0x02,
-            0x03,
+            0x01, 0x00, // Length of 0.
+            0x01, 0x01, // Junk data start here.
+            0x02, 0x03,
         ];
         let r = parse_clientid_option(buf);
         assert!(r.is_err());
 
         // Length field of 1.
         let buf: &[u8] = &[
-            0x01,
-            0x01, // Length of 1.
-            0x01,
-            0x41,
+            0x01, 0x01, // Length of 1.
+            0x01, 0x41,
         ];
         let r = parse_clientid_option(buf);
         assert!(r.is_err());
 
         // Length field of 2 -- OK.
         let buf: &[u8] = &[
-            0x01,
-            0x02, // Length of 2.
-            0x01,
-            0x41,
+            0x01, 0x02, // Length of 2.
+            0x01, 0x41,
         ];
         let r = parse_clientid_option(buf);
         match r {
-            Ok((rem, _)) => { assert_eq!(rem.len(), 0); },
-            _ => { panic!("failed"); }
+            Ok((rem, _)) => {
+                assert_eq!(rem.len(), 0);
+            }
+            _ => {
+                panic!("failed");
+            }
         }
     }
 }
