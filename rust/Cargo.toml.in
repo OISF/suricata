@@ -24,6 +24,7 @@ function-macro = []
 
 [dependencies]
 nom = "~5.1.2"
+nom7 = { version="7.0", package="nom" }
 bitflags = "~1.2.1"
 byteorder = "~1.4.2"
 uuid = "~0.8.2"
