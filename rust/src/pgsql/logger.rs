@@ -71,7 +71,7 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
 fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError>
 {
     let mut js = JsonBuilder::new_object();
-    js.open_object(&req.get_message_type())?;
+    js.open_object(&req.message_type_to_str())?;
     match req {
         PgsqlFEMessage::StartupMessage(
             StartupPacket{
@@ -139,7 +139,7 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError>
 fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
 {
     let mut js = JsonBuilder::new_object();
-    js.open_object(&res.get_message_type())?;
+    js.open_object(&res.message_type_to_str())?;
     match res {
         PgsqlBEMessage::SslResponse(message) =>
         {
@@ -418,7 +418,8 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
-    let tx = cast_pointer!(tx, PgsqlTransaction);
+    let tx_safe: &mut PgsqlTransaction;
+    unsafe { tx_safe = cast_pointer!(tx, PgsqlTransaction); }
     SCLogDebug!("----------- PGSQL rs_pgsql_logger_log call.");
-    log_pgsql(tx, js).is_ok()
+    log_pgsql(tx_safe, js).is_ok()
 }

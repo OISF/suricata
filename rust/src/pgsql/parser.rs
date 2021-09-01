@@ -192,7 +192,7 @@ impl fmt::Display for PgsqlBEMessage {
 }
 
 impl PgsqlBEMessage {
-    pub fn get_message_type(&self) -> &str {
+    pub fn message_type_to_str(&self) -> &str {
         match self {
             PgsqlBEMessage::SslResponse(SslResponseMessage::SslAccepted) => "ssl_accepted",
             PgsqlBEMessage::SslResponse(SslResponseMessage::SslRejected) => "ssl_rejected",
@@ -266,7 +266,7 @@ impl fmt::Display for PgsqlFEMessage {
 
 
 impl PgsqlFEMessage {
-    pub fn get_message_type(&self) -> &str {
+    pub fn message_type_to_str(&self) -> &str {
         match self {
             PgsqlFEMessage::StartupMessage(_) => "startup_message",
             PgsqlFEMessage::SslRequest(_) => "ssl_request",
