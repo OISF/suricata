@@ -2830,9 +2830,8 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** SSLv3 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 00|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER) < 0) {
         return -1;
     }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
@@ -2842,9 +2841,8 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 01|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 5, 2, STREAM_TOSERVER) < 0) {
         return -1;
     }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
@@ -2854,9 +2852,8 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1.1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 02|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 5, 2, STREAM_TOSERVER) < 0) {
         return -1;
     }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
@@ -2866,9 +2863,8 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1.2 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 03|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 5, 2, STREAM_TOSERVER) < 0) {
         return -1;
     }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
