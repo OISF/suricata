@@ -31,8 +31,8 @@ pub const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
 
 #[derive(Debug, PartialEq)]
 pub struct PgsqlParameter {
-    pub param_name: Vec<u8>,
-    pub param_value: Vec<u8>,
+    pub name: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 // TODO I think I can simplify this by having a vector of pgsqlparams
@@ -103,38 +103,38 @@ impl ErrorNoticeMessage {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum SslResponseMessage {
-    SslAccepted,
-    SslRejected,
+pub enum SSLResponseMessage {
+    SSLAccepted,
+    SSLRejected,
     InvalidResponse,
 }
 
-impl From<u8> for SslResponseMessage {
+impl From<u8> for SSLResponseMessage {
     fn from(identifier: u8) -> Self {
         match identifier {
-            b'S' => Self::SslAccepted,
-            b'N' => Self::SslRejected,
+            b'S' => Self::SSLAccepted,
+            b'N' => Self::SSLRejected,
             _ => Self::InvalidResponse,
         }
     }
 }
 
-impl From<char> for SslResponseMessage {
+impl From<char> for SSLResponseMessage {
     fn from(identifier: char) -> Self {
         match identifier {
-            'S' => Self::SslAccepted,
-            'N'=> Self::SslRejected,
+            'S' => Self::SSLAccepted,
+            'N'=> Self::SSLRejected,
             _ => Self::InvalidResponse,
         }
     }
 }
 
 // TODO refine this
-impl fmt::Display for SslResponseMessage {
+impl fmt::Display for SSLResponseMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            SslResponseMessage::SslAccepted => write!(f, "SSL Accepted"),
-            SslResponseMessage::SslRejected => write!(f, "SSL Rejected"),
+            SSLResponseMessage::SSLAccepted => write!(f, "SSL Accepted"),
+            SSLResponseMessage::SSLRejected => write!(f, "SSL Rejected"),
             _ => write!(f, "Invalid server response"),
         }
     }
@@ -164,7 +164,7 @@ pub struct ReadyForQueryMessage {
 
 #[derive(Debug, PartialEq)]
 pub enum PgsqlBEMessage {
-    SslResponse(SslResponseMessage),
+    SSLResponse(SSLResponseMessage),
     ErrorResponse(ErrorNoticeMessage),
     NoticeResponse(ErrorNoticeMessage),
     AuthenticationOk(AuthenticationMessage),
@@ -194,8 +194,8 @@ impl fmt::Display for PgsqlBEMessage {
 impl PgsqlBEMessage {
     pub fn message_type_to_str(&self) -> &str {
         match self {
-            PgsqlBEMessage::SslResponse(SslResponseMessage::SslAccepted) => "ssl_accepted",
-            PgsqlBEMessage::SslResponse(SslResponseMessage::SslRejected) => "ssl_rejected",
+            PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLAccepted) => "ssl_accepted",
+            PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLRejected) => "ssl_rejected",
             PgsqlBEMessage::ErrorResponse(_) => "error_response",
             PgsqlBEMessage::NoticeResponse(_) => "notice_response",
             PgsqlBEMessage::AuthenticationOk(_) => "authentication_ok",
@@ -214,7 +214,7 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::ReadyForQuery(_) => "ready_for_query",
             PgsqlBEMessage::RowDescription(_) => "row_description",
             PgsqlBEMessage::DataRow(_) => "data_row",
-            PgsqlBEMessage::SslResponse(SslResponseMessage::InvalidResponse) => "invalid_be_message",
+            PgsqlBEMessage::SSLResponse(SSLResponseMessage::InvalidResponse) => "invalid_be_message",
         }
     }
 
@@ -250,7 +250,7 @@ pub struct TerminationMessage {
 #[derive(Debug, PartialEq)]
 pub enum PgsqlFEMessage {
     StartupMessage(StartupPacket),
-    SslRequest(DummyStartupPacket),
+    SSLRequest(DummyStartupPacket),
     PasswordMessage(RegularPacket),
     SASLInitialResponse(SASLInitialResponsePacket),
     SASLResponse(RegularPacket),
@@ -269,7 +269,7 @@ impl PgsqlFEMessage {
     pub fn message_type_to_str(&self) -> &str {
         match self {
             PgsqlFEMessage::StartupMessage(_) => "startup_message",
-            PgsqlFEMessage::SslRequest(_) => "ssl_request",
+            PgsqlFEMessage::SSLRequest(_) => "ssl_request",
             PgsqlFEMessage::PasswordMessage(_) => "password_message",
             PgsqlFEMessage::SASLInitialResponse(_) => "sasl_initial_response",
             PgsqlFEMessage::SASLResponse(_) => "sasl_response",
@@ -431,8 +431,8 @@ named!(parse_user_param<PgsqlParameter>,
         >> param_value: take_until1!("\x00")
         >> tag!("\x00")
         >> (PgsqlParameter{
-            param_name: param_name.to_vec(),
-            param_value: param_value.to_vec(),
+            name: param_name.to_vec(),
+            value: param_value.to_vec(),
             })
     ));
 
@@ -444,8 +444,8 @@ named!(parse_database_param<PgsqlParameter>,
         >> param_value: take_until1!("\x00")
         >> tag!("\x00")
         >> (PgsqlParameter{
-                param_name: param_name.to_vec(),
-                param_value: param_value.to_vec(),
+                name: param_name.to_vec(),
+                value: param_value.to_vec(),
             })
     ));
 
@@ -459,8 +459,8 @@ named!(pgsql_parse_parameter<PgsqlParameter>,
         >> param_value: take_until1!("\x00")
         >> tag!("\x00")
         >> (PgsqlParameter{
-                param_name: param_name.to_vec(),
-                param_value: param_value.to_vec(),
+                name: param_name.to_vec(),
+                value: param_value.to_vec(),
             })
     ));
 
@@ -541,7 +541,7 @@ named!(pub pgsql_parse_startup_packet<PgsqlFEMessage>,
                                                         value!(len),
                                                         value!(proto_major),
                                                         value!(proto_minor)))
-                                        >> (PgsqlFEMessage::SslRequest(DummyStartupPacket{
+                                        >> (PgsqlFEMessage::SSLRequest(DummyStartupPacket{
                                             length: len,
                                             proto_major,
                                             proto_minor})))
@@ -706,8 +706,8 @@ named!(parse_parameter_status_message<PgsqlBEMessage>,
 named!(pub parse_ssl_response<PgsqlBEMessage>,
     do_parse!(
         tag: alt!(char!('N') | char!('S'))
-        >> (PgsqlBEMessage::SslResponse(
-            SslResponseMessage::from(tag))
+        >> (PgsqlBEMessage::SSLResponse(
+            SSLResponseMessage::from(tag))
         )
     ));
 
@@ -969,7 +969,7 @@ mod tests {
             proto_major: PGSQL_DUMMY_PROTO_MAJOR,
             proto_minor: PGSQL_DUMMY_PROTO_MINOR_SSL,
         };
-        let request_ok = PgsqlFEMessage::SslRequest(ssl_request);
+        let request_ok = PgsqlFEMessage::SSLRequest(ssl_request);
 
         let (_remainder, result) = parse_request(&buf).unwrap();
         assert_eq!(result, request_ok);
@@ -1023,12 +1023,12 @@ mod tests {
                             0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x00,
                             0x6d, 0x61, 0x69, 0x6c, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x00, 0x00];
         let user = PgsqlParameter {
-            param_name: [0x75, 0x73, 0x65, 0x72].to_vec(),
-            param_value: [0x6f, 0x72, 0x79, 0x78].to_vec(),
+            name: [0x75, 0x73, 0x65, 0x72].to_vec(),
+            value: [0x6f, 0x72, 0x79, 0x78].to_vec(),
         };
         let database = PgsqlParameter {
-            param_name: [0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65].to_vec(),
-            param_value: [0x6d, 0x61, 0x69, 0x6c, 0x73, 0x74, 0x6f, 0x72, 0x65].to_vec(),
+            name: [0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65].to_vec(),
+            value: [0x6d, 0x61, 0x69, 0x6c, 0x73, 0x74, 0x6f, 0x72, 0x65].to_vec(),
         };
         let params = PgsqlStartupParameters{
             user,
@@ -1065,8 +1065,8 @@ mod tests {
                             0x75, 0x73, 0x65, 0x72, 0x00,
                             0x6f, 0x72, 0x79, 0x78, 0x00, 0x00];
         let user = PgsqlParameter {
-            param_name: [0x75, 0x73, 0x65, 0x72].to_vec(),
-            param_value: [0x6f, 0x72, 0x79, 0x78].to_vec(),
+            name: [0x75, 0x73, 0x65, 0x72].to_vec(),
+            value: [0x6f, 0x72, 0x79, 0x78].to_vec(),
         };
         let params = PgsqlStartupParameters{
             user,
@@ -1275,8 +1275,8 @@ mod tests {
                     identifier: b'S',
                     length: 26,
                     param: PgsqlParameter {
-                        param_name:br#"application_name"#.to_vec(),
-                        param_value:br#"psql"#.to_vec(),
+                        name:br#"application_name"#.to_vec(),
+                        value:br#"psql"#.to_vec(),
                     }});
         let (_remainder, result) = parse_parameter_status_message(&buf).unwrap();
         assert_eq!(result, ok_res);
@@ -1286,8 +1286,8 @@ mod tests {
                     identifier: b'S',
                     length: 26,
                     param: PgsqlParameter {
-                        param_name:br#"application_name"#.to_vec(),
-                        param_value:br#"psql"#.to_vec(),
+                        name:br#"application_name"#.to_vec(),
+                        value:br#"psql"#.to_vec(),
                     }});
 
                     let result = pgsql_parse_response(&buf);
@@ -1801,13 +1801,13 @@ mod tests {
     fn test_parse_response() {
         // An SSL response - N
         let buf: &[u8] = &[0x4e];
-        let response_ok = PgsqlBEMessage::SslResponse(SslResponseMessage::SslRejected);
+        let response_ok = PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLRejected);
         let (_remainder, result) = parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);
 
         // An SSL response - S
         let buf: &[u8] = &[0x53];
-        let response_ok = PgsqlBEMessage::SslResponse(SslResponseMessage::SslAccepted);
+        let response_ok = PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLAccepted);
 
         let (_remainder, result) = parse_ssl_response(&buf).unwrap();
         assert_eq!(result, response_ok);

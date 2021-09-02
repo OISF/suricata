@@ -51,7 +51,7 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
             js.set_object("response", &jb)?;
         }
     } else {
-        SCLogNotice!("Suricata logging a transaction without finding a request. Tx_id {:?}", &tx.tx_id);
+        SCLogDebug!("Suricata logging a transaction without finding a request. Tx_id {:?}", &tx.tx_id);
         if !tx.responses.is_empty() {
             js.open_array("response")?;
             for response in &tx.responses {
@@ -62,7 +62,7 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
         } else {
             js.set_string("request", "request is empty")?;
             js.set_string("response", "response is empty")?;
-            SCLogNotice!("Warning, Suricata created an empty PGSQL transaction");
+            SCLogDebug!("Suricata created an empty PGSQL transaction");
         }
     }
     Ok(())
@@ -85,7 +85,7 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError>
             let jb = log_pgsql_parameters(params)?;
             js.set_object("startup_parameters", &jb)?;
         },
-        PgsqlFEMessage::SslRequest(_) =>
+        PgsqlFEMessage::SSLRequest(_) =>
         {
             js.set_string("message_type", "SSL Request")?;
         },
@@ -141,7 +141,7 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
     let mut js = JsonBuilder::new_object();
     js.open_object(&res.message_type_to_str())?;
     match res {
-        PgsqlBEMessage::SslResponse(message) =>
+        PgsqlBEMessage::SSLResponse(message) =>
         {
             js.set_string("ssl_response", &message.to_string())?;
         },
@@ -155,7 +155,6 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             length: _,
             message_body,
         }) => {
-            // TODO should I suppress the identifier, given that the object says what's the message type, already?
             let jb = log_error_notice_field_types( message_body)?;
             js.set_object("message_body", &jb)?;
         },
@@ -208,7 +207,7 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             payload,
         }) => {
             // TODO question - not sure what method to use here, the format printed doesn't look good
-            js.set_string_from_bytes("payload", payload)?;
+            js.set_string_from_bytes("payload", &payload)?;
         },
         PgsqlBEMessage::AuthenticationSASL(_) => {
             js.set_string("authentication_SASL", &res.to_string())?;
@@ -221,8 +220,8 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             length: _,
             param,
         }) => {
-            js.set_string_from_bytes("parameter_name", &param.param_name)?;
-            js.set_string_from_bytes("parameter_value", &param.param_value)?;
+            js.set_string_from_bytes("name", &param.name)?;
+            js.set_string_from_bytes("value", &param.value)?;
         },
         PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage{
             identifier: _,
@@ -401,15 +400,14 @@ fn log_error_notice_field_types(error_fields: &Vec<PgsqlErrorNoticeMessageField>
 fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, JsonError>
 {
     let mut jb = JsonBuilder::new_object();
-    jb.set_string_from_bytes("user", &params.user.param_value)?;
-    if let Some(PgsqlParameter{param_name: _, param_value}) = &params.database {
-        jb.set_string_from_bytes("database", &param_value)?;
+    jb.set_string_from_bytes("user", &params.user.value)?;
+    if let Some(PgsqlParameter{name: _, value}) = &params.database {
+        jb.set_string_from_bytes("database", &value)?;
     }
     if let Some(vec) = &params.optional_params {
         for param in vec {
-            // TODO extract this value?
-            let param_name = String::from_utf8_lossy(&param.param_name);
-            jb.set_string_from_bytes(&param_name, &param.param_value)?;
+            let name = String::from_utf8_lossy(&param.name);
+            jb.set_string_from_bytes(&name, &param.value)?;
         }
     }
     jb.close()?;

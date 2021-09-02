@@ -33,8 +33,8 @@ static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum PgsqlTransactionState { // a simplified version of this, stored in State - for startup phase, at least
     ConnectionStart = 0, // TODO [Doubt] or ConnectionRequest? Maybe we don't even need this
-    SslRequest = 1,
-    SslAccepted = 2,  // TODO [Doubt] Maybe we don't even need this
+    SSLRequest = 1,
+    SSLAccepted = 2,  // TODO [Doubt] Maybe we don't even need this
     SimpleAuthentication = 3,
     GssEncryptionRequest = 4,
     AuthenticationGssApi = 5,
@@ -94,9 +94,9 @@ impl Drop for PgsqlTransaction {
 #[derive(Debug, PartialEq)]
 pub enum PgsqlStateProgress {
     IdleState = 0,
-    SslRequestReceived,
-    SslAcceptedReceived,
-    SslRejectedReceived,
+    SSLRequestReceived,
+    SSLAcceptedReceived,
+    SSLRejectedReceived,
     StartupMessageReceived,
     SASLAuthenticationReceived,
     SASLInitialResponseReceived,
@@ -184,7 +184,7 @@ impl PgsqlState {
             self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
             self.state_progress == PgsqlStateProgress::ConnectionCompleted ||
             self.state_progress == PgsqlStateProgress::ReadyForQueryReceived ||
-            self.state_progress == PgsqlStateProgress::SslRejectedReceived {
+            self.state_progress == PgsqlStateProgress::SSLRejectedReceived {
                 let tx = self.new_tx();
                 self.transactions.push(tx);
             }
@@ -196,9 +196,9 @@ impl PgsqlState {
 
     fn request_next_state(tx: &mut PgsqlTransaction, request: PgsqlFEMessage) -> Option<PgsqlStateProgress> {
         match request {
-            PgsqlFEMessage::SslRequest(_) => {
+            PgsqlFEMessage::SSLRequest(_) => {
                 tx.requests.push(request);
-                Some(PgsqlStateProgress::SslRequestReceived)
+                Some(PgsqlStateProgress::SSLRequestReceived)
             },
             PgsqlFEMessage::StartupMessage(_) => {
                 tx.requests.push(request);
@@ -256,8 +256,8 @@ impl PgsqlState {
             match self.state_progress {
                 PgsqlStateProgress::IdleState |
                 PgsqlStateProgress::ConnectionCompleted |
-                PgsqlStateProgress::SslRejectedReceived |
-                PgsqlStateProgress::SslAcceptedReceived |
+                PgsqlStateProgress::SSLRejectedReceived |
+                PgsqlStateProgress::SSLAcceptedReceived |
                 PgsqlStateProgress::ReadyForQueryReceived |
                 PgsqlStateProgress::CommandCompletedReceived => {
                     match parser::parse_request(start) {
@@ -355,14 +355,14 @@ impl PgsqlState {
     /// When the state changes based on a specific response, there are other actions we may need to perform
     fn response_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
         match response {
-            PgsqlBEMessage::SslResponse(parser::SslResponseMessage::SslAccepted) => {
+            PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 // TODO upgrade to TSL here?
                 SCLogDebug!("SSL Request accepted");
-                Some(PgsqlStateProgress::SslAcceptedReceived)
+                Some(PgsqlStateProgress::SSLAcceptedReceived)
             },
-            PgsqlBEMessage::SslResponse(parser::SslResponseMessage::SslRejected) => {
+            PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
                 SCLogDebug!("SSL Request rejected");
-                Some(PgsqlStateProgress::SslRejectedReceived)
+                Some(PgsqlStateProgress::SSLRejectedReceived)
             },
             PgsqlBEMessage::BackendKeyData(_) => {
                 let backend_info = response.get_backendkey_info();
@@ -419,7 +419,7 @@ impl PgsqlState {
 
         let mut start = input;
         while start.len() > 0 {
-            if self.state_progress == PgsqlStateProgress::SslRequestReceived {
+            if self.state_progress == PgsqlStateProgress::SSLRequestReceived {
                 SCLogDebug!("In 'parse_response'. State Progress is: {:?}", &self.state_progress);
                 match parser::parse_ssl_response(start) {
                     Ok((rem, response)) => {
@@ -971,7 +971,7 @@ mod test {
         // an SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
         state.parse_request(buf);
-        let ok_state = PgsqlStateProgress::SslRequestReceived;
+        let ok_state = PgsqlStateProgress::SSLRequestReceived;
 
         assert_eq!(state.state_progress, ok_state);
 
