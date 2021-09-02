@@ -17,12 +17,11 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-extern crate nom;
-
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::sip::parser::*;
+use nom7::Err;
 use std;
 use std::ffi::CString;
 
@@ -98,7 +97,7 @@ impl SIPState {
                 self.transactions.push(tx);
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
                 return false;
             }
@@ -120,7 +119,7 @@ impl SIPState {
                 self.transactions.push(tx);
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
                 return false;
             }
@@ -135,7 +134,7 @@ impl SIPState {
 impl SIPTransaction {
     pub fn new(id: u64) -> SIPTransaction {
         SIPTransaction {
-            id: id,
+            id,
             de_state: None,
             request: None,
             response: None,
