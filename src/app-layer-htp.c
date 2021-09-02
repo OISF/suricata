@@ -1905,6 +1905,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
+    TimeGet(&tx_ud->response_end_timestamp);
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
     }
@@ -2047,6 +2048,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
+    TimeGet(&tx_ud->request_start_timestamp);
     SCReturnInt(HTP_OK);
 }
 
@@ -2073,6 +2075,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
+    TimeGet(&tx_ud->response_end_timestamp);
     SCReturnInt(HTP_OK);
 }
 
@@ -2145,6 +2148,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
             htud->tcflags &= ~HTP_FILENAME_SET;
+            TimeGet(&htud->response_end_timestamp);
         }
     }
 
@@ -2167,6 +2171,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
             AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
+            
         }
     }
 
@@ -2265,6 +2270,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
     memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
            tx_data->data, tx_data->len);
     tx_ud->request_headers_raw_len += tx_data->len;
+
 
     if (tx_data->tx && tx_data->tx->flags) {
         HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
