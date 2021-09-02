@@ -3062,6 +3062,19 @@
                 "named_pipe": {
                     "type": "string"
                 },
+                "rename": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "from": {
+                            "type": "string"
+                        },
+                        "to": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "request_done": {
                     "type": "boolean"
                 },
@@ -3073,6 +3086,19 @@
                 },
                 "session_id": {
                     "type": "integer"
+                },
+                "set_info": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "class": {
+                            "type": "string"
+                        },
+                        "info_level": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "share": {
                     "type": "string"
