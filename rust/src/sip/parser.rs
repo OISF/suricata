@@ -17,10 +17,12 @@
 
 // written by Giuseppe Longo <giuseppe@glono.it>
 
-use nom::*;
-use nom::IResult;
-use nom::character::{is_alphabetic, is_alphanumeric, is_space};
-use nom::character::streaming::crlf;
+use nom7::bytes::streaming::{take, take_while, take_while1};
+use nom7::character::streaming::{char, crlf};
+use nom7::character::{is_alphabetic, is_alphanumeric, is_space};
+use nom7::combinator::map_res;
+use nom7::sequence::delimited;
+use nom7::{Err, IResult, Needed};
 use std;
 use std::collections::HashMap;
 
@@ -84,84 +86,106 @@ fn is_header_value(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
 }
 
-named!(pub sip_parse_request<&[u8], Request>,
-    do_parse!(
-        method: parse_method >> char!(' ') >>
-        path: parse_request_uri >> char!(' ') >>
-        version: parse_version >> crlf >>
-        headers: parse_headers >>
-        crlf >>
-        (Request { method: method.into(), path: path.into(), version: version.into(), headers: headers})
-    )
-);
+pub fn sip_parse_request(i: &[u8]) -> IResult<&[u8], Request> {
+    let (i, method) = parse_method(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, path) = parse_request_uri(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, version) = parse_version(i)?;
+    let (i, _) = crlf(i)?;
+    let (i, headers) = parse_headers(i)?;
+    let (i, _) = crlf(i)?;
+    Ok((
+        i,
+        Request {
+            method: method.into(),
+            path: path.into(),
+            version: version.into(),
+            headers,
+        },
+    ))
+}
 
-named!(pub sip_parse_response<&[u8], Response>,
-    do_parse!(
-        version: parse_version >> char!(' ') >>
-        code: parse_code >> char!(' ') >>
-        reason: parse_reason >> crlf >>
-        (Response { version: version.into(), code: code.into(), reason: reason.into() })
-    )
-);
+pub fn sip_parse_response(i: &[u8]) -> IResult<&[u8], Response> {
+    let (i, version) = parse_version(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, code) = parse_code(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, reason) = parse_reason(i)?;
+    let (i, _) = crlf(i)?;
+    Ok((
+        i,
+        Response {
+            version: version.into(),
+            code: code.into(),
+            reason: reason.into(),
+        },
+    ))
+}
 
-named!(#[inline], parse_method<&[u8], &str>,
-    map_res!(take_while!(is_method_char), std::str::from_utf8)
-);
+#[inline]
+fn parse_method(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while(is_method_char), std::str::from_utf8)(i)
+}
 
-named!(#[inline], parse_request_uri<&[u8], &str>,
-    map_res!(take_while1!(is_request_uri_char), std::str::from_utf8)
-);
+#[inline]
+fn parse_request_uri(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while1(is_request_uri_char), std::str::from_utf8)(i)
+}
 
-named!(#[inline], parse_version<&[u8], &str>,
-    map_res!(take_while1!(is_version_char), std::str::from_utf8)
-);
+#[inline]
+fn parse_version(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while1(is_version_char), std::str::from_utf8)(i)
+}
 
-named!(#[inline], parse_code<&[u8], &str>,
-    map_res!(take!(3), std::str::from_utf8)
-);
+#[inline]
+fn parse_code(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take(3_usize), std::str::from_utf8)(i)
+}
 
-named!(#[inline], parse_reason<&[u8], &str>,
-    map_res!(take_while!(is_reason_phrase), std::str::from_utf8)
-);
+#[inline]
+fn parse_reason(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while(is_reason_phrase), std::str::from_utf8)(i)
+}
 
-named!(#[inline], header_name<&[u8], &str>,
-        map_res!(take_while!(is_header_name), std::str::from_utf8)
-);
+#[inline]
+fn header_name(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while(is_header_name), std::str::from_utf8)(i)
+}
 
-named!(#[inline], header_value<&[u8], &str>,
-    map_res!(parse_header_value, std::str::from_utf8)
-);
+#[inline]
+fn header_value(i: &[u8]) -> IResult<&[u8], &str> {
+    map_res(parse_header_value, std::str::from_utf8)(i)
+}
 
-named!(
-    hcolon<char>,
-    delimited!(take_while!(is_space), char!(':'), take_while!(is_space))
-);
+#[inline]
+fn hcolon(i: &[u8]) -> IResult<&[u8], char> {
+    delimited(take_while(is_space), char(':'), take_while(is_space))(i)
+}
 
-named!(
-    message_header<Header>,
-    do_parse!(
-        n: header_name
-            >> hcolon
-            >> v: header_value
-            >> crlf
-            >> (Header {
-                name: String::from(n),
-                value: String::from(v)
-            })
-    )
-);
+fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
+    let (i, n) = header_name(i)?;
+    let (i, _) = hcolon(i)?;
+    let (i, v) = header_value(i)?;
+    let (i, _) = crlf(i)?;
+    Ok((
+        i,
+        Header {
+            name: String::from(n),
+            value: String::from(v),
+        },
+    ))
+}
 
-named!(pub sip_take_line<&[u8], Option<String> >,
-    do_parse!(
-        line: map_res!(take_while1!(is_reason_phrase), std::str::from_utf8) >>
-        (Some(line.into()))
-    )
-);
+pub fn sip_take_line(i: &[u8]) -> IResult<&[u8], Option<String>> {
+    let (i, line) = map_res(take_while1(is_reason_phrase), std::str::from_utf8)(i)?;
+    Ok((i, Some(line.into())))
+}
 
 pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>> {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     loop {
-        match crlf(input) as IResult<&[u8],_> {
+        match crlf(input) as IResult<&[u8], _> {
             Ok((_, _)) => {
                 break;
             }
@@ -186,7 +210,7 @@ fn parse_header_value(buf: &[u8]) -> IResult<&[u8], &[u8]> {
             b'\n' => {
                 idx += 1;
                 if idx >= buf.len() {
-                    return Err(Err::Incomplete(Needed::Size(1)));
+                    return Err(Err::Incomplete(Needed::new(1)));
                 }
                 match buf[idx] {
                     b' ' | b'\t' => {
@@ -205,7 +229,7 @@ fn parse_header_value(buf: &[u8]) -> IResult<&[u8], &[u8]> {
             b => {
                 trail_spaces = 0;
                 if !is_header_value(b) {
-                    return Err(Err::Incomplete(Needed::Size(1)));
+                    return Err(Err::Incomplete(Needed::new(1)));
                 }
                 end_pos = idx + 1;
             }
@@ -251,17 +275,11 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        match sip_parse_request(buf) {
-            Ok((_, req)) => {
-                assert_eq!(req.method, "REGISTER");
-                assert_eq!(req.path, "sip:sip.cybercity.dk");
-                assert_eq!(req.version, "SIP/2.0");
-                assert_eq!(req.headers["Content-Length"], "0");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let (_, req) = sip_parse_request(buf).expect("parsing failed");
+        assert_eq!(req.method, "REGISTER");
+        assert_eq!(req.path, "sip:sip.cybercity.dk");
+        assert_eq!(req.version, "SIP/2.0");
+        assert_eq!(req.headers["Content-Length"], "0");
     }
 
     #[test]
