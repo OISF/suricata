@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
@@ -18,10 +17,10 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::mqtt::parser::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use nom::number::streaming::*;
-use nom::*;
+use crate::mqtt::parser::*;
+use nom7::number::streaming::*;
+use nom7::IResult;
 
 // TODO: It might be useful to also add detection on property presence and
 // content, e.g. mqtt.property: AUTHENTICATION_METHOD.
