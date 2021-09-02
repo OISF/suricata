@@ -258,8 +258,6 @@ static int HTPParseAndCheckContentRange(
  *
  *  \retval 0 ok
  *  \retval -1 error
- *  \retval -2 error parsing
- *  \retval -3 error negative end in range
  */
 int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filename,
         uint16_t filename_len, const uint8_t *data, uint32_t data_len, uint64_t txid,
@@ -268,13 +266,12 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     SCEnter();
     uint16_t flags;
 
-    if (s == NULL) {
-        SCReturnInt(-1);
-    }
+    DEBUG_VALIDATE_BUG_ON(s == NULL);
 
     // This function is only called STREAM_TOCLIENT from HtpResponseBodyHandle
     HtpContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
+        // range is invalid, fall back to classic open
         return HTPFileOpen(
                 s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
@@ -291,11 +288,13 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     if (files == NULL) {
         s->files_tc = FileContainerAlloc();
         if (s->files_tc == NULL) {
+            // no need to fall back to classic open if we cannot allocate the file container
             SCReturnInt(-1);
         }
         files = s->files_tc;
     }
 
+    // we open a file for this specific range
     if (FileOpenFileWithId(files, &s->cfg->response.sbcfg, s->file_track_id++, filename,
                 filename_len, data, data_len, flags) != 0) {
         SCReturnInt(-1);
@@ -306,6 +305,8 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     if (FileSetRange(files, crparsed.start, crparsed.end) < 0) {
         SCLogDebug("set range failed");
     }
+
+    // Then, we will try to handle reassembly of different ranges of the same file
     htp_tx_t *tx = htp_list_get(s->conn->transactions, txid);
     if (!tx) {
         SCReturnInt(-1);
@@ -323,16 +324,14 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         keyurl[keylen - 1] = 0;
     } else {
         // do not reassemble file without host info
-        return HTPFileOpen(
-                s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        SCReturnInt(0);
     }
     HttpRangeContainerFile *file_range_container =
             HttpRangeContainerUrlGet(keyurl, keylen, &s->f->lastts);
     SCFree(keyurl);
     if (file_range_container == NULL) {
         // probably reached memcap
-        return HTPFileOpen(
-                s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        SCReturnInt(-1);
     }
     DEBUG_VALIDATE_BUG_ON(s->file_range);
     s->file_range = HttpRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
@@ -346,8 +345,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         THashDataUnlock(file_range_container->hdata);
 
         // probably reached memcap
-        return HTPFileOpen(
-                s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        SCReturnInt(-1);
         /* in some cases we don't take a reference, so decr use cnt */
     } else if (s->file_range->container == NULL) {
         THashDecrUsecnt(file_range_container->hdata);
