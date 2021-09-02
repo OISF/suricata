@@ -712,7 +712,9 @@ pub unsafe extern "C" fn rs_http2_tx_set_method(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_set_uri(state: &mut HTTP2State, buffer: *const u8, buffer_len: u32) {
+pub unsafe extern "C" fn rs_http2_tx_set_uri(
+    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
+) {
     let slice = build_slice!(buffer, buffer_len as usize);
     http2_tx_set_header(state, ":path".as_bytes(), slice)
 }

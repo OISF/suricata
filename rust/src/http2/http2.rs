@@ -185,6 +185,12 @@ impl HTTP2Transaction {
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
         let xid: u32 = self.tx_id as u32;
         if dir == STREAM_TOCLIENT {
+            self.ft_tc.tx_id = self.tx_id - 1;
+            if !self.ft_tc.file_open {
+                // we are now sure that new_chunk will open a file
+                // even if it may close it right afterwards
+                self.tx_data.incr_files_opened();
+            }
             self.ft_tc.new_chunk(
                 sfcm,
                 files,
@@ -198,6 +204,10 @@ impl HTTP2Transaction {
                 &xid,
             );
         } else {
+            self.ft_ts.tx_id = self.tx_id - 1;
+            if !self.ft_ts.file_open {
+                self.tx_data.incr_files_opened();
+            }
             self.ft_ts.new_chunk(
                 sfcm,
                 files,
@@ -807,13 +817,6 @@ impl HTTP2State {
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
                                     let mut tx_same = &mut self.transactions[index - 1];
-                                    let is_open = if dir == STREAM_TOCLIENT {
-                                        tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
-                                        tx_same.ft_tc.file_open
-                                    } else {
-                                        tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
-                                        tx_same.ft_ts.file_open
-                                    };
                                     let (files, flags) = self.files.get(dir);
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
@@ -826,17 +829,7 @@ impl HTTP2State {
                                         Err(_e) => {
                                             self.set_event(HTTP2Event::FailedDecompression);
                                         }
-                                        _ => {
-                                            if dir == STREAM_TOCLIENT {
-                                                if !is_open && tx_same.ft_tc.file_open {
-                                                    tx_same.tx_data.incr_files_opened();
-                                                }
-                                            } else {
-                                                if !is_open && tx_same.ft_ts.file_open {
-                                                    tx_same.tx_data.incr_files_opened();
-                                                }
-                                            }
-                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -977,7 +970,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                 return ALPROTO_UNKNOWN;
             }
             Err(_) => {
-                return ALPROTO_FAILED ;
+                return ALPROTO_FAILED;
             }
         }
     }
@@ -1069,7 +1062,9 @@ pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
+pub unsafe extern "C" fn rs_http2_tx_get_state(
+    tx: *mut std::os::raw::c_void,
+) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
