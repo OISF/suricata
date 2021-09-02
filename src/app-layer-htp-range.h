@@ -75,9 +75,6 @@ typedef struct HttpRangeContainerFile {
     struct HTTP_RANGES fragment_tree;
     /** file flags */
     uint16_t flags;
-    /** wether a HttpRangeContainerBlock is currently
-     owning the FileContainer in order to append to the file */
-    bool fileOwned;
     /** error condition for this range. Its up to timeout handling to cleanup */
     bool error;
 } HttpRangeContainerFile;
@@ -94,8 +91,8 @@ typedef struct HttpRangeContainerBlock {
     HttpRangeContainerBuffer *current;
     /** pointer to the main file container, where to directly append data */
     HttpRangeContainerFile *container;
-    /** we own the container's file for now */
-    bool fileOwning;
+    /** file container we are owning for now */
+    FileContainer *files;
 } HttpRangeContainerBlock;
 
 int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);

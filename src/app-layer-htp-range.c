@@ -132,7 +132,7 @@ static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, struct
     // we only timeout if we have no flow referencing us
     if ((uint32_t)ts->tv_sec > cu->expire || cu->error) {
         if (SC_ATOMIC_GET(cu->hdata->use_cnt) == 0) {
-            DEBUG_VALIDATE_BUG_ON(cu->fileOwned);
+            DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
             return true;
         }
     }
@@ -259,10 +259,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
         uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
         uint16_t name_len, uint16_t flags)
 {
-    DEBUG_VALIDATE_BUG_ON(c->files == NULL);
-
-    if (c->files->tail == NULL) {
-        DEBUG_VALIDATE_BUG_ON(c->fileOwned);
+    if (c->files != NULL && c->files->tail == NULL) {
         /* this is the first request, we open a single file in the file container
          * this could be part of ContainerUrlRangeSet if we could have
          * all the arguments there
@@ -277,7 +274,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
         c->error = true;
         return NULL;
     }
-    curf->fileOwning = false;
+    curf->files = NULL;
     if (total > c->totalsize) {
         // we grow to the maximum size indicated by different range requests
         // we could add some warning/app-layer event in this case where
@@ -292,25 +289,25 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
      * - storing out of order data for later use
      * - directly appending to the file if we are at the right offset
      */
-    if (start == c->lastsize && !c->fileOwned) {
+    if (start == c->lastsize && c->files != NULL) {
         // easy case : append to current file
         curf->container = c;
-        curf->fileOwning = true;
         // If we see 2 duplicate range requests with the same range,
-        // the first one takes the ownership with fileOwned
+        // the first one takes the ownership of the files container
         // protected by the lock from caller HTPFileOpenWithRange
-        c->fileOwned = true;
+        curf->files = c->files;
+        c->files = NULL;
         return curf;
     } else if (start < c->lastsize && c->lastsize - start >= buflen) {
         // only overlap
         // redundant to be explicit that this block is independent
         curf->toskip = buflen;
         return curf;
-    } else if (start < c->lastsize && c->lastsize - start < buflen && !c->fileOwned) {
+    } else if (start < c->lastsize && c->lastsize - start < buflen && c->files != NULL) {
         // some overlap, then some data to append to the file
         curf->toskip = c->lastsize - start;
-        curf->fileOwning = true;
-        c->fileOwned = true;
+        curf->files = c->files;
+        c->files = NULL;
         curf->container = c;
         return curf;
     }
@@ -373,23 +370,21 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
     // then if we need to skip only some bytes
     if (c->toskip > 0) {
         int r = 0;
-        if (c->fileOwning) {
-            DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+        if (c->files) {
             if (data == NULL) {
                 // gap overlaping already known data
-                r = FileAppendData(c->container->files, NULL, len - c->toskip);
+                r = FileAppendData(c->files, NULL, len - c->toskip);
             } else {
-                r = FileAppendData(c->container->files, data + c->toskip, len - c->toskip);
+                r = FileAppendData(c->files, data + c->toskip, len - c->toskip);
             }
         }
         c->toskip = 0;
         return r;
     }
     // If we are owning the file to append to it, let's do it
-    if (c->fileOwning) {
-        DEBUG_VALIDATE_BUG_ON(c->container->files == NULL);
+    if (c->files) {
         SCLogDebug("update files (FileAppendData)");
-        return FileAppendData(c->container->files, data, len);
+        return FileAppendData(c->files, data, len);
     }
     // If we are not in the previous cases, only one case remains
     DEBUG_VALIDATE_BUG_ON(c->current == NULL);
@@ -442,8 +437,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     if (c->current) {
         SCLogDebug("processing ooo chunk as c->current is set %p", c->current);
         // some out-or-order range is finished
-        if (c->container->files->tail &&
-                c->container->lastsize >= c->current->start + c->current->offset) {
+        if (c->container->lastsize >= c->current->start + c->current->offset) {
             // if the range has become obsolete because we received the data already
             // we just free it
             (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, c->current->buflen);
@@ -476,8 +470,10 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     }
 
     // we just finished an in-order block
-    DEBUG_VALIDATE_BUG_ON(c->container->fileOwned == false);
-    c->container->fileOwned = false;
+    DEBUG_VALIDATE_BUG_ON(c->files == NULL);
+    // move back the ownership of the file container to HttpRangeContainerFile
+    c->container->files = c->files;
+    c->files = NULL;
     DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
     // we update the file size now that we own it again
     File *f = c->container->files->tail;
@@ -569,6 +565,12 @@ void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
             (void)SC_ATOMIC_SUB(ContainerUrlRangeList.ht->memuse, b->current->buflen);
             SCFree(b->current->buffer);
             SCFree(b->current);
+        }
+        // we did not move ownership of the file container back to HttpRangeContainerFile
+        DEBUG_VALIDATE_BUG_ON(b->files != NULL);
+        if (b->files != NULL) {
+            FileContainerFree(b->files);
+            b->files = NULL;
         }
         SCFree(b);
     }
