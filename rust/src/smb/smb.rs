@@ -690,6 +690,24 @@ impl SMBCommonHdr {
         }
 
     }
+    pub fn from2_notree(r: &Smb2Record, rec_type: u32) -> SMBCommonHdr {
+        // async responses do not have a tree id (even if the request has it)
+        // making thus the match between the two impossible.
+        // Per spec, MessageId should be enough to identifiy a message request and response uniquely
+        // across all messages that are sent on the same SMB2 Protocol transport connection.
+        // cf https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ea4560b7-90da-4803-82b5-344754b92a79
+        let msg_id = match rec_type {
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
+            _ => { r.message_id as u64 },
+        };
+
+        SMBCommonHdr {
+            rec_type : rec_type,
+            ssn_id : r.session_id,
+            tree_id : 0,
+            msg_id : msg_id,
+        }
+    }
     pub fn from1(r: &SmbRecord, rec_type: u32) -> SMBCommonHdr {
         let tree_id = match rec_type {
             SMBHDR_TYPE_TREE => { 0 },

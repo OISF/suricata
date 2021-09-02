@@ -542,7 +542,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
                     SCLogDebug!("create_options {:08x}", cr.create_options);
 
-                    let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
+                    let name_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_FILENAME);
                     state.ssn2vec_map.insert(name_key, cr.data.to_vec());
 
                     let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
@@ -707,7 +707,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Ok((_, cr)) => {
                         SCLogDebug!("SMBv2: Create response => {:?}", cr);
 
-                        let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
+                        let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_FILENAME);
                         if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
                             p.retain(|&i|i != 0x00);
                             state.guid2name_map.insert(cr.guid.to_vec(), p);
