@@ -301,6 +301,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         SCReturnInt(-1);
     }
     FileSetTx(files->tail, txid);
+    txud->tx_data.files_opened++;
 
     if (FileSetRange(files, crparsed.start, crparsed.end) < 0) {
         SCLogDebug("set range failed");
