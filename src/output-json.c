@@ -59,7 +59,6 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
-#include "util-crypt.h"
 #include "util-plugin.h"
 
 #include "flow-var.h"

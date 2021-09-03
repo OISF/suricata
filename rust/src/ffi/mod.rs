@@ -16,3 +16,4 @@
  */
 
 pub mod hashing;
+pub mod base64;
