@@ -43,7 +43,6 @@
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
-#include "util-crypt.h"
 
 #include "output-json.h"
 #include "output-json-stats.h"

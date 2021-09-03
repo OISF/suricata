@@ -150,8 +150,6 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 
 #include "suricata-common.h"
 
-#include "util-crypt.h"
-
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 #include "output-json-dnp3-objects.h"
