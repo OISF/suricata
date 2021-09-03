@@ -234,6 +234,7 @@ noinst_HEADERS = \
 	detect-krb5-msgtype.h \
 	detect-krb5-sname.h \
 	detect-l3proto.h \
+	detect-location.h \
 	detect-lua-extensions.h \
 	detect-lua.h \
 	detect-mark.h \
@@ -810,6 +811,7 @@ libsuricata_c_a_SOURCES = \
 	detect-krb5-msgtype.c \
 	detect-krb5-sname.c \
 	detect-l3proto.c \
+	detect-location.c \
 	detect-lua.c \
 	detect-lua-extensions.c \
 	detect-mark.c \
