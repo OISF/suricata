@@ -107,6 +107,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Indicate that the flow did trigger an expectation creation */
 #define FLOW_HAS_EXPECTATION            BIT_U32(27)
 
+/** All packets in this flow should be passed */
+#define FLOW_ACTION_PASS BIT_U32(28)
+
 /* File flags */
 
 /** no magic on files in this flow */

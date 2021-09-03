@@ -277,10 +277,8 @@ typedef struct PacketAlert_ {
     uint64_t tx_id;
 } PacketAlert;
 
-/** After processing an alert by the thresholding module, if at
- *  last it gets triggered, we might want to stick the drop action to
- *  the flow on IPS mode */
-#define PACKET_ALERT_FLAG_DROP_FLOW     0x01
+/* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW 0x1
 /** alert was generated based on state */
 #define PACKET_ALERT_FLAG_STATE_MATCH   0x02
 /** alert was generated based on stream */

@@ -228,14 +228,47 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
 static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 {
-    if (action & ACTION_DROP)
-        f->flags |= FLOW_ACTION_DROP;
+    if (action & (ACTION_DROP | ACTION_REJECT_ANY | ACTION_PASS)) {
+        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
+            /* drop or pass already set. First to set wins. */
+            SCLogDebug("not setting %s flow already set to %s",
+                    (action & ACTION_PASS) ? "pass" : "drop",
+                    (f->flags & FLOW_ACTION_DROP) ? "drop" : "pass");
+        } else {
+            if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
+                f->flags |= FLOW_ACTION_DROP;
+                SCLogDebug("setting flow action drop");
+            }
+            if (action & ACTION_PASS) {
+                f->flags |= FLOW_ACTION_PASS;
+                SCLogDebug("setting flow action pass");
+                FlowSetNoPacketInspectionFlag(f);
+            }
+        }
+    }
+}
 
-    if (action & ACTION_REJECT_ANY)
-        f->flags |= FLOW_ACTION_DROP;
+/** \brief Apply action(s) and Set 'drop' sig info,
+ *         if applicable */
+static void PacketApplySignatureActions(Packet *p, const Signature *s, const uint8_t alert_flags)
+{
+    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
+            s->action, alert_flags);
+    PACKET_UPDATE_ACTION(p, s->action);
 
-    if (action & ACTION_PASS) {
-        FlowSetNoPacketInspectionFlag(f);
+    if (s->action & ACTION_DROP) {
+        if (p->alerts.drop.action == 0) {
+            p->alerts.drop.num = s->num;
+            p->alerts.drop.action = s->action;
+            p->alerts.drop.s = (Signature *)s;
+        }
+        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(s->action, p->flow);
+        }
+    } else if (s->action & ACTION_PASS) {
+        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+            RuleActionToFlow(s->action, p->flow);
+        }
     }
 }
 
@@ -254,8 +287,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     int i = 0;
 
     while (i < p->alerts.cnt) {
-        SCLogDebug("Sig->num: %"PRIu32, p->alerts.alerts[i].num);
         const Signature *s = de_ctx->sig_array[p->alerts.alerts[i].num];
+        SCLogDebug("Sig->num: %" PRIu32 " SID %u", p->alerts.alerts[i].num, s->id);
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &p->alerts.alerts[i]);
         if (res > 0) {
@@ -275,36 +308,34 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            /* IP-only and PD-only matches should apply to the flow */
-            if (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY)) {
-                if (p->flow != NULL) {
-                    RuleActionToFlow(s->action, p->flow);
+            /* For DROP and PASS sigs we need to apply the action to the flow if
+             * - sig is IP or PD only
+             * - match is in applayer
+             * - match is in stream */
+            if (s->action & (ACTION_DROP | ACTION_PASS)) {
+                if ((p->alerts.alerts[i].flags &
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
+                        (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_PDONLY | SIG_FLAG_APPLAYER))) {
+                    p->alerts.alerts[i].flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+                    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
+                               "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
+                            p->pcap_cnt, s->id, s->action, p->alerts.alerts[i].flags);
                 }
             }
 
             /* set actions on packet */
-            DetectSignatureApplyActions(p, p->alerts.alerts[i].s, p->alerts.alerts[i].flags);
+            PacketApplySignatureActions(p, p->alerts.alerts[i].s, p->alerts.alerts[i].flags);
 
             if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
                 p->alerts.cnt = i;
                 break;
-
-            /* if the signature wants to drop, check if the
-             * PACKET_ALERT_FLAG_DROP_FLOW flag is set. */
-            } else if ((PACKET_TEST_ACTION(p, ACTION_DROP)) &&
-                    ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
-                         (s->flags & SIG_FLAG_APPLAYER))
-                       && p->flow != NULL)
-            {
-                /* This will apply only on IPS mode (check StreamTcpPacket) */
-                p->flow->flags |= FLOW_ACTION_DROP; // XXX API?
             }
         }
 
         /* Thresholding removes this alert */
-        if (res == 0 || res == 2) {
+        if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertRemove(p, i);
 
             if (p->alerts.cnt == 0)

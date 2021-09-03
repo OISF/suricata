@@ -1111,15 +1111,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                             }
                         }
                     }
-                    if (!(s->flags & SIG_FLAG_NOALERT)) {
-                        if (s->action & ACTION_DROP)
-                            PacketAlertAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_DROP_FLOW);
-                        else
-                            PacketAlertAppend(det_ctx, s, p, 0, 0);
-                    } else {
-                        /* apply actions for noalert/rule suppressed as well */
-                        DetectSignatureApplyActions(p, s, 0);
-                    }
+                    PacketAlertAppend(det_ctx, s, p, 0, 0);
                 }
             }
         }

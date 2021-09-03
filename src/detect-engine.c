@@ -1456,11 +1456,6 @@ static int DetectEngineInspectRulePayloadMatches(
             pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, p);
             if (pmatch) {
                 det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
-                /* Tell the engine that this reassembled stream can drop the
-                 * rest of the pkts with no further inspection */
-                if (s->action & ACTION_DROP)
-                    *alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
-
                 *alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
             }
         }
