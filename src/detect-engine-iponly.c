@@ -1115,14 +1115,15 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                             }
                         }
                     }
+
+                    /* IP-only drops should be applied to the flow */
+                    const uint8_t alert_flags =
+                            ((s->action & ACTION_DROP)) ? PACKET_ALERT_FLAG_DROP_FLOW : 0;
                     if (!(s->flags & SIG_FLAG_NOALERT)) {
-                        if (s->action & ACTION_DROP)
-                            PacketAlertAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_DROP_FLOW);
-                        else
-                            PacketAlertAppend(det_ctx, s, p, 0, 0);
+                        PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
                     } else {
                         /* apply actions for noalert/rule suppressed as well */
-                        DetectSignatureApplyActions(p, s, 0);
+                        DetectSignatureApplyActions(p, s, alert_flags);
                     }
                 }
             }

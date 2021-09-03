@@ -1547,6 +1547,9 @@ void DetectSignatureApplyActions(Packet *p,
             p->alerts.drop.action = s->action;
             p->alerts.drop.s = (Signature *)s;
         }
+        if ((p->flow != NULL) && (alert_flags & PACKET_ALERT_FLAG_DROP_FLOW)) {
+            p->flow->flags |= FLOW_ACTION_DROP;
+        }
     } else if (s->action & ACTION_PASS) {
         /* if an stream/app-layer match we enforce the pass for the flow */
         if ((p->flow != NULL) &&
