@@ -55,7 +55,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
-#include "util-crypt.h"
 #include "util-validate.h"
 
 #define MODULE_NAME "JsonAnomalyLog"

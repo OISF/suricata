@@ -61,7 +61,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
-#include "util-crypt.h"
 
 #define MODULE_NAME "JsonMetadataLog"
 
