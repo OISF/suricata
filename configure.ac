@@ -1945,6 +1945,19 @@
         LIBS="$TMPLIBS"
     fi
 
+    # IPFire Location (libloc)
+    AC_ARG_ENABLE(libloc,
+        AS_HELP_STRING([--enable-libloc],[Build in support for IPFire Location]),
+        [enable_libloc="$enableval"],
+        [enable_libloc="no"])
+    if test "$enable_libloc" = "xyes"; then
+        PKG_CHECK_MODULES([LIBLOC], [libloc >= 0.9.9],
+            [enable_libloc="yes"; AC_DEFINE([HAVE_LIBLOC], [1], [Use libloc])],
+            [test "x$enable_libloc" = "xyes" && AC_MSG_ERROR([*** libloc could not be found])]])
+        CFLAGS="${CFLAGS} ${LIBLOC_CFLAGS}"
+        LIBS="${LIBS} ${LIBLOC_LIBS}"
+    fi
+
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
@@ -2532,6 +2545,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   PCRE jit:                                ${pcre2_jit_available}
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
+  IPFire Location support:                 ${enable_libloc}
   GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}
