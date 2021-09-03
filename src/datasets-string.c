@@ -27,8 +27,8 @@
 #include "datasets-string.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
+#include "rust.h"
 
 #if 0
 static int StringAsAscii(const void *s, char *out, size_t out_size)
@@ -47,7 +47,7 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
 {
     const StringType *str = s;
 
-    unsigned long len = BASE64_BUFFER_SIZE(str->len);
+    unsigned long len = Base64EncodeBufferSize(str->len);
     uint8_t encoded_data[len];
     if (Base64Encode((unsigned char *)str->ptr, str->len,
         encoded_data, &len) != SC_BASE64_OK)

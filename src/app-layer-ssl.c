@@ -42,7 +42,6 @@
 #include "decode-events.h"
 #include "conf.h"
 
-#include "util-crypt.h"
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"

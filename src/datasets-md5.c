@@ -27,7 +27,6 @@
 #include "datasets-md5.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
 
 int Md5StrSet(void *dst, void *src)
