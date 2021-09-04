@@ -416,8 +416,8 @@ end:
     SCReturnInt(retval);
 }
 
-static void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags,
-        HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
+void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags, HttpRangeContainerBlock *c,
+        const uint8_t *data, uint32_t data_len)
 {
     if (HttpRangeAppendData(c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");

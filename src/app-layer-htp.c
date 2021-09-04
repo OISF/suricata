@@ -374,7 +374,10 @@ void HTPStateFree(void *state)
         htp_connp_destroy_all(s->connp);
     }
 
-    HttpRangeFreeBlock(s->file_range);
+    if (s->file_range) {
+        HTPFileCloseHandleRange(s->files_tc, 0, s->file_range, NULL, 0);
+        HttpRangeFreeBlock(s->file_range);
+    }
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
