@@ -29,6 +29,7 @@
 #ifdef HAVE_LIBLOC
 
 #include <libloc/libloc.h>
+#include <libloc/database.h>
 
 enum location_flags {
     LOCATION_FLAG_SRC     = (1 << 0),
@@ -39,6 +40,7 @@ enum location_flags {
 
 struct DetectLocationData {
     struct loc_ctx* ctx;
+    struct loc_database* db;
     char** countries;
     int flags;
 };

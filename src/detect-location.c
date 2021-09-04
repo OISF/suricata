@@ -31,8 +31,12 @@
 
 #ifdef HAVE_LIBLOC
 
+#include <arpa/inet.h>
+
 #include <libloc/libloc.h>
 #include <libloc/country.h>
+#include <libloc/database.h>
+#include <libloc/network.h>
 
 /**
  * \brief This function will free all resources used by the location module
@@ -54,10 +58,52 @@ static void DetectLocationFree(DetectEngineCtx* ctx, void* ptr) {
     }
 
     // Free database
+    if (data->db)
+        loc_database_unref(data->db);
+
+    // Free libloc context
     if (data->ctx)
         loc_unref(data->ctx);
 
     SCFree(data);
+}
+
+static int DetectLocationOpenDatabase(struct DetectLocationData* data) {
+    const char* filename = NULL;
+    int r = 0;
+
+    // Fetch location database path from configuration file
+    ConfGet("location-database", &filename);
+
+    // Use the default database path if nothing was set
+    if (!filename)
+        filename = "/var/lib/location/database.db";
+
+    // Open database file
+    FILE* f = fopen(filename, "r");
+    if (!f) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+            "Could not open location database at %s: %m", filename);
+        return 1;
+    }
+
+    // Create libloc context
+    r = loc_new(&data->ctx);
+    if (r)
+        return r;
+
+	// Open database
+    r = loc_database_new(data->ctx, &data->db, f);
+    fclose(f);
+
+    if (r)
+        return r;
+
+    SCLogDebug("Opened location database from %s", filename);
+    SCLogDebug("  Vendor  : %s", loc_database_get_vendor(data->db));
+    SCLogDebug("  License : %s", loc_database_get_license(data->db));
+
+    return r;
 }
 
 static const struct keyword {
@@ -66,7 +112,7 @@ static const struct keyword {
 } keywords[] = {
     { "src,",  LOCATION_FLAG_SRC, },
     { "dst,",  LOCATION_FLAG_DST, },
-    { "both,", LOCATION_FLAG_BOTH, },
+    { "both,", LOCATION_FLAG_BOTH|LOCATION_FLAG_SRC|LOCATION_FLAG_DST, },
     { "any,",  LOCATION_FLAG_SRC|LOCATION_FLAG_DST, },
     { NULL, 0 },
 };
@@ -174,6 +220,11 @@ static struct DetectLocationData* DetectLocationParse(DetectEngineCtx* ctx,
     for (char** country = data->countries; *country; country++)
         SCLogDebug("  Country Code: %s", *country);
 
+    // Open location database
+    int r = DetectLocationOpenDatabase(data);
+    if (r)
+        goto ERROR;
+
     return data;
 
 ERROR:
@@ -226,6 +277,44 @@ ERROR:
     return -1;
 }
 
+static int DetectLocationMatchCountryCode(const struct DetectLocationData* data, const char* cc) {
+    int found = 0;
+
+    if (data->countries) {
+        for (char** country = data->countries; *country; country++) {
+            if (strcmp(*country, cc) == 0) {
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    if (data->flags & LOCATION_FLAG_NEGATED)
+        return !found;
+
+    return found;
+}
+
+static int DetectLocationMatchAddress(const struct DetectLocationData* data, const struct in6_addr* address) {
+    struct loc_network* network = NULL;
+
+    int r = loc_database_lookup(data->db, address, &network);
+    if (r)
+        return -1;
+
+    // If we found a network, let's check whether the country matches
+    if (network) {
+        const char* country = loc_network_get_country_code(network);
+
+        if (DetectLocationMatchCountryCode(data, country))
+            r = 1;
+
+        loc_network_unref(network);
+    }
+
+    return r;
+}
+
 /**
  * \internal
  * \brief This function determines the location of the sender/recipient IP address
@@ -241,7 +330,87 @@ static int DetectLocationMatch(DetectEngineThreadCtx* ctx, Packet* packet,
         const Signature* signature, const SigMatchCtx* ptr) {
     struct DetectLocationData* data = (struct DetectLocationData*)ptr;
 
-    return 1;
+    struct in6_addr src_addr;
+    struct in6_addr dst_addr;
+
+    // Skip any pseudo packets
+    if (PKT_IS_PSEUDOPKT(packet)) {
+        return 0;
+
+    // Handle IPv6
+    } else if (PKT_IS_IPV6(packet)) {
+        if (data->flags & LOCATION_FLAG_SRC)
+            src_addr = GET_IPV6_SRC_IN6ADDR(packet);
+
+        if (data->flags & LOCATION_FLAG_DST)
+            dst_addr = GET_IPV6_DST_IN6ADDR(packet);
+
+    // Handle IPv4
+    } else if (PKT_IS_IPV4(packet)) {
+        // Convert to IPv6-mapped address
+        if (data->flags & LOCATION_FLAG_SRC) {
+            src_addr.s6_addr32[0] = htonl(0x0000);
+            src_addr.s6_addr32[1] = htonl(0x0000);
+            src_addr.s6_addr32[2] = htonl(0xffff);
+            src_addr.s6_addr32[3] = GET_IPV4_SRC_ADDR_U32(packet);
+        }
+
+        if (data->flags & LOCATION_FLAG_DST) {
+            dst_addr.s6_addr32[0] = htonl(0x0000);
+            dst_addr.s6_addr32[1] = htonl(0x0000);
+            dst_addr.s6_addr32[2] = htonl(0xffff);
+            dst_addr.s6_addr32[3] = GET_IPV4_DST_ADDR_U32(packet);
+        }
+    }
+
+    int matches = 0;
+    int r;
+
+    // Check source address
+    if (data->flags & LOCATION_FLAG_SRC) {
+        r = DetectLocationMatchAddress(data, &src_addr);
+        switch (r) {
+            // No match
+            case 0:
+                break;
+
+            // Match
+            case 1:
+                matches++;
+                break;
+
+            // Error
+            default:
+                return r;
+        }
+    }
+
+    // Check destination address
+    if (data->flags & LOCATION_FLAG_DST) {
+        r = DetectLocationMatchAddress(data, &dst_addr);
+        switch (r) {
+            // No match
+            case 0:
+                break;
+
+            // Match
+            case 1:
+                matches++;
+                break;
+
+            // Error
+            default:
+                return r;
+        }
+    }
+
+    // If BOTH is set, matches must at least be two
+    if (data->flags & LOCATION_FLAG_BOTH) {
+        if (matches < 2)
+            matches = 0;
+    }
+
+    return (matches > 0);
 }
 
 #else /* HAVE_LIBLOC */
