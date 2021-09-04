@@ -30,8 +30,17 @@
 
 #include <libloc/libloc.h>
 
+enum location_flags {
+    LOCATION_FLAG_SRC     = (1 << 0),
+    LOCATION_FLAG_DST     = (1 << 1),
+    LOCATION_FLAG_BOTH    = (1 << 2),
+    LOCATION_FLAG_NEGATED = (1 << 3),
+};
+
 struct DetectLocationData {
     struct loc_ctx* ctx;
+    char** countries;
+    int flags;
 };
 
 #endif /* HAVE_LIBLOC */

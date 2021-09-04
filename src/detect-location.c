@@ -25,12 +25,162 @@
 
 #include "suricata-common.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
 
 #include "detect-location.h"
 
 #ifdef HAVE_LIBLOC
 
 #include <libloc/libloc.h>
+#include <libloc/country.h>
+
+/**
+ * \brief This function will free all resources used by the location module
+ *
+ * \param Pointer to DetectLocationData
+ */
+static void DetectLocationFree(DetectEngineCtx* ctx, void* ptr) {
+    if (!ptr)
+        return;
+
+    // Cast to DetectLocationData
+    struct DetectLocationData* data = (struct DetectLocationData*)ptr;
+
+    // Free countries
+    if (data->countries) {
+        for (char** country = data->countries; *country; country++)
+            SCFree(*country);
+        SCFree(data->countries);
+    }
+
+    // Free database
+    if (data->ctx)
+        loc_unref(data->ctx);
+
+    SCFree(data);
+}
+
+static const struct keyword {
+    const char* keyword;
+    int flags;
+} keywords[] = {
+    { "src,",  LOCATION_FLAG_SRC, },
+    { "dst,",  LOCATION_FLAG_DST, },
+    { "both,", LOCATION_FLAG_BOTH, },
+    { "any,",  LOCATION_FLAG_SRC|LOCATION_FLAG_DST, },
+    { NULL, 0 },
+};
+
+static size_t count_commas(const char* s) {
+    size_t commas = 0;
+
+    for (; *s; s++)
+        if (*s == ',')
+            commas++;
+
+    return commas;
+}
+
+static struct DetectLocationData* DetectLocationParse(DetectEngineCtx* ctx,
+        const char* string) {
+    // Check for valid input
+    if (!string || !*string)
+        return NULL;
+
+    // Allocate DetectLocationData
+    struct DetectLocationData* data = SCCalloc(1, sizeof(*data));
+    if (!data)
+        return NULL;
+
+    const char* p = string;
+
+    // Find any keywords
+    for (const struct keyword* keyword = keywords; keyword->keyword; keyword++) {
+        size_t length = strlen(keyword->keyword);
+
+        if (strncmp(p, keyword->keyword, length) == 0) {
+            data->flags |= keyword->flags;
+            p += length;
+            break;
+        }
+    }
+
+    // Default to "any" if nothing was set
+    if (!data->flags)
+        data->flags |= LOCATION_FLAG_SRC|LOCATION_FLAG_DST;
+
+    // Is the list negated?
+    if (*p == '!') {
+        data->flags |= LOCATION_FLAG_NEGATED;
+        p++;
+    }
+
+    // If the string ends here, we have some invalid input
+    if (!*p) {
+         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid argument for geoip keyword");
+         goto ERROR;
+    }
+
+    // Parse countries
+    const size_t num_countries = count_commas(p) + 1;
+
+    // Allocate space for the list of country codes
+    data->countries = SCCalloc(num_countries + 1, sizeof(*data->countries));
+    if (!data->countries)
+        goto ERROR;
+
+    for (unsigned int i = 0; i < num_countries; i++) {
+        const size_t length = strlen(p);
+
+        // Country codes must at least be 
+        if (length < 2) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid country code for geoip keyword");
+            goto ERROR;
+        }
+
+        // Copy country code to heap
+        char* country_code = SCStrndup(p, 2);
+        if (!country_code)
+            goto ERROR;
+
+        // Append country code to array
+        data->countries[i] = country_code;
+
+        // Check if the country code is valid
+        if (!loc_country_code_is_valid(country_code)) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid country code for geoip keyword: %s",
+                country_code);
+            goto ERROR;
+        }
+
+        // Advance p
+        p += 2;
+
+        // End loop if we have read the entire string
+        if (!*p)
+            break;
+
+        // Otherwise the country code must be followed by a comma
+        if (*p != ',') {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid country code for geoip keyword");
+            goto ERROR;
+        }
+
+        // Skip the comma
+        p++;
+    }
+
+    SCLogDebug("Location rule parsed (flags = %02x)", data->flags);
+    for (char** country = data->countries; *country; country++)
+        SCLogDebug("  Country Code: %s", *country);
+
+    return data;
+
+ERROR:
+    DetectLocationFree(ctx, data);
+
+    return NULL;
+}
 
 /**
  * \internal
@@ -45,27 +195,35 @@
  */
 static int DetectLocationSetup(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
     struct DetectLocationData* data = NULL;
+    SigMatch* match = NULL;
 
-	return -1;
-}
+    // Parse the option string
+    data = DetectLocationParse(ctx, optstring);
+    if (!data)
+        goto ERROR;
 
-/**
- * \brief This function will free all resources used by the location module
- *
- * \param Pointer to DetectLocationData
- */
-static void DetectLocationFree(DetectEngineCtx* ctx, void* ptr) {
-	if (!ptr)
-		return;
+    // Allocate a new SigMatch structure
+    match = SigMatchAlloc();
+    if (!match)
+        goto ERROR;
 
-	// Cast to DetectLocationData
-	struct DetectLocationData* data = (struct DetectLocationData*)ptr;
+    match->type = DETECT_GEOIP;
+    match->ctx = (SigMatchCtx*)data;
 
-	// Free database
-	if (data->ctx)
-		loc_unref(data->ctx);
+    SigMatchAppendSMToList(signature, match, DETECT_SM_LIST_MATCH);
 
-	SCFree(data);
+    // We require the packet in order to perform any checks
+    signature->flags |= SIG_FLAG_REQUIRE_PACKET;
+
+    return 0;
+
+ERROR:
+    if (data)
+        DetectLocationFree(ctx, data);
+    if (match)
+        SCFree(match);
+
+    return -1;
 }
 
 /**
@@ -81,7 +239,7 @@ static void DetectLocationFree(DetectEngineCtx* ctx, void* ptr) {
  */
 static int DetectLocationMatch(DetectEngineThreadCtx* ctx, Packet* packet,
         const Signature* signature, const SigMatchCtx* ptr) {
-	struct DetectLocationData* data = (struct DetectLocationData*)ptr;
+    struct DetectLocationData* data = (struct DetectLocationData*)ptr;
 
     return 1;
 }
