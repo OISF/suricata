@@ -418,6 +418,6 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
 pub extern "C" fn rs_pgsql_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx_safe: &mut PgsqlTransaction;
     unsafe { tx_safe = cast_pointer!(tx, PgsqlTransaction); }
-    SCLogDebug!("----------- PGSQL rs_pgsql_logger_log call.");
+    SCLogNotice!("----------- PGSQL rs_pgsql_logger_log call. Tx id is {:?}", tx_safe.tx_id);
     log_pgsql(tx_safe, js).is_ok()
 }
