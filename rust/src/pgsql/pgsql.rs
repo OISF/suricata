@@ -194,7 +194,13 @@ impl PgsqlState {
             return self.transactions.last_mut().unwrap();
     }
 
-    fn request_next_state(tx: &mut PgsqlTransaction, request: PgsqlFEMessage) -> Option<PgsqlStateProgress> {
+    /// Define PgsqlState progression, based on the request received
+    ///
+    /// As PostgreSQL transactions can have multiple messages, State progression
+    /// is what helps us keep track of the PgsqlTransactions - when one finished
+    /// when the other starts.
+    /// State isn't directly updated to avoid reference borrowing conflicts.
+    fn request_get_next_state(tx: &mut PgsqlTransaction, request: PgsqlFEMessage) -> Option<PgsqlStateProgress> {
         match request {
             PgsqlFEMessage::SSLRequest(_) => {
                 tx.requests.push(request);
@@ -208,7 +214,7 @@ impl PgsqlState {
                 SCLogDebug!("Match: SimpleQuery");
                 tx.requests.push(request);
                 Some(PgsqlStateProgress::SimpleQueryReceived)
-                // TODO here we may want to save the command that was received, to compare that later on when we receive command completed
+                // TODO here we may want to save the command that was received, to compare that later on when we receive command completed?
             },
             PgsqlFEMessage::Terminate(_) => {
                 SCLogDebug!("Match: Terminate message");
@@ -216,7 +222,7 @@ impl PgsqlState {
                 Some(PgsqlStateProgress::ConnectionTerminated)
             },
             _ => {
-                // TODO when things don't go well, what will I do?
+                // TODO Question when things don't go well, what should we do return? AppLayerResult::error()?
                 SCLogDebug!("Request didn't match anything.");
                 None
             },
@@ -265,7 +271,7 @@ impl PgsqlState {
                             start = rem;
                             SCLogDebug!(" *********** Request is: {:?}", &request);
                             let tx = self.find_or_create_tx();
-                            if let Some(state) = PgsqlState::request_next_state(tx, request) {
+                            if let Some(state) = PgsqlState::request_get_next_state(tx, request) {
                                 self.state_progress = state;
                             };
                         },
