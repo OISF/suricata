@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -319,7 +319,7 @@ static int SCRConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+static int SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint8_t i = 1;
@@ -328,7 +328,10 @@ static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         if (SCRConfIsLineBlankOrComment(line))
             continue;
 
-        SCRConfAddReference(de_ctx, line);
+        if (SCRConfAddReference(de_ctx, line) != 0)
+            if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
+                return -1;
+            }
         i++;
     }
 
@@ -336,7 +339,7 @@ static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
     SCLogInfo("Added \"%d\" reference types from the reference.config file",
               de_ctx->reference_conf_ht->count);
 #endif /* UNITTESTS */
-    return;
+    return 0;
 }
 
 /**
@@ -501,10 +504,10 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
         return -1;
     }
 
-    SCRConfParseFile(de_ctx, fd);
+    int rc = SCRConfParseFile(de_ctx, fd);
     SCRConfDeInitLocalResources(de_ctx, fd);
 
-    return 0;
+    return rc;
 }
 
 /**
