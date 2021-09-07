@@ -445,6 +445,7 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
             SCFree(c->current);
             c->current = NULL;
             SCLogDebug("c->current was obsolete");
+            return NULL;
         } else {
             /* otherwise insert in red and black tree. If res != NULL, the insert
                failed because its a dup. */
@@ -458,24 +459,27 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
             }
             SCLogDebug("inserted range fragment");
             c->current = NULL;
+            if (c->container->files == NULL) {
+                // we have to wait for the flow owning the file
+                return NULL;
+            }
+            // keep on going, maybe this out of order chunk
+            // became the missing part between open and close
         }
         SCLogDebug("c->current was set, file incomplete so return NULL");
-        return NULL;
-    }
-
-    if (c->toskip > 0) {
+    } else if (c->toskip > 0) {
         // was only an overlapping range, truncated before new bytes
         SCLogDebug("c->toskip %" PRIu64, c->toskip);
         return NULL;
+    } else {
+        // we just finished an in-order block
+        DEBUG_VALIDATE_BUG_ON(c->files == NULL);
+        // move back the ownership of the file container to HttpRangeContainerFile
+        c->container->files = c->files;
+        c->files = NULL;
+        DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
     }
 
-    // we just finished an in-order block
-    DEBUG_VALIDATE_BUG_ON(c->files == NULL);
-    // move back the ownership of the file container to HttpRangeContainerFile
-    c->container->files = c->files;
-    c->files = NULL;
-    DEBUG_VALIDATE_BUG_ON(c->container->files->tail == NULL);
-    // we update the file size now that we own it again
     File *f = c->container->files->tail;
 
     /* See if we can use our stored fragments to (partly) reconstruct the file */
