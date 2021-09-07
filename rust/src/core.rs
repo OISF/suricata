@@ -94,11 +94,11 @@ pub type AppLayerDecoderEventsSetEventRawFunc =
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
-pub enum SuricataStreamingBufferConfig {}
+pub enum StreamingBufferConfig {}
 
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
-        sbcfg: &SuricataStreamingBufferConfig,
+        sbcfg: &StreamingBufferConfig,
         track_id: u32,
         name: *const u8, name_len: u16,
         data: *const u8, data_len: u32,
@@ -153,7 +153,7 @@ pub struct SuricataContext {
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataFileContext {
-    pub files_sbcfg: &'static SuricataStreamingBufferConfig,
+    pub files_sbcfg: &'static StreamingBufferConfig,
 }
 
 extern {
