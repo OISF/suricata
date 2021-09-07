@@ -55,6 +55,7 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
     AppLayerProtoDetectRegisterProtocol(alproto, p->name);
 
     if (p->ProbeTS == NULL && p->ProbeTC == NULL) {
+        BUG_ON(p->default_port != NULL);
         return alproto;
     }
 
