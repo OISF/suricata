@@ -494,9 +494,9 @@ static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
 static int LuaCallbackStatsPushToStackFromFlow(lua_State *luastate, const Flow *f)
 {
     lua_pushinteger(luastate, f->todstpktcnt);
-    lua_pushnumber(luastate, f->todstbytecnt);
+    lua_pushinteger(luastate, f->todstbytecnt);
     lua_pushinteger(luastate, f->tosrcpktcnt);
-    lua_pushnumber(luastate, f->tosrcbytecnt);
+    lua_pushinteger(luastate, f->tosrcbytecnt);
     return 4;
 }
 
