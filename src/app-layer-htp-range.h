@@ -18,13 +18,15 @@
 #ifndef __APP_LAYER_HTP_RANGE_H__
 #define __APP_LAYER_HTP_RANGE_H__
 
+#include "suricata-common.h"
+#include "app-layer-parser.h"
+
 #include "util-thash.h"
+#include "rust-bindings.h"
 
 void HttpRangeContainersInit(void);
 void HttpRangeContainersDestroy(void);
 uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts);
-
-void *HttpRangeContainerUrlGet(const uint8_t *key, size_t keylen, struct timeval *ts);
 
 // linked list of ranges : buffer with offset
 typedef struct HttpRangeContainerBuffer {
@@ -98,9 +100,11 @@ typedef struct HttpRangeContainerBlock {
 int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_t len);
 File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags);
 
-HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start, uint64_t end,
-        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
-        uint16_t flags, const uint8_t *data, uint32_t len);
+// HttpRangeContainerBlock but trouble with headers inclusion order
+HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
+        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
+        uint32_t data_len);
 
 void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
 

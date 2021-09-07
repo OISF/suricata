@@ -161,60 +161,10 @@ end:
  *
  * @return HTP_OK on success, HTP_ERROR on failure.
  */
-int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
+int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
 {
-    unsigned char *data = bstr_ptr(rawvalue);
-    size_t len = bstr_len(rawvalue);
-    size_t pos = 0;
-    size_t last_pos;
-
-    // skip spaces and units
-    while (pos < len && data[pos] == ' ')
-        pos++;
-    while (pos < len && data[pos] != ' ')
-        pos++;
-    while (pos < len && data[pos] == ' ')
-        pos++;
-
-    // initialize to unseen
-    range->start = -1;
-    range->end = -1;
-    range->size = -1;
-
-    if (pos == len) {
-        // missing data
-        return -1;
-    }
-
-    if (data[pos] == '*') {
-        // case with size only
-        if (len <= pos + 1 || data[pos+1] != '/') {
-            range->size = -1;
-            return -1;
-        }
-        pos += 2;
-        range->size = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
-    } else {
-        // case with start and end
-        range->start = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
-        pos += last_pos;
-        if (len <= pos + 1 || data[pos] != '-') {
-            return -1;
-        }
-        pos++;
-        range->end = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
-        pos += last_pos;
-        if (len <= pos + 1 || data[pos] != '/') {
-            return -1;
-        }
-        pos++;
-        if (data[pos] != '*') {
-            // case with size
-            range->size = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
-        }
-    }
-
-    return 0;
+    uint32_t len = bstr_len(rawvalue);
+    return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
 }
 
 /**
@@ -226,7 +176,7 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
  * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
  */
 static int HTPParseAndCheckContentRange(
-        bstr *rawvalue, HtpContentRange *range, HtpState *s, HtpTxUserData *htud)
+        bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
@@ -269,7 +219,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     DEBUG_VALIDATE_BUG_ON(s == NULL);
 
     // This function is only called STREAM_TOCLIENT from HtpResponseBodyHandle
-    HtpContentRange crparsed;
+    HTTPContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
         return HTPFileOpen(
@@ -325,38 +275,13 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         // do not reassemble file without host info
         SCReturnInt(0);
     }
-    HttpRangeContainerFile *file_range_container =
-            HttpRangeContainerUrlGet(keyurl, keylen, &s->f->lastts);
-    SCFree(keyurl);
-    if (file_range_container == NULL) {
-        // probably reached memcap
-        SCReturnInt(-1);
-    }
     DEBUG_VALIDATE_BUG_ON(s->file_range);
-    s->file_range = HttpRangeOpenFile(file_range_container, crparsed.start, crparsed.end,
-            crparsed.size, &s->cfg->response.sbcfg, filename, filename_len, flags, data, data_len);
-    SCLogDebug("s->file_range == %p", s->file_range);
+    s->file_range = HttpRangeContainerOpenFile(keyurl, keylen, s->f, &crparsed,
+            &s->cfg->response.sbcfg, filename, filename_len, flags, data, data_len);
+    SCFree(keyurl);
     if (s->file_range == NULL) {
-        SCLogDebug("s->file_range == NULL");
-        THashDecrUsecnt(file_range_container->hdata);
-        DEBUG_VALIDATE_BUG_ON(
-                SC_ATOMIC_GET(file_range_container->hdata->use_cnt) > (uint32_t)INT_MAX);
-        THashDataUnlock(file_range_container->hdata);
-
-        // probably reached memcap
         SCReturnInt(-1);
-        /* in some cases we don't take a reference, so decr use cnt */
-    } else if (s->file_range->container == NULL) {
-        THashDecrUsecnt(file_range_container->hdata);
-    } else {
-        SCLogDebug("container %p use_cnt %u", s->file_range,
-                SC_ATOMIC_GET(s->file_range->container->hdata->use_cnt));
-        DEBUG_VALIDATE_BUG_ON(
-                SC_ATOMIC_GET(s->file_range->container->hdata->use_cnt) > (uint32_t)INT_MAX);
     }
-
-    /* we're done, so unlock. But since we have a reference in s->file_range keep use_cnt. */
-    THashDataUnlock(file_range_container->hdata);
     SCReturnInt(0);
 }
 
@@ -415,7 +340,7 @@ end:
     SCReturnInt(retval);
 }
 
-void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags, HttpRangeContainerBlock *c,
+void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t data_len)
 {
     if (HttpRangeAppendData(c, data, data_len) < 0) {
@@ -429,7 +354,7 @@ void HTPFileCloseHandleRange(FileContainer *files, const uint8_t flags, HttpRang
             SCLogDebug("range in ERROR state");
         }
         File *ranged = HttpRangeClose(c, flags);
-        if (ranged) {
+        if (ranged && files) {
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
         }

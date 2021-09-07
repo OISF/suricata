@@ -498,6 +498,44 @@ fn http2_frames_get_header_firstvalue<'a>(
     return Err(());
 }
 
+// same as http2_frames_get_header_value but returns a new Vec
+// instead of using the transation to store the result slice
+pub fn http2_frames_get_header_value_vec(
+    tx: &HTTP2Transaction, direction: u8, name: &str,
+) -> Result<Vec<u8>, ()> {
+    let mut found = 0;
+    let mut vec = Vec::new();
+    let frames = if direction == STREAM_TOSERVER {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for i in 0..frames.len() {
+        if let Some(blocks) = http2_header_blocks(&frames[i]) {
+            for block in blocks.iter() {
+                if block.name == name.as_bytes().to_vec() {
+                    if found == 0 {
+                        vec.extend_from_slice(&block.value);
+                        found = 1;
+                    } else if found == 1 {
+                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(&block.value);
+                        found = 2;
+                    } else {
+                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(&block.value);
+                    }
+                }
+            }
+        }
+    }
+    if found == 0 {
+        return Err(());
+    } else {
+        return Ok(vec);
+    }
+}
+
 fn http2_frames_get_header_value<'a>(
     tx: &'a mut HTTP2Transaction, direction: u8, name: &str,
 ) -> Result<&'a [u8], ()> {
