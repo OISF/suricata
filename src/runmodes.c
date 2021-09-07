@@ -43,7 +43,6 @@
 #include "output.h"
 
 #include "alert-fastlog.h"
-#include "alert-prelude.h"
 #include "alert-debuglog.h"
 
 #include "log-httplog.h"
@@ -784,14 +783,6 @@ void RunModeInitializeOutputs(void)
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
                     "Unified2 is no longer supported.");
             continue;
-        } else if (strcmp(output->val, "alert-prelude") == 0) {
-#ifndef PRELUDE
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "Prelude support not compiled in. Reconfigure/"
-                    "recompile with --enable-prelude to add Prelude "
-                    "support.");
-            continue;
-#endif
         } else if (strcmp(output->val, "lua") == 0) {
 #ifndef HAVE_LUA
             SCLogWarning(SC_ERR_NOT_SUPPORTED,

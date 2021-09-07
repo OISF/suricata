@@ -36,7 +36,6 @@
 #include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"
-#include "alert-prelude.h"
 #include "alert-debuglog.h"
 
 #include "util-debug.h"

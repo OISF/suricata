@@ -1184,30 +1184,6 @@
     fi
   # /WinDivert
 
-  # prelude
-    AC_ARG_ENABLE(prelude,
-            AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),[enable_prelude=$enableval],[enable_prelude=no])
-    # Prelude doesn't work with -Werror
-    STORECFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} -Wno-error=unused-result"
-
-    AS_IF([test "x$enable_prelude" = "xyes"], [
-        AM_PATH_LIBPRELUDE(0.9.9, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
-        if test "x${LIBPRELUDE_CFLAGS}" != "x"; then
-            CPPFLAGS="${CPPFLAGS} ${LIBPRELUDE_CFLAGS}"
-        fi
-
-        if test "x${LIBPRELUDE_LDFLAGS}" != "x"; then
-            LDFLAGS="${LDFLAGS} ${LIBPRELUDE_LDFLAGS}"
-        fi
-
-        if test "x${LIBPRELUDE_LIBS}" != "x"; then
-            LDFLAGS="${LDFLAGS} ${LIBPRELUDE_LIBS}"
-        fi
-        AC_DEFINE([PRELUDE], [1], [Libprelude support enabled])
-    ])
-    CFLAGS="${STORECFLAGS}"
-
 
   # libnet
     AC_ARG_WITH(libnet_includes,
@@ -2724,7 +2700,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
-  Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
