@@ -2282,11 +2282,9 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         SCLogDebug!("Rust SMB parser registered.");
         let retval = conf_get("app-layer.protocols.smb.stream-depth");
         if let Some(val) = retval {
-            let val = val.parse::<i32>().unwrap();
-            if val < 0 {
-                SCLogError!("invalid value for stream-depth");
-            } else {
-                stream_depth = val as u32;
+            match get_memval(val) {
+                Ok(retval) => { stream_depth = retval as u32; }
+                Err(_) => { SCLogError!("Invalid depth value"); }
            }
             AppLayerParserSetStreamDepth(IPPROTO_TCP as u8, ALPROTO_SMB, stream_depth);
         }
