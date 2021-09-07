@@ -403,14 +403,6 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # alert output to prelude (https://www.prelude-siem.org/) only
-  # available if Suricata has been compiled with --enable-prelude
-  - alert-prelude:
-      enabled: no
-      profile: suricata
-      log-packet-content: no
-      log-packet-header: yes
-
   # Stats.log contains data from various counters of the Suricata engine.
   - stats:
       enabled: yes

@@ -13,7 +13,6 @@ noinst_HEADERS = \
 	action-globals.h \
 	alert-debuglog.h \
 	alert-fastlog.h \
-	alert-prelude.h \
 	alert-syslog.h \
 	app-layer-dcerpc-common.h \
 	app-layer-detect-proto.h \
@@ -595,7 +594,6 @@ noinst_HEADERS = \
 libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
 	alert-fastlog.c \
-	alert-prelude.c \
 	alert-syslog.c \
 	app-layer.c \
 	app-layer-detect-proto.c \

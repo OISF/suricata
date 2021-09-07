@@ -42,7 +42,6 @@
 
 #include "alert-fastlog.h"
 #include "alert-debuglog.h"
-#include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "output-json.h"
 #include "output-json-alert.h"
@@ -1046,8 +1045,6 @@ void OutputRegisterLoggers(void)
     AlertFastLogRegister();
     /* debug log */
     AlertDebugLogRegister();
-    /* prelue log */
-    AlertPreludeRegister();
     /* syslog log */
     AlertSyslogRegister();
     JsonDropLogRegister();
