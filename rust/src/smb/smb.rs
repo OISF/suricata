@@ -2219,7 +2219,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
     let mut stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: IPPROTO_TCP,
         probe_ts: None,
         probe_tc: None,
@@ -2268,7 +2268,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                     MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
 
         if have_cfg == 0 {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8, parser.default_port, ALPROTO_SMB,
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP as u8, default_port.as_ptr(), ALPROTO_SMB,
                                           0, MIN_REC_SIZE, STREAM_TOSERVER, rs_smb_probe_tcp, rs_smb_probe_tcp);
         }
 
