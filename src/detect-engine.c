@@ -2472,7 +2472,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
     if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {
         SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
-                "forr detect.grouping.udp-whitelist", ports);
+                "for detect.grouping.udp-whitelist", ports);
     }
     for (x = de_ctx->udp_whitelist; x != NULL;  x = x->next) {
         if (x->port != x->port2) {
