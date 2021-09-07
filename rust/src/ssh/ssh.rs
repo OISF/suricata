@@ -466,10 +466,9 @@ const PARSER_NAME: &'static [u8] = b"ssh\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_register_parser() {
-    let default_port = CString::new("[22]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: IPPROTO_TCP,
         //simple patterns, no probing
         probe_ts: None,
