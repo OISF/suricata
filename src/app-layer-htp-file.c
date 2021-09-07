@@ -312,16 +312,15 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         SCReturnInt(-1);
     }
     uint8_t *keyurl;
-    size_t keylen;
+    uint32_t keylen;
     if (tx->request_hostname != NULL) {
-        keylen = bstr_len(tx->request_hostname) + filename_len + 1;
+        keylen = bstr_len(tx->request_hostname) + filename_len;
         keyurl = SCMalloc(keylen);
         if (keyurl == NULL) {
             SCReturnInt(-1);
         }
         memcpy(keyurl, bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
         memcpy(keyurl + bstr_len(tx->request_hostname), filename, filename_len);
-        keyurl[keylen - 1] = 0;
     } else {
         // do not reassemble file without host info
         SCReturnInt(0);
