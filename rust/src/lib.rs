@@ -98,6 +98,8 @@ pub mod core;
 pub mod common;
 pub mod conf;
 pub mod jsonbuilder;
+pub mod memcap;
+
 #[macro_use]
 pub mod applayer;
 pub mod filecontainer;
