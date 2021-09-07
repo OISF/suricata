@@ -19,6 +19,8 @@ use super::decompression;
 use super::detect;
 use super::parser;
 use super::range;
+use super::range::{HTPFileCloseHandleRange, HttpRangeFreeBlock};
+
 use crate::applayer::{self, *};
 use crate::core::{
     self, AppProto, Flow, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
