@@ -21,3 +21,4 @@ pub mod http2;
 mod huffman;
 pub mod logger;
 mod parser;
+mod range;

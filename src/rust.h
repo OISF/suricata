@@ -19,6 +19,8 @@
 #define __RUST_H__
 
 #include "rust-context.h"
+// hack for include orders cf SCSha256
+typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 #include "rust-bindings.h"
 
 /* Some manual exports from Rust as we are not yet exporting constants with
