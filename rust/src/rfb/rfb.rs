@@ -645,10 +645,9 @@ export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_register_parser() {
-    let default_port = CString::new("[5900]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: IPPROTO_TCP,
         probe_ts: None,
         probe_tc: None,
