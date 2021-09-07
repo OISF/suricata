@@ -38,6 +38,7 @@ Major changes
 
 Removals
 ~~~~~~~~
+- The libprelude output plugin has been removed.
 
 Logging changes
 ~~~~~~~~~~~~~~~
