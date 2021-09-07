@@ -25,6 +25,9 @@
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
 
+// hack for include orders cf SCSha256
+typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
+
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
             const char *, const SCError, const char *message);
@@ -33,6 +36,10 @@ typedef struct SuricataContext_ {
             uint8_t);
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
     void (*AppLayerParserTriggerRawStreamReassembly)(Flow *, int direction);
+
+    void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
+    void (*HTPFileCloseHandleRange)(
+            FileContainer *, const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
 
     int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
