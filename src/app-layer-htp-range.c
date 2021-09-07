@@ -236,8 +236,9 @@ uint32_t HttpRangeContainersTimeoutHash(struct timeval *ts)
 /**
  * \returns locked data
  */
-void *HttpRangeContainerUrlGet(const uint8_t *key, size_t keylen, struct timeval *ts)
+static void *HttpRangeContainerUrlGet(const uint8_t *key, uint32_t keylen, const Flow *f)
 {
+    const struct timeval *ts = &f->lastts;
     HttpRangeContainerFile lookup;
     memset(&lookup, 0, sizeof(lookup));
     // cast so as not to have const in the structure
@@ -345,15 +346,49 @@ static HttpRangeContainerBlock *HttpRangeOpenFileAux(HttpRangeContainerFile *c, 
     return curf;
 }
 
-HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start, uint64_t end,
-        uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name, uint16_t name_len,
-        uint16_t flags, const uint8_t *data, uint32_t len)
+static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uint64_t start,
+        uint64_t end, uint64_t total, const StreamingBufferConfig *sbcfg, const uint8_t *name,
+        uint16_t name_len, uint16_t flags, const uint8_t *data, uint32_t len)
 {
     HttpRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
     if (HttpRangeAppendData(r, data, len) < 0) {
         SCLogDebug("Failed to append data while openeing");
     }
+    return r;
+}
+
+HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+        const Flow *f, const HTTPContentRange *crparsed, const StreamingBufferConfig *sbcfg,
+        const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
+        uint32_t data_len)
+{
+    HttpRangeContainerFile *file_range_container = HttpRangeContainerUrlGet(key, keylen, f);
+    if (file_range_container == NULL) {
+        // probably reached memcap
+        return NULL;
+    }
+    HttpRangeContainerBlock *r = HttpRangeOpenFile(file_range_container, crparsed->start,
+            crparsed->end, crparsed->size, sbcfg, name, name_len, flags, data, data_len);
+    SCLogDebug("s->file_range == %p", r);
+    if (r == NULL) {
+        THashDecrUsecnt(file_range_container->hdata);
+        DEBUG_VALIDATE_BUG_ON(
+                SC_ATOMIC_GET(file_range_container->hdata->use_cnt) > (uint32_t)INT_MAX);
+        THashDataUnlock(file_range_container->hdata);
+
+        // probably reached memcap
+        return NULL;
+        /* in some cases we don't take a reference, so decr use cnt */
+    } else if (r->container == NULL) {
+        THashDecrUsecnt(file_range_container->hdata);
+    } else {
+        SCLogDebug("container %p use_cnt %u", r, SC_ATOMIC_GET(r->container->hdata->use_cnt));
+        DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(r->container->hdata->use_cnt) > (uint32_t)INT_MAX);
+    }
+
+    /* we're done, so unlock. But since we have a reference in s->file_range keep use_cnt. */
+    THashDataUnlock(file_range_container->hdata);
     return r;
 }
 

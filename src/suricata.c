@@ -123,6 +123,7 @@
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-smb.h"
+#include "app-layer-htp-file.h"
 
 #include "output-filestore.h"
 
@@ -2665,6 +2666,9 @@ int InitGlobal(void) {
     suricata_context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
     suricata_context.AppLayerParserTriggerRawStreamReassembly =
             AppLayerParserTriggerRawStreamReassembly;
+
+    suricata_context.HttpRangeFreeBlock = HttpRangeFreeBlock;
+    suricata_context.HTPFileCloseHandleRange = HTPFileCloseHandleRange;
 
     suricata_context.FileOpenFileWithId = FileOpenFileWithId;
     suricata_context.FileCloseFileById = FileCloseFileById;
