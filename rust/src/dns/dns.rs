@@ -115,6 +115,36 @@ pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
 static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
+/// Trait for objects to implement methods that calculate the size of that object.
+pub trait SizeOf {
+    /// Returns the sizeof the object itself, plus the inner data.
+    fn sizeof(&self) -> usize {
+        std::mem::size_of_val(self) + self.sizeof_inner()
+    }
+
+    /// Just return the size of data that can be variable such as vectors. If a struct
+    /// has no dynamically allocated fields this default implementation will do.
+    fn sizeof_inner(&self) -> usize {
+        0
+    }
+}
+
+/// SizeOf implementation for Options whre the value implements SizeOf.
+impl<T> SizeOf for Option<T> where T: SizeOf {
+    fn sizeof_inner(&self) -> usize {
+        self.as_ref().map_or(0, SizeOf::sizeof_inner)
+    }
+}
+
+/// SizeOf implementation for vectors where the values implement SizeOf.
+impl<T> SizeOf for Vec<T> where T: SizeOf {
+    fn sizeof_inner(&self) -> usize {
+        // When calculating the size of a vector we take the full size of each
+        // element. Not just the inner.
+        self.iter().map(SizeOf::sizeof).sum()
+    }
+}
+
 #[derive(Debug, PartialEq, AppLayerEvent)]
 pub enum DNSEvent {
     MalformedData,
@@ -141,6 +171,12 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
+impl SizeOf for DNSQueryEntry {
+    fn sizeof_inner(&self) -> usize {
+        self.name.len()
+    }
+}
+
 #[derive(Debug,PartialEq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
@@ -159,6 +195,12 @@ pub struct DNSRDataSOA {
     pub minimum: u32,
 }
 
+impl SizeOf for DNSRDataSOA {
+    fn sizeof_inner(&self) -> usize {
+        self.mname.len() + self.rname.len()
+    }
+}
+
 #[derive(Debug,PartialEq)]
 pub struct DNSRDataSSHFP {
     /// Algorithm number
@@ -167,6 +209,12 @@ pub struct DNSRDataSSHFP {
     pub fp_type: u8,
     /// Fingerprint
     pub fingerprint: Vec<u8>,
+}
+
+impl SizeOf for DNSRDataSSHFP {
+    fn sizeof_inner(&self) -> usize {
+        self.fingerprint.len()
+    }
 }
 
 #[derive(Debug,PartialEq)]
@@ -179,6 +227,12 @@ pub struct DNSRDataSRV {
     pub port: u16,
     /// Target
     pub target: Vec<u8>,
+}
+
+impl SizeOf for DNSRDataSRV {
+    fn sizeof_inner(&self) -> usize {
+        self.target.len()
+    }
 }
 
 /// Represents RData of various formats
@@ -203,6 +257,21 @@ pub enum DNSRData {
     Unknown(Vec<u8>),
 }
 
+impl SizeOf for DNSRData {
+    fn sizeof_inner(&self) -> usize {
+        match self {
+            Self::A(v) => v.len(),
+            Self::AAAA(v) => v.len(),
+            Self::SOA(v) => v.sizeof_inner(),
+            Self::Unknown(v) => v.len(),
+            _ => {
+                // TODO: Cover the rest of the variants.
+                0
+            }
+        }
+    }
+}
+
 #[derive(Debug,PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
@@ -212,10 +281,22 @@ pub struct DNSAnswerEntry {
     pub data: DNSRData,
 }
 
+impl SizeOf for DNSAnswerEntry {
+    fn sizeof_inner(&self) -> usize {
+        self.name.len() + self.data.sizeof_inner()
+    }
+}
+
 #[derive(Debug)]
 pub struct DNSRequest {
     pub header: DNSHeader,
     pub queries: Vec<DNSQueryEntry>,
+}
+
+impl SizeOf for DNSRequest {
+    fn sizeof_inner(&self) -> usize {
+        self.queries.sizeof_inner()
+    }
 }
 
 #[derive(Debug)]
@@ -226,6 +307,12 @@ pub struct DNSResponse {
     pub authorities: Vec<DNSAnswerEntry>,
 }
 
+impl SizeOf for DNSResponse {
+    fn sizeof_inner(&self) -> usize {
+        self.queries.sizeof_inner() + self.answers.sizeof_inner() + self.authorities.sizeof_inner()
+    }
+}
+
 #[derive(Debug)]
 pub struct DNSTransaction {
     pub id: u64,
@@ -234,6 +321,12 @@ pub struct DNSTransaction {
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
+}
+
+impl SizeOf for DNSTransaction {
+    fn sizeof_inner(&self) -> usize {
+        self.request.sizeof_inner() + self.response.sizeof_inner()
+    }
 }
 
 impl DNSTransaction {
