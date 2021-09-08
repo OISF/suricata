@@ -566,7 +566,7 @@ fn http2_frames_get_header_value<'a>(
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];
-        return Ok(&value);
+        return Ok(value);
     }
 }
 
@@ -884,7 +884,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             for i in 0..tx.frames_ts.len() {
                 if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
                     if nb < pos + blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&blocks, nb - pos);
+                        let ehdr = http2_escape_header(blocks, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];
@@ -901,7 +901,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             for i in 0..tx.frames_tc.len() {
                 if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
                     if nb < pos + blocks.len() as u32 {
-                        let ehdr = http2_escape_header(&blocks, nb - pos);
+                        let ehdr = http2_escape_header(blocks, nb - pos);
                         tx.escaped.push(ehdr);
                         let idx = tx.escaped.len() - 1;
                         let value = &tx.escaped[idx];
