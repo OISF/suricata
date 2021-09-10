@@ -358,7 +358,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   fedora-32-no-jansson:
     name: Fedora 32 (no jansson)
@@ -490,7 +490,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   ubuntu-20-04:
     name: Ubuntu 20.04 (no nss, no nspr)
@@ -551,7 +551,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   ubuntu-20-04-ndebug:
     name: Ubuntu 20.04 (-DNDEBUG)
@@ -614,7 +614,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   ubuntu-18-04-debug-validation:
     name: Ubuntu 18.04 (Debug Validation)
@@ -683,7 +683,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   ubuntu-18-04:
     name: Ubuntu 18.04 (Cocci)
@@ -757,7 +757,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
   # build above.
@@ -892,7 +892,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   debian-9:
     name: Debian 9
@@ -956,7 +956,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
 
   macos-latest:
     name: MacOS Latest
@@ -1006,4 +1006,4 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py --quiet
