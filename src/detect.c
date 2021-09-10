@@ -744,7 +744,6 @@ static inline void DetectRulePacketRules(
     while (match_cnt--) {
         RULE_PROFILING_START(p);
         uint8_t alert_flags = 0;
-        bool state_alert = false;
 #ifdef PROFILING
         bool smatch = false; /* signature match */
 #endif
@@ -806,9 +805,7 @@ static inline void DetectRulePacketRules(
         DetectRunPostMatch(tv, det_ctx, p, s);
 
         if (!(sflags & SIG_FLAG_NOALERT)) {
-            /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
-            if (!state_alert)
-                PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
+            PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
         } else {
             /* apply actions even if not alerting */
             DetectSignatureApplyActions(p, s, alert_flags);
