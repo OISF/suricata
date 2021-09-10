@@ -103,15 +103,16 @@ pub enum PgsqlStateProgress {
     // SSPIAuthenticationReceived, // TODO implement
     SimpleAuthenticationReceived,
     PasswordMessageReceived,
-    ConnectionCompleted,
+    AuthenticationOkReceived,
+    ParameterSetup,
     ReadyForQueryReceived,
     SimpleQueryReceived,
     RowDescriptionReceived,
     DataRowReceived,
     CommandCompletedReceived,
-    ErrorMessageReceived,
+    ErrorMessageReceived, // TODO do we really need this one?
     ConnectionTerminated,
-    UnknownState,
+    UnknownState, // TODO do we really need this one?
     Finished,
 }
 
@@ -175,23 +176,25 @@ impl PgsqlState {
 
     /// Find or create a new transaction
     ///
-    /// If a new transaction is created, push that into state.transactions
+    /// If a new transaction is created, push that into state.transactions before returning &mut to last tx
     // The moment when this is called will may impact the logic of transaction tracking (e.g. when a tx is considered completed)
     // TODO A future, improved version may be based on current message type and dir, too
     fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
         // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
+        // TODO make this prettier and easier to read
         if  self.state_progress == PgsqlStateProgress::IdleState ||
             self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
-            self.state_progress == PgsqlStateProgress::ConnectionCompleted ||
-            self.state_progress == PgsqlStateProgress::ReadyForQueryReceived ||
-            self.state_progress == PgsqlStateProgress::SSLRejectedReceived {
+            self.state_progress == PgsqlStateProgress::PasswordMessageReceived ||
+            self.state_progress == PgsqlStateProgress::SimpleQueryReceived ||
+            self.state_progress == PgsqlStateProgress::SSLRequestReceived ||
+            self.state_progress == PgsqlStateProgress::ConnectionTerminated {
                 let tx = self.new_tx();
                 self.transactions.push(tx);
             }
             // If we don't need a new transaction, just return the current one
-            // TODO understand and investigate: can this panic?
-            // should I return a Result here, or would this further complicate things?
+            SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
             return self.transactions.last_mut().unwrap();
+            // TODO This may panic, find best way to prevent that. I'm thinking of using if let, and if it's none, creating a new tx...
     }
 
     /// Define PgsqlState progression, based on the request received
@@ -200,25 +203,24 @@ impl PgsqlState {
     /// is what helps us keep track of the PgsqlTransactions - when one finished
     /// when the other starts.
     /// State isn't directly updated to avoid reference borrowing conflicts.
-    fn request_get_next_state(tx: &mut PgsqlTransaction, request: PgsqlFEMessage) -> Option<PgsqlStateProgress> {
+    fn request_get_next_state(request: &PgsqlFEMessage) -> Option<PgsqlStateProgress> {
         match request {
             PgsqlFEMessage::SSLRequest(_) => {
-                tx.requests.push(request);
                 Some(PgsqlStateProgress::SSLRequestReceived)
             },
             PgsqlFEMessage::StartupMessage(_) => {
-                tx.requests.push(request);
                 Some(PgsqlStateProgress::StartupMessageReceived)
+            },
+            PgsqlFEMessage::PasswordMessage(_) => {
+                Some(PgsqlStateProgress::PasswordMessageReceived)
             },
             PgsqlFEMessage::SimpleQuery(_) => {
                 SCLogDebug!("Match: SimpleQuery");
-                tx.requests.push(request);
                 Some(PgsqlStateProgress::SimpleQueryReceived)
                 // TODO here we may want to save the command that was received, to compare that later on when we receive command completed?
             },
             PgsqlFEMessage::Terminate(_) => {
                 SCLogDebug!("Match: Terminate message");
-                tx.requests.push(request);
                 Some(PgsqlStateProgress::ConnectionTerminated)
             },
             _ => {
@@ -230,10 +232,8 @@ impl PgsqlState {
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
-        SCLogNotice!("in parse_request");
         // We're not interested in empty requests.
         if input.len() == 0 {
-            SCLogNotice!("Input is empty");
             return AppLayerResult::ok();
         }
 
@@ -243,7 +243,7 @@ impl PgsqlState {
             if !probe_ts(input) {
                 // The parser now needs to decide what to do as we are not in sync.
                 // For now, we'll just try again next time.
-                SCLogNotice!("Suricata interprets there's a gap in the request");
+                SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
 
@@ -261,19 +261,22 @@ impl PgsqlState {
             SCLogDebug!("In 'parse_request' State Progress is: {:?}", &self.state_progress);
             match self.state_progress {
                 PgsqlStateProgress::IdleState |
-                PgsqlStateProgress::ConnectionCompleted |
+                PgsqlStateProgress::AuthenticationOkReceived |
                 PgsqlStateProgress::SSLRejectedReceived |
                 PgsqlStateProgress::SSLAcceptedReceived |
                 PgsqlStateProgress::ReadyForQueryReceived |
+                // PgsqlStateProgress::SimpleQueryReceived | // TODO Question does this one make sense here? I think I should track states related to responses, only, when parsing requests...
                 PgsqlStateProgress::CommandCompletedReceived => {
                     match parser::parse_request(start) {
                         Ok((rem, request)) => {
                             start = rem;
                             SCLogDebug!(" *********** Request is: {:?}", &request);
-                            let tx = self.find_or_create_tx();
-                            if let Some(state) = PgsqlState::request_get_next_state(tx, request) {
+                            if let Some(state) = PgsqlState::request_get_next_state(&request) {
                                 self.state_progress = state;
                             };
+                            // TODO Question not sure if this shouldn't go into the above if... Are there situations where we will have a new request but the state won't change? would that even make sense?
+                            let tx = self.find_or_create_tx();
+                            tx.requests.push(request);
                         },
                         Err(nom::Err::Incomplete(_needed)) => {
                             let consumed = input.len() - start.len();
@@ -330,9 +333,9 @@ impl PgsqlState {
                         Ok((rem, request)) => {
                             start = rem;
                             SCLogDebug!("Request : {:?}", request);
+                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
                             let tx = self.find_or_create_tx();
                             tx.requests.push(request);
-                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
                         },
                         Err(nom::Err::Incomplete(_needed)) => {
                             let consumed = input.len() - start.len() + 1;
@@ -359,6 +362,7 @@ impl PgsqlState {
     }
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
+    // TODO find a more appropriate name
     fn response_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
@@ -370,6 +374,12 @@ impl PgsqlState {
                 SCLogDebug!("SSL Request rejected");
                 Some(PgsqlStateProgress::SSLRejectedReceived)
             },
+            PgsqlBEMessage::AuthenticationOk(_) => {
+                Some(PgsqlStateProgress::AuthenticationOkReceived)
+            },
+            PgsqlBEMessage::ParameterStatus(_) => {
+                Some(PgsqlStateProgress::ParameterSetup)
+            },
             PgsqlBEMessage::BackendKeyData(_) => {
                 let backend_info = response.get_backendkey_info();
                 self.backend_pid = backend_info.0;
@@ -377,44 +387,41 @@ impl PgsqlState {
                 None
             },
             PgsqlBEMessage::ReadyForQuery(_) => {
-                SCLogDebug!("Received 'ReadyForQuery' message, state: {:?}", &self.state_progress);
                 Some(PgsqlStateProgress::ReadyForQueryReceived)
             },
             // TODO Question: find out if we should store any of the Parameter Statuses in PgsqlState
             PgsqlBEMessage::AuthenticationMD5Password(_) |
             PgsqlBEMessage::AuthenticationCleartextPassword(_) => {
-                SCLogDebug!("Message type is {}", response.message_type_to_str());
                 Some(PgsqlStateProgress::SimpleAuthenticationReceived)
             },
             PgsqlBEMessage::RowDescription(_) => {
-                SCLogDebug!("State is {:?}", &self.state_progress);
                 Some(PgsqlStateProgress::DataRowReceived)
             },
             PgsqlBEMessage::CommandComplete(_) => {
                 // TODO here, we may want to compare the command that was stored when query was sent with what we received here
-                SCLogDebug!("State is {:?}", &self.state_progress);
                 Some(PgsqlStateProgress::CommandCompletedReceived)
             },
+            PgsqlBEMessage::ErrorResponse(_) => {
+                Some(PgsqlStateProgress::ErrorMessageReceived)
+            },
             _ => {
-                // TODO handle unexpected situations here
-                SCLogNotice!("In response_next_state. Response is {}", response.message_type_to_str());
+                // TODO handle unexpected situations here?
+                // We don't always have to change current state when we see a response...
                 None
             }
         }
     }
 
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
-        SCLogNotice!("***** in parse_response *******");
         // We're not interested in empty responses.
         if input.len() == 0 {
-            SCLogNotice!("Input is empty");
             return AppLayerResult::ok();
         }
 
         if self.response_gap {
             if !probe_tc(input) {
                 // Out of sync, we'll just try again next time.
-                SCLogNotice!("Suricata interprets there's a gap in the response");
+                SCLogDebug!("Suricata interprets there's a gap in the response");
                 return AppLayerResult::ok();
             }
 
@@ -434,10 +441,7 @@ impl PgsqlState {
                         SCLogDebug!("Response: {:?}", &response);
                         if let Some(state) = self.response_next_state(&response) {
                             self.state_progress = state;
-                        } else {
-                            // TODO what should we do if I get an invalid message here? AppLayerResult error?
-                            return AppLayerResult::err();
-                        }
+                        };
                         let tx = self.find_or_create_tx();
                         tx.responses.push(response);
                         // if message_type == "ssl_accepted" {
@@ -490,7 +494,6 @@ impl PgsqlState {
                     Err(nom::Err::Incomplete(_needed)) => {
                         let consumed = input.len() - start.len();
                         let needed_estimation = start.len() + 1;
-                        SCLogDebug!("Suricata interprets the response as incomplete");
                         SCLogDebug!("Needed: {:?}, consumed: {:?}", _needed, &consumed);
                         SCLogDebug!("Start in incomplete is: {:?}", &start);
                         return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
@@ -761,7 +764,6 @@ pub extern "C" fn rs_pgsql_state_get_event_info(
     _event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     return -1;
-    // TODO change this ?
 }
 
 #[no_mangle]
@@ -770,7 +772,6 @@ pub extern "C" fn rs_pgsql_state_get_event_info_by_id(_event_id: std::os::raw::c
                                                          _event_type: *mut core::AppLayerEventType
 ) -> i8 {
     return -1;
-    // TODO should I change this?
 }
 #[no_mangle]
 pub extern "C" fn rs_pgsql_state_get_tx_iterator(
@@ -798,53 +799,6 @@ pub extern "C" fn rs_pgsql_state_get_tx_iterator(
         }
     }
 }
-
-// TODO understand this function, and if I need it, how can I implement it with what I have
-// /// Get the request buffer for a transaction from C.
-// ///
-// /// No required for parsing, but an example function for retrieving a
-// /// pointer to the request buffer from C for detection.
-// #[no_mangle]
-// pub extern "C" fn rs_pgsql_get_request_buffer(
-//     tx: *mut std::os::raw::c_void,
-//     buf: *mut *const u8,
-//     len: *mut u32,
-// ) -> u8
-// {
-//     let tx = cast_pointer!(tx, PgsqlTransaction);
-//     if let Some(ref request) = tx.request {
-//         if request.len() > 0 {
-//             unsafe {
-//                 *len = request.len() as u32;
-//                 *buf = request.as_ptr();
-//             }
-//             return 1;
-//         }
-//     }
-//     return 0;
-// }
-
-// TODO understand this function, and if I need it, how can I implement it with what I have
-// /// Get the response buffer for a transaction from C.
-// #[no_mangle]
-// pub extern "C" fn rs_pgsql_get_response_buffer(
-//     tx: *mut std::os::raw::c_void,
-//     buf: *mut *const u8,
-//     len: *mut u32,
-// ) -> u8
-// {
-//     let tx = cast_pointer!(tx, PgsqlTransaction);
-//     if let Some(ref response) = tx.response {
-//         if response.len() > 0 {
-//             unsafe {
-//                 *len = response.len() as u32;
-//                 *buf = response.as_ptr();
-//             }
-//             return 1;
-//         }
-//     }
-//     return 0;
-// }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
 
