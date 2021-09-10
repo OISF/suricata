@@ -630,7 +630,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     tracker->timeout.tv_usec = p->ts.tv_usec;
 
     Frag *prev = NULL, *next = NULL;
-    int overlap = 0;
+    bool overlap = false;
     ltrim = 0;
 
     if (!RB_EMPTY(&tracker->fragment_tree)) {
@@ -652,22 +652,22 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             if (prev->skip) {
                 goto next;
             }
+            if (frag_offset < prev->offset + prev->data_len && prev->offset < frag_end) {
+                overlap = true;
+            }
 
             switch (tracker->policy) {
             case DEFRAG_POLICY_BSD:
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
                     }
                     if ((next != NULL) && (frag_end > next->offset)) {
                         next->ltrim = frag_end - next->offset;
-                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
                         prev->skip = 1;
-                        overlap++;
                     }
                     goto insert;
                 }
@@ -683,7 +683,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (prev->offset + prev->ltrim < frag_offset + ltrim &&
                         prev->offset + prev->data_len > frag_offset + ltrim) {
                     ltrim += prev->offset + prev->data_len - frag_offset;
-                    overlap++;
                 }
 
                 /* Check if new fragment overlaps the beginning of
@@ -697,7 +696,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim < prev->offset + prev->ltrim &&
                         frag_end > prev->offset + prev->ltrim) {
                     prev->ltrim += frag_end - (prev->offset + prev->ltrim);
-                    overlap++;
                     goto insert;
                 }
 
@@ -717,7 +715,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 /* If new fragment fits inside a previous fragment, drop it. */
                 if (frag_offset + ltrim >= prev->offset + ltrim &&
                         frag_end <= prev->offset + prev->data_len) {
-                    overlap++;
                     goto done;
                 }
 
@@ -726,7 +723,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim < prev->offset + ltrim &&
                         frag_end > prev->offset + prev->data_len) {
                     prev->skip = 1;
-                    overlap++;
                     goto insert;
                 }
 
@@ -740,7 +736,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim > prev->offset + prev->ltrim &&
                         frag_offset + ltrim < prev->offset + prev->data_len) {
                     ltrim += prev->offset + prev->data_len - frag_offset;
-                    overlap++;
                     goto insert;
                 }
 
@@ -750,7 +745,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim == prev->offset + ltrim &&
                         frag_end > prev->offset + prev->data_len) {
                     ltrim += prev->offset + prev->data_len - frag_offset;
-                    overlap++;
                     goto insert;
                 }
                 break;
@@ -758,12 +752,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
                         prev->skip = 1;
-                        overlap++;
                     }
                     goto insert;
                 }
@@ -771,7 +763,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             case DEFRAG_POLICY_FIRST:
                 if ((frag_offset >= prev->offset) &&
                     (frag_end <= prev->offset + prev->data_len)) {
-                    overlap++;
                     goto done;
                 }
                 if (frag_offset < prev->offset) {
@@ -779,7 +770,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 }
                 if (frag_offset < prev->offset + prev->data_len) {
                     ltrim = prev->offset + prev->data_len - frag_offset;
-                    overlap++;
                     goto insert;
                 }
                 break;
@@ -787,7 +777,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset <= prev->offset) {
                     if (frag_end > prev->offset) {
                         prev->ltrim = frag_end - prev->offset;
-                        overlap++;
                     }
                     goto insert;
                 }
