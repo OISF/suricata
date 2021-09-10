@@ -1645,11 +1645,14 @@ void DisableDetectFlowFileFlags(Flow *f)
 /**
  *  \brief wrapper for old tests
  */
-void SigMatchSignatures(ThreadVars *th_v,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Packet *p)
+void SigMatchSignatures(
+        ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    DetectRun(th_v, de_ctx, det_ctx, p);
+    if (p->flow) {
+        DetectFlow(tv, de_ctx, det_ctx, p);
+    } else {
+        DetectNoFlow(tv, de_ctx, det_ctx, p);
+    }
 }
 #endif
 
