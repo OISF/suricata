@@ -547,12 +547,6 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
             /* save in the flow that we scanned this direction... */
             FlowSetIPOnlyFlag(pflow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
         }
-        /* If we have a drop from IP only module,
-         * we will drop the rest of the flow packets
-         * This will apply only to inline/IPS */
-        if (pflow->flags & FLOW_ACTION_DROP) {
-            PACKET_DROP(p);
-        }
     } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
 
@@ -1562,6 +1556,12 @@ static void DetectFlow(ThreadVars *tv,
         SCLogDebug("p->pcap %"PRIu64": no detection on packet, "
                 "PKT_NOPACKET_INSPECTION is set", p->pcap_cnt);
         return;
+    }
+
+    /* if flow is set to drop, we enforce that here */
+    if (p->flow->flags & FLOW_ACTION_DROP) {
+        PACKET_DROP(p);
+        SCReturn;
     }
 
     /* see if the packet matches one or more of the sigs */
