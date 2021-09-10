@@ -4799,7 +4799,6 @@ end:
  *        as usual (instead of on IPS mode) */
 static int SigTestDropFlow04(void)
 {
-    int result = 0;
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
@@ -4846,127 +4845,56 @@ static int SigTestDropFlow04(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                   "sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 "
+                                      "(msg:\"Test proto match\"; uricontent:\"one\";"
+                                      "sid:1;)");
+    FAIL_IF_NULL(s);
 
     /* the no inspection flag should be set after the first sig gets triggered,
      * so the second packet should not match the next sig (because of no inspection) */
-    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
-                                   "sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any 80 "
+                                      "(msg:\"Test proto match\"; uricontent:\"two\";"
+                                      "sid:2;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
 
-    if (!PacketAlertCheck(p1, 1)) {
-        printf("sig 1 didn't alert on p1, but it should: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p1, 1));
+    FAIL_IF(PacketAlertCheck(p1, 2));
 
-    if (PacketAlertCheck(p1, 2)) {
-        printf("sig 2 alerted on p1, but it should not: ");
-        goto end;
-    }
+    FAIL_IF_NOT(p1->flow->flags & FLOW_ACTION_DROP);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
 
-    if ( !(p1->flow->flags & FLOW_ACTION_DROP)) {
-        printf("sig 1 alerted but flow was not flagged correctly: ");
-        goto end;
-    }
+    FAIL_IF(p2->flags & PKT_NOPACKET_INSPECTION);
 
-    if (!(PACKET_TEST_ACTION(p1, ACTION_DROP))) {
-        printf("A \"drop\" action was set from the flow to the packet "
-               "which is right, but setting the flag shouldn't disable "
-               "inspection on the packet in IDS mode");
-        goto end;
-    }
-
-    /* Second part.. Let's feed with another packet */
-    if (StreamTcpCheckFlowDrops(p2) == 1) {
-        FlowSetNoPacketInspectionFlag(p2->flow);
-        DecodeSetNoPacketInspectionFlag(p2);
-        StreamTcpDisableAppLayer(p2->flow);
-        p2->action |= ACTION_DROP;
-        /* return the segments to the pool */
-        StreamTcpSessionPktFree(p2);
-    }
-
-    if ( (p2->flags & PKT_NOPACKET_INSPECTION)) {
-        printf("The packet was flagged with no-inspection but we are not on IPS mode: ");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, http_buf2, http_buf2_len);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sig 1 alerted, but it should not: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p2, 1));
+    FAIL_IF(PacketAlertCheck(p2, 2));
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
 
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sig 2 didn't alert, but it should, since we are not on IPS mode: ");
-        goto end;
-    }
-
-    if (!(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
-        printf("A \"drop\" action was set from the flow to the packet "
-               "which is right, but setting the flag shouldn't disable "
-               "inspection on the packet in IDS mode");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -4974,7 +4902,7 @@ end:
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
 
-    return result;
+    PASS;
 }
 
 /** \test ICMP packet shouldn't be matching port based sig
