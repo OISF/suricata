@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,25 +62,19 @@ static void DetectHttpHeaderRegisterTests(void);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_TX_STEP      4
 #define BUFFER_SIZE_STEP    1024
-static HttpHeaderThreadDataConfig g_td_config = { BUFFER_TX_STEP, BUFFER_SIZE_STEP };
+static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
-static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-        DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, uint32_t *buffer_len)
+static uint8_t *GetBufferForTX(
+        htp_tx_t *tx, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, uint32_t *buffer_len)
 {
     *buffer_len = 0;
 
     HttpHeaderThreadData *hdr_td = NULL;
-    HttpHeaderBuffer *buf = HttpHeaderGetBufferSpaceForTXID(det_ctx, f, flags,
-            tx_id, g_keyword_thread_id, &hdr_td);
+    HttpHeaderBuffer *buf =
+            HttpHeaderGetBufferSpace(det_ctx, f, flags, g_keyword_thread_id, &hdr_td);
     if (unlikely(buf == NULL)) {
         return NULL;
-    } else if (buf->len > 0) {
-        /* already filled buf, reuse */
-        *buffer_len = buf->len;
-        return buf->buffer;
     }
 
     htp_table_t *headers;
@@ -192,8 +186,7 @@ static int DetectEngineInspectBufferHttpHeader(
         }
 
         uint32_t rawdata_len = 0;
-        uint8_t *rawdata = GetBufferForTX(txv, tx_id, det_ctx,
-                f, flags, &rawdata_len);
+        uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
         if (rawdata_len == 0) {
             SCLogDebug("no data");
             goto end;
@@ -262,8 +255,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t rawdata_len = 0;
-        uint8_t *rawdata = GetBufferForTX(txv, idx, det_ctx,
-                f, flags, &rawdata_len);
+        uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
         if (rawdata_len == 0)
             return;
 
