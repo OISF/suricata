@@ -1005,9 +1005,6 @@ typedef struct DetectEngineThreadCtx_ {
      *        on this being the first member */
     uint32_t tenant_id;
 
-    /** ticker that is incremented once per packet. */
-    uint64_t ticker;
-
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 

@@ -833,7 +833,6 @@ static DetectRunScratchpad DetectRunSetup(
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
 #endif
-    det_ctx->ticker++;
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
