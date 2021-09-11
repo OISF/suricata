@@ -58,8 +58,7 @@
 uint16_t UtilCpuGetNumProcessorsConfigured(void)
 {
 #ifdef SYSCONF_NPROCESSORS_CONF_COMPAT
-	long nprocs = -1;
-    nprocs = sysconf(_SC_NPROCESSORS_CONF);
+    long nprocs = sysconf(_SC_NPROCESSORS_CONF);
     if (nprocs < 1) {
         SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
                    "configured (%s)", strerror(errno));
@@ -75,9 +74,9 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
 
     return (uint16_t)nprocs;
 #elif OS_WIN32
-	long nprocs = -1;
-	const char* envvar = getenv("NUMBER_OF_PROCESSORS");
-	nprocs = (NULL != envvar) ? atoi(envvar) : 0;
+    long nprocs = -1;
+    const char* envvar = getenv("NUMBER_OF_PROCESSORS");
+    nprocs = (NULL != envvar) ? atoi(envvar) : 0;
     if (nprocs < 1) {
         SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
                    "configured from the NUMBER_OF_PROCESSORS environment variable");
@@ -98,28 +97,33 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
  */
 uint16_t UtilCpuGetNumProcessorsOnline(void)
 {
+    long nprocs = 0;
+    const char *envvar = getenv("SC_MAX_CPUS");
+    nprocs = (NULL != envvar) ? atoi(envvar) : 0;
+    if (nprocs > 1) {
+        return (uint16_t)nprocs;
+    }
 #ifdef SYSCONF_NPROCESSORS_ONLN_COMPAT
-    long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_ONLN);
     if (nprocs < 1) {
         SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
-                   "online (%s)", strerror(errno));
+                "online (%s)", strerror(errno));
         return 0;
     }
 
     if (nprocs > UINT16_MAX) {
         SCLogDebug("It seems that there are more than %d CPUs online. "
-                   "You can modify util-cpu.{c,h} to use uint32_t to "
-                   "support it", UINT16_MAX);
+                "You can modify util-cpu.{c,h} to use uint32_t to "
+                "support it", UINT16_MAX);
         return UINT16_MAX;
     }
 
     return nprocs;
 #elif OS_WIN32
-	return UtilCpuGetNumProcessorsConfigured();
+    return UtilCpuGetNumProcessorsConfigured();
 #else
     SCLogError(SC_ERR_SYSCONF, "Couldn't retrieve the number of cpus online, "
-               "synconf macro unavailable");
+            "synconf macro unavailable");
     return 0;
 #endif
 }
