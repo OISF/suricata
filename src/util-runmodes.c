@@ -260,7 +260,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         threads_count = 1;
     } else {
         threads_count = MIN(ModThreadsCount(aconf), thread_max);
-        SCLogInfo("Going to use %" PRId32 " thread(s)", threads_count);
+        SCLogInfo("Going to use %" PRId32 " thread(s) for device %s", threads_count, live_dev);
     }
 
     /* create the threads */
