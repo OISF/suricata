@@ -170,7 +170,7 @@ impl FileTransferTracker {
             SCLogDebug!("is_gap {} size {} ooo? {}", is_gap, gap_size, self.chunk_is_ooo);
         }
 
-        if self.chunk_left + self.fill_bytes as u32 == 0 {
+        if self.chunk_left == 0 && self.fill_bytes == 0 {
             //SCLogDebug!("UPDATE: nothing to do");
             if self.chunk_is_last == true {
                 SCLogDebug!("last empty chunk, closing");
