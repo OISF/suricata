@@ -39,6 +39,10 @@ Major changes
 Removals
 ~~~~~~~~
 
+Other changes
+~~~~~~~~~~~~~
+- NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
+
 Logging changes
 ~~~~~~~~~~~~~~~
 - Protocol values and their names are built-in to Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
