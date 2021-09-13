@@ -1093,6 +1093,7 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(buffer->multi);
+    DEBUG_VALIDATE_BUG_ON(buffer != InspectionBufferGet(det_ctx, list_id));
 #endif
     if (buffer->inspect == NULL) {
 #ifdef UNITTESTS
