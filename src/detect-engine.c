@@ -1154,7 +1154,10 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
+#ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(buffer->multi);
+    DEBUG_VALIDATE_BUG_ON(buffer != InspectionBufferGet(det_ctx, list_id));
+#endif
     if (buffer->inspect == NULL) {
 #ifdef UNITTESTS
         if (det_ctx && list_id != -1)
