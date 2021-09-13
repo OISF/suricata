@@ -39,6 +39,11 @@ Major changes
 Removals
 ~~~~~~~~
 
+Logging changes
+~~~~~~~~~~~~~~~
+- IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
+  ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
+
 Other changes
 ~~~~~~~~~~~~~
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
@@ -72,11 +77,6 @@ Removals
   ``stats-json``, ``dns-json``, etc. Use multiple Eve logger instances
   if this behavior is still required. See :ref:`multiple-eve-instances`.
 - Unified2 has been removed. See :ref:`unified2-removed`.
-
-Logging changes
-~~~~~~~~~~~~~~~
-- IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
-  ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
 
 Upgrading 4.1 to 5.0
 --------------------
