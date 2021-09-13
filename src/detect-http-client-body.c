@@ -283,7 +283,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
 
     StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
-    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+    InspectionBufferSetup(det_ctx, base_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
     body->body_inspected = body->content_len_so_far;
     SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
