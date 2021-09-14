@@ -54,6 +54,7 @@
 #include "app-layer-htp.h"
 
 #include "util-profiling.h"
+#include "util-validate.h"
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
@@ -99,7 +100,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
 
-    SCLogDebug("tx %p progress %d", tx->tx_ptr, tx->tx_progress);
+    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->prefilter_flags %" PRIx64, p->pcap_cnt,
+            tx->tx_ptr, tx->tx_progress, tx->prefilter_flags);
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
@@ -108,7 +110,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (engine->tx_min_progress > tx->tx_progress)
             goto next;
         if (tx->tx_progress > engine->tx_min_progress) {
-            if (tx->prefilter_flags & (1<<(engine->local_id))) {
+            if (tx->prefilter_flags & BIT_U64(engine->tx_min_progress)) {
                 goto next;
             }
         }
@@ -118,8 +120,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                 p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
-        if (tx->tx_progress > engine->tx_min_progress) {
-            tx->prefilter_flags |= (1<<(engine->local_id));
+        if (tx->tx_progress > engine->tx_min_progress && engine->is_last_for_progress) {
+            tx->prefilter_flags |= BIT_U64(engine->tx_min_progress);
         }
     next:
         if (engine->is_last)
@@ -345,6 +347,21 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 }
 
+static int PrefilterSetupRuleGroupSortHelper(const void *a, const void *b)
+{
+    const PrefilterEngine *s0 = a;
+    const PrefilterEngine *s1 = b;
+    if (s1->tx_min_progress == s0->tx_min_progress) {
+        if (s1->alproto == s0->alproto) {
+            return s0->local_id > s1->local_id ? 1 : -1;
+        } else {
+            return s0->alproto > s1->alproto ? 1 : -1;
+        }
+    } else {
+        return s0->tx_min_progress > s1->tx_min_progress ? 1 : -1;
+    }
+}
+
 void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     int r = PatternMatchPrepareGroup(de_ctx, sgh);
@@ -441,12 +458,60 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
-            if (el->next == NULL) {
-                e->is_last = TRUE;
-            }
             e++;
         }
-        SCLogDebug("sgh %p max local_id %u", sgh, local_id);
+
+        /* sort by tx_min_progress, then alproto, then local_id */
+        qsort(sgh->tx_engines, local_id, sizeof(PrefilterEngine),
+                PrefilterSetupRuleGroupSortHelper);
+        sgh->tx_engines[local_id - 1].is_last = true;
+        sgh->tx_engines[local_id - 1].is_last_for_progress = true;
+
+        PrefilterEngine *engine;
+
+        /* per alproto to set is_last_for_progress per alproto because the inspect
+         * loop skips over engines that are not the correct alproto */
+        for (AppProto a = 1; a < ALPROTO_FAILED; a++) {
+            int last_tx_progress = 0;
+            bool last_tx_progress_set = false;
+            PrefilterEngine *prev_engine = NULL;
+            engine = sgh->tx_engines;
+            do {
+                BUG_ON(engine->tx_min_progress < last_tx_progress);
+                if (engine->alproto == a) {
+                    if (last_tx_progress_set && engine->tx_min_progress > last_tx_progress) {
+                        if (prev_engine) {
+                            prev_engine->is_last_for_progress = true;
+                        }
+                    }
+
+                    last_tx_progress_set = true;
+                    prev_engine = engine;
+                } else {
+                    if (prev_engine) {
+                        prev_engine->is_last_for_progress = true;
+                    }
+                }
+                last_tx_progress = engine->tx_min_progress;
+                if (engine->is_last)
+                    break;
+                engine++;
+            } while (1);
+        }
+#ifdef DEBUG
+        SCLogDebug("sgh %p", sgh);
+        engine = sgh->tx_engines;
+        do {
+            SCLogDebug("engine: gid %u alproto %s tx_min_progress %d is_last %s "
+                       "is_last_for_progress %s",
+                    engine->gid, AppProtoToString(engine->alproto), engine->tx_min_progress,
+                    engine->is_last ? "true" : "false",
+                    engine->is_last_for_progress ? "true" : "false");
+            if (engine->is_last)
+                break;
+            engine++;
+        } while (1);
+#endif
     }
 }
 
