@@ -287,7 +287,6 @@ impl PgsqlState {
             match PgsqlState::state_based_req_parsing(self.state_progress, &start){
                 Ok((rem, request)) => {
                     start = rem;
-                    SCLogNotice!(" *****Request is: {:?}", &request);
                     if let Some(state) = PgsqlState::request_get_next_state(&request) {
                         self.state_progress = state;
                     };
@@ -312,12 +311,15 @@ impl PgsqlState {
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
     // TODO find a more appropriate name
-    fn response_get_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
+    fn response_get_next_state(&mut self, response: &PgsqlBEMessage, f: *const Flow) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
-                // TODO upgrade to TSL here?
+                // TODO upgrade to TSL here? -- In the C side: AppLayerRequestProtocolTLSUpgrade
+                // Question: how would I call a C function, from here? Or do I create an external C and call it from C?
                 SCLogDebug!("SSL Request accepted");
-                Some(PgsqlStateProgress::SSLAcceptedReceived)
+                unsafe{ AppLayerRequestProtocolTLSUpgrade(f); }
+                // Some(PgsqlStateProgress::SSLAcceptedReceived)
+                Some(PgsqlStateProgress::Finished)
             },
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
                 SCLogDebug!("SSL Request rejected");
@@ -375,7 +377,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -398,7 +400,7 @@ impl PgsqlState {
                 Ok((rem, response)) => {
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_get_next_state(&response) {
+                    if let Some(state) = self.response_get_next_state(&response, flow) {
                         self.state_progress = state;
                     };
                     let tx = self.find_or_create_tx();
@@ -583,7 +585,7 @@ pub extern "C" fn rs_pgsql_parse_request(
 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_parse_response(
-    _flow: *const Flow,
+    flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
     input: *const u8,
@@ -609,7 +611,7 @@ pub extern "C" fn rs_pgsql_parse_response(
     } else {
         let buf: &[u8];
         unsafe { buf = build_slice!(input, input_len as usize); }
-        state_safe.parse_response(buf).into()
+        state_safe.parse_response(buf, flow).into()
     }
 }
 
