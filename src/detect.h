@@ -1327,7 +1327,8 @@ typedef struct PrefilterEngine_ {
 
     /* global id for this prefilter */
     uint32_t gid;
-    int is_last;
+    bool is_last;
+    bool is_last_for_progress;
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {

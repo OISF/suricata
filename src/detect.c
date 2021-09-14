@@ -1106,8 +1106,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             }
             if (engine->mpm) {
                 if (tx->tx_progress > engine->progress) {
+                    TRACE_SID_TXS(s->id, tx,
+                            "engine->mpm: t->tx_progress %u > engine->progress %u, so set "
+                            "mpm_before_progress",
+                            tx->tx_progress, engine->progress);
                     mpm_before_progress = true;
                 } else if (tx->tx_progress == engine->progress) {
+                    TRACE_SID_TXS(s->id, tx,
+                            "engine->mpm: t->tx_progress %u == engine->progress %u, so set "
+                            "mpm_in_progress",
+                            tx->tx_progress, engine->progress);
                     mpm_in_progress = true;
                 }
             }
