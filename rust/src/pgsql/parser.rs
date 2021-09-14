@@ -249,8 +249,8 @@ pub struct TerminationMessage {
 
 #[derive(Debug, PartialEq)]
 pub enum PgsqlFEMessage {
-    StartupMessage(StartupPacket),
     SSLRequest(DummyStartupPacket),
+    StartupMessage(StartupPacket),
     PasswordMessage(RegularPacket),
     SASLInitialResponse(SASLInitialResponsePacket),
     SASLResponse(RegularPacket),
