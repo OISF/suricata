@@ -750,7 +750,8 @@ static int LuaCallbackLogError(lua_State *luastate)
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: fileid (number), txid (number), name (string),
- *          size (number), magic (string), md5 in hex (string)
+ *          size (number), magic (string), md5 in hex (string),
+ *          sha1 (string), sha256 (string)
  */
 static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const File *file)
 {
@@ -803,7 +804,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushstring(luastate, md5ptr);
     lua_pushstring(luastate, sha1ptr);
     lua_pushstring(luastate, sha256ptr);
-    return 6;
+    return 8;
 }
 
 /** \internal
