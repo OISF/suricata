@@ -281,8 +281,7 @@ impl PgsqlState {
         let mut start = input;
         while start.len() > 0 {
 
-            // TODO rewrite this, in light of PgsqlStateProgress?
-            // if PgsqlStateProgress is AuthenticationGSS, parse GSS response -> TODO decide if we should offer support for it in the first version
+            // TODO AuthenticationGSS, parse GSS response -> TODO decide if we should offer support for it in the first version
             // if PgsqlStateProgress is AuthenticationSSPI, parse SSPI response -> make sure I have the proper nom parser
             SCLogDebug!("In 'parse_request' State Progress is: {:?}", &self.state_progress);
             match PgsqlState::state_based_req_parsing(self.state_progress, &start){
@@ -345,7 +344,7 @@ impl PgsqlState {
             PgsqlBEMessage::ReadyForQuery(_) => {
                 Some(PgsqlStateProgress::ReadyForQueryReceived)
             },
-            // TODO Question: find out if we should store any of the Parameter Statuses in PgsqlState
+            // TODO should we store any Parameter Status in PgsqlState?
             PgsqlBEMessage::AuthenticationMD5Password(_) |
             PgsqlBEMessage::AuthenticationCleartextPassword(_) => {
                 Some(PgsqlStateProgress::SimpleAuthenticationReceived)
