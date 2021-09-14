@@ -91,7 +91,7 @@ impl Drop for PgsqlTransaction {
         self.free();
     }
 }
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PgsqlStateProgress {
     IdleState = 0,
     SSLRequestReceived,
@@ -101,6 +101,8 @@ pub enum PgsqlStateProgress {
     SASLAuthenticationReceived,
     SASLInitialResponseReceived,
     // SSPIAuthenticationReceived, // TODO implement
+    SASLResponseReceived,
+    SASLAuthenticationFinalReceived,
     SimpleAuthenticationReceived,
     PasswordMessageReceived,
     AuthenticationOkReceived,
@@ -185,6 +187,7 @@ impl PgsqlState {
         if  self.state_progress == PgsqlStateProgress::IdleState ||
             self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
             self.state_progress == PgsqlStateProgress::PasswordMessageReceived ||
+            self.state_progress == PgsqlStateProgress::SASLInitialResponseReceived ||
             self.state_progress == PgsqlStateProgress::SimpleQueryReceived ||
             self.state_progress == PgsqlStateProgress::SSLRequestReceived ||
             self.state_progress == PgsqlStateProgress::ConnectionTerminated {
@@ -214,6 +217,12 @@ impl PgsqlState {
             PgsqlFEMessage::PasswordMessage(_) => {
                 Some(PgsqlStateProgress::PasswordMessageReceived)
             },
+            PgsqlFEMessage::SASLInitialResponse(_) => {
+                Some(PgsqlStateProgress::SASLInitialResponseReceived)
+            },
+            PgsqlFEMessage::SASLResponse(_) => {
+                Some(PgsqlStateProgress::SASLResponseReceived)
+            },
             PgsqlFEMessage::SimpleQuery(_) => {
                 SCLogDebug!("Match: SimpleQuery");
                 Some(PgsqlStateProgress::SimpleQueryReceived)
@@ -222,11 +231,28 @@ impl PgsqlState {
             PgsqlFEMessage::Terminate(_) => {
                 SCLogDebug!("Match: Terminate message");
                 Some(PgsqlStateProgress::ConnectionTerminated)
+            }
+        }
+    }
+
+    fn state_based_req_parsing(state: PgsqlStateProgress, input: &[u8]) -> Result<(&[u8], parser::PgsqlFEMessage),  nom::Err<(&[u8], nom::error::ErrorKind)>> {
+        match state {
+            PgsqlStateProgress::SASLAuthenticationReceived => {
+                parser::parse_sasl_initial_response(input)
             },
+            PgsqlStateProgress::SASLInitialResponseReceived => {
+                parser::parse_sasl_response(input)
+            },
+            PgsqlStateProgress::SimpleAuthenticationReceived => {
+                parser::parse_password_message(input)
+            },PgsqlStateProgress::IdleState |
+            PgsqlStateProgress::AuthenticationOkReceived |
+            PgsqlStateProgress::SSLRejectedReceived |
+            PgsqlStateProgress::SSLAcceptedReceived |
+            PgsqlStateProgress::ReadyForQueryReceived |
+            PgsqlStateProgress::CommandCompletedReceived |
             _ => {
-                // TODO Question when things don't go well, what should we do return? AppLayerResult::error()?
-                SCLogDebug!("Request didn't match anything.");
-                None
+                parser::parse_request(input)
             },
         }
     }
@@ -259,101 +285,25 @@ impl PgsqlState {
             // if PgsqlStateProgress is AuthenticationGSS, parse GSS response -> TODO decide if we should offer support for it in the first version
             // if PgsqlStateProgress is AuthenticationSSPI, parse SSPI response -> make sure I have the proper nom parser
             SCLogDebug!("In 'parse_request' State Progress is: {:?}", &self.state_progress);
-            match self.state_progress {
-                PgsqlStateProgress::IdleState |
-                PgsqlStateProgress::AuthenticationOkReceived |
-                PgsqlStateProgress::SSLRejectedReceived |
-                PgsqlStateProgress::SSLAcceptedReceived |
-                PgsqlStateProgress::ReadyForQueryReceived |
-                // PgsqlStateProgress::SimpleQueryReceived | // TODO Question does this one make sense here? I think I should track states related to responses, only, when parsing requests...
-                PgsqlStateProgress::CommandCompletedReceived => {
-                    match parser::parse_request(start) {
-                        Ok((rem, request)) => {
-                            start = rem;
-                            SCLogDebug!(" *********** Request is: {:?}", &request);
-                            if let Some(state) = PgsqlState::request_get_next_state(&request) {
-                                self.state_progress = state;
-                            };
-                            // TODO Question not sure if this shouldn't go into the above if... Are there situations where we will have a new request but the state won't change? would that even make sense?
-                            let tx = self.find_or_create_tx();
-                            tx.requests.push(request);
-                        },
-                        Err(nom::Err::Incomplete(_needed)) => {
-                            let consumed = input.len() - start.len();
-                            let needed_estimation = start.len() + 1;
-                            SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
-                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                        },
-                        Err(_) => {
-                            return AppLayerResult::err();
-                        },
-                    }
+            match PgsqlState::state_based_req_parsing(self.state_progress, &start){
+                Ok((rem, request)) => {
+                    start = rem;
+                    SCLogNotice!(" *****Request is: {:?}", &request);
+                    if let Some(state) = PgsqlState::request_get_next_state(&request) {
+                        self.state_progress = state;
+                    };
+                    let tx = self.find_or_create_tx();
+                    tx.requests.push(request);
                 },
-                PgsqlStateProgress::SASLAuthenticationReceived => {
-                    match parser::parse_sasl_initial_response(start) {
-                        Ok((rem, request)) => {
-                            start = rem;
-                            SCLogDebug!("Request: {:?}", request);
-                            let tx = self.find_or_create_tx();
-                            tx.requests.push(request);
-                            // TODO why am I not changing the state here?
-                        }
-                        Err(nom::Err::Incomplete(_needed)) => {
-                            let consumed = input.len() - start.len();
-                            let needed_estimation = start.len() + 1;
-                            SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
-                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                        }
-                        Err(_) => {
-                            return AppLayerResult::err();
-                        }
-                    }
+                Err(nom::Err::Incomplete(_needed)) => {
+                    let consumed = input.len()-start.len();
+                    let needed_estimation = start.len() + 1;
+                    SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
+                    return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 },
-                PgsqlStateProgress::SASLInitialResponseReceived => {
-                    match parser::parse_sasl_response(start) {
-                        Ok((rem, request)) => {
-                            start = rem;
-                            SCLogDebug!("Request: {:?}", request);
-                            let tx = self.find_or_create_tx();
-                            tx.requests.push(request);
-                        },
-                        Err(nom::Err::Incomplete(_needed)) => {
-                            let consumed = input.len() - start.len();
-                            let needed_estimation = start.len() + 1;
-                            SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
-                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                        },
-                        Err(_) => {
-                            return AppLayerResult::err();
-                        },
-                    }
+                Err(_) => {
+                    return AppLayerResult::err();
                 },
-                PgsqlStateProgress::SimpleAuthenticationReceived => {
-                    match parser::parse_password_message(start) {
-                        Ok((rem, request)) => {
-                            start = rem;
-                            SCLogDebug!("Request : {:?}", request);
-                            self.state_progress = PgsqlStateProgress::PasswordMessageReceived;
-                            let tx = self.find_or_create_tx();
-                            tx.requests.push(request);
-                        },
-                        Err(nom::Err::Incomplete(_needed)) => {
-                            let consumed = input.len() - start.len() + 1;
-                            let needed_estimation = start.len() + 1;
-                            SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
-                            return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                        },
-                        Err(_) => {
-                            return AppLayerResult::err();
-                        },
-                    }
-                },
-                // PgsqlStateProgress::SSPIAuthenticationReceived => {
-                //     // TODO implement
-                // },
-                _ => {
-                    // TODO handle unexpected situations here
-                }
             }
         }
 
@@ -363,7 +313,7 @@ impl PgsqlState {
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
     // TODO find a more appropriate name
-    fn response_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
+    fn response_get_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 // TODO upgrade to TSL here?
@@ -373,6 +323,12 @@ impl PgsqlState {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
                 SCLogDebug!("SSL Request rejected");
                 Some(PgsqlStateProgress::SSLRejectedReceived)
+            },
+            PgsqlBEMessage::AuthenticationSASL(_) => {
+                Some(PgsqlStateProgress::SASLAuthenticationReceived)
+            },
+            PgsqlBEMessage::AuthenticationSASLFinal(_) => {
+                Some(PgsqlStateProgress::SASLAuthenticationFinalReceived)
             },
             PgsqlBEMessage::AuthenticationOk(_) => {
                 Some(PgsqlStateProgress::AuthenticationOkReceived)
@@ -412,6 +368,14 @@ impl PgsqlState {
         }
     }
 
+    fn state_based_resp_parsing(state: PgsqlStateProgress, input: &[u8]) -> Result<(&[u8], parser::PgsqlBEMessage), nom::Err<(&[u8], nom::error::ErrorKind)>> {
+        if state == PgsqlStateProgress::SSLRequestReceived {
+               parser::parse_ssl_response(input)
+        } else {
+            parser::pgsql_parse_response(input)
+        }
+    }
+
     fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.len() == 0 {
@@ -425,88 +389,31 @@ impl PgsqlState {
                 return AppLayerResult::ok();
             }
 
-            // It looks like we're in sync with a message header, clear gap
-            // state and keep parsing.
+            // It seems we're in sync with a message header, clear gap state and keep parsing.
             self.response_gap = false;
         }
 
         let mut start = input;
         while start.len() > 0 {
-            if self.state_progress == PgsqlStateProgress::SSLRequestReceived {
-                SCLogDebug!("In 'parse_response'. State Progress is: {:?}", &self.state_progress);
-                match parser::parse_ssl_response(start) {
-                    Ok((rem, response)) => {
-                        start = rem;
-                        SCLogDebug!("SSL Response received");
-                        SCLogDebug!("Response: {:?}", &response);
-                        if let Some(state) = self.response_next_state(&response) {
-                            self.state_progress = state;
-                        };
-                        let tx = self.find_or_create_tx();
-                        tx.responses.push(response);
-                        // if message_type == "ssl_accepted" {
-                        //     SCLogDebug!("SSL Request accepted, we must upgrade to TSL");
-                        //     tx.responses.push(response);
-                        //     self.state_progress = PgsqlStateProgress::SslAcceptedReceived;
-                        //     // TODO do we upgrade to TLS here, or leave that for elsewhere?
-                        // } else if message_type == "ssl_rejected" {
-                        //     SCLogDebug!("SSL Request rejected");
-                        //     tx.responses.push(response);
-                        //     self.state_progress = PgsqlStateProgress::SslRejectedReceived;
-                        //     // TODO not sure if something else should be done here it may be the case that this tx
-                        // } else {
-                        //     // TODO what should I do if I get an invalid message here? AppLayerResult error?
-                        //     return AppLayerResult::err();
-                        // }
-                    },
-                    Err(nom::Err::Incomplete(_needed)) => {
-                        let consumed = input.len() - start.len();
-                        let needed_estimation = start.len() + 1;
-                        SCLogDebug!("Suricata interprets the response as incomplete");
-                        SCLogDebug!("Needed: {:?}, estimated needed: {:?}", _needed, needed_estimation);
-                        SCLogDebug!("start is: {:?}", &start);
-                        return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                    },
-                    Err(nom::Err::Error((_rem, nom::error::ErrorKind::Verify))) => {
-                        // We want to know if we got an ErrorMessage here
-                        SCLogDebug!("Error while parsing SSL Response. Unparsed input: {:?}", _rem);
-                        return AppLayerResult::err();
-                    },
-                    _ => {
-                        return AppLayerResult::err();
-                    }
-                }
-            } else {
-                SCLogDebug!("Found a response. Not sure what it is, yet");
-                SCLogDebug!("State progress is {:?}", &self.state_progress);
-                match parser::pgsql_parse_response(start) {
-                    Ok((rem, response)) => {
-                        start = rem;
-                        // We must also match on response type, so we can change state...
-                        if let Some(state) = self.response_next_state(&response) {
-                            self.state_progress = state;
-                        };
-                        // Handle the tx here to avoid borrow checker issues
-                        SCLogDebug!("- Response: {:?}. State is {:?}", &response, &self.state_progress);
-                        let tx = self.find_or_create_tx();
-                        tx.responses.push(response);
-                    }
-                    Err(nom::Err::Incomplete(_needed)) => {
-                        let consumed = input.len() - start.len();
-                        let needed_estimation = start.len() + 1;
-                        SCLogDebug!("Needed: {:?}, consumed: {:?}", _needed, &consumed);
-                        SCLogDebug!("Start in incomplete is: {:?}", &start);
-                        return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
-                    }
-                    Err(nom::Err::Error((_rem, _err))) => {
-                        SCLogDebug!("Suricata interprets an error while parsing the response: {:?}", _err);
-                        SCLogDebug!("Unparsed input is: {:?}", _rem);
-                        return AppLayerResult::err();
-                    }
-                    Err(_) => {
-                        SCLogDebug!("Suricata interprets another error while parsing the response");
-                        return AppLayerResult::err();
-                    }
+            match PgsqlState::state_based_resp_parsing(self.state_progress, &start) {
+                Ok((rem, response)) => {
+                    start = rem;
+                    SCLogDebug!("Response is {:?}", &response);
+                    if let Some(state) = self.response_get_next_state(&response) {
+                        self.state_progress = state;
+                    };
+                    let tx = self.find_or_create_tx();
+                    tx.responses.push(response);
+                },
+                Err(nom::Err::Incomplete(_needed)) => {
+                    let consumed = input.len() - start.len();
+                    let needed_estimation = start.len() + 1;
+                    SCLogDebug!("Needed: {:?}, estimated needed: {:?}, start is {:?}", _needed, needed_estimation, &start);
+                    return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
+                },
+                Err(_) => {
+                    SCLogDebug!("Error while parsing PostgreSQL response");
+                    return AppLayerResult::err();
                 }
             }
         }
