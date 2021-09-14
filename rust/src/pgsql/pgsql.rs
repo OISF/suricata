@@ -294,7 +294,7 @@ impl PgsqlState {
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
     // TODO find a more appropriate name
-    fn response_get_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
+    fn response_get_next_state(&mut self, response: &PgsqlBEMessage, f: *const Flow) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 SCLogDebug!("SSL Request accepted");
@@ -358,7 +358,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -381,7 +381,7 @@ impl PgsqlState {
                 Ok((rem, response)) => {
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_get_next_state(&response) {
+                    if let Some(state) = self.response_get_next_state(&response, flow) {
                         self.state_progress = state;
                     };
                     if let Some(tx) = self.find_or_create_tx(){
@@ -569,7 +569,7 @@ pub extern "C" fn rs_pgsql_parse_request(
 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_parse_response(
-    _flow: *const Flow,
+    flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
     input: *const u8,
@@ -595,7 +595,7 @@ pub extern "C" fn rs_pgsql_parse_response(
     } else {
         let buf: &[u8];
         unsafe { buf = build_slice!(input, input_len as usize); }
-        state_safe.parse_response(buf).into()
+        state_safe.parse_response(buf, flow).into()
     }
 }
 
