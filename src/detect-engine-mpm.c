@@ -1448,11 +1448,11 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
         if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
-        if (list < 0)
+        if ((s->flags & am->direction) == 0)
             continue;
 
-        if ((s->flags & am->direction) == 0)
+        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        if (list < 0)
             continue;
 
         if (list != am->sm_list)
