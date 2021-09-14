@@ -1133,50 +1133,71 @@ void DecodeUnregisterCounters(void);
 #define PPP_OVER_GRE         11
 #define VLAN_OVER_GRE        13
 
-/*Packet Flags*/
-#define PKT_NOPACKET_INSPECTION         (1)         /**< Flag to indicate that packet header or contents should not be inspected*/
-#define PKT_NOPAYLOAD_INSPECTION        (1<<2)      /**< Flag to indicate that packet contents should not be inspected*/
-#define PKT_ALLOC                       (1<<3)      /**< Packet was alloc'd this run, needs to be freed */
-#define PKT_HAS_TAG                     (1<<4)      /**< Packet has matched a tag */
-#define PKT_STREAM_ADD                  (1<<5)      /**< Packet payload was added to reassembled stream */
-#define PKT_STREAM_EST                  (1<<6)      /**< Packet is part of established stream */
-#define PKT_STREAM_EOF                  (1<<7)      /**< Stream is in eof state */
-#define PKT_HAS_FLOW                    (1<<8)
-#define PKT_PSEUDO_STREAM_END           (1<<9)      /**< Pseudo packet to end the stream */
-#define PKT_STREAM_MODIFIED             (1<<10)     /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
-#define PKT_MARK_MODIFIED               (1<<11)     /**< Packet mark is modified */
-#define PKT_STREAM_NOPCAPLOG            (1<<12)     /**< Exclude packet from pcap logging as it's part of a stream that has reassembly depth reached. */
+/* Packet Flags */
 
-#define PKT_TUNNEL                      (1<<13)
-#define PKT_TUNNEL_VERDICTED            (1<<14)
+/** Flag to indicate that packet header or contents should not be inspected */
+#define PKT_NOPACKET_INSPECTION BIT_U32(0)
+// vacancy
 
-#define PKT_IGNORE_CHECKSUM             (1<<15)     /**< Packet checksum is not computed (TX packet for example) */
-#define PKT_ZERO_COPY                   (1<<16)     /**< Packet comes from zero copy (ext_pkt must not be freed) */
+/** Flag to indicate that packet contents should not be inspected */
+#define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
+/** Packet was alloc'd this run, needs to be freed */
+#define PKT_ALLOC BIT_U32(3)
+/** Packet has matched a tag */
+#define PKT_HAS_TAG BIT_U32(4)
+/** Packet payload was added to reassembled stream */
+#define PKT_STREAM_ADD BIT_U32(5)
+/** Packet is part of established stream */
+#define PKT_STREAM_EST BIT_U32(6)
+/** Stream is in eof state */
+#define PKT_STREAM_EOF BIT_U32(7)
+#define PKT_HAS_FLOW   BIT_U32(8)
+/** Pseudo packet to end the stream */
+#define PKT_PSEUDO_STREAM_END BIT_U32(9)
+/** Packet is modified by the stream engine, we need to recalc the csum and       \
+                   reinject/replace */
+#define PKT_STREAM_MODIFIED BIT_U32(10)
+/** Packet mark is modified */
+#define PKT_MARK_MODIFIED BIT_U32(11)
+/** Exclude packet from pcap logging as it's part of a stream that has reassembly \
+                   depth reached. */
+#define PKT_STREAM_NOPCAPLOG BIT_U32(12)
 
-#define PKT_HOST_SRC_LOOKED_UP          (1<<17)
-#define PKT_HOST_DST_LOOKED_UP          (1<<18)
+#define PKT_TUNNEL           BIT_U32(13)
+#define PKT_TUNNEL_VERDICTED BIT_U32(14)
 
-#define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
-#define PKT_IS_INVALID                  (1<<20)
-#define PKT_PROFILE                     (1<<21)
+/** Packet checksum is not computed (TX packet for example) */
+#define PKT_IGNORE_CHECKSUM BIT_U32(15)
+/** Packet comes from zero copy (ext_pkt must not be freed) */
+#define PKT_ZERO_COPY BIT_U32(16)
+
+#define PKT_HOST_SRC_LOOKED_UP BIT_U32(17)
+#define PKT_HOST_DST_LOOKED_UP BIT_U32(18)
+
+/** Packet is a fragment */
+#define PKT_IS_FRAGMENT BIT_U32(19)
+#define PKT_IS_INVALID  BIT_U32(20)
+#define PKT_PROFILE     BIT_U32(21)
 
 /** indication by decoder that it feels the packet should be handled by
  *  flow engine: Packet::flow_hash will be set */
-#define PKT_WANTS_FLOW                  (1<<22)
+#define PKT_WANTS_FLOW BIT_U32(22)
 
 /** protocol detection done */
-#define PKT_PROTO_DETECT_TS_DONE        (1<<23)
-#define PKT_PROTO_DETECT_TC_DONE        (1<<24)
+#define PKT_PROTO_DETECT_TS_DONE BIT_U32(23)
+#define PKT_PROTO_DETECT_TC_DONE BIT_U32(24)
 
-#define PKT_REBUILT_FRAGMENT            (1<<25)     /**< Packet is rebuilt from
-                                                     * fragments. */
-#define PKT_DETECT_HAS_STREAMDATA       (1<<26)     /**< Set by Detect() if raw stream data is available. */
+#define PKT_REBUILT_FRAGMENT                                                                       \
+    BIT_U32(25) /**< Packet is rebuilt from                                                        \
+                 * fragments. */
+#define PKT_DETECT_HAS_STREAMDATA                                                                  \
+    BIT_U32(26) /**< Set by Detect() if raw stream data is available. */
 
-#define PKT_PSEUDO_DETECTLOG_FLUSH      (1<<27)     /**< Detect/log flush for protocol upgrade */
+#define PKT_PSEUDO_DETECTLOG_FLUSH BIT_U32(27) /**< Detect/log flush for protocol upgrade */
 
 /** Packet is part of stream in known bad condition (loss, wrong thread),
  *  so flag it for not setting stream events */
-#define PKT_STREAM_NO_EVENTS            (1<<28)
+#define PKT_STREAM_NO_EVENTS BIT_U32(28)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
