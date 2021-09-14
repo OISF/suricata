@@ -757,10 +757,10 @@ SCFileInfo
 ::
 
 
-  fileid, txid, name, size, magic, md5 = SCFileInfo()
+  fileid, txid, name, size, magic, md5, sha1, sha256 = SCFileInfo()
 
 returns fileid (number), txid (number), name (string), size (number),
-magic (string), md5 in hex (string)
+magic (string), md5 in hex (string), sha1 (string), sha256 (string)
 
 SCFileState
 ~~~~~~~~~~~
