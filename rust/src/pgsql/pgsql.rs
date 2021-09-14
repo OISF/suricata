@@ -280,7 +280,6 @@ impl PgsqlState {
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
                     start = rem;
-                    SCLogNotice!(" *****Request is: {:?}", &request);
                     if let Some(state) = PgsqlState::request_get_next_state(&request) {
                         self.state_progress = state;
                     };
@@ -317,12 +316,18 @@ impl PgsqlState {
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
     // TODO find a more appropriate name
-    fn response_get_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
+    fn response_get_next_state(
+        &mut self, response: &PgsqlBEMessage, f: *const Flow,
+    ) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 SCLogDebug!("SSL Request accepted");
-                Some(PgsqlStateProgress::SSLAcceptedReceived)
-            },
+                unsafe {
+                    AppLayerRequestProtocolTLSUpgrade(f);
+                }
+                // Some(PgsqlStateProgress::SSLAcceptedReceived)
+                Some(PgsqlStateProgress::Finished)
+            }
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
                 SCLogDebug!("SSL Request rejected");
                 Some(PgsqlStateProgress::SSLRejectedReceived)
@@ -377,7 +382,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -400,7 +405,7 @@ impl PgsqlState {
                 Ok((rem, response)) => {
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_get_next_state(&response) {
+                    if let Some(state) = self.response_get_next_state(&response, flow) {
                         self.state_progress = state;
                     };
                     let tx_completed = self.is_tx_completed();
@@ -572,24 +577,17 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_parse_response(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+pub unsafe extern "C" fn rs_pgsql_parse_response(
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
-    let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-            true
-        } else {
-            false
-        }
+    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
+        true
+    } else {
+        false
     };
     let state_safe: &mut PgsqlState;
-    unsafe { state_safe = cast_pointer!(state, PgsqlState); }
+    state_safe = cast_pointer!(state, PgsqlState);
 
     if input == std::ptr::null_mut() && input_len > 0 {
         // Here we have a gap signaled by the input being null, but a greater
@@ -598,8 +596,8 @@ pub extern "C" fn rs_pgsql_parse_response(
         AppLayerResult::ok()
     } else {
         let buf: &[u8];
-        unsafe { buf = build_slice!(input, input_len as usize); }
-        state_safe.parse_response(buf).into()
+        buf = build_slice!(input, input_len as usize);
+        state_safe.parse_response(buf, flow)
     }
 }
 
