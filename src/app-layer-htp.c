@@ -960,10 +960,11 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                 if (tx != NULL && tx->response_status_number == 101) {
                     htp_header_t *h =
                             (htp_header_t *)htp_table_get_c(tx->response_headers, "Upgrade");
-                    if (h == NULL) {
+                    if (h == NULL || bstr_cmp_c(h->value, "h2c") != 0) {
                         break;
                     }
-                    if (bstr_cmp_c(h->value, "h2c") != 0) {
+                    if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
+                        // if HTTP2 is disabled, keep the HTP_STREAM_TUNNEL mode
                         break;
                     }
                     uint16_t dp = 0;
@@ -975,8 +976,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                     // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                     // and we need to parser the remaining part with HTTP2
                     if (consumed > 0 && consumed < input_len) {
-                        SCReturnStruct(
-                                APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                        SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
                     }
                     SCReturnStruct(APP_LAYER_OK);
                 }
