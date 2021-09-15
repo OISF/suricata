@@ -179,6 +179,8 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         InspectEngineFuncPtr2 Callback2,
         InspectionBufferGetDataPtr GetData)
 {
+    BUG_ON(progress >= 48);
+
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {

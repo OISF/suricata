@@ -97,6 +97,8 @@ void DetectAppLayerMpmRegister2(const char *name,
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
 
+    BUG_ON(tx_min_progress >= 48);
+
     if (PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL) {
         // must register GetData with PrefilterGenericMpmRegister
         abort();

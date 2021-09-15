@@ -1238,6 +1238,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(ipproto, alproto, tx_ptr);
     DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
     uint64_t prefilter_flags = detect_flags & APP_LAYER_TX_PREFILTER_MASK;
+    DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);
 
     DetectTransaction tx = {
                             .tx_ptr = tx_ptr,
@@ -1491,6 +1492,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
         if (tx.prefilter_flags != tx.prefilter_flags_orig) {
             new_detect_flags |= tx.prefilter_flags;
+            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
             SCLogDebug("%p/%"PRIu64" updated prefilter flags %016"PRIx64" "
                     "(was: %016"PRIx64") for direction %s. Flag %016"PRIx64,
                     tx.tx_ptr, tx.tx_id, tx.prefilter_flags, tx.prefilter_flags_orig,
@@ -1501,6 +1503,7 @@ static void DetectRunTx(ThreadVars *tv,
                 (new_detect_flags | tx.detect_flags) != tx.detect_flags)
         {
             new_detect_flags |= tx.detect_flags;
+            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
             SCLogDebug("%p/%"PRIu64" Storing new flags %016"PRIx64" (was %016"PRIx64")",
                     tx.tx_ptr, tx.tx_id, new_detect_flags, tx.detect_flags);
 
