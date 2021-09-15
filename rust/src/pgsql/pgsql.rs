@@ -179,9 +179,10 @@ impl PgsqlState {
     /// Find or create a new transaction
     ///
     /// If a new transaction is created, push that into state.transactions before returning &mut to last tx
-    // The moment when this is called will may impact the logic of transaction tracking (e.g. when a tx is considered completed)
+    /// If we can't find a transaction and we should not create one, we return None
+    /// The moment when this is called will may impact the logic of transaction tracking (e.g. when a tx is considered completed)
     // TODO A future, improved version may be based on current message type and dir, too
-    fn find_or_create_tx(&mut self) -> &mut PgsqlTransaction {
+    fn find_or_create_tx(&mut self) -> Option<&mut PgsqlTransaction> {
         // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
         // TODO make this prettier and easier to read
         if  self.state_progress == PgsqlStateProgress::IdleState ||
@@ -196,8 +197,7 @@ impl PgsqlState {
             }
             // If we don't need a new transaction, just return the current one
             SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
-            return self.transactions.last_mut().unwrap();
-            // TODO This may panic, find best way to prevent that. I'm thinking of using if let, and if it's none, creating a new tx...
+            return self.transactions.last_mut();
     }
 
     /// Define PgsqlState progression, based on the request received
@@ -290,8 +290,11 @@ impl PgsqlState {
                     if let Some(state) = PgsqlState::request_get_next_state(&request) {
                         self.state_progress = state;
                     };
-                    let tx = self.find_or_create_tx();
-                    tx.requests.push(request);
+                    if let Some(tx) = self.find_or_create_tx(){
+                        tx.requests.push(request);
+                    } else {
+                        return AppLayerResult::err();
+                    };
                 },
                 Err(nom::Err::Incomplete(_needed)) => {
                     let consumed = input.len()-start.len();
@@ -403,8 +406,11 @@ impl PgsqlState {
                     if let Some(state) = self.response_get_next_state(&response, flow) {
                         self.state_progress = state;
                     };
-                    let tx = self.find_or_create_tx();
-                    tx.responses.push(response);
+                    if let Some(tx) = self.find_or_create_tx(){
+                        tx.responses.push(response);
+                    } else {
+                        return AppLayerResult::err();
+                    };
                 },
                 Err(nom::Err::Incomplete(_needed)) => {
                     let consumed = input.len() - start.len();
@@ -804,7 +810,6 @@ mod test {
                             0x73, 0x65, 0x00, 0x6d, 0x61, 0x69, 0x6c, 0x73,
                             0x74, 0x6f, 0x72, 0x65, 0x00, 0x00];
         assert!(!probe_ts(&buf));
-
     }
 
     #[test]
@@ -863,5 +868,26 @@ mod test {
         // This is the first message and only the first message.
         let r = state.parse_request(&buf);
         assert_eq!(r, AppLayerResult{ status: 0, consumed: 0, needed: 0});
+    }
+
+    #[test]
+    fn test_find_or_create_tx() {
+        let mut state = PgsqlState::new();
+        state.state_progress = PgsqlStateProgress::UnknownState;
+        let tx = state.find_or_create_tx();
+        assert_eq!(tx.is_none(), true);
+
+        let tx = state.find_or_create_tx();
+        assert_eq!(tx.is_none(), true);
+
+        state.state_progress = PgsqlStateProgress::IdleState;
+        let tx = state.find_or_create_tx();
+        assert_eq!(tx.is_some(), true);
+
+        // Now, even though there isn't a new transaction created, the previous one is available
+        state.state_progress = PgsqlStateProgress::SSLRejectedReceived;
+        let tx = state.find_or_create_tx();
+        assert_eq!(tx.is_none(), false);
+        assert_eq!(tx.unwrap().tx_id, 1);
     }
 }
