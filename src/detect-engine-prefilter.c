@@ -108,7 +108,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (engine->alproto != alproto)
             goto next;
         if (engine->tx_min_progress > tx->tx_progress)
-            goto next;
+            break;
         if (tx->tx_progress > engine->tx_min_progress) {
             if (tx->prefilter_flags & BIT_U64(engine->tx_min_progress)) {
                 goto next;
