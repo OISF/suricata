@@ -177,6 +177,7 @@ pub enum PgsqlBEMessage {
     ReadyForQuery(ReadyForQueryMessage),
     RowDescription(RowDescriptionMessage),
     DataRow(DataRowMessage),
+    DummyDataRow(RegularPacket),
 }
 
 impl fmt::Display for PgsqlBEMessage {
@@ -209,6 +210,7 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::RowDescription(_) => "row_description",
             PgsqlBEMessage::DataRow(_) => "data_row",
             PgsqlBEMessage::SSLResponse(SSLResponseMessage::InvalidResponse) => "invalid_be_message",
+            PgsqlBEMessage::DummyDataRow(_) => "data_row",
         }
     }
 
@@ -323,9 +325,6 @@ pub struct RowDescriptionMessage {
 pub struct ColumnFieldValue {
     // Can be 0, or -1 as a special NULL column value
     pub value_length: i32,
-    // If length is -1, no value bytes will follow
-    // value will have `value_length` bytes
-    // TODO - get rid of "option"?
     pub value: Vec<u8>,
 }
 
@@ -383,7 +382,8 @@ impl From<char> for PgsqlErrorNoticeFieldType {
             'L' => PgsqlErrorNoticeFieldType::Line,
             'R' => PgsqlErrorNoticeFieldType::Routine,
             '\u{0}' => PgsqlErrorNoticeFieldType::TerminatorToken,
-            _ => PgsqlErrorNoticeFieldType::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
+            // Pgsql documentation says "frontends should silently ignore fields of unrecognized type."
+            _ => PgsqlErrorNoticeFieldType::UnknownFieldType,
         }
     }
 }
@@ -410,7 +410,8 @@ impl From<u8> for PgsqlErrorNoticeFieldType {
             b'L' => PgsqlErrorNoticeFieldType::Line,
             b'R' => PgsqlErrorNoticeFieldType::Routine,
             b'\0' => PgsqlErrorNoticeFieldType::TerminatorToken,
-            _ => PgsqlErrorNoticeFieldType::UnknownFieldType, // adding this because documentation says "frontends should silently ignore fields of unrecognized type."
+            // Pgsql documentation says "frontends should silently ignore fields of unrecognized type."
+            _ => PgsqlErrorNoticeFieldType::UnknownFieldType,
         }
     }
 }
@@ -792,27 +793,37 @@ named!(parse_data_row_value<ColumnFieldValue>,
         })
     ));
 
-named!(pub parse_data_row<PgsqlBEMessage>,
+// We won't actually parse the data rows, for the first version
+// named!(pub parse_data_row<PgsqlBEMessage>,
+//     do_parse!(
+//         identifier: verify!(be_u8, |&x| x == b'D')
+//         >> length: verify!(be_u32, |&x| x > 6)
+//         >> field_count: be_u16
+//         >> rows: dbg_dmp!(flat_map!(take!(length - 6), many_m_n!(0, field_count.into(), call!(parse_data_row_value))))
+//         >> (PgsqlBEMessage::DataRow(
+//             DataRowMessage {
+//                 identifier,
+//                 length,
+//                 field_count,
+//                 fields: rows,
+//             }
+//         ))
+//     ));
+
+named!(pub dummy_parse_data_row<PgsqlBEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'D')
         >> length: verify!(be_u32, |&x| x > 6)
-        >> field_count: be_u16
-        >> rows: dbg_dmp!(flat_map!(take!(length - 6), many_m_n!(0, field_count.into(), call!(parse_data_row_value))))
-        >> (PgsqlBEMessage::DataRow(
-            DataRowMessage {
+        >> _rest: take!(length - 4)
+        >> (PgsqlBEMessage::DummyDataRow(
+            RegularPacket {
                 identifier,
                 length,
-                field_count,
-                fields: rows,
+                payload: b"response ok".to_vec(),
             }
         ))
     ));
 
-
-// TODO - Question - although this works with the unittests, if I run the tests w/
-// dbg_dmp I can see that there are errors for the tag!("\x00") cases.
-// I haven't managed to make things work with other structures, though.
-// are these errors an issue?
 named!(parse_sasl_mechanism<SASLAuthenticationMechanism>,
     do_parse!(
         mechanism: alt!(
@@ -927,7 +938,8 @@ named!(pub pgsql_parse_response<PgsqlBEMessage>,
             b'C' => call!(parse_command_complete) |
             b'Z' => call!(parse_ready_for_query) |
             b'T' => call!(parse_row_description) |
-            b'D' => call!(parse_data_row)
+            b'D' => call!(dummy_parse_data_row)
+            // b'D' => call!(parse_data_row)
             // _ => {} // TODO question should I add an unknown message type here, or maybe an error?
         ))
         >> (message)
@@ -1991,50 +2003,52 @@ mod tests {
                             0x00, 0x00, 0x00, 0x03, 0x36, 0x2e, 0x30,
                             0x00, 0x00, 0x00, 0x07, 0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31];
 
-        let mut rows_vec = Vec::<ColumnFieldValue>::new();
+        // let mut rows_vec = Vec::<ColumnFieldValue>::new();
 
-        let field1 = ColumnFieldValue {
-            value_length: 7,
-            value: [0x65, 0x74, 0x2f, 0x6f, 0x70,0x65, 0x6e].to_vec(),
-        };
-        let field2 = ColumnFieldValue {
-            value_length: 3,
-            value: [0x36, 0x2e, 0x30].to_vec(),
-        };
-        let field3 = ColumnFieldValue {
-            value_length: 7,
-            value: [0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31].to_vec(),
-        };
-        rows_vec.push(field1);
-        rows_vec.push(field2);
-        rows_vec.push(field3);
+        // let field1 = ColumnFieldValue {
+        //     value_length: 7,
+        //     value: [0x65, 0x74, 0x2f, 0x6f, 0x70,0x65, 0x6e].to_vec(),
+        // };
+        // let field2 = ColumnFieldValue {
+        //     value_length: 3,
+        //     value: [0x36, 0x2e, 0x30].to_vec(),
+        // };
+        // let field3 = ColumnFieldValue {
+        //     value_length: 7,
+        //     value: [0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31].to_vec(),
+        // };
+        // rows_vec.push(field1);
+        // rows_vec.push(field2);
+        // rows_vec.push(field3);
 
-        let ok_res = PgsqlBEMessage::DataRow(
-            DataRowMessage {
-                identifier: b'D',
-                length: 35,
-                field_count: 3,
-                fields: rows_vec,
-            });
+        // let ok_res = PgsqlBEMessage::DataRow(
+        //     DataRowMessage {
+        //         identifier: b'D',
+        //         length: 35,
+        //         field_count: 3,
+        //         fields: rows_vec,
+        //     });
 
-        let result = parse_data_row(&buffer);
+        // let result = parse_data_row(&buffer);
 
-        match result {
-            Ok((rem, message)) => {
-                assert_eq!(message, ok_res);
-                assert!(rem.is_empty());
-            },
-            Err(nom::Err::Incomplete(needed)) => {
-                panic!("Shouldn't be Incomplete! Expected Ok(). Needed: {:?}", needed);
-            },
-            Err(nom::Err::Error((rem, err))) => {
-                println!("Remainder is {:?}", rem);
-                panic!("Shouldn't be Err {:?}, expected Ok().", err);
-            },
-            _ => {
-                panic!("Unexpected behavior, should be Ok()");
-            }
-        }
+        // match result {
+        //     Ok((rem, message)) => {
+        //         assert_eq!(message, ok_res);
+        //         assert!(rem.is_empty());
+        //     },
+        //     Err(nom::Err::Incomplete(needed)) => {
+        //         panic!("Shouldn't be Incomplete! Expected Ok(). Needed: {:?}", needed);
+        //     },
+        //     Err(nom::Err::Error((rem, err))) => {
+        //         println!("Remainder is {:?}", rem);
+        //         panic!("Shouldn't be Err {:?}, expected Ok().", err);
+        //     },
+        //     _ => {
+        //         panic!("Unexpected behavior, should be Ok()");
+        //     }
+        // }
+        let result = dummy_parse_data_row(&buffer);
+        assert!(result.is_ok());
     }
 
     #[test]
