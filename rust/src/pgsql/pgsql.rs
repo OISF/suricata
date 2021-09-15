@@ -31,30 +31,16 @@ static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
-pub enum PgsqlTransactionState { // a simplified version of this, stored in State - for startup phase, at least
-    ConnectionStart = 0, // TODO [Doubt] or ConnectionRequest? Maybe we don't even need this
-    SSLRequest = 1,
-    SSLAccepted = 2,  // TODO [Doubt] Maybe we don't even need this
-    SimpleAuthentication = 3,
-    GssEncryptionRequest = 4,
-    AuthenticationGssApi = 5,
-    AuthenticationSasl = 6,
-    AuthenticationSspi = 7,
-    AuthenticationOk = 8,
-    BackendInitialization = 9,
-    ReadyForQuery = 10,
-    NotificationReceived = 11, // TODO not sure if necessary
-    ErrorReceived = 12,
-    SimpleQueryProtocol = 13, // TODO not sure if necessary
-    PossibleInvalidState = 14, // TODO this may be nonsense
-    Termination = 15, // TODO not sure if necessary
-    Finished = 16,
+pub enum PgsqlTransactionState {
+    Init = 0,
+    RequestReceived,
+    ResponseDone,
 }
 
 #[derive(Debug)]
 pub struct PgsqlTransaction {
     pub tx_id: u64,
-    pub state: PgsqlTransactionState,
+    pub tx_state: PgsqlTransactionState,
     pub requests: Vec<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
@@ -67,7 +53,7 @@ impl PgsqlTransaction {
     pub fn new() -> PgsqlTransaction {
         PgsqlTransaction {
             tx_id: 0,
-            state: PgsqlTransactionState::ConnectionStart, // TODO question is this the best initialization value?
+            tx_state: PgsqlTransactionState::Init,
             requests: Vec::<PgsqlFEMessage>::new(),
             responses: Vec::<PgsqlBEMessage>::new(),
             de_state: None,
@@ -93,7 +79,7 @@ impl Drop for PgsqlTransaction {
 }
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PgsqlStateProgress {
-    IdleState = 0,
+    IdleState,
     SSLRequestReceived,
     SSLAcceptedReceived,
     SSLRejectedReceived,
@@ -189,6 +175,7 @@ impl PgsqlState {
             self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
             self.state_progress == PgsqlStateProgress::PasswordMessageReceived ||
             self.state_progress == PgsqlStateProgress::SASLInitialResponseReceived ||
+            self.state_progress == PgsqlStateProgress::SASLResponseReceived ||
             self.state_progress == PgsqlStateProgress::SimpleQueryReceived ||
             self.state_progress == PgsqlStateProgress::SSLRequestReceived ||
             self.state_progress == PgsqlStateProgress::ConnectionTerminated {
@@ -651,7 +638,7 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(
 pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
     let tx_safe: &mut PgsqlTransaction;
     unsafe { tx_safe = cast_pointer!(tx, PgsqlTransaction); }
-    return tx_safe.state;
+    return tx_safe.tx_state;
 }
 
 #[no_mangle]
@@ -737,8 +724,8 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         parse_tc: rs_pgsql_parse_response,
         get_tx_count: rs_pgsql_state_get_tx_count,
         get_tx: rs_pgsql_state_get_tx,
-        tx_comp_st_ts: PgsqlTransactionState::Finished as i32,
-        tx_comp_st_tc: PgsqlTransactionState::Finished as i32,
+        tx_comp_st_ts: PgsqlTransactionState::ResponseDone as i32,
+        tx_comp_st_tc: PgsqlTransactionState::ResponseDone as i32,
         tx_get_progress: rs_pgsql_tx_get_alstate_progress,
         get_de_state: rs_pgsql_tx_get_detect_state,
         set_de_state: rs_pgsql_tx_set_detect_state,
