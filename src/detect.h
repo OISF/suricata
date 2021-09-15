@@ -1268,7 +1268,7 @@ typedef struct PrefilterEngineList_ {
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine */
-    int tx_min_progress;
+    uint8_t tx_min_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1296,7 +1296,7 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine */
-    int tx_min_progress;
+    uint8_t tx_min_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
