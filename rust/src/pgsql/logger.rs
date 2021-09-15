@@ -255,12 +255,13 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             identifier: _,
             length: _,
             field_count,
-            fields,
+            fields: _,
         }) => {
             let count = (*field_count) as u64;
             js.set_uint("field_count", count)?;
-            let jb = log_row_description(fields)?;
-            js.set_object("columns", &jb)?;
+            // let jb = log_row_description(fields)?;
+            // js.set_object("columns", &jb)?;
+            js.set_string("backend_response", "Response Ok")?;
         },
         PgsqlBEMessage::DataRow(DataRowMessage{
             identifier: _,
@@ -273,34 +274,41 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             let jb = log_data_row(fields)?;
             js.set_object("rows", &jb)?;
         },
+        PgsqlBEMessage::DummyDataRow(RegularPacket{
+            identifier: _,
+            length: _,
+            payload: _,
+        }) => {
+            js.set_string("backend_response", "Response Ok")?;
+        },
     }
     js.close()?;
     js.close()?;
     Ok(js)
 }
 
-fn log_row_description(columns: &Vec<RowField>) -> Result<JsonBuilder, JsonError>
-{
-    let mut jb = JsonBuilder::new_object();
-    let mut i = 0;
-    for column in columns {
-        let key = format!("column_{}", i);
-        jb.open_object(&key)?;
-        jb.set_string_from_bytes("column_name", &column.field_name)?;
-        let toid = (*column).table_oid as u64;
-        jb.set_uint("table_oid", toid)?;
-        let cix = (*column).data_type_oid as u64;
-        jb.set_uint("column_index", cix)?;
-        jb.set_float("data_type_size", (*column).data_type_size as f64)?;
-        jb.set_float("type_modifier", (*column).type_modifier as f64)?;
-        let fc = (*column).format_code as u64;
-        jb.set_uint("format_code", fc)?;
-        jb.close()?;
-        i = i + 1;
-    }
-    jb.close()?;
-    Ok(jb)
-}
+// fn log_row_description(columns: &Vec<RowField>) -> Result<JsonBuilder, JsonError>
+// {
+//     let mut jb = JsonBuilder::new_object();
+//     let mut i = 0;
+//     for column in columns {
+//         let key = format!("column_{}", i);
+//         jb.open_object(&key)?;
+//         jb.set_string_from_bytes("column_name", &column.field_name)?;
+//         let toid = (*column).table_oid as u64;
+//         jb.set_uint("table_oid", toid)?;
+//         let cix = (*column).data_type_oid as u64;
+//         jb.set_uint("column_index", cix)?;
+//         jb.set_float("data_type_size", (*column).data_type_size as f64)?;
+//         jb.set_float("type_modifier", (*column).type_modifier as f64)?;
+//         let fc = (*column).format_code as u64;
+//         jb.set_uint("format_code", fc)?;
+//         jb.close()?;
+//         i = i + 1;
+//     }
+//     jb.close()?;
+//     Ok(jb)
+// }
 
 fn log_data_row(rows: &Vec<ColumnFieldValue>) -> Result<JsonBuilder, JsonError>
 {
@@ -404,12 +412,13 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
     if let Some(PgsqlParameter{name: _, value}) = &params.database {
         jb.set_string_from_bytes("database", &value)?;
     }
-    if let Some(vec) = &params.optional_params {
-        for param in vec {
-            let name = String::from_utf8_lossy(&param.name);
-            jb.set_string_from_bytes(&name, &param.value)?;
-        }
-    }
+    // TODO Maybe leave these out in the less verbose version, and only show them in case extended and file logging is enabled in yaml?
+    // if let Some(vec) = &params.optional_params {
+    //     for param in vec {
+    //         let name = String::from_utf8_lossy(&param.name);
+    //         jb.set_string_from_bytes(&name, &param.value)?;
+    //     }
+    // }
     jb.close()?;
     Ok(jb)
 }
@@ -418,6 +427,6 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
 pub extern "C" fn rs_pgsql_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx_safe: &mut PgsqlTransaction;
     unsafe { tx_safe = cast_pointer!(tx, PgsqlTransaction); }
-    SCLogNotice!("----------- PGSQL rs_pgsql_logger_log call. Tx id is {:?}", tx_safe.tx_id);
+    SCLogDebug!("----------- PGSQL rs_pgsql_logger_log call. Tx id is {:?}", tx_safe.tx_id);
     log_pgsql(tx_safe, js).is_ok()
 }
