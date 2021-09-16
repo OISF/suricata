@@ -254,6 +254,10 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.fin2_invalid_ack", STREAM_FIN2_INVALID_ACK, },
     { "stream.fin_but_no_session", STREAM_FIN_BUT_NO_SESSION, },
     { "stream.fin_out_of_window", STREAM_FIN_OUT_OF_WINDOW, },
+    {
+            "stream.fin_syn",
+            STREAM_FIN_SYN,
+    },
     { "stream.lastack_ack_wrong_seq", STREAM_LASTACK_ACK_WRONG_SEQ, },
     { "stream.lastack_invalid_ack", STREAM_LASTACK_INVALID_ACK, },
     { "stream.rst_but_no_session", STREAM_RST_BUT_NO_SESSION, },
