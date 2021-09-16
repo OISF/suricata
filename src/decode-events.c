@@ -755,6 +755,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_FIN_OUT_OF_WINDOW,
     },
     {
+            "stream.fin_syn",
+            STREAM_FIN_SYN,
+    },
+    {
             "stream.lastack_ack_wrong_seq",
             STREAM_LASTACK_ACK_WRONG_SEQ,
     },

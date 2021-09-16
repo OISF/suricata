@@ -2813,6 +2813,11 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
             return -1;
         }
 
+        if (p->tcph->th_flags & TH_SYN) {
+            SCLogDebug("ssn %p: FIN+SYN", ssn);
+            StreamTcpSetEvent(p, STREAM_FIN_SYN);
+            return -1;
+        }
         StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
         SCLogDebug("ssn %p: state changed to TCP_CLOSE_WAIT", ssn);
 
