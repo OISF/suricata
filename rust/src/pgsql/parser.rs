@@ -35,8 +35,6 @@ pub struct PgsqlParameter {
     pub value: Vec<u8>,
 }
 
-// TODO I think I can simplify this by having a vector of pgsqlparams
-// (but I didn't manage to make this work without overcomplicating things...)
 #[derive(Debug, PartialEq)]
 pub struct PgsqlStartupParameters {
     pub user: PgsqlParameter,
@@ -129,7 +127,7 @@ impl From<char> for SSLResponseMessage {
     }
 }
 
-// TODO refine this
+// TODO - do I really need this?
 impl fmt::Display for SSLResponseMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -320,7 +318,6 @@ pub struct RowField {
     pub format_code: u16,
 }
 
-// TODO should I have a constructor here?
 #[derive(Debug, PartialEq)]
 pub struct RowDescriptionMessage {
     pub identifier: u8,
@@ -424,7 +421,6 @@ impl From<u8> for PgsqlErrorNoticeFieldType {
     }
 }
 
-// TODO change this, make sure \x00 is included in the vectors
 named!(parse_user_param<PgsqlParameter>,
     do_parse!(
         param_name: tag_no_case!("user")
@@ -437,7 +433,6 @@ named!(parse_user_param<PgsqlParameter>,
             })
     ));
 
-// TODO change this, make sure \x00 is included in the vectors
 named!(parse_database_param<PgsqlParameter>,
     do_parse!(
         param_name: tag_no_case!("database")
@@ -450,9 +445,7 @@ named!(parse_database_param<PgsqlParameter>,
             })
     ));
 
-//TODO shall I create a generic parser for the parameters, which receives tag as an argument?
-// using named_args....
-// TODO change this, make sure \x00 is included in the vectors
+//TODO Future version could have a generic parser for the parameters, which receives tag as an argument
 named!(pgsql_parse_parameter<PgsqlParameter>,
     do_parse!(
         param_name: take_until1!("\x00")
@@ -469,7 +462,6 @@ named!(pub pgsql_parse_startup_parameters<PgsqlStartupParameters>,
     do_parse!(
         user: call!(parse_user_param)
         >> database: opt!(parse_database_param)
-        // TODO change this, make sure \x00 is included in the vectors
         >> optional: opt!(terminated!(many1!(pgsql_parse_parameter), tag!("\x00")))
         >> (PgsqlStartupParameters{
                 user,
@@ -567,8 +559,8 @@ named!(pub pgsql_parse_startup_packet<PgsqlFEMessage>,
 named!(pub parse_password_message<PgsqlFEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'p')
-        >> length: verify!(be_u32, |&x| x >= 5) // a magic number to check that we have some data.
-        // TODO change this, make sure \x00 is included in the vector
+        // check that we have some data ( 4 bytes (length) + at least 1 byte)
+        >> length: verify!(be_u32, |&x| x >= 5)
         >> password: flat_map!(take!(length - 4), take_until1!("\x00"))
         >> (PgsqlFEMessage::PasswordMessage(
                     RegularPacket{
@@ -582,7 +574,6 @@ named!(parse_simple_query<PgsqlFEMessage>,
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'Q')
         >> length: verify!(be_u32, |&x| x > 4)
-        // TODO change this, make sure \x00 is included in the vector
         >> query: flat_map!(take!(length - 4), take_until1!("\x00"))
         >> (PgsqlFEMessage::SimpleQuery(
             RegularPacket {
@@ -602,9 +593,7 @@ named!(parse_terminate_message<PgsqlFEMessage>,
         }))
     ));
 
-// TODO messages that begin with 'p' but are not password ones are not parsed (yet) here
-// we may need to bring some context logic to pgsql.rs, as content interpretation
-// of such messages is context (transaction, I believe) dependent
+// Messages that begin with 'p' but are not password ones are not parsed here
 named!(pub parse_request<PgsqlFEMessage>,
     do_parse!(
         tag: peek!(be_u8)
@@ -842,7 +831,6 @@ named!(pub dummy_parse_data_row<PgsqlBEMessage>,
 
 named!(parse_sasl_mechanism<SASLAuthenticationMechanism>,
     do_parse!(
-        // TODO change this, make sure \x00 is included in the vectors
         mechanism: alt!(
             terminated!(tag!("SCRAM-SHA-256-PLUS"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256Plus} |
             terminated!(tag!("SCRAM-SHA-256"), tag!("\x00")) => { |_| SASLAuthenticationMechanism::ScramSha256}
@@ -850,7 +838,6 @@ named!(parse_sasl_mechanism<SASLAuthenticationMechanism>,
         >> (mechanism)
     ));
 
-// TODO change this, make sure \x00 is included in the vectors
 named!(parse_sasl_mechanisms<Vec<SASLAuthenticationMechanism>>,
     terminated!(many1!(parse_sasl_mechanism), tag!("\x00")));
 
@@ -871,7 +858,6 @@ named!(pub parse_error_response_severity<PgsqlErrorNoticeMessageField>,
     do_parse!(
         field_type: char!('V')
         >> field_value: alt!(tag!("ERROR") | tag!("FATAL") | tag!("PANIC"))
-        // TODO change this, make sure \x00 is included in the vectors
         >> tag!("\x00")
         >> (PgsqlErrorNoticeMessageField{
                 field_type: PgsqlErrorNoticeFieldType::from(field_type),
@@ -895,7 +881,6 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
         b'W' | b's' | b't' | b'c' | b'd' | b'n' | b'F' | b'L' | b'R'
         => do_parse!(
             field_type: be_u8
-            // TODO change this, make sure \x00 is included in the vectors
             >> field_value: take_until_and_consume!("\x00")
             >> (PgsqlErrorNoticeMessageField{
                 field_type: PgsqlErrorNoticeFieldType::from(field_type),
@@ -904,7 +889,6 @@ named!(pub parse_error_response_field<PgsqlErrorNoticeMessageField>,
         ) |
         _ => do_parse!(
             field_type: be_u8
-            // TODO change this, make sure \x00 is included in the vectors
             >> field_value: opt!(take_until_and_consume!("\x00"))
             >> (PgsqlErrorNoticeMessageField{
                 field_type: PgsqlErrorNoticeFieldType::from(field_type),
@@ -947,9 +931,9 @@ named!(pgsql_parse_notice_response<PgsqlBEMessage>,
 
 named!(pub pgsql_parse_response<PgsqlBEMessage>,
     do_parse!(
-        // TODO I think it will be better if I use length here...
+        // TODO Would 'length' be better here?
         pseudo_header: peek!(tuple!(be_u8, be_u32))
-        // TODO check this pseudo_header + 1
+        // TODO could pseudo_header + 1 be bad?
         >> message: flat_map!(take!(pseudo_header.1 + 1), switch!(value!(pseudo_header.0),
             b'E' => call!(pgsql_parse_error_response) |
             b'K' => call!(parse_backend_key_data_message) |
@@ -990,18 +974,19 @@ mod tests {
         let result = parse_request(&buf[0..7]);
         assert!(result.is_err());
 
-        // Length is wrong
+        // Same request, but length is wrong
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x07, 0x04, 0xd2, 0x16, 0x2f];
         let result = parse_request(&buf);
         assert!(result.is_err());
 
         let buf: &[u8] = &[
-        /* Length */        0x00, 0x00, 0x00, 0x55,
-        /* Protocol */      0x00, 0x03, 0x00, 0x00,
-        /* user*/           0x75, 0x73, 0x65, 0x72, 0x00,
-        /* value */         0x72, 0x65, 0x70, 0x00,
+        /* Length 85 */     0x00, 0x00, 0x00, 0x55,
+        /* Proto version */ 0x00, 0x03, 0x00, 0x00,
+        /* user */          0x75, 0x73, 0x65, 0x72, 0x00,
+        /* [value] rep */   0x72, 0x65, 0x70, 0x00,
         /* database */      0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x00,
-        /* optional */      0x72, 0x65, 0x70, 0x6c, 0x69, 0x63,
+        /* [optional] */    0x72, 0x65, 0x70, 0x6c, 0x69, 0x63,
+        /* replication replication true application_name walreceiver */
                             0x61, 0x74, 0x69, 0x6f, 0x6e, 0x00, 0x72, 0x65,
                             0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f,
                             0x6e, 0x00, 0x74, 0x72, 0x75, 0x65, 0x00, 0x61,
@@ -1535,7 +1520,7 @@ mod tests {
     fn test_parse_sasl_authentication_message() {
         let buf: &[u8] = &[
             /* identifier R */      0x52,
-            /* length */            0x00, 0x00, 0x00, 0x1c,
+            /* length 28 */         0x00, 0x00, 0x00, 0x1c,
             /* auth_type */         0x00, 0x00, 0x00, 0x0a,
             /* SCRAM-SHA-256-PLUS */0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48,
                                     0x41, 0x2d, 0x32, 0x35, 0x36, 0x2d, 0x50, 0x4c,
@@ -1568,7 +1553,7 @@ mod tests {
 
         let buf: &[u8] = &[
         /* identifier R */      0x52,
-        /* length */            0x00, 0x00, 0x00, 0x2a,
+        /* length 42 */         0x00, 0x00, 0x00, 0x2a,
         /* auth_type */         0x00, 0x00, 0x00, 0x0a,
         /* SCRAM-SHA-256-PLUS */0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48,
                                 0x41, 0x2d, 0x32, 0x35, 0x36, 0x2d, 0x50, 0x4c,

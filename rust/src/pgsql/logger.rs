@@ -206,7 +206,7 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             auth_type: _,
             payload,
         }) => {
-            // TODO question - not sure what method to use here, the format printed doesn't look good
+            // TODO - nit - not sure what method to use here, the format printed doesn't look good
             js.set_string_from_bytes("payload", &payload)?;
         },
         PgsqlBEMessage::AuthenticationSASL(_) => {
@@ -239,7 +239,7 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
                 payload,
             }) =>
         {
-            // TODO this may result in not so pretty strings. not sure what to do
+            // TODO - nit - this may result in not so pretty strings.
             //  example "SELECT 3\u0000"
             js.set_string_from_bytes("payload", payload)?;
         },
@@ -412,7 +412,7 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
     if let Some(PgsqlParameter{name: _, value}) = &params.database {
         jb.set_string_from_bytes("database", &value)?;
     }
-    // TODO Maybe leave these out in the less verbose version, and only show them in case extended and file logging is enabled in yaml?
+    // TODO Leaving these out in the less verbose version, and only show them in case extended and file logging is enabled in yaml?
     // if let Some(vec) = &params.optional_params {
     //     for param in vec {
     //         let name = String::from_utf8_lossy(&param.name);

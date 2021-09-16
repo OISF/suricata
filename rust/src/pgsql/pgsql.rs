@@ -170,7 +170,6 @@ impl PgsqlState {
     // TODO A future, improved version may be based on current message type and dir, too
     fn find_or_create_tx(&mut self) -> Option<&mut PgsqlTransaction> {
         // First, check if we should create a new tx (in case the other was completed or there's no tx yet)
-        // TODO make this prettier and easier to read
         if  self.state_progress == PgsqlStateProgress::IdleState ||
             self.state_progress == PgsqlStateProgress::StartupMessageReceived ||
             self.state_progress == PgsqlStateProgress::PasswordMessageReceived ||
@@ -252,7 +251,6 @@ impl PgsqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            // TODO I have changed probe to just return a boolean. will this be an issue, later on?
             if !probe_ts(input) {
                 // The parser now needs to decide what to do as we are not in sync.
                 // For now, we'll just try again next time.
@@ -260,16 +258,15 @@ impl PgsqlState {
                 return AppLayerResult::ok();
             }
 
-            // It looks like we're in sync with a message header, clear gap
-            // state and keep parsing.
+            // It looks like we're in sync with the message header
+            // clear gap state and keep parsing.
             self.request_gap = false;
         }
 
         let mut start = input;
         while start.len() > 0 {
 
-            // TODO AuthenticationGSS, parse GSS response -> TODO decide if we should offer support for it in the first version
-            // if PgsqlStateProgress is AuthenticationSSPI, parse SSPI response -> make sure I have the proper nom parser
+            // TODO AuthenticationGSS, parse GSS response -> decide if we should offer support for it in the first version
             SCLogDebug!("In 'parse_request' State Progress is: {:?}", &self.state_progress);
             match PgsqlState::state_based_req_parsing(self.state_progress, &start){
                 Ok((rem, request)) => {
@@ -304,11 +301,8 @@ impl PgsqlState {
     fn response_get_next_state(&mut self, response: &PgsqlBEMessage, f: *const Flow) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
-                // TODO upgrade to TSL here? -- In the C side: AppLayerRequestProtocolTLSUpgrade
-                // Question: how would I call a C function, from here? Or do I create an external C and call it from C?
                 SCLogDebug!("SSL Request accepted");
                 unsafe{ AppLayerRequestProtocolTLSUpgrade(f); }
-                // Some(PgsqlStateProgress::SSLAcceptedReceived)
                 Some(PgsqlStateProgress::Finished)
             },
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
@@ -345,7 +339,8 @@ impl PgsqlState {
                 Some(PgsqlStateProgress::DataRowReceived)
             },
             PgsqlBEMessage::CommandComplete(_) => {
-                // TODO here, we may want to compare the command that was stored when query was sent with what we received here
+                // TODO Do we want to compare the command that was stored when
+                // query was sent with what we received here?
                 Some(PgsqlStateProgress::CommandCompletedReceived)
             },
             PgsqlBEMessage::ErrorResponse(_) => {
@@ -396,6 +391,7 @@ impl PgsqlState {
                     if let Some(tx) = self.find_or_create_tx(){
                         tx.responses.push(response);
                     } else {
+                        // Not sure if this is the best solution here, almost sure it isn't...
                         return AppLayerResult::err();
                     };
                 },
@@ -450,7 +446,6 @@ impl PgsqlState {
 ///
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_ts(input: &[u8]) -> bool {
-    // TODO would it be useful to add a is_valid function?
     SCLogDebug!("We are in probe_ts");
     parser::parse_request(input).is_ok()
 }
@@ -674,6 +669,7 @@ pub extern "C" fn rs_pgsql_state_get_event_info_by_id(_event_id: std::os::raw::c
 ) -> i8 {
     return -1;
 }
+
 #[no_mangle]
 pub extern "C" fn rs_pgsql_state_get_tx_iterator(
     _ipproto: u8,
@@ -770,7 +766,7 @@ mod test {
 
     #[test]
     fn test_request_probe() {
-
+        // An SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
         assert!(probe_ts(&buf));
 
@@ -801,10 +797,12 @@ mod test {
 
     #[test]
     fn test_response_probe() {
+        /* Authentication Request MD5 password salt value f211a3ed */
         let buf: &[u8] = &[0x52, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x05,
                         0xf2, 0x11, 0xa3, 0xed];
         assert!(probe_tc(buf));
 
+        /* R  8 -- Authentication Cleartext */
         let buf: &[u8] = &[ 0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x03];
         assert!(probe_tc(buf));
 
@@ -819,6 +817,7 @@ mod test {
                             0x59, 0x54, 0x39, 0x65, 0x78, 0x56, 0x37, 0x73, 0x38, 0x3d];
         assert!(probe_tc(buf));
 
+        /* S   26 -- parameter status application_name psql*/
         let buf: &[u8] = &[0x53, 0x00, 0x00, 0x00, 0x1a, 0x61, 0x70, 0x70, 0x6c,
                     0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6e, 0x61,
                     0x6d, 0x65, 0x00, 0x70, 0x73, 0x71, 0x6c, 0x00];
@@ -841,6 +840,7 @@ mod test {
     #[test]
     fn test_incomplete_request() {
         let mut state = PgsqlState::new();
+        // An SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
 
         let r = state.parse_request(&buf[0..0]);
