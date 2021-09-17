@@ -15,6 +15,6 @@
  * 02110-1301, USA.
  */
 
-pub mod pgsql;
 pub mod logger;
 pub mod parser;
+pub mod pgsql;

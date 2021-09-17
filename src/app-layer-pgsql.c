@@ -15,14 +15,10 @@
  * 02110-1301, USA.
  */
 
-/*
- * TODO: Update \author in this file and app-layer-pgsqlrust.h.
- * TODO: Implement your app-layer logic with unit tests.
- * TODO: Remove SCLogNotice statements or convert to debug.
- */
-
 /**
  * \file
+ *
+ * \author Juliana Fajardini <jufajardini@oisf.net>
  *
  * Pgsql application layer detector and parser.
  *
@@ -44,7 +40,7 @@
 
 void RegisterPgsqlParsers(void)
 {
-    SCLogNotice("Registering Rust pgsql parser.");
+    SCLogDebug("Registering Rust pgsql parser.");
     rs_pgsql_register_parser();
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_PGSQL, PgsqlParserRegisterTests);

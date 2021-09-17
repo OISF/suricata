@@ -15,18 +15,18 @@
  * 02110-1301, USA.
  */
 
-use std;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::pgsql::pgsql::*;
 use crate::pgsql::parser::*;
+use crate::pgsql::pgsql::*;
+use std;
 
 fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.set_uint("transaction_id", tx.tx_id.into())?;
+    js.set_uint("transaction_id", tx.tx_id)?;
     if !tx.requests.is_empty() {
         if tx.requests.len() > 1 {
             js.open_array("requests")?;
             for request in &tx.requests {
-                let jbr = log_request(&request)?;
+                let jbr = log_request(request)?;
                 js.append_object(&jbr)?;
             }
             js.close()?;
@@ -37,21 +37,23 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
         if tx.responses.len() > 1 {
             js.open_array("responses")?;
             for response in &tx.responses {
-                let jb = log_response(&response)?;
+                let jb = log_response(response)?;
                 js.append_object(&jb)?;
             }
             js.close()?;
-        }
-        else if !tx.responses.is_empty() {
+        } else if !tx.responses.is_empty() {
             let jb = log_response(&tx.responses[0])?;
             js.set_object("response", &jb)?;
         }
     } else {
-        SCLogDebug!("Suricata logging a transaction without finding a request. Tx_id {:?}", &tx.tx_id);
+        SCLogDebug!(
+            "Suricata logging a transaction without finding a request. Tx_id {:?}",
+            &tx.tx_id
+        );
         if !tx.responses.is_empty() {
             js.open_array("response")?;
             for response in &tx.responses {
-                let jb = log_response(&response)?;
+                let jb = log_response(response)?;
                 js.append_object(&jb)?;
             }
             js.close()?;
@@ -64,66 +66,55 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
     Ok(())
 }
 
-fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError>
-{
+fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
-    js.open_object(&req.message_type_to_str())?;
+    js.open_object(req.to_str())?;
     match req {
-        PgsqlFEMessage::StartupMessage(
-            StartupPacket{
-                length: _,
-                proto_major,
-                proto_minor,
-                params}) =>
-        {
+        PgsqlFEMessage::StartupMessage(StartupPacket {
+            length: _,
+            proto_major,
+            proto_minor,
+            params,
+        }) => {
             let proto = format!("{}.{}", proto_major, proto_minor);
             js.set_string("protocol_version", &proto)?;
             let jb = log_pgsql_parameters(params)?;
             js.set_object("startup_parameters", &jb)?;
-        },
-        PgsqlFEMessage::SSLRequest(_) =>
-        {
+        }
+        PgsqlFEMessage::SSLRequest(_) => {
             js.set_string("message_type", "SSL Request")?;
-        },
-        PgsqlFEMessage::SASLInitialResponse(
-            SASLInitialResponsePacket{
-                identifier: _,
-                length: _,
-                auth_mechanism,
-                param_length: _,
-                sasl_param,
-            }) =>
-        {
-            js.set_string("authentication_mechanism", &auth_mechanism.to_string())?;
+        }
+        PgsqlFEMessage::SASLInitialResponse(SASLInitialResponsePacket {
+            identifier: _,
+            length: _,
+            auth_mechanism,
+            param_length: _,
+            sasl_param,
+        }) => {
+            js.set_string("authentication_mechanism", &auth_mechanism.to_str())?;
             js.set_string_from_bytes("sasl_param", sasl_param)?;
-        },
-        PgsqlFEMessage::PasswordMessage(
-            RegularPacket{
-                identifier: _,
-                length: _,
-                payload,
-            }) |
-        PgsqlFEMessage::SASLResponse(
-            RegularPacket{
-                identifier: _,
-                length: _,
-                payload,
-            }) |
-        PgsqlFEMessage::SimpleQuery(
-            RegularPacket{
-                identifier: _,
-                length: _,
-                payload,
-            }) =>
-        {
+        }
+        PgsqlFEMessage::PasswordMessage(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
+        })
+        | PgsqlFEMessage::SASLResponse(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
+        })
+        | PgsqlFEMessage::SimpleQuery(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
+        }) => {
             js.set_string_from_bytes("payload", payload)?;
-        },
-        PgsqlFEMessage::Terminate(
-            TerminationMessage{
-                identifier: _,
-                length: _,
-            }) =>
-        {
+        }
+        PgsqlFEMessage::Terminate(TerminationMessage {
+            identifier: _,
+            length: _,
+        }) => {
             js.set_string("message_type", "termination_token")?;
         }
     }
@@ -132,94 +123,92 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError>
     Ok(js)
 }
 
-fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
-{
+fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
-    js.open_object(&res.message_type_to_str())?;
+    js.open_object(res.to_str())?;
     match res {
-        PgsqlBEMessage::SSLResponse(message) =>
-        {
-            js.set_string("ssl_response", &message.to_string())?;
-        },
-        PgsqlBEMessage::NoticeResponse(ErrorNoticeMessage{
+        PgsqlBEMessage::SSLResponse(message) => {
+            js.set_string("ssl_response", &message.to_str())?;
+        }
+        PgsqlBEMessage::NoticeResponse(ErrorNoticeMessage {
             identifier: _,
             length: _,
             message_body,
-        }) |
-        PgsqlBEMessage::ErrorResponse(ErrorNoticeMessage{
+        })
+        | PgsqlBEMessage::ErrorResponse(ErrorNoticeMessage {
             identifier: _,
             length: _,
             message_body,
         }) => {
-            let jb = log_error_notice_field_types( message_body)?;
+            let jb = log_error_notice_field_types(message_body)?;
             js.set_object("message_body", &jb)?;
-        },
-        PgsqlBEMessage::AuthenticationOk(AuthenticationMessage{
+        }
+        PgsqlBEMessage::AuthenticationOk(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationKerb5(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationKerb5(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationCleartextPassword(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationCleartextPassword(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationMD5Password(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationMD5Password(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationGSS(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationGSS(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationSSPI(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationSSPI(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationGSSContinue(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationGSSContinue(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
-        }) |
-        PgsqlBEMessage::AuthenticationSASLFinal(AuthenticationMessage{
+        })
+        | PgsqlBEMessage::AuthenticationSASLFinal(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
             payload,
         }) => {
             // TODO - nit - not sure what method to use here, the format printed doesn't look good
-            js.set_string_from_bytes("payload", &payload)?;
-        },
+            js.set_string_from_bytes("payload", payload)?;
+        }
         PgsqlBEMessage::AuthenticationSASL(_) => {
-            js.set_string("authentication_SASL", &res.to_string())?;
-        },
+            js.set_string("authentication_SASL", &res.to_str())?;
+        }
         PgsqlBEMessage::AuthenticationSASLContinue(_) => {
-            js.set_string("authentication_SASL_continue", &res.to_string())?;
-        },
-        PgsqlBEMessage::ParameterStatus(ParameterStatusMessage{
+            js.set_string("authentication_SASL_continue", &res.to_str())?;
+        }
+        PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
             identifier: _,
             length: _,
             param,
         }) => {
             js.set_string_from_bytes("name", &param.name)?;
             js.set_string_from_bytes("value", &param.value)?;
-        },
-        PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage{
+        }
+        PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {
             identifier: _,
             length: _,
             backend_pid,
@@ -227,27 +216,25 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
         }) => {
             js.set_uint("process_id", (*backend_pid) as u64)?;
             js.set_uint("secret_key", (*secret_key) as u64)?;
-        },
-        PgsqlBEMessage::CommandComplete(
-            RegularPacket{
-                identifier: _,
-                length: _,
-                payload,
-            }) =>
-        {
+        }
+        PgsqlBEMessage::CommandComplete(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
+        }) => {
             // TODO - nit - this may result in not so pretty strings.
             //  example "SELECT 3\u0000"
             js.set_string_from_bytes("payload", payload)?;
-        },
-        PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage{
+        }
+        PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
             identifier: _,
             length: _,
             transaction_status,
         }) => {
             let tx_status = (*transaction_status) as char;
             js.set_string("transaction_status", &tx_status.to_string())?;
-        },
-        PgsqlBEMessage::RowDescription(RowDescriptionMessage{
+        }
+        PgsqlBEMessage::RowDescription(RowDescriptionMessage {
             identifier: _,
             length: _,
             field_count,
@@ -258,8 +245,8 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             // let jb = log_row_description(fields)?;
             // js.set_object("columns", &jb)?;
             js.set_string("backend_response", "Response Ok")?;
-        },
-        PgsqlBEMessage::DataRow(DataRowMessage{
+        }
+        PgsqlBEMessage::DataRow(DataRowMessage {
             identifier: _,
             length: _,
             field_count,
@@ -269,14 +256,14 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
             js.set_uint("field_count", count)?;
             let jb = log_data_row(fields)?;
             js.set_object("rows", &jb)?;
-        },
-        PgsqlBEMessage::DummyDataRow(RegularPacket{
+        }
+        PgsqlBEMessage::DummyDataRow(RegularPacket {
             identifier: _,
             length: _,
             payload: _,
         }) => {
             js.set_string("backend_response", "Response Ok")?;
-        },
+        }
     }
     js.close()?;
     js.close()?;
@@ -306,8 +293,7 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError>
 //     Ok(jb)
 // }
 
-fn log_data_row(rows: &Vec<ColumnFieldValue>) -> Result<JsonBuilder, JsonError>
-{
+fn log_data_row(rows: &Vec<ColumnFieldValue>) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::new_object();
     let mut i = 0;
     for row in rows {
@@ -330,83 +316,83 @@ fn log_data_row(rows: &Vec<ColumnFieldValue>) -> Result<JsonBuilder, JsonError>
     Ok(jb)
 }
 
-fn log_error_notice_field_types(error_fields: &Vec<PgsqlErrorNoticeMessageField>) -> Result<JsonBuilder, JsonError>
-{
+fn log_error_notice_field_types(
+    error_fields: &Vec<PgsqlErrorNoticeMessageField>,
+) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::new_object();
     for field in error_fields {
         match field.field_type {
             PgsqlErrorNoticeFieldType::SeverityLocalizable => {
                 jb.set_string_from_bytes("severity", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::SeverityNonLocalizable => {
                 jb.set_string_from_bytes("severity", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::CodeSqlStateCode => {
                 jb.set_string_from_bytes("code", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Message => {
                 jb.set_string_from_bytes("message", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Detail => {
                 jb.set_string_from_bytes("detail", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Hint => {
                 jb.set_string_from_bytes("hint", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Position => {
                 jb.set_string_from_bytes("position", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::InternalPosition => {
                 jb.set_string_from_bytes("internal_position", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::InternalQuery => {
                 jb.set_string_from_bytes("internal_query", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Where => {
                 jb.set_string_from_bytes("where", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::SchemaName => {
                 jb.set_string_from_bytes("schema_name", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::TableName => {
                 jb.set_string_from_bytes("table_name", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::ColumnName => {
                 jb.set_string_from_bytes("column_name", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::DataType => {
                 jb.set_string_from_bytes("data_type", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::ConstraintName => {
                 jb.set_string_from_bytes("constraint_name", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::File => {
                 jb.set_string_from_bytes("file", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Line => {
                 jb.set_string_from_bytes("line", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::Routine => {
                 jb.set_string_from_bytes("routine", &field.field_value)?;
-            },
+            }
             PgsqlErrorNoticeFieldType::TerminatorToken => {
                 // do nothing, as that's the terminator token ?
-            },
+            }
             PgsqlErrorNoticeFieldType::UnknownFieldType => {
                 // TODO Question - what should be done here?
-            },
+            }
         }
     }
     jb.close()?;
     Ok(jb)
 }
 
-fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, JsonError>
-{
+fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::new_object();
     jb.set_string_from_bytes("user", &params.user.value)?;
-    if let Some(PgsqlParameter{name: _, value}) = &params.database {
-        jb.set_string_from_bytes("database", &value)?;
+    if let Some(PgsqlParameter { name: _, value }) = &params.database {
+        jb.set_string_from_bytes("database", value)?;
     }
     // TODO Leaving these out in the less verbose version, and only show them in case extended and file logging is enabled in yaml?
     // if let Some(vec) = &params.optional_params {
@@ -422,7 +408,12 @@ fn log_pgsql_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx_safe: &mut PgsqlTransaction;
-    unsafe { tx_safe = cast_pointer!(tx, PgsqlTransaction); }
-    SCLogDebug!("----------- PGSQL rs_pgsql_logger_log call. Tx id is {:?}", tx_safe.tx_id);
+    unsafe {
+        tx_safe = cast_pointer!(tx, PgsqlTransaction);
+    }
+    SCLogDebug!(
+        "----------- PGSQL rs_pgsql_logger_log call. Tx id is {:?}",
+        tx_safe.tx_id
+    );
     log_pgsql(tx_safe, js).is_ok()
 }

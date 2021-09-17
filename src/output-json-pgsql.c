@@ -117,7 +117,7 @@ static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
 
-    SCLogNotice("PostgreSQL log sub-module initialized.");
+    SCLogDebug("PostgreSQL log sub-module initialized.");
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -165,7 +165,7 @@ void JsonPgsqlLogRegister(void)
 {
     /* PGSQL_START_REMOVE */
     if (ConfGetNode("app-layer.protocols.pgsql") == NULL) {
-        SCLogNotice("Disabling Pgsql eve-logger");
+        SCLogDebug("Disabling Pgsql eve-logger");
         return;
     }
     /* PGSQL_END_REMOVE */
@@ -174,5 +174,5 @@ void JsonPgsqlLogRegister(void)
             OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
             JsonPgsqlLogThreadDeinit, NULL);
 
-    SCLogNotice("PostgreSQL JSON logger registered.");
+    SCLogDebug("PostgreSQL JSON logger registered.");
 }
