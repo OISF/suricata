@@ -21,29 +21,25 @@ use crate::pgsql::pgsql::*;
 use std;
 
 fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.set_uint("transaction_id", tx.tx_id)?;
+    js.set_uint("tx_id", tx.tx_id)?;
     if !tx.requests.is_empty() {
         if tx.requests.len() > 1 {
             js.open_array("requests")?;
             for request in &tx.requests {
-                let jbr = log_request(request)?;
-                js.append_object(&jbr)?;
+                js.append_object(&log_request(request)?)?;
             }
             js.close()?;
         } else {
-            let jbr = log_request(&tx.requests[0])?;
-            js.set_object("request", &jbr)?;
+            js.set_object("request", &log_request(&tx.requests[0])?)?;
         }
         if tx.responses.len() > 1 {
             js.open_array("responses")?;
             for response in &tx.responses {
-                let jb = log_response(response)?;
-                js.append_object(&jb)?;
+                js.append_object(&log_response(response)?)?;
             }
             js.close()?;
         } else if !tx.responses.is_empty() {
-            let jb = log_response(&tx.responses[0])?;
-            js.set_object("response", &jb)?;
+            js.set_object("response", &log_response(&tx.responses[0])?)?;
         }
     } else {
         SCLogDebug!(
@@ -53,8 +49,7 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
         if !tx.responses.is_empty() {
             js.open_array("response")?;
             for response in &tx.responses {
-                let jb = log_response(response)?;
-                js.append_object(&jb)?;
+                js.append_object(&log_response(response)?)?;
             }
             js.close()?;
         } else {
@@ -68,7 +63,6 @@ fn log_pgsql(tx: &PgsqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonErro
 
 fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
-    js.open_object(req.to_str())?;
     match req {
         PgsqlFEMessage::StartupMessage(StartupPacket {
             length: _,
@@ -76,13 +70,14 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError> {
             proto_minor,
             params,
         }) => {
+            js.open_object(req.to_str())?;
             let proto = format!("{}.{}", proto_major, proto_minor);
             js.set_string("protocol_version", &proto)?;
-            let jb = log_pgsql_parameters(params)?;
-            js.set_object("startup_parameters", &jb)?;
+            js.set_object("startup_parameters", &log_pgsql_parameters(params)?)?;
+            js.close()?;
         }
         PgsqlFEMessage::SSLRequest(_) => {
-            js.set_string("message_type", "SSL Request")?;
+            js.set_string("message", "SSL Request")?;
         }
         PgsqlFEMessage::SASLInitialResponse(SASLInitialResponsePacket {
             identifier: _,
@@ -91,8 +86,10 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError> {
             param_length: _,
             sasl_param,
         }) => {
+            js.open_object(req.to_str())?;
             js.set_string("authentication_mechanism", &auth_mechanism.to_str())?;
             js.set_string_from_bytes("sasl_param", sasl_param)?;
+            js.close()?;
         }
         PgsqlFEMessage::PasswordMessage(RegularPacket {
             identifier: _,
@@ -109,26 +106,26 @@ fn log_request(req: &PgsqlFEMessage) -> Result<JsonBuilder, JsonError> {
             length: _,
             payload,
         }) => {
+            js.open_object(req.to_str())?;
             js.set_string_from_bytes("payload", payload)?;
+            js.close()?;
         }
         PgsqlFEMessage::Terminate(TerminationMessage {
             identifier: _,
             length: _,
         }) => {
-            js.set_string("message_type", "termination_token")?;
+            js.set_string("message", req.to_str())?;
         }
     }
-    js.close()?;
     js.close()?;
     Ok(js)
 }
 
 fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::new_object();
-    js.open_object(res.to_str())?;
     match res {
         PgsqlBEMessage::SSLResponse(message) => {
-            js.set_string("ssl_response", &message.to_str())?;
+            js.set_string("message", &message.to_str())?;
         }
         PgsqlBEMessage::NoticeResponse(ErrorNoticeMessage {
             identifier: _,
@@ -140,8 +137,9 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
             length: _,
             message_body,
         }) => {
-            let jb = log_error_notice_field_types(message_body)?;
-            js.set_object("message_body", &jb)?;
+            js.open_object(res.to_str())?;
+            js.set_object("message_body", &log_error_notice_field_types(message_body)?)?;
+            js.close()?;
         }
         PgsqlBEMessage::AuthenticationOk(AuthenticationMessage {
             identifier: _,
@@ -192,21 +190,29 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
             payload,
         }) => {
             // TODO - nit - not sure what method to use here, the format printed doesn't look good
+            js.open_object(res.to_str())?;
             js.set_string_from_bytes("payload", payload)?;
+            js.close()?;
         }
         PgsqlBEMessage::AuthenticationSASL(_) => {
+            js.open_object(res.to_str())?;
             js.set_string("authentication_SASL", &res.to_str())?;
+            js.close()?;
         }
         PgsqlBEMessage::AuthenticationSASLContinue(_) => {
+            js.open_object(res.to_str())?;
             js.set_string("authentication_SASL_continue", &res.to_str())?;
+            js.close()?;
         }
         PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
             identifier: _,
             length: _,
             param,
         }) => {
+            js.open_object(res.to_str())?;
             js.set_string_from_bytes("name", &param.name)?;
             js.set_string_from_bytes("value", &param.value)?;
+            js.close()?;
         }
         PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {
             identifier: _,
@@ -214,25 +220,31 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
             backend_pid,
             secret_key,
         }) => {
+            js.open_object(res.to_str())?;
             js.set_uint("process_id", (*backend_pid) as u64)?;
             js.set_uint("secret_key", (*secret_key) as u64)?;
+            js.close()?;
         }
         PgsqlBEMessage::CommandComplete(RegularPacket {
             identifier: _,
             length: _,
             payload,
         }) => {
+            js.open_object(res.to_str())?;
             // TODO - nit - this may result in not so pretty strings.
             //  example "SELECT 3\u0000"
             js.set_string_from_bytes("payload", payload)?;
+            js.close()?;
         }
         PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
             identifier: _,
             length: _,
             transaction_status,
         }) => {
+            js.open_object(res.to_str())?;
             let tx_status = (*transaction_status) as char;
             js.set_string("transaction_status", &tx_status.to_string())?;
+            js.close()?;
         }
         PgsqlBEMessage::RowDescription(RowDescriptionMessage {
             identifier: _,
@@ -240,11 +252,12 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
             field_count,
             fields: _,
         }) => {
+            js.open_object(res.to_str())?;
             let count = (*field_count) as u64;
             js.set_uint("field_count", count)?;
-            // let jb = log_row_description(fields)?;
-            // js.set_object("columns", &jb)?;
+            // js.set_object("columns", &log_row_description(fields)?)?;
             js.set_string("backend_response", "Response Ok")?;
+            js.close()?;
         }
         PgsqlBEMessage::DataRow(DataRowMessage {
             identifier: _,
@@ -252,20 +265,22 @@ fn log_response(res: &PgsqlBEMessage) -> Result<JsonBuilder, JsonError> {
             field_count,
             fields,
         }) => {
+            js.open_object(res.to_str())?;
             let count = (*field_count) as u64;
             js.set_uint("field_count", count)?;
-            let jb = log_data_row(fields)?;
-            js.set_object("rows", &jb)?;
+            js.set_object("rows", &log_data_row(fields)?)?;
+            js.close()?;
         }
         PgsqlBEMessage::DummyDataRow(RegularPacket {
             identifier: _,
             length: _,
             payload: _,
         }) => {
+            js.open_object(res.to_str())?;
             js.set_string("backend_response", "Response Ok")?;
+            js.close()?;
         }
     }
-    js.close()?;
     js.close()?;
     Ok(js)
 }
