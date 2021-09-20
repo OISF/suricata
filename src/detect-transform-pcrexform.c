@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 
-#include <pcre2.h>
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"

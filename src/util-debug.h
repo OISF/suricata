@@ -31,7 +31,6 @@
 #include "util-error.h"
 #include "util-debug-filters.h"
 #include "util-atomic.h"
-#include <pcre2.h>
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module

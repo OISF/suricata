@@ -45,8 +45,6 @@ typedef struct DetectParseRegex_ {
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
-#include <pcre2.h>
-
 typedef struct DetectParseRegex2 {
     pcre2_code *regex;
     pcre2_match_context *context;
