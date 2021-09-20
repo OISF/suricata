@@ -174,7 +174,7 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
     }
 
     for (i = 1; i < ret; i++) {
-        res = SC_pcre2_substring_get(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;

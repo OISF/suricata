@@ -284,7 +284,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     for (i = 4; i < ret; i++) {
         char opt_str[64] = "";
         pcre2len = sizeof(opt_str);
-        res = SC_pcre2_substring_copy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
                     "pcre2_substring_copy_bynumber failed "

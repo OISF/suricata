@@ -108,7 +108,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 
     SCLogDebug("ret %d", ret);
 
-    res = SC_pcre2_substring_get(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = SC_Pcre2SubstringGet(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
@@ -125,7 +125,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     SCLogDebug("Arg2 \"%s\"", arg2);
 
     if (ret > 3) {
-        res = SC_pcre2_substring_get(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_Pcre2SubstringGet(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
@@ -134,8 +134,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         SCLogDebug("Arg3 \"%s\"", arg3);
 
         if (ret > 4) {
-            res = SC_pcre2_substring_get(
-                    parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+            res = SC_Pcre2SubstringGet(parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
