@@ -27,7 +27,6 @@
 #include "suricata-common.h"
 #include "util-host-info.h"
 #include "util-byte.h"
-#include <pcre2.h>
 
 #ifndef OS_WIN32
 #include <sys/utsname.h>

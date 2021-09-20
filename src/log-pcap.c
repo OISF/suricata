@@ -58,7 +58,6 @@
 #include "util-misc.h"
 #include "util-cpu.h"
 #include "util-atomic.h"
-#include <pcre2.h>
 
 #include "source-pcap.h"
 

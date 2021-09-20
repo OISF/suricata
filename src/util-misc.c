@@ -27,7 +27,6 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-misc.h"
-#include <pcre2.h>
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
 static pcre2_code *parse_regex = NULL;
