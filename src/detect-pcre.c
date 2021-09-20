@@ -71,8 +71,8 @@
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
 
-static DetectParseRegex2 *parse_regex;
-static DetectParseRegex2 *parse_capture_regex;
+static DetectParseRegex *parse_regex;
+static DetectParseRegex *parse_capture_regex;
 
 #ifdef PCRE2_HAVE_JIT
 static int pcre2_use_jit = 1;
@@ -931,7 +931,7 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
-    DetectParseFreePCRE2(&pd->parse_regex);
+    DetectParseFreeRegex(&pd->parse_regex);
     SCFree(pd);
 
     return;
