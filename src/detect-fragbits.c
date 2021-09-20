@@ -183,8 +183,7 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
     }
 
     for (i = 0; i < (ret - 1); i++) {
-        res = SC_pcre2_substring_get(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_Pcre2SubstringGet(parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed %d", res);
             goto error;

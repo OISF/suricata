@@ -189,7 +189,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     }
 
     pcre2len = sizeof(arg1);
-    res = SC_pcre2_substring_copy(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         SCReturnPtr(NULL, "DetectFlagsData");
@@ -204,7 +204,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     }
     if (ret >= 3) {
         pcre2len = sizeof(arg3);
-        res = SC_pcre2_substring_copy(parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             SCReturnPtr(NULL, "DetectFlagsData");
