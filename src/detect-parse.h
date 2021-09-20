@@ -96,9 +96,9 @@ void DetectParseFreeRegex(DetectParseRegex *r);
 /* parse regex exec */
 int DetectParsePcreExec(
         DetectParseRegex *parse_regex, const char *str, int start_offset, int options);
-int SC_pcre2_substring_copy(
+int SC_Pcre2SubstringCopy(
         pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen);
-int SC_pcre2_substring_get(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,
+int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,
         PCRE2_SIZE *bufflen);
 
 #endif /* __DETECT_PARSE_H__ */

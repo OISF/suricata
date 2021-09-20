@@ -185,7 +185,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
 
     if (ret > 1) {
         pcre2len = sizeof(str1);
-        res = SC_pcre2_substring_copy(parse_regex.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;

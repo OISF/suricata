@@ -2531,7 +2531,7 @@ DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts)
     return detect_parse;
 }
 
-int SC_pcre2_substring_copy(
+int SC_Pcre2SubstringCopy(
         pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen)
 {
     int r = pcre2_substring_copy_bynumber(match_data, number, buffer, bufflen);
@@ -2543,7 +2543,7 @@ int SC_pcre2_substring_copy(
     return r;
 }
 
-int SC_pcre2_substring_get(
+int SC_Pcre2SubstringGet(
         pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr, PCRE2_SIZE *bufflen)
 {
     int r = pcre2_substring_get_bynumber(match_data, number, bufferptr, bufflen);
