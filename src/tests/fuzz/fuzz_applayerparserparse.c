@@ -133,6 +133,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             memcpy(isolatedBuffer, albuffer, alnext - albuffer);
             (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
             free(isolatedBuffer);
+            if (FlowChangeProto(f)) {
+                // exits if a protocol change is requested
+                alsize = 0;
+                break;
+            }
             flags &= ~(STREAM_START);
             if (f->alparser &&
                    (((flags & STREAM_TOSERVER) != 0 &&
