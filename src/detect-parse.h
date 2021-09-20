@@ -39,18 +39,12 @@ enum {
     SIG_DIREC_DST
 };
 
-typedef struct DetectParseRegex_ {
-    pcre2_code *regex;
-    pcre2_match_data *match;
-    struct DetectParseRegex_ *next;
-} DetectParseRegex;
-
-typedef struct DetectParseRegex2 {
+typedef struct DetectParseRegex {
     pcre2_code *regex;
     pcre2_match_context *context;
     pcre2_match_data *match;
-    struct DetectParseRegex2 *next;
-} DetectParseRegex2;
+    struct DetectParseRegex *next;
+} DetectParseRegex;
 
 /* prototypes */
 Signature *SigAlloc(void);
@@ -92,8 +86,7 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
-void DetectParseFreePCRE2(DetectParseRegex2 *r);
-DetectParseRegex2 *DetectSetupPCRE2(const char *parse_str, int opts);
+DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts);
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
