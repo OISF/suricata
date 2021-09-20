@@ -125,7 +125,7 @@ typedef struct PrefilterMpmListId {
 } PrefilterMpmListId;
 
 struct MpmListIdDataArgs {
-    int local_id;  /**< used as index into thread inspect array */
+    uint32_t local_id; /**< used as index into thread inspect array */
     void *txv;
 };
 

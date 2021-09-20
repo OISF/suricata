@@ -167,8 +167,7 @@ macro_rules!SCLogDebug {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules!SCLogDebug {
-    ($last:expr) => { let _ = &$last; let _ = $crate::log::Level::Debug; };
-    ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
+    ($($arg:tt)*) => ()
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered

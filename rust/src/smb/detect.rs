@@ -21,7 +21,7 @@ use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
+pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
                                             buffer: *mut *const u8,
                                             buffer_len: *mut u32)
                                             -> u8
@@ -30,26 +30,22 @@ pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
             SCLogDebug!("is_pipe {}", x.is_pipe);
             if !x.is_pipe {
-                unsafe {
-                    *buffer = x.share_name.as_ptr();
-                    *buffer_len = x.share_name.len() as u32;
-                    return 1;
-                }
+                *buffer = x.share_name.as_ptr();
+                *buffer_len = x.share_name.len() as u32;
+                return 1;
             }
         }
         _ => {
         }
     }
 
-    unsafe {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
+pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
                                             buffer: *mut *const u8,
                                             buffer_len: *mut u32)
                                             -> u8
@@ -58,26 +54,22 @@ pub extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
             SCLogDebug!("is_pipe {}", x.is_pipe);
             if x.is_pipe {
-                unsafe {
-                    *buffer = x.share_name.as_ptr();
-                    *buffer_len = x.share_name.len() as u32;
-                    return 1;
-                }
+                *buffer = x.share_name.as_ptr();
+                *buffer_len = x.share_name.len() as u32;
+                return 1;
             }
         }
         _ => {
         }
     }
 
-    unsafe {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
+pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
                                             direction: u8,
                                             buffer: *mut *const u8,
                                             buffer_len: *mut u32)
@@ -91,21 +83,17 @@ pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
                 &x.stub_data_tc
             };
             if vref.len() > 0 {
-                unsafe {
-                    *buffer = vref.as_ptr();
-                    *buffer_len = vref.len() as u32;
-                    return 1;
-                }
+                *buffer = vref.as_ptr();
+                *buffer_len = vref.len() as u32;
+                return 1;
             }
         }
         _ => {
         }
     }
 
-    unsafe {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
     return 0;
 }
 

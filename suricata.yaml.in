@@ -403,14 +403,6 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # alert output to prelude (https://www.prelude-siem.org/) only
-  # available if Suricata has been compiled with --enable-prelude
-  - alert-prelude:
-      enabled: no
-      profile: suricata
-      log-packet-content: no
-      log-packet-header: yes
-
   # Stats.log contains data from various counters of the Suricata engine.
   - stats:
       enabled: yes
@@ -722,10 +714,11 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
-    # MQTT, disabled by default.
     mqtt:
-      # enabled: no
+      enabled: yes
       # max-msg-length: 1mb
+      # subscribe-topic-match-limit: 100
+      # unsubscribe-topic-match-limit: 100
     krb5:
       enabled: yes
     snmp:
@@ -1254,7 +1247,7 @@ flow-timeouts:
 # engine is configured.
 #
 # stream:
-#   memcap: 32mb                # Can be specified in kb, mb, gb.  Just a
+#   memcap: 64mb                # Can be specified in kb, mb, gb.  Just a
 #                               # number indicates it's in bytes.
 #   checksum-validation: yes    # To validate the checksum of received
 #                               # packet. If csum validation is specified as
@@ -1276,7 +1269,7 @@ flow-timeouts:
 #                               # the bypass.
 #
 #   reassembly:
-#     memcap: 64mb              # Can be specified in kb, mb, gb.  Just a number
+#     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
 #     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.

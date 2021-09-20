@@ -76,6 +76,7 @@
 #include "util-device.h"
 #include "util-var-name.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"
@@ -102,25 +103,29 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 
-SCEnumCharMap det_ctx_event_table[ ] = {
+SCEnumCharMap det_ctx_event_table[] = {
 #ifdef UNITTESTS
-    { "TEST",                       DET_CTX_EVENT_TEST },
+    { "TEST", DET_CTX_EVENT_TEST },
 #endif
-    { "NO_MEMORY",                  FILE_DECODER_EVENT_NO_MEM },
-    { "INVALID_SWF_LENGTH",         FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
-    { "INVALID_SWF_VERSION",        FILE_DECODER_EVENT_INVALID_SWF_VERSION },
-    { "Z_DATA_ERROR",               FILE_DECODER_EVENT_Z_DATA_ERROR },
-    { "Z_STREAM_ERROR",             FILE_DECODER_EVENT_Z_STREAM_ERROR },
-    { "Z_BUF_ERROR",                FILE_DECODER_EVENT_Z_BUF_ERROR },
-    { "Z_UNKNOWN_ERROR",            FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
-    { "LZMA_DECODER_ERROR",         FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
-    { "LZMA_MEMLIMIT_ERROR",        FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
-    { "LZMA_OPTIONS_ERROR",         FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR },
-    { "LZMA_FORMAT_ERROR",          FILE_DECODER_EVENT_LZMA_FORMAT_ERROR },
-    { "LZMA_DATA_ERROR",            FILE_DECODER_EVENT_LZMA_DATA_ERROR },
-    { "LZMA_BUF_ERROR",             FILE_DECODER_EVENT_LZMA_BUF_ERROR },
-    { "LZMA_UNKNOWN_ERROR",         FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
-    { NULL,                         -1 },
+    { "NO_MEMORY", FILE_DECODER_EVENT_NO_MEM },
+    { "INVALID_SWF_LENGTH", FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
+    { "INVALID_SWF_VERSION", FILE_DECODER_EVENT_INVALID_SWF_VERSION },
+    { "Z_DATA_ERROR", FILE_DECODER_EVENT_Z_DATA_ERROR },
+    { "Z_STREAM_ERROR", FILE_DECODER_EVENT_Z_STREAM_ERROR },
+    { "Z_BUF_ERROR", FILE_DECODER_EVENT_Z_BUF_ERROR },
+    { "Z_UNKNOWN_ERROR", FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
+    { "LZMA_DECODER_ERROR", FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
+    { "LZMA_MEMLIMIT_ERROR", FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
+    { "LZMA_OPTIONS_ERROR", FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR },
+    { "LZMA_FORMAT_ERROR", FILE_DECODER_EVENT_LZMA_FORMAT_ERROR },
+    { "LZMA_DATA_ERROR", FILE_DECODER_EVENT_LZMA_DATA_ERROR },
+    { "LZMA_BUF_ERROR", FILE_DECODER_EVENT_LZMA_BUF_ERROR },
+    { "LZMA_UNKNOWN_ERROR", FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
+    {
+            "TOO_MANY_BUFFERS",
+            DETECT_EVENT_TOO_MANY_BUFFERS,
+    },
+    { NULL, -1 },
 };
 
 /** \brief register inspect engine at start up time
@@ -174,6 +179,8 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         InspectEngineFuncPtr2 Callback2,
         InspectionBufferGetDataPtr GetData)
 {
+    BUG_ON(progress >= 48);
+
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
@@ -1008,12 +1015,31 @@ InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int 
     return &det_ctx->inspect.buffers[list_id];
 }
 
+static InspectionBufferMultipleForList *InspectionBufferGetMulti(
+        DetectEngineThreadCtx *det_ctx, const int list_id)
+{
+    InspectionBufferMultipleForList *buffer = &det_ctx->multi_inspect.buffers[list_id];
+    if (!buffer->init) {
+        det_ctx->multi_inspect.to_clear_queue[det_ctx->multi_inspect.to_clear_idx++] = list_id;
+        buffer->init = 1;
+    }
+    return buffer;
+}
+
 /** \brief for a InspectionBufferMultipleForList get a InspectionBuffer
  *  \param fb the multiple buffer array
  *  \param local_id the index to get a buffer
  *  \param buffer the inspect buffer or NULL in case of error */
-InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleForList *fb, uint32_t local_id)
+InspectionBuffer *InspectionBufferMultipleForListGet(
+        DetectEngineThreadCtx *det_ctx, const int list_id, const uint32_t local_id)
 {
+    if (unlikely(local_id >= 1024)) {
+        DetectEngineSetEvent(det_ctx, DETECT_EVENT_TOO_MANY_BUFFERS);
+        return NULL;
+    }
+
+    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+
     if (local_id >= fb->size) {
         uint32_t old_size = fb->size;
         uint32_t new_size = local_id + 1;
@@ -1035,16 +1061,9 @@ InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleFor
     fb->max = MAX(fb->max, local_id);
     InspectionBuffer *buffer = &fb->inspection_buffers[local_id];
     SCLogDebug("using file_data buffer %p", buffer);
-    return buffer;
-}
-
-InspectionBufferMultipleForList *InspectionBufferGetMulti(DetectEngineThreadCtx *det_ctx, const int list_id)
-{
-    InspectionBufferMultipleForList *buffer = &det_ctx->multi_inspect.buffers[list_id];
-    if (!buffer->init) {
-        det_ctx->multi_inspect.to_clear_queue[det_ctx->multi_inspect.to_clear_idx++] = list_id;
-        buffer->init = 1;
-    }
+#ifdef DEBUG_VALIDATION
+    buffer->multi = true;
+#endif
     return buffer;
 }
 
@@ -1058,9 +1077,22 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 }
 
 /** \brief setup the buffer with our initial data */
+void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
+        const uint8_t *data, const uint32_t data_len)
+{
+    DEBUG_VALIDATE_BUG_ON(!buffer->multi);
+    buffer->inspect = buffer->orig = data;
+    buffer->inspect_len = buffer->orig_len = data_len;
+    buffer->len = 0;
+
+    InspectionBufferApplyTransforms(buffer, transforms);
+}
+
+/** \brief setup the buffer with our initial data */
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
+    DEBUG_VALIDATE_BUG_ON(buffer->multi);
     if (buffer->inspect == NULL) {
 #ifdef UNITTESTS
         if (det_ctx && list_id != -1)
@@ -1373,11 +1405,6 @@ static int DetectEngineInspectRulePayloadMatches(
             pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, p);
             if (pmatch) {
                 det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
-                /* Tell the engine that this reassembled stream can drop the
-                 * rest of the pkts with no further inspection */
-                if (s->action & ACTION_DROP)
-                    *alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
-
                 *alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
             }
         }

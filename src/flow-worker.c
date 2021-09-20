@@ -168,6 +168,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
 {
     Flow *f;
     while ((f = FlowQueuePrivateGetFromTop(fq)) != NULL) {
+        FLOWLOCK_WRLOCK(f);
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
 
         const FlowStateType state = f->flow_state;
@@ -185,13 +186,10 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
                 counters->flows_aside_needs_work++;
             }
         }
-#if 0
-// 20200501 this *is* possible if the flow timeout handling triggers a proto upgrade (e.g. http->https)
-#ifdef DEBUG
+
         /* this should not be possible */
         BUG_ON(f->use_cnt > 0);
-#endif
-#endif
+
         /* no one is referring to this flow, use_cnt 0, removed from hash
          * so we can unlock it and pass it to the flow recycler */
 
@@ -205,7 +203,6 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
         } else {
             FlowQueuePrivatePrependFlow(&fw->fls.spare_queue, f);
         }
-// TODO 20200503 we can get here with use_cnt > 0. How does it work wrt timeout? Should we not queue it? But what then?
     }
 }
 
@@ -357,8 +354,16 @@ static void FlowPruneFiles(Packet *p)
     }
 }
 
-static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw,
-        Packet *p, void *detect_thread)
+/** \brief update stream engine
+ *
+ *  We can be called from both the flow timeout path as well as from the
+ *  "real" traffic path. If in the timeout path any additional packets we
+ *  forge for flushing pipelines should not leave our scope. If the original
+ *  packet is real (or related to a real packet) we need to push the packets
+ *  on, so IPS logic stays valid.
+ */
+static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p,
+        void *detect_thread, const bool timeout)
 {
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
@@ -384,21 +389,27 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
 
         OutputLoggerLog(tv, x, fw->output_thread);
 
-        /* put these packets in the preq queue so that they are
-         * by the other thread modules before packet 'p'. */
-        PacketEnqueueNoLock(&tv->decode_pq, x);
+        if (timeout) {
+            PacketPoolReturnPacket(x);
+        } else {
+            /* put these packets in the preq queue so that they are
+             * by the other thread modules before packet 'p'. */
+            PacketEnqueueNoLock(&tv->decode_pq, x);
+        }
     }
 }
 
 static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw,
         void *detect_thread)
 {
+    DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
+
     SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
     DEBUG_VALIDATE_BUG_ON(!(p->flow && PKT_IS_TCP(p)));
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
     /* handle TCP and app layer */
-    FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread);
+    FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, true);
 
     PacketUpdateEngineEventCounters(tv, fw->dtv, p);
 
@@ -521,9 +532,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             DisableDetectFlowFileFlags(p->flow);
         }
 
-        FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread);
+        FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
 
-    /* handle the app layer part of the UDP packet payload */
+        /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && p->proto == IPPROTO_UDP) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
         AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);

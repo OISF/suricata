@@ -431,41 +431,6 @@ because of the amount of information it has to store.
       append: yes/no              #If this option is set to yes, the last filled fast.log-file will not be
                                   # overwritten while restarting Suricata.
 
-Alert output to prelude (alert-prelude)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To be able to use this type, you have to connect with the prelude
-manager first.
-
-Prelude alerts contain a lot of information and fields, including the
-IPfields in of the packet which triggered the alert. This information
-can be divided in three parts:
-
-- The alert description (sensor name, date, ID (sid) of the rule,
-  etc). This is always included
-- The packets headers (almost all IP fields, TCP UDP etc. if relevant)
-- A binary form of the entire packet.
-
-Since the last two parts can be very big (especially since they are
-stored in the Prelude SQL database), they are optional and controlled
-by the two options 'log_packet_header' and 'log_packet_content'. The
-default setting is to log the headers, but not the content.
-
-The profile name is the name of the Prelude profile used to connect to
-the prelude manager. This profile must be registered using an external
-command (prelude-admin), and must match the uid/gid of the user that
-will run Suricata. The complete procedure is detailed in the `Prelude
-Handbook
-<https://dev.prelude-technologies.com/wiki/prelude/InstallingAgentRegistration>`_.
-
-::
-
-  - alert-prelude:                #The log-name.
-       enabled: no                #This log is not enabled. Set 'yes' to enable.
-       profile: suricata          #The profile-name used to connect to the prelude manager.
-       log_packet_content: no     #The log_packet_content is disabled by default.
-       log_packet_header: yes     #The log _packet_header is enabled by default.
-
 Stats
 ~~~~~
 

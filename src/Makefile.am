@@ -4,20 +4,17 @@ if BUILD_FUZZTARGETS
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
     fuzz_sigpcap fuzz_mimedecparseline
-endif
 if HAS_FUZZPCAP
     bin_PROGRAMS += fuzz_sigpcap_aware
+endif
 endif
 
 noinst_HEADERS = \
 	action-globals.h \
 	alert-debuglog.h \
 	alert-fastlog.h \
-	alert-prelude.h \
 	alert-syslog.h \
 	app-layer-dcerpc-common.h \
-	app-layer-dcerpc.h \
-	app-layer-dcerpc-udp.h \
 	app-layer-detect-proto.h \
 	app-layer-dnp3.h \
 	app-layer-dnp3-objects.h \
@@ -596,11 +593,8 @@ noinst_HEADERS = \
 libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
 	alert-fastlog.c \
-	alert-prelude.c \
 	alert-syslog.c \
 	app-layer.c \
-	app-layer-dcerpc.c \
-	app-layer-dcerpc-udp.c \
 	app-layer-detect-proto.c \
 	app-layer-dnp3.c \
 	app-layer-dnp3-objects.c \
@@ -1158,7 +1152,61 @@ libsuricata_c_a_SOURCES = \
 	win32-service.c \
 	win32-syscall.c
 
-EXTRA_DIST = tests
+EXTRA_DIST = \
+	tests/stream-tcp-inline.c \
+	tests/stream-tcp-list.c \
+	tests/detect-ipv4hdr.c \
+	tests/detect-ipv6hdr.c \
+	tests/detect-tcphdr.c \
+	tests/detect-udphdr.c \
+	tests/reputation.c \
+	tests/detect-bsize.c \
+	tests/detect-http2.c \
+	tests/detect-icmpv6-mtu.c \
+	tests/detect-icmpv6hdr.c \
+	tests/detect-snmp-pdu_type.c \
+	tests/detect-snmp-version.c \
+	tests/detect-tcpmss.c \
+	tests/detect-template.c \
+	tests/detect-transform-pcrexform.c \
+	tests/detect-ttl.c \
+	tests/source-pcap.c \
+	tests/app-layer-htp-file.c \
+	tests/detect-engine-content-inspection.c \
+	tests/detect-icmpv4hdr.c \
+	tests/detect-parse.c \
+	tests/stream-tcp-reassemble.c \
+	tests/detect-file-data.c \
+	tests/detect-http-client-body.c \
+	tests/detect-http-cookie.c \
+	tests/detect-http-header.c \
+	tests/detect-http-host.c \
+	tests/detect-http-method.c \
+	tests/detect-http-raw-header.c \
+	tests/detect-http-server-body.c \
+	tests/detect-http-stat-code.c \
+	tests/detect-http-stat-msg.c \
+	tests/detect-http-uri.c \
+	tests/detect-http-user-agent.c \
+	tests/detect-snmp-community.c \
+	tests/detect-ssl-state.c \
+	tests/detect-ssl-version.c \
+	tests/detect-template-buffer.c \
+	tests/detect-template2.c \
+	tests/detect-tls-cert-fingerprint.c \
+	tests/detect-tls-cert-issuer.c \
+	tests/detect-tls-cert-serial.c \
+	tests/detect-tls-cert-subject.c \
+	tests/detect-tls-cert-validity.c \
+	tests/detect-tls-certs.c \
+	tests/detect-tls-ja3-hash.c \
+	tests/detect-tls-ja3-string.c \
+	tests/detect-tls-ja3s-hash.c \
+	tests/detect-tls-ja3s-string.c \
+	tests/detect-tls-sni.c \
+	tests/detect-tls-version.c \
+	tests/detect.c \
+	tests/stream-tcp.c
 
 install-headers:
 	mkdir -p $(DESTDIR)${includedir}/suricata
@@ -1213,92 +1261,92 @@ if BUILD_FUZZTARGETS
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
 LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 
-nodist_fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
+fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerprotodetectgetproto_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_applayerprotodetectgetproto_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
+    fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
+fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
 fuzz_applayerparserparse_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerparserparse_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_applayerparserparse_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
+    fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerparserparse_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c
+fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c
 fuzz_siginit_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_siginit_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_siginit_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_siginit_SOURCES += tests/fuzz/onefile.c
+    fuzz_siginit_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_siginit_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c
+fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c
 fuzz_confyamlloadstring_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_confyamlloadstring_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_confyamlloadstring_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_confyamlloadstring_SOURCES += tests/fuzz/onefile.c
+    fuzz_confyamlloadstring_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_confyamlloadstring_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c
+fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c
 fuzz_decodepcapfile_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_decodepcapfile_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_decodepcapfile_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_decodepcapfile_SOURCES += tests/fuzz/onefile.c
+    fuzz_decodepcapfile_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 
-nodist_fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
+fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
 fuzz_sigpcap_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_sigpcap_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_sigpcap_SOURCES += tests/fuzz/onefile.c
+    fuzz_sigpcap_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
 
 if HAS_FUZZPCAP
-nodist_fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c
+fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c
 fuzz_sigpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
 if HAS_FUZZLDFLAGS
     fuzz_sigpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_sigpcap_aware_SOURCES += tests/fuzz/onefile.c
+    fuzz_sigpcap_aware_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
 endif
 
-nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
+fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
 fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_mimedecparseline_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
     fuzz_mimedecparseline_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
-    nodist_fuzz_mimedecparseline_SOURCES += tests/fuzz/onefile.c
+    fuzz_mimedecparseline_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_mimedecparseline_SOURCES = force-cxx-linking.cxx

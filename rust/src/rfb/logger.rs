@@ -113,7 +113,7 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_logger_log(_state: &mut RFBState,
+pub unsafe extern "C" fn rs_rfb_logger_log(_state: &mut RFBState,
                                     tx: *mut std::os::raw::c_void,
                                     js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, RFBTransaction);

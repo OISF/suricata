@@ -208,6 +208,16 @@ static int FlowManagerFlowTimeout(Flow *f, struct timeval *ts, int32_t *next_ts,
     return 1;
 }
 
+/** \internal
+ *  \brief check timeout of captured bypassed flow by querying capture method
+ *
+ *  \param f Flow
+ *  \param ts timestamp
+ *  \param counters Flow timeout counters
+ *
+ *  \retval 0 not timeout
+ *  \retval 1 timeout (or not capture bypassed)
+ */
 static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
                                       FlowTimeoutCounters *counters)
 {
@@ -324,18 +334,17 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
     while ((f = FlowQueuePrivateGetFromTop(&td->aside_queue)) != NULL) {
         /* flow is still locked */
 
-        if (f->proto == IPPROTO_TCP &&
-                !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
+        if (f->proto == IPPROTO_TCP && !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
 #ifdef CAPTURE_OFFLOAD
                 f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
 #endif
                 f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-                FlowForceReassemblyNeedReassembly(f) == 1)
-        {
+                FlowForceReassemblyNeedReassembly(f) == 1) {
+            /* Send the flow to its thread */
             FlowForceReassemblyForFlow(f);
+            FLOWLOCK_UNLOCK(f);
             /* flow ownership is passed to the worker thread */
 
-            /* flow remains locked */
             counters->flows_aside_needs_work++;
             continue;
         }
@@ -392,17 +401,21 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td,
 
         Flow *next_flow = f->next;
 
-        counters->flows_timeout++;
-
         /* never prune a flow that is used by a packet we
          * are currently processing in one of the threads */
         if (f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters)) {
             FLOWLOCK_UNLOCK(f);
             prev_f = f;
-            counters->flows_timeout_inuse++;
+            if (f->use_cnt > 0) {
+                counters->flows_timeout_inuse++;
+            }
             f = f->next;
             continue;
         }
+
+        f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
+        counters->flows_timeout++;
 
         RemoveFromHash(f, prev_f);
 
@@ -426,7 +439,7 @@ static void FlowManagerHashRowClearEvictedList(FlowManagerTimeoutThread *td,
         f->next = NULL;
         f->fb = NULL;
 
-        DEBUG_VALIDATE_BUG_ON(f->use_cnt > 0 || !FlowBypassedTimeout(f, ts, counters));
+        DEBUG_VALIDATE_BUG_ON(f->use_cnt > 0);
 
         FlowQueuePrivateAppendFlow(&td->aside_queue, f);
         /* flow is still locked in the queue */
@@ -548,8 +561,10 @@ static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td,
 
     const uint32_t min = iter * chunk_size + hash_min;
     uint32_t max = min + chunk_size;
+    /* we start at beginning of hash at next iteration so let's check
+     * hash till the end */
     if (iter + 1 == chunks) {
-        max = rows;
+        max = hash_max;
     }
     const uint32_t cnt = FlowTimeoutHash(td, ts, min, max, counters);
     return cnt;

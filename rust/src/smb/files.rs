@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use std;
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
@@ -22,7 +23,7 @@ use crate::filecontainer::*;
 use crate::smb::smb::*;
 
 /// File tracking transaction. Single direction only.
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SMBTransactionFile {
     pub direction: u8,
     pub fuid: Vec<u8>,
@@ -35,14 +36,10 @@ pub struct SMBTransactionFile {
 }
 
 impl SMBTransactionFile {
-    pub fn new() -> SMBTransactionFile {
-        return SMBTransactionFile {
-            direction: 0,
-            fuid: Vec::new(),
-            file_name: Vec::new(),
-            share_name: Vec::new(),
+    pub fn new() -> Self {
+        return Self {
             file_tracker: FileTransferTracker::new(),
-            post_gap_ts: 0,
+            ..Default::default()
         }
     }
 }
@@ -54,7 +51,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 {
     match unsafe {SURICATA_SMB_FILE_CONFIG} {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
+            ft.new_chunk(sfcm, files, flags, name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
         None => panic!("no SURICATA_SMB_FILE_CONFIG"),
     }
@@ -75,6 +72,7 @@ impl SMBState {
             },
             _ => { },
         }
+        tx.tx_data.init_files_opened();
         SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
@@ -115,7 +113,7 @@ impl SMBState {
     }
     fn setfileflags(&mut self, direction: u8, flags: u16) {
         SCLogDebug!("direction: {}, flags: {}", direction, flags);
-        if direction == 1 {
+        if direction == STREAM_TOCLIENT {
             self.files.flags_tc = flags;
         } else {
             self.files.flags_ts = flags;
@@ -193,16 +191,16 @@ impl SMBState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_getfiles(direction: u8, ptr: *mut SMBState) -> * mut FileContainer {
+pub unsafe extern "C" fn rs_smb_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *ptr };
+    let parser = cast_pointer!(ptr, SMBState);
     parser.getfiles(direction)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
+pub unsafe extern "C" fn rs_smb_setfileflags(direction: u8, ptr: *mut SMBState, flags: u16) {
     if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *ptr };
+    let parser = &mut *ptr;
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)
 }

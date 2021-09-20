@@ -36,6 +36,7 @@
 
 #include "flow.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -52,11 +53,12 @@
  * \param p pointer to the packet struct
  * \param pkt pointer to the raw packet
  * \param len packet len
- * \param pq pointer to the packet queue
  *
  */
 int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_vntag);
 
     if (len < VNTAG_HEADER_LEN) {
@@ -69,8 +71,6 @@ int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t 
     }
 
     VNTagHdr *vntag_hdr = (VNTagHdr *)pkt;
-    if (vntag_hdr == NULL)
-        return TM_ECODE_FAILED;
 
     uint16_t proto = GET_VNTAG_PROTO(vntag_hdr);
 

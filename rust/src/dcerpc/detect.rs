@@ -46,8 +46,8 @@ pub struct DCEOpnumRange {
 }
 
 impl DCEOpnumRange {
-    pub fn new() -> DCEOpnumRange {
-        return DCEOpnumRange {
+    pub fn new() -> Self {
+        return Self {
             range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
             range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
         };
@@ -280,8 +280,8 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_iface_data(&arg) {
-        Ok(detect) => std::mem::transmute(Box::new(detect)),
+    match parse_iface_data(arg) {
+        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_iface_free(ptr: *mut c_void) {
     if ptr != std::ptr::null_mut() {
-        let _: Box<DCEIfaceData> = std::mem::transmute(ptr);
+        std::mem::drop(Box::from_raw(ptr as *mut DCEIfaceData));
     }
 }
 
@@ -327,8 +327,8 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
         }
     };
 
-    match parse_opnum_data(&arg) {
-        Ok(detect) => std::mem::transmute(Box::new(detect)),
+    match parse_opnum_data(arg) {
+        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -336,7 +336,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
     if ptr != std::ptr::null_mut() {
-        let _: Box<DCEOpnumData> = std::mem::transmute(ptr);
+        std::mem::drop(Box::from_raw(ptr as *mut DCEOpnumData));
     }
 }
 

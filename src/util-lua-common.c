@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -334,7 +334,7 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
     } else if (PKT_IS_IPV6(p)) {
         ipver = 6;
     }
-    lua_pushnumber (luastate, ipver);
+    lua_pushinteger(luastate, ipver);
     if (ipver == 0)
         return 1;
 
@@ -351,17 +351,17 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
     lua_pushstring (luastate, dstip);
 
     /* proto and ports (or type/code) */
-    lua_pushnumber (luastate, p->proto);
+    lua_pushinteger(luastate, p->proto);
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-        lua_pushnumber (luastate, p->sp);
-        lua_pushnumber (luastate, p->dp);
+        lua_pushinteger(luastate, p->sp);
+        lua_pushinteger(luastate, p->dp);
 
     } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, p->icmp_s.type);
-        lua_pushnumber (luastate, p->icmp_s.code);
+        lua_pushinteger(luastate, p->icmp_s.type);
+        lua_pushinteger(luastate, p->icmp_s.code);
     } else {
-        lua_pushnumber (luastate, 0);
-        lua_pushnumber (luastate, 0);
+        lua_pushinteger(luastate, 0);
+        lua_pushinteger(luastate, 0);
     }
 
     return 6;
@@ -397,7 +397,7 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
     } else if (FLOW_IS_IPV6(f)) {
         ipver = 6;
     }
-    lua_pushnumber (luastate, ipver);
+    lua_pushinteger(luastate, ipver);
     if (ipver == 0)
         return 1;
 
@@ -414,17 +414,17 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
     lua_pushstring (luastate, dstip);
 
     /* proto and ports (or type/code) */
-    lua_pushnumber (luastate, f->proto);
+    lua_pushinteger(luastate, f->proto);
     if (f->proto == IPPROTO_TCP || f->proto == IPPROTO_UDP) {
-        lua_pushnumber (luastate, f->sp);
-        lua_pushnumber (luastate, f->dp);
+        lua_pushinteger(luastate, f->sp);
+        lua_pushinteger(luastate, f->dp);
 
     } else if (f->proto == IPPROTO_ICMP || f->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, f->icmp_s.type);
-        lua_pushnumber (luastate, f->icmp_s.code);
+        lua_pushinteger(luastate, f->icmp_s.type);
+        lua_pushinteger(luastate, f->icmp_s.code);
     } else {
-        lua_pushnumber (luastate, 0);
-        lua_pushnumber (luastate, 0);
+        lua_pushinteger(luastate, 0);
+        lua_pushinteger(luastate, 0);
     }
 
     return 6;
@@ -493,10 +493,10 @@ static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
  */
 static int LuaCallbackStatsPushToStackFromFlow(lua_State *luastate, const Flow *f)
 {
-    lua_pushnumber(luastate, f->todstpktcnt);
-    lua_pushnumber(luastate, f->todstbytecnt);
-    lua_pushnumber(luastate, f->tosrcpktcnt);
-    lua_pushnumber(luastate, f->tosrcbytecnt);
+    lua_pushinteger(luastate, f->todstpktcnt);
+    lua_pushinteger(luastate, f->todstbytecnt);
+    lua_pushinteger(luastate, f->tosrcpktcnt);
+    lua_pushinteger(luastate, f->tosrcbytecnt);
     return 4;
 }
 
@@ -557,9 +557,9 @@ static int LuaCallbackFlowId(lua_State *luastate)
  */
 static int LuaCallbackRuleIdsPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
 {
-    lua_pushnumber (luastate, pa->s->id);
-    lua_pushnumber (luastate, pa->s->rev);
-    lua_pushnumber (luastate, pa->s->gid);
+    lua_pushinteger(luastate, pa->s->id);
+    lua_pushinteger(luastate, pa->s->rev);
+    lua_pushinteger(luastate, pa->s->gid);
     return 3;
 }
 
@@ -750,7 +750,8 @@ static int LuaCallbackLogError(lua_State *luastate)
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: fileid (number), txid (number), name (string),
- *          size (number), magic (string), md5 in hex (string)
+ *          size (number), magic (string), md5 in hex (string),
+ *          sha1 (string), sha256 (string)
  */
 static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const File *file)
 {
@@ -789,10 +790,10 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
         }
     }
 
-    lua_pushnumber(luastate, file->file_store_id);
-    lua_pushnumber(luastate, file->txid);
+    lua_pushinteger(luastate, file->file_store_id);
+    lua_pushinteger(luastate, file->txid);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
-    lua_pushnumber(luastate, FileTrackedSize(file));
+    lua_pushinteger(luastate, FileTrackedSize(file));
     lua_pushstring (luastate,
 #ifdef HAVE_MAGIC
                     file->magic
@@ -803,7 +804,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushstring(luastate, md5ptr);
     lua_pushstring(luastate, sha1ptr);
     lua_pushstring(luastate, sha256ptr);
-    return 6;
+    return 8;
 }
 
 /** \internal

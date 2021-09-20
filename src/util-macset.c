@@ -66,7 +66,7 @@ void MacSetRegisterFlowStorage(void)
        has the ethernet setting enabled */
     if (root != NULL) {
         TAILQ_FOREACH(node, &root->head, next) {
-            if (strcmp(node->val, "eve-log") == 0) {
+            if (node->val && strcmp(node->val, "eve-log") == 0) {
                 const char *enabled = ConfNodeLookupChildValue(node->head.tqh_first, "enabled");
                 if (enabled != NULL && ConfValIsTrue(enabled)) {
                     const char *ethernet = ConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
@@ -90,7 +90,7 @@ bool MacSetFlowStorageEnabled(void)
 MacSet *MacSetInit(int size)
 {
     MacSet *ms = NULL;
-    if (!FLOW_CHECK_MEMCAP(sizeof(ms))) {
+    if (!FLOW_CHECK_MEMCAP(sizeof(*ms))) {
         return NULL;
     }
     ms = SCCalloc(1, sizeof(*ms));
@@ -410,7 +410,7 @@ static int MacSetTest05(void)
 {
     MacSet *ms = NULL;
     int ret = 0, i = 0;
-    SC_ATOMIC_SET(flow_config.memcap, 10);
+    SC_ATOMIC_SET(flow_config.memcap, 64);
 
     ms = MacSetInit(10);
     FAIL_IF_NULL(ms);
@@ -442,7 +442,7 @@ void MacSetRegisterTests(void)
     UtRegisterTest("MacSetTest02", MacSetTest02);
     UtRegisterTest("MacSetTest03", MacSetTest03);
     UtRegisterTest("MacSetTest04", MacSetTest04);
-    UtRegisterTest("MacSetTest04", MacSetTest05);
+    UtRegisterTest("MacSetTest05", MacSetTest05);
 #endif
 
     return;

@@ -22,11 +22,9 @@ use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use num_traits::FromPrimitive;
 use nom;
 use std;
-use std::ffi::{CStr,CString};
-use std::mem::transmute;
+use std::ffi::CString;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
 // packet in a connection. Note that there is no risk of collision with a
@@ -39,10 +37,9 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
-#[derive(FromPrimitive, Debug)]
-#[repr(u32)]
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum MQTTEvent {
-    MissingConnect = 0,
+    MissingConnect,
     MissingPublish,
     MissingSubscribe,
     MissingUnsubscribe,
@@ -50,7 +47,7 @@ pub enum MQTTEvent {
     UnintroducedMessage,
     InvalidQosLevel,
     MissingMsgId,
-    UnassignedMsgtype,
+    UnassignedMsgType,
 }
 
 #[derive(Debug)]
@@ -189,7 +186,7 @@ impl MQTTState {
                 self.protocol_version = conn.protocol_version;
                 if self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::DoubleConnect);
+                    MQTTState::set_event(&mut tx, MQTTEvent::DoubleConnect);
                     self.transactions.push(tx);
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
@@ -200,7 +197,7 @@ impl MQTTState {
             MQTTOperation::PUBLISH(ref publish) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -219,13 +216,13 @@ impl MQTTState {
                             self.transactions.push(tx);
                         } else {
                             let mut tx = self.new_tx(msg, toclient);
-                            &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingMsgId);
+                            MQTTState::set_event(&mut tx, MQTTEvent::MissingMsgId);
                             self.transactions.push(tx);
                         }
                     },
                     _ => {
                         let mut tx = self.new_tx(msg, toclient);
-                        &mut MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
+                        MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
                         self.transactions.push(tx);
                     }
                 }
@@ -233,7 +230,7 @@ impl MQTTState {
             MQTTOperation::SUBSCRIBE(ref subscribe) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -253,7 +250,7 @@ impl MQTTState {
                     },
                     _ => {
                         let mut tx = self.new_tx(msg, toclient);
-                        &mut MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
+                        MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
                         self.transactions.push(tx);
                     }
                 }
@@ -261,7 +258,7 @@ impl MQTTState {
             MQTTOperation::UNSUBSCRIBE(ref unsubscribe) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -281,7 +278,7 @@ impl MQTTState {
                     },
                     _ => {
                         let mut tx = self.new_tx(msg, toclient);
-                        &mut MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
+                        MQTTState::set_event(&mut tx, MQTTEvent::InvalidQosLevel);
                         self.transactions.push(tx);
                     }
                 }
@@ -294,7 +291,7 @@ impl MQTTState {
                     self.connected = true;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingConnect);
+                    MQTTState::set_event(&mut tx, MQTTEvent::MissingConnect);
                     self.transactions.push(tx);
                 }
             },
@@ -302,7 +299,7 @@ impl MQTTState {
             | MQTTOperation::PUBREL(ref v) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -310,7 +307,7 @@ impl MQTTState {
                     (*tx).msg.push(msg);
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
+                    MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
                     self.transactions.push(tx);
                 }
             },
@@ -318,7 +315,7 @@ impl MQTTState {
             | MQTTOperation::PUBCOMP(ref v) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -328,14 +325,14 @@ impl MQTTState {
                     (*tx).pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
+                    MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
                     self.transactions.push(tx);
                 }
             },
             MQTTOperation::SUBACK(ref suback) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -345,14 +342,14 @@ impl MQTTState {
                     (*tx).pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingSubscribe);
+                    MQTTState::set_event(&mut tx, MQTTEvent::MissingSubscribe);
                     self.transactions.push(tx);
                 }
             },
             MQTTOperation::UNSUBACK(ref unsuback) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -362,14 +359,14 @@ impl MQTTState {
                     (*tx).pkt_id = None;
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::MissingUnsubscribe);
+                    MQTTState::set_event(&mut tx, MQTTEvent::MissingUnsubscribe);
                     self.transactions.push(tx);
                 }
             },
             MQTTOperation::UNASSIGNED => {
                 let mut tx = self.new_tx(msg, toclient);
                 tx.complete = true;
-                &mut MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgtype);
+                MQTTState::set_event(&mut tx, MQTTEvent::UnassignedMsgType);
                 self.transactions.push(tx);
             },
             MQTTOperation::TRUNCATED(_) => {
@@ -381,7 +378,7 @@ impl MQTTState {
             | MQTTOperation::DISCONNECT(_) => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -393,7 +390,7 @@ impl MQTTState {
             | MQTTOperation::PINGRESP => {
                 if !self.connected {
                     let mut tx = self.new_tx(msg, toclient);
-                    &mut MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
+                    MQTTState::set_event(&mut tx, MQTTEvent::UnintroducedMessage);
                     self.transactions.push(tx);
                     return;
                 }
@@ -552,7 +549,7 @@ export_tx_get_detect_state!(rs_mqtt_tx_get_detect_state, MQTTTransaction);
 export_tx_set_detect_state!(rs_mqtt_tx_set_detect_state, MQTTTransaction);
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_probing_parser(
+pub unsafe extern "C" fn rs_mqtt_probing_parser(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -564,16 +561,16 @@ pub extern "C" fn rs_mqtt_probing_parser(
         Ok((_, hdr)) => {
             // reject unassigned message type
             if hdr.message_type == MQTTTypeCode::UNASSIGNED {
-                return unsafe { ALPROTO_FAILED } ;
+                return ALPROTO_FAILED;
             }
             // with 2 being the highest valid QoS level
             if hdr.qos_level > 2 {
-                return unsafe { ALPROTO_FAILED };
+                return ALPROTO_FAILED;
             }
-            return unsafe { ALPROTO_MQTT };
+            return ALPROTO_MQTT;
         },
         Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        Err(_) => unsafe { ALPROTO_FAILED }
+        Err(_) => ALPROTO_FAILED
     }
 }
 
@@ -581,22 +578,22 @@ pub extern "C" fn rs_mqtt_probing_parser(
 pub extern "C" fn rs_mqtt_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = MQTTState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<MQTTState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut MQTTState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, MQTTState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_parse_request(
+pub unsafe extern "C" fn rs_mqtt_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -607,11 +604,11 @@ pub extern "C" fn rs_mqtt_parse_request(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf).into();
+    return state.parse_request(buf);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_parse_response(
+pub unsafe extern "C" fn rs_mqtt_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -622,18 +619,18 @@ pub extern "C" fn rs_mqtt_parse_response(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
     let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf).into();
+    return state.parse_response(buf);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx(
+pub unsafe extern "C" fn rs_mqtt_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, MQTTState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -642,13 +639,13 @@ pub extern "C" fn rs_mqtt_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, MQTTState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
+pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
         return 1;
@@ -657,7 +654,7 @@ pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     direction: u8,
 ) -> std::os::raw::c_int {
@@ -677,7 +674,7 @@ pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_logged(
+pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
     _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
 ) -> u32 {
@@ -686,7 +683,7 @@ pub extern "C" fn rs_mqtt_tx_get_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_set_logged(
+pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
     _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
     logged: u32,
@@ -696,7 +693,7 @@ pub extern "C" fn rs_mqtt_tx_set_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_events(
+pub unsafe extern "C" fn rs_mqtt_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -704,67 +701,7 @@ pub extern "C" fn rs_mqtt_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                      event_name: *mut *const std::os::raw::c_char,
-                                                      event_type: *mut core::AppLayerEventType)
-                                                      -> i8
-{
-    if let Some(e) = FromPrimitive::from_i32(event_id as i32) {
-        let estr = match e {
-            MQTTEvent::MissingConnect      => { "missing_connect\0" },
-            MQTTEvent::MissingPublish      => { "missing_publish\0" },
-            MQTTEvent::MissingSubscribe    => { "missing_subscribe\0" },
-            MQTTEvent::MissingUnsubscribe  => { "missing_unsubscribe\0" },
-            MQTTEvent::DoubleConnect       => { "double_connect\0" },
-            MQTTEvent::UnintroducedMessage => { "unintroduced_message\0" },
-            MQTTEvent::InvalidQosLevel     => { "invalid_qos_level\0" },
-            MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
-            MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
-        };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "missing_connect"      => MQTTEvent::MissingConnect as i32,
-                "missing_publish"      => MQTTEvent::MissingPublish as i32,
-                "missing_subscribe"    => MQTTEvent::MissingSubscribe as i32,
-                "missing_unsubscribe"  => MQTTEvent::MissingUnsubscribe as i32,
-                "double_connect"       => MQTTEvent::DoubleConnect as i32,
-                "unintroduced_message" => MQTTEvent::UnintroducedMessage as i32,
-                "invalid_qos_level"    => MQTTEvent::InvalidQosLevel as i32,
-                "missing_msg_id"       => MQTTEvent::MissingMsgId as i32,
-                "unassigned_msg_type"  => MQTTEvent::UnassignedMsgtype as i32,
-                _                      => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
-}
-
-#[no_mangle]
-pub extern "C" fn rs_mqtt_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_mqtt_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
     state: *mut std::os::raw::c_void,
@@ -775,7 +712,7 @@ pub extern "C" fn rs_mqtt_state_get_tx_iterator(
     let state = cast_pointer!(state, MQTTState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -816,8 +753,8 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_de_state: rs_mqtt_tx_get_detect_state,
         set_de_state: rs_mqtt_tx_set_detect_state,
         get_events: Some(rs_mqtt_state_get_events),
-        get_eventinfo: Some(rs_mqtt_state_get_event_info),
-        get_eventinfo_byid: Some(rs_mqtt_state_get_event_info_by_id),
+        get_eventinfo: Some(MQTTEvent::get_event_info),
+        get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,

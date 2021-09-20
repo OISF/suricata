@@ -19,7 +19,6 @@
 
 use std;
 use std::ffi::CString;
-use std::mem::transmute;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
@@ -521,17 +520,17 @@ export_tx_set_detect_state!(
 pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_rfb_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<RFBState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut RFBState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_tx_free(
+pub unsafe extern "C" fn rs_rfb_state_tx_free(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) {
@@ -540,7 +539,7 @@ pub extern "C" fn rs_rfb_state_tx_free(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_parse_request(
+pub unsafe extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -555,7 +554,7 @@ pub extern "C" fn rs_rfb_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_parse_response(
+pub unsafe extern "C" fn rs_rfb_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
@@ -570,14 +569,14 @@ pub extern "C" fn rs_rfb_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_get_tx(
+pub unsafe extern "C" fn rs_rfb_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RFBState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -586,7 +585,7 @@ pub extern "C" fn rs_rfb_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_get_tx_count(
+pub unsafe extern "C" fn rs_rfb_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, RFBState);
@@ -594,7 +593,7 @@ pub extern "C" fn rs_rfb_state_get_tx_count(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
@@ -606,7 +605,7 @@ pub extern "C" fn rs_rfb_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_get_events(
+pub unsafe extern "C" fn rs_rfb_state_get_events(
     tx: *mut std::os::raw::c_void
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, RFBTransaction);
@@ -614,23 +613,7 @@ pub extern "C" fn rs_rfb_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rfb_state_get_event_info(
-    _event_name: *const std::os::raw::c_char,
-    _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    return -1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_get_event_info_by_id(_event_id: std::os::raw::c_int,
-                                                         _event_name: *mut *const std::os::raw::c_char,
-                                                         _event_type: *mut core::AppLayerEventType
-) -> i8 {
-    return -1;
-}
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_rfb_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
     state: *mut std::os::raw::c_void,
@@ -641,7 +624,7 @@ pub extern "C" fn rs_rfb_state_get_tx_iterator(
     let state = cast_pointer!(state, RFBState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx,
                 out_tx_id,
@@ -662,10 +645,9 @@ export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_rfb_register_parser() {
-    let default_port = CString::new("[5900]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: IPPROTO_TCP,
         probe_ts: None,
         probe_tc: None,
@@ -684,8 +666,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_de_state: rs_rfb_tx_get_detect_state,
         set_de_state: rs_rfb_tx_set_detect_state,
         get_events: Some(rs_rfb_state_get_events),
-        get_eventinfo: Some(rs_rfb_state_get_event_info),
-        get_eventinfo_byid : Some(rs_rfb_state_get_event_info_by_id),
+        get_eventinfo: None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,

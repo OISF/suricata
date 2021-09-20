@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,8 +56,6 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer.h"
-#include "app-layer-dcerpc.h"
-#include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
@@ -239,8 +237,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     TmqhSetup();
 
     CIDRInit();
-
-    SCProtoNameInit();
 
     TagInitCtx();
     SCReferenceConfInit();

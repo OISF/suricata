@@ -627,6 +627,47 @@ void DetectContentPropagateLimits(Signature *s)
     }
 }
 
+static inline bool NeedsAsHex(uint8_t c)
+{
+    if (!isprint(c))
+        return true;
+
+    switch (c) {
+        case '/':
+        case ';':
+        case ':':
+        case '\\':
+        case ' ':
+        case '|':
+        case '"':
+        case '`':
+        case '\'':
+            return true;
+    }
+    return false;
+}
+
+void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len)
+{
+    bool hex = false;
+    for (uint16_t i = 0; i < cd->content_len; i++) {
+        if (NeedsAsHex(cd->content[i])) {
+            char hex_str[4];
+            snprintf(hex_str, sizeof(hex_str), "%s%02X", !hex ? "|" : " ", cd->content[i]);
+            strlcat(str, hex_str, str_len);
+            hex = true;
+        } else {
+            char p_str[3];
+            snprintf(p_str, sizeof(p_str), "%s%c", hex ? "|" : "", cd->content[i]);
+            strlcat(str, p_str, str_len);
+            hex = false;
+        }
+    }
+    if (hex) {
+        strlcat(str, "|", str_len);
+    }
+}
+
 #ifdef UNITTESTS /* UNITTESTS */
 
 static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
@@ -652,20 +693,21 @@ static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
     return true;
 }
 
-#define TEST_RUN(sig, o, d)                                                                 \
-{                                                                                           \
-    SCLogDebug("TEST_RUN start: '%s'", (sig));                                              \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                        \
-    FAIL_IF_NULL(de_ctx);                                                                   \
-    char rule[2048];                                                                        \
-    snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig)); \
-    Signature *s = DetectEngineAppendSig(de_ctx, rule);                                     \
-    FAIL_IF_NULL(s);                                                                        \
-    SigAddressPrepareStage1(de_ctx);                                                        \
-    bool res = TestLastContent(s, (o), (d));                                                \
-    FAIL_IF(res == false);                                                                  \
-    DetectEngineCtxFree(de_ctx);                                                            \
-}
+#define TEST_RUN(sig, o, d)                                                                        \
+    {                                                                                              \
+        SCLogDebug("TEST_RUN start: '%s'", (sig));                                                 \
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                           \
+        FAIL_IF_NULL(de_ctx);                                                                      \
+        de_ctx->flags |= DE_QUIET;                                                                 \
+        char rule[2048];                                                                           \
+        snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig));    \
+        Signature *s = DetectEngineAppendSig(de_ctx, rule);                                        \
+        FAIL_IF_NULL(s);                                                                           \
+        SigAddressPrepareStage1(de_ctx);                                                           \
+        bool res = TestLastContent(s, (o), (d));                                                   \
+        FAIL_IF(res == false);                                                                     \
+        DetectEngineCtxFree(de_ctx);                                                               \
+    }
 
 #define TEST_DONE \
     PASS
@@ -677,6 +719,8 @@ static int DetectContentDepthTest01(void)
     TEST_RUN("content:\"abc\"; offset:1; depth:3;", 1, 4);
     // dsize applied as depth
     TEST_RUN("dsize:10; content:\"abc\";", 0, 10);
+    TEST_RUN("dsize:<10; content:\"abc\";", 0, 10);
+    TEST_RUN("dsize:5<>10; content:\"abc\";", 0, 10);
 
     // relative match, directly following anchored content
     TEST_RUN("content:\"abc\"; depth:3; content:\"xyz\"; distance:0; within:3; ", 3, 6);

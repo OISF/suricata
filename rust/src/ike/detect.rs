@@ -117,9 +117,9 @@ pub extern "C" fn rs_ike_state_get_key_exchange(
 
 #[no_mangle]
 pub extern "C" fn rs_ike_tx_get_vendor(
-    tx: &IKETransaction, i: u16, buf: *mut *const u8, len: *mut u32,
+    tx: &IKETransaction, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
-    if tx.ike_version == 1 && i < tx.hdr.ikev1_header.vendor_ids.len() as u16 {
+    if tx.ike_version == 1 && i < tx.hdr.ikev1_header.vendor_ids.len() as u32 {
         unsafe {
             *len = tx.hdr.ikev1_header.vendor_ids[i as usize].len() as u32;
             *buf = tx.hdr.ikev1_header.vendor_ids[i as usize].as_ptr();

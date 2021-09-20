@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,6 +35,7 @@
 
 #include "flow.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -125,10 +126,7 @@ void DecodeVXLANConfig(void)
 int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
-    EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
-
-    uint16_t eth_type;
-    int decode_tunnel_proto = DECODE_TUNNEL_UNSET;
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
     /* Initial packet validation */
     if (unlikely(!g_vxlan_enabled))
@@ -152,8 +150,11 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     /* Increment stats counter for VXLAN packets */
     StatsIncr(tv, dtv->counter_vxlan);
 
+    EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
+    int decode_tunnel_proto = DECODE_TUNNEL_UNSET;
+
     /* Look at encapsulated Ethernet frame to get next protocol  */
-    eth_type = SCNtohs(ethh->eth_type);
+    uint16_t eth_type = SCNtohs(ethh->eth_type);
     SCLogDebug("VXLAN ethertype 0x%04x", eth_type);
 
     switch (eth_type) {

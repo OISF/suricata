@@ -23,6 +23,50 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::redundant_field_names)]
 #![allow(clippy::len_zero)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::assign_op_pattern)]
+#![allow(clippy::manual_range_contains)]
+#![allow(clippy::vec_init_then_push)]
+#![allow(clippy::assertions_on_constants)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::needless_bool)]
+#![allow(clippy::char_lit_as_u8)]
+
+// To be fixed, but remove the noise for now.
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_else_if)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::redundant_static_lifetimes)]
+#![allow(clippy::bool_comparison)]
+#![allow(clippy::for_loops_over_fallibles)]
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::single_match)]
+#![allow(clippy::cmp_null)]
+#![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::ptr_arg)]
+#![allow(clippy::new_without_default)]
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::match_ref_pats)]
+#![allow(clippy::module_inception)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::enum_variant_names)]
+#![allow(clippy::if_same_then_else)]
+#![allow(clippy::match_single_binding)]
+#![allow(clippy::match_like_matches_macro)]
+#![allow(clippy::extra_unused_lifetimes)]
+#![allow(clippy::mixed_case_hex_literals)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::nonminimal_bool)]
+#![allow(clippy::never_loop)]
+#![allow(clippy::large_enum_variant)]
+#![allow(clippy::for_loops_over_fallibles)]
+#![allow(clippy::explicit_counter_loop)]
+#![allow(clippy::branches_sharing_code)]
+#![allow(clippy::while_let_loop)]
+#![allow(clippy::redundant_pattern_matching)]
+#![allow(clippy::inherent_to_string)]
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::collapsible_match)]
 
 #[macro_use]
 extern crate nom;
@@ -40,6 +84,9 @@ extern crate der_parser;
 extern crate kerberos_parser;
 extern crate tls_parser;
 extern crate x509_parser;
+
+#[macro_use]
+extern crate suricata_derive;
 
 #[macro_use]
 pub mod log;

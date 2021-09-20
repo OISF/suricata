@@ -91,12 +91,18 @@ impl NFSState {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
+                    tx.is_file_closed = true;
                 }
             }
         }
         self.ts_chunk_xid = r.hdr.xid;
         let file_data_len = w.data.len() as u32 - fill_bytes as u32;
         self.ts_chunk_left = w.write_len as u32 - file_data_len as u32;
+    }
+
+    fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b[u8])
+    {
+        self.commit_v4(r, fh)
     }
 
     fn commit_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b[u8])
@@ -110,6 +116,7 @@ impl NFSState {
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
+                tx.is_file_closed = true;
             }
         }
     }
@@ -186,8 +193,11 @@ impl NFSState {
                         self.commit_v4(r, fh);
                     }
                 }
-                &Nfs4RequestContent::Close(ref rd) => {
-                    SCLogDebug!("CLOSEv4: {:?}", rd);
+                &Nfs4RequestContent::Close(ref _rd) => {
+                    SCLogDebug!("CLOSEv4: {:?}", _rd);
+                    if let Some(fh) = last_putfh {
+                        self.close_v4(r, fh);
+                    }
                 }
                 &Nfs4RequestContent::Create(ref rd) => {
                     SCLogDebug!("CREATEv4: {:?}", rd);
@@ -197,23 +207,23 @@ impl NFSState {
                     xidmap.file_name = rd.filename.to_vec();
                     main_opcode = NFSPROC4_CREATE;
                 }
-                &Nfs4RequestContent::Remove(ref rd) => {
+                &Nfs4RequestContent::Remove(rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
                     main_opcode = NFSPROC4_REMOVE;
                 }
-                &Nfs4RequestContent::SetClientId(ref rd) => {
+                &Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!("SETCLIENTIDv4: client id {} r_netid {} r_addr {}",
-                            String::from_utf8_lossy(&rd.client_id),
-                            String::from_utf8_lossy(&rd.r_netid),
-                            String::from_utf8_lossy(&rd.r_addr));
+                            String::from_utf8_lossy(&_rd.client_id),
+                            String::from_utf8_lossy(&_rd.r_netid),
+                            String::from_utf8_lossy(&_rd.r_addr));
                 }
                 &_ => { },
             }
         }
 
         if main_opcode != 0 {
-            self.new_tx_v4(r, &xidmap, main_opcode, &aux_opcodes);
+            self.new_tx_v4(r, xidmap, main_opcode, &aux_opcodes);
         }
     }
 
@@ -263,7 +273,7 @@ impl NFSState {
             match parse_nfs4_request_compound(data) {
                 Ok((_, rd)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: {:?}", rd);
-                    self.compound_request(&r, &rd, &mut xidmap);
+                    self.compound_request(r, &rd, &mut xidmap);
                 },
                 Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
@@ -291,13 +301,13 @@ impl NFSState {
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
             match c {
-                &Nfs4ResponseContent::ReadDir(s, ref rd) => {
+                &Nfs4ResponseContent::ReadDir(_s, ref rd) => {
                     if let &Some(ref rd) = rd {
-                        SCLogDebug!("READDIRv4: status {} eof {}", s, rd.eof);
+                        SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
 
                         for d in &rd.listing {
-                            if let &Some(ref d) = d {
-                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&d.name));
+                            if let &Some(ref _d) = d {
+                                SCLogDebug!("READDIRv4: dir {}", String::from_utf8_lossy(&_d.name));
                             }
                         }
 
@@ -326,12 +336,12 @@ impl NFSState {
                             data_len: rd.data.len() as u32,
                             data: rd.data,
                         };
-                        self.process_read_record(r, &reply, Some(&xidmap));
+                        self.process_read_record(r, &reply, Some(xidmap));
                     }
                 },
-                &Nfs4ResponseContent::Open(s, ref rd) => {
-                    if let &Some(ref rd) = rd {
-                        SCLogDebug!("OPENv4: status {} opendata {:?}", s, rd);
+                &Nfs4ResponseContent::Open(_s, ref rd) => {
+                    if let &Some(ref _rd) = rd {
+                        SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
                         insert_filename_with_getfh = true;
                     }
                 },
@@ -388,7 +398,7 @@ impl NFSState {
             match parse_nfs4_response_compound(data) {
                 Ok((_, rd)) => {
                     SCLogDebug!("COMPOUNDv4: {:?}", rd);
-                    self.compound_response(&r, &rd, xidmap);
+                    self.compound_response(r, &rd, xidmap);
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     self.set_event(NFSEvent::MalformedData);

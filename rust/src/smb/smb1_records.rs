@@ -372,7 +372,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let res = SmbRecordTransRequest {
         params: params, pipe: pipe, txname: n, data: recdata,
     };
-    Ok((&rem, res))
+    Ok((rem, res))
 }
 
 
@@ -582,7 +582,7 @@ pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
        >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,
                 create_options: create_options,
-                file_name: file_name.unwrap_or(Vec::new()),
+                file_name: file_name.unwrap_or_default(),
            }))
 }
 
@@ -594,7 +594,6 @@ pub struct Trans2RecordParamSetFileInfoDisposition<> {
 named!(pub parse_trans2_request_data_set_file_info_disposition<Trans2RecordParamSetFileInfoDisposition>,
     do_parse!(
             delete: le_u8
-        >>  _reserved: take!(3)
         >> (Trans2RecordParamSetFileInfoDisposition {
                 delete: delete & 1 == 1,
             })
@@ -691,16 +690,17 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
         >>  _timeout: le_u32
         >>  _reserved2: take!(2)
         >>  param_cnt: le_u16
-        >>  _param_offset: le_u16
+        >>  param_offset: le_u16
         >>  data_cnt: le_u16
-        >>  _data_offset: le_u16
+        >>  data_offset: le_u16
         >>  _setup_cnt: le_u8
         >>  _reserved3: take!(1)
         >>  subcmd: le_u16
         >>  _bcc: le_u16
+        //TODO test and use param_offset
         >>  _padding: take!(3)
-        //TODO test and use _param_offset and _data_offset
         >>  setup_blob: take!(param_cnt)
+        >>  _padding2: cond!(data_offset > param_offset + param_cnt, take!(data_offset - param_offset - param_cnt))
         >>  data_blob: take!(data_cnt)
 
         >> (SmbRequestTrans2Record {

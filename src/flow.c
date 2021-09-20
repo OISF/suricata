@@ -339,23 +339,24 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
-static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
+static inline void FlowUpdateTtlTS(Flow *f, Packet *p, uint8_t ttl)
 {
-    if (FlowGetPacketDirection(f, p) == TOSERVER) {
-        if (f->min_ttl_toserver == 0) {
-            f->min_ttl_toserver = ttl;
-        } else {
-            f->min_ttl_toserver = MIN(f->min_ttl_toserver, ttl);
-        }
-        f->max_ttl_toserver = MAX(f->max_ttl_toserver, ttl);
+    if (f->min_ttl_toserver == 0) {
+        f->min_ttl_toserver = ttl;
     } else {
-        if (f->min_ttl_toclient == 0) {
-            f->min_ttl_toclient = ttl;
-        } else {
-            f->min_ttl_toclient = MIN(f->min_ttl_toclient, ttl);
-        }
-        f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
+        f->min_ttl_toserver = MIN(f->min_ttl_toserver, ttl);
     }
+    f->max_ttl_toserver = MAX(f->max_ttl_toserver, ttl);
+}
+
+static inline void FlowUpdateTtlTC(Flow *f, Packet *p, uint8_t ttl)
+{
+    if (f->min_ttl_toclient == 0) {
+        f->min_ttl_toclient = ttl;
+    } else {
+        f->min_ttl_toclient = MIN(f->min_ttl_toclient, ttl);
+    }
+    f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
 }
 
 static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
@@ -390,6 +391,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
+    const int pkt_dir = FlowGetPacketDirection(f, p);
 #ifdef CAPTURE_OFFLOAD
     int state = f->flow_state;
 
@@ -420,7 +422,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     }
 #endif
     /* update flags and counters */
-    if (FlowGetPacketDirection(f, p) == TOSERVER) {
+    if (pkt_dir == TOSERVER) {
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
         p->flowflags = FLOW_PKT_TOSERVER;
@@ -436,6 +438,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             p->flags |= PKT_PROTO_DETECT_TS_DONE;
         }
         FlowUpdateEthernet(tv, dtv, f, p->ethh, true);
+        /* update flow's ttl fields if needed */
+        if (PKT_IS_IPV4(p)) {
+            FlowUpdateTtlTS(f, p, IPV4_GET_IPTTL(p));
+        } else if (PKT_IS_IPV6(p)) {
+            FlowUpdateTtlTS(f, p, IPV6_GET_HLIM(p));
+        }
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
@@ -452,6 +460,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             p->flags |= PKT_PROTO_DETECT_TC_DONE;
         }
         FlowUpdateEthernet(tv, dtv, f, p->ethh, false);
+        /* update flow's ttl fields if needed */
+        if (PKT_IS_IPV4(p)) {
+            FlowUpdateTtlTC(f, p, IPV4_GET_IPTTL(p));
+        } else if (PKT_IS_IPV6(p)) {
+            FlowUpdateTtlTC(f, p, IPV6_GET_HLIM(p));
+        }
     }
 
     if (f->flow_state == FLOW_STATE_ESTABLISHED) {
@@ -479,13 +493,6 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
-    }
-
-    /* update flow's ttl fields if needed */
-    if (PKT_IS_IPV4(p)) {
-        FlowUpdateTTL(f, p, IPV4_GET_IPTTL(p));
-    } else if (PKT_IS_IPV6(p)) {
-        FlowUpdateTTL(f, p, IPV6_GET_HLIM(p));
     }
 }
 
@@ -1171,6 +1178,39 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
     *usecs = (uint64_t)flow->lastts.tv_usec;
 }
 
+/**
+ * \brief Get flow source port.
+ *
+ * A function to get the flow sport useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+uint16_t FlowGetSourcePort(Flow *flow)
+{
+    return flow->sp;
+}
+
+/**
+ * \brief Get flow destination port.
+ *
+ * A function to get the flow dport useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+
+uint16_t FlowGetDestinationPort(Flow *flow)
+{
+    return flow->dp;
+}
+/**
+ * \brief Get flow flags.
+ *
+ * A function to get the flow flags useful when the caller only has an
+ * opaque pointer to the flow structure.
+ */
+
+uint32_t FlowGetFlags(Flow *flow)
+{
+    return flow->flags;
+}
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS

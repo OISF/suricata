@@ -58,8 +58,10 @@ static int DetectMQTTSubscribeTopicSetup(DetectEngineCtx *, Signature *, const c
 
 static int g_mqtt_subscribe_topic_buffer_id = 0;
 
+static uint32_t subscribe_topic_match_limit = 100;
+
 struct MQTTSubscribeTopicGetDataArgs {
-    int local_id;
+    uint32_t local_id;
     void *txv;
 };
 
@@ -69,8 +71,8 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
+    InspectionBuffer *buffer =
+            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -78,13 +80,11 @@ static InspectionBuffer *MQTTSubscribeTopicGetData(DetectEngineThreadCtx *det_ct
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, (uint16_t)cbdata->local_id,
-                &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_subscribe_topic(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
         return NULL;
     }
 
-    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -95,14 +95,14 @@ static int DetectEngineInspectMQTTSubscribeTopic(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
     }
 
-    while(1) {
+    while ((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
         struct MQTTSubscribeTopicGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = MQTTSubscribeTopicGetData(det_ctx,
             transforms, f, &cbdata, engine->sm_list, false);
@@ -152,8 +152,8 @@ static void PrefilterTxMQTTSubscribeTopic(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    int local_id = 0;
-    while(1) {
+    uint32_t local_id = 0;
+    while ((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
         struct MQTTSubscribeTopicGetDataArgs cbdata = { local_id, txv };
         InspectionBuffer *buffer = MQTTSubscribeTopicGetData(det_ctx, ctx->transforms,
                 f, &cbdata, list_id, true);
@@ -203,6 +203,16 @@ void DetectMQTTSubscribeTopicRegister (void)
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    intmax_t val = 0;
+    if (ConfGetInt("app-layer.protocols.mqtt.subscribe-topic-match-limit", &val)) {
+        subscribe_topic_match_limit = val;
+    }
+    if (subscribe_topic_match_limit <= 0) {
+        SCLogDebug("Using unrestricted MQTT SUBSCRIBE topic matching");
+    } else {
+        SCLogDebug("Using MQTT SUBSCRIBE topic match-limit setting of: %u",
+                subscribe_topic_match_limit);
+    }
 
     DetectAppLayerMpmRegister2("mqtt.subscribe.topic", SIG_FLAG_TOSERVER, 1,
             PrefilterMpmMQTTSubscribeTopicRegister, NULL,

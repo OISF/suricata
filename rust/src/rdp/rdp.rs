@@ -24,7 +24,6 @@ use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPR
 use crate::rdp::parser::*;
 use nom;
 use std;
-use std::mem::transmute;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
@@ -80,13 +79,13 @@ impl Drop for RdpTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_get_tx(
+pub unsafe extern "C" fn rs_rdp_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -95,7 +94,7 @@ pub extern "C" fn rs_rdp_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
@@ -176,7 +175,7 @@ impl RdpState {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
-                match parse_tls_plaintext(&available) {
+                match parse_tls_plaintext(available) {
                     Ok((remainder, _tls)) => {
                         // bytes available for futher parsing are what remain
                         available = remainder;
@@ -196,7 +195,7 @@ impl RdpState {
                 }
             } else {
                 // every message should be encapsulated within a T.123 tpkt
-                match parse_t123_tpkt(&available) {
+                match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
                         // bytes available for futher parsing are what remain
@@ -269,7 +268,7 @@ impl RdpState {
                 return AppLayerResult::ok();
             }
             if self.tls_parsing {
-                match parse_tls_plaintext(&available) {
+                match parse_tls_plaintext(available) {
                     Ok((remainder, tls)) => {
                         // bytes available for futher parsing are what remain
                         available = remainder;
@@ -308,7 +307,7 @@ impl RdpState {
                 }
             } else {
                 // every message should be encapsulated within a T.123 tpkt
-                match parse_t123_tpkt(&available) {
+                match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
                         // bytes available for futher parsing are what remain
@@ -376,16 +375,16 @@ impl RdpState {
 pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
-    return unsafe { std::mem::transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<RdpState> = unsafe { std::mem::transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut RdpState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -408,7 +407,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 
 /// probe for T.123 message, whether to client or to server
 #[no_mangle]
-pub extern "C" fn rs_rdp_probe_ts_tc(
+pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
@@ -419,7 +418,7 @@ pub extern "C" fn rs_rdp_probe_ts_tc(
         // https://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=view&target=rdp-ssl.pcap.gz
         // but this callback will not be exercised, so `probe_tls_handshake` not needed here.
         if probe_rdp(slice) {
-            return unsafe { ALPROTO_RDP };
+            return ALPROTO_RDP;
         }
     }
     return ALPROTO_UNKNOWN;
@@ -435,7 +434,7 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 //
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_parse_ts(
+pub unsafe extern "C" fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -446,7 +445,7 @@ pub extern "C" fn rs_rdp_parse_ts(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_parse_tc(
+pub unsafe extern "C" fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -519,25 +518,25 @@ mod tests {
     #[test]
     fn test_probe_rdp() {
         let buf: &[u8] = &[0x03, 0x00];
-        assert_eq!(true, probe_rdp(&buf));
+        assert_eq!(true, probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_rdp_other() {
         let buf: &[u8] = &[0x04, 0x00];
-        assert_eq!(false, probe_rdp(&buf));
+        assert_eq!(false, probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake() {
         let buf: &[u8] = &[0x16, 0x00];
-        assert_eq!(true, probe_tls_handshake(&buf));
+        assert_eq!(true, probe_tls_handshake(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake_other() {
         let buf: &[u8] = &[0x17, 0x00];
-        assert_eq!(false, probe_tls_handshake(&buf));
+        assert_eq!(false, probe_tls_handshake(buf));
     }
 
     #[test]
@@ -550,10 +549,10 @@ mod tests {
         ];
         let mut state = RdpState::new();
         // will consume 0, request length + 1
-        assert_eq!(AppLayerResult::incomplete(0, 9), state.parse_ts(&buf_1));
+        assert_eq!(AppLayerResult::incomplete(0, 9), state.parse_ts(buf_1));
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
-        assert_eq!(AppLayerResult::ok(), state.parse_ts(&buf_2));
+        assert_eq!(AppLayerResult::ok(), state.parse_ts(buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
             cdt: 0,
@@ -574,7 +573,7 @@ mod tests {
     fn test_parse_ts_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_ts(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_ts(buf));
     }
 
     #[test]
@@ -583,10 +582,10 @@ mod tests {
         let buf_2: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02, 0xf0, 0x80, 0x7f, 0x66];
         let mut state = RdpState::new();
         // will consume 0, request length + 1
-        assert_eq!(AppLayerResult::incomplete(0, 6), state.parse_tc(&buf_1));
+        assert_eq!(AppLayerResult::incomplete(0, 6), state.parse_tc(buf_1));
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
-        assert_eq!(AppLayerResult::ok(), state.parse_tc(&buf_2));
+        assert_eq!(AppLayerResult::ok(), state.parse_tc(buf_2));
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
         assert_eq!(item, state.transactions[0].item);
@@ -596,7 +595,7 @@ mod tests {
     fn test_parse_tc_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_tc(&buf));
+        assert_eq!(AppLayerResult::err(), state.parse_tc(buf));
     }
 
     #[test]

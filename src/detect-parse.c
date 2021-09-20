@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1889,6 +1889,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
     }
+    if (s->id == 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature missing required value \"sid\".");
+        SCReturnInt(0);
+    }
     SCReturnInt(1);
 }
 
@@ -2807,13 +2811,15 @@ static int SigParseTest11(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\";) ");
+    s = DetectEngineAppendSig(de_ctx,
+            "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;) ");
     if (s == NULL) {
         printf("sig 1 didn't parse: ");
         goto end;
     }
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;)            ");
+    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking "
+                                      "the http link\"; sid:2;)            ");
     if (s == NULL) {
         printf("sig 2 didn't parse: ");
         goto end;

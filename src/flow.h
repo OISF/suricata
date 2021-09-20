@@ -111,6 +111,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Indicate that the flow did trigger an expectation creation */
 #define FLOW_HAS_EXPECTATION            BIT_U32(27)
 
+/** All packets in this flow should be passed */
+#define FLOW_ACTION_PASS BIT_U32(28)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
@@ -586,6 +589,9 @@ FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
 void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
+uint32_t FlowGetFlags(Flow *flow);
+uint16_t FlowGetSourcePort(Flow *flow);
+uint16_t FlowGetDestinationPort(Flow *flow);
 
 /** ----- Inline functions ----- */
 

@@ -260,7 +260,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             SCLogDebug("logger %p, Alproto %d LogCondition %p, ts_log_progress %d "
                     "tc_log_progress %d", logger, logger->alproto, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
-            if ((tx_logged_old & (1<<logger->logger_id)) == 0) {
+            if ((tx_logged_old & BIT_U32(logger->logger_id)) == 0) {
                 SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
                 SCLogDebug("pcap_cnt %"PRIu64", tx_id %"PRIu64" logger %d. "
@@ -296,7 +296,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
-                tx_logged |= (1<<logger->logger_id);
+                tx_logged |= BIT_U32(logger->logger_id);
             }
 
 next_logger:

@@ -36,6 +36,7 @@
 #include "decode-events.h"
 #include "decode-gre.h"
 
+#include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -45,8 +46,11 @@
 
 int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     uint32_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
+    GREPPtPHd *gre_pptp_h = NULL;
 
     StatsIncr(tv, dtv->counter_gre);
 
@@ -59,8 +63,6 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     }
 
     p->greh = (GREHdr *)pkt;
-    if(p->greh == NULL)
-        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x",
         p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
@@ -178,6 +180,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             }
 
             header_len += GRE_KEY_LEN;
+            /* key is set and proto == PPP */
+            gre_pptp_h = (GREPPtPHd *)pkt;
 
             /* Adjust header length based on content */
 
@@ -213,6 +217,9 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
         case GRE_PROTO_PPP:
         {
+            if (gre_pptp_h && !gre_pptp_h->payload_length)
+                return TM_ECODE_OK;
+
             Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
                     len - header_len, DECODE_TUNNEL_PPP);
             if (tp != NULL) {

@@ -28,7 +28,7 @@ pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
 
 
 // Generic file structure, so it can be used by different protocols
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Files {
     pub files_ts: FileContainer,
     pub files_tc: FileContainer,
@@ -37,19 +37,6 @@ pub struct Files {
 }
 
 impl Files {
-    pub fn new() -> Files {
-        Files {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
-        }
-    }
-    pub fn free(&mut self) {
-        self.files_ts.free();
-        self.files_tc.free();
-    }
-
     pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
     {
         if direction == STREAM_TOSERVER {
@@ -68,6 +55,19 @@ pub struct FileContainer {
     tail: * mut c_void,
 }
 
+impl Drop for FileContainer {
+    fn drop(&mut self) {
+        self.free();
+    }
+}
+
+impl Default for FileContainer {
+    fn default() -> Self { Self {
+        head: ptr::null_mut(),
+        tail: ptr::null_mut(),
+    }}
+}
+
 impl FileContainer {
     pub fn default() -> FileContainer {
         FileContainer { head:ptr::null_mut(), tail:ptr::null_mut() }
@@ -77,7 +77,7 @@ impl FileContainer {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                (c.FileContainerRecycle)(&self);
+                (c.FileContainerRecycle)(self);
             },
         }
     }
@@ -88,7 +88,7 @@ impl FileContainer {
             Some(c) => {
                 SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
 
-                let res = (c.FileOpenFile)(&self, cfg.files_sbcfg, *track_id,
+                let res = (c.FileOpenFile)(self, cfg.files_sbcfg, *track_id,
                         name.as_ptr(), name.len() as u16,
                         ptr::null(), 0u32, flags);
                 res
@@ -107,13 +107,13 @@ impl FileContainer {
                 let res = match is_gap {
                     false => {
                         SCLogDebug!("appending file data");
-                        let r = (c.FileAppendData)(&self, *track_id,
+                        let r = (c.FileAppendData)(self, *track_id,
                                 data.as_ptr(), data.len() as u32);
                         r
                     },
                     true => {
                         SCLogDebug!("appending GAP");
-                        let r = (c.FileAppendGAP)(&self, *track_id,
+                        let r = (c.FileAppendGAP)(self, *track_id,
                                 data.as_ptr(), data.len() as u32);
                         r
                     },
@@ -129,7 +129,7 @@ impl FileContainer {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                let res = (c.FileCloseFile)(&self, *track_id, ptr::null(), 0u32, flags);
+                let res = (c.FileCloseFile)(self, *track_id, ptr::null(), 0u32, flags);
                 res
             }
         }
@@ -141,7 +141,7 @@ impl FileContainer {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                (c.FilePrune)(&self);
+                (c.FilePrune)(self);
             }
         }
     }
@@ -150,7 +150,7 @@ impl FileContainer {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                (c.FileSetTx)(&self, tx_id);
+                (c.FileSetTx)(self, tx_id);
             }
         }
     }

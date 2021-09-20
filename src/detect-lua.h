@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUAJIT_H__
-#define __DETECT_LUAJIT_H__
+#ifndef __DETECT_LUA_H__
+#define __DETECT_LUA_H__
 
 #ifdef HAVE_LUA
 
@@ -62,4 +62,4 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
 
 void DetectLuaPostSetup(Signature *s);
 
-#endif /* __DETECT_FILELUAJIT_H__ */
+#endif /* __DETECT_LUA_H__ */

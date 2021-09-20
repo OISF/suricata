@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,14 +18,15 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
+use std::ffi::CStr;
 
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
     log_flags: u8,
@@ -50,13 +51,18 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
 
     /// logger flags for tx logging api
     logged: LoggerFlags,
+
+    /// track file open/logs so we can know how long to keep the tx
+    pub files_opened: u32,
+    pub files_logged: u32,
+    pub files_stored: u32,
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -68,9 +74,18 @@ impl AppLayerTxData {
         Self {
             config: AppLayerTxConfig::new(),
             logged: LoggerFlags::new(),
+            files_opened: 0,
+            files_logged: 0,
+            files_stored: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
         }
+    }
+    pub fn init_files_opened(&mut self) {
+        self.files_opened = 1;
+    }
+    pub fn incr_files_opened(&mut self) {
+        self.files_opened += 1;
     }
 }
 
@@ -88,7 +103,7 @@ macro_rules!export_tx_data_get {
 }
 
 #[repr(C)]
-#[derive(Debug,PartialEq,Copy,Clone)]
+#[derive(Default,Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -97,20 +112,15 @@ pub struct AppLayerResult {
 
 impl AppLayerResult {
     /// parser has successfully processed in the input, and has consumed all of it
-    pub fn ok() -> AppLayerResult {
-        return AppLayerResult {
-            status: 0,
-            consumed: 0,
-            needed: 0,
-        };
+    pub fn ok() -> Self {
+        Default::default()
     }
     /// parser has hit an unrecoverable error. Returning this to the API
     /// leads to no further calls to the parser.
-    pub fn err() -> AppLayerResult {
-        return AppLayerResult {
+    pub fn err() -> Self {
+        return Self {
             status: -1,
-            consumed: 0,
-            needed: 0,
+            ..Default::default()
         };
     }
     /// parser needs more data. Through 'consumed' it will indicate how many
@@ -118,8 +128,8 @@ impl AppLayerResult {
     /// how many more bytes it needs before getting called again.
     /// Note: consumed should never be more than the input len
     ///       needed + consumed should be more than the input len
-    pub fn incomplete(consumed: u32, needed: u32) -> AppLayerResult {
-        return AppLayerResult {
+    pub fn incomplete(consumed: u32, needed: u32) -> Self {
+        return Self {
             status: 1,
             consumed: consumed,
             needed: needed,
@@ -243,7 +253,7 @@ pub struct RustParser {
 /// UNSAFE !
 #[macro_export]
 macro_rules! build_slice {
-    ($buf:ident, $len:expr) => ( unsafe{ std::slice::from_raw_parts($buf, $len) } );
+    ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
 }
 
 /// Cast pointer to a variable, as a mutable reference to an object
@@ -251,32 +261,33 @@ macro_rules! build_slice {
 /// UNSAFE !
 #[macro_export]
 macro_rules! cast_pointer {
-    ($ptr:ident, $ty:ty) => ( unsafe{ &mut *($ptr as *mut $ty) } );
+    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
 
-pub type ParseFn      = extern "C" fn (flow: *const Flow,
+pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void,
                                        flags: u8) -> AppLayerResult;
-pub type ProbeFn      = extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
+pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
-pub type StateFreeFn  = extern "C" fn (*mut c_void);
-pub type StateTxFreeFn  = extern "C" fn (*mut c_void, u64);
-pub type StateGetTxFn            = extern "C" fn (*mut c_void, u64) -> *mut c_void;
-pub type StateGetTxCntFn         = extern "C" fn (*mut c_void) -> u64;
-pub type StateGetProgressFn = extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetDetectStateFn   = extern "C" fn (*mut c_void) -> *mut DetectEngineState;
-pub type SetDetectStateFn   = extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
-pub type GetEventInfoFn     = extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
-pub type GetEventInfoByIdFn = extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
-pub type GetEventsFn        = extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
+pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
+pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
+pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
+pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
+pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
+pub type GetDetectStateFn   = unsafe extern "C" fn (*mut c_void) -> *mut DetectEngineState;
+pub type SetDetectStateFn   = unsafe extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
+pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
+pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
+pub type GetEventsFn        = unsafe extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
-pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
-pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
+pub type GetFilesFn         = unsafe
+extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
+pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
                                              min_tx_id: u64,
                                              max_tx_id: u64,
@@ -300,21 +311,32 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 
 // Defined in app-layer-detect-proto.h
 extern {
+    pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
+                                         min_depth: u16, max_depth: u16, dir: u8,
+                                         pparser1: ProbeFn, pparser2: ProbeFn);
+    pub fn AppLayerProtoDetectPPParseConfPorts(ipproto_name: *const c_char, ipproto: u8,
+                                               alproto_name: *const c_char, alproto: AppProto,
+                                               min_depth: u16, max_depth: u16,
+                                               pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
+    pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(ipproto: u8, alproto: AppProto,
+                                                     pattern: *const c_char, depth: u16,
+                                                     offset: u16, direction: u8, ppfn: ProbeFn,
+                                                     pp_min_depth: u16, pp_max_depth: u16) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }
 
 // Defined in app-layer-parser.h
-pub const APP_LAYER_PARSER_EOF_TS : u8 = 0b0101;
-pub const APP_LAYER_PARSER_EOF_TC : u8 = 0b0110;
-pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = 0b1;
-pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
-pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
-pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
+pub const APP_LAYER_PARSER_EOF_TS : u8 = BIT_U8!(5);
+pub const APP_LAYER_PARSER_EOF_TC : u8 = BIT_U8!(6);
+pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = BIT_U8!(1);
+pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = BIT_U8!(2);
+pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = BIT_U8!(3);
+pub const APP_LAYER_PARSER_BYPASS_READY : u8 = BIT_U8!(4);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
 
-pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
+pub type AppLayerGetTxIteratorFn = unsafe extern "C" fn (ipproto: u8,
                                                   alproto: AppProto,
                                                   alstate: *mut c_void,
                                                   min_tx_id: u64,
@@ -324,6 +346,7 @@ pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
+    pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
     pub fn AppLayerParserRegisterOptionFlags(ipproto: u8, alproto: AppProto, flags: u32);
@@ -351,17 +374,15 @@ impl AppLayerGetTxIterTuple {
 
 /// LoggerFlags tracks which loggers have already been executed.
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Default, Debug,PartialEq)]
 pub struct LoggerFlags {
     flags: u32,
 }
 
 impl LoggerFlags {
 
-    pub fn new() -> LoggerFlags {
-        return LoggerFlags{
-            flags: 0,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn get(&self) -> u32 {
@@ -379,7 +400,7 @@ impl LoggerFlags {
 macro_rules!export_tx_get_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub extern "C" fn $name(tx: *mut std::os::raw::c_void)
+        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
             -> *mut core::DetectEngineState
         {
             let tx = cast_pointer!(tx, $type);
@@ -400,7 +421,7 @@ macro_rules!export_tx_get_detect_state {
 macro_rules!export_tx_set_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub extern "C" fn $name(tx: *mut std::os::raw::c_void,
+        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void,
                 de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
         {
             let tx = cast_pointer!(tx, $type);
@@ -408,4 +429,80 @@ macro_rules!export_tx_set_detect_state {
             0
         }
     )
+}
+
+/// AppLayerEvent trait that will be implemented on enums that
+/// derive AppLayerEvent.
+pub trait AppLayerEvent {
+    /// Return the enum variant of the given ID.
+    fn from_id(id: i32) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Convert the enum variant to a C-style string (suffixed with \0).
+    fn to_cstring(&self) -> &str;
+
+    /// Return the enum variant for the given name.
+    fn from_string(s: &str) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return the ID value of the enum variant.
+    fn as_i32(&self) -> i32;
+
+    unsafe extern "C" fn get_event_info(
+        event_name: *const std::os::raw::c_char,
+        event_id: *mut std::os::raw::c_int,
+        event_type: *mut core::AppLayerEventType,
+    ) -> std::os::raw::c_int;
+
+    unsafe extern "C" fn get_event_info_by_id(
+        event_id: std::os::raw::c_int,
+        event_name: *mut *const std::os::raw::c_char,
+        event_type: *mut core::AppLayerEventType,
+    ) -> i8;
+}
+
+/// Generic `get_info_info` implementation for enums implementing
+/// AppLayerEvent.
+///
+/// Normally usage of this function will be generated by
+/// derive(AppLayerEvent), for example:
+///
+/// #[derive(AppLayerEvent)]
+/// enum AppEvent {
+///     EventOne,
+///     EventTwo,
+/// }
+///
+/// get_event_info::<AppEvent>(...)
+#[inline(always)]
+pub unsafe fn get_event_info<T: AppLayerEvent>(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+
+    let event = match CStr::from_ptr(event_name).to_str().map(T::from_string) {
+        Ok(Some(event)) => event.as_i32(),
+        _ => -1,
+    };
+    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_id = event as std::os::raw::c_int;
+    return 0;
+}
+
+/// Generic `get_info_info_by_id` implementation for enums implementing
+/// AppLayerEvent.
+#[inline(always)]
+pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
+    if let Some(e) = T::from_id(event_id as i32) {
+        *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
+    }
+    return -1;
 }

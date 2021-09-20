@@ -46,8 +46,6 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-dcerpc.h"
-#include "app-layer-dcerpc-udp.h"
 #include "app-layer-smb.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
@@ -878,6 +876,9 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 #define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
 
 extern int g_detect_disabled;
+extern bool g_file_logger_enabled;
+extern bool g_filedata_logger_enabled;
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -991,6 +992,19 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
                         tx, i, logger_expectation, tx_logged);
+                skipped = true;
+                goto next;
+            }
+        }
+
+        /* if file logging is enabled, we keep a tx active while some of the files aren't
+         * logged yet. */
+        if (txd && txd->files_opened) {
+            if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
+                skipped = true;
+                goto next;
+            }
+            if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
                 skipped = true;
                 goto next;
             }
@@ -1581,8 +1595,8 @@ void AppLayerParserRegisterProtocolParsers(void)
 
     RegisterHTPParsers();
     RegisterSSLParsers();
-    RegisterDCERPCParsers();
-    RegisterDCERPCUDPParsers();
+    rs_dcerpc_register_parser();
+    rs_dcerpc_udp_register_parser();
     RegisterSMBParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();

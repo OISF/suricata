@@ -37,14 +37,14 @@ int ThresholdHostHasThreshold(Host *);
 
 int ThresholdIPPairHasThreshold(IPPair *pair);
 
-const DetectThresholdData *SigGetThresholdTypeIter(const Signature *,
-        Packet *, const SigMatchData **, int list);
+const DetectThresholdData *SigGetThresholdTypeIter(
+        const Signature *, const SigMatchData **, int list);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
         const DetectThresholdData *, Packet *,
         const Signature *, PacketAlert *);
 
 void ThresholdHashInit(DetectEngineCtx *);
-void ThresholdHashRealloc(DetectEngineCtx *);
+void ThresholdHashAllocate(DetectEngineCtx *);
 void ThresholdContextDestroy(DetectEngineCtx *);
 
 int ThresholdHostTimeoutCheck(Host *, struct timeval *);

@@ -149,8 +149,8 @@ pub fn handle_ikev2(
                             state.ikev2_container.dh_group = kex.dh_group;
                         }
                     }
-                    IkeV2PayloadContent::Nonce(ref n) => {
-                        SCLogDebug!("Nonce: {:?}", n);
+                    IkeV2PayloadContent::Nonce(ref _n) => {
+                        SCLogDebug!("Nonce: {:?}", _n);
                     }
                     IkeV2PayloadContent::Notify(ref n) => {
                         SCLogDebug!("Notify: {:?}", n);
@@ -207,16 +207,15 @@ pub fn handle_ikev2(
                 }
             }
         }
-        e => {
-            SCLogDebug!("parse_ikev2_payload_with_type: {:?}", e);
-            ()
+        _e => {
+            SCLogDebug!("parse_ikev2_payload_with_type: {:?}", _e);
         }
     }
     return AppLayerResult::ok();
 }
 
 fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8) {
-    for ref p in prop {
+    for p in prop {
         let transforms: Vec<IkeV2Transform> = p.transforms.iter().map(|x| x.into()).collect();
         // Rule 1: warn on weak or unknown transforms
         for xform in &transforms {
@@ -247,7 +246,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                     }
                     IkeTransformPRFType::PRF_HMAC_MD5 | IkeTransformPRFType::PRF_HMAC_SHA1 => {
                         SCLogDebug!("Weak PRF: {:?}", prf);
-                        state.set_event(IkeEvent::WeakCryptoPRF);
+                        state.set_event(IkeEvent::WeakCryptoPrf);
                     }
                     _ => (),
                 },
@@ -256,7 +255,6 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                         IkeTransformAuthType::NONE => {
                             // Note: this could be expected with an AEAD encription alg.
                             // See rule 4
-                            ()
                         }
                         IkeTransformAuthType::AUTH_HMAC_MD5_96
                         | IkeTransformAuthType::AUTH_HMAC_SHA1_96
@@ -281,12 +279,12 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
                     | IkeTransformDHType::Modp1024s160
                     | IkeTransformDHType::Modp1536 => {
                         SCLogDebug!("Weak DH: {:?}", dh);
-                        state.set_event(IkeEvent::WeakCryptoDH);
+                        state.set_event(IkeEvent::WeakCryptoDh);
                     }
                     _ => (),
                 },
-                IkeV2Transform::Unknown(tx_type, tx_id) => {
-                    SCLogDebug!("Unknown proposal: type={:?}, id={}", tx_type, tx_id);
+                IkeV2Transform::Unknown(_tx_type, _tx_id) => {
+                    SCLogDebug!("Unknown proposal: type={:?}, id={}", _tx_type, _tx_id);
                     state.set_event(IkeEvent::UnknownProposal);
                 }
                 _ => (),
@@ -298,7 +296,7 @@ fn add_proposals(state: &mut IKEState, prop: &Vec<IkeV2Proposal>, direction: u8)
             _ => false,
         }) {
             SCLogDebug!("No DH transform found");
-            state.set_event(IkeEvent::WeakCryptoNoDH);
+            state.set_event(IkeEvent::WeakCryptoNoDh);
         }
         // Rule 3: check if proposing AH ([RFC7296] section 3.3.1)
         if p.protocol_id == ProtocolID::AH {

@@ -1,0 +1,2 @@
+libhtp https://github.com/OISF/libhtp/archive/0.5.x.tar.gz
+suricata-update https://github.com/OISF/suricata-update/archive/master.tar.gz

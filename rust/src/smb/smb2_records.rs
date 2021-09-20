@@ -328,24 +328,62 @@ pub struct Smb2SetInfoRequestRenameRecord<'a> {
     pub name: &'a[u8],
 }
 
-named!(pub parse_smb2_request_setinfo_rename<Smb2SetInfoRequestRenameRecord>,
+named!(pub parse_smb2_request_setinfo_rename<Smb2SetInfoRequestData>,
     do_parse!(
             _replace: le_u8
         >>  _reserved: take!(7)
         >>  _root_handle: take!(8)
         >>  name_len: le_u32
         >>  name: take!(name_len)
-        >> (Smb2SetInfoRequestRenameRecord {
+        >> (Smb2SetInfoRequestData::RENAME(Smb2SetInfoRequestRenameRecord {
                 name
-            })
+            }))
 ));
+
+#[derive(Debug)]
+pub struct Smb2SetInfoRequestDispoRecord {
+    pub delete: bool,
+}
+
+named!(pub parse_smb2_request_setinfo_disposition<&[u8], Smb2SetInfoRequestData>,
+    do_parse!(
+        info: le_u8 >>
+        (Smb2SetInfoRequestData::DISPOSITION(Smb2SetInfoRequestDispoRecord {
+                delete: info & 1 != 0,
+            }))
+));
+
+#[derive(Debug)]
+pub enum Smb2SetInfoRequestData<'a> {
+    DISPOSITION(Smb2SetInfoRequestDispoRecord),
+    RENAME(Smb2SetInfoRequestRenameRecord<'a>),
+    UNHANDLED,
+}
 
 #[derive(Debug)]
 pub struct Smb2SetInfoRequestRecord<'a> {
     pub guid: &'a[u8],
     pub class: u8,
     pub infolvl: u8,
-    pub rename: Option<Smb2SetInfoRequestRenameRecord<'a>>,
+    pub data: Smb2SetInfoRequestData<'a>,
+}
+
+fn parse_smb2_request_setinfo_data(
+    i: &[u8], class: u8, infolvl: u8,
+) -> IResult<&[u8], Smb2SetInfoRequestData> {
+    if class == 1 {
+        // constants from [MS-FSCC] section 2.4
+        match infolvl {
+            10 => {
+                return parse_smb2_request_setinfo_rename(i);
+            }
+            0xd => {
+                return parse_smb2_request_setinfo_disposition(i);
+            }
+            _ => {}
+        }
+    }
+    return Ok((i, Smb2SetInfoRequestData::UNHANDLED));
 }
 
 named!(pub parse_smb2_request_setinfo<Smb2SetInfoRequestRecord>,
@@ -358,12 +396,12 @@ named!(pub parse_smb2_request_setinfo<Smb2SetInfoRequestRecord>,
         >>  _reserved: take!(2)
         >>  _additional_info: le_u32
         >>  guid: take!(16)
-        >>  rename: cond!(class == 1 && infolvl == 10, flat_map!(take!(setinfo_size),parse_smb2_request_setinfo_rename))
+        >>  data: flat_map!(take!(setinfo_size), call!(parse_smb2_request_setinfo_data, class, infolvl))
         >> (Smb2SetInfoRequestRecord {
                 guid: guid,
                 class: class,
                 infolvl: infolvl,
-                rename: rename,
+                data: data,
             })
 ));
 

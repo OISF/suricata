@@ -15,14 +15,15 @@
  * 02110-1301, USA.
  */
 
-use std::mem::transmute;
 use crate::applayer::*;
 use crate::core::{self, *};
 use crate::dcerpc::parser;
 use nom::error::ErrorKind;
 use nom::number::Endianness;
 use nom;
+use std;
 use std::cmp;
+use std::ffi::CString;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -108,6 +109,8 @@ pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
 
+pub static mut ALPROTO_DCERPC: AppProto = ALPROTO_UNKNOWN;
+
 pub fn dcerpc_type_string(t: u8) -> String {
     match t {
         DCERPC_TYPE_REQUEST => "REQUEST",
@@ -157,7 +160,7 @@ pub fn get_req_type_for_resp(t: u8) -> u8 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCTransaction {
     pub id: u64, // internal transaction ID
     pub ctxid: u16,
@@ -184,31 +187,17 @@ pub struct DCERPCTransaction {
 }
 
 impl DCERPCTransaction {
-    pub fn new() -> DCERPCTransaction {
-        return DCERPCTransaction {
-            id: 0,
-            ctxid: 0,
-            opnum: 0,
-            first_request_seen: 0,
-            call_id: 0,
-            frag_cnt_ts: 0,
-            frag_cnt_tc: 0,
-            endianness: 0,
+    pub fn new() -> Self {
+        return Self {
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
-            stub_data_buffer_reset_ts: false,
-            stub_data_buffer_reset_tc: false,
-            req_done: false,
-            resp_done: false,
-            req_lost: false,
-            resp_lost: false,
             req_cmd: DCERPC_TYPE_REQUEST,
             resp_cmd: DCERPC_TYPE_RESPONSE,
             activityuuid: Vec::new(),
-            seqnum: 0,
             tx_data: AppLayerTxData::new(),
             de_state: None,
-        };
+            ..Default::default()
+        }
     }
 
     pub fn free(&mut self) {
@@ -250,7 +239,7 @@ pub struct DCERPCRequest {
     pub first_request_seen: u8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct DCERPCUuidEntry {
     pub ctxid: u16,
     pub internal_id: u16,
@@ -262,16 +251,8 @@ pub struct DCERPCUuidEntry {
 }
 
 impl DCERPCUuidEntry {
-    pub fn new() -> DCERPCUuidEntry {
-        return DCERPCUuidEntry {
-            ctxid: 0,
-            internal_id: 0,
-            result: 0,
-            uuid: Vec::new(),
-            version: 0,
-            versionminor: 0,
-            flags: 0,
-        };
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
@@ -327,7 +308,7 @@ pub struct DCERPCBindAck {
     pub ctxitems: Vec<DCERPCBindAckResult>,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCState {
     pub header: Option<DCERPCHdr>,
     pub bind: Option<DCERPCBind>,
@@ -354,31 +335,12 @@ pub struct DCERPCState {
 }
 
 impl DCERPCState {
-    pub fn new() -> DCERPCState {
-        return DCERPCState {
-            header: None,
-            bind: None,
-            bindack: None,
-            transactions: Vec::new(),
-            buffer_ts: Vec::new(),
-            buffer_tc: Vec::new(),
-            pad: 0,
-            padleft: 0,
-            bytes_consumed: 0,
-            tx_id: 0,
-            query_completed: false,
+    pub fn new() -> Self {
+        return Self {
             data_needed_for_dir: core::STREAM_TOSERVER,
             prev_dir: core::STREAM_TOSERVER,
-            prev_tx_call_id: 0,
-            clear_bind_cache: false,
-            ts_gap: false,
-            tc_gap: false,
-            ts_ssn_gap: false,
-            tc_ssn_gap: false,
-            ts_ssn_trunc: false,
-            tc_ssn_trunc: false,
-            flow: None,
-        };
+            ..Default::default()
+        }
     }
 
     fn create_tx(&mut self, call_id: u32) -> DCERPCTransaction {
@@ -941,7 +903,7 @@ impl DCERPCState {
                     }
                 }
                 let parsed = self.handle_common_stub(
-                    &input,
+                    input,
                     (input.len() - leftover_input.len()) as u16,
                     core::STREAM_TOSERVER,
                 );
@@ -1037,7 +999,7 @@ impl DCERPCState {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         if self.bytes_consumed < DCERPC_HDR_LEN && input_len > 0 {
-            parsed = self.process_header(&buffer);
+            parsed = self.process_header(buffer);
             if parsed == -1 {
                 self.extend_buffer(buffer, direction);
                 return AppLayerResult::ok();
@@ -1050,7 +1012,7 @@ impl DCERPCState {
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
-        if (buffer.len() as u16) < fraglen {
+        if (buffer.len()) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
             self.extend_buffer(buffer, direction);
             return AppLayerResult::ok();
@@ -1160,7 +1122,7 @@ fn evaluate_stub_params(
     }
 
     let input_slice = &input[..stub_len as usize];
-    stub_data_buffer.extend_from_slice(&input_slice);
+    stub_data_buffer.extend_from_slice(input_slice);
 
     stub_len
 }
@@ -1182,10 +1144,11 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_request(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+pub unsafe extern "C" fn rs_dcerpc_parse_request(
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
             input, input_len, flags, flags & core::STREAM_EOF != 0);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
@@ -1204,10 +1167,11 @@ pub extern "C" fn rs_dcerpc_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_response(
-    flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
+pub unsafe extern "C" fn rs_dcerpc_parse_response(
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCState);
     if flags & core::STREAM_EOF != 0 && input_len == 0 {
         return AppLayerResult::ok();
     }
@@ -1226,26 +1190,26 @@ pub extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    transmute(boxed)
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCState> = transmute(state);
+pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let dce_state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("freeing tx {}", tx_id as u64);
     dce_state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
+pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
     let dce_state = cast_pointer!(state, DCERPCState);
     if direction & core::STREAM_TOSERVER != 0 {
         dce_state.ts_ssn_trunc = true;
@@ -1269,7 +1233,7 @@ pub extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direct
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_detect_state(
+pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
     vtx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
@@ -1280,33 +1244,35 @@ pub extern "C" fn rs_dcerpc_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
-) -> u8 {
+pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
+    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
     dce_tx.de_state = Some(de_state);
     0
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx(
+pub unsafe extern "C" fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut DCERPCTransaction {
+) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     match dce_state.get_tx(tx_id) {
-        Some(tx) => tx,
+        Some(tx) => tx as *const _ as *mut _,
         None => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: &mut DCERPCTransaction, direction: u8) -> u8 {
+pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
+                                                 )-> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == core::STREAM_TOSERVER && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
         return 1;
@@ -1319,7 +1285,7 @@ pub extern "C" fn rs_dcerpc_get_alstate_progress(tx: &mut DCERPCTransaction, dir
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_data(
+pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -1361,17 +1327,14 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> i32
+pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u8, input: *const u8,
+                                      len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
     let (is_dcerpc, is_request, ) = probe(slice);
     if is_dcerpc {
@@ -1381,12 +1344,94 @@ pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
             core::STREAM_TOCLIENT
         };
         if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            unsafe { *rdir = dir };
+            *rdir = dir;
         }
-        return 1;
+        return ALPROTO_DCERPC;
     }
-    return 0;
+    return core::ALPROTO_FAILED;
+}
 
+fn register_pattern_probe() -> i8 {
+    unsafe {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_DCERPC,
+                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_tcp, 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP as u8, ALPROTO_DCERPC,
+                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOCLIENT, rs_dcerpc_probe_tcp, 0, 0) < 0 {
+            SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+    }
+
+    0
+}
+
+
+// Parser name as a C style string.
+pub const PARSER_NAME: &'static [u8] = b"dcerpc\0";
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dcerpc_register_parser() {
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: std::ptr::null(),
+        ipproto: IPPROTO_TCP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_dcerpc_state_new,
+        state_free: rs_dcerpc_state_free,
+        tx_free: rs_dcerpc_state_transaction_free,
+        parse_ts: rs_dcerpc_parse_request,
+        parse_tc: rs_dcerpc_parse_response,
+        get_tx_count: rs_dcerpc_get_tx_cnt,
+        get_tx: rs_dcerpc_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        get_de_state: rs_dcerpc_get_tx_detect_state,
+        set_de_state: rs_dcerpc_set_tx_detect_state,
+        get_events: None,
+        get_eventinfo: None,
+        get_eventinfo_byid : None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_dcerpc_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("tcp").unwrap();
+
+    if AppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        parser.name,
+    ) != 0
+    {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_DCERPC = alproto;
+        if register_pattern_probe() < 0 {
+            return;
+        }
+        if AppLayerParserConfParserEnabled(
+            ip_proto_str.as_ptr(),
+            parser.name,
+        ) != 0
+        {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogDebug!("Rust DCERPC parser registered.");
+    } else {
+        SCLogDebug!("Protocol detector and parser disabled for DCERPC.");
+    }
 }
 
 #[cfg(test)]
@@ -1734,7 +1779,7 @@ mod tests {
             0x69, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(&request));
+        assert_eq!(16, dcerpc_state.process_header(request));
         assert_eq!(1008, dcerpc_state.process_request_pdu(&request[16..]));
     }
 
@@ -1819,7 +1864,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request, core::STREAM_TOSERVER)
         );
         if let Some(hdr) = dcerpc_state.header {
             assert_eq!(0, hdr.hdrtype);
@@ -1855,11 +1900,11 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(), // TODO ASK if this is correct?
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
     }
 
@@ -1925,11 +1970,11 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
         if let Some(ref bind) = dcerpc_state.bind {
             assert_eq!(16, bind.numctxitems);
@@ -1949,15 +1994,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request3, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(20, tx.stub_data_buffer_ts.len());
@@ -1973,7 +2018,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
     }
 
@@ -1987,7 +2032,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
     }
 
@@ -2007,15 +2052,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::err(),
-            dcerpc_state.handle_input_data(&fault, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(fault, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(12, tx.stub_data_buffer_ts.len());
@@ -2037,15 +2082,15 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&request3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(request3, core::STREAM_TOSERVER)
         );
     }
 
@@ -2065,11 +2110,11 @@ mod tests {
         dcerpc_state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack1, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack1, core::STREAM_TOCLIENT)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack2, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack2, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2092,7 +2137,7 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bindbuf, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bindbuf, core::STREAM_TOSERVER)
         );
         if let Some(ref bind) = dcerpc_state.bind {
             let bind_uuid = &bind.uuid_list[0].uuid;
@@ -2104,7 +2149,7 @@ mod tests {
                     .zip(expected_uuid)
                     .map(|(x, y)| x.cmp(y))
                     .find(|&ord| ord != cmp::Ordering::Equal)
-                    .unwrap_or(bind_uuid.len().cmp(&expected_uuid.len()))
+                    .unwrap_or_else(|| bind_uuid.len().cmp(&expected_uuid.len()))
             );
         }
     }
@@ -2126,7 +2171,7 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bindbuf, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bindbuf, core::STREAM_TOSERVER)
         );
     }
 
@@ -2146,7 +2191,7 @@ mod tests {
         dcerpc_state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2397,11 +2442,11 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind1, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack1, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack1, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2410,11 +2455,11 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind2, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind2, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack2, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack2, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2423,11 +2468,11 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind3, core::STREAM_TOSERVER)
+            dcerpc_state.handle_input_data(bind3, core::STREAM_TOSERVER)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(&bind_ack3, core::STREAM_TOCLIENT)
+            dcerpc_state.handle_input_data(bind_ack3, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());

@@ -497,9 +497,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            if (parsed_track == TRACK_RULE) {
-                ThresholdHashRealloc(de_ctx);
-            }
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
         }
 
@@ -540,9 +537,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                     sm->type = DETECT_THRESHOLD;
                 sm->ctx = (void *)de;
 
-                if (parsed_track == TRACK_RULE) {
-                    ThresholdHashRealloc(de_ctx);
-                }
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
             }
         }
@@ -613,10 +607,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             else
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
-
-            if (parsed_track == TRACK_RULE) {
-                ThresholdHashRealloc(de_ctx);
-            }
 
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
         }
@@ -1646,15 +1636,15 @@ static int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
 
     TimeSetIncrementTime(2);
     TimeGet(&p->ts);
@@ -1662,7 +1652,7 @@ static int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || !(PACKET_TEST_ACTION(p, ACTION_DROP)));
+    FAIL_IF(p->alerts.cnt != 1 || !(PacketTestAction(p, ACTION_DROP)));
 
     TimeSetIncrementTime(3);
     TimeGet(&p->ts);
@@ -1670,7 +1660,7 @@ static int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || !(PACKET_TEST_ACTION(p, ACTION_DROP)));
+    FAIL_IF(p->alerts.cnt != 1 || !(PacketTestAction(p, ACTION_DROP)));
 
     TimeSetIncrementTime(10);
     TimeGet(&p->ts);
@@ -1678,12 +1668,12 @@ static int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
 
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF(p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(p->alerts.cnt != 1 || PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -1740,21 +1730,21 @@ static int SCThresholdConfTest10(void)
 
     /* All should be alerted, none dropped */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
     p1->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
     p2->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
     p1->action = 0;
 
     /* Match #4 should be dropped*/
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
     p2->action = 0;
 
@@ -1763,7 +1753,7 @@ static int SCThresholdConfTest10(void)
 
     /* Still dropped because timeout not expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
     p1->action = 0;
 
@@ -1772,7 +1762,7 @@ static int SCThresholdConfTest10(void)
 
     /* Not dropped because timeout expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     /* Ensure that a Threshold entry was installed at the sig */
@@ -2145,7 +2135,7 @@ static int SCThresholdConfTest15(void)
     /* 10000 shouldn't match */
     FAIL_IF(PacketAlertCheck(p, 10000) != 0);
     /* however, it should have set the drop flag */
-    FAIL_IF(!(PACKET_TEST_ACTION(p, ACTION_DROP)));
+    FAIL_IF(!(PacketTestAction(p, ACTION_DROP)));
 
     UTHFreePacket(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -2196,7 +2186,7 @@ static int SCThresholdConfTest16(void)
 
     FAIL_IF(PacketAlertCheck(p, 1000) != 0);
     /* however, it should have set the drop flag */
-    FAIL_IF(!(PACKET_TEST_ACTION(p, ACTION_DROP)));
+    FAIL_IF(!(PacketTestAction(p, ACTION_DROP)));
 
     UTHFreePacket(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -2248,7 +2238,7 @@ static int SCThresholdConfTest17(void)
     /* 10000 shouldn't match */
     FAIL_IF(PacketAlertCheck(p, 10000) != 0);
     /* however, it should have set the drop flag */
-    FAIL_IF(!(PACKET_TEST_ACTION(p, ACTION_DROP)));
+    FAIL_IF(!(PacketTestAction(p, ACTION_DROP)));
 
     UTHFreePacket(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -2538,15 +2528,15 @@ static int SCThresholdConfTest22(void)
 
     /* All should be alerted, none dropped */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p3, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p3, 10) != 1);
 
     p1->action = p2->action = p3->action = 0;
@@ -2557,7 +2547,7 @@ static int SCThresholdConfTest22(void)
 
     /* p1 still shouldn't be dropped after 2nd alert */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     p1->action = 0;
@@ -2568,15 +2558,15 @@ static int SCThresholdConfTest22(void)
 
     /* All should be alerted, only p1 must be dropped  due to rate_filter*/
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p3, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p3, 10) != 1);
 
     p1->action = p2->action = p3->action = 0;
@@ -2587,15 +2577,15 @@ static int SCThresholdConfTest22(void)
 
     /* All should be alerted, none dropped (because timeout expired) */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p3, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p3, 10) != 1);
 
     UTHFreePacket(p3);
@@ -2672,7 +2662,7 @@ static int SCThresholdConfTest23(void)
     TimeGet(&p1->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     /* First packet should be alerted, not dropped */
-    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     TimeSetIncrementTime(2);
@@ -2681,7 +2671,7 @@ static int SCThresholdConfTest23(void)
 
     /* Second packet should be dropped because it considered as "the same pair"
        and rate_filter count reached*/
-    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF_NOT(PacketTestAction(p2, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p2, 10) != 1);
 
     UTHFreePacket(p2);

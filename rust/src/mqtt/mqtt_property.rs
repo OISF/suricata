@@ -68,13 +68,13 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
                 js.set_uint("message_expiry_interval", *v as u64)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::CONTENT_TYPE(v) => {
-                js.set_string("content_type", &v)?;
+                js.set_string("content_type", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::RESPONSE_TOPIC(v) => {
-                js.set_string("response_topic", &v)?;
+                js.set_string("response_topic", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::CORRELATION_DATA(v) => {
-                js.set_string_from_bytes("correlation_data", &v)?;
+                js.set_string_from_bytes("correlation_data", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::SUBSCRIPTION_IDENTIFIER(v) => {
                 js.set_uint("subscription_identifier", *v as u64)?;
@@ -83,16 +83,16 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
                 js.set_uint("session_expiry_interval", *v as u64)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::ASSIGNED_CLIENT_IDENTIFIER(v) => {
-                js.set_string("assigned_client_identifier", &v)?;
+                js.set_string("assigned_client_identifier", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::SERVER_KEEP_ALIVE(v) => {
                 js.set_uint("server_keep_alive", *v as u64)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::AUTHENTICATION_METHOD(v) => {
-                js.set_string("authentication_method", &v)?;
+                js.set_string("authentication_method", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::AUTHENTICATION_DATA(v) => {
-                js.set_string_from_bytes("authentication_data", &v)?;
+                js.set_string_from_bytes("authentication_data", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::REQUEST_PROBLEM_INFORMATION(v) => {
                 js.set_uint("request_problem_information", *v as u64)?;
@@ -104,13 +104,13 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
                 js.set_uint("request_response_information", *v as u64)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::RESPONSE_INFORMATION(v) => {
-                js.set_string("response_information", &v)?;
+                js.set_string("response_information", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::SERVER_REFERENCE(v) => {
-                js.set_string("server_reference", &v)?;
+                js.set_string("server_reference", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::REASON_STRING(v) => {
-                js.set_string("reason_string", &v)?;
+                js.set_string("reason_string", v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::RECEIVE_MAXIMUM(v) => {
                 js.set_uint("receive_maximum", *v as u64)?;
@@ -128,7 +128,7 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
                 js.set_uint("retain_available", *v as u64)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::USER_PROPERTY((k, v)) => {
-                js.set_string(k, &v)?;
+                js.set_string(k, v)?;
             }
             crate::mqtt::mqtt_property::MQTTProperty::MAXIMUM_PACKET_SIZE(v) => {
                 js.set_uint("maximum_packet_size", *v as u64)?;

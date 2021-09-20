@@ -39,7 +39,7 @@
 static int g_krb5_sname_buffer_id = 0;
 
 struct Krb5PrincipalNameDataArgs {
-    int local_id;  /**< used as index into thread inspect array */
+    uint32_t local_id; /**< used as index into thread inspect array */
     void *txv;
 };
 
@@ -61,8 +61,8 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
+    InspectionBuffer *buffer =
+            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -71,13 +71,12 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_krb5_tx_get_sname(cbdata->txv, (uint16_t)cbdata->local_id, &b, &b_len) != 1)
+    if (rs_krb5_tx_get_sname(cbdata->txv, cbdata->local_id, &b, &b_len) != 1)
         return NULL;
     if (b == NULL || b_len == 0)
         return NULL;
 
-    InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferSetupMulti(buffer, transforms, b, b_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -88,7 +87,7 @@ static int DetectEngineInspectKrb5SName(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
@@ -147,7 +146,7 @@ static void PrefilterTxKrb5SName(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    int local_id = 0;
+    uint32_t local_id = 0;
 
     while(1) {
         // loop until we get a NULL

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -122,7 +122,6 @@
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-smb.h"
-#include "app-layer-dcerpc.h"
 
 #include "output-filestore.h"
 
@@ -262,6 +261,7 @@ void EngineModeSetIDS(void)
     g_engine_mode = ENGINE_MODE_IDS;
 }
 
+#ifdef UNITTESTS
 int RunmodeIsUnittests(void)
 {
     if (run_mode == RUNMODE_UNITTEST)
@@ -269,6 +269,7 @@ int RunmodeIsUnittests(void)
 
     return 0;
 }
+#endif
 
 int RunmodeGetCurrent(void)
 {
@@ -346,7 +347,6 @@ static void GlobalsDestroy(SCInstance *suri)
     OutputDeregisterAll();
     FeatureTrackingRelease();
     TimeDeinit();
-    SCProtoNameDeInit();
     if (!suri->disabled_detect) {
         SCReferenceConfDeinit();
         SCClassConfDeinit();
@@ -2532,7 +2532,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     TmqhSetup();
 
     CIDRInit();
-    SCProtoNameInit();
 
     TagInitCtx();
     PacketAlertTagInit();

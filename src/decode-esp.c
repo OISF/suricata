@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,8 +31,12 @@
 #include "decode-esp.h"
 #include "flow.h"
 
+#include "util-validate.h"
+
 static int DecodeESPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     if (unlikely(len < ESP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ESP_PKT_TOO_SMALL);
         return -1;
@@ -59,6 +63,8 @@ static int DecodeESPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16
  */
 int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
     StatsIncr(tv, dtv->counter_esp);
 
     if (!PacketIncreaseCheckLayers(p)) {

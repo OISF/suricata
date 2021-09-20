@@ -68,12 +68,18 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static int g_http_raw_host_buffer_id = 0;
 static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id);
+static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static int g_http_host_buffer_id = 0;
 
 /**
@@ -105,6 +111,12 @@ void DetectHttpHHRegister(void)
     DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
+    DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
+
+    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
 
@@ -133,6 +145,12 @@ void DetectHttpHHRegister(void)
 
     DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
+
+    DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRawData2);
+
+    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetRawData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
@@ -208,7 +226,7 @@ static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     if (DetectBufferSetActiveList(s, g_http_host_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
@@ -228,6 +246,48 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = bstr_ptr(htp_tx_request_hostname(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_host_norm(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_host(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -266,7 +326,7 @@ static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, c
 {
     if (DetectBufferSetActiveList(s, g_http_raw_host_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }

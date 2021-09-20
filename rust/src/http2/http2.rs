@@ -26,10 +26,9 @@ use crate::filecontainer::*;
 use crate::filetracker::*;
 use nom;
 use std;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::fmt;
 use std::io;
-use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
@@ -82,6 +81,7 @@ pub struct HTTP2FrameUnhandled {
     pub reason: HTTP2FrameUnhandledReason,
 }
 
+#[derive(Debug)]
 pub enum HTTP2FrameTypeData {
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
@@ -112,11 +112,13 @@ pub enum HTTP2TransactionState {
     HTTP2StateGlobal = 8,
 }
 
+#[derive(Debug)]
 pub struct HTTP2Frame {
     pub header: parser::HTTP2FrameHeader,
     pub data: HTTP2FrameTypeData,
 }
 
+#[derive(Debug)]
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,
@@ -183,6 +185,12 @@ impl HTTP2Transaction {
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
         let xid: u32 = self.tx_id as u32;
         if dir == STREAM_TOCLIENT {
+            self.ft_tc.tx_id = self.tx_id - 1;
+            if !self.ft_tc.file_open {
+                // we are now sure that new_chunk will open a file
+                // even if it may close it right afterwards
+                self.tx_data.incr_files_opened();
+            }
             self.ft_tc.new_chunk(
                 sfcm,
                 files,
@@ -196,6 +204,10 @@ impl HTTP2Transaction {
                 &xid,
             );
         } else {
+            self.ft_ts.tx_id = self.tx_id - 1;
+            if !self.ft_ts.file_open {
+                self.tx_data.incr_files_opened();
+            }
             self.ft_ts.new_chunk(
                 sfcm,
                 files,
@@ -297,9 +309,9 @@ impl Drop for HTTP2Transaction {
     }
 }
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum HTTP2Event {
-    InvalidFrameHeader = 0,
+    InvalidFrameHeader,
     InvalidClientMagic,
     InvalidFrameData,
     InvalidHeader,
@@ -309,24 +321,6 @@ pub enum HTTP2Event {
     StreamIdReuse,
     InvalidHTTP1Settings,
     FailedDecompression,
-}
-
-impl HTTP2Event {
-    fn from_i32(value: i32) -> Option<HTTP2Event> {
-        match value {
-            0 => Some(HTTP2Event::InvalidFrameHeader),
-            1 => Some(HTTP2Event::InvalidClientMagic),
-            2 => Some(HTTP2Event::InvalidFrameData),
-            3 => Some(HTTP2Event::InvalidHeader),
-            4 => Some(HTTP2Event::InvalidFrameLength),
-            5 => Some(HTTP2Event::ExtraHeaderData),
-            6 => Some(HTTP2Event::LongFrameData),
-            7 => Some(HTTP2Event::StreamIdReuse),
-            8 => Some(HTTP2Event::InvalidHTTP1Settings),
-            9 => Some(HTTP2Event::FailedDecompression),
-            _ => None,
-        }
-    }
 }
 
 pub struct HTTP2DynTable {
@@ -371,13 +365,12 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
-            files: Files::new(),
+            files: Files::default(),
         }
     }
 
     pub fn free(&mut self) {
         self.transactions.clear();
-        self.files.free();
     }
 
     pub fn set_event(&mut self, event: HTTP2Event) {
@@ -823,12 +816,7 @@ impl HTTP2State {
                                 //borrow checker forbids to reuse directly tx
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
-                                    let mut tx_same = &mut self.transactions[index - 1];
-                                    if dir == STREAM_TOCLIENT {
-                                        tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
-                                    } else {
-                                        tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
-                                    }
+                                    let tx_same = &mut self.transactions[index - 1];
                                     let (files, flags) = self.files.get(dir);
                                     match tx_same.decompress(
                                         &rem[..hlsafe],
@@ -962,7 +950,7 @@ export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub extern "C" fn rs_http2_probing_parser_tc(
+pub unsafe extern "C" fn rs_http2_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
@@ -974,15 +962,15 @@ pub extern "C" fn rs_http2_probing_parser_tc(
                     || header.flags & 0xFE != 0
                     || header.ftype != parser::HTTP2FrameType::SETTINGS as u8
                 {
-                    return unsafe { ALPROTO_FAILED };
+                    return ALPROTO_FAILED;
                 }
-                return unsafe { ALPROTO_HTTP2 };
+                return ALPROTO_HTTP2;
             }
             Err(nom::Err::Incomplete(_)) => {
                 return ALPROTO_UNKNOWN;
             }
             Err(_) => {
-                return unsafe { ALPROTO_FAILED };
+                return ALPROTO_FAILED;
             }
         }
     }
@@ -996,13 +984,16 @@ extern "C" {
     );
 }
 
+// Suppress the unsafe warning here as creating a state for an app-layer
+// is typically not unsafe.
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn rs_http2_state_new(
     orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
-    let r = unsafe { transmute(boxed) };
+    let r = Box::into_raw(boxed) as *mut _;
     if orig_state != std::ptr::null_mut() {
         //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
@@ -1013,51 +1004,50 @@ pub extern "C" fn rs_http2_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut state: Box<HTTP2State> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
+    let mut state: Box<HTTP2State> = Box::from_raw(state as _);
     state.free();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, HTTP2State);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_ts(
+pub unsafe extern "C" fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
 
-    state.files.flags_ts = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
+    state.files.flags_ts = FileFlowToFlags(flow, STREAM_TOSERVER);
     state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
     return state.parse_ts(buf);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_tc(
+pub unsafe extern "C" fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
-    state.files.flags_tc = unsafe { FileFlowToFlags(flow, STREAM_TOCLIENT) };
+    state.files.flags_tc = FileFlowToFlags(flow, STREAM_TOCLIENT);
     state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
     return state.parse_tc(buf);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_get_tx(
+pub unsafe extern "C" fn rs_http2_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, HTTP2State);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -1066,26 +1056,28 @@ pub extern "C" fn rs_http2_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
+pub unsafe extern "C" fn rs_http2_tx_get_state(
+    tx: *mut std::os::raw::c_void,
+) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return rs_http2_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_get_events(
+pub unsafe extern "C" fn rs_http2_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -1093,75 +1085,14 @@ pub extern "C" fn rs_http2_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_state_get_event_info(
-    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "invalid_frame_header" => HTTP2Event::InvalidFrameHeader as i32,
-                "invalid_client_magic" => HTTP2Event::InvalidClientMagic as i32,
-                "invalid_frame_data" => HTTP2Event::InvalidFrameData as i32,
-                "invalid_header" => HTTP2Event::InvalidHeader as i32,
-                "invalid_frame_length" => HTTP2Event::InvalidFrameLength as i32,
-                "extra_header_data" => HTTP2Event::ExtraHeaderData as i32,
-                "long_frame_data" => HTTP2Event::LongFrameData as i32,
-                "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
-                "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
-                "failed_decompression" => HTTP2Event::FailedDecompression as i32,
-                _ => -1, // unknown event
-            }
-        }
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe {
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
-}
-
-#[no_mangle]
-pub extern "C" fn rs_http2_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = HTTP2Event::from_i32(event_id as i32) {
-        let estr = match e {
-            HTTP2Event::InvalidFrameHeader => "invalid_frame_header\0",
-            HTTP2Event::InvalidClientMagic => "invalid_client_magic\0",
-            HTTP2Event::InvalidFrameData => "invalid_frame_data\0",
-            HTTP2Event::InvalidHeader => "invalid_header\0",
-            HTTP2Event::InvalidFrameLength => "invalid_frame_length\0",
-            HTTP2Event::ExtraHeaderData => "extra_header_data\0",
-            HTTP2Event::LongFrameData => "long_frame_data\0",
-            HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
-            HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
-            HTTP2Event::FailedDecompression => "failed_decompression\0",
-        };
-        unsafe {
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-#[no_mangle]
-pub extern "C" fn rs_http2_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, HTTP2State);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -1172,7 +1103,7 @@ pub extern "C" fn rs_http2_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_getfiles(
+pub unsafe extern "C" fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
     let state = cast_pointer!(state, HTTP2State);
@@ -1210,8 +1141,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_de_state: rs_http2_tx_get_detect_state,
         set_de_state: rs_http2_tx_set_detect_state,
         get_events: Some(rs_http2_state_get_events),
-        get_eventinfo: Some(rs_http2_state_get_event_info),
-        get_eventinfo_byid: Some(rs_http2_state_get_event_info_by_id),
+        get_eventinfo: Some(HTTP2Event::get_event_info),
+        get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_http2_getfiles),

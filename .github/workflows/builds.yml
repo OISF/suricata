@@ -97,11 +97,14 @@ jobs:
           tar zcf suricata-update.tar.gz suricata-update
       - name: Fetching suricata-verify
         run: |
-          git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
+          git clone ${sv_repo} -b ${sv_branch} suricata-verify
           if [[ "${sv_pr}" != "" ]]; then
               cd suricata-verify
               git fetch origin pull/${sv_pr}/head:prep
               git checkout prep
+              git config --global user.email you@example.com
+              git config --global user.name You
+              git rebase ${DEFAULT_SV_BRANCH}
               cd ..
           fi
           tar zcf suricata-verify.tar.gz suricata-verify
@@ -310,7 +313,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/suricata-verify.tar.gz
-      - run: python3 ./suricata-verify/run.py
+      - run: python3 ./suricata-verify/run.py -q
 
   fedora-33:
     name: Fedora 33 (debug, clang, asan, wshadow, rust-strict)
@@ -385,7 +388,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
       # Now install and make sure headers and libraries aren't install
       # until requested.
       - run: make install
@@ -471,7 +474,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   fedora-32-no-jansson:
     name: Fedora 32 (no jansson)
@@ -606,7 +609,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
       - name: Gcov
         run: |
           cd src
@@ -741,6 +744,7 @@ jobs:
                 exuberant-ctags \
                 unzip \
                 curl \
+                time \
                 wget
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -831,7 +835,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
       # Now install and make sure headers and libraries aren't install
       # until requested.
       - run: make install
@@ -968,7 +972,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   ubuntu-18-04:
     name: Ubuntu 18.04 (Cocci)
@@ -1062,7 +1066,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   # test build with afl and fuzztargets
   ubuntu-18-04-fuzz:
@@ -1253,7 +1257,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   debian-9:
     name: Debian 9
@@ -1316,7 +1320,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   macos-latest:
     name: MacOS Latest
@@ -1364,7 +1368,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q
 
   windows-msys2-mingw64:
     name: Windows MSYS2 MINGW64
@@ -1379,7 +1383,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -1413,4 +1417,4 @@ jobs:
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
-          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py
+          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q

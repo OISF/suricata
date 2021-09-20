@@ -142,38 +142,38 @@ static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
             de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
 }
 
-#define DATATYPE_PACKET                     (1<<0)
-#define DATATYPE_PAYLOAD                    (1<<1)
-#define DATATYPE_STREAM                     (1<<2)
+#define DATATYPE_PACKET  BIT_U32(0)
+#define DATATYPE_PAYLOAD BIT_U32(1)
+#define DATATYPE_STREAM  BIT_U32(2)
 
-#define DATATYPE_HTTP_URI                   (1<<3)
-#define DATATYPE_HTTP_URI_RAW               (1<<4)
+#define DATATYPE_HTTP_URI     BIT_U32(3)
+#define DATATYPE_HTTP_URI_RAW BIT_U32(4)
 
-#define DATATYPE_HTTP_REQUEST_HEADERS       (1<<5)
-#define DATATYPE_HTTP_REQUEST_HEADERS_RAW   (1<<6)
-#define DATATYPE_HTTP_REQUEST_COOKIE        (1<<7)
-#define DATATYPE_HTTP_REQUEST_UA            (1<<8)
+#define DATATYPE_HTTP_REQUEST_HEADERS     BIT_U32(5)
+#define DATATYPE_HTTP_REQUEST_HEADERS_RAW BIT_U32(6)
+#define DATATYPE_HTTP_REQUEST_COOKIE      BIT_U32(7)
+#define DATATYPE_HTTP_REQUEST_UA          BIT_U32(8)
 
-#define DATATYPE_HTTP_REQUEST_LINE          (1<<9)
-#define DATATYPE_HTTP_REQUEST_BODY          (1<<10)
+#define DATATYPE_HTTP_REQUEST_LINE BIT_U32(9)
+#define DATATYPE_HTTP_REQUEST_BODY BIT_U32(10)
 
-#define DATATYPE_HTTP_RESPONSE_COOKIE       (1<<11)
-#define DATATYPE_HTTP_RESPONSE_BODY         (1<<12)
+#define DATATYPE_HTTP_RESPONSE_COOKIE BIT_U32(11)
+#define DATATYPE_HTTP_RESPONSE_BODY   BIT_U32(12)
 
-#define DATATYPE_HTTP_RESPONSE_HEADERS      (1<<13)
-#define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
+#define DATATYPE_HTTP_RESPONSE_HEADERS     BIT_U32(13)
+#define DATATYPE_HTTP_RESPONSE_HEADERS_RAW BIT_U32(14)
 
-#define DATATYPE_DNS_RRNAME                 (1<<15)
-#define DATATYPE_DNS_REQUEST                (1<<16)
-#define DATATYPE_DNS_RESPONSE               (1<<17)
+#define DATATYPE_DNS_RRNAME   BIT_U32(15)
+#define DATATYPE_DNS_REQUEST  BIT_U32(16)
+#define DATATYPE_DNS_RESPONSE BIT_U32(17)
 
-#define DATATYPE_TLS                        (1<<18)
-#define DATATYPE_SSH                        (1<<19)
-#define DATATYPE_SMTP                       (1<<20)
+#define DATATYPE_TLS  BIT_U32(18)
+#define DATATYPE_SSH  BIT_U32(19)
+#define DATATYPE_SMTP BIT_U32(20)
 
-#define DATATYPE_DNP3                       (1<<21)
+#define DATATYPE_DNP3 BIT_U32(21)
 
-#define DATATYPE_BUFFER                     (1<<22)
+#define DATATYPE_BUFFER BIT_U32(22)
 
 #if 0
 /** \brief dump stack from lua state to screen */

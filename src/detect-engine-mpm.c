@@ -97,6 +97,8 @@ void DetectAppLayerMpmRegister2(const char *name,
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
 
+    BUG_ON(tx_min_progress >= 48);
+
     if (PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL) {
         // must register GetData with PrefilterGenericMpmRegister
         abort();
@@ -115,6 +117,7 @@ void DetectAppLayerMpmRegister2(const char *name,
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
+    DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > INT16_MAX);
     am->sm_list = sm_list;
     am->sm_list_base = sm_list;
     am->priority = priority;
@@ -155,6 +158,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             BUG_ON(am == NULL);
             am->name = t->name;
             am->direction = t->direction;
+            DEBUG_VALIDATE_BUG_ON(id < 0 || id > INT16_MAX);
             am->sm_list = id; // use new id
             am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_APP;
@@ -314,6 +318,7 @@ void DetectPktMpmRegister(const char *name,
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
+    DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > INT16_MAX);
     am->sm_list = sm_list;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_PKT;
@@ -351,6 +356,7 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             BUG_ON(am == NULL);
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
+            DEBUG_VALIDATE_BUG_ON(id < 0 || id > INT16_MAX);
             am->sm_list = id; // use new id
             am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_PKT;
@@ -1344,8 +1350,8 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             break;
     }
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1436,19 +1442,19 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
         if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
-        if (list < 0)
+        if ((s->flags & am->direction) == 0)
             continue;
 
-        if ((s->flags & am->direction) == 0)
+        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        if (list < 0)
             continue;
 
         if (list != am->sm_list)
@@ -1513,8 +1519,8 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx,
     SCLogDebug("handling %s for list %d", am->name,
             am->sm_list);
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1576,8 +1582,8 @@ static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     const Signature *s = NULL;
     uint32_t sig;
 
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 

@@ -726,7 +726,7 @@ static TmEcode AFPWritePacket(Packet *p, int version)
     uint16_t vlan_tci = 0;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
-        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        if (PacketTestAction(p, ACTION_DROP)) {
             return TM_ECODE_OK;
         }
     }

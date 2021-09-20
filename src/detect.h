@@ -346,7 +346,9 @@ typedef struct InspectionBuffer {
     uint64_t inspect_offset;
     uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */
     uint8_t flags;          /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
-
+#ifdef DEBUG_VALIDATION
+    bool multi;
+#endif
     uint32_t len;           /**< how much is in use */
     uint8_t *buf;
     uint32_t size;          /**< size of the memory allocation */
@@ -520,6 +522,7 @@ typedef struct Signature_ {
 
     uint16_t dsize_low;
     uint16_t dsize_high;
+    uint8_t dsize_mode;
 
     SignatureMask mask;
     SigIntId num; /**< signature number, internal id */
@@ -794,6 +797,7 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sgh_hash_table;
 
     HashListTable *mpm_hash_table;
+    HashListTable *pattern_hash_table;
 
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
@@ -1000,9 +1004,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** \note multi-tenant hash lookup code from Detect() *depends*
      *        on this being the first member */
     uint32_t tenant_id;
-
-    /** ticker that is incremented once per packet. */
-    uint64_t ticker;
 
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
@@ -1223,6 +1224,8 @@ enum {
     FILE_DECODER_EVENT_LZMA_DATA_ERROR,
     FILE_DECODER_EVENT_LZMA_BUF_ERROR,
     FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
+
+    DETECT_EVENT_TOO_MANY_BUFFERS,
 };
 
 #define SIG_GROUP_HEAD_HAVERAWSTREAM    BIT_U32(0)
@@ -1265,7 +1268,7 @@ typedef struct PrefilterEngineList_ {
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine */
-    int tx_min_progress;
+    uint8_t tx_min_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1293,7 +1296,7 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine */
-    int tx_min_progress;
+    uint8_t tx_min_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1308,7 +1311,8 @@ typedef struct PrefilterEngine_ {
 
     /* global id for this prefilter */
     uint32_t gid;
-    int is_last;
+    bool is_last;
+    bool is_last_for_progress;
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {
@@ -1328,6 +1332,12 @@ typedef struct SigGroupHeadInitData_ {
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
 
+    /** number of sigs in this group */
+    SigIntId sig_cnt;
+
+    /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
+    Signature **match_array;
+
     /* port ptr */
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
@@ -1336,9 +1346,6 @@ typedef struct SigGroupHeadInitData_ {
 typedef struct SigGroupHead_ {
     uint32_t flags;
     /* coccinelle: SigGroupHead:flags:SIG_GROUP_HEAD_ */
-
-    /* number of sigs in this head */
-    SigIntId sig_cnt;
 
     /* non prefilter list excluding SYN rules */
     uint32_t non_pf_other_store_cnt;
@@ -1356,9 +1363,6 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
-
-    /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
-    Signature **match_array;
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;
@@ -1480,8 +1484,6 @@ int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, DetectEngineThreadCtx *,vo
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
-void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
-
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
@@ -1495,6 +1497,8 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
 AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id,
                              AppLayerEventType *event_type);
+
+void DumpPatterns(DetectEngineCtx *de_ctx);
 
 #include "detect-engine-build.h"
 #include "detect-engine-register.h"

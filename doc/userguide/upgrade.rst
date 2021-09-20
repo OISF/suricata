@@ -30,6 +30,31 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading 6.0 to 7.0
+--------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+Removals
+~~~~~~~~
+- The libprelude output plugin has been removed.
+
+Logging changes
+~~~~~~~~~~~~~~~
+- IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
+  ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
+
+Other changes
+~~~~~~~~~~~~~
+- NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
+
+Logging changes
+~~~~~~~~~~~~~~~
+- Protocol values and their names are built-in to Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
+  in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
+  See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
+
 Upgrading 5.0 to 6.0
 --------------------
 - SIP now enabled by default
@@ -53,11 +78,6 @@ Removals
   ``stats-json``, ``dns-json``, etc. Use multiple Eve logger instances
   if this behavior is still required. See :ref:`multiple-eve-instances`.
 - Unified2 has been removed. See :ref:`unified2-removed`.
-
-Logging changes
-~~~~~~~~~~~~~~~
-- IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
-  ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
 
 Upgrading 4.1 to 5.0
 --------------------

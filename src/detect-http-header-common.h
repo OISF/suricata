@@ -31,26 +31,19 @@ typedef struct HttpHeaderBuffer_ {
 } HttpHeaderBuffer;
 
 typedef struct HttpHeaderThreadConfig_ {
-    uint16_t tx_step;
     uint16_t size_step;
 } HttpHeaderThreadDataConfig;
 
 typedef struct HttpHeaderThreadData_ {
-    HttpHeaderBuffer *buffers;  /**< array of buffers */
-    uint16_t buffers_size;      /**< number of buffers */
-    uint16_t buffers_list_len;
+    HttpHeaderBuffer buffer;    /**< array of buffers */
     uint16_t size_step;         /**< increase size of HttpHeaderBuffer::buffer with this */
-    uint16_t tx_step;           /**< increase number of txs with this */
-    uint64_t start_tx_id;
-    uint64_t tick;
 } HttpHeaderThreadData;
 
 void *HttpHeaderThreadDataInit(void *data);
 void HttpHeaderThreadDataFree(void *data);
 
-HttpHeaderBuffer *HttpHeaderGetBufferSpaceForTXID(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, uint64_t tx_id, const int keyword_id,
-        HttpHeaderThreadData **ret_hdr_td);
+HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        const int keyword_id, HttpHeaderThreadData **ret_hdr_td);
 
 int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
         HttpHeaderBuffer *buf, uint32_t size);

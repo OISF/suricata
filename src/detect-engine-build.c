@@ -28,6 +28,7 @@
 #include "detect-engine-port.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-proto.h"
+#include "detect-engine-threshold.h"
 
 #include "detect-dsize.h"
 #include "detect-tcp-flags.h"
@@ -35,6 +36,7 @@
 #include "detect-flowbits.h"
 
 #include "util-profiling.h"
+#include "util-validate.h"
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
@@ -532,26 +534,23 @@ static int SignatureCreateMask(Signature *s)
             case DETECT_DSIZE:
             {
                 DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
-                switch (ds->mode) {
-                    case DETECTDSIZE_LT:
-                        /* LT will include 0, so no payload.
-                         * if GT is used in the same rule the
-                         * flag will be set anyway. */
-                        break;
-                    case DETECTDSIZE_RA:
-                    case DETECTDSIZE_GT:
+                /* LT will include 0, so no payload.
+                 * if GT is used in the same rule the
+                 * flag will be set anyway. */
+                if (ds->mode == DETECTDSIZE_RA || ds->mode == DETECTDSIZE_GT ||
+                        ds->mode == DETECTDSIZE_NE) {
+
+                    s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
+                    SCLogDebug("sig requires payload");
+
+                } else if (ds->mode == DETECTDSIZE_EQ) {
+                    if (ds->dsize > 0) {
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
-                        break;
-                    case DETECTDSIZE_EQ:
-                        if (ds->dsize > 0) {
-                            s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
-                            SCLogDebug("sig requires payload");
-                        } else if (ds->dsize == 0) {
-                            s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
-                            SCLogDebug("sig requires no payload");
-                        }
-                        break;
+                    } else {
+                        s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
+                        SCLogDebug("sig requires no payload");
+                    }
                 }
                 break;
             }
@@ -617,11 +616,14 @@ static int RuleMpmIsNegated(const Signature *s)
     return (cd->flags & DETECT_CONTENT_NEGATED);
 }
 
-static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
-                                const int add_rules, const int add_mpm_stats)
+static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
+        const int add_rules, const int add_mpm_stats)
 {
+    uint32_t prefilter_cnt = 0;
     uint32_t mpm_cnt = 0;
     uint32_t nonmpm_cnt = 0;
+    uint32_t mpm_depth_cnt = 0;
+    uint32_t mpm_endswith_cnt = 0;
     uint32_t negmpm_cnt = 0;
     uint32_t any5_cnt = 0;
     uint32_t payload_no_mpm_cnt = 0;
@@ -647,6 +649,10 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     uint32_t alproto_mpm_bufs[ALPROTO_MAX][max_buffer_type_id];
     memset(alproto_mpm_bufs, 0, sizeof(alproto_mpm_bufs));
 
+    DEBUG_VALIDATE_BUG_ON(sgh->init == NULL);
+    if (sgh->init == NULL)
+        return NULL;
+
     json_t *js = json_object();
     if (unlikely(js == NULL))
         return NULL;
@@ -657,8 +663,8 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
 
     const Signature *s;
     uint32_t x;
-    for (x = 0; x < sgh->sig_cnt; x++) {
-        s = sgh->match_array[x];
+    for (x = 0; x < sgh->init->sig_cnt; x++) {
+        s = sgh->init->match_array[x];
         if (s == NULL)
             continue;
 
@@ -682,6 +688,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             any5_cnt++;
         }
 
+        prefilter_cnt += (s->init_data->prefilter_sm != 0);
         if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
@@ -710,9 +717,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
-            if (s->alproto != ALPROTO_UNKNOWN) {
-                alproto_mpm_bufs[s->alproto][mpm_list]++;
-            }
+            alproto_mpm_bufs[s->alproto][mpm_list]++;
 
             if (mpm_list == DETECT_SM_LIST_PMATCH) {
                 if (size == 1) {
@@ -764,6 +769,12 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
                 SCLogDebug("SGH %p MPM Pattern on %s, is negated. Rule %u", sgh, DetectListToString(mpm_list), s->id);
                 negmpm_cnt++;
             }
+            if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                mpm_endswith_cnt++;
+            }
+            if (cd->flags & DETECT_CONTENT_DEPTH) {
+                mpm_depth_cnt++;
+            }
         }
 
         if (RuleInspectsPayloadHasNoMpm(s)) {
@@ -771,9 +782,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             payload_no_mpm_cnt++;
         }
 
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            alstats[s->alproto]++;
-        }
+        alstats[s->alproto]++;
 
         if (add_rules) {
             json_t *js_sig = json_object();
@@ -787,19 +796,21 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     json_object_set_new(js, "rules", js_array);
 
     json_t *stats = json_object();
-    json_object_set_new(stats, "total", json_integer(sgh->sig_cnt));
+    json_object_set_new(stats, "total", json_integer(sgh->init->sig_cnt));
 
     json_t *types = json_object();
     json_object_set_new(types, "mpm", json_integer(mpm_cnt));
     json_object_set_new(types, "non_mpm", json_integer(nonmpm_cnt));
+    json_object_set_new(types, "mpm_depth", json_integer(mpm_depth_cnt));
+    json_object_set_new(types, "mpm_endswith", json_integer(mpm_endswith_cnt));
     json_object_set_new(types, "negated_mpm", json_integer(negmpm_cnt));
     json_object_set_new(types, "payload_but_no_mpm", json_integer(payload_no_mpm_cnt));
+    json_object_set_new(types, "prefilter", json_integer(prefilter_cnt));
     json_object_set_new(types, "syn", json_integer(syn_cnt));
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    int i;
-    for (i = 0; i < ALPROTO_MAX; i++) {
+    for (int i = 0; i < ALPROTO_MAX; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
@@ -807,18 +818,25 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             for (int y = 0; y < max_buffer_type_id; y++) {
                 if (alproto_mpm_bufs[i][y] == 0)
                     continue;
-                json_object_set_new(
-                        app, DetectListToHumanString(y), json_integer(alproto_mpm_bufs[i][y]));
+
+                const char *name;
+                if (y < DETECT_SM_LIST_DYNAMIC_START)
+                    name = DetectListToHumanString(y);
+                else
+                    name = DetectBufferTypeGetNameById(de_ctx, y);
+
+                json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
             }
 
-            json_object_set_new(stats, AppProtoToString(i), app);
+            const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
+            json_object_set_new(stats, proto_name, app);
         }
     }
 
     if (add_mpm_stats) {
         json_t *mpm_js = json_object();
 
-        for (i = 0; i < max_buffer_type_id; i++) {
+        for (int i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
 
                 json_t *mpm_sizes_array = json_array();
@@ -840,7 +858,13 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
 
                 json_object_set_new(buf, "sizes", mpm_sizes_array);
 
-                json_object_set_new(mpm_js, DetectListToHumanString(i), buf);
+                const char *name;
+                if (i < DETECT_SM_LIST_DYNAMIC_START)
+                    name = DetectListToHumanString(i);
+                else
+                    name = DetectBufferTypeGetNameById(de_ctx, i);
+
+                json_object_set_new(mpm_js, name, buf);
             }
         }
 
@@ -848,8 +872,7 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
     }
     json_object_set_new(js, "stats", stats);
 
-    if (sgh->init)
-        json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
+    json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
 
     return js;
 }
@@ -876,8 +899,8 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_ts = RulesGroupPrintSghStats(list->sh,
-                        add_rules, add_mpm_stats);
+                json_t *tcp_ts =
+                        RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_ts);
                 json_array_append_new(ts_array, port);
 
@@ -893,8 +916,8 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_tc = RulesGroupPrintSghStats(list->sh,
-                        add_rules, add_mpm_stats);
+                json_t *tcp_tc =
+                        RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_tc);
                 json_array_append_new(tc_array, port);
 
@@ -903,8 +926,25 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
             json_object_set_new(tcp, "toclient", tc_array);
 
             json_object_set_new(js, name, tcp);
+        } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
+            const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
+            json_t *o = json_object();
+            if (de_ctx->flow_gh[1].sgh[p]) {
+                json_t *ts = json_object();
+                json_t *group_ts = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(ts, "rulegroup", group_ts);
+                json_object_set_new(o, "toserver", ts);
+            }
+            if (de_ctx->flow_gh[0].sgh[p]) {
+                json_t *tc = json_object();
+                json_t *group_tc = RulesGroupPrintSghStats(
+                        de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
+                json_object_set_new(tc, "rulegroup", group_tc);
+                json_object_set_new(o, "toclient", tc);
+            }
+            json_object_set_new(js, name, o);
         }
-
     }
 
     const char *filename = "rule_group.json";
@@ -1440,32 +1480,32 @@ static int PortGroupWhitelist(const DetectPort *a)
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
     if (PortGroupWhitelist(a) && !PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 1;
     } else if (!PortGroupWhitelist(a) && PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 0;
     } else if (PortGroupWhitelist(a) > PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                b->sh->init->sig_cnt, PortGroupWhitelist(b));
         return 1;
     } else if (PortGroupWhitelist(a) == PortGroupWhitelist(b)) {
-        if (a->sh->sig_cnt > b->sh->sig_cnt) {
-            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
-                    a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-                    b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+        if (a->sh->init->sig_cnt > b->sh->init->sig_cnt) {
+            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port,
+                    a->port2, a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
+                    b->sh->init->sig_cnt, PortGroupWhitelist(b));
             return 1;
         }
     }
 
-    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
-            a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
-            b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+            a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2, b->sh->init->sig_cnt,
+            PortGroupWhitelist(b));
     return 0;
 }
 
@@ -1781,9 +1821,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
-        SigGroupHeadInitDataFree(sgh->init);
-        sgh->init = NULL;
-
         sgh->id = idx;
         cnt++;
     }
@@ -1796,10 +1833,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
          * signature not decode event only. */
     }
 
-    /* cleanup the hashes now since we won't need them
-     * after the initialization phase. */
-    SigGroupHeadHashFree(de_ctx);
-
     int dump_grouping = 0;
     (void)ConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
 
@@ -1811,6 +1844,17 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         RulesDumpGrouping(de_ctx, add_rules, add_mpm_stats);
     }
+
+    for (uint32_t idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+        SigGroupHead *sgh = de_ctx->sgh_array[idx];
+        if (sgh == NULL)
+            continue;
+        SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
+    }
+    /* cleanup the hashes now since we won't need them
+     * after the initialization phase. */
+    SigGroupHeadHashFree(de_ctx);
 
 #ifdef PROFILING
     SCProfilingSghInitCounters(de_ctx);
@@ -1872,7 +1916,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         s->init_data = NULL;
     }
 
-
+    DumpPatterns(de_ctx);
     SCReturnInt(0);
 }
 
@@ -1943,6 +1987,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
     SCProfilingRuleInitCounters(de_ctx);
 #endif
+
+    ThresholdHashAllocate(de_ctx);
 
     if (!DetectEngineMultiTenantEnabled()) {
         VarNameStoreActivateStaging();

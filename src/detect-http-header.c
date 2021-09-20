@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,25 +62,19 @@ static void DetectHttpHeaderRegisterTests(void);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_TX_STEP      4
 #define BUFFER_SIZE_STEP    1024
-static HttpHeaderThreadDataConfig g_td_config = { BUFFER_TX_STEP, BUFFER_SIZE_STEP };
+static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
-static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-        DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, uint32_t *buffer_len)
+static uint8_t *GetBufferForTX(
+        htp_tx_t *tx, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, uint32_t *buffer_len)
 {
     *buffer_len = 0;
 
     HttpHeaderThreadData *hdr_td = NULL;
-    HttpHeaderBuffer *buf = HttpHeaderGetBufferSpaceForTXID(det_ctx, f, flags,
-            tx_id, g_keyword_thread_id, &hdr_td);
+    HttpHeaderBuffer *buf =
+            HttpHeaderGetBufferSpace(det_ctx, f, flags, g_keyword_thread_id, &hdr_td);
     if (unlikely(buf == NULL)) {
         return NULL;
-    } else if (buf->len > 0) {
-        /* already filled buf, reuse */
-        *buffer_len = buf->len;
-        return buf->buffer;
     }
 
     const htp_headers_t *headers;
@@ -148,6 +142,27 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     return buf->buffer;
 }
 
+static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_http2_tx_get_headers(txv, flow_flags, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
 /** \internal
  *  \brief custom inspect function to utilize the cached headers
  */
@@ -171,8 +186,7 @@ static int DetectEngineInspectBufferHttpHeader(
         }
 
         uint32_t rawdata_len = 0;
-        uint8_t *rawdata = GetBufferForTX(txv, tx_id, det_ctx,
-                f, flags, &rawdata_len);
+        uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
         if (rawdata_len == 0) {
             SCLogDebug("no data");
             goto end;
@@ -241,8 +255,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t rawdata_len = 0;
-        uint8_t *rawdata = GetBufferForTX(txv, idx, det_ctx,
-                f, flags, &rawdata_len);
+        uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
         if (rawdata_len == 0)
             return;
 
@@ -397,7 +410,7 @@ static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 {
     if (DetectBufferSetActiveList(s, g_http_header_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
@@ -438,6 +451,16 @@ void DetectHttpHeaderRegister(void)
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
+
+    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataClient);
+
+    DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_header",
             "http headers");

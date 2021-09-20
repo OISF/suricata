@@ -30,10 +30,10 @@ pub struct DHCPLogger {
 
 impl DHCPLogger {
     
-    pub fn new(conf: ConfNode) -> DHCPLogger {
-        return DHCPLogger{
+    pub fn new(conf: ConfNode) -> Self {
+        return Self {
             extended: conf.get_child_bool("extended"),
-        };
+        }
     }
 
     fn get_type(&self, tx: &DHCPTransaction) -> Option<u8> {
@@ -259,16 +259,16 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
 pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut std::os::raw::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) {
-    let _: Box<DHCPLogger> = unsafe{std::mem::transmute(logger)};
+pub unsafe extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(logger as *mut DHCPLogger));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
                                      tx: *mut std::os::raw::c_void,
                                      js: &mut JsonBuilder) -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);
@@ -277,7 +277,7 @@ pub extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_do_log(logger: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_dhcp_logger_do_log(logger: *mut std::os::raw::c_void,
                                         tx: *mut std::os::raw::c_void)
                                         -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);

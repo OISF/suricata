@@ -99,7 +99,7 @@ impl NFSState {
             match parse_nfs2_reply_read(r.prog_data) {
                 Ok((_, ref reply)) => {
                     SCLogDebug!("NFSv2: READ reply record");
-                    self.process_read_record(r, reply, Some(&xidmap));
+                    self.process_read_record(r, reply, Some(xidmap));
                     nfs_status = reply.status;
                 },
                 _ => {
@@ -107,7 +107,7 @@ impl NFSState {
                 },
             }
         } else {
-            let stat : u32 = match be_u32(&r.prog_data) as IResult<&[u8],_> {
+            let stat : u32 = match be_u32(r.prog_data) as IResult<&[u8],_> {
                 Ok((_, stat)) => stat,
                 _ => 0
             };

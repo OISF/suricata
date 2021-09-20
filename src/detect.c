@@ -34,6 +34,7 @@
 #include "app-layer-parser.h"
 
 #include "detect.h"
+#include "detect-dsize.h"
 #include "detect-engine.h"
 #include "detect-engine-profile.h"
 
@@ -96,7 +97,10 @@ static void DetectRun(ThreadVars *th_v,
         Packet *p)
 {
     SCEnter();
-    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s flow %p", p->pcap_cnt,
+            p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
+                    : "noflow",
+            p->flow);
 
     /* bail early if packet should not be inspected */
     if (p->flags & PKT_NOPACKET_INSPECTION) {
@@ -544,18 +548,6 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
 
             /* save in the flow that we scanned this direction... */
             FlowSetIPOnlyFlag(pflow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-
-        } else if (((p->flowflags & FLOW_PKT_TOSERVER) &&
-                   (pflow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
-                   ((p->flowflags & FLOW_PKT_TOCLIENT) &&
-                   (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)))
-        {
-            /* If we have a drop from IP only module,
-             * we will drop the rest of the flow packets
-             * This will apply only to inline/IPS */
-            if (pflow->flags & FLOW_ACTION_DROP) {
-                PACKET_DROP(p);
-            }
         }
     } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
@@ -741,7 +733,6 @@ static inline void DetectRulePacketRules(
     while (match_cnt--) {
         RULE_PROFILING_START(p);
         uint8_t alert_flags = 0;
-        bool state_alert = false;
 #ifdef PROFILING
         bool smatch = false; /* signature match */
 #endif
@@ -766,13 +757,8 @@ static inline void DetectRulePacketRules(
             goto next;
         }
 
-        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
-            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                        p->payload_len, s->dsize_low, s->dsize_high);
-                goto next;
-            }
-        }
+        if (SigDsizePrefilter(p, s, sflags))
+            goto next;
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
@@ -802,14 +788,7 @@ static inline void DetectRulePacketRules(
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        if (!(sflags & SIG_FLAG_NOALERT)) {
-            /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
-            if (!state_alert)
-                PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
-        } else {
-            /* apply actions even if not alerting */
-            DetectSignatureApplyActions(p, s, alert_flags);
-        }
+        PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
@@ -834,7 +813,6 @@ static DetectRunScratchpad DetectRunSetup(
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
 #endif
-    det_ctx->ticker++;
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
@@ -1118,8 +1096,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             }
             if (engine->mpm) {
                 if (tx->tx_progress > engine->progress) {
+                    TRACE_SID_TXS(s->id, tx,
+                            "engine->mpm: t->tx_progress %u > engine->progress %u, so set "
+                            "mpm_before_progress",
+                            tx->tx_progress, engine->progress);
                     mpm_before_progress = true;
                 } else if (tx->tx_progress == engine->progress) {
+                    TRACE_SID_TXS(s->id, tx,
+                            "engine->mpm: t->tx_progress %u == engine->progress %u, so set "
+                            "mpm_in_progress",
+                            tx->tx_progress, engine->progress);
                     mpm_in_progress = true;
                 }
             }
@@ -1252,6 +1238,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(ipproto, alproto, tx_ptr);
     DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
     uint64_t prefilter_flags = detect_flags & APP_LAYER_TX_PREFILTER_MASK;
+    DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);
 
     DetectTransaction tx = {
                             .tx_ptr = tx_ptr,
@@ -1416,7 +1403,10 @@ static void DetectRunTx(ThreadVars *tv,
                         tx.tx_ptr, tx.tx_id, array_idx - old);
             }
         }
-
+#ifdef PROFILING
+        if (array_idx >= de_ctx->profile_match_logging_threshold)
+            RulesDumpTxMatchArray(det_ctx, scratch->sgh, p, tx.tx_id, array_idx, x);
+#endif
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = 1;
         det_ctx->p = p;
@@ -1477,16 +1467,9 @@ static void DetectRunTx(ThreadVars *tv,
                 /* match */
                 DetectRunPostMatch(tv, det_ctx, p, s);
 
-                uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
-                if (s->action & ACTION_DROP)
-                    alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
-
+                const uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
-                if (!(s->flags & SIG_FLAG_NOALERT)) {
-                    PacketAlertAppend(det_ctx, s, p, tx.tx_id, alert_flags);
-                } else {
-                    DetectSignatureApplyActions(p, s, alert_flags);
-                }
+                PacketAlertAppend(det_ctx, s, p, tx.tx_id, alert_flags);
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
@@ -1509,6 +1492,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
         if (tx.prefilter_flags != tx.prefilter_flags_orig) {
             new_detect_flags |= tx.prefilter_flags;
+            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
             SCLogDebug("%p/%"PRIu64" updated prefilter flags %016"PRIx64" "
                     "(was: %016"PRIx64") for direction %s. Flag %016"PRIx64,
                     tx.tx_ptr, tx.tx_id, tx.prefilter_flags, tx.prefilter_flags_orig,
@@ -1519,6 +1503,7 @@ static void DetectRunTx(ThreadVars *tv,
                 (new_detect_flags | tx.detect_flags) != tx.detect_flags)
         {
             new_detect_flags |= tx.detect_flags;
+            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
             SCLogDebug("%p/%"PRIu64" Storing new flags %016"PRIx64" (was %016"PRIx64")",
                     tx.tx_ptr, tx.tx_id, new_detect_flags, tx.detect_flags);
 
@@ -1529,30 +1514,6 @@ next:
 
         if (!ires.has_next)
             break;
-    }
-}
-
-/** \brief Apply action(s) and Set 'drop' sig info,
- *         if applicable */
-void DetectSignatureApplyActions(Packet *p,
-        const Signature *s, const uint8_t alert_flags)
-{
-    PACKET_UPDATE_ACTION(p, s->action);
-
-    if (s->action & ACTION_DROP) {
-        if (p->alerts.drop.action == 0) {
-            p->alerts.drop.num = s->num;
-            p->alerts.drop.action = s->action;
-            p->alerts.drop.s = (Signature *)s;
-        }
-    } else if (s->action & ACTION_PASS) {
-        /* if an stream/app-layer match we enforce the pass for the flow */
-        if ((p->flow != NULL) &&
-                (alert_flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH)))
-        {
-            FlowSetNoPacketInspectionFlag(p->flow);
-        }
-
     }
 }
 
@@ -1588,6 +1549,12 @@ static void DetectFlow(ThreadVars *tv,
         return;
     }
 
+    /* if flow is set to drop, we enforce that here */
+    if (p->flow->flags & FLOW_ACTION_DROP) {
+        PACKET_DROP(p);
+        SCReturn;
+    }
+
     /* see if the packet matches one or more of the sigs */
     (void)DetectRun(tv, de_ctx, det_ctx, p);
 }
@@ -1598,9 +1565,7 @@ static void DetectNoFlow(ThreadVars *tv,
                          Packet *p)
 {
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
-        (PACKET_TEST_ACTION(p, ACTION_DROP)))
-    {
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketTestAction(p, ACTION_DROP))) {
         return;
     }
 
@@ -1685,11 +1650,14 @@ void DisableDetectFlowFileFlags(Flow *f)
 /**
  *  \brief wrapper for old tests
  */
-void SigMatchSignatures(ThreadVars *th_v,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Packet *p)
+void SigMatchSignatures(
+        ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    DetectRun(th_v, de_ctx, det_ctx, p);
+    if (p->flow) {
+        DetectFlow(tv, de_ctx, det_ctx, p);
+    } else {
+        DetectNoFlow(tv, de_ctx, det_ctx, p);
+    }
 }
 #endif
 

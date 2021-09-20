@@ -20,43 +20,37 @@
 use crate::snmp::snmp::SNMPTransaction;
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,
+pub unsafe extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,
                                          version: *mut u32)
 {
     debug_assert!(tx.version != 0, "SNMP version is 0");
-    unsafe {
-        *version = tx.version as u32;
-    }
+    *version = tx.version as u32;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
+pub unsafe extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
                                            buf: *mut *const u8,
                                            len: *mut u32)
 {
     match tx.community {
         Some(ref c) => {
-            unsafe {
-                *buf = (&c).as_ptr();
-                *len = c.len() as u32;
-            }
+            *buf = c.as_ptr();
+            *len = c.len() as u32;
         },
         None        => ()
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction,
+pub unsafe extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction,
                                           pdu_type: *mut u32)
 {
-    unsafe {
-        match tx.info {
-            Some(ref info) => {
-                *pdu_type = info.pdu_type.0 as u32;
-            },
-            None           => {
-                *pdu_type = 0xffffffff;
-            }
+    match tx.info {
+        Some(ref info) => {
+            *pdu_type = info.pdu_type.0 as u32;
+        },
+        None           => {
+            *pdu_type = 0xffffffff;
         }
     }
 }

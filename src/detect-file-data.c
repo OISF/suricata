@@ -488,8 +488,7 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
         const DetectEngineTransforms *transforms, const int list_id, int local_file_id,
         InspectionBuffer *base_buffer, const bool first)
 {
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, local_file_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
     if (buffer == NULL) {
         SCLogDebug("list_id: %d: no buffer", list_id);
         return NULL;
@@ -499,9 +498,8 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
         return buffer;
     }
 
-    InspectionBufferSetup(det_ctx, list_id, buffer, base_buffer->inspect, base_buffer->inspect_len);
+    InspectionBufferSetupMulti(buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
     buffer->inspect_offset = base_buffer->inspect_offset;
-    InspectionBufferApplyTransforms(buffer, transforms);
     SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -514,9 +512,8 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     SCLogDebug(
             "starting: list_id %d base_id %d first %s", list_id, base_id, first ? "true" : "false");
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, base_id);
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, local_file_id);
-    SCLogDebug("base: fb %p buffer %p", fb, buffer);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, base_id, local_file_id);
+    SCLogDebug("base: buffer %p", buffer);
     if (buffer == NULL)
         return NULL;
     if (base_id != list_id && buffer->inspect != NULL) {
@@ -568,7 +565,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     StreamingBufferGetDataAtOffset(cur_file->sb,
             &data, &data_len,
             cur_file->content_inspected);
-    InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+    InspectionBufferSetupMulti(buffer, NULL, data, data_len);
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);

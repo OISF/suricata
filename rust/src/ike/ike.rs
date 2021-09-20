@@ -31,43 +31,22 @@ use crate::ike::parser::*;
 use nom;
 use std;
 use std::collections::HashSet;
-use std::ffi::{CStr, CString};
-use std::mem::transmute;
+use std::ffi::CString;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum IkeEvent {
-    MalformedData = 0,
+    MalformedData,
     NoEncryption,
     WeakCryptoEnc,
-    WeakCryptoPRF,
-    WeakCryptoDH,
+    WeakCryptoPrf,
+    WeakCryptoDh,
     WeakCryptoAuth,
-    WeakCryptoNoDH,
+    WeakCryptoNoDh,
     WeakCryptoNoAuth,
     InvalidProposal,
     UnknownProposal,
     PayloadExtraData,
     MultipleServerProposal,
-}
-
-impl IkeEvent {
-    pub fn from_i32(value: i32) -> Option<IkeEvent> {
-        match value {
-            0 => Some(IkeEvent::MalformedData),
-            1 => Some(IkeEvent::NoEncryption),
-            2 => Some(IkeEvent::WeakCryptoEnc),
-            3 => Some(IkeEvent::WeakCryptoPRF),
-            4 => Some(IkeEvent::WeakCryptoDH),
-            5 => Some(IkeEvent::WeakCryptoAuth),
-            6 => Some(IkeEvent::WeakCryptoNoDH),
-            7 => Some(IkeEvent::WeakCryptoNoAuth),
-            8 => Some(IkeEvent::InvalidProposal),
-            9 => Some(IkeEvent::UnknownProposal),
-            10 => Some(IkeEvent::PayloadExtraData),
-            11 => Some(IkeEvent::MultipleServerProposal),
-            _ => None,
-        }
-    }
 }
 
 pub struct IkeHeaderWrapper {
@@ -180,7 +159,7 @@ impl IKEState {
         let tx = self
             .transactions
             .iter()
-            .position(|ref tx| tx.tx_id == tx_id + 1);
+            .position(|tx| tx.tx_id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -323,21 +302,21 @@ export_tx_set_detect_state!(rs_ike_tx_set_detect_state, IKETransaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub extern "C" fn rs_ike_probing_parser(
+pub unsafe extern "C" fn rs_ike_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len < 28 {
         // at least the ISAKMP_HEADER must be there, not ALPROTO_UNKNOWN because over UDP
-        return unsafe { ALPROTO_FAILED };
+        return ALPROTO_FAILED;
     }
 
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice, direction, rdir) {
-            return unsafe { ALPROTO_IKE };
+            return ALPROTO_IKE ;
         }
     }
-    return unsafe { ALPROTO_FAILED };
+    return ALPROTO_FAILED;
 }
 
 #[no_mangle]
@@ -346,23 +325,23 @@ pub extern "C" fn rs_ike_state_new(
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<IKEState> = unsafe { transmute(state) };
+    std::mem::drop(Box::from_raw(state as *mut IKEState));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_parse_request(
+pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -373,7 +352,7 @@ pub extern "C" fn rs_ike_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_parse_response(
+pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
@@ -383,13 +362,13 @@ pub extern "C" fn rs_ike_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx(
+pub unsafe extern "C" fn rs_ike_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, IKEState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -398,7 +377,7 @@ pub extern "C" fn rs_ike_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
@@ -417,7 +396,7 @@ pub extern "C" fn rs_ike_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_logged(
+pub unsafe extern "C" fn rs_ike_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -425,7 +404,7 @@ pub extern "C" fn rs_ike_tx_get_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_set_logged(
+pub unsafe extern "C" fn rs_ike_tx_set_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -433,90 +412,24 @@ pub extern "C" fn rs_ike_tx_set_logged(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_events(
+pub unsafe extern "C" fn rs_ike_state_get_events(
     tx: *mut std::os::raw::c_void,
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, IKETransaction);
     return tx.events;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ike_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = IkeEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            IkeEvent::MalformedData => "malformed_data\0",
-            IkeEvent::NoEncryption => "no_encryption\0",
-            IkeEvent::WeakCryptoEnc => "weak_crypto_enc\0",
-            IkeEvent::WeakCryptoPRF => "weak_crypto_prf\0",
-            IkeEvent::WeakCryptoDH => "weak_crypto_dh\0",
-            IkeEvent::WeakCryptoAuth => "weak_crypto_auth\0",
-            IkeEvent::WeakCryptoNoDH => "weak_crypto_nodh\0",
-            IkeEvent::WeakCryptoNoAuth => "weak_crypto_noauth\0",
-            IkeEvent::InvalidProposal => "invalid_proposal\0",
-            IkeEvent::UnknownProposal => "unknown_proposal\0",
-            IkeEvent::PayloadExtraData => "payload_extra_data\0",
-            IkeEvent::MultipleServerProposal => "multiple_server_proposal\0",
-        };
-        unsafe {
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_state_get_event_info(
-    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data" => IkeEvent::MalformedData as i32,
-                "no_encryption" => IkeEvent::NoEncryption as i32,
-                "weak_crypto_enc" => IkeEvent::WeakCryptoEnc as i32,
-                "weak_crypto_prf" => IkeEvent::WeakCryptoPRF as i32,
-                "weak_crypto_auth" => IkeEvent::WeakCryptoAuth as i32,
-                "weak_crypto_dh" => IkeEvent::WeakCryptoDH as i32,
-                "weak_crypto_nodh" => IkeEvent::WeakCryptoNoDH as i32,
-                "weak_crypto_noauth" => IkeEvent::WeakCryptoNoAuth as i32,
-                "invalid_proposal" => IkeEvent::InvalidProposal as i32,
-                "unknown_proposal" => IkeEvent::UnknownProposal as i32,
-                "payload_extra_data" => IkeEvent::PayloadExtraData as i32,
-                "multiple_server_proposal" => IkeEvent::MultipleServerProposal as i32,
-                _ => -1, // unknown event
-            }
-        }
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe {
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
-}
-
 static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, IKEState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -556,8 +469,8 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         get_de_state       : rs_ike_tx_get_detect_state,
         set_de_state       : rs_ike_tx_set_detect_state,
         get_events         : Some(rs_ike_state_get_events),
-        get_eventinfo      : Some(rs_ike_state_get_event_info),
-        get_eventinfo_byid : Some(rs_ike_state_get_event_info_by_id),
+        get_eventinfo      : Some(IkeEvent::get_event_info),
+        get_eventinfo_byid : Some(IkeEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,

@@ -17,13 +17,15 @@
 
 use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use std::mem::transmute;
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
 use super::parser;
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
+
+#[derive(AppLayerEvent)]
+enum TemplateEvent {}
 
 pub struct TemplateTransaction {
     tx_id: u64,
@@ -277,7 +279,7 @@ export_tx_set_detect_state!(
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub extern "C" fn rs_template_probing_parser(
+pub unsafe extern "C" fn rs_template_probing_parser(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -288,7 +290,7 @@ pub extern "C" fn rs_template_probing_parser(
     if input_len > 1 && input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice).is_ok() {
-            return unsafe { ALPROTO_TEMPLATE };
+            return ALPROTO_TEMPLATE;
         }
     }
     return ALPROTO_UNKNOWN;
@@ -298,17 +300,16 @@ pub extern "C" fn rs_template_probing_parser(
 pub extern "C" fn rs_template_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _drop: Box<TemplateState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_template_state_free(state: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_tx_free(
+pub unsafe extern "C" fn rs_template_state_tx_free(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) {
@@ -317,7 +318,7 @@ pub extern "C" fn rs_template_state_tx_free(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_parse_request(
+pub unsafe extern "C" fn rs_template_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -326,12 +327,10 @@ pub extern "C" fn rs_template_parse_request(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> AppLayerResult {
-    let eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
-            true
-        } else {
-            false
-        }
+    let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
+        true
+    } else {
+        false
     };
 
     if eof {
@@ -353,7 +352,7 @@ pub extern "C" fn rs_template_parse_request(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_parse_response(
+pub unsafe extern "C" fn rs_template_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -362,12 +361,10 @@ pub extern "C" fn rs_template_parse_response(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> AppLayerResult {
-    let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
-            true
-        } else {
-            false
-        }
+    let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
+        true
+    } else {
+        false
     };
     let state = cast_pointer!(state, TemplateState);
 
@@ -378,19 +375,19 @@ pub extern "C" fn rs_template_parse_response(
         AppLayerResult::ok()
     } else {
         let buf = build_slice!(input, input_len as usize);
-        state.parse_response(buf).into()
+        state.parse_response(buf)
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_tx(
+pub unsafe extern "C" fn rs_template_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return tx as *const _ as *mut _;
         }
         None => {
             return std::ptr::null_mut();
@@ -399,7 +396,7 @@ pub extern "C" fn rs_template_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_tx_count(
+pub unsafe extern "C" fn rs_template_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, TemplateState);
@@ -407,7 +404,7 @@ pub extern "C" fn rs_template_state_get_tx_count(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_tx_get_alstate_progress(
+pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
@@ -421,7 +418,7 @@ pub extern "C" fn rs_template_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_events(
+pub unsafe extern "C" fn rs_template_state_get_events(
     tx: *mut std::os::raw::c_void
 ) -> *mut core::AppLayerDecoderEvents {
     let tx = cast_pointer!(tx, TemplateTransaction);
@@ -429,23 +426,7 @@ pub extern "C" fn rs_template_state_get_events(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info(
-    _event_name: *const std::os::raw::c_char,
-    _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    return -1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_template_state_get_event_info_by_id(_event_id: std::os::raw::c_int,
-                                                         _event_name: *mut *const std::os::raw::c_char,
-                                                         _event_type: *mut core::AppLayerEventType
-) -> i8 {
-    return -1;
-}
-#[no_mangle]
-pub extern "C" fn rs_template_state_get_tx_iterator(
+pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
     _ipproto: u8,
     _alproto: AppProto,
     state: *mut std::os::raw::c_void,
@@ -456,7 +437,7 @@ pub extern "C" fn rs_template_state_get_tx_iterator(
     let state = cast_pointer!(state, TemplateState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx,
                 out_tx_id,
@@ -475,7 +456,7 @@ pub extern "C" fn rs_template_state_get_tx_iterator(
 /// No required for parsing, but an example function for retrieving a
 /// pointer to the request buffer from C for detection.
 #[no_mangle]
-pub extern "C" fn rs_template_get_request_buffer(
+pub unsafe extern "C" fn rs_template_get_request_buffer(
     tx: *mut std::os::raw::c_void,
     buf: *mut *const u8,
     len: *mut u32,
@@ -484,10 +465,8 @@ pub extern "C" fn rs_template_get_request_buffer(
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
         if request.len() > 0 {
-            unsafe {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-            }
+            *len = request.len() as u32;
+            *buf = request.as_ptr();
             return 1;
         }
     }
@@ -496,7 +475,7 @@ pub extern "C" fn rs_template_get_request_buffer(
 
 /// Get the response buffer for a transaction from C.
 #[no_mangle]
-pub extern "C" fn rs_template_get_response_buffer(
+pub unsafe extern "C" fn rs_template_get_response_buffer(
     tx: *mut std::os::raw::c_void,
     buf: *mut *const u8,
     len: *mut u32,
@@ -505,10 +484,8 @@ pub extern "C" fn rs_template_get_response_buffer(
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
         if response.len() > 0 {
-            unsafe {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-            }
+            *len = response.len() as u32;
+            *buf = response.as_ptr();
             return 1;
         }
     }
@@ -544,8 +521,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_de_state: rs_template_tx_get_detect_state,
         set_de_state: rs_template_tx_set_detect_state,
         get_events: Some(rs_template_state_get_events),
-        get_eventinfo: Some(rs_template_state_get_event_info),
-        get_eventinfo_byid : Some(rs_template_state_get_event_info_by_id),
+        get_eventinfo: Some(TemplateEvent::get_event_info),
+        get_eventinfo_byid : Some(TemplateEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,

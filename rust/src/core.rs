@@ -40,13 +40,17 @@ pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
 // Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = std::os::raw::c_int;
+pub type AppProto = u16;
 
 pub const ALPROTO_UNKNOWN : AppProto = 0;
 pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 
 pub const IPPROTO_TCP : i32 = 6;
 pub const IPPROTO_UDP : i32 = 17;
+
+macro_rules!BIT_U8 {
+    ($x:expr) => (1 << $x);
+}
 
 macro_rules!BIT_U16 {
     ($x:expr) => (1 << $x);
@@ -59,6 +63,9 @@ macro_rules!BIT_U32 {
 macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }
+
+// Flow flags
+pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 // Defined in app-layer-protos.h
 extern {
@@ -222,6 +229,9 @@ pub enum Flow {}
 /// Extern functions operating on Flow.
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
+    pub fn FlowGetFlags(flow: &Flow) -> u32;
+    pub fn FlowGetSourcePort(flow: &Flow) -> u16;
+    pub fn FlowGetDestinationPort(flow: &Flow) -> u16;
 }
 
 /// Rust implementation of Flow.
@@ -236,5 +246,15 @@ impl Flow {
             FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
             std::time::Duration::new(secs, usecs as u32 * 1000)
         }
+    }
+
+    /// Return the flow flags.
+    pub fn get_flags(&self) -> u32 {
+        unsafe { FlowGetFlags(self) }
+    }
+
+    /// Return flow ports
+    pub fn get_ports(&self) -> (u16, u16) {
+        unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
     }
 }

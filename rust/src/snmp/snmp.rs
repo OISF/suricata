@@ -22,8 +22,7 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
 use crate::applayer::{self, *};
 use std;
-use std::ffi::{CStr,CString};
-use std::mem::transmute;
+use std::ffi::CString;
 
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
@@ -32,21 +31,11 @@ use nom;
 use nom::IResult;
 use nom::error::ErrorKind;
 
-#[repr(u32)]
+#[derive(AppLayerEvent)]
 pub enum SNMPEvent {
-    MalformedData = 0,
+    MalformedData,
     UnknownSecurityModel,
     VersionMismatch,
-}
-
-impl SNMPEvent {
-    fn from_i32(value: i32) -> Option<SNMPEvent> {
-        match value {
-            0 => Some(SNMPEvent::MalformedData),
-            1 => Some(SNMPEvent::UnknownSecurityModel),
-            _ => None,
-        }
-    }
 }
 
 pub struct SNMPState<'a> {
@@ -132,7 +121,7 @@ impl<'a> SNMPState<'a> {
             SnmpPdu::Bulk(_) => {
             },
             SnmpPdu::TrapV1(ref t)    => {
-                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr.clone()));
+                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr));
             }
         }
 
@@ -150,7 +139,7 @@ impl<'a> SNMPState<'a> {
             self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
         }
         self.add_pdu_info(&msg.pdu, &mut tx);
-        tx.community = Some(msg.community.clone());
+        tx.community = Some(msg.community);
         self.transactions.push(tx);
         0
     }
@@ -171,7 +160,7 @@ impl<'a> SNMPState<'a> {
         }
         match msg.security_params {
             SecurityParameters::USM(usm) => {
-                tx.usm = Some(usm.msg_user_name.clone());
+                tx.usm = Some(usm.msg_user_name);
             },
             _                            => {
                 self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
@@ -195,8 +184,8 @@ impl<'a> SNMPState<'a> {
             Ok((_rem,SnmpGenericMessage::V1(msg))) |
             Ok((_rem,SnmpGenericMessage::V2(msg))) => self.handle_snmp_v12(msg, direction),
             Ok((_rem,SnmpGenericMessage::V3(msg))) => self.handle_snmp_v3(msg, direction),
-            Err(e) => {
-                SCLogDebug!("parse_snmp failed: {:?}", e);
+            Err(_e) => {
+                SCLogDebug!("parse_snmp failed: {:?}", _e);
                 self.set_event(SNMPEvent::MalformedData);
                 -1
             },
@@ -219,7 +208,7 @@ impl<'a> SNMPState<'a> {
     }
 
     fn free_tx(&mut self, tx_id: u64) {
-        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
+        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx != None);
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -300,20 +289,19 @@ impl<'a> Drop for SNMPTransaction<'a> {
 pub extern "C" fn rs_snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SNMPState::new();
     let boxed = Box::new(state);
-    return unsafe{std::mem::transmute(boxed)};
+    return Box::into_raw(boxed) as *mut _;
 }
 
 /// Params:
 /// - state: *mut SNMPState as void pointer
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let mut snmp_state: Box<SNMPState> = unsafe{std::mem::transmute(state)};
+    let mut snmp_state = unsafe{ Box::from_raw(state as *mut SNMPState) };
     snmp_state.free();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -326,7 +314,7 @@ pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -339,19 +327,19 @@ pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
     let state = cast_pointer!(state,SNMPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => tx as *const _ as *mut _,
         None     => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,SNMPState);
@@ -359,7 +347,7 @@ pub extern "C" fn rs_snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_tx_free(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_snmp_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,SNMPState);
@@ -375,7 +363,7 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_snmp_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
@@ -385,7 +373,7 @@ pub extern "C" fn rs_snmp_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_snmp_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
@@ -398,59 +386,11 @@ pub extern "C" fn rs_snmp_state_get_tx_detect_state(
 
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
                                            -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SNMPTransaction);
     return tx.events;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                                     event_name: *mut *const std::os::raw::c_char,
-                                                     event_type: *mut core::AppLayerEventType)
-                                                     -> i8
-{
-    if let Some(e) = SNMPEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            SNMPEvent::MalformedData         => { "malformed_data\0" },
-            SNMPEvent::UnknownSecurityModel  => { "unknown_security_model\0" },
-            SNMPEvent::VersionMismatch       => { "version_mismatch\0" },
-        };
-        unsafe{
-            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        };
-        0
-    } else {
-        -1
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut core::AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name == std::ptr::null() { return -1; }
-    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data"         => SNMPEvent::MalformedData as i32,
-                "unknown_security_model" => SNMPEvent::UnknownSecurityModel as i32,
-                "version_mismatch"       => SNMPEvent::VersionMismatch as i32,
-                _                        => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    unsafe{
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as std::os::raw::c_int;
-    };
-    0
 }
 
 // for use with the C API call StateGetTxIterator
@@ -463,7 +403,7 @@ pub extern "C" fn rs_snmp_state_get_tx_iterator(
 {
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -475,7 +415,7 @@ pub extern "C" fn rs_snmp_state_get_tx_iterator(
 
 // for use with the C API call StateGetTxIterator
 #[no_mangle]
-pub extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
+pub unsafe extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
                                           _alproto: AppProto,
                                           alstate: *mut std::os::raw::c_void,
                                           min_tx_id: u64,
@@ -485,7 +425,7 @@ pub extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
     let state = cast_pointer!(alstate,SNMPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = tx as *const _ as *mut _;
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -526,18 +466,18 @@ fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
+pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
                                          _direction: u8,
                                          input:*const u8,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_SNMP };
-    if slice.len() < 4 { return unsafe{ALPROTO_FAILED}; }
+    let alproto = ALPROTO_SNMP;
+    if slice.len() < 4 { return ALPROTO_FAILED; }
     match parse_pdu_enveloppe_version(slice) {
         Ok((_,_))                    => alproto,
         Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        _                            => unsafe{ALPROTO_FAILED},
+        _                            => ALPROTO_FAILED,
     }
 }
 
@@ -569,8 +509,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_de_state       : rs_snmp_state_get_tx_detect_state,
         set_de_state       : rs_snmp_state_set_tx_detect_state,
         get_events         : Some(rs_snmp_state_get_events),
-        get_eventinfo      : Some(rs_snmp_state_get_event_info),
-        get_eventinfo_byid : Some(rs_snmp_state_get_event_info_by_id),
+        get_eventinfo      : Some(SNMPEvent::get_event_info),
+        get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,

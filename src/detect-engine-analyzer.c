@@ -608,6 +608,34 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
     return false;
 }
 
+static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
+{
+    char pattern_str[1024] = "";
+    DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
+
+    jb_set_string(js, "pattern", pattern_str);
+    jb_set_uint(js, "length", cd->content_len);
+    jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
+    jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
+    jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
+    jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
+    jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
+    jb_set_bool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
+    if (cd->flags & DETECT_CONTENT_OFFSET) {
+        jb_set_uint(js, "offset", cd->offset);
+    }
+    if (cd->flags & DETECT_CONTENT_DEPTH) {
+        jb_set_uint(js, "depth", cd->depth);
+    }
+    if (cd->flags & DETECT_CONTENT_DISTANCE) {
+        jb_set_uint(js, "distance", cd->distance);
+    }
+    if (cd->flags & DETECT_CONTENT_WITHIN) {
+        jb_set_uint(js, "within", cd->within);
+    }
+    jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+}
+
 static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *smd)
 {
     if (smd == NULL)
@@ -624,25 +652,7 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 const DetectContentData *cd = (const DetectContentData *)smd->ctx;
 
                 jb_open_object(js, "content");
-                jb_set_string_from_bytes(js, "pattern", cd->content, cd->content_len);
-                jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
-                jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
-                jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
-                jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
-                jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
-                if (cd->flags & DETECT_CONTENT_OFFSET) {
-                    jb_set_uint(js, "offset", cd->offset);
-                }
-                if (cd->flags & DETECT_CONTENT_DEPTH) {
-                    jb_set_uint(js, "depth", cd->depth);
-                }
-                if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                    jb_set_uint(js, "distance", cd->distance);
-                }
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    jb_set_uint(js, "within", cd->within);
-                }
-                jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+                DumpContent(js, cd);
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and "
                                               "is interpreted as regular 'fast_pattern'");
@@ -670,10 +680,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
     jb_close(js);
 }
 
+static void EngineAnalysisRulePatterns(const DetectEngineCtx *de_ctx, const Signature *s);
+
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     SCEnter();
+
+    EngineAnalysisRulePatterns(de_ctx, s);
 
     RuleAnalyzer ctx = { NULL, NULL, NULL };
 
@@ -783,6 +797,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
+    const DetectEnginePktInspectionEngine *pkt_mpm = NULL;
+    const DetectEngineAppInspectionEngine *app_mpm = NULL;
+
     jb_open_array(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
@@ -805,6 +822,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_set_bool(ctx.js, "is_mpm", pkt->mpm);
         DumpMatches(&ctx, ctx.js, pkt->smd);
         jb_close(ctx.js);
+        if (pkt->mpm) {
+            pkt_mpm = pkt;
+        }
     }
     jb_close(ctx.js);
 
@@ -845,6 +865,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             jb_set_uint(ctx.js, "progress", app->progress);
             DumpMatches(&ctx, ctx.js, app->smd);
             jb_close(ctx.js);
+            if (app->mpm) {
+                app_mpm = app;
+            }
         }
         jb_close(ctx.js);
 
@@ -863,6 +886,51 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
     jb_close(ctx.js);
+
+    if (pkt_mpm || app_mpm) {
+        jb_open_object(ctx.js, "mpm");
+
+        int mpm_list = pkt_mpm ? DETECT_SM_LIST_PMATCH : app_mpm->sm_list;
+        const char *name;
+        if (mpm_list < DETECT_SM_LIST_DYNAMIC_START)
+            name = DetectListToHumanString(mpm_list);
+        else
+            name = DetectBufferTypeGetNameById(de_ctx, mpm_list);
+        jb_set_string(ctx.js, "buffer", name);
+
+        SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
+        if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
+            smd = s->sm_arrays[mpm_list];
+        }
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+                    if (cd->flags & DETECT_CONTENT_MPM) {
+                        DumpContent(ctx.js, cd);
+                    }
+                    break;
+                }
+            }
+
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+        jb_close(ctx.js);
+    } else if (s->init_data->prefilter_sm) {
+        jb_open_object(ctx.js, "prefilter");
+        int prefilter_list = SigMatchListSMBelongsTo(s, s->init_data->prefilter_sm);
+        const char *name;
+        if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
+            name = DetectListToHumanString(prefilter_list);
+        else
+            name = DetectBufferTypeGetNameById(de_ctx, prefilter_list);
+        jb_set_string(ctx.js, "buffer", name);
+        const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
+        jb_set_string(ctx.js, "name", mname);
+        jb_close(ctx.js);
+    }
 
     if (ctx.js_warnings) {
         jb_close(ctx.js_warnings);
@@ -892,6 +960,290 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     SCMutexUnlock(&g_rules_analyzer_write_m);
     jb_free(ctx.js);
+    SCReturn;
+}
+
+struct PatternItem {
+    const DetectContentData *cd;
+    int sm_list;
+    uint32_t cnt;
+    uint32_t mpm;
+};
+
+static inline uint32_t ContentFlagsForHash(const DetectContentData *cd)
+{
+    return cd->flags & (DETECT_CONTENT_NOCASE | DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH |
+                               DETECT_CONTENT_NEGATED | DETECT_CONTENT_ENDS_WITH);
+}
+
+/** \internal
+ *  \brief The hash function for Pattern
+ *
+ *  \param ht      Pointer to the hash table.
+ *  \param data    Pointer to the Pattern.
+ *  \param datalen Not used in our case.
+ *
+ *  \retval hash The generated hash value.
+ */
+static uint32_t PatternHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    struct PatternItem *p = (struct PatternItem *)data;
+    uint32_t hash = p->sm_list + ContentFlagsForHash(p->cd);
+
+    for (uint32_t b = 0; b < p->cd->content_len; b++)
+        hash += p->cd->content[b];
+
+    return hash % ht->array_size;
+}
+
+/**
+ * \brief The Compare function for Pattern
+ *
+ * \param data1 Pointer to the first Pattern.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second Pattern.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 Patterns sent as args match.
+ * \retval 0 If the 2 Patterns sent as args do not match.
+ */
+static char PatternCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    const struct PatternItem *p1 = (struct PatternItem *)data1;
+    const struct PatternItem *p2 = (struct PatternItem *)data2;
+
+    if (p1->sm_list != p2->sm_list)
+        return 0;
+
+    if (ContentFlagsForHash(p1->cd) != ContentFlagsForHash(p2->cd))
+        return 0;
+
+    if (p1->cd->content_len != p2->cd->content_len)
+        return 0;
+
+    if (memcmp(p1->cd->content, p2->cd->content, p1->cd->content_len) != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static void PatternFreeFunc(void *ptr)
+{
+    SCFree(ptr);
+}
+
+/**
+ * \brief Initializes the Pattern mpm hash table to be used by the detection
+ *        engine context.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+static int PatternInit(DetectEngineCtx *de_ctx)
+{
+    de_ctx->pattern_hash_table =
+            HashListTableInit(4096, PatternHashFunc, PatternCompareFunc, PatternFreeFunc);
+    if (de_ctx->pattern_hash_table == NULL)
+        goto error;
+
+    return 0;
+
+error:
+    return -1;
+}
+
+void DumpPatterns(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->buffer_type_map_elements == 0 || de_ctx->pattern_hash_table == NULL)
+        return;
+
+    JsonBuilder *root_jb = jb_new_object();
+    JsonBuilder *arrays[de_ctx->buffer_type_map_elements];
+    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_map_elements);
+
+    jb_open_array(root_jb, "buffers");
+
+    for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->pattern_hash_table);
+            htb != NULL; htb = HashListTableGetListNext(htb)) {
+        char str[1024] = "";
+        struct PatternItem *p = HashListTableGetListData(htb);
+        DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
+
+        JsonBuilder *jb = arrays[p->sm_list];
+        if (arrays[p->sm_list] == NULL) {
+            jb = arrays[p->sm_list] = jb_new_object();
+            const char *name;
+            if (p->sm_list < DETECT_SM_LIST_DYNAMIC_START)
+                name = DetectListToHumanString(p->sm_list);
+            else
+                name = DetectBufferTypeGetNameById(de_ctx, p->sm_list);
+            jb_set_string(jb, "name", name);
+            jb_set_uint(jb, "list_id", p->sm_list);
+
+            jb_open_array(jb, "patterns");
+        }
+
+        jb_start_object(jb);
+        jb_set_string(jb, "pattern", str);
+        jb_set_uint(jb, "patlen", p->cd->content_len);
+        jb_set_uint(jb, "cnt", p->cnt);
+        jb_set_uint(jb, "mpm", p->mpm);
+        jb_open_object(jb, "flags");
+        jb_set_bool(jb, "nocase", p->cd->flags & DETECT_CONTENT_NOCASE);
+        jb_set_bool(jb, "negated", p->cd->flags & DETECT_CONTENT_NEGATED);
+        jb_set_bool(jb, "depth", p->cd->flags & DETECT_CONTENT_DEPTH);
+        jb_set_bool(jb, "offset", p->cd->flags & DETECT_CONTENT_OFFSET);
+        jb_set_bool(jb, "endswith", p->cd->flags & DETECT_CONTENT_ENDS_WITH);
+        jb_close(jb);
+        jb_close(jb);
+    }
+
+    for (uint32_t i = 0; i < de_ctx->buffer_type_map_elements; i++) {
+        JsonBuilder *jb = arrays[i];
+        if (jb == NULL)
+            continue;
+
+        jb_close(jb); // array
+        jb_close(jb); // object
+
+        jb_append_object(root_jb, jb);
+        jb_free(jb);
+    }
+    jb_close(root_jb);
+    jb_close(root_jb);
+
+    const char *filename = "patterns.json";
+    const char *log_dir = ConfigGetLogDirectory();
+    char json_path[PATH_MAX] = "";
+    snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
+
+    SCMutexLock(&g_rules_analyzer_write_m);
+    FILE *fp = fopen(json_path, "a");
+    if (fp != NULL) {
+        fwrite(jb_ptr(root_jb), jb_len(root_jb), 1, fp);
+        fprintf(fp, "\n");
+        fclose(fp);
+    }
+    SCMutexUnlock(&g_rules_analyzer_write_m);
+    jb_free(root_jb);
+
+    HashListTableFree(de_ctx->pattern_hash_table);
+    de_ctx->pattern_hash_table = NULL;
+}
+
+static void EngineAnalysisRulePatterns(const DetectEngineCtx *de_ctx, const Signature *s)
+{
+    SCEnter();
+
+    if (de_ctx->pattern_hash_table == NULL)
+        PatternInit((DetectEngineCtx *)de_ctx); // TODO hack const
+
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH]) {
+        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_PMATCH];
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+                    struct PatternItem lookup = {
+                        .cd = cd, .sm_list = DETECT_SM_LIST_PMATCH, .cnt = 0, .mpm = 0
+                    };
+                    struct PatternItem *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = DETECT_SM_LIST_PMATCH;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+
+    const DetectEngineAppInspectionEngine *app = s->app_inspect;
+    for (; app != NULL; app = app->next) {
+        SigMatchData *smd = app->smd;
+        do {
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    struct PatternItem lookup = {
+                        .cd = cd, .sm_list = app->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    struct PatternItem *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = app->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+    const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
+    for (; pkt != NULL; pkt = pkt->next) {
+        SigMatchData *smd = pkt->smd;
+        do {
+            if (smd == NULL) {
+                BUG_ON(!(pkt->sm_list < DETECT_SM_LIST_DYNAMIC_START));
+                smd = s->sm_arrays[pkt->sm_list];
+            }
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+
+                    struct PatternItem lookup = {
+                        .cd = cd, .sm_list = pkt->sm_list, .cnt = 0, .mpm = 0
+                    };
+                    struct PatternItem *res =
+                            HashListTableLookup(de_ctx->pattern_hash_table, &lookup, 0);
+                    if (res) {
+                        res->cnt++;
+                        res->mpm += ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                    } else {
+                        struct PatternItem *add = SCCalloc(1, sizeof(*add));
+                        BUG_ON(add == NULL);
+                        add->cd = cd;
+                        add->sm_list = pkt->sm_list;
+                        add->cnt = 1;
+                        add->mpm = ((cd->flags & DETECT_CONTENT_MPM) != 0);
+                        HashListTableAdd(de_ctx->pattern_hash_table, (void *)add, 0);
+                    }
+                    break;
+                }
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        } while (1);
+    }
+
     SCReturn;
 }
 

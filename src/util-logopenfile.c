@@ -328,12 +328,11 @@ bool SCLogOpenThreadedFile(
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads container");
             return false;
         }
-        if (append) {
-            parent_ctx->threads->append = SCStrdup(append);
-            if (!parent_ctx->threads->append) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads append setting");
-                goto error_exit;
-            }
+
+        parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
+        if (!parent_ctx->threads->append) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate threads append setting");
+            goto error_exit;
         }
 
         parent_ctx->threads->slot_count = slot_count;
@@ -344,9 +343,8 @@ bool SCLogOpenThreadedFile(
         }
         SCLogDebug("Allocated %d file context pointers for threaded array",
                     parent_ctx->threads->slot_count);
-        int slot = 1;
-        for (; slot < parent_ctx->threads->slot_count; slot++) {
-            if (!LogFileNewThreadedCtx(parent_ctx, log_path, append, slot)) {
+        for (int slot = 1; slot < parent_ctx->threads->slot_count; slot++) {
+            if (!LogFileNewThreadedCtx(parent_ctx, log_path, parent_ctx->threads->append, slot)) {
                 /* TODO: clear allocated entries [1, slot) */
                 goto error_exit;
             }

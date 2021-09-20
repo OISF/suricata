@@ -280,7 +280,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     _ => { (Vec::new(), false) },
                 };
                 let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
-                    match state.get_service_for_guid(&wr.guid) {
+                    match state.get_service_for_guid(wr.guid) {
                         (_, x) => x,
                     }
                 } else {
@@ -358,21 +358,42 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 Ok((_, rd)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", rd);
 
-                    if let Some(ref ren) = rd.rename {
-                        let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                        let mut newname = ren.name.to_vec();
-                        newname.retain(|&i|i != 0x00);
-                        let oldname = match state.guid2name_map.get(rd.guid) {
-                            Some(n) => { n.to_vec() },
-                            None => { b"<unknown>".to_vec() },
-                        };
-                        let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
-                        tx.hdr = tx_hdr;
-                        tx.request_done = true;
-                        tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
-                        true
-                    } else {
-                        false
+                    match rd.data {
+                        Smb2SetInfoRequestData::RENAME(ref ren) => {
+                            let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                            let mut newname = ren.name.to_vec();
+                            newname.retain(|&i|i != 0x00);
+                            let oldname = match state.guid2name_map.get(rd.guid) {
+                                Some(n) => { n.to_vec() },
+                                None => { b"<unknown>".to_vec() },
+                            };
+                            let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                            tx.hdr = tx_hdr;
+                            tx.request_done = true;
+                            tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
+                            true
+                        }
+                        Smb2SetInfoRequestData::DISPOSITION(ref dis) => {
+                            let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                            let fname = match state.guid2name_map.get(rd.guid) {
+                                Some(n) => { n.to_vec() },
+                                None => {
+                                    // try to find latest created file in case of chained commands
+                                    let mut guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
+                                    guid_key.msg_id = guid_key.msg_id - 1;
+                                    match state.ssn2vec_map.get(&guid_key) {
+                                        Some(n) => { n.to_vec() },
+                                        None => { b"<unknown>".to_vec()},
+                                    }
+                                },
+                            };
+                            let tx = state.new_setfileinfo_tx(fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
+                            tx.hdr = tx_hdr;
+                            tx.request_done = true;
+                            tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
+                            true
+                        }
+                        _ => false,
                     }
                 },
                 Err(nom::Err::Incomplete(_n)) => {
@@ -498,7 +519,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, &r);
+            smb2_write_request_record(state, r);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
@@ -579,20 +600,20 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_write(r.data)
                 {
-                    Ok((_, wr)) => {
-                        SCLogDebug!("SMBv2: Write response => {:?}", wr);
+                    Ok((_, _wr)) => {
+                        SCLogDebug!("SMBv2: Write response => {:?}", _wr);
 
                         /* search key-guid map */
                         let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
                                 r.session_id, r.tree_id, r.message_id);
-                        let guid_vec = match state.ssn2vec_map.remove(&guid_key) {
+                        let _guid_vec = match state.ssn2vec_map.remove(&guid_key) {
                             Some(p) => p,
                             None => {
                                 SCLogDebug!("SMBv2 response: GUID NOT FOUND");
                                 Vec::new()
                             },
                         };
-                        SCLogDebug!("SMBv2 write response for GUID {:?}", guid_vec);
+                        SCLogDebug!("SMBv2 write response for GUID {:?}", _guid_vec);
                     }
                     _ => {
                         events.push(SMBEvent::MalformedData);
@@ -604,7 +625,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_READ => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS ||
                r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                smb2_read_response_record(state, &r);
+                smb2_read_response_record(state, r);
                 false
 
             } else if r.nt_status == SMB_NTSTATUS_END_OF_FILE {

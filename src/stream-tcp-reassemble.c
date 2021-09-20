@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -137,7 +137,7 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
 
 /**
  * \brief  Function to Check the reassembly memory usage counter against the
- *         allowed max memory usgae for TCP segments.
+ *         allowed max memory usage for TCP segments.
  *
  * \param  size Size of the TCP segment and its payload length memory allocated
  * \retval 1 if in bounds
@@ -378,7 +378,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.prealloc_segments = segment_prealloc;
 
     int overlap_diff_data = 0;
-    ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
+    (void)ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
     if (overlap_diff_data) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
@@ -456,7 +456,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
                 PoolThreadSize(segment_thread_pool),
                 ra_ctx->segment_thread_pool_id);
     } else {
-        /* grow segment_thread_pool until we have a element for our thread id */
+        /* grow segment_thread_pool until we have an element for our thread id */
         ra_ctx->segment_thread_pool_id = PoolThreadExpand(segment_thread_pool);
         SCLogDebug("pool size %d, thread segment_thread_pool_id %d",
                 PoolThreadSize(segment_thread_pool),
@@ -585,6 +585,20 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
     }
 
     SCReturnUInt(0);
+}
+
+uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
+{
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
+        if (stream->sb.stream_offset != 0)
+            return 0;
+
+        return stream->sb.buf_offset;
+    } else {
+        DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
+        DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
+        return stream->sb.sbb_size;
+    }
 }
 
 /**

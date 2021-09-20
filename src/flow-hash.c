@@ -680,6 +680,8 @@ static inline bool FlowBelongsToUs(const ThreadVars *tv, const Flow *f)
 static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
         FlowBucket *fb, Flow *f, Flow *prev_f)
 {
+    f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
     /* remove from hash... */
     if (prev_f) {
         prev_f->next = f->next;
@@ -692,6 +694,7 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
         f->fb = NULL;
         f->next = NULL;
         FlowQueuePrivateAppendFlow(&fls->work_queue, f);
+        FLOWLOCK_UNLOCK(f);
     } else {
         /* implied: TCP but our thread does not own it. So set it
          * aside for the Flow Manager to pick it up. */

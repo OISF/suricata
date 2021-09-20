@@ -15,19 +15,20 @@
  * 02110-1301, USA.
  */
 
-use std::mem::transmute;
-
-use crate::applayer::{AppLayerResult, AppLayerTxData};
+use crate::applayer::*;
 use crate::core;
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
+    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use std;
+use std::ffi::CString;
 use crate::dcerpc::parser;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCHdrUdp {
     pub rpc_vers: u8,
     pub pkt_type: u8,
@@ -50,18 +51,15 @@ pub struct DCERPCHdrUdp {
     pub serial_lo: u8,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DCERPCUDPState {
     pub tx_id: u64,
     pub transactions: Vec<DCERPCTransaction>,
 }
 
 impl DCERPCUDPState {
-    pub fn new() -> DCERPCUDPState {
-        return DCERPCUDPState {
-            tx_id: 0,
-            transactions: Vec::new(),
-        };
+    pub fn new() -> Self {
+        Default::default()
     }
 
     fn create_tx(&mut self,  hdr: &DCERPCHdrUdp) -> DCERPCTransaction {
@@ -147,7 +145,7 @@ impl DCERPCUDPState {
 
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
-                    tx.stub_data_buffer_ts.extend_from_slice(&input);
+                    tx.stub_data_buffer_ts.extend_from_slice(input);
                     tx.frag_cnt_ts += 1;
                     if done {
                         tx.req_done = true;
@@ -155,7 +153,7 @@ impl DCERPCUDPState {
                     return true;
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    tx.stub_data_buffer_tc.extend_from_slice(&input);
+                    tx.stub_data_buffer_tc.extend_from_slice(input);
                     tx.frag_cnt_tc += 1;
                     if done {
                         tx.resp_done = true;
@@ -207,10 +205,11 @@ impl DCERPCUDPState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *mut core::Flow, state: &mut DCERPCUDPState, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, _flags: u8,
+pub unsafe extern "C" fn rs_dcerpc_udp_parse(
+    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
+    let state = cast_pointer!(state, DCERPCUDPState);
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf);
@@ -220,18 +219,18 @@ pub extern "C" fn rs_dcerpc_udp_parse(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCUDPState> = unsafe { transmute(state) };
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCUDPState) });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
-    transmute(boxed)
+    return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
+pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
@@ -240,7 +239,7 @@ pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
+pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
     vtx: *mut std::os::raw::c_void,
 ) -> *mut core::DetectEngineState {
     let dce_state = cast_pointer!(vtx, DCERPCTransaction);
@@ -251,16 +250,16 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
-) -> u8 {
+pub unsafe extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
+    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
+) -> std::os::raw::c_int {
     let dce_state = cast_pointer!(vtx, DCERPCTransaction);
     dce_state.de_state = Some(de_state);
     0
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx_data(
+pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -269,13 +268,13 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_data(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx(
+pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
-) -> *mut DCERPCTransaction {
+) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{&mut *(tx as *mut DCERPCTransaction)};
+            return tx as *const _ as *mut _;
         },
         None => {
             return std::ptr::null_mut();
@@ -284,7 +283,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.tx_id
 }
@@ -304,17 +303,14 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> i32
+pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u8, input: *const u8,
+                                      len: u32, rdir: *mut u8) -> core::AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
     if len == 0 {
         return core::ALPROTO_UNKNOWN;
     }
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
     let (is_dcerpc, is_request) = probe(slice);
     if is_dcerpc {
@@ -324,12 +320,73 @@ pub extern "C" fn rs_dcerpc_probe_udp(direction: u8, input: *const u8,
             core::STREAM_TOCLIENT
         };
         if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
-            unsafe { *rdir = dir };
+            *rdir = dir;
         }
-        return 1;
+        return ALPROTO_DCERPC;
     }
-    return 0;
+    return core::ALPROTO_FAILED;
+}
 
+fn register_pattern_probe() -> i8 {
+    unsafe {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP as u8, ALPROTO_DCERPC,
+                                                     b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
+                                                     core::STREAM_TOSERVER, rs_dcerpc_probe_udp, 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+            return -1;
+        }
+    }
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: std::ptr::null(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: None,
+        probe_tc: None,
+        min_depth: 0,
+        max_depth: 16,
+        state_new: rs_dcerpc_udp_state_new,
+        state_free: rs_dcerpc_udp_state_free,
+        tx_free: rs_dcerpc_udp_state_transaction_free,
+        parse_ts: rs_dcerpc_udp_parse,
+        parse_tc: rs_dcerpc_udp_parse,
+        get_tx_count: rs_dcerpc_udp_get_tx_cnt,
+        get_tx: rs_dcerpc_udp_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        get_de_state: rs_dcerpc_udp_get_tx_detect_state,
+        set_de_state: rs_dcerpc_udp_set_tx_detect_state,
+        get_events: None,
+        get_eventinfo: None,
+        get_eventinfo_byid: None,
+        localstorage_new: None,
+        localstorage_free: None,
+        get_files: None,
+        get_tx_iterator: None,
+        get_tx_data: rs_dcerpc_udp_get_tx_data,
+        apply_tx_config: None,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        truncate: None,
+    };
+
+    let ip_proto_str = CString::new("udp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_DCERPC = alproto;
+        if register_pattern_probe() < 0 {
+            return;
+        }
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+    } else {
+        SCLogDebug!("Protocol detecter and parser disabled for DCERPC/UDP.");
+    }
 }
 
 

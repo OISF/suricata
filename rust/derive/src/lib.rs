@@ -15,10 +15,28 @@
  * 02110-1301, USA.
  */
 
-#ifndef __APP_LAYER_DCERPC_RUST_H__
-#define __APP_LAYER_DCERPC_RUST_H__
+extern crate proc_macro;
 
-void RegisterDCERPCParsers(void);
+use proc_macro::TokenStream;
 
-#endif /* __APP_LAYER_DCERPC_H__ */
+mod applayerevent;
 
+/// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
+/// implementation for enums that define AppLayerEvents.
+///
+/// Example usage (DNS app-layer events):
+///
+/// #[derive(AppLayerEvent)]
+/// enum {
+///     MalformedData,
+///     NotRequest,
+///     NotResponse,
+///     ZFlagSet,
+/// }
+///
+/// The enum variants must follow the naming convention of OneTwoThree
+/// for proper conversion to the name used in rules (one_tow_three).
+#[proc_macro_derive(AppLayerEvent)]
+pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
+    applayerevent::derive_app_layer_event(input)
+}
