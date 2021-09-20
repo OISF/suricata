@@ -38,7 +38,6 @@
 #include "detect-tcp-flags.h"
 #include "feature.h"
 #include "util-print.h"
-#include <pcre2.h>
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;

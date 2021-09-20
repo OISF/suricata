@@ -35,7 +35,6 @@
 #include "util-debug.h"
 #include "util-fmemopen.h"
 #include "util-byte.h"
-#include <pcre2.h>
 
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the

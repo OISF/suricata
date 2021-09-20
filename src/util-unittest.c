@@ -38,7 +38,6 @@
 #include "util-debug.h"
 #include "util-time.h"
 #include "conf.h"
-#include <pcre2.h>
 
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"

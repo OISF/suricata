@@ -25,7 +25,6 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "util-hash.h"
-#include <pcre2.h>
 
 #include "util-reference-config.h"
 #include "conf.h"
