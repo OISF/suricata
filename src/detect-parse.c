@@ -2444,16 +2444,6 @@ void DetectParseFreeRegex(DetectParseRegex *r)
     if (r->regex) {
         pcre2_code_free(r->regex);
     }
-    if (r->match) {
-        pcre2_match_data_free(r->match);
-    }
-}
-
-void DetectParseFreePCRE2(DetectParseRegex2 *r)
-{
-    if (r->regex) {
-        pcre2_code_free(r->regex);
-    }
     if (r->context) {
         pcre2_match_context_free(r->context);
     }
@@ -2461,8 +2451,6 @@ void DetectParseFreePCRE2(DetectParseRegex2 *r)
         pcre2_match_data_free(r->match);
     }
 }
-
-static DetectParseRegex2 *g_detect_pcre2_list = NULL;
 
 void DetectParseFreeRegexes(void)
 {
@@ -2476,15 +2464,6 @@ void DetectParseFreeRegexes(void)
         r = next;
     }
     g_detect_parse_regex_list = NULL;
-
-    DetectParseRegex2 *r2 = g_detect_pcre2_list;
-    while (r2) {
-        DetectParseRegex2 *next = r2->next;
-        DetectParseFreePCRE2(r2);
-        SCFree(r2);
-        r2 = next;
-    }
-    g_detect_pcre2_list = NULL;
 }
 
 /** \brief add regex and/or study to at exit free list
@@ -2524,20 +2503,11 @@ bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect
     return true;
 }
 
-/** \brief add pcre2 to at exit free list
- */
-static void DetectPCRE2AddToFreeList(DetectParseRegex2 *detect_parse)
-{
-    // TODO g_detect_parse_regex_list
-    detect_parse->next = g_detect_pcre2_list;
-    g_detect_pcre2_list = detect_parse;
-}
-
-DetectParseRegex2 *DetectSetupPCRE2(const char *parse_str, int opts)
+DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts)
 {
     int en;
     PCRE2_SIZE eo;
-    DetectParseRegex2 *detect_parse = SCCalloc(1, sizeof(DetectParseRegex2));
+    DetectParseRegex *detect_parse = SCCalloc(1, sizeof(DetectParseRegex));
     if (detect_parse == NULL) {
         return NULL;
     }
@@ -2556,7 +2526,8 @@ DetectParseRegex2 *DetectSetupPCRE2(const char *parse_str, int opts)
     }
     detect_parse->match = pcre2_match_data_create_from_pattern(detect_parse->regex, NULL);
 
-    DetectPCRE2AddToFreeList(detect_parse);
+    detect_parse->next = g_detect_parse_regex_list;
+    g_detect_parse_regex_list = detect_parse;
     return detect_parse;
 }
 
