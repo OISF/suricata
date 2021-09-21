@@ -1104,8 +1104,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     json_ctx->file_ctx = LogFileNewCtx();
     if (unlikely(json_ctx->file_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
-        SCFree(json_ctx);
-        return result;
+        goto error_exit;
     }
 
     if (sensor_name) {
@@ -1243,11 +1242,16 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
 error_exit:
     if (json_ctx->file_ctx) {
+        if (json_ctx->file_ctx->prefix) {
+            SCFree(json_ctx->file_ctx->prefix);
+        }
+        if (json_ctx->file_ctx->sensor_name) {
+            SCFree(json_ctx->file_ctx->sensor_name);
+        }
         LogFileFreeCtx(json_ctx->file_ctx);
     }
-    if (json_ctx) {
-        SCFree(json_ctx);
-    }
+    SCFree(json_ctx);
+
     if (output_ctx) {
         SCFree(output_ctx);
     }
