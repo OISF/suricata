@@ -6,8 +6,11 @@ EXTRA_DIST = \
 	extending/decoder/index.rst \
 	extending/index.rst \
 	extending/app-layer/index.rst \
+	extending/app-layer/app-layer-frames.rst \
 	extending/app-layer/parser.rst \
 	extending/app-layer/transactions.rst \
+	extending/app-layer/diagrams \
+	extending/app-layer/img \
 	extending/capture/index.rst \
 	extending/output/index.rst \
 	internals/engines/index.rst \
