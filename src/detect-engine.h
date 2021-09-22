@@ -36,14 +36,14 @@ void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
-bool DetectBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
-        const uint8_t *content, uint16_t content_len, const char **namestr);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);
 InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
 void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
         const uint8_t *data, const uint32_t data_len);
 InspectionBuffer *InspectionBufferMultipleForListGet(
         DetectEngineThreadCtx *det_ctx, const int list_id, uint32_t local_id);
+
+/* start up registery funcs */
 
 int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);
@@ -58,16 +58,23 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *));
 void DetectBufferTypeRegisterValidateCallback(const char *name,
         bool (*ValidateCallback)(const Signature *, const char **sigerror));
-const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 
-int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
-        TransformData *transforms, int transform_cnt);
-const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
-bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
-bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
-const char *DetectBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
-void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int id, Signature *s);
-bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
+/* detect engine related buffer funcs */
+
+int DetectEngineBufferTypeRegister(DetectEngineCtx *de_ctx, const char *name);
+const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
+const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
+bool DetectEngineBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
+bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
+const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
+const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
+int DetectEngineBufferTypeGetByIdTransforms(
+        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt);
+void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int id, Signature *s);
+bool DetectEngineBufferRunValidateCallback(
+        const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
+bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
+        const uint8_t *content, uint16_t content_len, const char **namestr);
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);

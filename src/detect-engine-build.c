@@ -205,7 +205,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -265,7 +265,7 @@ static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -352,7 +352,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+        if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -821,7 +821,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 if (y < DETECT_SM_LIST_DYNAMIC_START)
                     name = DetectListToHumanString(y);
                 else
-                    name = DetectBufferTypeGetNameById(de_ctx, y);
+                    name = DetectEngineBufferTypeGetNameById(de_ctx, y);
 
                 json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
             }
@@ -860,7 +860,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 if (i < DETECT_SM_LIST_DYNAMIC_START)
                     name = DetectListToHumanString(i);
                 else
-                    name = DetectBufferTypeGetNameById(de_ctx, i);
+                    name = DetectEngineBufferTypeGetNameById(de_ctx, i);
 
                 json_object_set_new(mpm_js, name, buf);
             }
@@ -1444,7 +1444,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         /* run buffer type callbacks if any */
         for (int x = 0; x < (int)s->init_data->smlists_array_size; x++) {
             if (s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(de_ctx, x, s);
+                DetectEngineBufferRunSetupCallback(de_ctx, x, s);
         }
 
         de_ctx->sig_cnt++;

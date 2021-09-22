@@ -69,7 +69,7 @@ int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
     if (list_id == DETECT_SM_LIST_PMATCH)
         return 1;
 
-    return DetectBufferTypeSupportsMpmGetById(de_ctx, list_id);
+    return DetectEngineBufferTypeSupportsMpmGetById(de_ctx, list_id);
 }
 
 /**
