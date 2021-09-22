@@ -534,9 +534,10 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     }
 
     fprintf(rule_engine_analysis_FD, "\" ");
-    if (de_ctx->buffer_type_map[list_type] && de_ctx->buffer_type_map[list_type]->transforms.cnt) {
+    const DetectBufferType *bt = DetectBufferTypeGetById(de_ctx, list_type);
+    if (bt && bt->transforms.cnt) {
         fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ",
-                de_ctx->buffer_type_map[list_type]->transforms.cnt);
+                bt->transforms.cnt);
     }
     fprintf(rule_engine_analysis_FD, "buffer.\n");
 
@@ -1058,12 +1059,12 @@ error:
 
 void DumpPatterns(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->buffer_type_map_elements == 0 || de_ctx->pattern_hash_table == NULL)
+    if (de_ctx->pattern_hash_table == NULL)
         return;
 
     JsonBuilder *root_jb = jb_new_object();
-    JsonBuilder *arrays[de_ctx->buffer_type_map_elements];
-    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_map_elements);
+    JsonBuilder *arrays[de_ctx->buffer_type_id];
+    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_id);
 
     jb_open_array(root_jb, "buffers");
 
@@ -1102,7 +1103,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
         jb_close(jb);
     }
 
-    for (uint32_t i = 0; i < de_ctx->buffer_type_map_elements; i++) {
+    for (uint32_t i = 0; i < de_ctx->buffer_type_id; i++) {
         JsonBuilder *jb = arrays[i];
         if (jb == NULL)
             continue;

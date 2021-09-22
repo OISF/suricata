@@ -1112,10 +1112,10 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
     HashListTableBucket *htb = NULL;
 
     uint32_t stats[MPMB_MAX] = {0};
-    int app_mpms_cnt = de_ctx->buffer_type_map_elements;
+    int app_mpms_cnt = de_ctx->buffer_type_id;
     uint32_t appstats[app_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&appstats, 0x00, sizeof(appstats));
-    int pkt_mpms_cnt = de_ctx->buffer_type_map_elements;
+    int pkt_mpms_cnt = de_ctx->buffer_type_id;
     uint32_t pktstats[pkt_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&pktstats, 0x00, sizeof(pktstats));
 
