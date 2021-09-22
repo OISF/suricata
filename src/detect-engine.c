@@ -690,20 +690,24 @@ int DetectBufferTypeMaxId(void)
     return g_buffer_type_id;
 }
 
-static uint32_t DetectBufferTypeHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+static uint32_t DetectBufferTypeHashNameFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     const DetectBufferType *map = (DetectBufferType *)data;
-    uint32_t hash = 0;
-
-    hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    uint32_t hash = hashlittle_safe(map->string, strlen(map->string), 0);
     hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
     hash %= ht->array_size;
-
     return hash;
 }
 
-static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
-                                        uint16_t len2)
+static uint32_t DetectBufferTypeHashIdFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectBufferType *map = (DetectBufferType *)data;
+    uint32_t hash = map->id;
+    hash %= ht->array_size;
+    return hash;
+}
+
+static char DetectBufferTypeCompareNameFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     DetectBufferType *map1 = (DetectBufferType *)data1;
     DetectBufferType *map2 = (DetectBufferType *)data2;
@@ -711,6 +715,13 @@ static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
     int r = (strcmp(map1->string, map2->string) == 0);
     r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
     return r;
+}
+
+static char DetectBufferTypeCompareIdFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
+    DetectBufferType *map1 = (DetectBufferType *)data1;
+    DetectBufferType *map2 = (DetectBufferType *)data2;
+    return map1->id == map2->id;
 }
 
 static void DetectBufferTypeFreeFunc(void *data)
@@ -740,10 +751,8 @@ static void DetectBufferTypeFreeFunc(void *data)
 static int DetectBufferTypeInit(void)
 {
     BUG_ON(g_buffer_type_hash);
-    g_buffer_type_hash = HashListTableInit(256,
-            DetectBufferTypeHashFunc,
-            DetectBufferTypeCompareFunc,
-            DetectBufferTypeFreeFunc);
+    g_buffer_type_hash = HashListTableInit(256, DetectBufferTypeHashNameFunc,
+            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFunc);
     if (g_buffer_type_hash == NULL)
         return -1;
 
@@ -835,23 +844,20 @@ int DetectBufferTypeGetByName(const char *name)
     return exists->id;
 }
 
-const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
+const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
-    BUG_ON(de_ctx->buffer_type_map == NULL);
-
-    if (de_ctx->buffer_type_map[id] == NULL)
-        return NULL;
-
-    return de_ctx->buffer_type_map[id]->string;
+    DetectBufferType lookup;
+    memset(&lookup, 0, sizeof(lookup));
+    lookup.id = id;
+    const DetectBufferType *res =
+            HashListTableLookup(de_ctx->buffer_type_hash_id, (void *)&lookup, 0);
+    return res;
 }
 
-static const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id)
+const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
-    BUG_ON(de_ctx->buffer_type_map == NULL);
-
-    return de_ctx->buffer_type_map[id];
+    const DetectBufferType *res = DetectBufferTypeGetById(de_ctx, id);
+    return res ? res->string : NULL;
 }
 
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
@@ -1210,31 +1216,34 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
-    de_ctx->buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
-    BUG_ON(!de_ctx->buffer_type_map);
-    de_ctx->buffer_type_map_elements = size;
-    SCLogDebug("de_ctx->buffer_type_map %p with %u members", de_ctx->buffer_type_map, size);
+    de_ctx->buffer_type_hash_name = HashListTableInit(256, DetectBufferTypeHashNameFunc,
+            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFunc);
+    BUG_ON(de_ctx->buffer_type_hash_name == NULL);
+    de_ctx->buffer_type_hash_id =
+            HashListTableInit(256, DetectBufferTypeHashIdFunc, DetectBufferTypeCompareIdFunc,
+                    NULL); // entries owned by buffer_type_hash_name
+    BUG_ON(de_ctx->buffer_type_hash_id == NULL);
+    de_ctx->buffer_type_id = g_buffer_type_id;
 
     SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
     HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
     while (b) {
         DetectBufferType *map = HashListTableGetListData(b);
-        de_ctx->buffer_type_map[map->id] = map;
-        SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
-                "Callbacks: Setup %p Validate %p", map->string, map->id,
-                map->mpm ? "true" : "false", map->packet ? "true" : "false",
+
+        DetectBufferType *copy = SCCalloc(1, sizeof(*copy));
+        BUG_ON(!copy);
+        memcpy(copy, map, sizeof(*copy));
+        int r = HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)copy, 0);
+        BUG_ON(r != 0);
+        r = HashListTableAdd(de_ctx->buffer_type_hash_id, (void *)copy, 0);
+        BUG_ON(r != 0);
+
+        SCLogNotice("name %s id %d mpm %s packet %s -- %s. "
+                    "Callbacks: Setup %p Validate %p",
+                map->string, map->id, map->mpm ? "true" : "false", map->packet ? "true" : "false",
                 map->description, map->SetupCallback, map->ValidateCallback);
         b = HashListTableGetListNext(b);
     }
-
-    de_ctx->buffer_type_hash = HashListTableInit(256,
-            DetectBufferTypeHashFunc,
-            DetectBufferTypeCompareFunc,
-            DetectBufferTypeFreeFunc);
-    if (de_ctx->buffer_type_hash == NULL) {
-        BUG_ON(1);
-    }
-    de_ctx->buffer_type_id = g_buffer_type_id;
 
     PrefilterInit(de_ctx);
     DetectMpmInitializeAppMpms(de_ctx);
@@ -1246,10 +1255,10 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
 static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
 {
     if (de_ctx) {
-        if (de_ctx->buffer_type_map)
-            SCFree(de_ctx->buffer_type_map);
-        if (de_ctx->buffer_type_hash)
-            HashListTableFree(de_ctx->buffer_type_hash);
+        if (de_ctx->buffer_type_hash_name)
+            HashListTableFree(de_ctx->buffer_type_hash_name);
+        if (de_ctx->buffer_type_hash_id)
+            HashListTableFree(de_ctx->buffer_type_hash_id);
 
         DetectEngineAppInspectionEngine *ilist = de_ctx->app_inspect_engines;
         while (ilist) {
@@ -1309,7 +1318,7 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     t.cnt = transform_cnt;
 
     DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
-    DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash, &lookup_map, 0);
+    DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_name, &lookup_map, 0);
 
     SCLogDebug("res %p", res);
     if (res != NULL) {
@@ -1336,24 +1345,15 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
                 map->id, map->parent_id, &map->transforms);
     }
 
-    BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash, (void *)map, 0) != 0);
+    BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)map, 0) != 0);
+    BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_id, (void *)map, 0) != 0);
     SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
+    de_ctx->buffer_type_id++;
 
-    if (map->id >= 0 && (uint32_t)map->id >= de_ctx->buffer_type_map_elements) {
-        void *ptr = SCRealloc(de_ctx->buffer_type_map, (map->id + 1) * sizeof(DetectBufferType *));
-        BUG_ON(ptr == NULL);
-        SCLogDebug("de_ctx->buffer_type_map resized to %u (was %u)", (map->id + 1), de_ctx->buffer_type_map_elements);
-        de_ctx->buffer_type_map = ptr;
-        de_ctx->buffer_type_map[map->id] = map;
-        de_ctx->buffer_type_map_elements = map->id + 1;
-
-        if (map->packet) {
-            DetectPktInspectEngineCopy(de_ctx, map->parent_id, map->id,
-                    &map->transforms);
-        } else {
-            DetectAppLayerInspectEngineCopy(de_ctx, map->parent_id, map->id,
-                    &map->transforms);
-        }
+    if (map->packet) {
+        DetectPktInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
+    } else {
+        DetectAppLayerInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
     }
     return map->id;
 }
