@@ -58,6 +58,7 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *));
 void DetectBufferTypeRegisterValidateCallback(const char *name,
         bool (*ValidateCallback)(const Signature *, const char **sigerror));
+const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 
 int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
         TransformData *transforms, int transform_cnt);
