@@ -913,13 +913,11 @@ typedef struct DetectEngineCtx_ {
     /** table to store metadata keys and values */
     HashTable *metadata_table;
 
-    DetectBufferType **buffer_type_map;
-    uint32_t buffer_type_map_elements;
-
-    /* hash table with rule-time buffer registration. Start time registration
+    /* hash tables with rule-time buffer registration. Start time registration
      * is in detect-engine.c::g_buffer_type_hash */
-    HashListTable *buffer_type_hash;
-    int buffer_type_id;
+    HashListTable *buffer_type_hash_name;
+    HashListTable *buffer_type_hash_id;
+    uint32_t buffer_type_id;
 
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
