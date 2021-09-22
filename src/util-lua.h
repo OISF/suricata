@@ -24,7 +24,17 @@
 #ifndef __UTIL_LUA_H__
 #define __UTIL_LUA_H__
 
-#ifdef HAVE_LUA
+#ifndef HAVE_LUA
+
+/* If we don't have Lua, create a typedef for lua_State so the
+ * exported Lua functions don't fail the build. */
+typedef void lua_State;
+
+#else
+
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "util-luajit.h"
 

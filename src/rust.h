@@ -18,6 +18,7 @@
 #ifndef __RUST_H__
 #define __RUST_H__
 
+#include "util-lua.h"
 #include "rust-context.h"
 #include "rust-bindings.h"
 
