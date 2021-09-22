@@ -63,7 +63,7 @@ static int DetectRawbytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCLogError(SC_ERR_RAWBYTES_BUFFER,
                 "\"rawbytes\" cannot be combined "
                 "with the \"%s\" sticky buffer",
-                DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
+                DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
         SCReturnInt(-1);
     }
 

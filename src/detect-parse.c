@@ -434,7 +434,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
 
     /* if we have a sticky buffer, use that */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (!(DetectBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
+        if (!(DetectEngineBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
             return NULL;
         }
 
@@ -446,7 +446,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
 
     /* otherwise brute force it */
     for (sm_type = 0; sm_type < s->init_data->smlists_array_size; sm_type++) {
-        if (!DetectBufferTypeSupportsMpmGetById(de_ctx, sm_type))
+        if (!DetectEngineBufferTypeSupportsMpmGetById(de_ctx, sm_type))
             continue;
         SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
         sm_new = SigMatchGetLastSMByType(sm_list, DETECT_CONTENT);
@@ -1673,8 +1673,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
      * e.g. alert ... (file_data; sid:1;) */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         if (s->init_data->smlists[s->init_data->list] == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u setup buffer %s but didn't add matches to it",
-                    s->id, DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "rule %u setup buffer %s but didn't add matches to it", s->id,
+                    DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
             SCReturnInt(0);
         }
     }
@@ -1699,15 +1700,15 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 if (app->sm_list == x &&
                         (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
-                            DetectBufferTypeGetNameById(de_ctx, app->sm_list),
-                            app->dir, app->alproto);
+                            DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
+                            app->alproto);
 
                     bufdir[x].ts += (app->dir == 0);
                     bufdir[x].tc += (app->dir == 1);
                 }
             }
 
-            if (!DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror)) {
+            if (!DetectEngineBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror)) {
                 SCReturnInt(0);
             }
         }
@@ -1723,8 +1724,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         tc_excl += (bufdir[x].ts == 0 && bufdir[x].tc > 0);
         dir_amb += (bufdir[x].ts > 0 && bufdir[x].tc > 0);
 
-        SCLogDebug("%s/%d: %d/%d", DetectBufferTypeGetNameById(de_ctx, x),
-                x, bufdir[x].ts, bufdir[x].tc);
+        SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
+                bufdir[x].tc);
     }
     if (ts_excl && tc_excl) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
@@ -1781,10 +1782,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
                 continue;
-            if (!(DetectBufferTypeGetNameById(de_ctx, i)))
+            if (!(DetectEngineBufferTypeGetNameById(de_ctx, i)))
                 continue;
 
-            if (!(DetectBufferTypeSupportsPacketGetById(de_ctx, i))) {
+            if (!(DetectEngineBufferTypeSupportsPacketGetById(de_ctx, i))) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                         "specific matches (like dsize, flags, ttl) with stream / "
                         "state matching by matching on app layer proto (like using "
@@ -2003,7 +2004,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* run buffer type callbacks if any */
     for (uint32_t x = 0; x < sig->init_data->smlists_array_size; x++) {
         if (sig->init_data->smlists[x])
-            DetectBufferRunSetupCallback(de_ctx, x, sig);
+            DetectEngineBufferRunSetupCallback(de_ctx, x, sig);
     }
 
     /* validate signature, SigValidate will report the error reason */
