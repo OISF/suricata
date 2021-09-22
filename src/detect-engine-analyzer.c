@@ -190,8 +190,8 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
-        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
+        const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
         }
@@ -523,8 +523,8 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
-        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
+        const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
         } else if (desc || name) {
@@ -534,7 +534,7 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     }
 
     fprintf(rule_engine_analysis_FD, "\" ");
-    const DetectBufferType *bt = DetectBufferTypeGetById(de_ctx, list_type);
+    const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, list_type);
     if (bt && bt->transforms.cnt) {
         fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ",
                 bt->transforms.cnt);
@@ -805,7 +805,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_open_array(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
-        const char *name = DetectBufferTypeGetNameById(de_ctx, pkt->sm_list);
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, pkt->sm_list);
         if (name == NULL) {
             switch (pkt->sm_list) {
                 case DETECT_SM_LIST_PMATCH:
@@ -838,7 +838,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_open_array(ctx.js, "engines");
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {
-            const char *name = DetectBufferTypeGetNameById(de_ctx, app->sm_list);
+            const char *name = DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list);
             if (name == NULL) {
                 switch (app->sm_list) {
                     case DETECT_SM_LIST_PMATCH:
@@ -897,7 +897,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (mpm_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(mpm_list);
         else
-            name = DetectBufferTypeGetNameById(de_ctx, mpm_list);
+            name = DetectEngineBufferTypeGetNameById(de_ctx, mpm_list);
         jb_set_string(ctx.js, "buffer", name);
 
         SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
@@ -927,7 +927,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(prefilter_list);
         else
-            name = DetectBufferTypeGetNameById(de_ctx, prefilter_list);
+            name = DetectEngineBufferTypeGetNameById(de_ctx, prefilter_list);
         jb_set_string(ctx.js, "buffer", name);
         const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
         jb_set_string(ctx.js, "name", mname);
@@ -1081,7 +1081,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
             if (p->sm_list < DETECT_SM_LIST_DYNAMIC_START)
                 name = DetectListToHumanString(p->sm_list);
             else
-                name = DetectBufferTypeGetNameById(de_ctx, p->sm_list);
+                name = DetectEngineBufferTypeGetNameById(de_ctx, p->sm_list);
             jb_set_string(jb, "name", name);
             jb_set_uint(jb, "list_id", p->sm_list);
 

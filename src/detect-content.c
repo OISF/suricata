@@ -343,7 +343,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
             0 == (cd->flags & DETECT_CONTENT_NEGATED)) {
         /* Check transform compatibility */
         const char *tstr;
-        if (!DetectBufferTypeValidateTransform(de_ctx, sm_list, cd->content,
+        if (!DetectEngineBufferTypeValidateTransform(de_ctx, sm_list, cd->content,
                     cd->content_len, &tstr)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "content string \"%s\" incompatible with %s transform",
