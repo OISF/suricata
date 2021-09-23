@@ -11,7 +11,7 @@ MACCDC: http://www.netresec.com/?page=MACCDC
 
 Netresec: http://www.netresec.com/?page=PcapFiles
 
-Wireshark: https://wiki.wireshark.org/SampleCaptures
+Wireshark: https://gitlab.com/wireshark/wireshark/-/wikis/SampleCaptures
 
 Security Onion collection: https://securityonion.net/docs/Pcaps
 
