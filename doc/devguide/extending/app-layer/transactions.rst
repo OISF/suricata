@@ -69,7 +69,9 @@ Rule Matching
 Transaction progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
 
 As seen in ``DetectAppLayerMpmRegister2`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister2``, which expects ``int tx_min_progress``, for instance. In the code snippet,
-``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions.
+``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions - in the last
+example, for ``FTPDATA``,
+the existence of a transaction implies that a file is being transferred. Hence the ``0`` value.
 
 
 .. code-block:: c
@@ -111,15 +113,16 @@ In addition, for file transfer protocols, or similar ones where there may be sev
 is completed (NFS, SMB), it is possible to create a level of abstraction to handle such complexity. This could be achieved by adding phases to the model implemented by the protocol (e.g., protocol negotiation phase (SMB), request parsed (HTTP), and so on).
 
 This is controlled by implementing progress states. In Suricata, those will be enums that are incremented as the parsing
-progresses. A state will start at 0. The higher its value, the closer the transaction would be to completion.
+progresses. A state will start at 0. The higher its value, the closer the transaction would be to completion. Due to how
+the engine tracks detection accross states, there is an upper limit of 48 to the state progress (it must be < 48).
 
 The engine interacts with transactions' state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 
 In Summary - Transactions and State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Initial state value: ``0``.
-- Simpler scenarios: state is simply an int.  ``1`` represents transaction completion, per direction.
+- Initial State value: ``0``.
+- Simpler scenarios: State is simply a bool.  ``1`` represents transaction completion, per direction.
 - Complex Transaction State in Suricata: ``enum`` (Rust: ``i32``). Completion is indicated by the highest enum value (some examples are: SSH, HTTP, HTTP2, DNS, SMB).
 
 Examples
@@ -195,8 +198,8 @@ rust/src/dhcp/dhcp.rs:
 
 .. code-block:: rust
 
-    tx_comp_st_ts: 1
-    tx_comp_st_tc: 1
+    tx_comp_st_ts: 1,
+    tx_comp_st_tc: 1,
 
 For SSH, this looks like this:
 
@@ -231,10 +234,7 @@ A DNS transaction in Suricata can be considered unidirectional:
   :width: 600
   :alt: A sequence diagram with two entities, Client and Server, with an arrow going from the Client to the Server, labeled "DNS Request". After that, there is a dotted line labeled "Transaction Completed".
 
-An HTTP2 transaction is an example of a bidirectional transaction, in Suricata (note that transactions in HTTP2 may
-overlap, scenario not shown in this Sequence Diagram):
-
-.. TODO add another example for overlapping HTTP2 transaction
+An HTTP2 transaction is an example of a bidirectional transaction, in Suricata (note that, while HTTP2 may have multiple streams, those are mapped to transactions in Suricata. They run in parallel, scenario not shown in this Sequence Diagram - which shows one transaction, only):
 
 .. image:: diagrams/HTTP2BidirectionalTransaction.png
   :width: 600
