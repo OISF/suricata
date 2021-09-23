@@ -587,9 +587,9 @@ static void StreamTcpSegmentAddPacketData(
          * need to check that this is sufficient and allocate more memory if
          * not.
          */
-        if (GET_PKT_LEN(rp) - p->payload_len > seg->pcap_hdr_storage->alloclen) {
+        if (seg->pcap_hdr_storage->pktlen > seg->pcap_hdr_storage->alloclen) {
             uint8_t *tmp_pkt_hdr = StreamTcpReassembleRealloc(seg->pcap_hdr_storage->pkt_hdr,
-                    seg->pcap_hdr_storage->alloclen, GET_PKT_LEN(rp) - p->payload_len);
+                    seg->pcap_hdr_storage->alloclen, seg->pcap_hdr_storage->pktlen);
             if (tmp_pkt_hdr == NULL) {
                 SCLogDebug("Failed to realloc");
                 goto hdr_clean;
