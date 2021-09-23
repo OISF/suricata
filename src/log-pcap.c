@@ -556,8 +556,7 @@ static int PcapLogSegmentCallback(
         MemBufferWriteRaw(pctx->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
         MemBufferWriteRaw(pctx->buf, buf, buflen);
 
-        PcapWrite(pctx->pl, pctx->connp, (uint8_t *)pctx->buf->buffer,
-                seg->pcap_hdr_storage->pktlen + buflen);
+        PcapWrite(pctx->pl, pctx->connp, (uint8_t *)pctx->buf->buffer, pctx->pl->h->len);
     }
     return 1;
 }
@@ -685,11 +684,12 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             PcapLogDumpSegments(td, NULL, p);
 #endif
             if (p->flags & PKT_PSEUDO_STREAM_END) {
+                PCAPLOG_PROFILE_END(pl->profile_write);
                 PcapLogUnlock(pl);
                 return TM_ECODE_OK;
             }
 
-            /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
+            /* PcapLogDumpSegment has written over the PcapLogData variables so need to update */
             pl->h->ts.tv_sec = p->ts.tv_sec;
             pl->h->ts.tv_usec = p->ts.tv_usec;
             if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
@@ -722,8 +722,11 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
         ret = PcapWrite(pl, NULL, GET_PKT_DATA(p), len);
 #endif
     }
-    if (ret != TM_ECODE_OK)
+    if (ret != TM_ECODE_OK) {
+        PCAPLOG_PROFILE_END(pl->profile_write);
+        PcapLogUnlock(pl);
         return ret;
+    }
 
     PCAPLOG_PROFILE_END(pl->profile_write);
     pl->profile_data_size += len;
@@ -1067,7 +1070,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
                     "Pcap logging with multiple link type is not supported.");
         } else {
             /* In multi mode, only pcap conditional is not supported as a flow timeout
-             * will trigger packet logging with potentially invalid with. In regular
+             * will trigger packet logging with potentially invalid datalink. In regular
              * pcap logging, the logging should be done in the same thread if we
              * have a proper load balancing. So no mix of datalink should occur. But we need a
              * proper load balancing so this needs at least a warning.
@@ -1112,7 +1115,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
     *data = (void *)td;
 
     if (IsTcpSessionDumpingEnabled()) {
-        td->buf = MemBufferCreateNew(65537);
+        td->buf = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
     } else {
         td->buf = NULL;
     }
@@ -1608,11 +1611,10 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                 pl->conditional = LOGMODE_COND_TAG;
                 EnableTcpSessionDumping();
             } else if (strcasecmp(s_conditional, "all") != 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                FatalError(SC_ERR_INVALID_ARGUMENT,
                         "log-pcap: invalid conditional \"%s\". Valid options: \"all\", "
-                        "or \"alerts\" mode ",
+                        "\"alerts\", or \"tag\" mode ",
                         s_conditional);
-                exit(EXIT_FAILURE);
             }
         }
 
