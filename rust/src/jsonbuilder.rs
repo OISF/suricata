@@ -78,13 +78,6 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Mark {
-    position: usize,
-    state_index: usize,
-    state: State,
-}
-
 /// A "mark" or saved state for a JsonBuilder object.
 ///
 /// The name is full, and the types are u64 as this object is used
