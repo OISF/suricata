@@ -657,6 +657,12 @@ typedef struct DetectVarList_ {
     struct DetectVarList_ *next;
 } DetectVarList;
 
+typedef struct SCFPSupportSMList_ {
+    int list_id;
+    int priority;
+    struct SCFPSupportSMList_ *next;
+} SCFPSupportSMList;
+
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
     uint32_t sig_match_size;  /* size in bytes of the array */
@@ -943,6 +949,9 @@ typedef struct DetectEngineCtx_ {
     bool sm_types_prefilter[DETECT_TBLSIZE];
     bool sm_types_silent_error[DETECT_TBLSIZE];
 
+    /* list of Fast Pattern registrations. Initially filled using a copy of `g_fp_support_smlist_list`,
+     * then extended at rule loading time if needed */
+    SCFPSupportSMList *fp_support_smlist_list;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

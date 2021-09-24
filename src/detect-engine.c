@@ -52,6 +52,7 @@
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 #include "detect-engine-payload.h"
+#include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -2030,6 +2031,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
     DetectBufferTypeSetupDetectEngine(de_ctx);
+    DetectEngineInitializeFastPatternList(de_ctx);
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -2141,6 +2143,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);
 
+    DetectEngineFreeFastPatternList(de_ctx);
     SCClassConfDeInitContext(de_ctx);
     SCRConfDeInitContext(de_ctx);
 
