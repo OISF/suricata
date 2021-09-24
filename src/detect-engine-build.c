@@ -629,7 +629,6 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     uint32_t payload_no_mpm_cnt = 0;
     uint32_t syn_cnt = 0;
 
-    uint32_t mpms_total = 0;
     uint32_t mpms_min = 0;
     uint32_t mpms_max = 0;
 
@@ -741,7 +740,6 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             }
 
             uint32_t w = PatternStrength(cd->content, cd->content_len);
-            mpms_total += w;
             if (mpms_min == 0)
                 mpms_min = w;
             if (w < mpms_min)
