@@ -1152,9 +1152,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     if (rule_content == 1) {
          //todo: warning if content is weak, separate warning for pcre + weak content
     }
-    if (rule_flow == 0 && rule_flags == 0
-        && !(s->proto.flags & DETECT_PROTO_ANY) && DetectProtoContainsProto(&s->proto, IPPROTO_TCP)
-        && (rule_content || rule_content_http || rule_pcre || rule_pcre_http || rule_flowbits || rule_flowint)) {
+    if (rule_flow == 0 && rule_flags == 0 && !(s->proto.flags & DETECT_PROTO_ANY) &&
+            DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
+            (rule_content || rule_content_http || rule_pcre || rule_pcre_http || rule_flowbits ||
+                    rule_flowint)) {
         rule_warning += 1;
         warn_tcp_no_flow = 1;
     }
@@ -1221,7 +1222,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
         if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
         if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
-        if (!rule_flow_nostream && stream_buf && (rule_flow || rule_flowbits || rule_flowint || rule_content || rule_pcre)) {
+        if (!rule_flow_nostream && stream_buf &&
+                (rule_flow || rule_flowbits || rule_flowint || rule_content || rule_pcre)) {
             fprintf(rule_engine_analysis_FD, "    Rule matches on reassembled stream.\n");
         }
         for(size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {

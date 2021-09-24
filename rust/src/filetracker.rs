@@ -50,7 +50,6 @@ impl FileChunk {
 
 #[derive(Debug)]
 pub struct FileTransferTracker {
-    file_size: u64,
     pub tracked: u64,
     cur_ooo: u64,   // how many bytes do we have queued from ooo chunks
     track_id: u32,
@@ -71,7 +70,6 @@ pub struct FileTransferTracker {
 impl FileTransferTracker {
     pub fn new() -> FileTransferTracker {
         FileTransferTracker {
-            file_size:0,
             tracked:0,
             cur_ooo:0,
             track_id:0,
