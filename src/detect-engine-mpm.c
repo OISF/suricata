@@ -201,7 +201,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             }
             am->id = de_ctx->app_mpms_list_cnt++;
 
-            SupportFastPatternForSigMatchList(am->sm_list, am->priority);
+            DetectEngineRegisterFastPatternForId(de_ctx, am->sm_list, am->priority);
             t->next = am;
             SCLogDebug("copied mpm registration for %s id %u "
                     "with parent %u and GetData %p",
@@ -370,7 +370,7 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             }
             am->id = de_ctx->pkt_mpms_list_cnt++;
 
-            SupportFastPatternForSigMatchList(am->sm_list, am->priority);
+            DetectEngineRegisterFastPatternForId(de_ctx, am->sm_list, am->priority);
             t->next = am;
             SCLogDebug("copied mpm registration for %s id %u "
                     "with parent %u and GetData %p",
@@ -907,12 +907,13 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     int count_final_sm_list = 0;
     int priority;
 
-    const SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
+    const SCFPSupportSMList *tmp = de_ctx->fp_support_smlist_list;
     while (tmp != NULL) {
         for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
+            SCLogDebug("tmp->list_id %d tmp->priority %d", tmp->list_id, tmp->priority);
             if (tmp->list_id >= nlists)
                 continue;
             if (curr_sm_list[tmp->list_id] == 0)
