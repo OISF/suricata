@@ -806,8 +806,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 */
     memset(&ts, 0, sizeof(ts));
     uint32_t hash_passes = 0;
+#ifdef FM_PROFILE
     uint32_t hash_row_checks = 0;
     uint32_t hash_passes_chunks = 0;
+#endif
     uint32_t hash_full_passes = 0;
 
     const uint32_t min_timeout = FlowTimeoutsMin();
@@ -903,9 +905,11 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 FlowTimeoutHash(&ftd->timeout, &ts, ftd->min, ftd->max, &counters);
                 hash_passes++;
                 hash_full_passes++;
-                hash_passes_chunks += 1;
                 hash_passes++;
+#ifdef FM_PROFILE
+                hash_passes_chunks += 1;
                 hash_row_checks += counters.rows_checked;
+#endif
                 StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
             } else {
                 /* non-emergency mode: scan part of the hash */
@@ -921,8 +925,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                     }
                 }
                 hash_passes++;
+#ifdef FM_PROFILE
                 hash_row_checks += counters.rows_checked;
                 hash_passes_chunks += chunks;
+#endif
             }
             flow_last_sec = rt;
 

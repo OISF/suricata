@@ -51,7 +51,6 @@ impl FileChunk {
 #[derive(Debug)]
 #[derive(Default)]
 pub struct FileTransferTracker {
-    file_size: u64,
     pub tracked: u64,
     cur_ooo: u64,   // how many bytes do we have queued from ooo chunks
     track_id: u32,
