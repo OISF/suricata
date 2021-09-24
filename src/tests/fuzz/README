@@ -2,12 +2,11 @@ How to run fuzzing ?
 
 1) With oss-fuzz
 - install docker
-- run git clone --branch suricata --depth 1 https://github.com/catenacyber/oss-fuzz
-(we will use the original google repo once we merge this)
+- run git clone --depth 1 https://github.com/google/oss-fuzz
 - change directory into cloned repository : cd oss-fuzz
 - run python infra/helper.py build_image suricata
 - run python infra/helper.py build_fuzzers --sanitizer address suricata
-You can use undefined sanitizer (memory sanitizer does not work yet see https://github.com/google/oss-fuzz/issues/2145#issuecomment-485781098
+You can use undefined sanitizer
 - run python infra/helper.py run_fuzzer suricata fuzz_siginit
 (or another fuzz target, try ls build/out/suricata/fuzz_*)
 
@@ -19,11 +18,16 @@ To generate coverage :
 
 2) With libfuzzer
 
-To compile the fuzz targets, you should do the following :
+To compile the fuzz targets, you can do the following.
+These flags are just one option and you are welcome to change them when you know what you are doing.
 ```
-export CFLAGS="-g -fsanitize=address,fuzzer-no-link"
-export LDFLAGS="-g -fsanitize=address"
+export CFLAGS="-g -O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION -fsanitize=address -fsanitize-address-use-after-scope -fsanitize=fuzzer-no-link"
+export CXXFLAGS="-g -O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION -fsanitize=address -fsanitize-address-use-after-scope -fsanitize=fuzzer-no-link -stdlib=libc++"
+export RUSTFLAGS="--cfg fuzzing -Cdebuginfo=1 -Cforce-frame-pointers"
+export RUSTFLAGS="$RUSTFLAGS -Cpasses=sancov -Cllvm-args=-sanitizer-coverage-level=4 -Cllvm-args=-sanitizer-coverage-trace-compares -Cllvm-args=-sanitizer-coverage-inline-8bit-counters -Cllvm-args=-sanitizer-coverage-trace-geps -Cllvm-args=-sanitizer-coverage-prune-blocks=0 -Cllvm-args=-sanitizer-coverage-pc-table -Clink-dead-code -Cllvm-args=-sanitizer-coverage-stack-depth"
+export LIB_FUZZING_ENGINE=-fsanitize=fuzzer
 export CC=clang
+export CXX=clang++
 ./configure --enable-fuzztargets
 make
 ```
