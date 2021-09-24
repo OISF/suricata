@@ -5,8 +5,8 @@ on:
   - pull_request
 
 env:
-  DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
-  DEFAULT_LIBHTP_BRANCH: 0.5.x
+  DEFAULT_LIBHTP_REPO: https://github.com/cccs-rtmorti/libhtp-rs
+  DEFAULT_LIBHTP_BRANCH: master
   DEFAULT_LIBHTP_PR:
 
   DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
