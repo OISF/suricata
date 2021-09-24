@@ -49,7 +49,7 @@ static void DetectFastPatternRegisterTests(void);
 
 /* holds the list of sm match lists that need to be searched for a keyword
  * that has fp support */
-SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
+static SCFPSupportSMList *g_fp_support_smlist_list = NULL;
 
 /**
  * \brief Checks if a particular list(Signature->sm_lists[]) is in the list
@@ -63,8 +63,9 @@ SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
 int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
         const int list_id)
 {
-    if (sm_fp_support_smlist_list == NULL)
+    if (de_ctx->fp_support_smlist_list == NULL) {
         return 0;
+    }
 
     if (list_id == DETECT_SM_LIST_PMATCH)
         return 1;
@@ -72,18 +73,11 @@ int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
     return DetectEngineBufferTypeSupportsMpmGetById(de_ctx, list_id);
 }
 
-/**
- * \brief Lets one add a sm list id to be searched for potential fp supported
- *        keywords later.
- *
- * \param list_id SM list id.
- * \param priority Priority for this list.
- */
-void SupportFastPatternForSigMatchList(int list_id, int priority)
+static void Add(SCFPSupportSMList **list, const int list_id, const int priority)
 {
     SCFPSupportSMList *ip = NULL;
     /* insertion point - ip */
-    for (SCFPSupportSMList *tmp = sm_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
+    for (SCFPSupportSMList *tmp = *list; tmp != NULL; tmp = tmp->next) {
         if (list_id == tmp->list_id) {
             SCLogDebug("SM list already registered.");
             return;
@@ -99,7 +93,7 @@ void SupportFastPatternForSigMatchList(int list_id, int priority)
         ip = tmp;
     }
 
-    if (sm_fp_support_smlist_list == NULL) {
+    if (*list == NULL) {
         SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
         if (unlikely(new == NULL))
             exit(EXIT_FAILURE);
@@ -107,8 +101,7 @@ void SupportFastPatternForSigMatchList(int list_id, int priority)
         new->list_id = list_id;
         new->priority = priority;
 
-        sm_fp_support_smlist_list = new;
-
+        *list = new;
         return;
     }
 
@@ -119,14 +112,30 @@ void SupportFastPatternForSigMatchList(int list_id, int priority)
     new->list_id = list_id;
     new->priority = priority;
     if (ip == NULL) {
-        new->next = sm_fp_support_smlist_list;
-        sm_fp_support_smlist_list = new;
+        new->next = *list;
+        *list = new;
     } else {
         new->next = ip->next;
         ip->next = new;
     }
-
     return;
+}
+
+/**
+ * \brief Lets one add a sm list id to be searched for potential fp supported
+ *        keywords later.
+ *
+ * \param list_id SM list id.
+ * \param priority Priority for this list.
+ */
+void SupportFastPatternForSigMatchList(int list_id, int priority)
+{
+    Add(&g_fp_support_smlist_list, list_id, priority);
+}
+
+void DetectEngineRegisterFastPatternForId(DetectEngineCtx *de_ctx, int list_id, int priority)
+{
+    Add(&de_ctx->fp_support_smlist_list, list_id, priority);
 }
 
 /**
@@ -137,6 +146,38 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH, 3);
 
     /* other types are handled by DetectMpmAppLayerRegister() */
+}
+
+void DetectEngineInitializeFastPatternList(DetectEngineCtx *de_ctx)
+{
+    SCFPSupportSMList *last = NULL;
+    for (SCFPSupportSMList *tmp = g_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
+        SCFPSupportSMList *n = SCCalloc(1, sizeof(*n));
+        if (n == NULL) {
+            FatalError(SC_ERR_FATAL, "out of memory: %s", strerror(errno));
+        }
+        n->list_id = tmp->list_id;
+        n->priority = tmp->priority;
+
+        // append
+        if (de_ctx->fp_support_smlist_list == NULL) {
+            last = de_ctx->fp_support_smlist_list = n;
+        } else {
+            BUG_ON(last == NULL);
+            last->next = n;
+            last = n;
+        }
+    }
+}
+
+void DetectEngineFreeFastPatternList(DetectEngineCtx *de_ctx)
+{
+    for (SCFPSupportSMList *tmp = de_ctx->fp_support_smlist_list; tmp != NULL;) {
+        SCFPSupportSMList *next = tmp->next;
+        SCFree(tmp);
+        tmp = next;
+    }
+    de_ctx->fp_support_smlist_list = NULL;
 }
 
 /**
