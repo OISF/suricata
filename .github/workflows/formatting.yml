@@ -29,8 +29,6 @@ jobs:
         run: |
           apt update
           apt -y install \
-                libpcre3 \
-                libpcre3-dev \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
