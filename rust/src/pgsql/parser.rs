@@ -1251,7 +1251,7 @@ mod tests {
         assert_eq!(remainder.len(), 0);
     }
 
-    // After sending AuthenticationOk, the backend will send a series of messages with parameters, a backend key message, and, finally a ready for query message
+    // After sending AuthenticationOk, the backend will send a series of messages with parameters, a backend key message, and finally a ready for query message
     #[test]
     fn test_parse_startup_phase_wrapup() {
         let buf: &[u8] = &[
@@ -1402,7 +1402,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_notice_response() {
-        // declare test case buffer
+        // test case buffer
         let buf: &[u8] = &[
             /* identifier */ 0x45, /* length */ 0x00, 0x00, 0x00, 0x96,
             /* Severity */ 0x53, 0x46, 0x41, 0x54, 0x41, 0x4c, 0x00, /* Code */ 0x43,
@@ -1418,8 +1418,8 @@ mod tests {
             /* Routine */ 0x52, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x41, 0x75, 0x74, 0x68,
             0x65, 0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x00, 0x00,
         ];
-        // declare expected result
 
+        // expected result
         let field1 = PgsqlErrorNoticeMessageField {
             field_type: PgsqlErrorNoticeFieldType::SeverityLocalizable,
             field_value: br#"FATAL"#.to_vec(),
@@ -1682,7 +1682,8 @@ mod tests {
 
     #[test]
     fn test_parse_sasl_frontend_messages() {
-        // SASL Initial Response (as seen in https://blog.hackeriet.no/Better-password-hashing-in-PostgreSQL/)
+        // SASL Initial Response
+        // (as seen in https://blog.hackeriet.no/Better-password-hashing-in-PostgreSQL/)
         let buf: &[u8] = &[
             /* p */ 0x70, /* 54 */ 0x00, 0x00, 0x00, 0x36,
             /* sasl mechanism */ 0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48, 0x41, 0x2d,

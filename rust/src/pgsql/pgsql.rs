@@ -610,33 +610,6 @@ pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx_safe: &mut PgsqlTransaction;
-    unsafe {
-        tx_safe = cast_pointer!(tx, PgsqlTransaction);
-    }
-    return tx_safe.events;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_event_info(
-    _event_name: *const std::os::raw::c_char, _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    return -1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_event_info_by_id(
-    _event_id: std::os::raw::c_int, _event_name: *mut *const std::os::raw::c_char,
-    _event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    return -1;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_pgsql_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
@@ -685,9 +658,9 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         tx_get_progress: rs_pgsql_tx_get_alstate_progress,
         get_de_state: rs_pgsql_tx_get_detect_state,
         set_de_state: rs_pgsql_tx_set_detect_state,
-        get_events: Some(rs_pgsql_state_get_events),
-        get_eventinfo: Some(rs_pgsql_state_get_event_info),
-        get_eventinfo_byid: Some(rs_pgsql_state_get_event_info_by_id),
+        get_events: None,
+        get_eventinfo: None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
