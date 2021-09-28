@@ -138,7 +138,6 @@ typedef unsigned short u_short
 typedef unsigned char u_char
 #endif
 
-#include <pcre.h>
 #include <pcre2.h>
 
 #ifdef HAVE_SYSLOG_H
@@ -363,10 +362,6 @@ typedef unsigned char u_char
 
 #if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
     #error "byte order: can't figure out big or little"
-#endif
-
-#ifndef HAVE_PCRE_FREE_STUDY
-#define pcre_free_study pcre_free
 #endif
 
 #ifndef MIN
