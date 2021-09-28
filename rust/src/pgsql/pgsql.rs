@@ -383,8 +383,8 @@ impl PgsqlState {
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.responses.push(response);
                     } else {
-                        // Not sure if this is the best solution here, almost sure it isn't...
-                        return AppLayerResult::err();
+                        // If don't have a new transaction, here, we'll consider Suri sould move on 
+                        return AppLayerResult::ok();
                     };
                 }
                 Err(nom::Err::Incomplete(_needed)) => {
@@ -797,26 +797,12 @@ mod test {
                 needed: 3
             }
         );
-
-        // This is the first message and only the first message.
-        let r = state.parse_request(buf);
-        assert_eq!(
-            r,
-            AppLayerResult {
-                status: 0,
-                consumed: 0,
-                needed: 0
-            }
-        );
     }
 
     #[test]
     fn test_find_or_create_tx() {
         let mut state = PgsqlState::new();
         state.state_progress = PgsqlStateProgress::UnknownState;
-        let tx = state.find_or_create_tx();
-        assert!(tx.is_none());
-
         let tx = state.find_or_create_tx();
         assert!(tx.is_none());
 
