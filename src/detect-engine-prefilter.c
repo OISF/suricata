@@ -108,7 +108,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (engine->tx_min_progress > tx->tx_progress)
             goto next;
         if (tx->tx_progress > engine->tx_min_progress) {
-            if (tx->prefilter_flags & (1<<(engine->local_id))) {
+            if (tx->prefilter_flags & BIT_U64(engine->local_id)) {
                 goto next;
             }
         }
@@ -119,7 +119,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->tx_min_progress) {
-            tx->prefilter_flags |= (1<<(engine->local_id));
+            tx->prefilter_flags |= BIT_U64(engine->local_id);
         }
     next:
         if (engine->is_last)
@@ -447,6 +447,17 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e++;
         }
         SCLogDebug("sgh %p max local_id %u", sgh, local_id);
+
+        /* max assigned id can be 62 (63 is reserved) */
+        if (local_id >= 63) {
+            if (de_ctx->failure_fatal) {
+                FatalError(SC_ERR_DETECT_PREPARE, "max number of prefilter engines exceeded (%u >= 62). "
+                        "Risk of False Negatives. See ticket #4688.", local_id - 1);
+            } else {
+                SCLogWarning(SC_ERR_DETECT_PREPARE, "max number of prefilter engines exceeded (%u >= 62). "
+                        "Risk of False Negatives. See ticket #4688.", local_id - 1);
+            }
+        }
     }
 }
 
