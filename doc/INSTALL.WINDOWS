@@ -75,7 +75,7 @@ the following packages to c:\mingw (use newer versions if you like):
     - unpack to /msys/1.0
     - don't forget to edit your ~/.gitconfig to at least give youreself a name :-)
 
-5. Get libpcre
+5. Get libpcre2
 
     http://www.pcre.org/
 
@@ -117,7 +117,7 @@ the following packages to c:\mingw (use newer versions if you like):
     make
 
 If everything goes well, you'll end up with suricata.exe in src/.lib. To test it
-you will need libpcre-0.dll, libz-1.dll, and pthreadGC2.dll which you already have somewhere
+you will need libpcre2-0.dll, libz-1.dll, and pthreadGC2.dll which you already have somewhere
 under c:/mingw or c:/msys. To prepare the runtime environment:
 
     - copy the executable and the DLLs to a dedicated directory
