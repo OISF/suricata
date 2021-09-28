@@ -22,8 +22,8 @@
  *
  * Pgsql application layer detector and parser.
  *
- * This PostgreSQL offers basic initial support to the PostgreSQL on the wire
- * protocol (PGSQL Frontend/Backend protocol).
+ * This pgsql parser offers basic initial support to the
+ * PostgreSQL on the wire protocol (PGSQL Frontend/Backend protocol).
  */
 
 #include "suricata-common.h"
@@ -42,16 +42,4 @@ void RegisterPgsqlParsers(void)
 {
     SCLogDebug("Registering Rust pgsql parser.");
     rs_pgsql_register_parser();
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_PGSQL, PgsqlParserRegisterTests);
-#endif
-}
-
-#ifdef UNITTESTS
-#endif
-
-void PgsqlParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
 }
