@@ -5,7 +5,7 @@ if BUILD_FUZZTARGETS
     fuzz_confyamlloadstring fuzz_decodepcapfile \
     fuzz_sigpcap fuzz_mimedecparseline
 if HAS_FUZZPCAP
-    bin_PROGRAMS += fuzz_sigpcap_aware
+    bin_PROGRAMS += fuzz_sigpcap_aware fuzz_predefpcap_aware
 endif
 endif
 
@@ -1344,6 +1344,17 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
+
+fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c
+fuzz_predefpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_predefpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
+if HAS_FUZZLDFLAGS
+    fuzz_predefpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    fuzz_predefpcap_aware_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_predefpcap_aware_SOURCES = force-cxx-linking.cxx
 endif
 
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
