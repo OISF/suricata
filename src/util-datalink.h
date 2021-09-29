@@ -17,4 +17,4 @@
 
 void DatalinkSetGlobalType(int datalink);
 int DatalinkGetGlobalType(void);
-int DatalinkHasMultipleValues(void);
+bool DatalinkHasMultipleValues(void);
