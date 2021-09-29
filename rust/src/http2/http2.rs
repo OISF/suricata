@@ -238,7 +238,7 @@ impl HTTP2Transaction {
                     match range::http2_parse_content_range(&value) {
                         Ok((_, v)) => {
                             range::http2_range_open(self, &v, flow, sfcm, flags, decompressed);
-                            if over {
+                            if over && self.file_range != std::ptr::null_mut() {
                                 range::http2_range_close(self, files, flags, &[])
                             }
                         }
