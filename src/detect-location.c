@@ -277,12 +277,12 @@ ERROR:
     return -1;
 }
 
-static int DetectLocationMatchCountryCode(const struct DetectLocationData* data, const char* cc) {
+static int DetectLocationMatchCountryCode(const struct DetectLocationData* data, struct loc_network* network) {
     int found = 0;
 
     if (data->countries) {
         for (char** country = data->countries; *country; country++) {
-            if (strcmp(*country, cc) == 0) {
+            if (loc_network_matches_country_code(network, *country)) {
                 found = 1;
                 break;
             }
@@ -304,9 +304,7 @@ static int DetectLocationMatchAddress(const struct DetectLocationData* data, con
 
     // If we found a network, let's check whether the country matches
     if (network) {
-        const char* country = loc_network_get_country_code(network);
-
-        if (DetectLocationMatchCountryCode(data, country))
+        if (DetectLocationMatchCountryCode(data, network))
             r = 1;
 
         loc_network_unref(network);
