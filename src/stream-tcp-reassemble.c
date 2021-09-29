@@ -80,12 +80,7 @@ static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 /* Memory use counter */
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
 
-static int g_tcp_session_dump_enabled = 0;
-
-int IsTcpSessionDumpingEnabled(void)
-{
-    return g_tcp_session_dump_enabled;
-}
+int g_tcp_session_dump_enabled = 0;
 
 void EnableTcpSessionDumping(void)
 {
@@ -290,6 +285,8 @@ static void *TcpSegmentPoolAlloc(void)
                 return NULL;
             }
         }
+
+        StreamTcpReassembleIncrMemuse(memuse);
     } else {
         seg->pcap_hdr_storage = NULL;
     }
