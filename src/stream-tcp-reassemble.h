@@ -131,8 +131,14 @@ int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
 void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth);
 
-int IsTcpSessionDumpingEnabled(void);
 void EnableTcpSessionDumping(void);
+
+extern int g_tcp_session_dump_enabled;
+
+static inline bool IsTcpSessionDumpingEnabled(void)
+{
+    return g_tcp_session_dump_enabled == 1;
+}
 
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {
