@@ -39,7 +39,7 @@ int DatalinkGetGlobalType(void)
     return g_datalink_value;
 }
 
-int DatalinkHasMultipleValues(void)
+bool DatalinkHasMultipleValues(void)
 {
-    return g_datalink_is_multiple;
+    return g_datalink_is_multiple == 1;
 }
