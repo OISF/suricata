@@ -1,6 +1,6 @@
-*******
-Testing
-*******
+****************
+Testing Suricata
+****************
 
 .. contents:: Table of Contents
 
@@ -9,8 +9,9 @@ General Concepts
 
 Mainly, there are two ways of testing Suricata.
 
-- `Unit tests <https://github.com/OISF/suricata/blob/d63bcc38b4a2754d7d94e1dd7368a0959d4b7e9f/doc/devguide/codebase/unittests.rst>`_: to independently check specific functions or portions of code;
-- Suricata-Verify: those are used to check more complex behavior, like the log output or the alert counts for a given input, where that input is usually comprised of several packets.
+- Unit tests: for independently checking specific functions or portions of code. This guide has specific sections to
+  further explain those, for C and Rust;
+- `Suricata-Verify <https://github.com/OISF/suricata-verify>`_: those are used to check more complex behavior, like the log output or the alert counts for a given input, where that input is usually comprised of several packets.
 
 The goal of this document is to offer some guidance regarding when to use each type of test, and how to prepare input
 for them.
