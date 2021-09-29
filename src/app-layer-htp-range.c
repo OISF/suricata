@@ -421,11 +421,12 @@ int HttpRangeAppendData(HttpRangeContainerBlock *c, const uint8_t *data, uint32_
         SCLogDebug("update files (FileAppendData)");
         return FileAppendData(c->files, data, len);
     }
-    // If we are not in the previous cases, only one case remains
-    DEBUG_VALIDATE_BUG_ON(c->current == NULL);
-    // So we have a current allocated buffer to copy to
-    // in the case of an unordered range being handled
+    // Maybe we were in the skipping case,
+    // but we get more data than expected and had set c->toskip = 0
+    // so we need to check for last case with something to do
     if (c->current) {
+        // So we have a current allocated buffer to copy to
+        // in the case of an unordered range being handled
         SCLogDebug("update current: adding %u bytes to block %p", len, c);
         // GAP "data"
         if (data == NULL) {
