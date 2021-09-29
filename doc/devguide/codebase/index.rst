@@ -8,3 +8,4 @@ Working with the Codebase
    code-style
    unittests
    fuzz-testing
+   testing
