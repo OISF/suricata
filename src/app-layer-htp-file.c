@@ -358,7 +358,6 @@ void HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
             /* HtpState owns the constructed file now */
             FileContainerAdd(files, ranged);
         }
-        SCLogDebug("c->container->files->tail %p", c->container->files->tail);
         THashDataUnlock(c->container->hdata);
     }
 }
