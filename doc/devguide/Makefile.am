@@ -20,7 +20,8 @@ EXTRA_DIST = \
 	codebase/code-style.rst \
 	codebase/contributing/code-submission-process.rst \
 	codebase/contributing/index.rst \
-	codebase/fuzz-testing.rst
+	codebase/fuzz-testing.rst \
+	codebase/testing.rst
 
 if HAVE_SPHINXBUILD
 if HAVE_MSCGEN
