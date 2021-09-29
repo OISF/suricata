@@ -39,13 +39,11 @@ enum {
     SIG_DIREC_DST
 };
 
-typedef struct DetectParseRegex_ {
-    pcre *regex;
-    pcre_extra *study;
-#ifdef PCRE_HAVE_JIT_EXEC
-    pcre_jit_stack *jit_stack;
-#endif
-    struct DetectParseRegex_ *next;
+typedef struct DetectParseRegex {
+    pcre2_code *regex;
+    pcre2_match_context *context;
+    pcre2_match_data *match;
+    struct DetectParseRegex *next;
 } DetectParseRegex;
 
 /* prototypes */
@@ -88,6 +86,7 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
+DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts);
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
@@ -95,15 +94,12 @@ void DetectParseFreeRegexes(void);
 void DetectParseFreeRegex(DetectParseRegex *r);
 
 /* parse regex exec */
-int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
-                   int start_offset, int options,
-                   int *ovector, int ovector_size);
-int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
-                   int str_len, int start_offset, int options,
-                   int *ovector, int ovector_size);
-
-/* typical size of ovector */
-#define MAX_SUBSTRINGS 30
+int DetectParsePcreExec(
+        DetectParseRegex *parse_regex, const char *str, int start_offset, int options);
+int SC_Pcre2SubstringCopy(
+        pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen);
+int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,
+        PCRE2_SIZE *bufflen);
 
 #endif /* __DETECT_PARSE_H__ */
 

@@ -116,28 +116,30 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     DetectFlowvarData *fd = NULL;
     SigMatch *sm = NULL;
     char varname[64], varcontent[64];
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     uint8_t *content = NULL;
     uint16_t contentlen = 0;
     uint32_t contentflags = s->init_data->negated ? DETECT_CONTENT_NEGATED : 0;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowvar.", rawstr);
         return -1;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, varname, sizeof(varname));
+    pcre2len = sizeof(varname);
+    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)varname, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, varcontent, sizeof(varcontent));
+    pcre2len = sizeof(varcontent);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 2, (PCRE2_UCHAR8 *)varcontent, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         return -1;
     }
 

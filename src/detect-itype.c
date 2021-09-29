@@ -152,9 +152,9 @@ static DetectITypeData *DetectITypeParse(DetectEngineCtx *de_ctx, const char *it
     DetectITypeData *itd = NULL;
     char *args[3] = {NULL, NULL, NULL};
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, itypestr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, itypestr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, itypestr);
         goto error;
@@ -163,9 +163,9 @@ static DetectITypeData *DetectITypeParse(DetectEngineCtx *de_ctx, const char *it
     int i;
     const char *str_ptr;
     for (i = 1; i < ret; i++) {
-        res = pcre_get_substring((char *)itypestr, ov, MAX_SUBSTRINGS, i, &str_ptr);
+        res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
         args[i-1] = (char *)str_ptr;
@@ -243,14 +243,14 @@ static DetectITypeData *DetectITypeParse(DetectEngineCtx *de_ctx, const char *it
 
     for (i = 0; i < (ret-1); i++) {
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     return itd;
 
 error:
     for (i = 0; i < (ret-1) && i < 3; i++) {
         if (args[i] != NULL)
-            SCFree(args[i]);
+            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     if (itd != NULL)
         DetectITypeFree(de_ctx, itd);

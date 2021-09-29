@@ -147,9 +147,9 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
     char *arg3 = NULL;
     char *arg4 = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_PARSE, "filesize option pcre parse error: \"%s\"", str);
         goto error;
@@ -158,35 +158,37 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
 
     SCLogDebug("ret %d", ret);
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = SC_Pcre2SubstringGet(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     arg1 = (char *) str_ptr;
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     arg2 = (char *) str_ptr;
     SCLogDebug("Arg2 \"%s\"", arg2);
 
     if (ret > 3) {
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+        res = pcre2_substring_get_bynumber(
+                parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
         arg3 = (char *) str_ptr;
         SCLogDebug("Arg3 \"%s\"", arg3);
 
         if (ret > 4) {
-            res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+            res = pcre2_substring_get_bynumber(
+                    parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
             }
             arg4 = (char *) str_ptr;
@@ -199,15 +201,15 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
     goto error;
     memset(fsd, 0, sizeof(DetectFilesizeData));
 
-    if (arg1[0] == '<')
+    if (arg1 != NULL && arg1[0] == '<')
         fsd->mode = DETECT_FILESIZE_LT;
-    else if (arg1[0] == '>')
+    else if (arg1 != NULL && arg1[0] == '>')
         fsd->mode = DETECT_FILESIZE_GT;
     else
         fsd->mode = DETECT_FILESIZE_EQ;
 
     if (arg3 != NULL && strcmp("<>", arg3) == 0) {
-        if (strlen(arg1) != 0) {
+        if (arg1 != NULL && strlen(arg1) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
@@ -240,25 +242,25 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
         }
     }
 
-    pcre_free_substring(arg1);
-    pcre_free_substring(arg2);
+    pcre2_substring_free((PCRE2_UCHAR *)arg1);
+    pcre2_substring_free((PCRE2_UCHAR *)arg2);
     if (arg3 != NULL)
-        pcre_free_substring(arg3);
+        pcre2_substring_free((PCRE2_UCHAR *)arg3);
     if (arg4 != NULL)
-        pcre_free_substring(arg4);
+        pcre2_substring_free((PCRE2_UCHAR *)arg4);
     return fsd;
 
 error:
     if (fsd)
         SCFree(fsd);
     if (arg1 != NULL)
-        SCFree(arg1);
+        pcre2_substring_free((PCRE2_UCHAR *)arg1);
     if (arg2 != NULL)
-        SCFree(arg2);
+        pcre2_substring_free((PCRE2_UCHAR *)arg2);
     if (arg3 != NULL)
-        SCFree(arg3);
+        pcre2_substring_free((PCRE2_UCHAR *)arg3);
     if (arg4 != NULL)
-        SCFree(arg4);
+        pcre2_substring_free((PCRE2_UCHAR *)arg4);
     return NULL;
 }
 

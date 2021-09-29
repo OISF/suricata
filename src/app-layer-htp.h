@@ -38,6 +38,7 @@
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
 #include "util-streaming-buffer.h"
+#include "app-layer-htp-range.h"
 #include "rust.h"
 
 #include <htp/htp.h>
@@ -88,6 +89,7 @@ enum {
     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER = 202,
 
     HTTP_DECODER_EVENT_TOO_MANY_WARNINGS = 203,
+    HTTP_DECODER_EVENT_RANGE_INVALID = 204,
 };
 
 typedef enum HtpSwfCompressType_ {
@@ -203,6 +205,7 @@ typedef struct HtpState_ {
     uint16_t events;
     uint16_t htp_messages_count; /**< Number of already logged messages */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
+    HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
 } HtpState;

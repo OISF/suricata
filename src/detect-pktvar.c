@@ -89,28 +89,28 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 {
     char *varname = NULL, *varcontent = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
     uint8_t *content = NULL;
     uint16_t len = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for pktvar.", rawstr);
         return -1;
     }
 
     const char *str_ptr;
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         return -1;
     }
     varname = (char *)str_ptr;
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        pcre_free(varname);
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        pcre2_substring_free((PCRE2_UCHAR8 *)varname);
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         return -1;
     }
     varcontent = (char *)str_ptr;
@@ -129,15 +129,15 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     ret = DetectContentDataParse("pktvar", parse_content, &content, &len);
     if (ret == -1 || content == NULL) {
-        pcre_free(varname);
-        pcre_free(varcontent);
+        pcre2_substring_free((PCRE2_UCHAR8 *)varname);
+        pcre2_substring_free((PCRE2_UCHAR8 *)varcontent);
         return -1;
     }
-    pcre_free(varcontent);
+    pcre2_substring_free((PCRE2_UCHAR8 *)varcontent);
 
     DetectPktvarData *cd = SCCalloc(1, sizeof(DetectPktvarData));
     if (unlikely(cd == NULL)) {
-        pcre_free(varname);
+        pcre2_substring_free((PCRE2_UCHAR8 *)varname);
         SCFree(content);
         return -1;
     }
@@ -145,7 +145,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     cd->content = content;
     cd->content_len = len;
     cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
-    pcre_free(varname);
+    pcre2_substring_free((PCRE2_UCHAR8 *)varname);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

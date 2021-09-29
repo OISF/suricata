@@ -1401,7 +1401,9 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data && s->init_data->transforms.cnt) {
         for(i = 0; i < s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
-                SCFree(s->init_data->transforms.transforms[i].options);
+                int transform = s->init_data->transforms.transforms[i].transform;
+                sigmatch_table[transform].Free(
+                        de_ctx, s->init_data->transforms.transforms[i].options);
                 s->init_data->transforms.transforms[i].options = NULL;
             }
         }
@@ -2429,30 +2431,24 @@ error:
 }
 
 static DetectParseRegex *g_detect_parse_regex_list = NULL;
-int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
-                   int str_len,
-                   int start_offset, int options,
-                   int *ovector, int ovector_size)
-{
-    return pcre_exec(parse_regex->regex, parse_regex->study, str, str_len,
-                     start_offset, options, ovector, ovector_size);
-}
 
-int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
-                   int start_offset, int options,
-                   int *ovector, int ovector_size)
+int DetectParsePcreExec(
+        DetectParseRegex *parse_regex, const char *str, int start_offset, int options)
 {
-    return pcre_exec(parse_regex->regex, parse_regex->study, str, strlen(str),
-                     start_offset, options, ovector, ovector_size);
+    return pcre2_match(parse_regex->regex, (PCRE2_SPTR8)str, strlen(str), options, start_offset,
+            parse_regex->match, NULL);
 }
 
 void DetectParseFreeRegex(DetectParseRegex *r)
 {
     if (r->regex) {
-        pcre_free(r->regex);
+        pcre2_code_free(r->regex);
     }
-    if (r->study) {
-        pcre_free_study(r->study);
+    if (r->context) {
+        pcre2_match_context_free(r->context);
+    }
+    if (r->match) {
+        pcre2_match_data_free(r->match);
     }
 }
 
@@ -2479,33 +2475,84 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
         FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre free list");
     }
     r->regex = detect_parse->regex;
-    r->study = detect_parse->study;
+    r->match = detect_parse->match;
     r->next = g_detect_parse_regex_list;
     g_detect_parse_regex_list = r;
 }
 
 bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
 {
-    const char *eb = NULL;
-    int eo;
+    int en;
+    PCRE2_SIZE eo;
 
-    detect_parse->regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
+    detect_parse->regex =
+            pcre2_compile((PCRE2_SPTR8)parse_str, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
     if (detect_parse->regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
-                "offset %" PRId32 ": %s", parse_str, eo, eb);
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError(SC_ERR_PCRE_COMPILE,
+                "pcre compile of \"%s\" failed at "
+                "offset %d: %s",
+                parse_str, en, errbuffer);
         return false;
     }
-
-    detect_parse->study = pcre_study(detect_parse->regex, 0 , &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        return false;
-    }
-
+    detect_parse->match = pcre2_match_data_create_from_pattern(detect_parse->regex, NULL);
 
     DetectParseRegexAddToFreeList(detect_parse);
 
     return true;
+}
+
+DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts)
+{
+    int en;
+    PCRE2_SIZE eo;
+    DetectParseRegex *detect_parse = SCCalloc(1, sizeof(DetectParseRegex));
+    if (detect_parse == NULL) {
+        return NULL;
+    }
+
+    detect_parse->regex =
+            pcre2_compile((PCRE2_SPTR8)parse_str, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
+    if (detect_parse->regex == NULL) {
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError(SC_ERR_PCRE_COMPILE,
+                "pcre2 compile of \"%s\" failed at "
+                "offset %d: %s",
+                parse_str, (int)eo, errbuffer);
+        SCFree(detect_parse);
+        return NULL;
+    }
+    detect_parse->match = pcre2_match_data_create_from_pattern(detect_parse->regex, NULL);
+
+    detect_parse->next = g_detect_parse_regex_list;
+    g_detect_parse_regex_list = detect_parse;
+    return detect_parse;
+}
+
+int SC_Pcre2SubstringCopy(
+        pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen)
+{
+    int r = pcre2_substring_copy_bynumber(match_data, number, buffer, bufflen);
+    if (r == PCRE2_ERROR_UNSET) {
+        buffer[0] = 0;
+        *bufflen = 0;
+        return 0;
+    }
+    return r;
+}
+
+int SC_Pcre2SubstringGet(
+        pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr, PCRE2_SIZE *bufflen)
+{
+    int r = pcre2_substring_get_bynumber(match_data, number, bufferptr, bufflen);
+    if (r == PCRE2_ERROR_UNSET) {
+        *bufferptr = NULL;
+        *bufflen = 0;
+        return 0;
+    }
+    return r;
 }
 
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_parse)

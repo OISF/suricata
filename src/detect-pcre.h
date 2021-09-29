@@ -40,10 +40,6 @@ typedef struct DetectPcreData_ {
     /* pcre options */
     DetectParseRegex parse_regex;
 
-#ifdef PCRE_HAVE_JIT_EXEC
-    /* JIT stack thread context id */
-    int thread_ctx_jit_stack_id;
-#endif
     int opts;
     uint16_t flags;
     uint8_t idx;

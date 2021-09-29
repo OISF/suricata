@@ -112,9 +112,9 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
 {
     DetectWindowData *wd = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
@@ -126,10 +126,10 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
 
     if (ret > 1) {
         char copy_str[128] = "";
-        res = pcre_copy_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 1,
-                copy_str, sizeof(copy_str));
+        pcre2len = sizeof(copy_str);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             goto error;
         }
 
@@ -140,10 +140,11 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
             wd->negated = 0;
 
         if (ret > 2) {
-            res = pcre_copy_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 2,
-                    copy_str, sizeof(copy_str));
+            pcre2len = sizeof(copy_str);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, 2, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                 goto error;
             }
 

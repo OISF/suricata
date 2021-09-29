@@ -209,6 +209,7 @@ jobs:
                 make \
                 nss-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
@@ -284,6 +285,7 @@ jobs:
                 make \
                 nss-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python36-PyYAML \
                 rust \
@@ -315,10 +317,10 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - run: python3 ./suricata-verify/run.py -q
 
-  fedora-33:
-    name: Fedora 33 (debug, clang, asan, wshadow, rust-strict)
+  fedora-34:
+    name: Fedora 34 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:33
+    container: fedora:34
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -360,6 +362,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -402,10 +405,10 @@ jobs:
       - run: test -e /usr/local/bin/libsuricata-config
       - run: test ! -e /usr/local/lib/libsuricata.so
 
-  fedora-32:
-    name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
+  fedora-33:
+    name: Fedora 33 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:32
+    container: fedora:33
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -446,6 +449,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -476,10 +480,10 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
 
-  fedora-32-no-jansson:
-    name: Fedora 32 (no jansson)
+  fedora-34-no-jansson:
+    name: Fedora 34 (no jansson)
     runs-on: ubuntu-latest
-    container: fedora:32
+    container: fedora:34
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -518,6 +522,7 @@ jobs:
                 make \
                 nss-softokn-devel \
                 pcre-devel \
+                pcre2-devel \
                 pkgconfig \
                 python3-yaml \
                 sudo \
@@ -556,6 +561,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -633,6 +639,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -706,6 +713,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -807,6 +815,7 @@ jobs:
                 libpython2.7 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 make \
                 parallel \
                 python3-yaml \
@@ -882,6 +891,7 @@ jobs:
                 libpython2.7 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 make \
                 python3-yaml \
                 software-properties-common \
@@ -922,6 +932,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -994,6 +1005,7 @@ jobs:
           apt -y install \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -1091,6 +1103,7 @@ jobs:
                 afl-clang \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 build-essential \
                 autoconf \
                 automake \
@@ -1160,6 +1173,7 @@ jobs:
                 libnfnetlink0 \
                 libpcre3 \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev \
                 libyaml-0-2 \
                 libyaml-dev \
@@ -1213,6 +1227,7 @@ jobs:
                 libpcre3 \
                 libpcre3-dbg \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
                 libyaml-0-2 \
@@ -1279,6 +1294,7 @@ jobs:
                 libpcre3 \
                 libpcre3-dbg \
                 libpcre3-dev \
+                libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
                 libyaml-0-2 \
@@ -1383,7 +1399,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen

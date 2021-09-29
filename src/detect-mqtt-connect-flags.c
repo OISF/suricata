@@ -130,9 +130,8 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
 {
     DetectMQTTConnectFlagsData *de = NULL;
     int ret = 0;
-    int ov[MAX_SUBSTRINGS];
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid flag definition: %s", rawstr);
         return NULL;

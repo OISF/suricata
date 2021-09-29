@@ -186,8 +186,8 @@ typedef struct PcapLogThreadData_ {
 
 /* Pattern for extracting timestamp from pcap log files. */
 static const char timestamp_pattern[] = ".*?(\\d+)(\\.(\\d+))?";
-static pcre *pcre_timestamp_code = NULL;
-static pcre_extra *pcre_timestamp_extra = NULL;
+static pcre2_code *pcre_timestamp_code = NULL;
+static pcre2_match_data *pcre_timestamp_match = NULL;
 
 /* global pcap data for when we're using multi mode. At exit we'll
  * merge counters into this one and then report counters. */
@@ -717,13 +717,11 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
     uint32_t *usecs)
 {
-    int pcre_ovecsize = 4 * 3;
-    int pcre_ovec[pcre_ovecsize];
     char buf[PATH_MAX];
+    size_t copylen;
 
-    int n = pcre_exec(pcre_timestamp_code, pcre_timestamp_extra,
-        filename, strlen(filename), 0, 0, pcre_ovec,
-        pcre_ovecsize);
+    int n = pcre2_match(pcre_timestamp_code, (PCRE2_SPTR8)filename, strlen(filename), 0, 0,
+            pcre_timestamp_match, NULL);
     if (n != 2 && n != 4) {
         /* No match. */
         return 0;
@@ -731,8 +729,9 @@ static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
 
     if (n >= 2) {
         /* Extract seconds. */
-        if (pcre_copy_substring(filename, pcre_ovec, pcre_ovecsize,
-                1, buf, sizeof(buf)) < 0) {
+        copylen = sizeof(buf);
+        if (pcre2_substring_copy_bynumber(pcre_timestamp_match, 1, (PCRE2_UCHAR8 *)buf, &copylen) <
+                0) {
             return 0;
         }
         if (StringParseUint64(secs, 10, 0, buf) < 0) {
@@ -741,8 +740,9 @@ static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
     }
     if (n == 4) {
         /* Extract microseconds. */
-        if (pcre_copy_substring(filename, pcre_ovec, pcre_ovecsize,
-                3, buf, sizeof(buf)) < 0) {
+        copylen = sizeof(buf);
+        if (pcre2_substring_copy_bynumber(pcre_timestamp_match, 3, (PCRE2_UCHAR8 *)buf, &copylen) <
+                0) {
             return 0;
         }
         if (StringParseUint32(usecs, 10, 0, buf) < 0) {
@@ -1172,8 +1172,8 @@ error:
 static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    const char *pcre_errbuf;
-    int pcre_erroffset;
+    int en;
+    PCRE2_SIZE eo = 0;
 
     PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
@@ -1200,17 +1200,15 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     SCMutexInit(&pl->plog_lock, NULL);
 
     /* Initialize PCREs. */
-    pcre_timestamp_code = pcre_compile(timestamp_pattern, 0, &pcre_errbuf,
-        &pcre_erroffset, NULL);
+    pcre_timestamp_code =
+            pcre2_compile((PCRE2_SPTR8)timestamp_pattern, PCRE2_ZERO_TERMINATED, 0, &en, &eo, NULL);
     if (pcre_timestamp_code == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE,
-            "Failed to compile \"%s\" at offset %"PRIu32": %s",
-            timestamp_pattern, pcre_erroffset, pcre_errbuf);
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        FatalError(SC_ERR_PCRE_COMPILE, "Failed to compile \"%s\" at offset %d: %s",
+                timestamp_pattern, (int)eo, errbuffer);
     }
-    pcre_timestamp_extra = pcre_study(pcre_timestamp_code, 0, &pcre_errbuf);
-    if (pcre_errbuf != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "Fail to study pcre: %s", pcre_errbuf);
-    }
+    pcre_timestamp_match = pcre2_match_data_create_from_pattern(pcre_timestamp_code, NULL);
 
     /* conf params */
 
@@ -1523,6 +1521,10 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
     }
     PcapLogDataFree(pl);
     SCFree(output_ctx);
+
+    pcre2_code_free(pcre_timestamp_code);
+    pcre2_match_data_free(pcre_timestamp_match);
+
     return;
 }
 

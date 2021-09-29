@@ -214,13 +214,11 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
 static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_ctx, const char *arg)
 {
     DetectByteExtractData *bed = NULL;
-#undef MAX_SUBSTRINGS
-#define MAX_SUBSTRINGS 100
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     int i = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     if (ret < 3 || ret > 19) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                    ", string \"%s\"", ret, arg);
@@ -236,11 +234,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 
     /* no of bytes to extract */
     char nbytes_str[64] = "";
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, 1, nbytes_str, sizeof(nbytes_str));
+    pcre2len = sizeof(nbytes_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 1, (PCRE2_UCHAR8 *)nbytes_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for arg 1 for byte_extract");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                              "for arg 1 for byte_extract");
         goto error;
     }
     if (StringParseUint8(&bed->nbytes, 10, 0,
@@ -252,11 +251,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 
     /* offset */
     char offset_str[64] = "";
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, 2, offset_str, sizeof(offset_str));
+    pcre2len = sizeof(offset_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 2, (PCRE2_UCHAR8 *)offset_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for arg 2 for byte_extract");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                              "for arg 2 for byte_extract");
         goto error;
     }
     int32_t offset;
@@ -268,11 +268,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 
     /* var name */
     char varname_str[256] = "";
-    res = pcre_copy_substring((char *)arg, ov,
-                             MAX_SUBSTRINGS, 3, varname_str, sizeof(varname_str));
+    pcre2len = sizeof(varname_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 3, (PCRE2_UCHAR8 *)varname_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                   "for arg 3 for byte_extract");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed "
+                                              "for arg 3 for byte_extract");
         goto error;
     }
     bed->name = SCStrdup(varname_str);
@@ -282,11 +283,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     /* check out other optional args */
     for (i = 4; i < ret; i++) {
         char opt_str[64] = "";
-        res = pcre_copy_substring((char *)arg, ov,
-                                 MAX_SUBSTRINGS, i, opt_str, sizeof(opt_str));
+        pcre2len = sizeof(opt_str);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                       "for arg %d for byte_extract", i);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                    "pcre2_substring_copy_bynumber failed "
+                    "for arg %d for byte_extract with %d",
+                    i, res);
             goto error;
         }
 
@@ -307,11 +310,14 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             i++;
 
             char multiplier_str[16] = "";
-            res = pcre_copy_substring((char *)arg, ov,
-                                     MAX_SUBSTRINGS, i, multiplier_str, sizeof(multiplier_str));
+            pcre2len = sizeof(multiplier_str);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, i, (PCRE2_UCHAR8 *)multiplier_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                           "for arg %d for byte_extract", i);
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                        "pcre2_substring_copy_bynumber failed "
+                        "for arg %d for byte_extract",
+                        i);
                 goto error;
             }
             int32_t multiplier;
@@ -410,11 +416,14 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             i++;
 
             char align_str[16] = "";
-            res = pcre_copy_substring((char *)arg, ov,
-                                     MAX_SUBSTRINGS, i, align_str, sizeof(align_str));
+            pcre2len = sizeof(align_str);
+            res = pcre2_substring_copy_bynumber(
+                    parse_regex.match, i, (PCRE2_UCHAR8 *)align_str, &pcre2len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed "
-                           "for arg %d in byte_extract", i);
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                        "pcre2_substring_copy_bynumber failed "
+                        "for arg %d in byte_extract",
+                        i);
                 goto error;
             }
             if (StringParseUint8(&bed->align_value, 10, 0,

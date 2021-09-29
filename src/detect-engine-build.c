@@ -1908,7 +1908,9 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         SCFree(s->init_data->smlists_tail);
         for (i = 0; i < (uint32_t)s->init_data->transforms.cnt; i++) {
             if (s->init_data->transforms.transforms[i].options) {
-                SCFree(s->init_data->transforms.transforms[i].options);
+                int transform = s->init_data->transforms.transforms[i].transform;
+                sigmatch_table[transform].Free(
+                        de_ctx, s->init_data->transforms.transforms[i].options);
                 s->init_data->transforms.transforms[i].options = NULL;
             }
         }

@@ -16,11 +16,14 @@
  */
 
 use super::decompression;
+use super::detect;
 use super::parser;
+use super::range;
+
 use crate::applayer::{self, *};
 use crate::core::{
-    self, AppProto, Flow, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
-    STREAM_TOCLIENT, STREAM_TOSERVER,
+    self, AppProto, Flow, HttpRangeContainerBlock, SuricataFileContext, ALPROTO_FAILED,
+    ALPROTO_UNKNOWN, IPPROTO_TCP, SC, STREAM_TOCLIENT, STREAM_TOSERVER,
 };
 use crate::filecontainer::*;
 use crate::filetracker::*;
@@ -129,11 +132,12 @@ pub struct HTTP2Transaction {
     pub frames_ts: Vec<HTTP2Frame>,
 
     decoder: decompression::HTTP2Decoder,
+    pub file_range: *mut HttpRangeContainerBlock,
 
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
-    ft_tc: FileTransferTracker,
+    pub ft_tc: FileTransferTracker,
     ft_ts: FileTransferTracker,
 
     //temporary escaped header for detection
@@ -151,6 +155,7 @@ impl HTTP2Transaction {
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
+            file_range: std::ptr::null_mut(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -167,6 +172,27 @@ impl HTTP2Transaction {
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
         }
+        if self.file_range != std::ptr::null_mut() {
+            match unsafe { SC } {
+                None => panic!("BUG no suricata_config"),
+                Some(c) => {
+                    //TODO get a file container instead of NULL
+                    (c.HTPFileCloseHandleRange)(
+                        std::ptr::null_mut(),
+                        0,
+                        self.file_range,
+                        std::ptr::null_mut(),
+                        0,
+                    );
+                    (c.HttpRangeFreeBlock)(self.file_range);
+                }
+            }
+        }
+    }
+
+    pub fn set_event(&mut self, event: HTTP2Event) {
+        let ev = event as u8;
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, ev);
     }
 
     fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
@@ -179,7 +205,7 @@ impl HTTP2Transaction {
 
     fn decompress<'a>(
         &'a mut self, input: &'a [u8], dir: u8, sfcm: &'static SuricataFileContext, over: bool,
-        files: &mut FileContainer, flags: u16,
+        files: &mut FileContainer, flags: u16, flow: *const Flow,
     ) -> io::Result<()> {
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
@@ -190,6 +216,31 @@ impl HTTP2Transaction {
                 // we are now sure that new_chunk will open a file
                 // even if it may close it right afterwards
                 self.tx_data.incr_files_opened();
+                if let Ok(value) = detect::http2_frames_get_header_value_vec(
+                    self,
+                    STREAM_TOCLIENT,
+                    "content-range",
+                ) {
+                    match range::http2_parse_content_range(&value) {
+                        Ok((_, v)) => {
+                            range::http2_range_open(self, &v, flow, sfcm, flags, decompressed);
+                            if over {
+                                range::http2_range_close(self, files, flags, &[])
+                            }
+                        }
+                        _ => {
+                            self.set_event(HTTP2Event::InvalidRange);
+                        }
+                    }
+                }
+            } else {
+                if self.file_range != std::ptr::null_mut() {
+                    if over {
+                        range::http2_range_close(self, files, flags, decompressed)
+                    } else {
+                        range::http2_range_append(self.file_range, decompressed)
+                    }
+                }
             }
             self.ft_tc.new_chunk(
                 sfcm,
@@ -321,6 +372,7 @@ pub enum HTTP2Event {
     StreamIdReuse,
     InvalidHTTP1Settings,
     FailedDecompression,
+    InvalidRange,
 }
 
 pub struct HTTP2DynTable {
@@ -750,7 +802,9 @@ impl HTTP2State {
         }
     }
 
-    fn parse_frames(&mut self, mut input: &[u8], il: usize, dir: u8) -> AppLayerResult {
+    fn parse_frames(
+        &mut self, mut input: &[u8], il: usize, dir: u8, flow: *const Flow,
+    ) -> AppLayerResult {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
@@ -825,6 +879,7 @@ impl HTTP2State {
                                         over,
                                         files,
                                         flags,
+                                        flow,
                                     ) {
                                         Err(_e) => {
                                             self.set_event(HTTP2Event::FailedDecompression);
@@ -854,7 +909,7 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
-    fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
+    fn parse_ts(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
         //very first : skip magic
         let mut magic_consumed = 0;
         if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
@@ -894,7 +949,7 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        let r = self.parse_frames(input, il, STREAM_TOSERVER);
+        let r = self.parse_frames(input, il, STREAM_TOSERVER, flow);
         if r.status == 1 {
             //adds bytes consumed by banner to incomplete result
             return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
@@ -903,7 +958,7 @@ impl HTTP2State {
         }
     }
 
-    fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
+    fn parse_tc(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
         if self.response_frame_size > 0 {
@@ -918,7 +973,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        return self.parse_frames(input, il, STREAM_TOCLIENT);
+        return self.parse_frames(input, il, STREAM_TOCLIENT, flow);
     }
 
     fn tx_iterator(
@@ -1025,7 +1080,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 
     state.files.flags_ts = FileFlowToFlags(flow, STREAM_TOSERVER);
     state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
-    return state.parse_ts(buf);
+    return state.parse_ts(buf, flow);
 }
 
 #[no_mangle]
@@ -1037,7 +1092,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
     let buf = build_slice!(input, input_len as usize);
     state.files.flags_tc = FileFlowToFlags(flow, STREAM_TOCLIENT);
     state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
-    return state.parse_tc(buf);
+    return state.parse_tc(buf, flow);
 }
 
 #[no_mangle]

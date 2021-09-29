@@ -255,7 +255,7 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
             jb_open_object(js, "content_range");
             jb_set_string_from_bytes(
                     js, "raw", htp_header_value_ptr(h_content_range), htp_header_value_len(h_content_range));
-            HtpContentRange crparsed;
+            HTTPContentRange crparsed;
             if (HTPParseContentRange(htp_header_value(h_content_range), &crparsed) == 0) {
                 if (crparsed.start >= 0)
                     jb_set_uint(js, "start", crparsed.start);

@@ -97,11 +97,22 @@ pub type AppLayerDecoderEventsSetEventRawFunc =
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
-pub enum SuricataStreamingBufferConfig {}
+pub enum StreamingBufferConfig {}
 
+// Opaque flow type (defined in C)
+pub enum HttpRangeContainerBlock {}
+
+pub type SCHttpRangeFreeBlock = extern "C" fn (
+        c: *mut HttpRangeContainerBlock);
+pub type SCHTPFileCloseHandleRange = extern "C" fn (
+        fc: *mut FileContainer,
+        flags: u16,
+        c: *mut HttpRangeContainerBlock,
+        data: *const u8,
+        data_len: u32);
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
-        sbcfg: &SuricataStreamingBufferConfig,
+        sbcfg: &StreamingBufferConfig,
         track_id: u32,
         name: *const u8, name_len: u16,
         data: *const u8, data_len: u32,
@@ -144,6 +155,9 @@ pub struct SuricataContext {
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
     pub AppLayerParserTriggerRawStreamReassembly: AppLayerParserTriggerRawStreamReassemblyFunc,
 
+    pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
+    pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
+
     pub FileOpenFile: SCFileOpenFileWithId,
     pub FileCloseFile: SCFileCloseFileById,
     pub FileAppendData: SCFileAppendDataById,
@@ -158,7 +172,7 @@ pub struct SuricataContext {
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataFileContext {
-    pub files_sbcfg: &'static SuricataStreamingBufferConfig,
+    pub files_sbcfg: &'static StreamingBufferConfig,
 }
 
 extern {

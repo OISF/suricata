@@ -97,9 +97,9 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     char *arg4 = NULL;
     char *arg5 = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, urilenstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, urilenstr, 0, 0);
     if (ret < 3 || ret > 6) {
         SCLogError(SC_ERR_PCRE_PARSE, "urilen option pcre parse error: \"%s\"", urilenstr);
         goto error;
@@ -108,44 +108,45 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 
     SCLogDebug("ret %d", ret);
 
-    res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = SC_Pcre2SubstringGet(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     arg1 = (char *) str_ptr;
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
         goto error;
     }
     arg2 = (char *) str_ptr;
     SCLogDebug("Arg2 \"%s\"", arg2);
 
     if (ret > 3) {
-        res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+        res = SC_Pcre2SubstringGet(parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
             goto error;
         }
         arg3 = (char *) str_ptr;
         SCLogDebug("Arg3 \"%s\"", arg3);
 
         if (ret > 4) {
-            res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+            res = SC_Pcre2SubstringGet(parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
             }
             arg4 = (char *) str_ptr;
             SCLogDebug("Arg4 \"%s\"", arg4);
         }
         if (ret > 5) {
-            res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 5, &str_ptr);
+            res = pcre2_substring_get_bynumber(
+                    parse_regex.match, 5, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
                 goto error;
             }
             arg5 = (char *) str_ptr;
@@ -158,15 +159,15 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         goto error;
     memset(urilend, 0, sizeof(DetectUrilenData));
 
-    if (arg1[0] == '<')
+    if (arg1 != NULL && arg1[0] == '<')
         urilend->mode = DETECT_URILEN_LT;
-    else if (arg1[0] == '>')
+    else if (arg1 != NULL && arg1[0] == '>')
         urilend->mode = DETECT_URILEN_GT;
     else
         urilend->mode = DETECT_URILEN_EQ;
 
     if (arg3 != NULL && strcmp("<>", arg3) == 0) {
-        if (strlen(arg1) != 0) {
+        if (arg1 != NULL && strlen(arg1) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
@@ -206,29 +207,29 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
         }
     }
 
-    pcre_free_substring(arg1);
-    pcre_free_substring(arg2);
+    pcre2_substring_free((PCRE2_UCHAR *)arg1);
+    pcre2_substring_free((PCRE2_UCHAR *)arg2);
     if (arg3 != NULL)
-        pcre_free_substring(arg3);
+        pcre2_substring_free((PCRE2_UCHAR *)arg3);
     if (arg4 != NULL)
-        pcre_free_substring(arg4);
+        pcre2_substring_free((PCRE2_UCHAR *)arg4);
     if (arg5 != NULL)
-        pcre_free_substring(arg5);
+        pcre2_substring_free((PCRE2_UCHAR *)arg5);
     return urilend;
 
 error:
     if (urilend)
         SCFree(urilend);
     if (arg1 != NULL)
-        pcre_free_substring(arg1);
+        pcre2_substring_free((PCRE2_UCHAR *)arg1);
     if (arg2 != NULL)
-        pcre_free_substring(arg2);
+        pcre2_substring_free((PCRE2_UCHAR *)arg2);
     if (arg3 != NULL)
-        pcre_free_substring(arg3);
+        pcre2_substring_free((PCRE2_UCHAR *)arg3);
     if (arg4 != NULL)
-        pcre_free_substring(arg4);
+        pcre2_substring_free((PCRE2_UCHAR *)arg4);
     if (arg5 != NULL)
-        pcre_free_substring(arg5);
+        pcre2_substring_free((PCRE2_UCHAR *)arg5);
     return NULL;
 }
 

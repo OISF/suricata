@@ -138,7 +138,7 @@ typedef unsigned short u_short
 typedef unsigned char u_char
 #endif
 
-#include <pcre.h>
+#include <pcre2.h>
 
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
@@ -364,10 +364,6 @@ typedef unsigned char u_char
     #error "byte order: can't figure out big or little"
 #endif
 
-#ifndef HAVE_PCRE_FREE_STUDY
-#define pcre_free_study pcre_free
-#endif
-
 #ifndef MIN
 #define MIN(x, y) (((x)<(y))?(x):(y))
 #endif
@@ -502,16 +498,6 @@ typedef enum {
 #endif
 #include "util-path.h"
 #include "util-conf.h"
-
-#ifdef HAVE_LUA
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-#else
-/* If we don't have Lua, create a typedef for lua_State so the
- * exported Lua functions don't fail the build. */
-typedef void lua_State;
-#endif
 
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);

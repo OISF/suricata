@@ -71,9 +71,6 @@
 #include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
-#define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
-#define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
-#define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "OutputJSON"
 
 #define MAX_JSON_SIZE 2048
@@ -94,6 +91,10 @@ void OutputJsonRegister (void)
 
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
+
+    // Register output file types that use the new eve filetype registration
+    // API.
+    SyslogInitialize();
 }
 
 json_t *SCJsonString(const char *val)
@@ -1002,6 +1003,76 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
     return 0;
 }
 
+static inline enum LogFileType FileTypeFromConf(const char *typestr)
+{
+    enum LogFileType log_filetype = LOGFILE_TYPE_NOTSET;
+
+    if (typestr == NULL) {
+        log_filetype = LOGFILE_TYPE_FILE;
+    } else if (strcmp(typestr, "file") == 0 || strcmp(typestr, "regular") == 0) {
+        log_filetype = LOGFILE_TYPE_FILE;
+    } else if (strcmp(typestr, "unix_dgram") == 0) {
+        log_filetype = LOGFILE_TYPE_UNIX_DGRAM;
+    } else if (strcmp(typestr, "unix_stream") == 0) {
+        log_filetype = LOGFILE_TYPE_UNIX_STREAM;
+    } else if (strcmp(typestr, "redis") == 0) {
+#ifdef HAVE_LIBHIREDIS
+        log_filetype = LOGFILE_TYPE_REDIS;
+#else
+        FatalError(SC_ERR_FATAL, "redis JSON output option is not compiled");
+#endif
+    }
+    SCLogDebug("type %s, file type value %d", typestr, log_filetype);
+    return log_filetype;
+}
+
+static int LogFileTypePrepare(
+        OutputJsonCtx *json_ctx, enum LogFileType log_filetype, ConfNode *conf)
+{
+
+    if (log_filetype == LOGFILE_TYPE_FILE || log_filetype == LOGFILE_TYPE_UNIX_DGRAM ||
+            log_filetype == LOGFILE_TYPE_UNIX_STREAM) {
+        if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
+            return -1;
+        }
+        OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
+    }
+#ifdef HAVE_LIBHIREDIS
+    else if (log_filetype == LOGFILE_TYPE_REDIS) {
+        SCLogRedisInit();
+        ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
+        if (!json_ctx->file_ctx->sensor_name) {
+            char hostname[1024];
+            gethostname(hostname, 1023);
+            json_ctx->file_ctx->sensor_name = SCStrdup(hostname);
+        }
+        if (json_ctx->file_ctx->sensor_name == NULL) {
+            return -1;
+        }
+
+        if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
+            return -1;
+        }
+    }
+#endif
+    else if (log_filetype == LOGFILE_TYPE_PLUGIN) {
+        if (json_ctx->file_ctx->threaded) {
+            /* Prepare for threaded log output. */
+            if (!SCLogOpenThreadedFile(NULL, NULL, json_ctx->file_ctx, 1)) {
+                return -1;
+            }
+        }
+        void *init_data = NULL;
+        if (json_ctx->plugin->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
+            return -1;
+        }
+        json_ctx->file_ctx->plugin.plugin = json_ctx->plugin;
+        json_ctx->file_ctx->plugin.init_data = init_data;
+    }
+
+    return 0;
+}
+
 /**
  * \brief Create a new LogFileCtx for "fast" output style.
  * \param conf The configuration node for this output.
@@ -1010,6 +1081,7 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
 OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
+    OutputCtx *output_ctx = NULL;
 
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
     if (unlikely(json_ctx == NULL)) {
@@ -1038,20 +1110,16 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
     if (sensor_name) {
         json_ctx->file_ctx->sensor_name = SCStrdup(sensor_name);
-        if (json_ctx->file_ctx->sensor_name  == NULL) {
-            LogFileFreeCtx(json_ctx->file_ctx);
-            SCFree(json_ctx);
-            return result;
+        if (json_ctx->file_ctx->sensor_name == NULL) {
+            goto error_exit;
         }
     } else {
         json_ctx->file_ctx->sensor_name = NULL;
     }
 
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(json_ctx->file_ctx);
-        SCFree(json_ctx);
-        return result;
+        goto error_exit;
     }
 
     output_ctx->data = json_ctx;
@@ -1059,45 +1127,21 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
     if (conf) {
         const char *output_s = ConfNodeLookupChildValue(conf, "filetype");
-
         // Backwards compatibility
         if (output_s == NULL) {
             output_s = ConfNodeLookupChildValue(conf, "type");
         }
 
-        if (output_s != NULL) {
-            if (strcmp(output_s, "file") == 0 ||
-                strcmp(output_s, "regular") == 0) {
-                json_ctx->json_out = LOGFILE_TYPE_FILE;
-            } else if (strcmp(output_s, "syslog") == 0) {
-                json_ctx->json_out = LOGFILE_TYPE_SYSLOG;
-            } else if (strcmp(output_s, "unix_dgram") == 0) {
-                json_ctx->json_out = LOGFILE_TYPE_UNIX_DGRAM;
-            } else if (strcmp(output_s, "unix_stream") == 0) {
-                json_ctx->json_out = LOGFILE_TYPE_UNIX_STREAM;
-            } else if (strcmp(output_s, "redis") == 0) {
-#ifdef HAVE_LIBHIREDIS
-                SCLogRedisInit();
-                json_ctx->json_out = LOGFILE_TYPE_REDIS;
-#else
-                           FatalError(SC_ERR_FATAL,
-                                      "redis JSON output option is not compiled");
-#endif
-            } else {
+        enum LogFileType log_filetype = FileTypeFromConf(output_s);
+        if (log_filetype == LOGFILE_TYPE_NOTSET) {
 #ifdef HAVE_PLUGINS
-                SCPluginFileType *plugin = SCPluginFindFileType(output_s);
-                if (plugin == NULL) {
-                    FatalError(SC_ERR_INVALID_ARGUMENT,
-                            "Invalid JSON output option: %s", output_s);
-                } else {
-                    json_ctx->json_out = LOGFILE_TYPE_PLUGIN;
-                    json_ctx->plugin = plugin;
-                }
-#else
-                FatalError(SC_ERR_INVALID_ARGUMENT,
-                        "Invalid JSON output option: %s", output_s);
+            SCEveFileType *plugin = SCPluginFindFileType(output_s);
+            if (plugin != NULL) {
+                log_filetype = LOGFILE_TYPE_PLUGIN;
+                json_ctx->plugin = plugin;
+            } else
 #endif
-            }
+                FatalError(SC_ERR_INVALID_ARGUMENT, "Invalid JSON output option: %s", output_s);
         }
 
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
@@ -1121,115 +1165,17 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         } else {
             json_ctx->file_ctx->threaded = false;
         }
-
-        if (json_ctx->json_out == LOGFILE_TYPE_FILE ||
-            json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ||
-            json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM)
-        {
-
-            if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-                LogFileFreeCtx(json_ctx->file_ctx);
-                SCFree(json_ctx);
-                SCFree(output_ctx);
-                return result;
-            }
-            OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
-
+        if (LogFileTypePrepare(json_ctx, log_filetype, conf) < 0) {
+            goto error_exit;
         }
-#ifndef OS_WIN32
-	else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
-            const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
-            if (facility_s == NULL) {
-                facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
-            }
-
-            int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
-            if (facility == -1) {
-                SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid syslog facility: \"%s\","
-                        " now using \"%s\" as syslog facility", facility_s,
-                        DEFAULT_ALERT_SYSLOG_FACILITY_STR);
-                facility = DEFAULT_ALERT_SYSLOG_FACILITY;
-            }
-
-            const char *level_s = ConfNodeLookupChildValue(conf, "level");
-            if (level_s != NULL) {
-                int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
-                if (level != -1) {
-                    json_ctx->file_ctx->syslog_setup.alert_syslog_level = level;
-                }
-            }
-
-            const char *ident = ConfNodeLookupChildValue(conf, "identity");
-            /* if null we just pass that to openlog, which will then
-             * figure it out by itself. */
-
-            openlog(ident, LOG_PID|LOG_NDELAY, facility);
-        }
-#endif
-#ifdef HAVE_LIBHIREDIS
-        else if (json_ctx->json_out == LOGFILE_TYPE_REDIS) {
-            ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
-            if (!json_ctx->file_ctx->sensor_name) {
-                char hostname[1024];
-                gethostname(hostname, 1023);
-                json_ctx->file_ctx->sensor_name = SCStrdup(hostname);
-            }
-            if (json_ctx->file_ctx->sensor_name  == NULL) {
-                LogFileFreeCtx(json_ctx->file_ctx);
-                SCFree(json_ctx);
-                SCFree(output_ctx);
-                return result;
-            }
-
-            if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
-                LogFileFreeCtx(json_ctx->file_ctx);
-                SCFree(json_ctx);
-                SCFree(output_ctx);
-                return result;
-            }
-        }
-#endif
-#ifdef HAVE_PLUGINS
-        else if (json_ctx->json_out == LOGFILE_TYPE_PLUGIN) {
-            if (json_ctx->file_ctx->threaded) {
-                /* Prepare for storing per-thread data */
-                if (!SCLogOpenThreadedFile(NULL, NULL, json_ctx->file_ctx, 1)) {
-                    SCFree(json_ctx);
-                    SCFree(output_ctx);
-                    return result;
-                }
-            }
-
-            void *init_data = NULL;
-            if (json_ctx->plugin->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
-                LogFileFreeCtx(json_ctx->file_ctx);
-                SCFree(json_ctx);
-                SCFree(output_ctx);
-                return result;
-            }
-
-            /* Now that initialization completed successfully, if threaded, make sure
-             * that ThreadInit and ThreadDeInit exist
-             */
-            if (json_ctx->file_ctx->threaded) {
-                if (!json_ctx->plugin->ThreadInit || !json_ctx->plugin->ThreadDeinit) {
-                    FatalError(SC_ERR_LOG_OUTPUT, "Output logger must supply ThreadInit and "
-                                                  "ThreadDeinit functions for threaded mode");
-                }
-            }
-
-            json_ctx->file_ctx->plugin.plugin = json_ctx->plugin;
-            json_ctx->file_ctx->plugin.init_data = init_data;
-        }
-#endif
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
             if (StringParseUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Failed to initialize JSON output, "
-                           "invalid sensor-id: %s", sensor_id_s);
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "Failed to initialize JSON output, "
+                        "invalid sensor-id: %s",
+                        sensor_id_s);
             }
         }
 
@@ -1264,10 +1210,10 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             if (StringParseUint16(&json_ctx->cfg.community_id_seed,
                         10, 0, cid_seed) < 0)
             {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Failed to initialize JSON output, "
-                           "invalid community-id-seed: %s", cid_seed);
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_INVALID_ARGUMENT,
+                        "Failed to initialize JSON output, "
+                        "invalid community-id-seed: %s",
+                        cid_seed);
             }
         }
 
@@ -1286,14 +1232,25 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 (RunmodeGetCurrent() == RUNMODE_PCAP_FILE ||
                  RunmodeGetCurrent() == RUNMODE_UNIX_SOCKET);
         }
-
-        json_ctx->file_ctx->type = json_ctx->json_out;
+        json_ctx->file_ctx->type = log_filetype;
     }
 
     SCLogDebug("returning output_ctx %p", output_ctx);
 
     result.ctx = output_ctx;
     result.ok = true;
+    return result;
+
+error_exit:
+    if (json_ctx->file_ctx) {
+        LogFileFreeCtx(json_ctx->file_ctx);
+    }
+    if (json_ctx) {
+        SCFree(json_ctx);
+    }
+    if (output_ctx) {
+        SCFree(output_ctx);
+    }
     return result;
 }
 

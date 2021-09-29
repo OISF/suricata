@@ -112,9 +112,9 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
 {
     DetectTosData *tosd = NULL;
     int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tos option - %s. "
                    "The tos option value must be in the range "
@@ -124,10 +124,11 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
 
     /* For TOS value */
     char tosbytes_str[64] = "";
-    res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS, 1,
-                             tosbytes_str, sizeof(tosbytes_str));
+    pcre2len = sizeof(tosbytes_str);
+    res = pcre2_substring_copy_bynumber(
+            parse_regex.match, 1, (PCRE2_UCHAR8 *)tosbytes_str, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         goto error;
     }
 

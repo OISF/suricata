@@ -187,7 +187,7 @@ impl HTTP2DecoderHalf {
     }
 
     pub fn decompress<'a>(
-        &'a mut self, input: &'a [u8], output: &'a mut Vec<u8>,
+        &mut self, input: &'a [u8], output: &'a mut Vec<u8>,
     ) -> io::Result<&'a [u8]> {
         match self.decoder {
             HTTP2Decompresser::GZIP(ref mut gzip_decoder) => {
@@ -249,7 +249,7 @@ impl HTTP2Decoder {
     }
 
     pub fn decompress<'a>(
-        &'a mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: u8,
+        &mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: u8,
     ) -> io::Result<&'a [u8]> {
         if dir == STREAM_TOCLIENT {
             return self.decoder_tc.decompress(input, output);

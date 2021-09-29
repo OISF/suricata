@@ -214,5 +214,6 @@ void THashCleanup(THashTableContext *ctx);
 int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
 int THashRemoveFromHash (THashTableContext *ctx, void *data);
 void THashConsolidateMemcap(THashTableContext *ctx);
+void THashDataMoveToSpare(THashTableContext *ctx, THashData *h);
 
 #endif /* __THASH_H__ */

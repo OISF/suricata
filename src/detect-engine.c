@@ -1080,7 +1080,9 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
         const uint8_t *data, const uint32_t data_len)
 {
+#ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(!buffer->multi);
+#endif
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
@@ -1092,7 +1094,9 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
+#ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(buffer->multi);
+#endif
     if (buffer->inspect == NULL) {
 #ifdef UNITTESTS
         if (det_ctx && list_id != -1)

@@ -176,8 +176,8 @@ typedef struct SCLogConfig_ {
 
     char *op_filter;
     /* compiled pcre filter expression */
-    pcre *op_filter_regex;
-    pcre_extra *op_filter_regex_study;
+    pcre2_code *op_filter_regex;
+    pcre2_match_data *op_filter_regex_match;
 
     /* op ifaces used */
     SCLogOPIfaceCtx *op_ifaces;

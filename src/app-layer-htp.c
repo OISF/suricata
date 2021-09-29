@@ -210,6 +210,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER},
     { "TOO_MANY_WARNINGS",
         HTTP_DECODER_EVENT_TOO_MANY_WARNINGS},
+    { "RANGE_INVALID",
+	HTTP_DECODER_EVENT_RANGE_INVALID},
     { NULL, -1 },
 };
 
@@ -415,6 +417,11 @@ void HTPStateFree(void *state)
             }
         }
         htp_connp_destroy_all(s->connp);
+    }
+
+    if (s->file_range) {
+        HTPFileCloseHandleRange(s->files_tc, 0, s->file_range, NULL, 0);
+        HttpRangeFreeBlock(s->file_range);
     }
 
     FileContainerFree(s->files_ts);
@@ -1611,8 +1618,15 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
-                    HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            // set range if present
+            const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
+            if (h_content_range != NULL) {
+                result = HTPFileOpenWithRange(hstate, htud, filename, (uint32_t)filename_len, data,
+                        data_len, HtpGetActiveResponseTxID(hstate), htp_header_value(h_content_range), htud);
+            } else {
+                result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+                        HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            }
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
@@ -1622,11 +1636,6 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 FlagDetectStateNewFile(htud, STREAM_TOCLIENT);
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
-            }
-            //set range if present
-            const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
-            if (h_content_range != NULL) {
-                HTPFileSetRange(hstate, htp_header_value(h_content_range));
             }
         }
     }

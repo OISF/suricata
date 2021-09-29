@@ -174,36 +174,39 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     SCEnter();
 
     int ret = 0, found = 0, ignore = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
+    size_t pcre2len;
     char *ptr;
 
     char arg1[16] = "";
     char arg2[16] = "";
     char arg3[16] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");
         SCReturnPtr(NULL, "DetectFlagsData");
     }
 
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    pcre2len = sizeof(arg1);
+    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
         SCReturnPtr(NULL, "DetectFlagsData");
     }
     if (ret >= 2) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
+        pcre2len = sizeof(arg2);
+        res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             SCReturnPtr(NULL, "DetectFlagsData");
         }
     }
     if (ret >= 3) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, arg3, sizeof(arg3));
+        pcre2len = sizeof(arg3);
+        res = SC_Pcre2SubstringCopy(parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
             SCReturnPtr(NULL, "DetectFlagsData");
         }
     }
