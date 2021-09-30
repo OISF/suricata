@@ -200,7 +200,9 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    pcre2_match_data *match = pcre2_match_data_create_from_pattern(pe->parse_regex.regex, NULL);
+    pcre2_match_data *match =
+            (pcre2_match_data *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, pe->thread_ctx_id);
+
     ret = DetectPcreExec(det_ctx, pe, (char *)ptr, len, start_offset, 0, match);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
@@ -303,7 +305,6 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug("pcre had matching error");
         ret = 0;
     }
-    pcre2_match_data_free(match);
     SCReturnInt(ret);
 }
 
@@ -830,6 +831,21 @@ error:
     return -1;
 }
 
+static void *DetectPcreThreadInit(void *data)
+{
+    DetectPcreData *pd = (DetectPcreData *)data;
+    pcre2_match_data *match = pcre2_match_data_create_from_pattern(pd->parse_regex.regex, NULL);
+    return match;
+}
+
+static void DetectPcreThreadFree(void *ctx)
+{
+    if (ctx != NULL) {
+        pcre2_match_data *match = (pcre2_match_data *)ctx;
+        pcre2_match_data_free(match);
+    }
+}
+
 static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *regexstr)
 {
     SCEnter();
@@ -845,6 +861,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     if (pd == NULL)
         goto error;
     if (DetectPcreParseCapture(regexstr, de_ctx, pd, capture_names) < 0)
+        goto error;
+
+    pd->thread_ctx_id = DetectRegisterThreadCtxFuncs(
+            de_ctx, "pcre", DetectPcreThreadInit, (void *)pd, DetectPcreThreadFree, 0);
+    if (pd->thread_ctx_id == -1)
         goto error;
 
     int sm_list = -1;
@@ -934,6 +955,8 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
     DetectParseFreeRegex(&pd->parse_regex);
+    DetectUnregisterThreadCtxFuncs(de_ctx, NULL, pd, "pcre");
+
     SCFree(pd);
 
     return;
