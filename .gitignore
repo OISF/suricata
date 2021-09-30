@@ -67,3 +67,4 @@ test.sh
 !/suricata-update/Makefile.am
 /libsuricata-config
 !/libsuricata-config.in
+!/.readthedocs.yaml
