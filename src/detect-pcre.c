@@ -1022,7 +1022,7 @@ static int DetectPcreParseTest04 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1044,7 +1044,7 @@ static int DetectPcreParseTest05 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1066,7 +1066,7 @@ static int DetectPcreParseTest06 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1088,7 +1088,7 @@ static int DetectPcreParseTest07 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_HTTP1);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1110,7 +1110,7 @@ static int DetectPcreParseTest08 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1131,7 +1131,7 @@ static int DetectPcreParseTest09 (void)
     pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false, &alproto);
     FAIL_IF_NULL(pd);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -3458,7 +3458,7 @@ static int DetectPcreParseHttpHost(void)
 
     DetectPcreData *pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
 
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0, false, &alproto);
@@ -3468,7 +3468,7 @@ static int DetectPcreParseHttpHost(void)
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
 
     /* This should not parse as the first \ escapes the second \, then
      * we have a D. */
