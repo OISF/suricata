@@ -45,6 +45,7 @@ typedef struct DetectPcreData_ {
     uint8_t idx;
     uint8_t captypes[DETECT_PCRE_CAPTURE_MAX];
     uint32_t capids[DETECT_PCRE_CAPTURE_MAX];
+    int thread_ctx_id;
 } DetectPcreData;
 
 /* prototypes */
