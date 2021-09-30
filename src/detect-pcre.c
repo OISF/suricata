@@ -82,10 +82,11 @@ static int pcre2_use_jit = 1;
 /* \brief Helper function for using pcre2_match with/without JIT
  */
 static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectPcreData *pd,
-        const char *str, const size_t strlen, int start_offset, int options)
+        const char *str, const size_t strlen, int start_offset, int options,
+        pcre2_match_data *match)
 {
     return pcre2_match(pd->parse_regex.regex, (PCRE2_SPTR8)str, strlen, start_offset, options,
-            pd->parse_regex.match, pd->parse_regex.context);
+            match, pd->parse_regex.context);
 }
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
@@ -199,7 +200,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    ret = DetectPcreExec(det_ctx, pe, (char *)ptr, len, start_offset, 0);
+    pcre2_match_data *match = pcre2_match_data_create_from_pattern(pe->parse_regex.regex, NULL);
+    ret = DetectPcreExec(det_ctx, pe, (char *)ptr, len, start_offset, 0, match);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE2_ERROR_NOMATCH) {
@@ -227,8 +229,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                 for (x = 0; x < pe->idx; x++) {
                     SCLogDebug("capturing %u", x);
                     const char *pcre2_str_ptr = NULL;
-                    ret = pcre2_substring_get_bynumber(pe->parse_regex.match, x + 1,
-                            (PCRE2_UCHAR8 **)&pcre2_str_ptr, &capture_len);
+                    ret = pcre2_substring_get_bynumber(
+                            match, x + 1, (PCRE2_UCHAR8 **)&pcre2_str_ptr, &capture_len);
                     if (unlikely(ret != 0)) {
                         pcre2_substring_free((PCRE2_UCHAR8 *)pcre2_str_ptr);
                         continue;
@@ -251,8 +253,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                         const char *pcre2_str_ptr2 = NULL;
                         /* key length is limited to 256 chars */
                         uint16_t key_len = (capture_len < 0xff) ? (uint16_t)capture_len : 0xff;
-                        int ret2 = pcre2_substring_get_bynumber(pe->parse_regex.match, x + 2,
-                                (PCRE2_UCHAR8 **)&pcre2_str_ptr2, &capture_len);
+                        int ret2 = pcre2_substring_get_bynumber(
+                                match, x + 2, (PCRE2_UCHAR8 **)&pcre2_str_ptr2, &capture_len);
 
                         if (unlikely(ret2 != 0)) {
                             SCFree(str_ptr);
@@ -289,7 +291,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                 }
             }
 
-            PCRE2_SIZE *ov = pcre2_get_ovector_pointer(pe->parse_regex.match);
+            PCRE2_SIZE *ov = pcre2_get_ovector_pointer(match);
             /* update offset for pcre RELATIVE */
             det_ctx->buffer_offset = (ptr + ov[1]) - payload;
             det_ctx->pcre_match_start_offset = (ptr + ov[0] + 1) - payload;
@@ -301,6 +303,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug("pcre had matching error");
         ret = 0;
     }
+    pcre2_match_data_free(match);
     SCReturnInt(ret);
 }
 
