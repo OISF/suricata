@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1204,29 +1204,6 @@ typedef struct SigTableElmt_ {
     const char *url;
 
 } SigTableElmt;
-
-/* event code */
-enum {
-#ifdef UNITTESTS
-    DET_CTX_EVENT_TEST,
-#endif
-    FILE_DECODER_EVENT_NO_MEM,
-    FILE_DECODER_EVENT_INVALID_SWF_LENGTH,
-    FILE_DECODER_EVENT_INVALID_SWF_VERSION,
-    FILE_DECODER_EVENT_Z_DATA_ERROR,
-    FILE_DECODER_EVENT_Z_STREAM_ERROR,
-    FILE_DECODER_EVENT_Z_BUF_ERROR,
-    FILE_DECODER_EVENT_Z_UNKNOWN_ERROR,
-    FILE_DECODER_EVENT_LZMA_DECODER_ERROR,
-    FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR,
-    FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR,
-    FILE_DECODER_EVENT_LZMA_FORMAT_ERROR,
-    FILE_DECODER_EVENT_LZMA_DATA_ERROR,
-    FILE_DECODER_EVENT_LZMA_BUF_ERROR,
-    FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
-
-    DETECT_EVENT_TOO_MANY_BUFFERS,
-};
 
 #define SIG_GROUP_HEAD_HAVERAWSTREAM    BIT_U32(0)
 #ifdef HAVE_MAGIC
