@@ -408,7 +408,9 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
-    if (p->events.cnt > 0 || app_decoder_events != 0 || p->app_layer_events != NULL) {
+    if (p->events.cnt > 0 || app_decoder_events ||
+            (p->app_layer_events != NULL && p->app_layer_events->cnt) ||
+            (p->decoder_events != NULL && p->decoder_events->cnt)) {
         SCLogDebug("packet/flow has events set");
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
