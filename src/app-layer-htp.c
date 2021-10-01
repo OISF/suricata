@@ -2833,8 +2833,10 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && htp_connp_tx_size(http_state->connp) >= 0) {
-        const uint64_t size = (uint64_t) htp_connp_tx_size(http_state->connp);
+    if (http_state != NULL && http_state->connp != NULL) {
+        const int64_t size = htp_connp_tx_size(http_state->connp);
+	if (size < 0)
+	    return 0ULL;
         SCLogDebug("size %"PRIu64, size);
         return (uint64_t)size;
     } else {
