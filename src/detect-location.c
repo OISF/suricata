@@ -49,6 +49,7 @@ struct DetectLocationData {
     struct loc_ctx* ctx;
     struct loc_database* db;
     char** countries;
+    int anonymous_proxy:1;
     int anycast:1;
     int flags;
 };
@@ -301,6 +302,38 @@ ERROR:
     return NULL;
 }
 
+static struct DetectLocationData* DetectLocationParseAnonymousProxy(DetectEngineCtx* ctx,
+        const char* string) {
+    // Check for valid input
+    if (!string || !*string)
+        return NULL;
+
+    // Allocate DetectLocationData
+    struct DetectLocationData* data = SCCalloc(1, sizeof(*data));
+    if (!data)
+        return NULL;
+
+    // Match anonymous-proxy
+    data->anonymous_proxy = 1;
+
+    // Which direction?
+    data->flags = DetectLocationParseDirection(string);
+    if (!data->flags)
+        goto ERROR;
+
+    // Open location database
+    int r = DetectLocationOpenDatabase(data);
+    if (r)
+        goto ERROR;
+
+    return data;
+
+ERROR:
+    DetectLocationFree(ctx, data);
+
+    return NULL;
+}
+
 static int DetectLocationCreateMatch(Signature* signature, const enum DetectKeywordId type,
         SigMatchCtx* ctx) {
     // Allocate a new SigMatch structure
@@ -342,6 +375,25 @@ static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature,
 
     // Create a match
     r = DetectLocationCreateMatch(signature, DETECT_GEOIP, (SigMatchCtx*)data);
+    if (r) {
+        DetectLocationFree(ctx, data);
+        return r;
+    }
+
+    return 0;
+}
+
+static int DetectLocationSetupAnonymousProxy(DetectEngineCtx* ctx, Signature* signature,
+        const char* optstring) {
+    int r;
+
+    // Parse the option string
+    struct DetectLocationData* data = DetectLocationParseAnonymousProxy(ctx, optstring);
+    if (!data)
+        return -1;
+
+    // Create a match
+    r = DetectLocationCreateMatch(signature, DETECT_ANONYMOUS_PROXY, (SigMatchCtx*)data);
     if (r) {
         DetectLocationFree(ctx, data);
         return r;
@@ -398,7 +450,10 @@ static int DetectLocationMatchAddress(const struct DetectLocationData* data, con
             if (DetectLocationMatchCountryCode(data, network))
                 r = 1;
 
-        } else if (data->anycast)
+        } else if (data->anonymous_proxy)
+            r = loc_network_has_flag(network, LOC_NETWORK_FLAG_ANONYMOUS_PROXY);
+
+        else if (data->anycast)
             r = loc_network_has_flag(network, LOC_NETWORK_FLAG_ANYCAST);
 
         loc_network_unref(network);
@@ -513,6 +568,12 @@ static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature, 
     return -1;
 }
 
+static int DetectLocationSetupAnonymousProxy(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
+    SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
+        "Support for IPFire Location is not built in (needed for anonymous-proxy keyword)");
+    return -1;
+}
+
 static int DetectLocationSetupAnycast(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
     SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
         "Support for IPFire Location is not built in (needed for anycast keyword)");
@@ -532,6 +593,15 @@ void DetectLocationRegister(void) {
 #ifdef HAVE_LIBLOC
     sigmatch_table[DETECT_GEOIP].Match = DetectLocationMatch;
     sigmatch_table[DETECT_GEOIP].Free = DetectLocationFree;
+#endif /* HAVE_LIBLOC */
+
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].name = "anonymous-proxy";
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].desc = "match on the source, destination or source and destination IP addresses and check if are an anonymous proxy";
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].url = "/rules/header-keywords.html#anonymous-proxy";
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].Setup = DetectLocationSetupAnonymousProxy;
+#ifdef HAVE_LIBLOC
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].Match = DetectLocationMatch;
+    sigmatch_table[DETECT_ANONYMOUS_PROXY].Free = DetectLocationFree;
 #endif /* HAVE_LIBLOC */
 
     sigmatch_table[DETECT_ANYCAST].name = "anycast";
