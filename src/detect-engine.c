@@ -1034,7 +1034,8 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
         DetectEngineThreadCtx *det_ctx, const int list_id, const uint32_t local_id)
 {
     if (unlikely(local_id >= 1024)) {
-        DetectEngineSetEvent(det_ctx, DETECT_EVENT_TOO_MANY_BUFFERS);
+        AppLayerDecoderEventsSetEventRaw(
+                &det_ctx->p->app_layer_events, DETECT_EVENT_TOO_MANY_BUFFERS);
         return NULL;
     }
 
