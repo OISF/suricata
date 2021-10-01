@@ -50,6 +50,7 @@ struct DetectLocationData {
     struct loc_database* db;
     char** countries;
     int anonymous_proxy:1;
+    int satellite_provider:1;
     int anycast:1;
     int flags;
 };
@@ -270,6 +271,38 @@ static int DetectLocationParseDirection(const char* string) {
     return 0;
 }
 
+static struct DetectLocationData* DetectLocationParseSatelliteProvider(DetectEngineCtx* ctx,
+        const char* string) {
+    // Check for valid input
+    if (!string || !*string)
+        return NULL;
+
+    // Allocate DetectLocationData
+    struct DetectLocationData* data = SCCalloc(1, sizeof(*data));
+    if (!data)
+        return NULL;
+
+    // Match satellite-provider
+    data->satellite_provider = 1;
+
+    // Which direction?
+    data->flags = DetectLocationParseDirection(string);
+    if (!data->flags)
+        goto ERROR;
+
+    // Open location database
+    int r = DetectLocationOpenDatabase(data);
+    if (r)
+        goto ERROR;
+
+    return data;
+
+ERROR:
+    DetectLocationFree(ctx, data);
+
+    return NULL;
+}
+
 static struct DetectLocationData* DetectLocationParseAnycast(DetectEngineCtx* ctx,
         const char* string) {
     // Check for valid input
@@ -402,6 +435,25 @@ static int DetectLocationSetupAnonymousProxy(DetectEngineCtx* ctx, Signature* si
     return 0;
 }
 
+static int DetectLocationSetupSatelliteProvider(DetectEngineCtx* ctx, Signature* signature,
+        const char* optstring) {
+    int r;
+
+    // Parse the option string
+    struct DetectLocationData* data = DetectLocationParseSatelliteProvider(ctx, optstring);
+    if (!data)
+        return -1;
+
+    // Create a match
+    r = DetectLocationCreateMatch(signature, DETECT_ANYCAST, (SigMatchCtx*)data);
+    if (r) {
+        DetectLocationFree(ctx, data);
+        return r;
+    }
+
+    return 0;
+}
+
 static int DetectLocationSetupAnycast(DetectEngineCtx* ctx, Signature* signature,
         const char* optstring) {
     int r;
@@ -452,6 +504,9 @@ static int DetectLocationMatchAddress(const struct DetectLocationData* data, con
 
         } else if (data->anonymous_proxy)
             r = loc_network_has_flag(network, LOC_NETWORK_FLAG_ANONYMOUS_PROXY);
+
+        else if (data->satellite_provider)
+            r = loc_network_has_flag(network, LOC_NETWORK_FLAG_SATELLITE_PROVIDER);
 
         else if (data->anycast)
             r = loc_network_has_flag(network, LOC_NETWORK_FLAG_ANYCAST);
@@ -574,6 +629,12 @@ static int DetectLocationSetupAnonymousProxy(DetectEngineCtx* ctx, Signature* si
     return -1;
 }
 
+static int DetectLocationSetupSatelliteProvider(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
+    SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
+        "Support for IPFire Location is not built in (needed for satellite-provider keyword)");
+    return -1;
+}
+
 static int DetectLocationSetupAnycast(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
     SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
         "Support for IPFire Location is not built in (needed for anycast keyword)");
@@ -602,6 +663,15 @@ void DetectLocationRegister(void) {
 #ifdef HAVE_LIBLOC
     sigmatch_table[DETECT_ANONYMOUS_PROXY].Match = DetectLocationMatch;
     sigmatch_table[DETECT_ANONYMOUS_PROXY].Free = DetectLocationFree;
+#endif /* HAVE_LIBLOC */
+
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].name = "satellite-provider";
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].desc = "match on the source, destination or source and destination IP addresses and check if they are a satellite provider";
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].url = "/rules/header-keywords.html#satellite-provider";
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].Setup = DetectLocationSetupSatelliteProvider;
+#ifdef HAVE_LIBLOC
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].Match = DetectLocationMatch;
+    sigmatch_table[DETECT_SATELLITE_PROVIDER].Free = DetectLocationFree;
 #endif /* HAVE_LIBLOC */
 
     sigmatch_table[DETECT_ANYCAST].name = "anycast";
