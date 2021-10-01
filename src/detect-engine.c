@@ -4300,7 +4300,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 /* events api */
 void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
 {
-    AppLayerDecoderEventsSetEventRaw(&det_ctx->decoder_events, e);
+    AppLayerDecoderEventsSetEventRaw(&det_ctx->p->decoder_events, e);
     det_ctx->events++;
 }
 
