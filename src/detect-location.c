@@ -106,7 +106,7 @@ static int DetectLocationOpenDatabase(struct DetectLocationData* data) {
     if (r)
         return r;
 
-	// Open database
+    // Open database
     r = loc_database_new(data->ctx, &data->db, f);
     fclose(f);
 
@@ -141,7 +141,7 @@ static size_t count_commas(const char* s) {
     return commas;
 }
 
-static struct DetectLocationData* DetectLocationParse(DetectEngineCtx* ctx,
+static struct DetectLocationData* DetectLocationParseGeoIP(DetectEngineCtx* ctx,
         const char* string) {
     // Check for valid input
     if (!string || !*string)
@@ -247,6 +247,25 @@ ERROR:
     return NULL;
 }
 
+static int DetectLocationCreateMatch(Signature* signature, const enum DetectKeywordId type,
+        SigMatchCtx* ctx) {
+    // Allocate a new SigMatch structure
+     SigMatch* match = SigMatchAlloc();
+    if (!match)
+        return -1;
+
+    // Store type and context
+    match->type = type;
+    match->ctx = ctx;
+
+    SigMatchAppendSMToList(signature, match, DETECT_SM_LIST_MATCH);
+
+    // We require the packet in order to perform any checks
+    signature->flags |= SIG_FLAG_REQUIRE_PACKET;
+
+    return 0;
+}
+
 /**
  * \internal
  * \brief this function is used to add the geoip option into the signature
@@ -258,37 +277,23 @@ ERROR:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectLocationSetup(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
-    struct DetectLocationData* data = NULL;
-    SigMatch* match = NULL;
+static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature,
+        const char* optstring) {
+    int r;
 
     // Parse the option string
-    data = DetectLocationParse(ctx, optstring);
+    struct DetectLocationData* data = DetectLocationParseGeoIP(ctx, optstring);
     if (!data)
-        goto ERROR;
+        return -1;
 
-    // Allocate a new SigMatch structure
-    match = SigMatchAlloc();
-    if (!match)
-        goto ERROR;
-
-    match->type = DETECT_GEOIP;
-    match->ctx = (SigMatchCtx*)data;
-
-    SigMatchAppendSMToList(signature, match, DETECT_SM_LIST_MATCH);
-
-    // We require the packet in order to perform any checks
-    signature->flags |= SIG_FLAG_REQUIRE_PACKET;
+    // Create a match
+    r = DetectLocationCreateMatch(signature, DETECT_GEOIP, (SigMatchCtx*)data);
+    if (r) {
+        DetectLocationFree(ctx, data);
+        return r;
+    }
 
     return 0;
-
-ERROR:
-    if (data)
-        DetectLocationFree(ctx, data);
-    if (match)
-        SCFree(match);
-
-    return -1;
 }
 
 static int DetectLocationMatchCountryCode(const struct DetectLocationData* data, struct loc_network* network) {
@@ -427,7 +432,7 @@ static int DetectLocationMatch(DetectEngineThreadCtx* ctx, Packet* packet,
 
 #else /* HAVE_LIBLOC */
 
-static int DetectLocationSetup(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
+static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
     SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
         "Support for IPFire Location is not built in (needed for geoip keyword)");
     return -1;
@@ -442,7 +447,7 @@ void DetectLocationRegister(void) {
     sigmatch_table[DETECT_GEOIP].name = "geoip";
     sigmatch_table[DETECT_GEOIP].desc = "match on the source, destination or source and destination IP addresses of network traffic, and to see to which country it belongs";
     sigmatch_table[DETECT_GEOIP].url = "/rules/header-keywords.html#geoip";
-    sigmatch_table[DETECT_GEOIP].Setup = DetectLocationSetup;
+    sigmatch_table[DETECT_GEOIP].Setup = DetectLocationSetupGeoIP;
 #ifdef HAVE_LIBLOC
     sigmatch_table[DETECT_GEOIP].Match = DetectLocationMatch;
     sigmatch_table[DETECT_GEOIP].Free = DetectLocationFree;
