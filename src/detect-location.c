@@ -49,6 +49,7 @@ struct DetectLocationData {
     struct loc_ctx* ctx;
     struct loc_database* db;
     char** countries;
+    int anycast:1;
     int flags;
 };
 
@@ -247,6 +248,59 @@ ERROR:
     return NULL;
 }
 
+static const struct direction {
+    const char* keyword;
+    int flags;
+} directions[] = {
+    { "src", LOCATION_FLAG_SRC },
+    { "dst", LOCATION_FLAG_DST },
+    { "both", LOCATION_FLAG_SRC|LOCATION_FLAG_DST },
+    { NULL, 0 },
+};
+
+static int DetectLocationParseDirection(const char* string) {
+    for (const struct direction* direction = directions; direction->keyword; direction++) {
+        if (strcmp(direction->keyword, string) == 0)
+            return direction->flags;
+    }
+
+    SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid direction: %s", string);
+
+    return 0;
+}
+
+static struct DetectLocationData* DetectLocationParseAnycast(DetectEngineCtx* ctx,
+        const char* string) {
+    // Check for valid input
+    if (!string || !*string)
+        return NULL;
+
+    // Allocate DetectLocationData
+    struct DetectLocationData* data = SCCalloc(1, sizeof(*data));
+    if (!data)
+        return NULL;
+
+    // Match anycast
+    data->anycast = 1;
+
+    // Which direction?
+    data->flags = DetectLocationParseDirection(string);
+    if (!data->flags)
+        goto ERROR;
+
+    // Open location database
+    int r = DetectLocationOpenDatabase(data);
+    if (r)
+        goto ERROR;
+
+    return data;
+
+ERROR:
+    DetectLocationFree(ctx, data);
+
+    return NULL;
+}
+
 static int DetectLocationCreateMatch(Signature* signature, const enum DetectKeywordId type,
         SigMatchCtx* ctx) {
     // Allocate a new SigMatch structure
@@ -296,15 +350,32 @@ static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature,
     return 0;
 }
 
+static int DetectLocationSetupAnycast(DetectEngineCtx* ctx, Signature* signature,
+        const char* optstring) {
+    int r;
+
+    // Parse the option string
+    struct DetectLocationData* data = DetectLocationParseAnycast(ctx, optstring);
+    if (!data)
+        return -1;
+
+    // Create a match
+    r = DetectLocationCreateMatch(signature, DETECT_ANYCAST, (SigMatchCtx*)data);
+    if (r) {
+        DetectLocationFree(ctx, data);
+        return r;
+    }
+
+    return 0;
+}
+
 static int DetectLocationMatchCountryCode(const struct DetectLocationData* data, struct loc_network* network) {
     int found = 0;
 
-    if (data->countries) {
-        for (char** country = data->countries; *country; country++) {
-            if (loc_network_matches_country_code(network, *country)) {
-                found = 1;
-                break;
-            }
+    for (char** country = data->countries; *country; country++) {
+        if (loc_network_matches_country_code(network, *country)) {
+            found = 1;
+            break;
         }
     }
 
@@ -323,8 +394,12 @@ static int DetectLocationMatchAddress(const struct DetectLocationData* data, con
 
     // If we found a network, let's check whether the country matches
     if (network) {
-        if (DetectLocationMatchCountryCode(data, network))
-            r = 1;
+        if (data->countries) {
+            if (DetectLocationMatchCountryCode(data, network))
+                r = 1;
+
+        } else if (data->anycast)
+            r = loc_network_has_flag(network, LOC_NETWORK_FLAG_ANYCAST);
 
         loc_network_unref(network);
     }
@@ -438,6 +513,12 @@ static int DetectLocationSetupGeoIP(DetectEngineCtx* ctx, Signature* signature, 
     return -1;
 }
 
+static int DetectLocationSetupAnycast(DetectEngineCtx* ctx, Signature* signature, const char* optstring) {
+    SCLogError(SC_ERR_NO_LOCATION_SUPPORT,
+        "Support for IPFire Location is not built in (needed for anycast keyword)");
+    return -1;
+}
+
 #endif /* HAVE_LIBLOC */
 
 /**
@@ -451,5 +532,14 @@ void DetectLocationRegister(void) {
 #ifdef HAVE_LIBLOC
     sigmatch_table[DETECT_GEOIP].Match = DetectLocationMatch;
     sigmatch_table[DETECT_GEOIP].Free = DetectLocationFree;
+#endif /* HAVE_LIBLOC */
+
+    sigmatch_table[DETECT_ANYCAST].name = "anycast";
+    sigmatch_table[DETECT_ANYCAST].desc = "match on the source, destination or source and destination IP addresses and check if they belong to an anycast network";
+    sigmatch_table[DETECT_ANYCAST].url = "/rules/header-keywords.html#anycast";
+    sigmatch_table[DETECT_ANYCAST].Setup = DetectLocationSetupAnycast;
+#ifdef HAVE_LIBLOC
+    sigmatch_table[DETECT_ANYCAST].Match = DetectLocationMatch;
+    sigmatch_table[DETECT_ANYCAST].Free = DetectLocationFree;
 #endif /* HAVE_LIBLOC */
 }
