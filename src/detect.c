@@ -1288,6 +1288,9 @@ static void DetectRunTx(ThreadVars *tv,
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));
 
+    /* Invariant across transactions */
+    det_ctx->p = p;
+
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
         if (ires.tx_ptr == NULL)
@@ -1409,7 +1412,6 @@ static void DetectRunTx(ThreadVars *tv,
 #endif
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = 1;
-        det_ctx->p = p;
 
         /* run rules: inspect the match candidates */
         for (uint32_t i = 0; i < array_idx; i++) {
@@ -1477,7 +1479,6 @@ static void DetectRunTx(ThreadVars *tv,
 
         det_ctx->tx_id = 0;
         det_ctx->tx_id_set = 0;
-        det_ctx->p = NULL;
 
         /* see if we have any updated state to store in the tx */
 
@@ -1512,8 +1513,10 @@ static void DetectRunTx(ThreadVars *tv,
 next:
         InspectionBufferClean(det_ctx);
 
-        if (!ires.has_next)
+        if (!ires.has_next) {
+            det_ctx->p = NULL;
             break;
+        }
     }
 }
 
