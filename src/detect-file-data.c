@@ -377,12 +377,19 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
         if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
             swf_file_type == FILE_SWF_LZMA_COMPRESSION)
         {
-            (void)FileSwfDecompression(data, data_len,
-                                       det_ctx,
-                                       buffer,
-                                       htp_state->cfg->swf_compression_type,
-                                       htp_state->cfg->swf_decompress_depth,
-                                       htp_state->cfg->swf_compress_depth);
+            int ret = FileSwfDecompression(data, data_len, det_ctx, buffer,
+                    htp_state->cfg->swf_compression_type, htp_state->cfg->swf_decompress_depth,
+                    htp_state->cfg->swf_compress_depth);
+            if (ret == 0) {
+                AppLayerDecoderEvents *decoder_events = DetectEngineGetEvents(det_ctx);
+                if (det_ctx->p && decoder_events) {
+                    for (int i = 0; i < decoder_events->cnt; i++) {
+                        AppLayerDecoderEventsSetEventRaw(
+                                &det_ctx->p->app_layer_events, decoder_events->events[i]);
+                    }
+                    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+                }
+            }
         }
     }
 
