@@ -888,6 +888,9 @@ static DetectRunScratchpad DetectRunSetup(
         app_decoder_events = AppLayerParserHasDecoderEvents(pflow->alparser);
     }
 
+    /* Invariant during detect stage */
+    det_ctx->p = p;
+
     DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, NULL, 0 };
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
@@ -934,6 +937,9 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
                     det_ctx->raw_stream_progress);
         }
     }
+
+    det_ctx->p = NULL;
+
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
     SCReturn;
 }
@@ -1512,8 +1518,9 @@ static void DetectRunTx(ThreadVars *tv,
 next:
         InspectionBufferClean(det_ctx);
 
-        if (!ires.has_next)
+        if (!ires.has_next) {
             break;
+        }
     }
 }
 
