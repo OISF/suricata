@@ -447,6 +447,17 @@ static void *TmThreadsSlotVar(void *td)
         /* input a packet */
         p = tv->tmqh_in(tv);
 
+        /* if we didn't get a packet see if we need to do some housekeeping */
+        if (unlikely(p == NULL)) {
+            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty) == true) {
+                p = PacketGetFromQueueOrAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
+                }
+            }
+        }
+
         if (p != NULL) {
             /* run the thread module(s) */
             r = TmThreadsSlotVarRun(tv, p, s);
