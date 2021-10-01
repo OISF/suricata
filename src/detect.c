@@ -888,6 +888,9 @@ static DetectRunScratchpad DetectRunSetup(
         app_decoder_events = AppLayerParserHasDecoderEvents(pflow->alparser);
     }
 
+    /* Invariant during detect stage */
+    det_ctx->p = p;
+
     DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, NULL, 0 };
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
@@ -934,6 +937,9 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
                     det_ctx->raw_stream_progress);
         }
     }
+
+    det_ctx->p = NULL;
+
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
     SCReturn;
 }
@@ -1409,7 +1415,6 @@ static void DetectRunTx(ThreadVars *tv,
 #endif
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = 1;
-        det_ctx->p = p;
 
         /* run rules: inspect the match candidates */
         for (uint32_t i = 0; i < array_idx; i++) {
@@ -1477,7 +1482,6 @@ static void DetectRunTx(ThreadVars *tv,
 
         det_ctx->tx_id = 0;
         det_ctx->tx_id_set = 0;
-        det_ctx->p = NULL;
 
         /* see if we have any updated state to store in the tx */
 
@@ -1512,8 +1516,9 @@ static void DetectRunTx(ThreadVars *tv,
 next:
         InspectionBufferClean(det_ctx);
 
-        if (!ires.has_next)
+        if (!ires.has_next) {
             break;
+        }
     }
 }
 
