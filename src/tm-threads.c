@@ -1339,17 +1339,16 @@ again:
             if (!fq_done) {
                 SCMutexUnlock(&tv_root_lock);
 
-                    Packet *p = PacketGetFromAlloc();
-                    if (p != NULL) {
-                        //SCLogNotice("flush packet created");
-                        p->flags |= PKT_PSEUDO_STREAM_END;
-                        PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
-                        PacketQueue *q = tv->stream_pq;
-                        SCMutexLock(&q->mutex_q);
-                        PacketEnqueue(q, p);
-                        SCCondSignal(&q->cond_q);
-                        SCMutexUnlock(&q->mutex_q);
-                    }
+                Packet *p = PacketGetFromAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
+                    PacketQueue *q = tv->stream_pq;
+                    SCMutexLock(&q->mutex_q);
+                    PacketEnqueue(q, p);
+                    SCCondSignal(&q->cond_q);
+                    SCMutexUnlock(&q->mutex_q);
+                }
 
                 /* don't sleep while holding a lock */
                 SleepMsec(1);
@@ -1430,7 +1429,6 @@ again:
 
                     Packet *p = PacketGetFromAlloc();
                     if (p != NULL) {
-                        //SCLogNotice("flush packet created");
                         p->flags |= PKT_PSEUDO_STREAM_END;
                         PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
                         PacketQueue *q = tv->stream_pq;
