@@ -166,4 +166,7 @@ int DetectEngineMustParseMetadata(void);
 int WARN_UNUSED DetectBufferSetActiveList(Signature *s, const int list);
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 
+DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
+
 #endif /* __DETECT_ENGINE_H__ */

@@ -138,6 +138,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (DetectEngineReload(&surifuzz) < 0) {
         return 0;
     }
+    DetectEngineThreadCtx *old_det_ctx = FlowWorkerGetDetectCtxPtr(fwd);
+
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    de_ctx->ref_cnt--;
+    DetectEngineThreadCtx *new_det_ctx = DetectEngineThreadCtxInitForReload(&tv, de_ctx, 1);
+    FlowWorkerReplaceDetectCtx(fwd, new_det_ctx);
+
+    DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
 
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
