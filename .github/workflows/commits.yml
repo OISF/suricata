@@ -23,7 +23,6 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                ccache \
                 curl \
                 git \
                 jq \
@@ -61,7 +60,6 @@ jobs:
           mkdir -p "$HOME/.cargo/bin"
           (cd "$HOME/.cargo/bin" && tar xvf /tmp/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz --strip-components=1 --wildcards '*/sccache')
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-      - run: echo "/usr/lib/ccache" >> $GITHUB_PATH
       - name: Install cbindgen
         run: |
           cd $HOME/.cargo/bin
@@ -77,7 +75,7 @@ jobs:
               git checkout $rev
               echo "Building rev ${rev}" | tee -a build_log.txt
               ./autogen.sh >> build_log.txt 2>&1
-              ./configure --enable-unittests >> build_log.txt 2>&1
+              CC="sccache gcc" ./configure --enable-unittests >> build_log.txt 2>&1
               if ! make -j2 >> build_log.txt 2>&1; then
                   echo "::error ::Failed to build rev ${rev}"
                   tail -n 50 build_log.txt
