@@ -85,9 +85,6 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
-static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
-        ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
-
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
@@ -2835,7 +2832,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
  *
  * \retval det_ctx detection engine thread ctx or NULL in case of error
  */
-static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt)
 {
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
