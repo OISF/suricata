@@ -183,6 +183,26 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     }
                     break;
+                /* RFC 2385 MD5 option */
+                case TCP_OPT_MD5:
+                    SCLogDebug("MD5 option, len %u", olen);
+                    if (olen != 18) {
+                        ENGINE_SET_INVALID_EVENT(p,TCP_OPT_INVALID_LEN);
+                    } else {
+                        /* we can't validate the option as the key is out of band */
+                        p->tcpvars.md5_option_present = true;
+                    }
+                    break;
+                /* RFC 5925 AO option */
+                case TCP_OPT_AO:
+                    SCLogDebug("AU option, len %u", olen);
+                    if (olen < 4) {
+                        ENGINE_SET_INVALID_EVENT(p,TCP_OPT_INVALID_LEN);
+                    } else {
+                        /* we can't validate the option as the key is out of band */
+                        p->tcpvars.ao_option_present = true;
+                    }
+                    break;
             }
 
             pkt += olen;
