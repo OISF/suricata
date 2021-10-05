@@ -727,8 +727,14 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
  */
 void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->ths_ctx.th_entry != NULL)
+    if (de_ctx->ths_ctx.th_entry != NULL) {
+        for (uint32_t i = 0; i < de_ctx->ths_ctx.th_size; i++) {
+            if (de_ctx->ths_ctx.th_entry[i] != NULL) {
+                SCFree(de_ctx->ths_ctx.th_entry[i]);
+            }
+        }
         SCFree(de_ctx->ths_ctx.th_entry);
+    }
     SCMutexDestroy(&de_ctx->ths_ctx.threshold_table_lock);
 }
 
