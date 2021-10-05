@@ -4362,6 +4362,9 @@ static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
         if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
             if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->pstate) < 0)
                 return -1;
+            /* if state is still "closed", it wasn't updated by our dispatch. */
+            if (ssn->state == TCP_CLOSED)
+                ssn->state = ssn->pstate;
         }
     }
     return 0;
@@ -5332,7 +5335,6 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 
 static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
-
     uint8_t os_policy;
 
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -5368,6 +5370,21 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
         }
+    }
+
+    /* RFC 2385 md5 signature header or RFC 5925 TCP AO headerpresent. Since we can't
+     * validate these (requires key that is set/transfered out of band), we can't know
+     * if the RST will be accepted or rejected by the end host. We accept it, but keep
+     * tracking if the sender of it ignores it, which would be a sign of injection. */
+    if (p->tcpvars.md5_option_present || p->tcpvars.ao_option_present) {
+        TcpStream *receiver_stream;
+        if (PKT_IS_TOSERVER(p)) {
+            receiver_stream = &ssn->server;
+        } else {
+            receiver_stream = &ssn->client;
+        }
+        SCLogDebug("ssn %p: setting STREAMTCP_STREAM_FLAG_RST_RECV on receiver stream", ssn);
+        receiver_stream->flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
     }
 
     if (ssn->flags & STREAMTCP_FLAG_ASYNC) {

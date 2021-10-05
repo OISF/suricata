@@ -54,6 +54,8 @@
 #define TCP_OPT_TFO                          0x22   /* TCP Fast Open */
 #define TCP_OPT_EXP1                         0xfd   /* Experimental, could be TFO */
 #define TCP_OPT_EXP2                         0xfe   /* Experimental, could be TFO */
+#define TCP_OPT_MD5                          0x13   /* 19: RFC 2385 TCP MD5 option */
+#define TCP_OPT_AO                           0x1d   /* 29: RFC 5925 TCP AO option */
 
 #define TCP_OPT_SACKOK_LEN                   2
 #define TCP_OPT_WS_LEN                       3
@@ -153,6 +155,8 @@ typedef struct TCPHdr_
 typedef struct TCPVars_
 {
     /* commonly used and needed opts */
+    bool md5_option_present;
+    bool ao_option_present;
     bool ts_set;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
