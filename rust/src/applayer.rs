@@ -309,6 +309,7 @@ extern {
 // Defined in app-layer-detect-proto.h
 extern {
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
 }
 
 // Defined in app-layer-parser.h

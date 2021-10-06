@@ -474,8 +474,7 @@ void RegisterENIPUDPParsers(void)
     SCEnter();
     const char *proto_name = "enip";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name))
-    {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("udp", proto_name, false)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_ENIP, proto_name);
 
         if (RunmodeIsUnittests())
@@ -505,8 +504,7 @@ void RegisterENIPUDPParsers(void)
             }
         }
 
-    } else
-    {
+    } else {
         SCLogConfig("Protocol detection and parser disabled for %s protocol.",
                 proto_name);
         return;
@@ -564,8 +562,7 @@ void RegisterENIPTCPParsers(void)
     SCEnter();
     const char *proto_name = "enip";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
-    {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_ENIP, proto_name);
 
         if (RunmodeIsUnittests())
@@ -586,8 +583,7 @@ void RegisterENIPTCPParsers(void)
             }
         }
 
-    } else
-    {
+    } else {
         SCLogDebug("Protocol detection and parser disabled for %s protocol.",
                 proto_name);
         return;

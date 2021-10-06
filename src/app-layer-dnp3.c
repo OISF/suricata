@@ -1595,8 +1595,7 @@ void RegisterDNP3Parsers(void)
 
     const char *proto_name = "dnp3";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
-    {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNP3, proto_name);
 
         if (RunmodeIsUnittests()) {
@@ -1612,8 +1611,7 @@ void RegisterDNP3Parsers(void)
             }
         }
 
-    }
-    else {
+    } else {
         SCLogConfig("Protocol detection and parser disabled for DNP3.");
         SCReturn;
     }

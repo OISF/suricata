@@ -161,6 +161,19 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
                                                  const char *alproto);
 
 /**
+ * \brief Given a protocol name, checks if proto detection is enabled in
+ *        the conf file.
+ *
+ * \param alproto Name of the app layer protocol.
+ * \param default_enabled enable by default if not in the configuration file
+ *
+ * \retval 1 If enabled.
+ * \retval 0 If disabled.
+ */
+int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        const char *ipproto, const char *alproto, bool default_enabled);
+
+/**
  * \brief Inits and returns an app layer protocol detection thread context.
 
  * \param ctx Pointer to the app layer protocol detection context.
