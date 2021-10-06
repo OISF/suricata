@@ -185,6 +185,7 @@
     AC_CHECK_HEADERS([libgen.h])
     AC_CHECK_HEADERS([mach/mach.h])
     AC_CHECK_HEADERS([stdatomic.h])
+    AC_CHECK_HEADERS([sys/queue.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
