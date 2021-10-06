@@ -6,6 +6,7 @@ Working with the Codebase
 
    contributing/index.rst
    code-style
-   unittests
    fuzz-testing
    testing
+   unittests-c
+   unittests-rust
