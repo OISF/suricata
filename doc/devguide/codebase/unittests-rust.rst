@@ -1,6 +1,6 @@
-***************
-Rust unit tests
-***************
+*****************
+Unit tests - Rust
+*****************
 
 Rust tests with Cargo check
 ===========================
