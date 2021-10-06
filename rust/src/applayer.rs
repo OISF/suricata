@@ -323,6 +323,7 @@ extern {
                                                      offset: u16, direction: u8, ppfn: ProbeFn,
                                                      pp_min_depth: u16, pp_max_depth: u16) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
 }
 
 // Defined in app-layer-parser.h

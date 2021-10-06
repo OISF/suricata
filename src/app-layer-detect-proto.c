@@ -1984,8 +1984,8 @@ void AppLayerProtoDetectReset(Flow *f)
     f->alproto_tc = ALPROTO_UNKNOWN;
 }
 
-int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
-                                                 const char *alproto)
+int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        const char *ipproto, const char *alproto, bool default_enabled)
 {
     SCEnter();
 
@@ -2021,7 +2021,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         node = ConfGetNode(param);
         if (node == NULL) {
             SCLogDebug("Entry for %s not found.", param);
-            goto enabled;
+            if (default_enabled) {
+                goto enabled;
+            } else {
+                goto disabled;
+            }
         }
     }
 
@@ -2043,6 +2047,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     enabled = 0;
  enabled:
     SCReturnInt(enabled);
+}
+
+int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto, const char *alproto)
+{
+    return AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto, alproto, true);
 }
 
 AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
