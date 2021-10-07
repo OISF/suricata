@@ -175,6 +175,8 @@ static int InspectSmtpGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *de
 
 #define DATATYPE_BUFFER BIT_U32(22)
 
+#define DATATYPE_RULE_ID BIT_U32(23)
+
 #if 0
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state)
@@ -374,6 +376,11 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
         lua_pushliteral(tlua->luastate, "packet"); /* stack at -2 */
         LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
+        lua_settable(tlua->luastate, -3);
+    }
+    if (tlua->flags & DATATYPE_RULE_ID) {
+        lua_pushliteral(tlua->luastate, "rule_id"); /* stack at -2 */
+        lua_pushnumber(tlua->luastate, s->id);      /* stack at -3 */
         lua_settable(tlua->luastate, -3);
     }
     if (tlua->alproto == ALPROTO_HTTP1) {
@@ -964,7 +971,8 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             ld->alproto = ALPROTO_DNP3;
 
             ld->flags |= DATATYPE_DNP3;
-
+        } else if (strcmp(k, "rule_id") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_RULE_ID;
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
