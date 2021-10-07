@@ -170,26 +170,27 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
-        jumpptr = payload + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu64 "= %p", payload, val, jumpptr);
+        SCLogDebug("NEWVAL: payload %p + %" PRIu64, payload, val);
     } else if (flags & DETECT_BYTEJUMP_END) {
-        jumpptr = payload + payload_len + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64 " = %p", payload, payload_len, val, jumpptr);
+        val = payload_len + val;
+        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64, payload, payload_len, val);
     } else {
-        val += extbytes;
-        jumpptr = ptr + val;
-        SCLogDebug("NEWVAL: ptr %p + %" PRIu64 " = %p", ptr, val, jumpptr);
+        val += (ptr - payload) + extbytes;
+        SCLogDebug("NEWVAL: ptr %p + %" PRIu64, ptr, val);
     }
 
 
     /* Validate that the jump location is still in the packet
      * \todo Should this validate it is still in the *payload*?
      */
-    if ((jumpptr < payload) || (jumpptr >= payload + payload_len)) {
-        SCLogDebug("Jump location (%p) is not within "
-               "payload (%p-%p)", jumpptr, payload, payload + payload_len - 1);
+    if (val >= payload_len) {
+        SCLogDebug("Jump location (%" PRIu64 ") is not within "
+                   "payload (%" PRIu32 ")",
+                val, payload_len);
         SCReturnInt(0);
     }
+
+    jumpptr = payload + val;
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
