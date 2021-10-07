@@ -100,7 +100,6 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
     const uint8_t *ptr = NULL;
-    const uint8_t *jumpptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -170,38 +169,35 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
-        jumpptr = payload + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu64 "= %p", payload, val, jumpptr);
+        SCLogDebug("NEWVAL: payload %p + %" PRIu64, payload, val);
     } else if (flags & DETECT_BYTEJUMP_END) {
-        jumpptr = payload + payload_len + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64 " = %p", payload, payload_len, val, jumpptr);
+        val = payload_len + val;
+        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64, payload, payload_len, val);
     } else {
-        val += extbytes;
-        jumpptr = ptr + val;
-        SCLogDebug("NEWVAL: ptr %p + %" PRIu64 " = %p", ptr, val, jumpptr);
+        val += (ptr - payload) + extbytes;
+        SCLogDebug("NEWVAL: ptr %p + %" PRIu64, ptr, val);
     }
 
 
     /* Validate that the jump location is still in the packet
      * \todo Should this validate it is still in the *payload*?
      */
-    if ((jumpptr < payload) || (jumpptr >= payload + payload_len)) {
-        SCLogDebug("Jump location (%p) is not within "
-               "payload (%p-%p)", jumpptr, payload, payload + payload_len - 1);
+    if (val >= payload_len) {
+        SCLogDebug("Jump location (%" PRIu64 ") is not within "
+                   "payload (%" PRIu32 ")",
+                val, payload_len);
         SCReturnInt(0);
     }
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         const uint8_t *sptr = (flags & DETECT_BYTEJUMP_BEGIN) ? payload : ptr;
-        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
-               val, sptr, (int)(sptr - payload),
-               jumpptr, (int)(jumpptr - payload));
+        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x)", val, sptr, (int)(sptr - payload));
     }
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
-    det_ctx->buffer_offset = jumpptr - payload;
+    det_ctx->buffer_offset = val;
 
     SCReturnInt(1);
 }
