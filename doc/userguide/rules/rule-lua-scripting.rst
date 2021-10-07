@@ -43,6 +43,7 @@ inspection. Currently the following are available:
 * http.response_headers.raw
 * http.response_body
 * http.response_cookie
+* rule_id
 
 All the HTTP buffers have a limitation: only one can be inspected by a
 script at a time.
