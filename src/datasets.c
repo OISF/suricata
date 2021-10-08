@@ -460,7 +460,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
         return set;
     } else {
         if (type == DATASET_TYPE_NOTSET) {
-            SCLogError(SC_ERR_DATASET, "dataset %s not defined", name);
+            SCLogError(SC_ERR_DATASET, "dataset %s type not set", name);
             goto out_err;
         }
     }
