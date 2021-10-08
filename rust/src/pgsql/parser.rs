@@ -717,7 +717,7 @@ named!(
     do_parse!(
         identifier: verify!(be_u8, |&x| x == b'C')
             >> length: verify!(be_u32, |&x| x > 4)
-            >> payload: take!(length - 4)
+            >> payload: flat_map!(take!(length - 4), take_until!("\x00"))
             >> (PgsqlBEMessage::CommandComplete(RegularPacket {
                 identifier,
                 length,
@@ -2016,7 +2016,7 @@ mod tests {
         let ok_res = PgsqlBEMessage::CommandComplete(RegularPacket {
             identifier: b'C',
             length: 13,
-            payload: b"SELECT 3\0".to_vec(),
+            payload: b"SELECT 3".to_vec(),
         });
 
         let result = pgsql_parse_response(buffer);
