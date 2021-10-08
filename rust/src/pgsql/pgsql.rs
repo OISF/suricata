@@ -264,7 +264,8 @@ impl PgsqlState {
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.requests.push(request);
                     } else {
-                        return AppLayerResult::err();
+                        // If there isn't a new transaction, we'll consider Suri should move on
+                        return AppLayerResult::ok();
                     };
                 }
                 Err(nom::Err::Incomplete(_needed)) => {
@@ -383,7 +384,7 @@ impl PgsqlState {
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.responses.push(response);
                     } else {
-                        // If don't have a new transaction, here, we'll consider Suri sould move on 
+                        // If there isn't a new transaction, we'll consider Suri should move on
                         return AppLayerResult::ok();
                     };
                 }
