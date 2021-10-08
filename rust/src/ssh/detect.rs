@@ -16,7 +16,7 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::STREAM_TOCLIENT;
 use std::ptr;
 
 #[no_mangle]
@@ -25,16 +25,6 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
-        STREAM_TOSERVER => {
-            let m = &tx.cli_hdr.protover;
-            if m.len() > 0 {
-                unsafe {
-                    *buffer = m.as_ptr();
-                    *buffer_len = m.len() as u32;
-                }
-                return 1;
-            }
-        }
         STREAM_TOCLIENT => {
             let m = &tx.srv_hdr.protover;
             if m.len() > 0 {
@@ -45,7 +35,16 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
                 return 1;
             }
         }
-        _ => {}
+        _ => {
+            let m = &tx.cli_hdr.protover;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
     }
     unsafe {
         *buffer = ptr::null();
@@ -61,16 +60,6 @@ pub extern "C" fn rs_ssh_tx_get_software(
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
-        STREAM_TOSERVER => {
-            let m = &tx.cli_hdr.swver;
-            if m.len() > 0 {
-                unsafe {
-                    *buffer = m.as_ptr();
-                    *buffer_len = m.len() as u32;
-                }
-                return 1;
-            }
-        }
         STREAM_TOCLIENT => {
             let m = &tx.srv_hdr.swver;
             if m.len() > 0 {
@@ -81,7 +70,16 @@ pub extern "C" fn rs_ssh_tx_get_software(
                 return 1;
             }
         }
-        _ => {}
+        _ => {
+            let m = &tx.cli_hdr.swver;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
     }
     unsafe {
         *buffer = ptr::null();
@@ -100,16 +98,6 @@ pub extern "C" fn rs_ssh_tx_get_hassh(
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
-        STREAM_TOSERVER => {
-            let m = &tx.cli_hdr.hassh;
-            if m.len() > 0 {
-                unsafe {
-                    *buffer = m.as_ptr();
-                    *buffer_len = m.len() as u32;
-                }
-                return 1;
-            }
-        }
         STREAM_TOCLIENT => {
             let m = &tx.srv_hdr.hassh;
             if m.len() > 0 {
@@ -120,7 +108,16 @@ pub extern "C" fn rs_ssh_tx_get_hassh(
                 return 1;
             }
         }
-        _ => {}
+        _ => {
+            let m = &tx.cli_hdr.hassh;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
     }
     unsafe {
         *buffer = ptr::null();
@@ -139,16 +136,6 @@ pub extern "C" fn rs_ssh_tx_get_hassh_string(
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction {
-        STREAM_TOSERVER => {
-            let m = &tx.cli_hdr.hassh_string;
-            if m.len() > 0 {
-                unsafe {
-                    *buffer = m.as_ptr();
-                    *buffer_len = m.len() as u32;
-                }
-                return 1;
-            }
-        }
         STREAM_TOCLIENT => {
             let m = &tx.srv_hdr.hassh_string;
             if m.len() > 0 {
@@ -159,7 +146,16 @@ pub extern "C" fn rs_ssh_tx_get_hassh_string(
                 return 1;
             }
         }
-        _ => {}
+        _ => {
+            let m = &tx.cli_hdr.hassh_string;
+            if m.len() > 0 {
+                unsafe {
+                    *buffer = m.as_ptr();
+                    *buffer_len = m.len() as u32;
+                }
+                return 1;
+            }
+        }
     }
     unsafe {
         *buffer = ptr::null();
