@@ -57,7 +57,7 @@ void RegisterHTTP2Parsers(void)
 {
     const char *proto_name = "http2";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, true)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP2, proto_name);
         if (HTTP2RegisterPatternsForProtocolDetection() < 0)
             return;
