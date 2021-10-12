@@ -6360,23 +6360,20 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
 int StreamTcpSegmentForSession(
         const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
-    TcpSession *ssn = NULL;
-    TcpStream *server_stream = NULL;
-    TcpStream *client_stream = NULL;
     int ret = 0;
     int cnt = 0;
 
     if (p->flow == NULL)
         return 0;
 
-    ssn = (TcpSession *)p->flow->protoctx;
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
-        return 0;
+        return -1;
     }
 
-    server_stream = &(ssn->server);
-    client_stream = &(ssn->client);
+    TcpStream *server_stream = &(ssn->server);
+    TcpStream *client_stream = &(ssn->client);
 
     TcpSegment *server_node = RB_ROOT(&(server_stream->seg_tree));
     TcpSegment *client_node = RB_ROOT(&(client_stream->seg_tree));
