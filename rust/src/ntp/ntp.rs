@@ -152,6 +152,9 @@ impl NTPTransaction {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if let Some(de_state) = self.de_state {
+            core::sc_detect_engine_state_free(de_state);
+        }
     }
 }
 
