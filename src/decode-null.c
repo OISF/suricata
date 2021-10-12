@@ -46,6 +46,13 @@
 
 #define HDR_SIZE 4
 
+#define AF_INET6_BSD     24
+#define AF_INET6_FREEBSD 28
+#define AF_INET6_DARWIN  30
+#define AF_INET6_LINUX   10
+#define AF_INET6_SOLARIS 26
+#define AF_INET6_WINSOCK 23
+
 int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)
 {
@@ -71,7 +78,12 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("IPV4 Packet");
             DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE);
             break;
-        case AF_INET6:
+        case AF_INET6_BSD:
+        case AF_INET6_FREEBSD:
+        case AF_INET6_DARWIN:
+        case AF_INET6_LINUX:
+        case AF_INET6_SOLARIS:
+        case AF_INET6_WINSOCK:
             SCLogDebug("IPV6 Packet");
             DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE);
             break;
