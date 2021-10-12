@@ -1407,6 +1407,14 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* Set the no app layer inspection flag for both
      * the stream in this Flow */
     if (f->proto == IPPROTO_TCP) {
+        TcpSession *ssn = f->protoctx;
+        if (ssn != NULL) {
+            if (flags & STREAM_TOSERVER) {
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_ERRORED;
+            } else {
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ERRORED;
+            }
+        }
         StreamTcpDisableAppLayer(f);
     }
     AppLayerParserSetEOF(pstate);

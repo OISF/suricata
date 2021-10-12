@@ -234,6 +234,8 @@ enum TcpState
 #define STREAMTCP_STREAM_FLAG_DISABLE_RAW                   BIT_U16(10)
 
 #define STREAMTCP_STREAM_FLAG_RST_RECV                      BIT_U16(11)
+/** Stream has errored, need to still handle the other direction */
+#define STREAMTCP_STREAM_FLAG_ERRORED                       BIT_U16(12)
 
 /** NOTE: flags field is 12 bits */
 
