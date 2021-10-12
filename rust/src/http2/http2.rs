@@ -17,6 +17,7 @@
 
 #[cfg(feature = "decompression")]
 use super::decompression;
+#[cfg(feature = "http-range")]
 use super::detect;
 use super::files::*;
 use super::parser;
@@ -214,7 +215,7 @@ impl HTTP2Transaction {
 
     fn decompress<'a>(
         &'a mut self, input: &'a [u8], dir: u8, sfcm: &'static SuricataFileContext, over: bool,
-        files: &mut FileContainer, flags: u16, flow: *const Flow,
+        files: &mut FileContainer, flags: u16, _flow: *const Flow,
     ) -> io::Result<()> {
         #[cfg(feature = "decompression")]
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
@@ -230,6 +231,7 @@ impl HTTP2Transaction {
                 // we are now sure that new_chunk will open a file
                 // even if it may close it right afterwards
                 self.tx_data.incr_files_opened();
+                #[cfg(feature = "http-range")]
                 if let Ok(value) = detect::http2_frames_get_header_value_vec(
                     self,
                     STREAM_TOCLIENT,
@@ -237,7 +239,7 @@ impl HTTP2Transaction {
                 ) {
                     match range::http2_parse_content_range(&value) {
                         Ok((_, v)) => {
-                            range::http2_range_open(self, &v, flow, sfcm, flags, decompressed);
+                            range::http2_range_open(self, &v, _flow, sfcm, flags, decompressed);
                             if over && self.file_range != std::ptr::null_mut() {
                                 range::http2_range_close(self, files, flags, &[])
                             }

@@ -529,6 +529,14 @@
      ])
      AM_CONDITIONAL([HTTP2_DECOMPRESSION], [test "x$enable_http2_decompression" = "xyes"])
 
+  # enable http range reassembly
+     AC_ARG_ENABLE(http-range-reassembly,
+            AS_HELP_STRING([--enable-http-range-reassembly], [Enable http range reassembly]),[enable_http_range=$enableval],[enable_http_range=no])
+     AS_IF([test "x$enable_http_range" = "xyes"], [
+         AC_DEFINE([HTTP_RANGE_REASSEMBLY],[1],[Enable http range reassembly])
+     ])
+     AM_CONDITIONAL([HTTP_RANGE_REASSEMBLY], [test "x$enable_http_range" = "xyes"])
+
   # profiling support
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),[enable_profiling=$enableval],[enable_profiling=no])

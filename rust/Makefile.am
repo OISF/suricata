@@ -31,6 +31,10 @@ if HTTP2_DECOMPRESSION
 RUST_FEATURES +=	decompression
 endif
 
+if HTTP_RANGE_REASSEMBLY
+RUST_FEATURES +=	http-range
+endif
+
 if RUST_CROSS_COMPILE 
 RUST_TARGET = --target $(host_triplet)
 endif

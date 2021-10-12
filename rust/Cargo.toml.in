@@ -17,6 +17,7 @@ strict = []
 debug = []
 debug-validate = []
 function-macro = []
+http-range = []
 decompression = ["flate2", "brotli"]
 
 [dependencies]
