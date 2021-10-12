@@ -30,6 +30,7 @@
 #include "tm-threads.h"
 
 #include "util-byte.h"
+#include "util-datalink.h"
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-error.h"
@@ -567,6 +568,8 @@ unlock:
         /* set our return context */
         *data = wd_tv;
     }
+
+    DatalinkSetGlobalType(LINKTYPE_RAW);
 
     SCMutexUnlock(&wd_qv->filter_init_mutex);
     SCReturnInt(ret);

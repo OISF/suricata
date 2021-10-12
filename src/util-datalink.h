@@ -15,6 +15,11 @@
  * 02110-1301, USA.
  */
 
+#ifndef __UTIL_DATALINK_H__
+#define __UTIL_DATALINK_H__
+
 void DatalinkSetGlobalType(int datalink);
 int DatalinkGetGlobalType(void);
 bool DatalinkHasMultipleValues(void);
+
+#endif /* __UTIL_DATALINK_H__ */
