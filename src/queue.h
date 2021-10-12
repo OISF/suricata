@@ -51,19 +51,14 @@
 
 #include "autoconf.h"
 
-#ifdef HAVE_SYS_QUEUE_H
+#if defined(HAVE_SYS_QUEUE_H) && !defined(__clang_analyzer__)
 #include <sys/queue.h>
 #endif
 
-/* Not included in Linux, but are in FreeBSD and friends.
- *
- * This implementation from FreeBSD's sys/queue.h.
- */
-#ifndef TAILQ_FOREACH_SAFE
-#define	TAILQ_FOREACH_SAFE(var, head, field, tvar)			\
-	for ((var) = TAILQ_FIRST((head));				\
-	    (var) && ((tvar) = TAILQ_NEXT((var), field), 1);		\
-	    (var) = (tvar))
+#if defined(__clang_analyzer__)
+#define _Q_ASSERT(a) assert((a))
+#else
+#define _Q_ASSERT(a)
 #endif
 
 /* The BSDs have removed CIRCLEQ but it still exists in Linux.
@@ -225,7 +220,8 @@ struct {								\
  * Complete TAILQ implementation as sys/queue.h is not available on Windows
  * and used by Suricata.
  *
- * This implementation copied from FreeBSD sys/queue.h.
+ * This implementation copied from FreeBSD sys/queue.h with the addition
+ * of our _Q_ASSERT macros to satisy scan-build.
  */
 #ifndef TAILQ_HEAD
 
@@ -297,9 +293,12 @@ struct {								\
 } while (0)
 
 #define	TAILQ_INSERT_TAIL(head, elm, field) do {			\
+	_Q_ASSERT((elm));						\
+	_Q_ASSERT((head));						\
 	TAILQ_NEXT((elm), field) = NULL;				\
 	(elm)->field.tqe_prev = (head)->tqh_last;			\
 	*(head)->tqh_last = (elm);					\
+	_Q_ASSERT(*(head)->tqh_last);					\
 	(head)->tqh_last = &TAILQ_NEXT((elm), field);			\
 } while (0)
 
@@ -317,9 +316,21 @@ struct {								\
 		    (elm)->field.tqe_prev;				\
 	else								\
 		(head)->tqh_last = (elm)->field.tqe_prev;		\
+	_Q_ASSERT((head)->tqh_first != (elm));				\
 	*(elm)->field.tqe_prev = TAILQ_NEXT((elm), field);		\
 } while (0)
 
 #endif /* !TAILQ_HEAD */
+
+/* Not included in Linux, but are in FreeBSD and friends.
+ *
+ * This implementation from FreeBSD's sys/queue.h.
+ */
+#ifndef TAILQ_FOREACH_SAFE
+#define	TAILQ_FOREACH_SAFE(var, head, field, tvar)			\
+	for ((var) = TAILQ_FIRST((head));				\
+	    (var) && ((tvar) = TAILQ_NEXT((var), field), 1);		\
+	    (var) = (tvar))
+#endif
 
 #endif	/* !SURICATA_QUEUE_H */
