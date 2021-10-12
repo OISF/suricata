@@ -256,6 +256,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         SCLogDebug("set range failed");
     }
 
+#ifdef HTTP_RANGE_REASSEMBLY
     // Then, we will try to handle reassembly of different ranges of the same file
     htp_tx_t *tx = htp_list_get(s->conn->transactions, txid);
     if (!tx) {
@@ -282,6 +283,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     if (s->file_range == NULL) {
         SCReturnInt(-1);
     }
+#endif // HTTP_RANGE_REASSEMBLY
     SCReturnInt(0);
 }
 

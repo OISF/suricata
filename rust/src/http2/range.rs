@@ -15,10 +15,11 @@
 * 02110-1301, USA.
 */
 
+#[cfg(feature = "http-range")]
 use super::detect;
-use crate::core::{
-    Flow, HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC, STREAM_TOSERVER,
-};
+#[cfg(feature = "http-range")]
+use crate::core::{Flow, StreamingBufferConfig, SuricataFileContext, STREAM_TOSERVER};
+use crate::core::{HttpRangeContainerBlock, SC};
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
 
@@ -94,6 +95,7 @@ pub extern "C" fn rs_http_parse_content_range(
     }
 }
 
+#[cfg(feature = "http-range")]
 fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()> {
     let hostv = detect::http2_frames_get_header_value_vec(tx, STREAM_TOSERVER, ":authority")?;
     let mut hostv = &hostv[..];
@@ -123,6 +125,7 @@ fn http2_range_key_get(tx: &mut HTTP2Transaction) -> Result<(Vec<u8>, usize), ()
     return Ok((r, hostv.len()));
 }
 
+#[cfg(feature = "http-range")]
 pub fn http2_range_open(
     tx: &mut HTTP2Transaction, v: &HTTPContentRange, flow: *const Flow,
     cfg: &'static SuricataFileContext, flags: u16, data: &[u8],
@@ -173,6 +176,7 @@ pub fn http2_range_close(
 
 // Defined in app-layer-htp-range.h
 extern "C" {
+    #[cfg(feature = "http-range")]
     pub fn HttpRangeContainerOpenFile(
         key: *const c_uchar, keylen: u32, f: *const Flow, cr: &HTTPContentRange,
         sbcfg: *const StreamingBufferConfig, name: *const c_uchar, name_len: u16, flags: u16,
