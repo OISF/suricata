@@ -507,3 +507,43 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     }
     return -1;
 }
+
+/// Transaction trait.
+///
+/// This trait defines methods that a Transaction struct must implement
+/// in order to define some generic helper functions.
+pub trait Transaction {
+    fn id(&self) -> u64;
+}
+
+pub trait State<Tx: Transaction> {
+    fn get_transactions(&self) -> &[Tx];
+
+    fn get_transaction_iterator(&self, min_tx_id: u64, state: &mut u64) -> AppLayerGetTxIterTuple {
+        let mut index = *state as usize;
+        let transactions = self.get_transactions();
+        let len = transactions.len();
+        while index < len {
+            let tx = &transactions[index];
+            if tx.id() < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+            return AppLayerGetTxIterTuple::with_values(
+                tx as *const _ as *mut _,
+                tx.id() - 1,
+                len - index > 1,
+            );
+        }
+        return AppLayerGetTxIterTuple::not_found();
+    }
+}
+
+pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, S);
+    state.get_transaction_iterator(min_tx_id, istate)
+}
