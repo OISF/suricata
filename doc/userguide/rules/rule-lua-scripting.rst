@@ -16,7 +16,6 @@ The script has 2 parts, an init function and a match function. First, the init.
 Init function
 -------------
 
-
 .. code-block:: lua
 
   function init (args)
@@ -88,3 +87,6 @@ Entire script:
   end
 
   return 0
+
+A comprehensive list of existing lua functions -  with examples - can be found at :ref:`lua-functions` (some of them, however,
+work only for the lua-output functionality).
