@@ -506,6 +506,11 @@ File *HttpRangeClose(HttpRangeContainerBlock *c, uint16_t flags)
     } else if (c->toskip > 0) {
         // was only an overlapping range, truncated before new bytes
         SCLogDebug("c->toskip %" PRIu64, c->toskip);
+        if (c->files) {
+            // if we expected new bytes after overlap
+            c->container->files = c->files;
+            c->files = NULL;
+        }
         return NULL;
     } else {
         // we just finished an in-order block
