@@ -516,25 +516,34 @@ pub trait Transaction {
     fn get_id(&self) -> u64;
 }
 
-/// Helper function to get an iterator for a slice of elements implementing
-/// Transaction.
-pub fn get_transaction_iterator<'a, T: Transaction>(
-    transactions: &'a [T], min_tx_id: u64, state: &mut u64,
-) -> crate::applayer::AppLayerGetTxIterTuple {
-    let mut index = *state as usize;
-    let len = transactions.len();
-    while index < len {
-        let tx = &transactions[index];
-        if tx.get_id() < min_tx_id + 1 {
-            index += 1;
-            continue;
+pub trait State<Tx: Transaction> {
+    fn get_transactions(&self) -> &[Tx];
+
+    fn get_transaction_iterator(&self, min_tx_id: u64, state: &mut u64) -> AppLayerGetTxIterTuple {
+        let mut index = *state as usize;
+        let transactions = self.get_transactions();
+        let len = transactions.len();
+        while index < len {
+            let tx = &transactions[index];
+            if tx.get_id() < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+            return AppLayerGetTxIterTuple::with_values(
+                tx as *const _ as *mut _,
+                tx.get_id() - 1,
+                len - index > 1,
+            );
         }
-        *state = index as u64;
-        return crate::applayer::AppLayerGetTxIterTuple::with_values(
-            tx as *const _ as *mut _,
-            tx.get_id() - 1,
-            len - index > 1,
-        );
+        return AppLayerGetTxIterTuple::not_found();
     }
-    return crate::applayer::AppLayerGetTxIterTuple::not_found();
+}
+
+pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, S);
+    state.get_transaction_iterator(min_tx_id, istate)
 }

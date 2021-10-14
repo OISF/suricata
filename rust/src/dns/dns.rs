@@ -342,6 +342,12 @@ pub struct DNSState {
     gap: bool,
 }
 
+impl State<DNSTransaction> for DNSState {
+    fn get_transactions(&self) -> &[DNSTransaction] {
+        &self.transactions
+    }
+}
+
 impl DNSState {
 
     pub fn new() -> Self {
@@ -970,19 +976,6 @@ pub unsafe extern "C" fn rs_dns_apply_tx_config(
     }
 }
 
-unsafe extern "C" fn rs_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64)
-    -> crate::applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(state, DNSState);
-    crate::applayer::get_transaction_iterator(&state.transactions, min_tx_id, istate)
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
@@ -1010,7 +1003,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(rs_tx_iterator),
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
@@ -1056,7 +1049,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(rs_tx_iterator),
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
