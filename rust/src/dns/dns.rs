@@ -236,6 +236,12 @@ pub struct DNSTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Transaction for DNSTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
+
 impl DNSTransaction {
 
     pub fn new() -> Self {
@@ -334,6 +340,12 @@ pub struct DNSState {
     config: Option<ConfigTracker>,
 
     gap: bool,
+}
+
+impl State<DNSTransaction> for DNSState {
+    fn get_transactions(&self) -> &[DNSTransaction] {
+        &self.transactions
+    }
 }
 
 impl DNSState {
@@ -991,7 +1003,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
@@ -1037,7 +1049,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
