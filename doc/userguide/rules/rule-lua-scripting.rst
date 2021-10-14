@@ -30,6 +30,14 @@ inspection. Currently the following are available:
 * packet -- entire packet, including headers
 * payload -- packet payload (not stream)
 * buffer -- the current sticky buffer
+* stream
+* dnp3
+* dns.request
+* dns.response
+* dns.rrname
+* ssh
+* smtp
+* tls
 * http.uri
 * http.uri.raw
 * http.request_line
