@@ -1,7 +1,7 @@
-.. _lua-scripting:
+.. _lua-detection:
 
-Lua Scripting
-=============
+Lua Scripting for Detection
+===========================
 
 Syntax:
 

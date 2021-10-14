@@ -8,7 +8,7 @@ Differences between `output` and `detect`:
 
 Currently, the ``needs`` key initialization varies, depending on what is the goal of the script: output or detection.
 
-If the script is for detection, the ``needs`` initialization should be as seen in the example below (see :ref:`lua-scripting` for a complete example for a detect script):
+If the script is for detection, the ``needs`` initialization should be as seen in the example below (see :ref:`lua-detection` for a complete example of a detection script):
 
 ::
 

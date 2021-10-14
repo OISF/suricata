@@ -36,5 +36,5 @@ Suricata Rules
    ip-reputation-rules
    config
    datasets
-   rule-lua-scripting
+   lua-detection
    differences-from-snort
