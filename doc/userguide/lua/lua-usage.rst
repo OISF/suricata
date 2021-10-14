@@ -17,4 +17,4 @@ Lua can be used to write arbitrary output. See :ref:`lua-output` for more inform
 Lua detection
 -------------
 
-Lua script can be used as a filter condition in signatures. See :ref:`lua-scripting` for more information.
+Lua script can be used as a filter condition in signatures. See :ref:`lua-detection` for more information.
