@@ -173,6 +173,8 @@ typedef struct NetmapThreadVars_
     uint64_t drops;
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
+
+    CaptureStats stats;
 } NetmapThreadVars;
 
 typedef TAILQ_HEAD(NetmapDeviceList_, NetmapDevice_) NetmapDeviceList;
@@ -491,6 +493,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
         }
     }
 
+    CaptureStatsSetup(tv, &ntv->stats);
     *data = (void *)ntv;
     aconf->DerefFunc(aconf);
     SCReturnInt(TM_ECODE_OK);
@@ -543,6 +546,8 @@ static void NetmapReleasePacket(Packet *p)
     NetmapThreadVars *ntv = (NetmapThreadVars *)p->netmap_v.ntv;
 
     if ((ntv->copy_mode != NETMAP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
+        /* update counters */
+        CaptureStatsUpdate(ntv->tv, &ntv->stats, p);
         NetmapWritePacket(ntv, p);
     }
 
