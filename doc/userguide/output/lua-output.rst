@@ -10,7 +10,7 @@ define four hook functions.
 For lua output scripts suricata offers a wide range of lua functions.
 They all return information on specific engine internals and aspects of the network traffic.
 They are described in the following sections, grouped by the event/traffic type.
-But let's start with a example explaining the four hook functions, and how to make
+But let's start with an example explaining the four hook functions, and how to make
 suricata load a lua output script.
 
 Script structure
