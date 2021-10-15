@@ -153,11 +153,12 @@ Example::
 tls.version
 -----------
 
-Match on negotiated TLS/SSL version.
+Match on negotiated TLS/SSL version. Supports negation of the version match.
 
-Supported values: "1.0", "1.1", "1.2", "1.3"
+Supported values: "1.0", "1.1", "1.2", "1.3", "!1.0", "!1.1", "!1.2", "!1.3"
 
 It is also possible to match versions using a hex string.
+These can also be inverted.
 
 Examples::
 

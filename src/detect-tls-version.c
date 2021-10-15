@@ -54,7 +54,7 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
+#define PARSE_REGEX "^\\s*(!?[A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
 
 static DetectParseRegex parse_regex;
 
@@ -135,6 +135,11 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         ret = 1;
     }
 
+    if (tls_data->flags & SIGMATCH_HANDLE_NEGATION) {
+        /* Inverse match result for negated sig */
+        ret = (ret == 0) ? 1 : 0;
+    }
+
     SCReturnInt(ret);
 }
 
@@ -185,6 +190,11 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
             tmp_str += 1;
         }
 
+        if (tmp_str[0] == '!') {
+            tls->flags |= SIGMATCH_HANDLE_NEGATION;
+            tmp_str++;
+        }
+
         if (strncmp("1.0", tmp_str, 3) == 0) {
             temp = TLS_VERSION_10;
         } else if (strncmp("1.1", tmp_str, 3) == 0) {
@@ -203,7 +213,8 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
 
         tls->ver = temp;
 
-        SCLogDebug("will look for tls %"PRIu16"", tls->ver);
+        SCLogDebug("will look for tls %s%" PRIu16 "",
+                (tls->flags & SIGMATCH_HANDLE_NEGATION) ? "!" : "", tls->ver);
     }
 
     return tls;
