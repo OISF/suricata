@@ -41,7 +41,6 @@
 #![allow(clippy::for_loops_over_fallibles)]
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::single_match)]
-#![allow(clippy::cmp_null)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::ptr_arg)]
 #![allow(clippy::new_without_default)]

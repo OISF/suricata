@@ -630,7 +630,7 @@ pub unsafe extern "C" fn jb_open_array(js: &mut JsonBuilder, key: *const c_char)
 pub unsafe extern "C" fn jb_set_string(
     js: &mut JsonBuilder, key: *const c_char, val: *const c_char,
 ) -> bool {
-    if val == std::ptr::null() {
+    if val.is_null() {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -645,7 +645,7 @@ pub unsafe extern "C" fn jb_set_string(
 pub unsafe extern "C" fn jb_set_string_from_bytes(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -680,7 +680,7 @@ pub unsafe extern "C" fn jb_set_object(
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_char) -> bool {
-    if val == std::ptr::null() {
+    if val.is_null() {
         return false;
     }
     if let Ok(val) = CStr::from_ptr(val).to_str() {
@@ -693,7 +693,7 @@ pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_ch
 pub unsafe extern "C" fn jb_append_string_from_bytes(
     js: &mut JsonBuilder, bytes: *const u8, len: u32,
 ) -> bool {
-    if bytes == std::ptr::null() || len == 0 {
+    if bytes.is_null() || len == 0 {
         return false;
     }
     let val = std::slice::from_raw_parts(bytes, len as usize);

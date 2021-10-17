@@ -479,7 +479,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
+    if event_name.is_null() {
         return -1;
     }
 
