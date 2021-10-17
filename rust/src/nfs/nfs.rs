@@ -1649,7 +1649,7 @@ pub unsafe extern "C" fn rs_nfs_state_get_event_info(event_name: *const std::os:
                                               event_type: *mut AppLayerEventType)
                                               -> std::os::raw::c_int
 {
-    if event_name == std::ptr::null() {
+    if event_name.is_null() {
         return -1;
     }
     let c_event_name: &CStr = CStr::from_ptr(event_name);
