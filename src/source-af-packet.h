@@ -154,6 +154,8 @@ typedef struct AFPPacketVars_
     int v6_map_fd;
     unsigned int nr_cpus;
 #endif
+
+    void *aftv;
 } AFPPacketVars;
 
 #ifdef HAVE_PACKET_EBPF

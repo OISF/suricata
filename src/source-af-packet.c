@@ -298,6 +298,8 @@ typedef struct AFPThreadVars_
     struct ebpf_timeout_config ebpf_t_config;
 #endif
 
+    CaptureStats stats;
+
 } AFPThreadVars;
 
 static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
@@ -726,6 +728,10 @@ static TmEcode AFPWritePacket(Packet *p, int version)
     uint16_t vlan_tci = 0;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
+        /* update counters */
+
+        AFPThreadVars *aftv = p->afp_v.aftv;
+        CaptureStatsUpdate(aftv->tv, &aftv->stats, p);
         if (PacketTestAction(p, ACTION_DROP)) {
             return TM_ECODE_OK;
         }
@@ -953,6 +959,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             } else {
                 p->afp_v.relptr = h.raw;
                 p->ReleasePacket = AFPReleasePacket;
+                p->afp_v.aftv = ptv;
                 p->afp_v.mpeer = ptv->mpeer;
                 AFPRefSocket(ptv->mpeer);
 
@@ -1073,6 +1080,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         }
         p->afp_v.relptr = ppd;
         p->ReleasePacket = AFPReleasePacketV3;
+        p->afp_v.aftv = ptv;
         p->afp_v.mpeer = ptv->mpeer;
         AFPRefSocket(ptv->mpeer);
 
@@ -2770,6 +2778,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
             SCLogWarning(SC_WARN_UNCOMMON, "Enabling a BPF filter in IPS mode result"
                       " in dropping all non matching packets.");
         }
+        CaptureStatsSetup(tv, &ptv->stats);
     }
 
 
