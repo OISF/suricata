@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use std::fmt;
 use nom::IResult;
 use nom::combinator::rest;
 use nom::number::streaming::{le_u8, le_u16, le_u32};
@@ -27,9 +28,9 @@ pub struct NTLMSSPVersion {
     pub ver_ntlm_rev: u8,
 }
 
-impl NTLMSSPVersion {
-    pub fn to_string(&self) -> String {
-        format!("{}.{} build {} rev {}",
+impl fmt::Display for NTLMSSPVersion {
+    fn fmt(&self, f : &mut fmt::Formatter) ->  fmt::Result {
+        write!(f,"{}.{} build {} rev {}",
                 self.ver_major, self.ver_minor,
                 self.ver_build, self.ver_ntlm_rev)
     }
