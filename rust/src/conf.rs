@@ -48,7 +48,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
         }
     }
 
-    if vptr == ptr::null() {
+    if vptr.is_null() {
         return None;
     }
 
@@ -103,7 +103,7 @@ impl ConfNode {
             }
         }
 
-        if vptr == ptr::null() {
+        if vptr.is_null() {
             return None;
         }
 
