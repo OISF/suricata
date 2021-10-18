@@ -29,7 +29,7 @@ pub struct NTLMSSPVersion {
 }
 
 impl fmt::Display for NTLMSSPVersion {
-    fn fmt(&self, f : &mut fmt::Formatter) ->  fmt::Result {
+    fn fmt(&self,f : &mut fmt::Formatter) -> fmt::Result {
         write!(f,"{}.{} build {} rev {}",
                 self.ver_major, self.ver_minor,
                 self.ver_build, self.ver_ntlm_rev)
