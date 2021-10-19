@@ -24,6 +24,8 @@ use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
 
 use nom::character::complete::digit1;
+use nom::error::ErrorKind;
+use nom::Err;
 use nom::IResult;
 use std::os::raw::c_uchar;
 use std::str::FromStr;
@@ -69,7 +71,7 @@ pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], H
     ));
 }
 
-pub fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
     let (i2, _) = take_while!(input, |c| c == b' ')?;
     let (i2, _) = take_till!(i2, |c| c == b' ')?;
     let (i2, _) = take_while!(i2, |c| c == b' ')?;
@@ -77,6 +79,14 @@ pub fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPC
         i2,
         http2_parse_content_range_star | http2_parse_content_range_def
     );
+}
+
+pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
+    let (rem, v) = http2_parse_content_range(input)?;
+    if v.start > v.end {
+        return Err(Err::Error((rem, ErrorKind::Verify)));
+    }
+    return Ok((rem, v));
 }
 
 #[no_mangle]
@@ -130,6 +140,13 @@ pub fn http2_range_open(
     tx: &mut HTTP2Transaction, v: &HTTPContentRange, flow: *const Flow,
     cfg: &'static SuricataFileContext, flags: u16, data: &[u8],
 ) {
+    if v.end <= 0 || v.size <= 0 {
+        // skipped for incomplete range information
+        return;
+    } else if v.end == v.size - 1 && v.start == 0 {
+        // whole file in one range
+        return;
+    }
     if let Ok((key, index)) = http2_range_key_get(tx) {
         let name = &key[index..];
         tx.file_range = unsafe {
