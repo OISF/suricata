@@ -210,7 +210,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
-    if input_len > 0 && input != std::ptr::null_mut() {
+    if input_len > 0 && !input.is_null() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf);
     }

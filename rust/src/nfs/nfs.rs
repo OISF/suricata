@@ -217,7 +217,7 @@ impl NFSTransaction {
     pub fn free(&mut self) {
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         match self.de_state {

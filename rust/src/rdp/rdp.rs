@@ -410,7 +410,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
-    if input != std::ptr::null_mut() {
+    if !input.is_null() {
         // probe bytes for `rdp` protocol pattern
         let slice = build_slice!(input, input_len as usize);
 

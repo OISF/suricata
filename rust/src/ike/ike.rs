@@ -129,7 +129,7 @@ impl IKETransaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         if let Some(state) = self.de_state {
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
         return ALPROTO_FAILED;
     }
 
-    if input != std::ptr::null_mut() {
+    if !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice, direction, rdir) {
             return ALPROTO_IKE ;

@@ -75,7 +75,7 @@ impl RFBTransaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         if let Some(state) = self.de_state {
