@@ -50,7 +50,7 @@ impl TemplateTransaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         if let Some(state) = self.de_state {
@@ -287,7 +287,7 @@ pub unsafe extern "C" fn rs_template_probing_parser(
     _rdir: *mut u8
 ) -> AppProto {
     // Need at least 2 bytes.
-    if input_len > 1 && input != std::ptr::null_mut() {
+    if input_len > 1 && !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice).is_ok() {
             return ALPROTO_TEMPLATE;
@@ -340,7 +340,7 @@ pub unsafe extern "C" fn rs_template_parse_request(
 
     let state = cast_pointer!(state, TemplateState);
 
-    if input == std::ptr::null_mut() && input_len > 0 {
+    if input.is_null() && input_len > 0 {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
         state.on_request_gap(input_len);
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
     };
     let state = cast_pointer!(state, TemplateState);
 
-    if input == std::ptr::null_mut() && input_len > 0 {
+    if input.is_null() && input_len > 0 {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
         state.on_response_gap(input_len);

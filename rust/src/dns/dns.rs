@@ -250,7 +250,7 @@ impl DNSTransaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         match self.de_state {
@@ -719,7 +719,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
-        if input != std::ptr::null_mut() {
+        if !input.is_null() {
             let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.parse_request_tcp(buf);
         }
@@ -739,7 +739,7 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
-        if input != std::ptr::null_mut() {
+        if !input.is_null() {
             let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.parse_response_tcp(buf);
         }

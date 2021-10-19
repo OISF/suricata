@@ -288,7 +288,7 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_iface_free(ptr: *mut c_void) {
-    if ptr != std::ptr::null_mut() {
+    if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEIfaceData));
     }
 }
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
-    if ptr != std::ptr::null_mut() {
+    if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEOpnumData));
     }
 }
