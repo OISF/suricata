@@ -1158,7 +1158,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
     if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
         state.ts_gap = true;
     }
-    if input_len > 0 && input != std::ptr::null_mut() {
+    if input_len > 0 && !input.is_null() {
         let buf = build_slice!(input, input_len as usize);
         state.flow = Some(flow);
         return state.handle_input_data(buf, core::STREAM_TOSERVER);
@@ -1180,7 +1180,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
         state.tc_gap = true;
     }
     if input_len > 0 {
-        if input != std::ptr::null_mut() {
+        if !input.is_null() {
             let buf = build_slice!(input, input_len as usize);
             state.flow = Some(flow);
             return state.handle_input_data(buf, core::STREAM_TOCLIENT);

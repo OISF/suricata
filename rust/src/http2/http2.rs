@@ -166,13 +166,13 @@ impl HTTP2Transaction {
     }
 
     pub fn free(&mut self) {
-        if self.events != std::ptr::null_mut() {
+        if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
         }
-        if self.file_range != std::ptr::null_mut() {
+        if !self.file_range.is_null() {
             match unsafe { SC } {
                 None => panic!("BUG no suricata_config"),
                 Some(c) => {
@@ -224,7 +224,7 @@ impl HTTP2Transaction {
                     match range::http2_parse_content_range(&value) {
                         Ok((_, v)) => {
                             range::http2_range_open(self, &v, flow, sfcm, flags, decompressed);
-                            if over && self.file_range != std::ptr::null_mut() {
+                            if over && !self.file_range.is_null() {
                                 range::http2_range_close(self, files, flags, &[])
                             }
                         }
@@ -234,7 +234,7 @@ impl HTTP2Transaction {
                     }
                 }
             } else {
-                if self.file_range != std::ptr::null_mut() {
+                if !self.file_range.is_null() {
                     if over {
                         range::http2_range_close(self, files, flags, decompressed)
                     } else {
@@ -1008,7 +1008,7 @@ export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 pub unsafe extern "C" fn rs_http2_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
-    if input != std::ptr::null_mut() {
+    if !input.is_null() {
         let slice = build_slice!(input, input_len as usize);
         match parser::http2_parse_frame_header(slice) {
             Ok((_, header)) => {
@@ -1049,7 +1049,7 @@ pub extern "C" fn rs_http2_state_new(
     let state = HTTP2State::new();
     let boxed = Box::new(state);
     let r = Box::into_raw(boxed) as *mut _;
-    if orig_state != std::ptr::null_mut() {
+    if !orig_state.is_null() {
         //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
             HTTP2MimicHttp1Request(orig_state, r);
