@@ -115,7 +115,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
-    if ptr != std::ptr::null_mut() {
+    if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
     }
 }
