@@ -883,9 +883,8 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 let mut frankenfid = pipe.fid.to_vec();
                 frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-                let (_filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
-                    (n, x) => (n, x),
-                };
+                let (n, x) = state.get_service_for_guid(&frankenfid);
+                let (_filename, is_dcerpc) = (n, x);
                 SCLogDebug!("smb1_trans_request_record: name {} is_dcerpc {}",
                         _filename, is_dcerpc);
                 pipe_dcerpc = is_dcerpc;
@@ -924,9 +923,8 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             let mut frankenfid = fid.to_vec();
             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-            let (_filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
-                (n, x) => (n, x),
-            };
+            let (n, x) = state.get_service_for_guid(&frankenfid);
+            let (_filename, is_dcerpc) = (n, x);
             SCLogDebug!("smb1_trans_response_record: name {} is_dcerpc {}",
                     _filename, is_dcerpc);
 
