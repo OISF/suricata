@@ -118,7 +118,7 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            if x.req_cmd == 1 { // REQUEST
+            if x.req_cmd == DCERPC_TYPE_REQUEST {
                 for range in dce_data.data.iter() {
                     if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
                         if range.range1 == x.opnum as u32 {
