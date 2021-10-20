@@ -19,6 +19,7 @@ use std::ptr;
 use crate::core::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
+use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -184,7 +185,9 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
     let if_op = dce_data.op;
     let if_version = dce_data.version;
     let is_dcerpc_request = match tx.type_data {
-        Some(SMBTransactionTypeData::DCERPC(ref x)) => { x.req_cmd == 1 },
+        Some(SMBTransactionTypeData::DCERPC(ref x)) => {
+            x.req_cmd == DCERPC_TYPE_REQUEST
+        },
         _ => { false },
     };
     if !is_dcerpc_request {
