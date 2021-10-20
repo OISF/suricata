@@ -548,54 +548,61 @@ static int LuaCallbackFlowId(lua_State *luastate)
 }
 
 /** \internal
- *  \brief fill lua stack with alert info
+ *  \brief fill lua stack with signature info
  *  \param luastate the lua state
- *  \param pa pointer to packet alert struct
+ *  \param s pointer to signature struct
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: sid (number), rev (number), gid (number)
  */
-static int LuaCallbackRuleIdsPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+static int LuaCallbackRuleIdsPushToStackFromSignature(lua_State *luastate, const Signature *s)
 {
-    lua_pushinteger(luastate, pa->s->id);
-    lua_pushinteger(luastate, pa->s->rev);
-    lua_pushinteger(luastate, pa->s->gid);
+    lua_pushinteger(luastate, s->id);
+    lua_pushinteger(luastate, s->rev);
+    lua_pushinteger(luastate, s->gid);
     return 3;
 }
 
 /** \internal
  *  \brief Wrapper for getting tuple info into a lua script
  *  \retval cnt number of items placed on the stack
+ *
+ *  Info is pulled from PacketAlert if it exists in lua registry (true for logging scripts)
+ *  otherwise pulled from Signature in lua registry (for match scripts)
  */
 static int LuaCallbackRuleIds(lua_State *luastate)
 {
+    const Signature *s = NULL;
     const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
-    if (pa == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackRuleIdsPushToStackFromPacketAlert(luastate, pa);
+    if (pa != NULL) {
+        s = pa->s;
+    } else {
+        s = LuaStateGetSignature(luastate);
+        if (s == NULL)
+            return LuaCallbackError(luastate, "internal error: no packet alert or signature");
+    }
+    return LuaCallbackRuleIdsPushToStackFromSignature(luastate, s);
 }
 
 /** \internal
- *  \brief fill lua stack with alert info
+ *  \brief fill lua stack with signature info
  *  \param luastate the lua state
- *  \param pa pointer to packet alert struct
+ *  \param s pointer to signature struct
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: action (string)
  */
-static int LuaCallbackRuleActionPushToStackFromPacketAlert(
-        lua_State *luastate, const PacketAlert *pa)
+static int LuaCallbackRuleActionPushToStackFromSignature(lua_State *luastate, const Signature *s)
 {
     const char *action = "";
-    if (pa->s->action & ACTION_PASS) {
+    if (s->action & ACTION_PASS) {
         action = "pass";
-    } else if ((pa->s->action & ACTION_REJECT) || (pa->s->action & ACTION_REJECT_BOTH) ||
-               (pa->s->action & ACTION_REJECT_DST)) {
+    } else if ((s->action & ACTION_REJECT) || (s->action & ACTION_REJECT_BOTH) ||
+               (s->action & ACTION_REJECT_DST)) {
         action = "reject";
-    } else if (pa->s->action & ACTION_DROP) {
+    } else if (s->action & ACTION_DROP) {
         action = "drop";
-    } else if (pa->s->action & ACTION_ALERT) {
+    } else if (s->action & ACTION_ALERT) {
         action = "alert";
     }
     lua_pushstring(luastate, action);
@@ -605,69 +612,93 @@ static int LuaCallbackRuleActionPushToStackFromPacketAlert(
 /** \internal
  *  \brief Wrapper for getting tuple info into a lua script
  *  \retval cnt number of items placed on the stack
+ *
+ *  Info is pulled from PacketAlert if it exists in lua registry (true for logging scripts)
+ *  otherwise pulled from Signature in lua registry (for match scripts)
  */
 static int LuaCallbackRuleAction(lua_State *luastate)
 {
+    const Signature *s = NULL;
     const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
-    if (pa == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackRuleActionPushToStackFromPacketAlert(luastate, pa);
+    if (pa != NULL) {
+        s = pa->s;
+    } else {
+        s = LuaStateGetSignature(luastate);
+        if (s == NULL)
+            return LuaCallbackError(luastate, "internal error: no packet alert or signature");
+    }
+    return LuaCallbackRuleActionPushToStackFromSignature(luastate, s);
 }
 
 /** \internal
- *  \brief fill lua stack with alert info
+ *  \brief fill lua stack with signature info
  *  \param luastate the lua state
- *  \param pa pointer to packet alert struct
+ *  \param s pointer to signature struct
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: msg (string)
  */
-static int LuaCallbackRuleMsgPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+static int LuaCallbackRuleMsgPushToStackFromSignature(lua_State *luastate, const Signature *s)
 {
-    lua_pushstring (luastate, pa->s->msg);
+    lua_pushstring(luastate, s->msg);
     return 1;
 }
 
 /** \internal
  *  \brief Wrapper for getting tuple info into a lua script
  *  \retval cnt number of items placed on the stack
+ *
+ *  Info is pulled from PacketAlert if it exists in lua registry (true for logging scripts)
+ *  otherwise pulled from Signature in lua registry (for match scripts)
  */
 static int LuaCallbackRuleMsg(lua_State *luastate)
 {
+    const Signature *s = NULL;
     const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
-    if (pa == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackRuleMsgPushToStackFromPacketAlert(luastate, pa);
+    if (pa != NULL) {
+        s = pa->s;
+    } else {
+        s = LuaStateGetSignature(luastate);
+        if (s == NULL)
+            return LuaCallbackError(luastate, "internal error: no packet alert or signature");
+    }
+    return LuaCallbackRuleMsgPushToStackFromSignature(luastate, s);
 }
 
 /** \internal
- *  \brief fill lua stack with alert info
+ *  \brief fill lua stack with signature info
  *  \param luastate the lua state
- *  \param pa pointer to packet alert struct
+ *  \param s pointer to signature struct
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: class (string), prio (number)
  */
-static int LuaCallbackRuleClassPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+static int LuaCallbackRuleClassPushToStackFromSignature(lua_State *luastate, const Signature *s)
 {
-    lua_pushstring (luastate, pa->s->class_msg);
-    lua_pushnumber (luastate, pa->s->prio);
+    lua_pushstring(luastate, s->class_msg);
+    lua_pushnumber(luastate, s->prio);
     return 2;
 }
 
 /** \internal
  *  \brief Wrapper for getting tuple info into a lua script
  *  \retval cnt number of items placed on the stack
+ *
+ *  Info is pulled from PacketAlert if it exists in lua registry (true for logging scripts)
+ *  otherwise pulled from Signature in lua registry (for match scripts)
  */
 static int LuaCallbackRuleClass(lua_State *luastate)
 {
+    const Signature *s = NULL;
     const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
-    if (pa == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackRuleClassPushToStackFromPacketAlert(luastate, pa);
+    if (pa != NULL) {
+        s = pa->s;
+    } else {
+        s = LuaStateGetSignature(luastate);
+        if (s == NULL)
+            return LuaCallbackError(luastate, "internal error: no packet alert or signature");
+    }
+    return LuaCallbackRuleClassPushToStackFromSignature(luastate, s);
 }
 
 static int LuaCallbackLogPath(lua_State *luastate)
