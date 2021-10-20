@@ -56,19 +56,11 @@ impl DHCPLogger {
         }
         return None;
     }
-
     pub fn do_log(&self, tx: &DHCPTransaction) -> bool {
         if !self.extended {
             match self.get_type(tx) {
-                Some(t) => {
-                    match t {
-                        DHCP_TYPE_ACK => {
-                            return true;
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
+                Some(DHCP_TYPE_ACK) => return true,
+                        _ => {},
             }
             return false;
         }
