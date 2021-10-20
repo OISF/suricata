@@ -26,6 +26,7 @@ Suricata Rules
    snmp-keywords
    base64-keywords
    sip-keywords
+   smb-keywords
    rfb-keywords
    mqtt-keywords
    ike-keywords
