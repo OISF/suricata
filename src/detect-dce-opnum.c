@@ -2412,6 +2412,129 @@ static int DetectDceOpnumTestParse13(void)
 }
 #endif
 
+/**
+ * \test Test that SMB dce_opnum match for a dcerpc request.
+ */
+static int DetectSmbDceOpnumInRequestTest(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    Packet *p = NULL;
+    Flow f;
+    TcpSession ssn;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    DCERPCState *dcerpc_state = NULL;
+    int r = 0;
+
+    uint8_t smb_dcerpc_req1[] = {
+        0x00, 0x00, 0x00, 0xc0, 0xfe, 0x53, 0x4d, 0x42,
+        0x40, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x09, 0x00, 0x7f, 0x00, 0x08, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x61, 0x00, 0x00, 0x0c,
+        0x00, 0xfc, 0x00, 0x00, 0x16, 0xdc, 0xd7, 0xf7,
+        0x96, 0x5a, 0xcb, 0x27, 0x53, 0x7a, 0xf7, 0x3b,
+        0xa0, 0xc9, 0x0c, 0x1c, 0x31, 0x00, 0x70, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x8b, 0x00, 0x00, 0x00,
+        0x3f, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x03,
+        0x10, 0x00, 0x00, 0x00, 0x50, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xed, 0xc3, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
+        0x57, 0x00, 0x69, 0x00, 0x6e, 0x00, 0x64, 0x00,
+        0x6f, 0x00, 0x77, 0x00, 0x73, 0x00, 0x20, 0x00,
+        0x78, 0x00, 0x36, 0x00, 0x34, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
+
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_SMB;
+
+    StreamTcpInitConfig(true);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert smb any any -> any any "
+                                      "(msg:\"SMB-DCERPC Spool\"; "
+                                      "dce_opnum: 10;"
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOSERVER | STREAM_START, smb_dcerpc_req1,
+                            sizeof(smb_dcerpc_req1));
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    dcerpc_state = f.alstate;
+    if (dcerpc_state == NULL) {
+        SCLogDebug("no dcerpc state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!PacketAlertCheck(p, 1)) {
+        SCLogDebug("sig 1 not matched in req1");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(true);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+
 static void DetectDceOpnumRegisterTests(void)
 {
     UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
@@ -2424,5 +2547,8 @@ static void DetectDceOpnumRegisterTests(void)
     UtRegisterTest("DetectDceOpnumTestParse12", DetectDceOpnumTestParse12, 1);
     UtRegisterTest("DetectDceOpnumTestParse13", DetectDceOpnumTestParse13, 1);
 #endif
+
+    UtRegisterTest("DetectSmbDceOpnumInRequestTest",
+                   DetectSmbDceOpnumInRequestTest);
 }
 #endif /* UNITTESTS */
