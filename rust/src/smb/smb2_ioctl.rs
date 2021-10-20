@@ -62,9 +62,9 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     match parse_smb2_request_ioctl(r.data) {
         Ok((_, rd)) => {
             SCLogDebug!("IOCTL request data: {:?}", rd);
-            let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(rd.guid) {
-                (_, x) => x,
-            };
+
+            let (_,x) = state.get_service_for_guid(rd.guid);
+            let is_dcerpc = rd.is_pipe && x;
             if is_dcerpc {
                 SCLogDebug!("IOCTL request data is_pipe. Calling smb_write_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_IOCTL);
@@ -90,9 +90,8 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         Ok((_, rd)) => {
             SCLogDebug!("IOCTL response data: {:?}", rd);
 
-            let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(rd.guid) {
-                (_, x) => x,
-            };
+            let (_, x) = state.get_service_for_guid(rd.guid);
+            let is_dcerpc = rd.is_pipe && x;
             if is_dcerpc {
                 SCLogDebug!("IOCTL response data is_pipe. Calling smb_read_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_IOCTL, r.nt_status);
