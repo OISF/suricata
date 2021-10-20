@@ -217,15 +217,23 @@ static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packe
     int state = p->flow->flow_state;
     switch (state) {
 #ifdef CAPTURE_OFFLOAD
-        case FLOW_STATE_CAPTURE_BYPASSED:
+        case FLOW_STATE_CAPTURE_BYPASSED: {
             StatsAddUI64(tv, fw->both_bypass_pkts, 1);
             StatsAddUI64(tv, fw->both_bypass_bytes, GET_PKT_LEN(p));
+            Flow *f = p->flow;
+            FlowDeReference(&p->flow);
+            FLOWLOCK_UNLOCK(f);
             return TM_ECODE_DONE;
+        }
 #endif
-        case FLOW_STATE_LOCAL_BYPASSED:
+        case FLOW_STATE_LOCAL_BYPASSED: {
             StatsAddUI64(tv, fw->local_bypass_pkts, 1);
             StatsAddUI64(tv, fw->local_bypass_bytes, GET_PKT_LEN(p));
+            Flow *f = p->flow;
+            FlowDeReference(&p->flow);
+            FLOWLOCK_UNLOCK(f);
             return TM_ECODE_DONE;
+        }
         default:
             return TM_ECODE_OK;
     }
@@ -501,7 +509,6 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
-                FLOWLOCK_UNLOCK(p->flow);
                 return TM_ECODE_OK;
             }
         }
