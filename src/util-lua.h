@@ -63,6 +63,8 @@ Flow *LuaStateGetFlow(lua_State *luastate);
 
 PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
 
+Signature *LuaStateGetSignature(lua_State *luastate);
+
 /** \brief get file pointer from the lua state */
 File *LuaStateGetFile(lua_State *luastate);
 
@@ -82,6 +84,8 @@ void LuaStateSetTX(lua_State *luastate, void *tx);
 void LuaStateSetFlow(lua_State *luastate, Flow *f);
 
 void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
+
+void LuaStateSetSignature(lua_State *luastate, const Signature *s);
 
 void LuaStateSetFile(lua_State *luastate, File *file);
 

@@ -231,8 +231,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
     if (tlua == NULL)
         SCReturnInt(0);
 
-    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
-            f, /* no packet in the ctx */NULL, 0);
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, /* no packet in the ctx */ NULL, s, 0);
 
     /* prepare data to pass to script */
     lua_getglobal(tlua->luastate, "match");
@@ -347,8 +346,7 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
 
     LuaStateSetThreadVars(tlua->luastate, det_ctx->tv);
 
-    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
-            p->flow, p, flags);
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, p->flow, p, s, flags);
 
     if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -480,8 +478,7 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
-            f, NULL, flags);
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, NULL, s, flags);
 
     if (tlua->alproto != ALPROTO_UNKNOWN) {
         int alproto = f->alproto;
