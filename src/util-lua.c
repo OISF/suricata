@@ -97,6 +97,8 @@ const char lua_ext_key_direction[] = "suricata:lua:direction";
 
 /* key for pa (packet alert) pointer */
 const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
+/* key for s (signature) pointer */
+const char lua_ext_key_s[] = "suricata:lua:signature:ptr";
 /* key for file pointer */
 const char lua_ext_key_file[] = "suricata:lua:file:ptr";
 /* key for streaming buffer pointer */
@@ -192,6 +194,22 @@ void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_pa);
     lua_pushlightuserdata(luastate, (void *)pa);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+/** \brief get signature pointer from the lua state */
+Signature *LuaStateGetSignature(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_s);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *s = lua_touserdata(luastate, -1);
+    return (Signature *)s;
+}
+
+void LuaStateSetSignature(lua_State *luastate, const Signature *s)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_s);
+    lua_pushlightuserdata(luastate, (void *)s);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
