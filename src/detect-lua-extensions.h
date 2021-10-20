@@ -27,9 +27,8 @@
 #ifdef HAVE_LUA
 int LuaRegisterExtensions(lua_State *);
 
-void LuaExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuaData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, Packet *p, uint8_t flags);
+void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *, DetectEngineThreadCtx *det_ctx,
+        Flow *f, Packet *p, const Signature *s, uint8_t flags);
 
 #endif /* HAVE_LUA */
 #endif
