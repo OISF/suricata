@@ -65,7 +65,6 @@
 #![allow(clippy::while_let_loop)]
 #![allow(clippy::redundant_pattern_matching)]
 #![allow(clippy::field_reassign_with_default)]
-#![allow(clippy::collapsible_match)]
 
 #[macro_use]
 extern crate nom;
