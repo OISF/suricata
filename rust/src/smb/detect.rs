@@ -18,7 +18,7 @@
 use std::ptr;
 use crate::core::*;
 use crate::smb::smb::*;
-use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
+use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 
 #[no_mangle]
@@ -108,11 +108,7 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             if x.req_cmd == DCERPC_TYPE_REQUEST {
                 for range in dce_data.data.iter() {
-                    if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
-                        if range.range1 == x.opnum as u32 {
-                            return 1;
-                        }
-                    } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+                    if range.is_in_range(x.opnum) {
                         return 1;
                     }
                 }

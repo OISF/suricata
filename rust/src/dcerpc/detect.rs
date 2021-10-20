@@ -29,8 +29,6 @@ pub const DETECT_DCE_IFACE_OP_GT: u8 = 2;
 pub const DETECT_DCE_IFACE_OP_EQ: u8 = 3;
 pub const DETECT_DCE_IFACE_OP_NE: u8 = 4;
 
-pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
-
 #[derive(Debug)]
 pub struct DCEIfaceData {
     pub if_uuid: Vec<u8>,
@@ -41,16 +39,24 @@ pub struct DCEIfaceData {
 
 #[derive(Debug)]
 pub struct DCEOpnumRange {
-    pub range1: u32,
-    pub range2: u32,
+    pub range1: u16,
+    pub range2: Option<u16>,
 }
 
 impl DCEOpnumRange {
     pub fn new() -> Self {
         return Self {
-            range1: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
-            range2: DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
+            range1: 0,
+            range2: None,
         };
+    }
+
+    pub fn is_in_range(&self, opnum: u16) -> bool {
+        if let Some(range2) = self.range2 {
+            return self.range1 <= opnum && range2 >= opnum;
+        }
+
+        return opnum == self.range1;
     }
 }
 
@@ -199,11 +205,8 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     })
 }
 
-fn convert_str_to_u32(arg: &str) -> Result<u32, ()> {
-    match arg.parse::<u32>() {
-        Ok(res) => Ok(res),
-        _ => Err(()),
-    }
+fn convert_str_to_u16(arg: &str) -> Result<u16, ()> {
+    arg.parse::<u16>().map_err(|_| ())
 }
 
 fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
@@ -214,23 +217,23 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
         let split_range: Vec<&str> = range.split('-').collect();
         let split_len = split_range.len();
 
-        if (split_len > 0 && convert_str_to_u32(split_range[0]).is_err())
-            || (split_len > 1 && convert_str_to_u32(split_range[1]).is_err())
+        if (split_len > 0 && convert_str_to_u16(split_range[0]).is_err())
+            || (split_len > 1 && convert_str_to_u16(split_range[1]).is_err())
         {
             return Err(());
         }
         match split_len {
             1 => {
-                opnum_range.range1 = convert_str_to_u32(split_range[0]).unwrap();
+                opnum_range.range1 = convert_str_to_u16(split_range[0]).unwrap();
             }
             2 => {
-                let range1 = convert_str_to_u32(split_range[0]).unwrap();
-                let range2 = convert_str_to_u32(split_range[1]).unwrap();
+                let range1 = convert_str_to_u16(split_range[0]).unwrap();
+                let range2 = convert_str_to_u16(split_range[1]).unwrap();
                 if range2 < range1 {
                     return Err(());
                 }
                 opnum_range.range1 = range1;
-                opnum_range.range2 = range2;
+                opnum_range.range2 = Some(range2);
             }
             _ => {
                 return Err(());
@@ -303,11 +306,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_match(
     }
     let opnum = tx.get_req_opnum();
     for range in opnum_data.data.iter() {
-        if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
-            if range.range1 == opnum as u32 {
-                return 1;
-            }
-        } else if range.range1 <= opnum as u32 && range.range2 >= opnum as u32 {
+        if range.is_in_range(opnum) {
             return 1;
         }
     }
@@ -478,7 +477,7 @@ mod test {
         assert_eq!(1, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(
-            DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
+            None,
             opnum_data.data[0].range2
         );
 
@@ -493,15 +492,15 @@ mod test {
         assert_eq!(2, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(12, opnum_data.data[1].range1);
-        assert_eq!(24, opnum_data.data[1].range2);
+        assert_eq!(Some(24), opnum_data.data[1].range2);
 
         let arg = "12-14,12,121,62-78";
         let opnum_data = parse_opnum_data(arg).unwrap();
         assert_eq!(4, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
-        assert_eq!(14, opnum_data.data[0].range2);
+        assert_eq!(Some(14), opnum_data.data[0].range2);
         assert_eq!(121, opnum_data.data[2].range1);
-        assert_eq!(78, opnum_data.data[3].range2);
+        assert_eq!(Some(78), opnum_data.data[3].range2);
 
         let arg = "12,26,62,61,6513-6666";
         let opnum_data = parse_opnum_data(arg).unwrap();
