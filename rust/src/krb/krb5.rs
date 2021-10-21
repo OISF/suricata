@@ -178,7 +178,7 @@ impl KRB5State {
                         let res = krb5_parser::parse_krb_error(i);
                         if let Ok((_,error)) = res {
                             let mut tx = self.new_tx();
-                            tx.msg_type = MessageType(self.req_id as u32);
+                            tx.msg_type = MessageType::KRB_ERROR;
                             tx.cname = error.cname;
                             tx.realm = error.crealm;
                             tx.sname = Some(error.sname);
