@@ -375,6 +375,124 @@ static int DetectKrb5MsgTypeAsReq(void)
 
 
 /**
+ * \test Test krb5_msg_type against a KRB-ERROR packet.
+ */
+static int DetectKrb5MsgTypeKrbError(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    Packet *p = NULL;
+    Flow f;
+    TcpSession ssn;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int r = 0;
+
+    uint8_t krb_error[] = {
+        0x00, 0x00, 0x00, 0xc2, 0x7e, 0x81, 0xbf, 0x30,
+        0x81, 0xbc, 0xa0, 0x03, 0x02, 0x01, 0x05, 0xa1,
+        0x03, 0x02, 0x01, 0x1e, 0xa4, 0x11, 0x18, 0x0f,
+        0x32, 0x30, 0x32, 0x31, 0x30, 0x36, 0x32, 0x32,
+        0x30, 0x39, 0x32, 0x37, 0x34, 0x30, 0x5a, 0xa5,
+        0x05, 0x02, 0x03, 0x09, 0xe9, 0x10, 0xa6, 0x03,
+        0x02, 0x01, 0x19, 0xa9, 0x0c, 0x1b, 0x0a, 0x43,
+        0x59, 0x4c, 0x45, 0x52, 0x41, 0x2e, 0x4c, 0x41,
+        0x42, 0xaa, 0x1f, 0x30, 0x1d, 0xa0, 0x03, 0x02,
+        0x01, 0x02, 0xa1, 0x16, 0x30, 0x14, 0x1b, 0x06,
+        0x6b, 0x72, 0x62, 0x74, 0x67, 0x74, 0x1b, 0x0a,
+        0x43, 0x59, 0x4c, 0x45, 0x52, 0x41, 0x2e, 0x4c,
+        0x41, 0x42, 0xac, 0x62, 0x04, 0x60, 0x30, 0x5e,
+        0x30, 0x3b, 0xa1, 0x03, 0x02, 0x01, 0x13, 0xa2,
+        0x34, 0x04, 0x32, 0x30, 0x30, 0x30, 0x18, 0xa0,
+        0x03, 0x02, 0x01, 0x12, 0xa1, 0x11, 0x1b, 0x0f,
+        0x43, 0x59, 0x4c, 0x45, 0x52, 0x41, 0x2e, 0x4c,
+        0x41, 0x42, 0x72, 0x6f, 0x62, 0x69, 0x6e, 0x30,
+        0x05, 0xa0, 0x03, 0x02, 0x01, 0x17, 0x30, 0x06,
+        0xa0, 0x04, 0x02, 0x02, 0xff, 0x7b, 0x30, 0x05,
+        0xa0, 0x03, 0x02, 0x01, 0x80, 0x30, 0x09, 0xa1,
+        0x03, 0x02, 0x01, 0x02, 0xa2, 0x02, 0x04, 0x00,
+        0x30, 0x09, 0xa1, 0x03, 0x02, 0x01, 0x10, 0xa2,
+        0x02, 0x04, 0x00, 0x30, 0x09, 0xa1, 0x03, 0x02,
+        0x01, 0x0f, 0xa2, 0x02, 0x04, 0x00
+    };
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_KRB5;
+
+    StreamTcpInitConfig(true);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert krb5 any any -> any any "
+                                   "(msg:\"Kerberos AS-REQ\"; "
+                                   "krb5_msg_type: 30; "
+                                   "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_KRB5,
+                            STREAM_TOSERVER | STREAM_START, krb_error,
+                            sizeof(krb_error));
+
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for krb5 failed.  Returned %" PRId32, r);
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!PacketAlertCheck(p, 1)){
+        SCLogDebug("Kerberos KRB-ERROR signature didn't match");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(true);
+    FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+
+
+
+/**
  * \brief this function registers unit tests for DetectKrb5MsgType
  */
 static void DetectKrb5MsgTypeRegisterTests(void)
@@ -384,5 +502,6 @@ static void DetectKrb5MsgTypeRegisterTests(void)
                    DetectKrb5MsgTypeSignatureTest01);
 
     UtRegisterTest("DetectKrb5MsgTypeAsReq", DetectKrb5MsgTypeAsReq);
+    UtRegisterTest("DetectKrb5MsgTypeKrbError", DetectKrb5MsgTypeKrbError);
 }
 #endif /* UNITTESTS */
