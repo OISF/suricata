@@ -120,3 +120,17 @@ url_decode
 
 Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
 This does not decode unicode '%uZZZZ' encoding
+
+xor
+---
+
+Takes the buffer, applies xor decoding.
+
+.. note:: this transform requires a mandatory option which is the hexadecimal encoded xor key.
+
+
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
+Example::
+
+    alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
+        xor:"0d0ac8ff"; content:"password="; sid:1;)
