@@ -252,6 +252,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
         data: &'b [u8]) -> bool
 {
     let mut bind_ifaces : Option<Vec<DCERPCIface>> = None;
+    let mut is_bind = false;
 
     SCLogDebug!("called for {} bytes of data", data.len());
     match parse_dcerpc_record(data) {
@@ -331,6 +332,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                     };
                     match brec {
                         Ok((_, bindr)) => {
+                            is_bind = true;
                             SCLogDebug!("SMB DCERPC {:?} BIND {:?}", dcer, bindr);
 
                             if bindr.ifaces.len() > 0 {
@@ -374,7 +376,13 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
         },
     }
 
-    state.dcerpc_ifaces = bind_ifaces; // TODO store per ssn
+    if is_bind {
+        // We have to write here the interfaces
+        // rather than in the BIND block
+        // due to borrow issues with the tx mutable reference
+        // that is part of the state
+        state.dcerpc_ifaces = bind_ifaces; // TODO store per ssn
+    }
     return true;
 }
 
