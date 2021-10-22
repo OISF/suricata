@@ -183,7 +183,9 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
                                             -> u8
 {
     let is_dcerpc_request = match tx.type_data {
-        Some(SMBTransactionTypeData::DCERPC(ref x)) => { x.req_cmd == 1 },
+        Some(SMBTransactionTypeData::DCERPC(ref x)) => {
+            x.req_cmd == DCERPC_TYPE_REQUEST
+        },
         _ => { false },
     };
     if !is_dcerpc_request {
