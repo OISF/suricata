@@ -24,8 +24,12 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
 {
     match tx.error_code {
         Some(c) => {
-            jsb.set_string("msg_type", "KRB_ERROR")?;
-            jsb.set_string("failed_request", &format!("{:?}", tx.msg_type))?;
+            jsb.set_string("msg_type", &format!("{:?}", tx.msg_type))?;
+            if let Some(req_type) = tx.req_type {
+                jsb.set_string("failed_request", &format!("{:?}", req_type))?;
+            } else {
+                jsb.set_string("failed_request", "UNKNOWN")?;
+            }
             jsb.set_string("error_code", &format!("{:?}", c))?;
         },
         None    => { jsb.set_string("msg_type", &format!("{:?}", tx.msg_type))?; },
