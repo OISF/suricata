@@ -19,6 +19,7 @@ use std;
 use std::ptr;
 use crate::core::*;
 use crate::smb::smb::*;
+use crate::smb::dcerpc::DCERPC_TYPE_REQUEST;
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -117,7 +118,7 @@ pub extern "C" fn rs_smb_tx_get_dce_opnum(tx: &mut SMBTransaction,
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            if x.req_cmd == 1 { // REQUEST
+            if x.req_cmd == DCERPC_TYPE_REQUEST {
                 unsafe {
                     *opnum = x.opnum as u16;
                     return 1;
