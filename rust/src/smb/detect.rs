@@ -123,9 +123,9 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
                     if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
                         if range.range1 == x.opnum as u32 {
                             return 1;
-                        } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
-                            return 1;
                         }
+                    } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+                        return 1;
                     }
                 }
             }
