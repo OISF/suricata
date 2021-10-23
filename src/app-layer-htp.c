@@ -2404,14 +2404,12 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
         int rdrange = cfg_prec->randomize_range;
 
         long int r = RandomGetWrap();
-        cfg_prec->request.inspect_min_size +=
-            (int) (cfg_prec->request.inspect_min_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->request.inspect_min_size += (int)(cfg_prec->request.inspect_min_size *
+                                                    ((double)r / RAND_MAX - 0.5) * rdrange / 100);
 
         r = RandomGetWrap();
-        cfg_prec->request.inspect_window +=
-            (int) (cfg_prec->request.inspect_window *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->request.inspect_window += (int)(cfg_prec->request.inspect_window *
+                                                  ((double)r / RAND_MAX - 0.5) * rdrange / 100);
         SCLogConfig("'%s' server has 'request-body-minimal-inspect-size' set to"
                   " %d and 'request-body-inspect-window' set to %d after"
                   " randomization.",
@@ -2421,14 +2419,12 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
 
 
         r = RandomGetWrap();
-        cfg_prec->response.inspect_min_size +=
-            (int) (cfg_prec->response.inspect_min_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->response.inspect_min_size += (int)(cfg_prec->response.inspect_min_size *
+                                                     ((double)r / RAND_MAX - 0.5) * rdrange / 100);
 
         r = RandomGetWrap();
-        cfg_prec->response.inspect_window +=
-            (int) (cfg_prec->response.inspect_window *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->response.inspect_window += (int)(cfg_prec->response.inspect_window *
+                                                   ((double)r / RAND_MAX - 0.5) * rdrange / 100);
 
         SCLogConfig("'%s' server has 'response-body-minimal-inspect-size' set to"
                   " %d and 'response-body-inspect-window' set to %d after"
