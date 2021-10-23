@@ -597,8 +597,8 @@ void StreamTcpInitConfig(bool quiet)
     if (randomize) {
         long int r = RandomGetWrap();
         stream_config.reassembly_toserver_chunk_size +=
-            (int) (stream_config.reassembly_toserver_chunk_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                (int)(stream_config.reassembly_toserver_chunk_size * ((double)r / RAND_MAX - 0.5) *
+                        rdrange / 100);
     }
     const char *temp_stream_reassembly_toclient_chunk_size_str;
     if (ConfGetValue("stream.reassembly.toclient-chunk-size",
@@ -619,8 +619,8 @@ void StreamTcpInitConfig(bool quiet)
     if (randomize) {
         long int r = RandomGetWrap();
         stream_config.reassembly_toclient_chunk_size +=
-            (int) (stream_config.reassembly_toclient_chunk_size *
-                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                (int)(stream_config.reassembly_toclient_chunk_size * ((double)r / RAND_MAX - 0.5) *
+                        rdrange / 100);
     }
     if (!quiet) {
         SCLogConfig("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
