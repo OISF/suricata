@@ -5973,8 +5973,7 @@ invalid:
  * \param ssn TCP Session
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
-        const uint32_t progress)
+void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, bool direction, const uint32_t progress)
 {
     if (direction) {
         ssn->server.app_progress_rel += progress;
