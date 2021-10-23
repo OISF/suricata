@@ -72,11 +72,10 @@ typedef struct AppLayerProtoDetectProbingParserElement_ {
     uint16_t port;
     /* \todo calculate at runtime and get rid of this var */
     uint32_t alproto_mask;
-    /* \todo check if we can reduce the bottom 2 vars to uint16_t */
     /* the min length of data that has to be supplied to invoke the parser */
-    uint32_t min_depth;
+    uint16_t min_depth;
     /* the max length of data after which this parser won't be invoked */
-    uint32_t max_depth;
+    uint16_t max_depth;
 
     /* the to_server probing parser function */
     ProbingParserFPtr ProbingParserTs;
@@ -194,7 +193,7 @@ static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
  *  \param searchlen pattern matching portion of buffer */
 static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMSignature *s,
         AppLayerProtoDetectThreadCtx *tctx, Flow *f, uint8_t flags, const uint8_t *buf,
-        uint16_t buflen, uint16_t searchlen, bool *rflow)
+        uint32_t buflen, uint16_t searchlen, bool *rflow)
 {
     SCEnter();
 
@@ -267,11 +266,12 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
  */
 static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
         AppLayerProtoDetectPMCtx *pm_ctx, MpmThreadCtx *mpm_tctx, Flow *f, const uint8_t *buf,
-        uint16_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
+        uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
 {
     int pm_matches = 0;
 
-    uint16_t searchlen = MIN(buflen, pm_ctx->mpm_ctx.maxdepth);
+    // maxdepth is u16, so minimum is u16
+    uint16_t searchlen = (uint16_t) MIN(buflen, pm_ctx->mpm_ctx.maxdepth);
     SCLogDebug("searchlen %u buflen %u", searchlen, buflen);
 
     /* do the mpm search */
@@ -319,7 +319,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
  *  \param direction direction for the patterns
  *  \param pm_results[out] AppProto array of size ALPROTO_MAX */
 static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f,
-        const uint8_t *buf, uint16_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
+        const uint8_t *buf, uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
 {
     SCEnter();
 
@@ -1276,7 +1276,7 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
 {
     SCEnter();
 
-    for (int i = 0; i < FLOW_PROTO_DEFAULT; i++) {
+    for (uint8_t i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         uint8_t ipproto = FlowGetReverseProtoMapping(i);
         for (int j = 0; j < 2; j++) {
             AppLayerProtoDetectPMCtx *pm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j];
@@ -1308,7 +1308,7 @@ static int AppLayerProtoDetectPMSetContentIDs(AppLayerProtoDetectPMCtx *ctx)
     /* array hash buffer */
     uint8_t *ahb = NULL;
     uint8_t *content = NULL;
-    uint8_t content_len = 0;
+    uint16_t content_len = 0;
     PatIntId max_id = 0;
     TempContainer *struct_offset = NULL;
     uint8_t *content_offset = NULL;
@@ -1688,7 +1688,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     DetectPortParse(NULL,&head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
-        uint32_t port = temp_dp->port;
+        uint16_t port = temp_dp->port;
         if (port == 0 && temp_dp->port2 != 0)
             port++;
         for ( ; port <= temp_dp->port2; port++) {
