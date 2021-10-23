@@ -400,8 +400,6 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static double prev_signaled_ts = 0;
-
 static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
@@ -411,14 +409,6 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
 
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
-
-    double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
-    if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {
-        prev_signaled_ts = curr_ts;
-#if 0
-        FlowWakeupFlowManagerThread();
-#endif
-    }
 
     DecoderFunc decoder;
     if(ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
