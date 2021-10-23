@@ -465,7 +465,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer  -Wimplicit-int-float-conversion" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -911,7 +911,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
+      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG -Wimplicit-int-float-conversion" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: make dist
@@ -1047,7 +1047,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-debug-validation
+      - run: CFLAGS="${DEFAULT_CFLAGS} -Wimplicit-int-float-conversion" ./configure --enable-debug-validation
       - run: make -j2
       - run: make check
       - name: Extracting suricata-verify
@@ -1132,7 +1132,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-coccinelle
+      - run: CFLAGS="${DEFAULT_CFLAGS} -Wimplicit-int-float-conversion" ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
       - run: make tags
       - name: Running unit tests and cocci checks
@@ -1329,7 +1329,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS} -Wimplicit-int-float-conversion" ./configure --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -1390,7 +1390,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS} -Wimplicit-int-float-conversion" ./configure --enable-unittests
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
