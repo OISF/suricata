@@ -168,9 +168,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     _ => { (Vec::new(), false) },
                 };
                 let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
-                    match state.get_service_for_guid(&file_guid) {
-                        (_, x) => x,
-                    }
+                    state.get_service_for_guid(&file_guid).1
                 } else {
                     false
                 };
@@ -280,9 +278,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     _ => { (Vec::new(), false) },
                 };
                 let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
-                    match state.get_service_for_guid(wr.guid) {
-                        (_, x) => x,
-                    }
+                    state.get_service_for_guid(wr.guid).1
                 } else {
                     false
                 };
