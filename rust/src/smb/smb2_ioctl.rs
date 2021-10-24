@@ -63,9 +63,8 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         Ok((_, rd)) => {
             SCLogDebug!("IOCTL request data: {:?}", rd);
             let is_dcerpc = if rd.is_pipe {
-                match state.get_service_for_guid(rd.guid) {
-                    (_, x) => x
-                }
+                let (_, x) = state.get_service_for_guid(rd.guid);
+                x
             } else {
                 false
             };
@@ -95,9 +94,8 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             SCLogDebug!("IOCTL response data: {:?}", rd);
 
             let is_dcerpc = if rd.is_pipe {
-                match state.get_service_for_guid(rd.guid) {
-                    (_, x) => x
-                }
+                let (_, x) = state.get_service_for_guid(rd.guid);
+                x
             } else {
                 false
             };
