@@ -514,6 +514,14 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
 /// in order to define some generic helper functions.
 pub trait Transaction {
     fn id(&self) -> u64;
+
+    /// Get the app-layer decoder events from the transaction.
+    ///
+    /// A default implementation is provided for app-layer implememtations
+    /// that do not have decoder events.
+    fn get_events(&self) -> *mut AppLayerDecoderEvents {
+        std::ptr::null_mut()
+    }
 }
 
 pub trait State<Tx: Transaction> {
@@ -546,4 +554,9 @@ pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
 ) -> AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, S);
     state.get_transaction_iterator(min_tx_id, istate)
+}
+
+pub unsafe extern "C" fn tx_get_events<Tx: Transaction>(tx: *mut c_void) -> *mut AppLayerDecoderEvents {
+    let tx = cast_pointer!(tx, Tx);
+    tx.get_events()
 }

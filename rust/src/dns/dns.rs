@@ -22,7 +22,7 @@ use std::ffi::CString;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-use crate::applayer::*;
+use crate::applayer::{self, *};
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
 
@@ -239,6 +239,10 @@ pub struct DNSTransaction {
 impl Transaction for DNSTransaction {
     fn id(&self) -> u64 {
         self.id
+    }
+
+    fn get_events(&self) -> *mut core::AppLayerDecoderEvents {
+        self.events
     }
 }
 
@@ -833,14 +837,6 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
@@ -997,7 +993,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
+        get_events: Some(applayer::tx_get_events::<DNSTransaction>),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
@@ -1043,7 +1039,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
+        get_events: Some(applayer::tx_get_events::<DNSTransaction>),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
