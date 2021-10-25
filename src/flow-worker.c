@@ -565,7 +565,12 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     if (p->flow != NULL) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-        if (p->proto == IPPROTO_TCP) {
+        if (FlowIsBypassed(p->flow)) {
+            FlowCleanupAppLayer(p->flow);
+            if (p->proto == IPPROTO_TCP) {
+                StreamTcpSessionCleanup(p->flow->protoctx);
+            }
+        } else if (p->proto == IPPROTO_TCP && p->flow->protoctx) {
             FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
             StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
                     STREAM_TOSERVER : STREAM_TOCLIENT);
