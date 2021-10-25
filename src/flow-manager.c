@@ -265,50 +265,6 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
     return 1;
 }
 
-/** \internal
- *  \brief See if we can really discard this flow. Check use_cnt reference
- *         counter and force reassembly if necessary.
- *
- *  \param f flow
- *  \param ts timestamp
- *
- *  \retval 0 not timed out just yet
- *  \retval 1 fully timed out, lets kill it
- */
-#if 0
-static inline int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts,
-                                   FlowTimeoutCounters *counters)
-{
-    /* never prune a flow that is used by a packet we
-     * are currently processing in one of the threads */
-    if (f->use_cnt > 0) {
-        return 0;
-    }
-
-    if (!FlowBypassedTimeout(f, ts, counters)) {
-        return 0;
-    }
-
-    int server = 0, client = 0;
-
-    if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
-#ifdef CAPTURE_OFFLOAD
-            f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
-#endif
-            f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-            FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
-        FlowForceReassemblyForFlow(f, server, client);
-        return 0;
-    }
-#ifdef DEBUG
-    /* this should not be possible */
-    BUG_ON(f->use_cnt > 0);
-#endif
-
-    return 1;
-}
-#endif
-
 static inline int FMTryLockBucket(FlowBucket *fb)
 {
     int r = FBLOCK_TRYLOCK(fb);
