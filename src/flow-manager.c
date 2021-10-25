@@ -292,11 +292,7 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
         /* flow is still locked */
 
         if (f->proto == IPPROTO_TCP && !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
-#ifdef CAPTURE_OFFLOAD
-                f->flow_state != FLOW_STATE_CAPTURE_BYPASSED &&
-#endif
-                f->flow_state != FLOW_STATE_LOCAL_BYPASSED &&
-                FlowForceReassemblyNeedReassembly(f) == 1) {
+                !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) == 1) {
             /* Send the flow to its thread */
             FlowForceReassemblyForFlow(f);
             FLOWLOCK_UNLOCK(f);
