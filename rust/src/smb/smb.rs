@@ -541,6 +541,12 @@ pub struct SMBTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Transaction for SMBTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
+
 impl SMBTransaction {
     pub fn new() -> Self {
         return Self {
@@ -772,6 +778,12 @@ pub struct SMBState<> {
     ts: u64,
 }
 
+impl State<SMBTransaction> for SMBState {
+    fn get_transactions(&self) -> &[SMBTransaction] {
+        &self.transactions
+    }
+}
+
 impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
@@ -837,31 +849,6 @@ impl SMBState {
                     tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
             self.transactions.remove(index);
         }
-    }
-
-    // for use with the C API call StateGetTxIterator
-    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&SMBTransaction, u64, bool)>
-    {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        // find tx that is >= min_tx_id
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            // store current index in the state and not the next
-            // as transactions might be freed between now and the
-            // next time we are called.
-            *state = index as u64;
-            //SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
-            //        tx.id - 1, (len - index) > 1, len, index, tx);
-            return Some((tx, tx.id - 1, (len - index) > 1));
-        }
-        return None;
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SMBTransaction> {
@@ -2030,30 +2017,6 @@ pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
     }
 }
 
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx_iterator(
-                                               _ipproto: u8,
-                                               _alproto: AppProto,
-                                               state: *mut std::os::raw::c_void,
-                                               min_tx_id: u64,
-                                               _max_tx_id: u64,
-                                               istate: &mut u64,
-                                               ) -> applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(state, SMBState);
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
                                        tx_id: u64)
@@ -2249,7 +2212,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_smb_getfiles),
-        get_tx_iterator: Some(rs_smb_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<SMBState, SMBTransaction>),
         get_tx_data: rs_smb_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
