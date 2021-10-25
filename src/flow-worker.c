@@ -509,7 +509,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
-                return TM_ECODE_OK;
+                goto housekeeping;
             }
         }
         /* Flow is now LOCKED */
@@ -583,6 +583,8 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);
     }
+
+housekeeping:
 
     /* take injected flows and process them */
     FlowWorkerProcessInjectedFlows(tv, fw, p, detect_thread);
