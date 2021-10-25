@@ -707,6 +707,19 @@ static inline void FlowSetEndFlags(Flow *f)
 #endif
 }
 
+static inline bool FlowIsBypassed(const Flow *f)
+{
+    if (
+#ifdef CAPTURE_OFFLOAD
+            f->flow_state == FLOW_STATE_CAPTURE_BYPASSED ||
+#endif
+            f->flow_state == FLOW_STATE_LOCAL_BYPASSED)
+    {
+        return true;
+    }
+    return false;
+}
+
 int FlowClearMemory(Flow *,uint8_t );
 
 AppProto FlowGetAppProtocol(const Flow *f);

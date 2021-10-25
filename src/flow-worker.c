@@ -171,13 +171,9 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw,
         FLOWLOCK_WRLOCK(f);
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
 
-        const FlowStateType state = f->flow_state;
         if (f->proto == IPPROTO_TCP) {
             if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
-#ifdef CAPTURE_OFFLOAD
-                    state != FLOW_STATE_CAPTURE_BYPASSED &&
-#endif
-                    state != FLOW_STATE_LOCAL_BYPASSED &&
+                    !FlowIsBypassed(f) &&
                     FlowForceReassemblyNeedReassembly(f) == 1 &&
                     f->ffr != 0)
             {
