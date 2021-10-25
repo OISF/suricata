@@ -52,6 +52,12 @@ pub struct ModbusTransaction {
     pub tx_data: AppLayerTxData,
 }
 
+impl Transaction for ModbusTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
+
 impl ModbusTransaction {
     pub fn new(id: u64) -> Self {
         Self {
@@ -105,6 +111,12 @@ pub struct ModbusState {
     givenup: bool, // Indicates flood
 }
 
+impl State<ModbusTransaction> for ModbusState {
+    fn get_transactions(&self) -> &[ModbusTransaction] {
+        &self.transactions
+    }
+}
+
 impl ModbusState {
     pub fn new() -> Self {
         Self {
@@ -121,27 +133,6 @@ impl ModbusState {
             }
         }
         None
-    }
-
-    fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
-    ) -> Option<(&ModbusTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.id - 1, (len - index) > 1));
-        }
-
-        return None;
     }
 
     /// Searches the requests in order to find one matching the given response. Returns the matching
@@ -384,32 +375,6 @@ pub unsafe extern "C" fn rs_modbus_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, ModbusState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx,
-                out_tx_id,
-                has_next,
-            );
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
@@ -480,7 +445,7 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(rs_modbus_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<ModbusState, ModbusTransaction>),
         get_de_state: rs_modbus_state_get_tx_detect_state,
         set_de_state: rs_modbus_state_set_tx_detect_state,
         get_tx_data: rs_modbus_state_get_tx_data,
