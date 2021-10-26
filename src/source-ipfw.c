@@ -116,8 +116,8 @@ typedef struct IPFWThreadVars_
     uint32_t pkts;
     uint64_t bytes;
     uint32_t errs;
-    uint32_t accepted;
-    uint32_t dropped;
+
+    CaptureStats stats;
 } IPFWThreadVars;
 
 static IPFWThreadVars ipfw_t[IPFW_MAX_QUEUE];
@@ -392,7 +392,7 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
     SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
             tv->name, ptv->pkts, ptv->bytes, ptv->errs);
     SCLogNotice("(%s) Verdict: Accepted %"PRIu32", Dropped %"PRIu32 "",
-            tv->name, ptv->accepted, ptv->dropped);
+            tv->name, ptv->stats.counter_ips_accepted, ptv->stats.counter_ips_rejected);
 
 
     SCReturn;
@@ -533,6 +533,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
     IPFWpoll.events = POLLWRNORM;
 #endif
 
+    CaptureStatsUpdate(tv, &ptv->stats, p);
     if (PacketTestAction(p, ACTION_DROP)) {
         verdict = IPFW_DROP;
     } else {
@@ -541,7 +542,6 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 
     if (verdict == IPFW_ACCEPT) {
         SCLogDebug("IPFW Verdict is to Accept");
-        ptv->accepted++;
 
         /* For divert sockets, accepting means writing the
          * packet back to the socket for ipfw to pick up
@@ -581,7 +581,6 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 
     if (verdict == IPFW_DROP) {
         SCLogDebug("IPFW SetVerdict is to DROP");
-        ptv->dropped++;
 
         /** \todo For divert sockets, dropping means not writing the packet back to the socket.
          * Need to see if there is some better way to free the packet from the queue */
@@ -687,7 +686,7 @@ TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data)
 void VerdictIPFWThreadExitStats(ThreadVars *tv, void *data)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
-    SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name, ptv->accepted, ptv->dropped);
+    SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name, ptv->stats.counter_ips_accepted, ptv->stats.counter_ips_rejected);
 }
 
 /**
