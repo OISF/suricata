@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,6 +67,9 @@ Signature *LuaStateGetSignature(lua_State *luastate);
 /** \brief get file pointer from the lua state */
 File *LuaStateGetFile(lua_State *luastate);
 
+/** \brief get detect engine thread context pointer from the lua state */
+DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate);
+
 LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate);
 
 int LuaStateGetDirection(lua_State *luastate);
@@ -87,6 +90,8 @@ void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
 void LuaStateSetSignature(lua_State *luastate, const Signature *s);
 
 void LuaStateSetFile(lua_State *luastate, File *file);
+
+void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx);
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
 
