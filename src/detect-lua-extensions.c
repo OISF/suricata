@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -481,6 +481,32 @@ static int LuaDecrFlowint(lua_State *luastate)
 
 }
 
+static int LuaGetByteVar(lua_State *luastate)
+{
+    DetectLuaData *ld = NULL;
+    DetectEngineThreadCtx *det_ctx = LuaStateGetDetCtx(luastate);
+
+    if (det_ctx == NULL)
+        return LuaCallbackError(luastate, "internal error: no ldet_ctx");
+
+    int ret = GetLuaData(luastate, &ld);
+    if (ret != 0)
+        return ret;
+
+    if (!lua_isnumber(luastate, 1)) {
+        LUA_ERROR("bytevar id not a number");
+    }
+    int id = lua_tonumber(luastate, 1);
+    if (id < 0 || id >= DETECT_LUAJIT_MAX_BYTEVARS) {
+        LUA_ERROR("bytevar id out of range");
+    }
+    uint32_t idx = ld->bytevar[id];
+
+    lua_pushinteger(luastate, det_ctx->byte_values[idx]);
+
+    return 1;
+}
+
 void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
         DetectEngineThreadCtx *det_ctx, Flow *f, Packet *p, const Signature *s, uint8_t flags)
 {
@@ -494,6 +520,7 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
     LuaStateSetSignature(lua_state, s);
 
     LuaStateSetFlow(lua_state, f);
+    LuaStateSetDetCtx(lua_state, det_ctx);
 
     if (det_ctx->tx_id_set) {
         if (f && f->alstate) {
@@ -550,6 +577,9 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     lua_pushcfunction(lua_state, LuaDecrFlowint);
     lua_setglobal(lua_state, "SCFlowintDecr");
+
+    lua_pushcfunction(lua_state, LuaGetByteVar);
+    lua_setglobal(lua_state, "SCByteVarGet");
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
