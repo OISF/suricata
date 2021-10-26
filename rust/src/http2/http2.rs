@@ -221,7 +221,7 @@ impl HTTP2Transaction {
                     STREAM_TOCLIENT,
                     "content-range",
                 ) {
-                    match range::http2_parse_content_range(&value) {
+                    match range::http2_parse_check_content_range(&value) {
                         Ok((_, v)) => {
                             range::http2_range_open(self, &v, flow, sfcm, flags, decompressed);
                             if over && !self.file_range.is_null() {

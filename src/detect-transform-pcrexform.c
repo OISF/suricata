@@ -135,7 +135,7 @@ static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
     if (ret > 0) {
         const char *str;
         PCRE2_SIZE caplen;
-        ret = pcre2_substring_get_bynumber(match, 0, (PCRE2_UCHAR8 **)&str, &caplen);
+        ret = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str, &caplen);
 
         if (ret >= 0) {
             InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
