@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-build.h"
+
+#include "detect-byte.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -714,7 +716,7 @@ error:
     return NULL;
 }
 
-static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
+static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const Signature *s)
 {
     int status;
 
@@ -786,7 +788,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
         if (k == NULL)
             continue;
 
-        /* handle flowvar separately as it has a table as value */
+        /* handle flowvar and bytes separately as they have a table as value */
         if (strcmp(k, "flowvar") == 0) {
             if (lua_istable(luastate, -1)) {
                 lua_pushnil(luastate);
@@ -827,6 +829,35 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                     uint32_t idx = VarNameStoreSetupAdd((char *)value, VAR_TYPE_FLOW_INT);
                     ld->flowint[ld->flowints++] = idx;
                     SCLogDebug("script uses flowint %u with script id %u", idx, ld->flowints - 1);
+                }
+            }
+            lua_pop(luastate, 1);
+            continue;
+        } else if (strcmp(k, "bytevar") == 0) {
+            if (lua_istable(luastate, -1)) {
+                lua_pushnil(luastate);
+                while (lua_next(luastate, -2) != 0) {
+                    /* value at -1, key is at -2 which we ignore */
+                    const char *value = lua_tostring(luastate, -1);
+                    SCLogDebug("value %s", value);
+                    /* removes 'value'; keeps 'key' for next iteration */
+                    lua_pop(luastate, 1);
+
+                    if (ld->bytevars == DETECT_LUAJIT_MAX_BYTEVARS) {
+                        SCLogError(SC_ERR_LUA_ERROR, "too many bytevars registered");
+                        goto error;
+                    }
+
+                    DetectByteIndexType idx;
+                    if (!DetectByteRetrieveSMVar(value, s, &idx)) {
+                        SCLogError(SC_ERR_LUA_ERROR,
+                                "Unknown byte_extract or byte_math var "
+                                "requested by lua script - %s",
+                                value);
+                        goto error;
+                    }
+                    ld->bytevar[ld->bytevars++] = idx;
+                    SCLogDebug("script uses bytevar %u with script id %u", idx, ld->bytevars - 1);
                 }
             }
             lua_pop(luastate, 1);
@@ -998,7 +1029,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     if (lua == NULL)
         goto error;
 
-    if (DetectLuaSetupPrime(de_ctx, lua) == -1) {
+    if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
         goto error;
     }
 

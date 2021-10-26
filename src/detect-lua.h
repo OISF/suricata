@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,7 @@ typedef struct DetectLuaThreadData {
 
 #define DETECT_LUAJIT_MAX_FLOWVARS  15
 #define DETECT_LUAJIT_MAX_FLOWINTS  15
+#define DETECT_LUAJIT_MAX_BYTEVARS  15
 
 typedef struct DetectLuaData {
     int thread_ctx_id;
@@ -48,6 +49,8 @@ typedef struct DetectLuaData {
     uint16_t flowints;
     uint16_t flowvars;
     uint32_t flowvar[DETECT_LUAJIT_MAX_FLOWVARS];
+    uint16_t bytevars;
+    uint32_t bytevar[DETECT_LUAJIT_MAX_BYTEVARS];
     uint32_t sid;
     uint32_t rev;
     uint32_t gid;
