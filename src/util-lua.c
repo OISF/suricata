@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -102,6 +102,8 @@ const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
 const char lua_ext_key_s[] = "suricata:lua:signature:ptr";
 /* key for file pointer */
 const char lua_ext_key_file[] = "suricata:lua:file:ptr";
+/* key for DetectEngineThreadCtx pointer */
+const char lua_ext_key_det_ctx[] = "suricata:lua:det_ctx:ptr";
 /* key for streaming buffer pointer */
 const char lua_ext_key_streaming_buffer[] = "suricata:lua:streaming_buffer:ptr";
 
@@ -227,6 +229,22 @@ void LuaStateSetFile(lua_State *luastate, File *file)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_file);
     lua_pushlightuserdata(luastate, (void *)file);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+/** \brief get DetectEngineThreadCtx pointer from the lua state */
+DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_det_ctx);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *det_ctx = lua_touserdata(luastate, -1);
+    return (DetectEngineThreadCtx *)det_ctx;
+}
+
+void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_det_ctx);
+    lua_pushlightuserdata(luastate, (void *)det_ctx);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
