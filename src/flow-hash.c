@@ -809,11 +809,17 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls,
             FromHashLockCMP(f);//FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
             if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
-                f = TcpReuseReplace(tv, fls, fb, f, hash, p);
-                if (f == NULL) {
+                Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
+                if (f->use_cnt == 0) {
+                    if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
+                        prev_f = new_f;
+                    MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
+                }
+                if (new_f == NULL) {
                     FBLOCK_UNLOCK(fb);
                     return NULL;
                 }
+                f = new_f;
             }
             FlowReference(dest, f);
             FBLOCK_UNLOCK(fb);
