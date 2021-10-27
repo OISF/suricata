@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2018 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -169,6 +169,10 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define POLL_TIMEOUT 100
 
+#ifndef TP_STATUS_TS_SOFTWARE
+#define TP_STATUS_TS_SOFTWARE (1 << 29)
+#endif
+
 #ifndef TP_STATUS_USER_BUSY
 /* for new use latest bit available in tp_status */
 #define TP_STATUS_USER_BUSY     BIT_U32(31)
@@ -237,6 +241,8 @@ typedef struct AFPThreadVars_
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
     uint16_t capture_errors;
+
+    int32_t last_drops;
 
     /* handle state */
     uint8_t afp_state;
@@ -334,6 +340,128 @@ void TmModuleReceiveAFPRegister (void)
 
 }
 
+/* debug dump of the ring */
+static void AFPCheckTpacketv2Ring(AFPThreadVars *ptv)
+{
+    if (ptv->flags & AFP_TPACKET_V3)
+        return;
+
+    union thdr h;
+    uint32_t kernel = 0;
+    uint32_t ready = 0;
+    uint32_t inprogress = 0;
+    uint32_t something_else = 0;
+    uint32_t just_losing = 0;
+    uint32_t has_losing = 0;
+    uint32_t all_flags = 0;
+    uint32_t first_something_else = 0;
+
+    uint32_t csum_not_ready = 0;
+    uint32_t csum_valid = 0;
+    uint32_t vlan_valid = 0;
+
+    int32_t unknown_flag_cnt = 0;
+    int32_t unknown_flags = 0;
+
+    /* mask of expected flags */
+    uint32_t mask = TP_STATUS_USER | TP_STATUS_USER_BUSY | TP_STATUS_LOSING | TP_STATUS_CSUM_VALID |
+                    TP_STATUS_VLAN_VALID | TP_STATUS_CSUMNOTREADY | TP_STATUS_TS_SOFTWARE;
+
+    int state = -1;
+    int state_changes = 0;
+
+    unsigned int frame_offset = 0;
+    while (1) {
+        /* Read packet from ring */
+        h.raw = (((union thdr **)ptv->ring.v2)[frame_offset]);
+        if (h.raw == NULL) {
+            SCLogNotice("ERROR at frame_offset %u", frame_offset);
+            break;
+        }
+        const uint32_t tp_status = h.h2->tp_status; // read once
+        all_flags |= tp_status;
+
+        if (tp_status & ~mask) {
+            unknown_flags |= (tp_status & ~mask);
+            unknown_flag_cnt++;
+        }
+
+        bool state_change = false;
+        const char *s;
+        if (tp_status == TP_STATUS_KERNEL) {
+            kernel++;
+            s = "kernel";
+
+            if (state == -1)
+                state = 0;
+            if (state != 0) {
+                state = 0;
+                state_changes++;
+                state_change = true;
+            }
+
+        } else if (tp_status & 1) {
+            if (state == -1)
+                state = 1;
+            if (state != 1) {
+                state = 1;
+                state_changes++;
+                state_change = true;
+            }
+            ready++;
+            s = "ready";
+        } else if (tp_status & TP_STATUS_USER_BUSY) {
+            inprogress++;
+            s = "in progress";
+            if (state == -1)
+                state = 2;
+            if (state != 2) {
+                state = 2;
+                state_changes++;
+                state_change = true;
+            }
+        } else {
+            if (first_something_else == 0) {
+                first_something_else = tp_status;
+            }
+
+            if (tp_status == TP_STATUS_LOSING) {
+                just_losing++;
+            }
+            if (tp_status & TP_STATUS_LOSING) {
+                has_losing++;
+            }
+            if (tp_status & TP_STATUS_CSUM_VALID) {
+                csum_valid++;
+            }
+            if (tp_status & TP_STATUS_VLAN_VALID) {
+                vlan_valid++;
+            }
+            if (tp_status & TP_STATUS_CSUMNOTREADY) {
+                csum_not_ready++;
+            }
+            something_else++;
+            s = "weird";
+        }
+
+        SCLogNotice("ring[%03u]: %08x (%s) %s (state %d change %s)", frame_offset, tp_status, s,
+                (frame_offset == ptv->frame_offset) ? " <---- SURI " : "", state,
+                state_change ? "TRUE" : "false");
+
+        if (++frame_offset >= ptv->req.v2.tp_frame_nr) {
+            break;
+        }
+    }
+    SCLogNotice("scan result: frames %u kernel %u ready %u inprogress %u something_else %u",
+            ptv->req.v2.tp_frame_nr, kernel, ready, inprogress, something_else);
+    SCLogNotice("scan result: all_flags %08x just_losing %u has_losing %u first_something_else "
+                "%08x",
+            all_flags, just_losing, has_losing, first_something_else);
+    SCLogNotice("scan result: unknown_flag_cnt %u unknown_flags %08x csum_not_ready %u "
+                "csum_valid %u vlan_valid %u",
+            unknown_flag_cnt, unknown_flags, csum_not_ready, csum_valid, vlan_valid);
+    SCLogNotice("scan result: state_changes %d", state_changes);
+}
 
 /**
  *  \defgroup afppeers AFP peers list
@@ -567,6 +695,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         StatsAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
+        ptv->last_drops = kstats.tp_drops;
     }
 #endif
 }
@@ -1462,6 +1591,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     int (*AFPReadFunc) (AFPThreadVars *);
     uint64_t discarded_pkts = 0;
 
+    uint64_t timeout = 0;
+    time_t timeout_ts = 0;
+
     ptv->slot = s->slot_next;
 
     if (ptv->flags & AFP_RING_MODE) {
@@ -1542,6 +1674,14 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         PacketPoolWait();
 
         r = poll(&fds, 1, POLL_TIMEOUT);
+        if (unlikely(r != 0)) {
+            if (r > 0 && timeout_ts != 0) {
+                /* this means we misdetected the hang. The issue in bug 4785 would never recover */
+                SCLogNotice("looks like thread %s recovered from a suspected hang", tv->name);
+            }
+            timeout_ts = 0;
+            timeout = 0;
+        }
 
         if (suricata_ctl_flags != 0) {
             break;
@@ -1593,11 +1733,40 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
             }
         } else if (unlikely(r == 0)) {
+            timeout++;
+
             /* Trigger one dump of stats every second */
             current_time = time(NULL);
             if (current_time != last_dump) {
                 AFPDumpCounters(ptv);
                 last_dump = current_time;
+
+                /* our hang detection relies on continued traffic, which is case of a hang would all
+                 * be drops. So no drops, no hang detection. */
+                if (!ptv->last_drops) {
+                    timeout_ts = 0;
+                    timeout = 0;
+                } else {
+                    /* lets get at least a 100 timeouts in a row, each of them with drops */
+                    if (timeout > 100) {
+                        if (timeout_ts == 0) {
+                            SCLogWarning(SC_ERR_AFP_READ,
+                                    "looks like thread %s has an invalid socket just giving poll() "
+                                    "timeouts",
+                                    tv->name);
+                            timeout_ts = current_time;
+                        } else if ((current_time - timeout_ts) % 100 == 0) {
+                            SCLogWarning(SC_ERR_AFP_READ,
+                                    "looks like thread %s has an invalid socket just giving poll() "
+                                    "timeouts (timed out %" PRIu64
+                                    " times and %ld seconds in a row)",
+                                    tv->name, timeout, current_time - timeout_ts);
+                            if (current_time - timeout_ts > 60) {
+                                AFPCheckTpacketv2Ring(ptv);
+                            }
+                        }
+                    }
+                }
             }
             /* poll timed out, lets see handle our timeout path */
             TmThreadsCaptureHandleTimeout(tv, NULL);
