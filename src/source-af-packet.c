@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2018 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -169,6 +169,10 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define POLL_TIMEOUT 100
 
+#ifndef TP_STATUS_TS_SOFTWARE
+#define TP_STATUS_TS_SOFTWARE (1 << 29)
+#endif
+
 #ifndef TP_STATUS_USER_BUSY
 /* for new use latest bit available in tp_status */
 #define TP_STATUS_USER_BUSY     BIT_U32(31)
@@ -237,6 +241,7 @@ typedef struct AFPThreadVars_
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
     uint16_t capture_errors;
+    uint16_t afpacket_spin;
 
     int32_t last_drops;
 
@@ -299,7 +304,6 @@ typedef struct AFPThreadVars_
 #ifdef HAVE_PACKET_EBPF
     struct ebpf_timeout_config ebpf_t_config;
 #endif
-
 } AFPThreadVars;
 
 static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
@@ -336,6 +340,127 @@ void TmModuleReceiveAFPRegister (void)
 
 }
 
+static void AFPCheckTpacketv2Ring(AFPThreadVars *ptv, bool final)
+{
+    union thdr h;
+    uint32_t kernel = 0;
+    uint32_t ready = 0;
+    uint32_t inprogress = 0;
+    uint32_t something_else = 0;
+    uint32_t just_losing = 0;
+    uint32_t has_losing = 0;
+    uint32_t all_flags = 0;
+    uint32_t first_something_else = 0;
+
+    uint32_t csum_not_ready = 0;
+    uint32_t csum_valid = 0;
+    uint32_t vlan_valid = 0;
+
+    int32_t unknown_flag_cnt = 0;
+    int32_t unknown_flags = 0;
+
+    uint32_t mask = TP_STATUS_USER | TP_STATUS_USER_BUSY | TP_STATUS_LOSING | TP_STATUS_CSUM_VALID |
+                    TP_STATUS_VLAN_VALID | TP_STATUS_CSUMNOTREADY | TP_STATUS_TS_SOFTWARE;
+
+    int state = -1;
+    int state_changes = 0;
+
+    unsigned int frame_offset = 0;
+    while (1) {
+        /* Read packet from ring */
+        h.raw = (((union thdr **)ptv->ring.v2)[frame_offset]);
+        if (h.raw == NULL) {
+            SCLogNotice("ERROR at frame_offset %u", frame_offset);
+            break;
+        }
+        const uint32_t tp_status = h.h2->tp_status; // read once
+        all_flags |= tp_status;
+
+        if (tp_status & ~mask) {
+            unknown_flags |= (tp_status & ~mask);
+            unknown_flag_cnt++;
+        }
+
+        bool state_change = false;
+        const char *s;
+        if (tp_status == TP_STATUS_KERNEL) {
+            kernel++;
+            s = "kernel";
+
+            if (state == -1)
+                state = 0;
+            if (state != 0) {
+                state = 0;
+                state_changes++;
+                state_change = true;
+            }
+
+        } else if (tp_status & 1) {
+            if (state == -1)
+                state = 1;
+            if (state != 1) {
+                state = 1;
+                state_changes++;
+                state_change = true;
+            }
+            ready++;
+            s = "ready";
+        } else if (tp_status & TP_STATUS_USER_BUSY) {
+            inprogress++;
+            s = "in progress";
+            if (state == -1)
+                state = 2;
+            if (state != 2) {
+                state = 2;
+                state_changes++;
+                state_change = true;
+            }
+        } else {
+            if (first_something_else == 0) {
+                first_something_else = tp_status;
+            }
+
+            if (tp_status == TP_STATUS_LOSING) {
+                just_losing++;
+            }
+            if (tp_status & TP_STATUS_LOSING) {
+                has_losing++;
+            }
+            if (tp_status & TP_STATUS_CSUM_VALID) {
+                csum_valid++;
+            }
+            if (tp_status & TP_STATUS_VLAN_VALID) {
+                vlan_valid++;
+            }
+            if (tp_status & TP_STATUS_CSUMNOTREADY) {
+                csum_not_ready++;
+            }
+            something_else++;
+            s = "weird";
+        }
+
+        if (final) {
+            SCLogNotice("ring[%03u]: %08x (%s) %s (state %d change %s)", frame_offset, tp_status, s,
+                    (frame_offset == ptv->frame_offset) ? " <---- SURI " : "", state,
+                    state_change ? "TRUE" : "false");
+        }
+
+        if (++frame_offset >= ptv->req.v2.tp_frame_nr) {
+            break;
+        }
+    }
+    if (final || (kernel + ready + inprogress) != ptv->req.v2.tp_frame_nr) {
+        SCLogNotice("scan result: frames %u kernel %u ready %u inprogress %u something_else %u",
+                ptv->req.v2.tp_frame_nr, kernel, ready, inprogress, something_else);
+        SCLogNotice("scan result: all_flags %08x just_losing %u has_losing %u first_something_else "
+                    "%08x",
+                all_flags, just_losing, has_losing, first_something_else);
+        SCLogNotice("scan result: unknown_flag_cnt %u unknown_flags %08x csum_not_ready %u "
+                    "csum_valid %u vlan_valid %u",
+                unknown_flag_cnt, unknown_flags, csum_not_ready, csum_valid, vlan_valid);
+        SCLogNotice("scan result: state_changes %d", state_changes);
+    }
+}
 
 /**
  *  \defgroup afppeers AFP peers list
@@ -841,6 +966,19 @@ static void AFPReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
+/** \internal
+ *  \brief recoverable error - release packet and
+ *         return AFP_SURI_FAILURE
+ */
+static inline int AFPSuriFailure(AFPThreadVars *ptv, union thdr h)
+{
+    h.h2->tp_status = TP_STATUS_KERNEL;
+    if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
+        ptv->frame_offset = 0;
+    }
+    SCReturnInt(AFP_SURI_FAILURE);
+}
+
 /**
  * \brief AF packet read function for ring
  *
@@ -852,53 +990,45 @@ static void AFPReleasePacket(Packet *p)
  */
 static int AFPReadFromRing(AFPThreadVars *ptv)
 {
-    Packet *p = NULL;
     union thdr h;
-    uint8_t emergency_flush = 0;
-    int read_pkts = 0;
-    int loop_start = -1;
+    bool emergency_flush = false;
+    const unsigned int start_pos = ptv->frame_offset;
+    uint64_t busy_loop_iter = 0;
 
-
-    /* Loop till we have packets available */
+    /* busy wait loop until we have packets available */
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             break;
         }
 
-        /* Read packet from ring */
         h.raw = (((union thdr **)ptv->ring.v2)[ptv->frame_offset]);
         if (unlikely(h.raw == NULL)) {
-            /* Impossible we reach this point in normal condition, so trigger
-             * a failure in reading */
-            SCReturnInt(AFP_READ_FAILURE);
+            return AFPSuriFailure(ptv, h);
         }
-
-        if ((! h.h2->tp_status) || (h.h2->tp_status & TP_STATUS_USER_BUSY)) {
-            if (read_pkts == 0) {
-                if (loop_start == -1) {
-                    loop_start = ptv->frame_offset;
-                } else if (unlikely(loop_start == (int)ptv->frame_offset)) {
-                    SCReturnInt(AFP_READ_OK);
-                }
-                if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
-                    ptv->frame_offset = 0;
-                }
-                continue;
-            }
-            if ((emergency_flush) && (ptv->flags & AFP_EMERGENCY_MODE)) {
-                SCReturnInt(AFP_KERNEL_DROP);
-            } else {
-                SCReturnInt(AFP_READ_OK);
-            }
+        const unsigned int tp_status = h.h2->tp_status;
+        if (tp_status == TP_STATUS_KERNEL) {
+            busy_loop_iter++;
+            continue;
         }
+        break;
+    }
 
-        read_pkts++;
-        loop_start = -1;
-
-        /* Our packet is still used by suricata, we exit read loop to
-         * gain some time */
-        if (h.h2->tp_status & TP_STATUS_USER_BUSY) {
-            SCReturnInt(AFP_READ_OK);
+    /* process the frames in the ring */
+    while (1) {
+        if (unlikely(suricata_ctl_flags != 0)) {
+            break;
+        }
+        h.raw = (((union thdr **)ptv->ring.v2)[ptv->frame_offset]);
+        if (unlikely(h.raw == NULL)) {
+            return AFPSuriFailure(ptv, h);
+        }
+        const unsigned int tp_status = h.h2->tp_status;
+        /* if we find a kernel frame we are done */
+        if (tp_status == TP_STATUS_KERNEL)
+            break;
+        /* if in autofp mode the frame is still busy, return to poll */
+        if (tp_status & TP_STATUS_USER_BUSY) {
+            break;
         }
 
         if ((ptv->flags & AFP_EMERGENCY_MODE) && (emergency_flush == 1)) {
@@ -906,11 +1036,20 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             goto next_frame;
         }
 
-        p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
-            SCReturnInt(AFP_SURI_FAILURE);
+            return AFPSuriFailure(ptv, h);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+
+        /* Suricata will treat packet so telling it is busy, this
+         * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
+         * function. */
+        h.h2->tp_status |= TP_STATUS_USER_BUSY;
+        p->livedev = ptv->livedev;
+        p->datalink = ptv->datalink;
+        ptv->pkts++;
+
         if (ptv->flags & AFP_BYPASS) {
             p->BypassPacketsFlow = AFPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
@@ -928,15 +1067,6 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 #endif
         }
 
-        /* Suricata will treat packet so telling it is busy, this
-         * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
-         * function. */
-        h.h2->tp_status |= TP_STATUS_USER_BUSY;
-
-        ptv->pkts++;
-        p->livedev = ptv->livedev;
-        p->datalink = ptv->datalink;
-
         if (h.h2->tp_len > h.h2->tp_snaplen) {
             SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
                     h.h2->tp_len, h.h2->tp_snaplen);
@@ -944,39 +1074,30 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 
         /* get vlan id from header */
         if ((ptv->flags & AFP_VLAN_IN_HEADER) &&
-            (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
+            (tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
             p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
             p->vlan_idx = 1;
         }
 
         if (ptv->flags & AFP_ZERO_COPY) {
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-                TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_SURI_FAILURE);
-            } else {
-                p->afp_v.relptr = h.raw;
-                p->ReleasePacket = AFPReleasePacket;
-                p->afp_v.mpeer = ptv->mpeer;
-                AFPRefSocket(ptv->mpeer);
+                return AFPSuriFailure(ptv, h);
+            }
 
-                p->afp_v.copy_mode = ptv->copy_mode;
-                if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-                    p->afp_v.peer = ptv->mpeer->peer;
-                } else {
-                    p->afp_v.peer = NULL;
-                }
+            p->afp_v.relptr = h.raw;
+            p->ReleasePacket = AFPReleasePacket;
+            p->afp_v.mpeer = ptv->mpeer;
+            AFPRefSocket(ptv->mpeer);
+
+            p->afp_v.copy_mode = ptv->copy_mode;
+            if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+                p->afp_v.peer = ptv->mpeer->peer;
+            } else {
+                p->afp_v.peer = NULL;
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-                /* As we can possibly fail to copy the data due to invalid data, let's
-                 * skip this packet and switch to the next one.
-                 */
-                h.h2->tp_status = TP_STATUS_KERNEL;
-                if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
-                    ptv->frame_offset = 0;
-                }
-                TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_SURI_FAILURE);
+                return AFPSuriFailure(ptv, h);
             }
         }
 
@@ -997,36 +1118,35 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
         } else {
-            if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
+            if (tp_status & TP_STATUS_CSUMNOTREADY) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
         }
-        if (h.h2->tp_status & TP_STATUS_LOSING) {
-            emergency_flush = 1;
-            AFPDumpCounters(ptv);
-        }
+        emergency_flush = ((tp_status & TP_STATUS_LOSING) != 0);
 
         /* release frame if not in zero copy mode */
-        if (!(ptv->flags &  AFP_ZERO_COPY)) {
+        if (!(ptv->flags & AFP_ZERO_COPY)) {
             h.h2->tp_status = TP_STATUS_KERNEL;
         }
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-            h.h2->tp_status = TP_STATUS_KERNEL;
-            if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
-                ptv->frame_offset = 0;
-            }
-            SCReturnInt(AFP_SURI_FAILURE);
+            return AFPSuriFailure(ptv, h);
         }
 
 next_frame:
         if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
             ptv->frame_offset = 0;
             /* Get out of loop to be sure we will reach maintenance tasks */
-            SCReturnInt(AFP_READ_OK);
+            if (ptv->frame_offset == start_pos)
+                break;
         }
     }
-
+    if (emergency_flush) {
+        AFPDumpCounters(ptv);
+    }
+    if (busy_loop_iter) {
+        StatsAddUI64(ptv->tv, ptv->afpacket_spin, busy_loop_iter);
+    }
     SCReturnInt(AFP_READ_OK);
 }
 
@@ -1347,13 +1467,16 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
         if (h.raw == NULL) {
             return -1;
         }
-        (*discarded_pkts)++;
+        if (h.h2->tp_status == TP_STATUS_KERNEL)
+            return 0;
+
         if (((time_t)h.h2->tp_sec > synctv->tv_sec) ||
                 ((time_t)h.h2->tp_sec == synctv->tv_sec &&
                  (suseconds_t) (h.h2->tp_nsec / 1000) > synctv->tv_usec)) {
             return 1;
         }
 
+        (*discarded_pkts)++;
         h.h2->tp_status = TP_STATUS_KERNEL;
         if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
             ptv->frame_offset = 0;
@@ -1377,7 +1500,6 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
 {
     struct timeval synctv;
     struct pollfd fds;
-
     fds.fd = ptv->socket;
     fds.events = POLLIN;
 
@@ -1622,11 +1744,14 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                                 "timeouts",
                                 tv->name);
                         timeout_ts = current_time;
+                        AFPCheckTpacketv2Ring(ptv, true);
+                        abort();
                     } else if ((current_time - timeout_ts) % 100 == 0) {
                         SCLogWarning(SC_ERR_AFP_READ,
                                 "looks like thread %s has an invalid socket just giving poll() "
                                 "timeouts (timed out %" PRIu64 " times and %ld seconds in a row)",
                                 tv->name, timeout, current_time - timeout_ts);
+                        AFPCheckTpacketv2Ring(ptv, true);
                     }
                 }
             }
@@ -2790,6 +2915,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
             ptv->tv);
     ptv->capture_errors = StatsRegisterCounter("capture.errors",
             ptv->tv);
+    ptv->afpacket_spin = StatsRegisterAvgCounter("afpacket.busy_loop_avg", ptv->tv);
 #endif
 
     ptv->copy_mode = afpconfig->copy_mode;

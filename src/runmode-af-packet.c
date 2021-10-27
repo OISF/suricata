@@ -658,13 +658,14 @@ finalize:
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->ring_size != 0) {
-        if (aconf->ring_size * aconf->threads < max_pending_packets) {
-            aconf->ring_size = max_pending_packets / aconf->threads + 1;
-            SCLogWarning(SC_ERR_AFP_CREATE, "Inefficient setup: ring-size < max_pending_packets. "
-                         "Resetting to decent value %d.", aconf->ring_size);
-            /* We want at least that max_pending_packets packets can be handled by the
-             * interface. This is generous if we have multiple interfaces listening. */
-        }
+        //        if (aconf->ring_size * aconf->threads < max_pending_packets) {
+        //            aconf->ring_size = max_pending_packets / aconf->threads + 1;
+        //            SCLogWarning(SC_ERR_AFP_CREATE, "Inefficient setup: ring-size <
+        //            max_pending_packets. "
+        //                         "Resetting to decent value %d.", aconf->ring_size);
+        /* We want at least that max_pending_packets packets can be handled by the
+         * interface. This is generous if we have multiple interfaces listening. */
+        //        }
     } else {
         /* We want that max_pending_packets packets can be handled by suricata
          * for this interface. To take burst into account we multiply the obtained
