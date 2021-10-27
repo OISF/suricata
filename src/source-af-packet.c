@@ -238,6 +238,8 @@ typedef struct AFPThreadVars_
     uint16_t capture_kernel_drops;
     uint16_t capture_errors;
 
+    int32_t last_drops;
+
     /* handle state */
     uint8_t afp_state;
     uint8_t copy_mode;
@@ -567,6 +569,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         StatsAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
+        ptv->last_drops = kstats.tp_drops;
     }
 #endif
 }
@@ -1462,6 +1465,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     int (*AFPReadFunc) (AFPThreadVars *);
     uint64_t discarded_pkts = 0;
 
+    uint64_t timeout = 0;
+    time_t timeout_ts = 0;
+
     ptv->slot = s->slot_next;
 
     if (ptv->flags & AFP_RING_MODE) {
@@ -1542,6 +1548,13 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         PacketPoolWait();
 
         r = poll(&fds, 1, POLL_TIMEOUT);
+        if (unlikely(r != 0)) {
+            if (r > 0 && timeout_ts != 0) {
+                SCLogNotice("looks like thread %s recovered", tv->name);
+            }
+            timeout_ts = 0;
+            timeout = 0;
+        }
 
         if (suricata_ctl_flags != 0) {
             break;
@@ -1593,11 +1606,29 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
             }
         } else if (unlikely(r == 0)) {
+            timeout++;
+
             /* Trigger one dump of stats every second */
             current_time = time(NULL);
             if (current_time != last_dump) {
+                uint64_t prev_drops = ptv->last_drops;
                 AFPDumpCounters(ptv);
                 last_dump = current_time;
+
+                if (prev_drops && ptv->last_drops) {
+                    if (timeout_ts == 0) {
+                        SCLogWarning(SC_ERR_AFP_READ,
+                                "looks like thread %s has an invalid socket just giving poll() "
+                                "timeouts",
+                                tv->name);
+                        timeout_ts = current_time;
+                    } else if ((current_time - timeout_ts) % 100 == 0) {
+                        SCLogWarning(SC_ERR_AFP_READ,
+                                "looks like thread %s has an invalid socket just giving poll() "
+                                "timeouts (timed out %" PRIu64 " times and %ld seconds in a row)",
+                                tv->name, timeout, current_time - timeout_ts);
+                    }
+                }
             }
             /* poll timed out, lets see handle our timeout path */
             TmThreadsCaptureHandleTimeout(tv, NULL);
