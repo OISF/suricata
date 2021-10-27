@@ -26,7 +26,8 @@ You can run tests specifically on flowbits. This is how you should do that::
 
    suricata -u -U flowbit
 
-It is highly appreciated if you would run unit tests and report failing tests at Issues.
+It is highly appreciated if you would run unit tests and report failing tests in our `issue tracker
+<https://redmine.openinfosecfoundation.org/projects/suricata/issues>`_.
 
 If you want more info about the unittests, regular debug mode can help::
 
