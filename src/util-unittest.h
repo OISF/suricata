@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -66,7 +66,7 @@ extern int unittests_fatal;
     } while (0)
 
 /**
- * \brief Fail a test if expression evaluates to false.
+ * \brief Fail a test if expression evaluates to true.
  */
 #define FAIL_IF(expr) do {                             \
         if (unittests_fatal) {                         \
@@ -77,7 +77,7 @@ extern int unittests_fatal;
     } while (0)
 
 /**
- * \brief Fail a test if expression to true.
+ * \brief Fail a test if expression evaluates to false.
  */
 #define FAIL_IF_NOT(expr) do { \
         FAIL_IF(!(expr));      \
@@ -107,17 +107,6 @@ extern int unittests_fatal;
     } while (0)
 
 #endif
-
-/**
- * \brief Pass the test if expression evaluates to true.
- *
- * Only to be used at the end of a function instead of returning the
- * result of an expression.
- */
-#define PASS_IF(expr) do { \
-        FAIL_IF(!(expr));  \
-        PASS;              \
-    } while (0)
 
 #endif /* __UTIL_UNITTEST_H__ */
 
