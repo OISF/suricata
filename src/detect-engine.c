@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -4301,24 +4301,18 @@ static int DetectEngineTest01(void)
         "      toserver_dp_groups: 25\n"
         "  - inspection-recursion-limit: 0\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    result = (de_ctx->inspection_recursion_limit == -1);
+    FAIL_IF_NOT(de_ctx->inspection_recursion_limit == -1);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 static int DetectEngineTest02(void)
@@ -4339,24 +4333,19 @@ static int DetectEngineTest02(void)
         "      toserver_dp_groups: 25\n"
         "  - inspection-recursion-limit:\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    result = (de_ctx->inspection_recursion_limit == DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
+    FAIL_IF_NOT(de_ctx->inspection_recursion_limit ==
+            DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 static int DetectEngineTest03(void)
@@ -4376,25 +4365,19 @@ static int DetectEngineTest03(void)
         "      toserver_sp_groups: 2\n"
         "      toserver_dp_groups: 25\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    result = (de_ctx->inspection_recursion_limit ==
-              DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
+    FAIL_IF_NOT(de_ctx->inspection_recursion_limit ==
+            DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 static int DetectEngineTest04(void)
@@ -4415,24 +4398,18 @@ static int DetectEngineTest04(void)
         "      toserver_dp_groups: 25\n"
         "  - inspection-recursion-limit: 10\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    result = (de_ctx->inspection_recursion_limit == 10);
+    FAIL_IF_NOT(de_ctx->inspection_recursion_limit == 10);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 static int DetectEngineTest08(void)
@@ -4446,26 +4423,19 @@ static int DetectEngineTest08(void)
         "      toclient-groups: 23\n"
         "      toserver-groups: 27\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    if (de_ctx->max_uniq_toclient_groups == 23 &&
-        de_ctx->max_uniq_toserver_groups == 27)
-        result = 1;
+    FAIL_IF_NOT(de_ctx->max_uniq_toclient_groups == 23);
+    FAIL_IF_NOT(de_ctx->max_uniq_toserver_groups == 27);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 /** \test bug 892 bad values */
@@ -4481,26 +4451,19 @@ static int DetectEngineTest09(void)
         "      toserver-groups: BA\n"
         "  - inspection-recursion-limit: 10\n";
 
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
+    FAIL_IF(DetectEngineInitYamlConf(conf) == -1);
 
-    if (DetectEngineInitYamlConf(conf) == -1)
-        return 0;
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    if (de_ctx->max_uniq_toclient_groups == 20 &&
-        de_ctx->max_uniq_toserver_groups == 40)
-        result = 1;
+    FAIL_IF_NOT(de_ctx->max_uniq_toclient_groups == 20);
+    FAIL_IF_NOT(de_ctx->max_uniq_toserver_groups == 40);
 
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     DetectEngineDeInitYamlConf();
 
-    return result;
+    PASS;
 }
 
 #endif
