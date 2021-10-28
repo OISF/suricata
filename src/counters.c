@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1406,7 +1406,6 @@ static int StatsTestCntArraySize07(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
-    int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -1421,12 +1420,12 @@ static int StatsTestCntArraySize07(void)
     StatsIncr(&tv, 1);
     StatsIncr(&tv, 2);
 
-    result = pca->size;
+    FAIL_IF_NOT(pca->size == 2);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    PASS_IF(result == 2);
+    PASS;
 }
 
 static int StatsTestUpdateCounter08(void)

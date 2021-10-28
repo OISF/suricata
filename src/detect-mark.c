@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2020 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -276,10 +276,10 @@ static int MarkTestParse02 (void)
 
     data = DetectMarkParse("4");
 
-    PASS_IF(data == NULL);
+    FAIL_IF_NOT_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    FAIL;
+    PASS;
 }
 
 /**
@@ -308,10 +308,10 @@ static int MarkTestParse04 (void)
 
     data = DetectMarkParse("0x1g/0xff");
 
-    PASS_IF(data == NULL);
+    FAIL_IF_NOT_NULL(data);
 
     DetectMarkDataFree(NULL, data);
-    FAIL;
+    PASS;
 }
 
 /**
