@@ -27,7 +27,7 @@ For running all Suricata unit tests from our Rust codebase, just run ``cargo tes
 Adding unit tests
 =================
 
- .. note:: If you want to understand *when* to use a unit test, please read the devguide section on **Testing Suricata**.
+ .. note:: If you want to understand *when* to use a unit test, please read the devguide section on :doc:`testing`.
 
 In general, it is preferrable to have the unit tests in the same file that they test. At the end of the file, after all other functions. Add a ``tests`` module, if there isn't one yet, and add the ``#[test]`` attribute before the unit test
 function. It is also necessary to import (``use``) the module to test, as well as any other modules used. As seen in the example below:

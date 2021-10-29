@@ -1,6 +1,6 @@
-*******
-Testing
-*******
+****************
+Testing Suricata
+****************
 
 .. contents:: Table of Contents
 
