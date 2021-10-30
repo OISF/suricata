@@ -15,10 +15,15 @@
  * 02110-1301, USA.
  */
 
-use nom::combinator::rest;
-use nom::number::streaming::{be_u32, be_u8};
-use md5::Md5;
 use digest::Digest;
+use md5::Md5;
+use nom7::branch::alt;
+use nom7::bytes::streaming::{is_not, tag, take};
+use nom7::character::streaming::char;
+use nom7::combinator::{complete, rest, verify};
+use nom7::multi::length_data;
+use nom7::number::streaming::{be_u32, be_u8};
+use nom7::IResult;
 use std::fmt;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -84,16 +89,14 @@ pub struct SshBanner<'a> {
 
 // Could be simplified adding dummy \n at the end
 // or use nom5 nom::bytes::complete::is_not
-named!(pub ssh_parse_banner<SshBanner>,
-    do_parse!(
-        tag!("SSH-") >>
-        protover: is_not!("-") >>
-        char!('-') >>
-        swver: alt!( complete!( is_not!(" \r\n") ) | rest ) >>
-        //remaining after space is comments
-        (SshBanner{protover, swver})
-    )
-);
+pub fn ssh_parse_banner(i: &[u8]) -> IResult<&[u8], SshBanner> {
+    let (i, _) = tag("SSH-")(i)?;
+    let (i, protover) = is_not("-")(i)?;
+    let (i, _) = char('-')(i)?;
+    let (i, swver) = alt((complete(is_not(" \r\n")), rest))(i)?;
+    //remaining after space is comments
+    Ok((i, SshBanner { protover, swver }))
+}
 
 #[derive(PartialEq)]
 pub struct SshRecordHeader {
@@ -112,33 +115,39 @@ impl fmt::Display for SshRecordHeader {
     }
 }
 
-named!(pub ssh_parse_record_header<SshRecordHeader>,
-    do_parse!(
-        pkt_len: verify!(be_u32, |&val| val > 1) >>
-        padding_len: be_u8 >>
-        msg_code: be_u8 >>
-        (SshRecordHeader{pkt_len: pkt_len,
-            padding_len: padding_len,
-            msg_code: MessageCode::from_u8(msg_code)})
-    )
-);
+pub fn ssh_parse_record_header(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
+    let (i, pkt_len) = verify(be_u32, |&val| val > 1)(i)?;
+    let (i, padding_len) = be_u8(i)?;
+    let (i, msg_code) = be_u8(i)?;
+    Ok((
+        i,
+        SshRecordHeader {
+            pkt_len,
+            padding_len,
+            msg_code: MessageCode::from_u8(msg_code),
+        },
+    ))
+}
 
 //test for evasion against pkt_len=0or1...
-named!(pub ssh_parse_record<SshRecordHeader>,
-    do_parse!(
-        pkt_len: verify!(be_u32, |&val| val > 1) >>
-        padding_len: be_u8 >>
-        msg_code: be_u8 >>
-        take!((pkt_len-2) as usize) >>
-        (SshRecordHeader{pkt_len: pkt_len,
-            padding_len: padding_len,
-            msg_code: MessageCode::from_u8(msg_code)})
-    )
-);
+pub fn ssh_parse_record(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
+    let (i, pkt_len) = verify(be_u32, |&val| val > 1)(i)?;
+    let (i, padding_len) = be_u8(i)?;
+    let (i, msg_code) = be_u8(i)?;
+    let (i, _) = take((pkt_len - 2) as usize)(i)?;
+    Ok((
+        i,
+        SshRecordHeader {
+            pkt_len,
+            padding_len,
+            msg_code: MessageCode::from_u8(msg_code),
+        },
+    ))
+}
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SshPacketKeyExchange<'a> {
-    pub cookie: &'a[u8],
+    pub cookie: &'a [u8],
     pub kex_algs: &'a [u8],
     pub server_host_key_algs: &'a [u8],
     pub encr_algs_client_to_server: &'a [u8],
@@ -156,67 +165,84 @@ pub struct SshPacketKeyExchange<'a> {
 const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = [b';'];
 
 impl<'a> SshPacketKeyExchange<'a> {
-    pub fn generate_hassh(&self, hassh_string: &mut Vec<u8>, hassh: &mut Vec<u8>, to_server: &bool) {
-        let slices = if *to_server { 
-            [self.kex_algs, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.encr_algs_server_to_client, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.mac_algs_server_to_client, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.comp_algs_server_to_client]}
-        else {
-            [self.kex_algs, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.encr_algs_client_to_server, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.mac_algs_client_to_server, &SSH_HASSH_STRING_DELIMITER_SLICE,
-             self.comp_algs_client_to_server]
+    pub fn generate_hassh(
+        &self, hassh_string: &mut Vec<u8>, hassh: &mut Vec<u8>, to_server: &bool,
+    ) {
+        let slices = if *to_server {
+            [
+                self.kex_algs,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.encr_algs_server_to_client,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.mac_algs_server_to_client,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.comp_algs_server_to_client,
+            ]
+        } else {
+            [
+                self.kex_algs,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.encr_algs_client_to_server,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.mac_algs_client_to_server,
+                &SSH_HASSH_STRING_DELIMITER_SLICE,
+                self.comp_algs_client_to_server,
+            ]
         };
         // reserving memory
         hassh_string.reserve_exact(slices.iter().fold(0, |acc, x| acc + x.len()));
         // copying slices to hassh string
-        slices.iter().for_each(|&x| hassh_string.extend_from_slice(x)); 
+        slices
+            .iter()
+            .for_each(|&x| hassh_string.extend_from_slice(x));
         hassh.extend(format!("{:x}", Md5::new().chain(&hassh_string).finalize()).as_bytes());
     }
 }
 
-named!(parse_string<&[u8]>, do_parse!(
-    len: be_u32 >>
-    string: take!(len) >>
-    ( string )
-));
+#[inline]
+fn parse_string(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    length_data(be_u32)(i)
+}
 
-named!(pub ssh_parse_key_exchange<SshPacketKeyExchange>, do_parse!(
-    cookie: take!(16) >>
-    kex_algs: parse_string >>
-    server_host_key_algs: parse_string >>
-    encr_algs_client_to_server: parse_string >>
-    encr_algs_server_to_client: parse_string >>
-    mac_algs_client_to_server: parse_string >>
-    mac_algs_server_to_client: parse_string >>
-    comp_algs_client_to_server: parse_string >>
-    comp_algs_server_to_client: parse_string >>
-    langs_client_to_server: parse_string >>
-    langs_server_to_client: parse_string >>
-    first_kex_packet_follows: be_u8 >>
-    reserved: be_u32 >>
-    ( SshPacketKeyExchange {
-        cookie: cookie,
-        kex_algs: kex_algs,
-        server_host_key_algs: server_host_key_algs,
-        encr_algs_client_to_server: encr_algs_client_to_server,
-        encr_algs_server_to_client: encr_algs_server_to_client,
-        mac_algs_client_to_server: mac_algs_client_to_server,
-        mac_algs_server_to_client: mac_algs_server_to_client,
-        comp_algs_client_to_server: comp_algs_client_to_server,
-        comp_algs_server_to_client: comp_algs_server_to_client,
-        langs_client_to_server: langs_client_to_server,
-        langs_server_to_client: langs_server_to_client,
-        first_kex_packet_follows: first_kex_packet_follows,
-        reserved: reserved,
-    } )
-));
+pub fn ssh_parse_key_exchange(i: &[u8]) -> IResult<&[u8], SshPacketKeyExchange> {
+    let (i, cookie) = take(16_usize)(i)?;
+    let (i, kex_algs) = parse_string(i)?;
+    let (i, server_host_key_algs) = parse_string(i)?;
+    let (i, encr_algs_client_to_server) = parse_string(i)?;
+    let (i, encr_algs_server_to_client) = parse_string(i)?;
+    let (i, mac_algs_client_to_server) = parse_string(i)?;
+    let (i, mac_algs_server_to_client) = parse_string(i)?;
+    let (i, comp_algs_client_to_server) = parse_string(i)?;
+    let (i, comp_algs_server_to_client) = parse_string(i)?;
+    let (i, langs_client_to_server) = parse_string(i)?;
+    let (i, langs_server_to_client) = parse_string(i)?;
+    let (i, first_kex_packet_follows) = be_u8(i)?;
+    let (i, reserved) = be_u32(i)?;
+    Ok((
+        i,
+        SshPacketKeyExchange {
+            cookie,
+            kex_algs,
+            server_host_key_algs,
+            encr_algs_client_to_server,
+            encr_algs_server_to_client,
+            mac_algs_client_to_server,
+            mac_algs_server_to_client,
+            comp_algs_client_to_server,
+            comp_algs_server_to_client,
+            langs_client_to_server,
+            langs_server_to_client,
+            first_kex_packet_follows,
+            reserved,
+        },
+    ))
+}
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use nom7::{Err, Needed};
 
     /// Simple test of some valid data.
     #[test]
@@ -695,7 +721,7 @@ mod tests {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
         if let Err(e) = ssh_parse_key_exchange(&server_key_exchange) {
-            assert_eq!(e, nom::Err::Incomplete(nom::Needed::Size(16755)));
+            assert_eq!(e, Err::Incomplete(Needed::new(15964)));
         }
         else {
             panic!("ssh_parse_key_exchange() parsed malicious key_exchange");

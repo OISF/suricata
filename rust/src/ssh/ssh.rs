@@ -19,6 +19,7 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -200,7 +201,7 @@ impl SSHState {
                     input = rem;
                     //header and complete data (not returned)
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     match parser::ssh_parse_record_header(input) {
                         Ok((rem, head)) => {
                             SCLogDebug!("SSH valid record header {}", head);
@@ -231,7 +232,7 @@ impl SSHState {
                             }
                             return AppLayerResult::ok();
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             //we may have consumed data from previous records
                             if input.len() < SSH_RECORD_HEADER_LEN {
                                 //do not trust nom incomplete value
