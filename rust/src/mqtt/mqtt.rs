@@ -22,7 +22,7 @@ use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use nom;
+use nom7::Err;
 use std;
 use std::ffi::CString;
 
@@ -446,7 +446,7 @@ impl MQTTState {
                     consumed += current.len() - rem.len();
                     current = rem;
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                         SCLogDebug!("incomplete request: consumed {} needed {} (input len {})", consumed, (current.len() + 1), input.len());
                         return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
@@ -503,7 +503,7 @@ impl MQTTState {
                     consumed += current.len() - rem.len();
                     current = rem;
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     SCLogDebug!("incomplete response: consumed {} needed {} (input len {})", consumed, (current.len() + 1), input.len());
                     return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
@@ -569,7 +569,7 @@ pub unsafe extern "C" fn rs_mqtt_probing_parser(
             }
             return ALPROTO_MQTT;
         },
-        Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
+        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
         Err(_) => ALPROTO_FAILED
     }
 }
