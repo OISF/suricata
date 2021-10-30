@@ -26,8 +26,8 @@ use crate::applayer::*;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
 
-use nom::IResult;
-use nom::number::streaming::be_u16;
+use nom7::{Err, IResult};
+use nom7::number::streaming::be_u16;
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
@@ -415,7 +415,7 @@ impl DNSState {
                 self.transactions.push(tx);
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS request");
                 self.set_event(DNSEvent::MalformedData);
@@ -457,7 +457,7 @@ impl DNSState {
                 self.transactions.push(tx);
                 return true;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DNS response");
                 self.set_event(DNSEvent::MalformedData);
@@ -611,12 +611,12 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
         Ok((_, request)) => {
             return probe_header_validity(request.header, dlen);
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             match parser::dns_parse_header(input) {
                 Ok((_, header)) => {
                     return probe_header_validity(header, dlen);
                 }
-                Err(nom::Err::Incomplete(_)) => (false, false, true),
+                Err(Err::Incomplete(_)) => (false, false, true),
                 Err(_) => (false, false, false),
             }
         }
@@ -630,7 +630,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
         Ok((rem, dlen)) => {
             return probe(rem, dlen as usize);
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return (false, false, true);
         }
         _ => {}
