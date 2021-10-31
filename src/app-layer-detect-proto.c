@@ -323,6 +323,8 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
 {
     SCEnter();
 
+    // for fuzzing to find an example
+    DEBUG_VALIDATE_BUG_ON(buflen > UINT16_MAX);
     pm_results[0] = ALPROTO_UNKNOWN;
 
     AppLayerProtoDetectPMCtx *pm_ctx;
