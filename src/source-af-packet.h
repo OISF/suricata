@@ -69,7 +69,6 @@ struct ebpf_timeout_config {
 #define AFP_COPY_MODE_TAP   1
 #define AFP_COPY_MODE_IPS   2
 
-#define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48
 
 /* In kernel the allocated block size is allocated using the formula
