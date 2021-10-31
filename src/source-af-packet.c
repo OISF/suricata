@@ -949,27 +949,22 @@ static bool AFPReadFromRingSetupPacket(
         p->vlan_idx = 1;
     }
 
-    if (ptv->flags & AFP_ZERO_COPY) {
-        if (PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-            return false;
-        }
-
-        p->afp_v.relptr = h.raw;
-        p->ReleasePacket = AFPReleasePacket;
-        p->afp_v.mpeer = ptv->mpeer;
-        AFPRefSocket(ptv->mpeer);
-
-        p->afp_v.copy_mode = ptv->copy_mode;
-        if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-            p->afp_v.peer = ptv->mpeer->peer;
-        } else {
-            p->afp_v.peer = NULL;
-        }
-    } else {
-        if (PacketCopyData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-            return false;
-        }
+    if (PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
+        return false;
     }
+
+    p->afp_v.relptr = h.raw;
+    p->ReleasePacket = AFPReleasePacket;
+    p->afp_v.mpeer = ptv->mpeer;
+    AFPRefSocket(ptv->mpeer);
+
+    p->afp_v.copy_mode = ptv->copy_mode;
+    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+        p->afp_v.peer = ptv->mpeer->peer;
+    } else {
+        p->afp_v.peer = NULL;
+    }
+
     /* Timestamp */
     p->ts.tv_sec = h.h2->tp_sec;
     p->ts.tv_usec = h.h2->tp_nsec / 1000;
@@ -1072,10 +1067,6 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             TmqhOutputPacketpool(ptv->tv, p);
             return AFPSuriFailure(ptv, h);
         }
-        /* release frame if not in zero copy mode */
-        if (!(ptv->flags & AFP_ZERO_COPY)) {
-            h.h2->tp_status = TP_STATUS_KERNEL;
-        }
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
             return AFPSuriFailure(ptv, h);
@@ -1120,28 +1111,22 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         p->vlan_idx = 1;
     }
 
-    if (ptv->flags & AFP_ZERO_COPY) {
-        if (PacketSetData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
-            TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_SURI_FAILURE);
-        }
-        p->afp_v.relptr = ppd;
-        p->ReleasePacket = AFPReleasePacketV3;
-        p->afp_v.mpeer = ptv->mpeer;
-        AFPRefSocket(ptv->mpeer);
-
-        p->afp_v.copy_mode = ptv->copy_mode;
-        if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-            p->afp_v.peer = ptv->mpeer->peer;
-        } else {
-            p->afp_v.peer = NULL;
-        }
-    } else {
-        if (PacketCopyData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
-            TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_SURI_FAILURE);
-        }
+    if (PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
+        TmqhOutputPacketpool(ptv->tv, p);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
+    p->afp_v.relptr = ppd;
+    p->ReleasePacket = AFPReleasePacketV3;
+    p->afp_v.mpeer = ptv->mpeer;
+    AFPRefSocket(ptv->mpeer);
+
+    p->afp_v.copy_mode = ptv->copy_mode;
+    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+        p->afp_v.peer = ptv->mpeer->peer;
+    } else {
+        p->afp_v.peer = NULL;
+    }
+
     /* Timestamp */
     p->ts.tv_sec = ppd->tp_sec;
     p->ts.tv_usec = ppd->tp_nsec/1000;
