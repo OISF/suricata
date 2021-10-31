@@ -209,9 +209,23 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #endif
 
 #ifndef TP_STATUS_USER_BUSY
-/* for new use latest bit available in tp_status */
-#define TP_STATUS_USER_BUSY     BIT_U32(31)
+/* HACK special setting in the tp_status field for frames we are
+ * still working on. This can happen in autofp mode where the
+ * capture thread goes around the ring and finds a frame that still
+ * hasn't been released by a worker thread.
+ *
+ * We use bits 29, 30, 31. 29 and 31 are software and hardware
+ * timestamps. 30 should not be set by the kernel at all. Combined
+ * they should never be set on the rx-ring together.
+ *
+ * The excessive casting is for handling the fact that the kernel
+ * defines almost all of these as int flags, not unsigned ints. */
+#define TP_STATUS_USER_BUSY                                                                        \
+    (uint32_t)((uint32_t)TP_STATUS_TS_SOFTWARE | (uint32_t)TP_STATUS_TS_SYS_HARDWARE |             \
+               (uint32_t)TP_STATUS_TS_RAW_HARDWARE)
 #endif
+#define FRAME_BUSY(tp_status)                                                                      \
+    (((uint32_t)(tp_status) & (uint32_t)TP_STATUS_USER_BUSY) == (uint32_t)TP_STATUS_USER_BUSY)
 
 enum {
     AFP_READ_OK,
@@ -368,7 +382,6 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
 
 }
-
 
 /**
  *  \defgroup afppeers AFP peers list
@@ -914,9 +927,9 @@ static bool AFPReadFromRingSetupPacket(
 {
     PKT_SET_SRC(p, PKT_SRC_WIRE);
 
-    /* Suricata will treat packet so telling it is busy, this
-     * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
-     * function. */
+    /* flag the packet as TP_STATUS_USER_BUSY, which is ignore by the kernel, but
+     * acts as an indicator that we've reached a frame that is not yet released by
+     * us in autofp mode. It will be cleared when the frame gets released to the kernel. */
     h.h2->tp_status |= TP_STATUS_USER_BUSY;
     p->livedev = ptv->livedev;
     p->datalink = ptv->datalink;
@@ -1045,7 +1058,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             break;
         }
         /* if in autofp mode the frame is still busy, return to poll */
-        if (unlikely(tp_status & TP_STATUS_USER_BUSY)) {
+        if (unlikely(FRAME_BUSY(tp_status))) {
             break;
         }
         emergency_flush |= ((tp_status & TP_STATUS_LOSING) != 0);
