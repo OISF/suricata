@@ -59,16 +59,8 @@ impl DHCPLogger {
 
     pub fn do_log(&self, tx: &DHCPTransaction) -> bool {
         if !self.extended {
-            match self.get_type(tx) {
-                Some(t) => {
-                    match t {
-                        DHCP_TYPE_ACK => {
-                            return true;
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
+            if let Some(DHCP_TYPE_ACK) = self.get_type(tx){
+                return true;
             }
             return false;
         }
