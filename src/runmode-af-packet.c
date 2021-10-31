@@ -690,20 +690,12 @@ finalize:
             break;
     }
 
-    if (active_runmode && !strcmp("workers", active_runmode)) {
-        aconf->flags |= AFP_ZERO_COPY;
-    } else {
+    if (active_runmode == NULL || strcmp("workers", active_runmode) != 0) {
         /* If we are using copy mode we need a lock */
         aconf->flags |= AFP_SOCK_PROTECT;
     }
 
-    /* If we are in RING mode, then we can use ZERO copy
-     * by using the data release mechanism */
     if (aconf->flags & AFP_RING_MODE) {
-        aconf->flags |= AFP_ZERO_COPY;
-    }
-
-    if (aconf->flags & AFP_ZERO_COPY) {
         SCLogConfig("%s: enabling zero copy mode by using data release call", iface);
     }
 
