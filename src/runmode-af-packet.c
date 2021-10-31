@@ -142,7 +142,7 @@ static void *ParseAFPConfig(const char *iface)
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
-    aconf->flags = AFP_RING_MODE;
+    aconf->flags = 0;
     aconf->bpf_filter = NULL;
     aconf->ebpf_lb_file = NULL;
     aconf->ebpf_lb_fd = -1;
@@ -213,52 +213,42 @@ static void *ParseAFPConfig(const char *iface)
 
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
         if (!boolval) {
-            SCLogConfig("Disabling mmaped capture on iface %s",
-                    aconf->iface);
-            aconf->flags &= ~(AFP_RING_MODE|AFP_TPACKET_V3);
+            SCLogWarning(SC_WARN_OPTION_OBSOLETE,
+                    "%s: \"use-mmap\" option is obsolete: mmap is always enabled", aconf->iface);
         }
     }
 
-    if (aconf->flags & AFP_RING_MODE) {
-        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
-                                               "mmap-locked", (int *)&boolval);
-        if (boolval) {
-            SCLogConfig("Enabling locked memory for mmap on iface %s",
-                    aconf->iface);
-            aconf->flags |= AFP_MMAP_LOCKED;
-        }
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", (int *)&boolval);
+    if (boolval) {
+        SCLogConfig("Enabling locked memory for mmap on iface %s", aconf->iface);
+        aconf->flags |= AFP_MMAP_LOCKED;
+    }
 
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default,
-                                             "tpacket-v3", (int *)&boolval) == 1)
-        {
-            if (boolval) {
-                if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", (int *)&boolval) == 1) {
+        if (boolval) {
+            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
 #ifdef HAVE_TPACKET_V3
-                    SCLogConfig("Enabling tpacket v3 capture on iface %s",
-                            aconf->iface);
-                    aconf->flags |= AFP_TPACKET_V3;
+                SCLogConfig("Enabling tpacket v3 capture on iface %s", aconf->iface);
+                aconf->flags |= AFP_TPACKET_V3;
 #else
-                    SCLogNotice("System too old for tpacket v3 switching to v2");
-                    aconf->flags &= ~AFP_TPACKET_V3;
+                SCLogNotice("System too old for tpacket v3 switching to v2");
+                aconf->flags &= ~AFP_TPACKET_V3;
 #endif
-                } else {
-                    SCLogWarning(SC_ERR_RUNMODE,
-                            "tpacket v3 is only implemented for 'workers' runmode."
-                            " Switching to tpacket v2.");
-                    aconf->flags &= ~AFP_TPACKET_V3;
-                }
             } else {
+                SCLogWarning(SC_ERR_RUNMODE, "tpacket v3 is only implemented for 'workers' runmode."
+                                             " Switching to tpacket v2.");
                 aconf->flags &= ~AFP_TPACKET_V3;
             }
+        } else {
+            aconf->flags &= ~AFP_TPACKET_V3;
         }
+    }
 
-        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
-                                               "use-emergency-flush", (int *)&boolval);
-        if (boolval) {
-            SCLogConfig("Enabling ring emergency flush on iface %s",
-                    aconf->iface);
-            aconf->flags |= AFP_EMERGENCY_MODE;
-        }
+    (void)ConfGetChildValueBoolWithDefault(
+            if_root, if_default, "use-emergency-flush", (int *)&boolval);
+    if (boolval) {
+        SCLogConfig("Enabling ring emergency flush on iface %s", aconf->iface);
+        aconf->flags |= AFP_EMERGENCY_MODE;
     }
 
     aconf->copy_mode = AFP_COPY_MODE_NONE;
@@ -266,9 +256,6 @@ static void *ParseAFPConfig(const char *iface)
         if (aconf->out_iface == NULL) {
             SCLogInfo("Copy mode activated but no destination"
                       " iface. Disabling feature");
-        } else if (!(aconf->flags & AFP_RING_MODE)) {
-            SCLogInfo("Copy mode activated but use-mmap "
-                      "set to no. Disabling feature");
         } else if (strlen(copymodestr) <= 0) {
             aconf->out_iface = NULL;
         } else if (strcmp(copymodestr, "ips") == 0) {
@@ -695,10 +682,7 @@ finalize:
         aconf->flags |= AFP_SOCK_PROTECT;
     }
 
-    if (aconf->flags & AFP_RING_MODE) {
-        SCLogConfig("%s: enabling zero copy mode by using data release call", iface);
-    }
-
+    SCLogConfig("%s: enabling zero copy mode by using data release call", iface);
     return aconf;
 }
 
