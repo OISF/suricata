@@ -174,9 +174,17 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #endif
 
 #ifndef TP_STATUS_USER_BUSY
-/* for new use latest bit available in tp_status */
-#define TP_STATUS_USER_BUSY     BIT_U32(31)
+/* HACK special setting in the tp_status field for frames we are
+ * still working on. This can happen in autofp mode where the
+ * capture thread goes around the ring and finds a frame that still
+ * hasn't been released by a worker thread.
+ *
+ * We use bits 29, 30, 31. 29 and 31 are software and hardware
+ * timestamps. 30 should not be used. Combined they should never
+ * be set on the rx-ring together. */
+#define TP_STATUS_USER_BUSY (BIT_U32(29) | BIT_U32(30) | BIT_U32(31))
 #endif
+#define FRAME_BUSY(tp_status) (((tp_status)&TP_STATUS_USER_BUSY) == TP_STATUS_USER_BUSY)
 
 #ifndef TP_STATUS_VLAN_VALID
 #define TP_STATUS_VLAN_VALID    BIT_U32(4)
@@ -411,7 +419,7 @@ static void AFPCheckTpacketv2Ring(AFPThreadVars *ptv)
             }
             ready++;
             s = "ready";
-        } else if (tp_status & TP_STATUS_USER_BUSY) {
+        } else if (FRAME_BUSY(tp_status)) {
             inprogress++;
             s = "in progress";
             if (state == -1)
@@ -1134,7 +1142,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (tp_status == TP_STATUS_KERNEL)
             break;
         /* if in autofp mode the frame is still busy, return to poll */
-        if (tp_status & TP_STATUS_USER_BUSY) {
+        if (FRAME_BUSY(tp_status)) {
             break;
         }
         emergency_flush |= ((tp_status & TP_STATUS_LOSING) != 0);
