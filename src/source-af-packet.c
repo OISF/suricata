@@ -243,8 +243,10 @@ union thdr {
     void *raw;
 };
 
+#ifdef HAVE_PACKET_EBPF
 static int AFPBypassCallback(Packet *p);
 static int AFPXDPBypassCallback(Packet *p);
+#endif
 
 #define MAX_MAPS 32
 /**
@@ -307,8 +309,6 @@ typedef struct AFPThreadVars_
     int buffer_size;
     /* Filter */
     const char *bpf_filter;
-    int ebpf_lb_fd;
-    int ebpf_filter_fd;
 
     int promisc;
 
@@ -334,9 +334,10 @@ typedef struct AFPThreadVars_
     unsigned int ring_buflen;
     uint8_t *ring_buf;
 
-    uint8_t xdp_mode;
-
 #ifdef HAVE_PACKET_EBPF
+    uint8_t xdp_mode;
+    int ebpf_lb_fd;
+    int ebpf_filter_fd;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
 
@@ -884,22 +885,20 @@ static inline int AFPSuriFailure(AFPThreadVars *ptv, union thdr h)
 
 static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
 {
+#ifdef HAVE_PACKET_EBPF
     if (ptv->flags & AFP_BYPASS) {
         p->BypassPacketsFlow = AFPBypassCallback;
-#ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
-#endif
     }
     if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
-#ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
-#endif
     }
+#endif
 }
 
 /** \internal
@@ -2347,8 +2346,6 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     return 1;
 }
 
-#endif
-
 /**
  * Bypass function for AF_PACKET capture in eBPF mode
  *
@@ -2365,7 +2362,6 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
  */
 static int AFPBypassCallback(Packet *p)
 {
-#ifdef HAVE_PACKET_EBPF
     SCLogDebug("Calling af_packet callback function");
     /* Only bypass TCP and UDP */
     if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
@@ -2501,7 +2497,6 @@ static int AFPBypassCallback(Packet *p)
             EBPFUpdateFlow(p->flow, p, NULL);
         return AFPSetFlowStorage(p, p->afp_v.v6_map_fd, keys[0], keys[1], AF_INET6);
     }
-#endif
     return 0;
 }
 
@@ -2518,7 +2513,6 @@ static int AFPBypassCallback(Packet *p)
  */
 static int AFPXDPBypassCallback(Packet *p)
 {
-#ifdef HAVE_PACKET_XDP
     SCLogDebug("Calling af_packet callback function");
     /* Only bypass TCP and UDP */
     if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
@@ -2650,13 +2644,13 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         return AFPSetFlowStorage(p, p->afp_v.v6_map_fd, keys[0], keys[1], AF_INET6);
     }
-#endif
     return 0;
 }
 
-
 bool g_flowv4_ok = true;
 bool g_flowv6_ok = true;
+
+#endif /* HAVE_PACKET_EBPF */
 
 /**
  * \brief Init function for ReceiveAFP.
@@ -2721,10 +2715,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (afpconfig->bpf_filter) {
         ptv->bpf_filter = afpconfig->bpf_filter;
     }
+#ifdef HAVE_PACKET_EBPF
     ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
     ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
     ptv->xdp_mode = afpconfig->xdp_mode;
-#ifdef HAVE_PACKET_EBPF
     ptv->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
