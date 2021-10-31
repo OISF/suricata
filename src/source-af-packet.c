@@ -1019,14 +1019,11 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 
 static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pbd)
 {
-    int num_pkts = pbd->hdr.bh1.num_pkts, i;
-    uint8_t *ppd;
-    int ret = 0;
+    const int num_pkts = pbd->hdr.bh1.num_pkts;
+    uint8_t *ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
 
-    ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
-    for (i = 0; i < num_pkts; ++i) {
-        ret = AFPParsePacketV3(ptv, pbd,
-                               (struct tpacket3_hdr *)ppd);
+    for (int i = 0; i < num_pkts; ++i) {
+        int ret = AFPParsePacketV3(ptv, pbd, (struct tpacket3_hdr *)ppd);
         switch (ret) {
             case AFP_READ_OK:
                 break;
@@ -1058,9 +1055,6 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 static int AFPReadFromRingV3(AFPThreadVars *ptv)
 {
 #ifdef HAVE_TPACKET_V3
-    struct tpacket_block_desc *pbd;
-    int ret = 0;
-
     /* Loop till we have packets available */
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
@@ -1068,14 +1062,15 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
             break;
         }
 
-        pbd = (struct tpacket_block_desc *) ptv->ring.v3[ptv->frame_offset].iov_base;
+        struct tpacket_block_desc *pbd =
+                (struct tpacket_block_desc *)ptv->ring.v3[ptv->frame_offset].iov_base;
 
         /* block is not ready to be read */
         if ((pbd->hdr.bh1.block_status & TP_STATUS_USER) == 0) {
             SCReturnInt(AFP_READ_OK);
         }
 
-        ret = AFPWalkBlock(ptv, pbd);
+        int ret = AFPWalkBlock(ptv, pbd);
         if (unlikely(ret != AFP_READ_OK)) {
             AFPFlushBlock(pbd);
             SCReturnInt(ret);
@@ -1170,8 +1165,6 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
 static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
                                      uint64_t *discarded_pkts)
 {
-    union thdr h;
-
     if (unlikely(suricata_ctl_flags != 0)) {
         return 1;
     }
@@ -1179,8 +1172,8 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         int ret = 0;
-        struct tpacket_block_desc *pbd;
-        pbd = (struct tpacket_block_desc *) ptv->ring.v3[ptv->frame_offset].iov_base;
+        struct tpacket_block_desc *pbd =
+                (struct tpacket_block_desc *)ptv->ring.v3[ptv->frame_offset].iov_base;
         *discarded_pkts += pbd->hdr.bh1.num_pkts;
         struct tpacket3_hdr *ppd =
             (struct tpacket3_hdr *)((uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt);
@@ -1197,6 +1190,7 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
 #endif
     {
         /* Read packet from ring */
+        union thdr h;
         h.raw = (((union thdr **)ptv->ring.v2)[ptv->frame_offset]);
         if (h.raw == NULL) {
             return -1;
@@ -1216,7 +1210,6 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
             ptv->frame_offset = 0;
         }
     }
-
 
     return 0;
 }
@@ -2722,10 +2715,7 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
 TmEcode DecodeAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    DecodeThreadVars *dtv = NULL;
-
-    dtv = DecodeThreadVarsAlloc(tv);
-
+    DecodeThreadVars *dtv = DecodeThreadVarsAlloc(tv);
     if (dtv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
 
