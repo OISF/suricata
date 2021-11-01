@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -160,7 +160,6 @@ static int DetectSameipSigTest01(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF(PacketAlertCheck(p2, 1) != 0);
 
-cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
