@@ -21,7 +21,7 @@ use super::rdp::{RdpTransaction, RdpTransactionItem};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::rdp::parser::*;
 use crate::rdp::windows;
-use x509_parser::parse_x509_der;
+use x509_parser::prelude::{X509Certificate, FromDer};
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder) -> bool {
@@ -50,7 +50,7 @@ fn log(tx: &RdpTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
             js.set_string("event_type", "tls_handshake")?;
             js.open_array("x509_serials")?;
             for blob in chain {
-                match parse_x509_der(&blob.data) {
+                match X509Certificate::from_der(&blob.data) {
                     Ok((_, cert)) => {
                         js.append_string(&cert.tbs_certificate.serial.to_str_radix(16))?;
                     }
