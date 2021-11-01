@@ -18,10 +18,9 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::common::rust_string_to_c;
-use nom;
 use std;
 use std::os::raw::c_char;
-use x509_parser::{error::X509Error, parse_x509_der, X509Certificate};
+use x509_parser::prelude::*;
 
 #[repr(u32)]
 pub enum X509DecodeError {
@@ -54,7 +53,7 @@ pub unsafe extern "C" fn rs_x509_decode(
     err_code: *mut u32,
 ) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
-    let res = parse_x509_der(slice);
+    let res = X509Certificate::from_der(slice);
     match res {
         Ok((_rem, cert)) => Box::into_raw(Box::new(X509(cert))),
         Err(e) => {
@@ -112,8 +111,8 @@ pub unsafe extern "C" fn rs_x509_get_validity(
         return -1;
     }
     let x509 = &*ptr;
-    let n_b = x509.0.tbs_certificate.validity.not_before.to_timespec().sec;
-    let n_a = x509.0.tbs_certificate.validity.not_after.to_timespec().sec;
+    let n_b = x509.0.validity().not_before.timestamp();
+    let n_a = x509.0.validity().not_after.timestamp();
     *not_before = n_b;
     *not_after = n_a;
     0
