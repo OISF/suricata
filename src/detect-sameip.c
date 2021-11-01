@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -132,7 +132,6 @@ static int DetectSameipSigTest01(void)
     Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -143,45 +142,33 @@ static int DetectSameipSigTest01(void)
     p2 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "4.3.2.1");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
                                      "alert tcp any any -> any any "
                                      "(msg:\"Testing sameip\"; sameip; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
+
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1) == 0) {
-        printf("sid 2 did not alert, but should have: ");
-        goto cleanup;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1) == 0);
+    cleanup
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 1) != 0) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
-
-    result = 1;
+    FAIL_IF(PacketAlertCheck(p2, 1) != 0);
+    cleanup
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-end:
-    return result;
+    PASS
 }
 
 /**
