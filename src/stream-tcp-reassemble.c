@@ -290,6 +290,8 @@ static void *TcpSegmentPoolAlloc(void)
                 return NULL;
             }
         }
+
+        StreamTcpReassembleIncrMemuse(memuse);
     } else {
         seg->pcap_hdr_storage = NULL;
     }
