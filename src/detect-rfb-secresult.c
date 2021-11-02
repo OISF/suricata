@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -268,14 +268,13 @@ void DetectRfbSecresultFree(DetectEngineCtx *de_ctx, void *de_ptr)
  */
 static int RfbSecresultTestParse01 (void)
 {
-    DetectRfbSecresultData *de = NULL;
-    de = DetectRfbSecresultParse("fail");
-    if (de) {
-        DetectRfbSecresultFree(NULL, de);
-        return 1;
-    }
+    DetectRfbSecresultData *de = DetectRfbSecresultParse("fail");
 
-    return 0;
+    FAIL_IF_NULL(de);
+
+    DetectRfbSecresultFree(NULL, de);
+
+    PASS;
 }
 
 /**
@@ -286,14 +285,13 @@ static int RfbSecresultTestParse01 (void)
  */
 static int RfbSecresultTestParse02 (void)
 {
-    DetectRfbSecresultData *de = NULL;
-    de = DetectRfbSecresultParse("invalidopt");
-    if (de) {
-        DetectRfbSecresultFree(NULL, de);
-        return 0;
-    }
+    DetectRfbSecresultData *de = DetectRfbSecresultParse("invalidopt");
 
-    return 1;
+    FAIL_IF_NOT_NULL(de);
+
+    DetectRfbSecresultFree(NULL, de);
+
+    PASS;
 }
 
 /**
