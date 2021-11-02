@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -290,7 +290,6 @@ static int RfbSecresultTestParse02 (void)
     FAIL_IF_NOT_NULL(de);
 
     DetectRfbSecresultFree(NULL, de);
-
 
     PASS;
 }
