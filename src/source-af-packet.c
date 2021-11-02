@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2018 Open Information Security Foundation
+/* Copyright (C) 2011-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -169,13 +169,48 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define POLL_TIMEOUT 100
 
+/* kernel flags defined for RX ring tp_status */
+#ifndef TP_STATUS_KERNEL
+#define TP_STATUS_KERNEL 0
+#endif
+#ifndef TP_STATUS_USER
+#define TP_STATUS_USER BIT_U32(0)
+#endif
+#ifndef TP_STATUS_COPY
+#define TP_STATUS_COPY BIT_U32(1)
+#endif
+#ifndef TP_STATUS_LOSING
+#define TP_STATUS_LOSING BIT_U32(2)
+#endif
+#ifndef TP_STATUS_CSUMNOTREADY
+#define TP_STATUS_CSUMNOTREADY BIT_U32(3)
+#endif
+#ifndef TP_STATUS_VLAN_VALID
+#define TP_STATUS_VLAN_VALID BIT_U32(4)
+#endif
+#ifndef TP_STATUS_BLK_TMO
+#define TP_STATUS_BLK_TMO BIT_U32(5)
+#endif
+#ifndef TP_STATUS_VLAN_TPID_VALID
+#define TP_STATUS_VLAN_TPID_VALID BIT_U32(6)
+#endif
+#ifndef TP_STATUS_CSUM_VALID
+#define TP_STATUS_CSUM_VALID BIT_U32(7)
+#endif
+
+#ifndef TP_STATUS_TS_SOFTWARE
+#define TP_STATUS_TS_SOFTWARE BIT_U32(29)
+#endif
+#ifndef TP_STATUS_TS_SYS_HARDWARE
+#define TP_STATUS_TS_SYS_HARDWARE BIT_U32(30) /* kernel comment says: "deprecated, never set" */
+#endif
+#ifndef TP_STATUS_TS_RAW_HARDWARE
+#define TP_STATUS_TS_RAW_HARDWARE BIT_U32(31)
+#endif
+
 #ifndef TP_STATUS_USER_BUSY
 /* for new use latest bit available in tp_status */
 #define TP_STATUS_USER_BUSY     BIT_U32(31)
-#endif
-
-#ifndef TP_STATUS_VLAN_VALID
-#define TP_STATUS_VLAN_VALID    BIT_U32(4)
 #endif
 
 enum {
