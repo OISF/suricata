@@ -994,7 +994,6 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     p->afp_v.relptr = ppd;
     p->ReleasePacket = AFPReleasePacketV3;
     p->afp_v.mpeer = ptv->mpeer;
-    AFPRefSocket(ptv->mpeer);
 
     p->afp_v.copy_mode = ptv->copy_mode;
     if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
