@@ -34,8 +34,8 @@ To execute all unit tests (both from C and Rust code), as well as ``libhtp`` one
 
     make check
 
-.. Check the Suricata Devguide on :doc:`unittests-c` or :doc:`unittests-rust` for more on how to write and run unit tests,
-.. considering that the way to do so differs considerably in Suricata, based on the language.
+Check the Suricata Devguide on :doc:`unittests-c` or :doc:`unittests-rust` for more on how to write and run unit tests,
+given that the way to do so differs, depending on the language.
 
 Code Examples
 ^^^^^^^^^^^^^
