@@ -721,16 +721,14 @@ static void AFPReleaseDataFromRing(Packet *p)
         AFPWritePacket(p, TPACKET_V2);
     }
 
-    if (AFPDerefSocket(p->afp_v.mpeer) == 0)
-        goto cleanup;
-
     if (p->afp_v.relptr) {
         union thdr h;
         h.raw = p->afp_v.relptr;
         h.h2->tp_status = TP_STATUS_KERNEL;
     }
 
-cleanup:
+    (void)(AFPDerefSocket(p->afp_v.mpeer);
+
     AFPV_CLEANUP(&p->afp_v);
 }
 
