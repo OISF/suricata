@@ -727,7 +727,7 @@ static void AFPReleaseDataFromRing(Packet *p)
         h.h2->tp_status = TP_STATUS_KERNEL;
     }
 
-    (void)(AFPDerefSocket(p->afp_v.mpeer);
+    (void)AFPDerefSocket(p->afp_v.mpeer);
 
     AFPV_CLEANUP(&p->afp_v);
 }
@@ -1125,13 +1125,36 @@ static int AFPDerefSocket(AFPPeer* peer)
         return 1;
 
     if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 1) {
-        if (SC_ATOMIC_GET(peer->state) == AFP_STATE_DOWN) {
-            SCLogInfo("Cleaning socket connected to '%s'", peer->iface);
-            close(SC_ATOMIC_GET(peer->socket));
-            return 0;
-        }
+        return 0;
     }
     return 1;
+}
+
+static void AFPCloseSocket(AFPThreadVars *ptv)
+{
+    if (ptv->mpeer != NULL)
+        BUG_ON(SC_ATOMIC_GET(ptv->mpeer->sock_usage) != 0);
+
+    if (ptv->flags & AFP_TPACKET_V3) {
+#ifdef HAVE_TPACKET_V3
+        if (ptv->ring.v3) {
+            SCFree(ptv->ring.v3);
+            ptv->ring.v3 = NULL;
+        }
+#endif
+    } else {
+        if (ptv->ring.v2) {
+            /* only used in reading phase, we can free it */
+            SCFree(ptv->ring.v2);
+            ptv->ring.v2 = NULL;
+        }
+    }
+    if (ptv->socket != -1) {
+        SCLogDebug("Cleaning socket connected to '%s'", ptv->iface);
+        munmap(ptv->ring_buf, ptv->ring_buflen);
+        close(ptv->socket);
+        ptv->socket = -1;
+    }
 }
 
 static void AFPSwitchState(AFPThreadVars *ptv, int state)
@@ -1139,38 +1162,15 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
     ptv->afp_state = state;
     ptv->down_count = 0;
 
-    AFPPeerUpdate(ptv);
-
-    /* Do cleaning if switching to down state */
     if (state == AFP_STATE_DOWN) {
-#ifdef HAVE_TPACKET_V3
-        if (ptv->flags & AFP_TPACKET_V3) {
-            if (!ptv->ring.v3) {
-                SCFree(ptv->ring.v3);
-                ptv->ring.v3 = NULL;
-            }
-        } else {
-#endif
-            if (ptv->ring.v2) {
-                /* only used in reading phase, we can free it */
-                SCFree(ptv->ring.v2);
-                ptv->ring.v2 = NULL;
-            }
-#ifdef HAVE_TPACKET_V3
-        }
-#endif
-        if (ptv->socket != -1) {
-            /* we need to wait for all packets to return data */
-            if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 1) {
-                SCLogDebug("Cleaning socket connected to '%s'", ptv->iface);
-                munmap(ptv->ring_buf, ptv->ring_buflen);
-                close(ptv->socket);
-                ptv->socket = -1;
-            }
-        }
+        /* cleanup is done on thread cleanup or try reopen
+         * as there may still be packets in autofp that
+         * are referencing us */
+        (void)SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1);
     }
     if (state == AFP_STATE_UP) {
-         (void)SC_ATOMIC_SET(ptv->mpeer->sock_usage, 1);
+        AFPPeerUpdate(ptv);
+        (void)SC_ATOMIC_SET(ptv->mpeer->sock_usage, 1);
     }
 }
 
@@ -1293,6 +1293,9 @@ static int AFPTryReopen(AFPThreadVars *ptv)
     if (SC_ATOMIC_GET(ptv->mpeer->sock_usage) != 0) {
         return -1;
     }
+
+    /* ref cnt 0, we can close the old socket */
+    AFPCloseSocket(ptv);
 
     int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
     if (afp_activate_r != 0) {
