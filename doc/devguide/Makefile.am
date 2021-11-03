@@ -15,13 +15,13 @@ EXTRA_DIST = \
 	internals/index.rst \
 	internals/pipeline/index.rst \
 	internals/datastructs/index.rst \
-	codebase/unittests.rst \
 	codebase/index.rst \
 	codebase/code-style.rst \
 	codebase/contributing/code-submission-process.rst \
 	codebase/contributing/index.rst \
 	codebase/fuzz-testing.rst \
-	codebase/testing.rst
+	codebase/testing.rst \
+	codebase/unittests-c.rst
 
 if HAVE_SPHINXBUILD
 if HAVE_MSCGEN
