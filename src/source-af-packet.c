@@ -57,6 +57,7 @@
 #include "source-af-packet.h"
 #include "runmodes.h"
 #include "flow-storage.h"
+#include "util-validate.h"
 
 #ifdef HAVE_AF_PACKET
 
@@ -712,9 +713,11 @@ static TmEcode AFPWritePacket(Packet *p, int version)
 
 static void AFPReleaseDataFromRing(Packet *p)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
-    if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
+    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
         AFPWritePacket(p, TPACKET_V2);
     }
 
@@ -734,9 +737,11 @@ cleanup:
 #ifdef HAVE_TPACKET_V3
 static void AFPReleasePacketV3(Packet *p)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
-    if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
+    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
         AFPWritePacket(p, TPACKET_V3);
     }
     PacketFreeOrRelease(p);
@@ -2699,7 +2704,7 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    BUG_ON(PKT_IS_PSEUDOPKT(p));
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
