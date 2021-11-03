@@ -9,3 +9,4 @@ Working with the Codebase
    fuzz-testing
    testing
    unittests-c
+   unittests-rust

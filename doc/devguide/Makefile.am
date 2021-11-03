@@ -21,7 +21,8 @@ EXTRA_DIST = \
 	codebase/contributing/index.rst \
 	codebase/fuzz-testing.rst \
 	codebase/testing.rst \
-	codebase/unittests-c.rst
+	codebase/unittests-c.rst \
+	codebase/unittests-rust.rst
 
 if HAVE_SPHINXBUILD
 if HAVE_MSCGEN
