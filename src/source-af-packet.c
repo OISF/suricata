@@ -628,24 +628,25 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  *
  */
-static TmEcode AFPWritePacket(Packet *p, int version)
+static void AFPWritePacket(Packet *p, int version)
 {
     struct sockaddr_ll socket_address;
     int socket;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
         if (PacketTestAction(p, ACTION_DROP)) {
-            return TM_ECODE_OK;
+            return;
         }
     }
 
     if (SC_ATOMIC_GET(p->afp_v.peer->state) == AFP_STATE_DOWN)
-        return TM_ECODE_OK;
+        return;
 
     if (p->ethh == NULL) {
         SCLogWarning(SC_ERR_INVALID_VALUE, "Should have an Ethernet header");
-        return TM_ECODE_FAILED;
+        return;
     }
+
     /* Index of the network device */
     socket_address.sll_ifindex = SC_ATOMIC_GET(p->afp_v.peer->if_idx);
     /* Address length*/
@@ -663,14 +664,9 @@ static TmEcode AFPWritePacket(Packet *p, int version)
         SCLogWarning(SC_ERR_SOCKET, "Sending packet failed on socket %d: %s",
                   socket,
                   strerror(errno));
-        if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
-            SCMutexUnlock(&p->afp_v.peer->sock_protect);
-        return TM_ECODE_FAILED;
     }
     if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
         SCMutexUnlock(&p->afp_v.peer->sock_protect);
-
-    return TM_ECODE_OK;
 }
 
 static void AFPReleaseDataFromRing(Packet *p)
