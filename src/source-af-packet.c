@@ -417,6 +417,7 @@ static void AFPPeerUpdate(AFPThreadVars *ptv)
     (void)SC_ATOMIC_SET(ptv->mpeer->if_idx, AFPGetIfnumByDev(ptv->socket, ptv->iface, 0));
     (void)SC_ATOMIC_SET(ptv->mpeer->socket, ptv->socket);
     (void)SC_ATOMIC_SET(ptv->mpeer->state, ptv->afp_state);
+    (void)SC_ATOMIC_SET(ptv->mpeer->send_errors, 0);
 }
 
 /**
@@ -639,9 +640,6 @@ static void AFPWritePacket(Packet *p, int version)
         }
     }
 
-    if (SC_ATOMIC_GET(p->afp_v.peer->state) == AFP_STATE_DOWN)
-        return;
-
     if (p->ethh == NULL) {
         SCLogWarning(SC_ERR_INVALID_VALUE, "Should have an Ethernet header");
         return;
@@ -661,9 +659,10 @@ static void AFPWritePacket(Packet *p, int version)
 
     if (sendto(socket, GET_PKT_DATA(p), GET_PKT_LEN(p), 0, (struct sockaddr *)&socket_address,
                 sizeof(struct sockaddr_ll)) < 0) {
-        SCLogWarning(SC_ERR_SOCKET, "Sending packet failed on socket %d: %s",
-                  socket,
-                  strerror(errno));
+        if (SC_ATOMIC_ADD(p->afp_v.peer->send_errors, 1) == 0) {
+            SCLogWarning(SC_ERR_SOCKET, "sending packet failed on socket %d: %s", socket,
+                    strerror(errno));
+        }
     }
     if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
         SCMutexUnlock(&p->afp_v.peer->sock_protect);
