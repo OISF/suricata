@@ -949,9 +949,7 @@ static bool AFPReadFromRingSetupPacket(
         p->vlan_idx = 1;
     }
 
-    if (PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-        return false;
-    }
+    (void)PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen);
 
     p->afp_v.relptr = h.raw;
     p->ReleasePacket = AFPReleasePacket;
@@ -1122,10 +1120,8 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         p->vlan_idx = 1;
     }
 
-    if (PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
-        TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_SURI_FAILURE);
-    }
+    (void)PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen);
+
     p->afp_v.relptr = ppd;
     p->ReleasePacket = AFPReleasePacketV3;
     p->afp_v.mpeer = ptv->mpeer;
