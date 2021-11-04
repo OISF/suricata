@@ -148,6 +148,7 @@ typedef struct AFPPacketVars_
      */
     AFPPeer *mpeer;
     uint8_t copy_mode;
+    uint16_t vlan_tci;
 #ifdef HAVE_PACKET_EBPF
     int v4_map_fd;
     int v6_map_fd;
@@ -156,21 +157,25 @@ typedef struct AFPPacketVars_
 } AFPPacketVars;
 
 #ifdef HAVE_PACKET_EBPF
-#define AFPV_CLEANUP(afpv) do {           \
-    (afpv)->relptr = NULL;                \
-    (afpv)->copy_mode = 0;                \
-    (afpv)->peer = NULL;                  \
-    (afpv)->mpeer = NULL;                 \
-    (afpv)->v4_map_fd = -1;               \
-    (afpv)->v6_map_fd = -1;               \
-} while(0)
+#define AFPV_CLEANUP(afpv)                                                                         \
+    do {                                                                                           \
+        (afpv)->relptr = NULL;                                                                     \
+        (afpv)->copy_mode = 0;                                                                     \
+        (afpv)->vlan_tci = 0;                                                                      \
+        (afpv)->peer = NULL;                                                                       \
+        (afpv)->mpeer = NULL;                                                                      \
+        (afpv)->v4_map_fd = -1;                                                                    \
+        (afpv)->v6_map_fd = -1;                                                                    \
+    } while (0)
 #else
-#define AFPV_CLEANUP(afpv) do {           \
-    (afpv)->relptr = NULL;                \
-    (afpv)->copy_mode = 0;                \
-    (afpv)->peer = NULL;                  \
-    (afpv)->mpeer = NULL;                 \
-} while(0)
+#define AFPV_CLEANUP(afpv)                                                                         \
+    do {                                                                                           \
+        (afpv)->relptr = NULL;                                                                     \
+        (afpv)->copy_mode = 0;                                                                     \
+        (afpv)->vlan_tci = 0;                                                                      \
+        (afpv)->peer = NULL;                                                                       \
+        (afpv)->mpeer = NULL;                                                                      \
+    } while (0)
 #endif
 
 /**

@@ -632,10 +632,6 @@ static TmEcode AFPWritePacket(Packet *p, int version)
 {
     struct sockaddr_ll socket_address;
     int socket;
-    uint8_t *pstart;
-    size_t plen;
-    union thdr h;
-    uint16_t vlan_tci = 0;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
         if (PacketTestAction(p, ACTION_DROP)) {
@@ -662,42 +658,8 @@ static TmEcode AFPWritePacket(Packet *p, int version)
         SCMutexLock(&p->afp_v.peer->sock_protect);
     socket = SC_ATOMIC_GET(p->afp_v.peer->socket);
 
-    h.raw = p->afp_v.relptr;
-
-    if (version == TPACKET_V2) {
-        /* Copy VLAN header from ring memory. For post june 2011 kernel we test
-         * the flag. It is not defined for older kernel so we go best effort
-         * and test for non zero value of the TCI header. */
-        if (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci) {
-            vlan_tci = h.h2->tp_vlan_tci;
-        }
-    } else {
-#ifdef HAVE_TPACKET_V3
-        if (h.h3->tp_status & TP_STATUS_VLAN_VALID || h.h3->hv1.tp_vlan_tci) {
-            vlan_tci = h.h3->hv1.tp_vlan_tci;
-        }
-#else
-        /* Should not get here */
-        BUG_ON(1);
-#endif
-    }
-
-    if (vlan_tci != 0) {
-        pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
-        plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
-        /* move ethernet addresses */
-        memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
-        /* write vlan info */
-        *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
-        *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(vlan_tci);
-    } else {
-        pstart = GET_PKT_DATA(p);
-        plen = GET_PKT_LEN(p);
-    }
-
-    if (sendto(socket, pstart, plen, 0,
-               (struct sockaddr*) &socket_address,
-               sizeof(struct sockaddr_ll)) < 0) {
+    if (sendto(socket, GET_PKT_DATA(p), GET_PKT_LEN(p), 0, (struct sockaddr *)&socket_address,
+                sizeof(struct sockaddr_ll)) < 0) {
         SCLogWarning(SC_ERR_SOCKET, "Sending packet failed on socket %d: %s",
                   socket,
                   strerror(errno));
@@ -810,6 +772,7 @@ static void AFPReadFromRingSetupPacket(
             (tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
         p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
         p->vlan_idx = 1;
+        p->afp_v.vlan_tci = h.h2->tp_vlan_tci;
     }
 
     (void)PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen);
@@ -977,6 +940,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
             (ppd->tp_status & TP_STATUS_VLAN_VALID || ppd->hv1.tp_vlan_tci)) {
         p->vlan_id[0] = ppd->hv1.tp_vlan_tci & 0x0fff;
         p->vlan_idx = 1;
+        p->afp_v.vlan_tci = ppd->hv1.tp_vlan_tci;
     }
 
     (void)PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen);
@@ -1691,19 +1655,14 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     }
 #endif
 
-    /* Let's reserve head room so we can add the VLAN header in IPS
-     * or TAP mode before write the packet */
-    if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
-        /* Only one vlan is extracted from AFP header so
-         * one VLAN header length is enough. */
-        int reserve = VLAN_HEADER_LEN;
-        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_RESERVE, (void *) &reserve,
-                    sizeof(reserve)) < 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                    "Can't activate reserve on packet socket: %s",
-                    strerror(errno));
-            return AFP_FATAL_ERROR;
-        }
+    /* Reserve head room for a VLAN header. One vlan is extracted from AFP header
+     * so one VLAN header length is enough. */
+    int reserve = VLAN_HEADER_LEN;
+    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_RESERVE, (void *)&reserve, sizeof(reserve)) <
+            0) {
+        SCLogError(
+                SC_ERR_AFP_CREATE, "Can't activate reserve on packet socket: %s", strerror(errno));
+        return AFP_FATAL_ERROR;
     }
 
     /* Allocate RX ring */
@@ -2681,6 +2640,34 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+/** \internal
+ *  \brief add a VLAN header into the raw data for inspection, logging
+ *         and sending out in IPS mode
+ *
+ *  The kernel doesn't provide the first VLAN header the raw packet data,
+ *  but instead feeds it to us through meta data. For logging and IPS
+ *  we need to put it back into the raw data. Luckily there is some head
+ *  room in the original data so its enough to move the ethernet header
+ *  a bit to make space for the VLAN header.
+ */
+static void UpdateRawDataForVLANHdr(Packet *p)
+{
+    if (p->afp_v.vlan_tci != 0) {
+        uint8_t *pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
+        size_t plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
+        /* move ethernet addresses */
+        memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
+        /* write vlan info */
+        *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
+        *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(p->afp_v.vlan_tci);
+
+        /* update the packet raw data pointer to start at the new offset */
+        (void)PacketSetData(p, pstart, plen);
+        /* update ethernet header pointer to point to the new start of the data */
+        p->ethh = (void *)pstart;
+    }
+}
+
 /**
  * \brief This function passes off to link type decoders.
  *
@@ -2694,6 +2681,8 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
+
+    const bool afp_vlan_hdr = p->vlan_idx != 0;
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
@@ -2701,13 +2690,13 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-    /* If suri has set vlan during reading, we increase vlan counter */
-    if (p->vlan_idx) {
-        StatsIncr(tv, dtv->counter_vlan);
-    }
-
     /* call the decoder */
     DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+    /* post-decoding put vlan hdr back into the raw data) */
+    if (afp_vlan_hdr) {
+        StatsIncr(tv, dtv->counter_vlan);
+        UpdateRawDataForVLANHdr(p);
+    }
 
     PacketDecodeFinalize(tv, dtv, p);
 
