@@ -290,6 +290,11 @@ typedef struct AFPThreadVars_
     uint16_t capture_kernel_drops;
     uint16_t capture_errors;
     uint16_t afpacket_spin;
+    uint16_t capture_afp_poll;
+    uint16_t capture_afp_poll_signal;
+    uint16_t capture_afp_poll_timeout;
+    uint16_t capture_afp_poll_data;
+    uint16_t capture_afp_poll_err;
 
     /* handle state */
     uint8_t afp_state;
@@ -1356,6 +1361,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
          * us from alloc'ing packets at line rate */
         PacketPoolWait();
 
+        StatsIncr(ptv->tv, ptv->capture_afp_poll);
+
         r = poll(&fds, 1, POLL_TIMEOUT);
 
         if (suricata_ctl_flags != 0) {
@@ -1364,6 +1371,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
+            StatsIncr(ptv->tv, ptv->capture_afp_poll_signal);
             if (fds.revents & (POLLHUP | POLLRDHUP)) {
                 AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
@@ -1383,6 +1391,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 continue;
             }
         } else if (r > 0) {
+            StatsIncr(ptv->tv, ptv->capture_afp_poll_data);
             r = AFPReadFunc(ptv);
             switch (r) {
                 case AFP_READ_OK:
@@ -1408,6 +1417,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
             }
         } else if (unlikely(r == 0)) {
+            StatsIncr(ptv->tv, ptv->capture_afp_poll_timeout);
             /* Trigger one dump of stats every second */
             current_time = time(NULL);
             if (current_time != last_dump) {
@@ -1418,6 +1428,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             TmThreadsCaptureHandleTimeout(tv, NULL);
 
         } else if ((r < 0) && (errno != EINTR)) {
+            StatsIncr(ptv->tv, ptv->capture_afp_poll_err);
             SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d) %s",
                        ptv->iface,
                        errno, strerror(errno));
@@ -2561,6 +2572,11 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->capture_errors = StatsRegisterCounter("capture.errors",
             ptv->tv);
     ptv->afpacket_spin = StatsRegisterAvgCounter("afpacket.busy_loop_avg", ptv->tv);
+    ptv->capture_afp_poll = StatsRegisterCounter("afpacket.poll_cnt", ptv->tv);
+    ptv->capture_afp_poll_signal = StatsRegisterCounter("afpacket.poll_signal_cnt", ptv->tv);
+    ptv->capture_afp_poll_timeout = StatsRegisterCounter("afpacket.poll_timeout_cnt", ptv->tv);
+    ptv->capture_afp_poll_data = StatsRegisterCounter("afpacket.poll_data_cnt", ptv->tv);
+    ptv->capture_afp_poll_err = StatsRegisterCounter("afpacket.poll_error_cnt", ptv->tv);
 #endif
 
     ptv->copy_mode = afpconfig->copy_mode;
