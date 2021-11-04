@@ -306,8 +306,6 @@ pub struct DCERPCState {
     pub query_completed: bool,
     pub data_needed_for_dir: Direction,
     pub prev_dir: Direction,
-    pub prev_tx_call_id: u32,
-    pub clear_bind_cache: bool,
     pub ts_gap: bool,
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
