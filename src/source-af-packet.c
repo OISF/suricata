@@ -683,11 +683,11 @@ static void AFPReleaseDataFromRing(Packet *p)
         AFPWritePacket(p, TPACKET_V2);
     }
 
-    if (p->afp_v.relptr) {
-        union thdr h;
-        h.raw = p->afp_v.relptr;
-        h.h2->tp_status = TP_STATUS_KERNEL;
-    }
+    BUG_ON(p->afp_v.relptr == NULL);
+
+    union thdr h;
+    h.raw = p->afp_v.relptr;
+    h.h2->tp_status = TP_STATUS_KERNEL;
 
     (void)AFPDerefSocket(p->afp_v.mpeer);
 
