@@ -786,7 +786,7 @@ static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
 /** \internal
  *  \brief setup packet for AFPReadFromRing
  */
-static bool AFPReadFromRingSetupPacket(
+static void AFPReadFromRingSetupPacket(
         AFPThreadVars *ptv, union thdr h, const unsigned int tp_status, Packet *p)
 {
     PKT_SET_SRC(p, PKT_SRC_WIRE);
@@ -845,7 +845,6 @@ static bool AFPReadFromRingSetupPacket(
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     }
-    return true;
 }
 
 static inline int AFPReadFromRingWaitForPacket(AFPThreadVars *ptv)
@@ -935,10 +934,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (p == NULL) {
             return AFPSuriFailure(ptv, h);
         }
-        if (AFPReadFromRingSetupPacket(ptv, h, tp_status, p) == false) {
-            TmqhOutputPacketpool(ptv->tv, p);
-            return AFPSuriFailure(ptv, h);
-        }
+        AFPReadFromRingSetupPacket(ptv, h, tp_status, p);
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
             return AFPSuriFailure(ptv, h);
