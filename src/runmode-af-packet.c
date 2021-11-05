@@ -261,7 +261,6 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    aconf->copy_mode = AFP_COPY_MODE_NONE;
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
         if (aconf->out_iface == NULL) {
             SCLogInfo("Copy mode activated but no destination"
