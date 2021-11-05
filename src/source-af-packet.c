@@ -777,17 +777,12 @@ static void AFPReadFromRingSetupPacket(
 
     (void)PacketSetData(p, (unsigned char *)h.raw + h.h2->tp_mac, h.h2->tp_snaplen);
 
-    p->afp_v.relptr = h.raw;
     p->ReleasePacket = AFPReleasePacket;
+    p->afp_v.relptr = h.raw;
     p->afp_v.mpeer = ptv->mpeer;
     AFPRefSocket(ptv->mpeer);
-
     p->afp_v.copy_mode = ptv->copy_mode;
-    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-        p->afp_v.peer = ptv->mpeer->peer;
-    } else {
-        p->afp_v.peer = NULL;
-    }
+    p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
     /* Timestamp */
     p->ts.tv_sec = h.h2->tp_sec;
@@ -945,16 +940,11 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 
     (void)PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen);
 
-    p->afp_v.relptr = ppd;
     p->ReleasePacket = AFPReleasePacketV3;
-    p->afp_v.mpeer = ptv->mpeer;
-
+    p->afp_v.relptr = NULL;
+    p->afp_v.mpeer = NULL;
     p->afp_v.copy_mode = ptv->copy_mode;
-    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-        p->afp_v.peer = ptv->mpeer->peer;
-    } else {
-        p->afp_v.peer = NULL;
-    }
+    p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
     /* Timestamp */
     p->ts.tv_sec = ppd->tp_sec;
