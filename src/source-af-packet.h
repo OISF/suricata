@@ -55,7 +55,7 @@ struct ebpf_timeout_config {
 #endif
 
 /* value for flags */
-// (1<<0) vacant
+#define AFP_NEED_PEER (1 << 0)
 // (1<<1) vacant
 #define AFP_SOCK_PROTECT (1<<2)
 #define AFP_EMERGENCY_MODE (1<<3)
