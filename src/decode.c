@@ -67,6 +67,7 @@
 #include "output.h"
 #include "output-flow.h"
 #include "flow-storage.h"
+#include "util-validate.h"
 
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
@@ -194,6 +195,7 @@ Packet *PacketGetFromQueueOrAlloc(void)
         /* non fatal, we're just not processing a packet then */
         p = PacketGetFromAlloc();
     } else {
+        DEBUG_VALIDATE_BUG_ON(p->ReleasePacket != PacketPoolReturnPacket);
         PACKET_PROFILING_START(p);
     }
 
