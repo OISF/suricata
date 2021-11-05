@@ -779,8 +779,12 @@ static void AFPReadFromRingSetupPacket(
 
     p->ReleasePacket = AFPReleasePacket;
     p->afp_v.relptr = h.raw;
-    p->afp_v.mpeer = ptv->mpeer;
-    AFPRefSocket(ptv->mpeer);
+    if (ptv->flags & AFP_NEED_PEER) {
+        p->afp_v.mpeer = ptv->mpeer;
+        AFPRefSocket(ptv->mpeer);
+    } else {
+        p->afp_v.mpeer = NULL;
+    }
     p->afp_v.copy_mode = ptv->copy_mode;
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
