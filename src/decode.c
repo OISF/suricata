@@ -170,8 +170,10 @@ void PacketFreeOrRelease(Packet *p)
 {
     if (p->flags & PKT_ALLOC)
         PacketFree(p);
-    else
+    else {
+        p->ReleasePacket = PacketPoolReturnPacket;
         PacketPoolReturnPacket(p);
+    }
 }
 
 /**
