@@ -209,25 +209,6 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #define TP_STATUS_TS_RAW_HARDWARE BIT_U32(31)
 #endif
 
-#ifndef TP_STATUS_USER_BUSY
-/* HACK special setting in the tp_status field for frames we are
- * still working on. This can happen in autofp mode where the
- * capture thread goes around the ring and finds a frame that still
- * hasn't been released by a worker thread.
- *
- * We use bits 29, 30, 31. 29 and 31 are software and hardware
- * timestamps. 30 should not be set by the kernel at all. Combined
- * they should never be set on the rx-ring together.
- *
- * The excessive casting is for handling the fact that the kernel
- * defines almost all of these as int flags, not unsigned ints. */
-#define TP_STATUS_USER_BUSY                                                                        \
-    (uint32_t)((uint32_t)TP_STATUS_TS_SOFTWARE | (uint32_t)TP_STATUS_TS_SYS_HARDWARE |             \
-               (uint32_t)TP_STATUS_TS_RAW_HARDWARE)
-#endif
-#define FRAME_BUSY(tp_status)                                                                      \
-    (((uint32_t)(tp_status) & (uint32_t)TP_STATUS_USER_BUSY) == (uint32_t)TP_STATUS_USER_BUSY)
-
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
@@ -364,8 +345,6 @@ static TmEcode DecodeAFP(ThreadVars *, Packet *, void *);
 static TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
 static int AFPGetDevFlags(int fd, const char *ifname);
-static int AFPDerefSocket(AFPPeer* peer);
-static int AFPRefSocket(AFPPeer* peer);
 
 
 /**
@@ -430,8 +409,6 @@ static void AFPPeerUpdate(AFPThreadVars *ptv)
  */
 static void AFPPeerClean(AFPPeer *peer)
 {
-    if (peer->flags & AFP_SOCK_PROTECT)
-        SCMutexDestroy(&peer->sock_protect);
     SCFree(peer);
 }
 
@@ -491,17 +468,11 @@ static TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     }
     memset(peer, 0, sizeof(AFPPeer));
     SC_ATOMIC_INIT(peer->socket);
-    SC_ATOMIC_INIT(peer->sock_usage);
     SC_ATOMIC_INIT(peer->if_idx);
     SC_ATOMIC_INIT(peer->state);
     peer->flags = ptv->flags;
     peer->turn = peerslist.turn++;
 
-    if (peer->flags & AFP_SOCK_PROTECT) {
-        SCMutexInit(&peer->sock_protect, NULL);
-    }
-
-    (void)SC_ATOMIC_SET(peer->sock_usage, 0);
     (void)SC_ATOMIC_SET(peer->state, AFP_STATE_DOWN);
     strlcpy(peer->iface, ptv->iface, AFP_IFACE_NAME_LENGTH);
     ptv->mpeer = peer;
@@ -658,8 +629,6 @@ static void AFPWritePacket(Packet *p, int version)
     memcpy(socket_address.sll_addr, p->ethh, 6);
 
     /* Send packet, locking the socket if necessary */
-    if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
-        SCMutexLock(&p->afp_v.peer->sock_protect);
     socket = SC_ATOMIC_GET(p->afp_v.peer->socket);
 
     if (sendto(socket, GET_PKT_DATA(p), GET_PKT_LEN(p), 0, (struct sockaddr *)&socket_address,
@@ -669,8 +638,6 @@ static void AFPWritePacket(Packet *p, int version)
                     strerror(errno));
         }
     }
-    if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
-        SCMutexUnlock(&p->afp_v.peer->sock_protect);
 }
 
 static void AFPReleaseDataFromRing(Packet *p)
@@ -688,8 +655,6 @@ static void AFPReleaseDataFromRing(Packet *p)
     union thdr h;
     h.raw = p->afp_v.relptr;
     h.h2->tp_status = TP_STATUS_KERNEL;
-
-    (void)AFPDerefSocket(p->afp_v.mpeer);
 
     AFPV_CLEANUP(&p->afp_v);
 }
@@ -753,10 +718,6 @@ static void AFPReadFromRingSetupPacket(
 {
     PKT_SET_SRC(p, PKT_SRC_WIRE);
 
-    /* flag the packet as TP_STATUS_USER_BUSY, which is ignore by the kernel, but
-     * acts as an indicator that we've reached a frame that is not yet released by
-     * us in autofp mode. It will be cleared when the frame gets released to the kernel. */
-    h.h2->tp_status |= TP_STATUS_USER_BUSY;
     p->livedev = ptv->livedev;
     p->datalink = ptv->datalink;
     ptv->pkts++;
@@ -779,12 +740,6 @@ static void AFPReadFromRingSetupPacket(
 
     p->ReleasePacket = AFPReleasePacket;
     p->afp_v.relptr = h.raw;
-    if (ptv->flags & AFP_NEED_PEER) {
-        p->afp_v.mpeer = ptv->mpeer;
-        AFPRefSocket(ptv->mpeer);
-    } else {
-        p->afp_v.mpeer = NULL;
-    }
     p->afp_v.copy_mode = ptv->copy_mode;
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
@@ -881,10 +836,6 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (unlikely(tp_status == TP_STATUS_KERNEL)) {
             break;
         }
-        /* if in autofp mode the frame is still busy, return to poll */
-        if (unlikely(FRAME_BUSY(tp_status))) {
-            break;
-        }
         emergency_flush |= ((tp_status & TP_STATUS_LOSING) != 0);
 
         if ((ptv->flags & AFP_EMERGENCY_MODE) && emergency_flush) {
@@ -946,7 +897,6 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 
     p->ReleasePacket = AFPReleasePacketV3;
     p->afp_v.relptr = NULL;
-    p->afp_v.mpeer = NULL;
     p->afp_v.copy_mode = ptv->copy_mode;
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
 
@@ -1049,42 +999,8 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
     SCReturnInt(AFP_READ_OK);
 }
 
-/**
- * \brief Reference socket
- *
- * \retval O in case of failure, 1 in case of success
- */
-static int AFPRefSocket(AFPPeer* peer)
-{
-    if (unlikely(peer == NULL))
-        return 0;
-
-    (void)SC_ATOMIC_ADD(peer->sock_usage, 1);
-    return 1;
-}
-
-
-/**
- * \brief Dereference socket
- *
- * \retval 1 if socket is still alive, 0 if not
- */
-static int AFPDerefSocket(AFPPeer* peer)
-{
-    if (peer == NULL)
-        return 1;
-
-    if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 1) {
-        return 0;
-    }
-    return 1;
-}
-
 static void AFPCloseSocket(AFPThreadVars *ptv)
 {
-    if (ptv->mpeer != NULL)
-        BUG_ON(SC_ATOMIC_GET(ptv->mpeer->sock_usage) != 0);
-
     if (ptv->flags & AFP_TPACKET_V3) {
 #ifdef HAVE_TPACKET_V3
         if (ptv->ring.v3) {
@@ -1112,15 +1028,8 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
     ptv->afp_state = state;
     ptv->down_count = 0;
 
-    if (state == AFP_STATE_DOWN) {
-        /* cleanup is done on thread cleanup or try reopen
-         * as there may still be packets in autofp that
-         * are referencing us */
-        (void)SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1);
-    }
     if (state == AFP_STATE_UP) {
         AFPPeerUpdate(ptv);
-        (void)SC_ATOMIC_SET(ptv->mpeer->sock_usage, 1);
     }
 }
 
@@ -1239,12 +1148,6 @@ static int AFPTryReopen(AFPThreadVars *ptv)
 {
     ptv->down_count++;
 
-    /* Don't reconnect till we have packet that did not release data */
-    if (SC_ATOMIC_GET(ptv->mpeer->sock_usage) != 0) {
-        return -1;
-    }
-
-    /* ref cnt 0, we can close the old socket */
     AFPCloseSocket(ptv);
 
     int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);

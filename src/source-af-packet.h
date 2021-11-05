@@ -55,9 +55,9 @@ struct ebpf_timeout_config {
 #endif
 
 /* value for flags */
-#define AFP_NEED_PEER (1 << 0)
+// (1<<0)
 // (1<<1) vacant
-#define AFP_SOCK_PROTECT (1<<2)
+// (1<<2)
 #define AFP_EMERGENCY_MODE (1<<3)
 #define AFP_TPACKET_V3 (1<<4)
 #define AFP_VLAN_IN_HEADER (1<<5)
@@ -122,11 +122,9 @@ typedef struct AFPIfaceConfig_
 
 typedef struct AFPPeer_ {
     SC_ATOMIC_DECLARE(int, socket);
-    SC_ATOMIC_DECLARE(int, sock_usage);
     SC_ATOMIC_DECLARE(int, if_idx);
     SC_ATOMIC_DECLARE(uint64_t, send_errors);
     int flags;
-    SCMutex sock_protect;
     int turn; /**< Field used to store initialisation order. */
     SC_ATOMIC_DECLARE(uint8_t, state);
     struct AFPPeer_ *peer;
@@ -144,10 +142,6 @@ typedef struct AFPPacketVars_
 {
     void *relptr;
     AFPPeer *peer; /**< Sending peer for IPS/TAP mode */
-    /** Pointer to ::AFPPeer used for capture. Field is used to be able
-     * to do reference counting.
-     */
-    AFPPeer *mpeer;
     uint8_t copy_mode;
     uint16_t vlan_tci;
 #ifdef HAVE_PACKET_EBPF
@@ -164,7 +158,6 @@ typedef struct AFPPacketVars_
         (afpv)->copy_mode = 0;                                                                     \
         (afpv)->vlan_tci = 0;                                                                      \
         (afpv)->peer = NULL;                                                                       \
-        (afpv)->mpeer = NULL;                                                                      \
         (afpv)->v4_map_fd = -1;                                                                    \
         (afpv)->v6_map_fd = -1;                                                                    \
     } while (0)
@@ -175,7 +168,6 @@ typedef struct AFPPacketVars_
         (afpv)->copy_mode = 0;                                                                     \
         (afpv)->vlan_tci = 0;                                                                      \
         (afpv)->peer = NULL;                                                                       \
-        (afpv)->mpeer = NULL;                                                                      \
     } while (0)
 #endif
 

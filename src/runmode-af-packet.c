@@ -72,11 +72,6 @@ void RunModeIdsAFPRegister(void)
                               "Workers af-packet mode, each thread does all"
                               " tasks from acquisition to logging",
                               RunModeIdsAFPWorkers);
-    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
-                              "Multi socket AF_PACKET mode.  Packets from "
-                              "each flow are assigned to a single detect "
-                              "thread.",
-                              RunModeIdsAFPAutoFp);
     return;
 }
 
@@ -226,19 +221,13 @@ static void *ParseAFPConfig(const char *iface)
 
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", (int *)&boolval) == 1) {
         if (boolval) {
-            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
 #ifdef HAVE_TPACKET_V3
-                SCLogConfig("Enabling tpacket v3 capture on iface %s", aconf->iface);
-                aconf->flags |= AFP_TPACKET_V3;
+            SCLogConfig("Enabling tpacket v3 capture on iface %s", aconf->iface);
+            aconf->flags |= AFP_TPACKET_V3;
 #else
-                SCLogNotice("System too old for tpacket v3 switching to v2");
-                aconf->flags &= ~AFP_TPACKET_V3;
+            SCLogNotice("System too old for tpacket v3 switching to v2");
+            aconf->flags &= ~AFP_TPACKET_V3;
 #endif
-            } else {
-                SCLogWarning(SC_ERR_RUNMODE, "tpacket v3 is only implemented for 'workers' runmode."
-                                             " Switching to tpacket v2.");
-                aconf->flags &= ~AFP_TPACKET_V3;
-            }
         } else {
             aconf->flags &= ~AFP_TPACKET_V3;
         }
@@ -675,12 +664,6 @@ finalize:
         default:
             break;
     }
-
-    if (active_runmode == NULL || strcmp("workers", active_runmode) != 0) {
-        /* If we are using copy mode we need a lock */
-        aconf->flags |= AFP_SOCK_PROTECT;
-        aconf->flags |= AFP_NEED_PEER;
-    }
     return aconf;
 }
 
@@ -769,48 +752,6 @@ int AFPRunModeIsIPS()
 }
 
 #endif
-
-
-int RunModeIdsAFPAutoFp(void)
-{
-    SCEnter();
-
-/* We include only if AF_PACKET is enabled */
-#ifdef HAVE_AF_PACKET
-    int ret;
-    const char *live_dev = NULL;
-
-    RunModeInitialize();
-
-    TimeModeSetLive();
-
-    (void)ConfGet("af-packet.live-interface", &live_dev);
-
-    SCLogDebug("live_dev %s", live_dev);
-
-    if (AFPPeersListInit() != TM_ECODE_OK) {
-        FatalError(SC_ERR_FATAL, "Unable to init peers list.");
-    }
-
-    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
-                              AFPConfigGeThreadsCount,
-                              "ReceiveAFP",
-                              "DecodeAFP", thread_name_autofp,
-                              live_dev);
-    if (ret != 0) {
-        FatalError(SC_ERR_FATAL, "Unable to start runmode");
-    }
-
-    /* In IPS mode each threads must have a peer */
-    if (AFPPeersListCheck() != TM_ECODE_OK) {
-        FatalError(SC_ERR_FATAL, "Some IPS capture threads did not peer.");
-    }
-
-    SCLogDebug("RunModeIdsAFPAutoFp initialised");
-#endif /* HAVE_AF_PACKET */
-
-    SCReturnInt(0);
-}
 
 /**
  * \brief Single thread version of the AF_PACKET processing.
