@@ -679,6 +679,7 @@ finalize:
     if (active_runmode == NULL || strcmp("workers", active_runmode) != 0) {
         /* If we are using copy mode we need a lock */
         aconf->flags |= AFP_SOCK_PROTECT;
+        aconf->flags |= AFP_NEED_PEER;
     }
     return aconf;
 }
