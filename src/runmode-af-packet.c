@@ -247,7 +247,7 @@ static void *ParseAFPConfig(const char *iface)
     (void)ConfGetChildValueBoolWithDefault(
             if_root, if_default, "use-emergency-flush", (int *)&boolval);
     if (boolval) {
-        SCLogConfig("Enabling ring emergency flush on iface %s", aconf->iface);
+        SCLogConfig("Enabling emergency ring flush on iface %s", aconf->iface);
         aconf->flags |= AFP_EMERGENCY_MODE;
     }
 
@@ -680,8 +680,6 @@ finalize:
         /* If we are using copy mode we need a lock */
         aconf->flags |= AFP_SOCK_PROTECT;
     }
-
-    SCLogConfig("%s: enabling zero copy mode by using data release call", iface);
     return aconf;
 }
 
