@@ -194,6 +194,7 @@ Packet *PacketGetFromQueueOrAlloc(void)
         /* non fatal, we're just not processing a packet then */
         p = PacketGetFromAlloc();
     } else {
+        BUG_ON(p->ReleasePacket != PacketPoolReturnPacket);
         PACKET_PROFILING_START(p);
     }
 
