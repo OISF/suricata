@@ -82,8 +82,6 @@ const char *RunModeUnixSocketGetDefaultMode(void)
     return "autofp";
 }
 
-#ifdef BUILD_UNIX_SOCKET
-
 #define MEMCAPS_MAX 7
 static MemcapCommand memcaps[MEMCAPS_MAX] = {
     {
@@ -129,6 +127,24 @@ static MemcapCommand memcaps[MEMCAPS_MAX] = {
         HostGetMemuse
     },
 };
+
+float MemcapsGetPressure(void)
+{
+    float percent = 0.0;
+    for (int i = 0; i < 4; i++) { // only flow, streams, http
+        uint64_t memcap = memcaps[i].GetFunc();
+        if (memcap) {
+            uint64_t memuse = memcaps[i].GetMemuseFunc();
+            float p = (float)((double)memuse / (double)memcap);
+            // SCLogNotice("%s: memuse %"PRIu64", memcap %"PRIu64" => %f%%",
+            //    memcaps[i].name, memuse, memcap, (p * 100));
+            percent = MAX(p, percent);
+        }
+    }
+    return percent;
+}
+
+#ifdef BUILD_UNIX_SOCKET
 
 static int RunModeUnixSocketMaster(void);
 static int unix_manager_pcap_task_running = 0;
