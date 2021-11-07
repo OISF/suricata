@@ -57,33 +57,42 @@ Start suricata:
 
 > sudo suricata -c /etc/suricata/suricata.yaml -i eth0
 
-Load your database with rules
+If you haven't loaded rules into your database yet you can download and install the modified suricata-update utitilty and load rules using that.
+
+# Load your database with rules...
+
+You need the modified suricata update utilty that inserts rules into the database here: https://github.com/CosmoRied/suricata-update/tree/mysql
 
 > sudo suricata-update --database --mysqlconf /etc/suricata/my.cnf
 
-It creates a table called "signatures" in a database named in your my.cnf file. If no databse exists you need to run "CREATE DATABASE suricata" in mysql shell, and tell it to the configureation file. 
+It creates a table called "signatures" in a database named in your my.cnf file. You need to create that database and grant permissions to the database user.
 
-Now, reload suricata rules with: 
+Once those rules are loaded into your database, have suricata reload the rules from there.
 
 > sudo suricatasc -c reload-rules
 
-You'll see that suricata reloads the rules from the database! 
+# Django it. 
 
-# Why bother?
+You can now build a django model around that table by telling it the database table name is "signatures"
 
-You need a database to organise your rules! 
+eg
 
-There's way too many rules to easily find and update one, so including a database is a good start if you need to configure and tune your rule-sets. 
+class SuricataRule(models.Model):
 
-Now you host your database on one server with the update utilty & have suricata instances connect to remotely.
+    raw = models.CharField(max_length=2500, null=False, default="")
+    enabled = models.BooleanField(default=True)
+    priority = models.IntegerField(null=True)
+    #... THE REST OF THE FIELDS BUILT FROM SURICATA-UPDATE UTILITY
+    
+    class Meta:
+        #unique_together = [['sid', 'rev']]
+        constraints = [
+            models.UniqueConstraint(fields=['sid'], name='Signature ID must be unique')
+        ]
+        db_table = "signatures"
 
 
-
-
-
-
-
-
+Check a working prototype here: https://rule-sets.herokuapp.com/
 
 
 
