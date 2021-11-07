@@ -1,86 +1,169 @@
+# Cloning and compiling this branch 
+
 Cloning the repository:
 
-> sudo git clone https://github.com/CosmoRied/suricata.git 
+```sudo git clone https://github.com/CosmoRied/suricata.git```
 
 Change to this branch: 
 
-> git checkout remotes/origin/mysql.
+```git checkout remotes/origin/mysql.```
 
-You have to configure, make and make install the program to compile and install this feature.
+Download the dependencies for compilation: 
 
-Get the dependencies for compilation: 
+```sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev libjansson4 pkg-config```
 
-> sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev \
-build-essential autoconf automake libtool libpcap-dev libnet1-dev \
-libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 \
-make libmagic-dev libjansson-dev libjansson4 pkg-config
+You need the mysql development libraries
 
-You can refer to the suricata documentation on how to compile here; https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Ubuntu_Installation & https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
+```sudo apt-get install libmysqlclient-dev```
 
-You need to do a couple of things for this to succeed with the the MYSQL libraries:
+List the compiler flags necessary to compile suricata.
 
-Get the list of compiler flags and libraries you need for mysql to worl
+```mysql_config --cflags --libs```
 
-> mysql_config --cflags --libs
+They are:
+```
+-I/usr/include/mysql 
+-L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv
+```
+Include these in the configure command used to compile suricata:
 
-It is:  
+```
+sudo ./configure LIBS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv" CFLAGS="-I/usr/include/mysql"
+```
 
-> -I/usr/include/mysql 
-
-> -L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv
-
-Now you need to include those options when you configure your system: In my case I used the command below. 
-
-> sudo ./configure LIBS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv" CFLAGS="-I/usr/include/mysql"
+**Fix issues in compilation:**
 
 Fix any outstanding packages before completing the compilation. eg, cbindgen or libhtp...
 
-> sudo apt-get install cbindgen
+eg. problem with **libhtp** not included.
 
-...
+In suricata directory execute: 
 
-> sudo apt-get install rustc
+```
+> sudo git clone https://github.com/OISF/libhtp
 
-...
+Then back to compilation.
 
-When the configure command completes succesfully, only then can you make and make install...
+```
+Continue to compile and install any missing packages, eg. missing cbindgen or rustc can throw an error.  
 
-> sudo make && sudo make install.
+```
+sudo apt-get install cbindgen rustc
+```
 
-In /etc/suricata/suricata.yaml file, tell it that you want to have the path for rules files defalut path to 
+**Install**
 
->default-rule-path: /etc/suricata/
->
->rule-files:
->  - my.cnf
+When the configure command completes succesfully...
 
-my.cnf file looks like this:
+```sudo make && sudo make install```
 
->[client]
+ **Check installed**:
 
->database = suricata
+Try and run suricata 
 
->user = db_username
+> sudo suricata --help
 
->password = db_password
+Any issues with **libhtp.so** can be fixed: refer to this thread - https://forum.suricata.io/t/error-while-loading-shared-libraries-libhtp-so-2/734 
 
->default-character-set = utf8
+You now have a version of suricata that can load rules from a database. 
 
-Start suricata: 
+# Install suicata-update 
+
+You need the modified suricata update utilty that inserts rules into the database here: https://github.com/CosmoRied/suricata-update
+
+Switch to mysql branch: 
+
+```
+sudo git checkout remotes/origin/mysql
+
+#Install the neccessary python connector
+
+sudo apt-get install python3-mysql.connector
+
+#Install the update utilty
+
+sudo python3 setup.py install
+
+```
+
+Create database SURICATA if it doesnt exist in mysql
+
+```
+mysql -u root -p
+CREATE DATABASE SURICATA;
+```
+
+Create & Edit this file to have permissions for suricata-update and suricata : my.cnf in /etc/suricata/my.cnf
+
+Use the following configuration: 
+
+```
+[client]
+database = SURICATA
+user = user
+password = password
+default-character-set = utf8
+```
+
+# Load rules
+
+Then load the rules from the suricata-update directory.
+
+```sudo suricata-update --database --mysqlconf /etc/suricata/my.cnf```
+
+That will load rules into the database you specified.
+
+# Tell suricata to use database configuration files. 
+
+In /etc/suricata/suricata.yaml file, change the default path for rules files to the database connection file you created in /etc/suricata/my.cnf
+
+The suricata.yaml file should look like this:
+
+```
+default-rule-path: /etc/suricata/
+
+rule-files:
+  - my.cnf
+```
+
+# Start suricata: 
 
 > sudo suricata -c /etc/suricata/suricata.yaml -i eth0
 
-If you haven't loaded rules into your database yet you can download and install the modified suricata-update utitilty and load rules using that.
+# Disable / enable / edit rules from database config.
 
-# Load your database with rules...
+You can now enable / disable rules, tune rules or delete / modify rules using sql statements. 
 
-You need the modified suricata update utilty that inserts rules into the database here: https://github.com/CosmoRied/suricata-update/tree/mysql
+Some interesting commands you might consider:
 
-> sudo suricata-update --database --mysqlconf /etc/suricata/my.cnf
+```
+describe signatures;
 
-It creates a table called "signatures" in a database named in your my.cnf file. You need to create that database and grant permissions to the database user.
+select count(*) from signatures where enabled = false;
 
-Once those rules are loaded into your database, have suricata reload the rules from there.
+select count(*) from signatures where enabled = true;
+
+select enabled, header, sid, proto from signatures where raw like '%filestore%';
+
+ # Then change all filestore rules to be enabled eg.
+
+update signatures set enabled = true where raw like '%filestore%';
+
+# Then update that particular rule to be a high priority:
+
+update signatures set priority = 1 where raw like '%filestore%'; 
+
+# Supress annoying startup errors such as modbus and dnp3 warnings: 
+
+mysql> update signatures set enabled = false where raw like '%modbus%' or raw like '%dnp3%';
+Query OK, 15 rows affected (0.22 sec)
+Rows matched: 16  Changed: 15  Warnings: 0
+
+```
+
+etc. You can delete, insert or disable/enable rules this way.
+
+# Reload rules from database table.
 
 > sudo suricatasc -c reload-rules
 
@@ -89,6 +172,8 @@ Once those rules are loaded into your database, have suricata reload the rules f
 You can now build a django model around that table by telling it the database table name is "signatures"
 
 eg
+
+```
 
 class SuricataRule(models.Model):
 
@@ -105,7 +190,8 @@ class SuricataRule(models.Model):
         db_table = "signatures"
 
 
-Check a working prototype here: https://rule-sets.herokuapp.com/
+```
+
 
 
 
