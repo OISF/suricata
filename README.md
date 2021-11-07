@@ -1,34 +1,47 @@
-This is a branch that enables you to load rules into a database table and have suricata read / reload those rules from the db. 
+Cloning the repository:
 
-You need to download this repository and switch to the branch *mysql.
+> sudo git clone https://github.com/CosmoRied/suricata.git 
 
-Do that by cloning the repository sudo git clone https://github.com/CosmoRied/suricata.git then changing to the branch. git checkout remotes/origin/mysql.
+Change to this branch: 
 
-Now that you're in that branch, you have to configure, make and make install the program to compile and install this feature. 
+> git checkout remotes/origin/mysql.
 
-Run,
+You have to configure, make and make install the program to compile and install this feature.
 
-> sudo sh autogen.sh
+Get the dependencies for compilation: 
 
-Don't forget that mysql support isn't supported by the suricata team, so you'll have to add a couple of lines in the ./configure option to get it to make properly.
+> sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev \
+build-essential autoconf automake libtool libpcap-dev libnet1-dev \
+libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 \
+make libmagic-dev libjansson-dev libjansson4 pkg-config
 
-Run this command on the command line to get the list of compiler flags and libraries you need to include in your configure options before make.
+You can refer to the suricata documentation on how to compile here; https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Ubuntu_Installation & https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
+
+You need to do a couple of things for this to succeed with the the MYSQL libraries:
+
+Get the list of compiler flags and libraries you need for mysql to worl
 
 > mysql_config --cflags --libs
 
-The output should look like this:
+It is:  
 
 > -I/usr/include/mysql 
 
 > -L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv
 
-Now you can use those with your configure command to build inn mysql support.
-
-eg.
+Now you need to include those options when you configure your system: In my case I used the command below. 
 
 > sudo ./configure LIBS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl -lresolv" CFLAGS="-I/usr/include/mysql"
 
-Install the necessary packages required by suricata, eg. cbindgen or libhtp (I needed to add cbindgen using apt-get install cbindgen).
+Fix any outstanding packages before completing the compilation. eg, cbindgen or libhtp...
+
+> sudo apt-get install cbindgen
+
+...
+
+> sudo apt-get install rustc
+
+...
 
 When the configure command completes succesfully, only then can you make and make install...
 
