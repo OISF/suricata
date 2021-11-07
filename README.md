@@ -40,7 +40,7 @@ eg. problem with **libhtp** not included.
 In suricata directory execute: 
 
 ```
-> sudo git clone https://github.com/OISF/libhtp
+sudo git clone https://github.com/OISF/libhtp
 
 Then back to compilation.
 
@@ -61,7 +61,7 @@ When the configure command completes succesfully...
 
 Try and run suricata 
 
-> sudo suricata --help
+```sudo suricata```
 
 Any issues with **libhtp.so** can be fixed: refer to this thread - https://forum.suricata.io/t/error-while-loading-shared-libraries-libhtp-so-2/734 
 
@@ -71,9 +71,13 @@ You now have a version of suricata that can load rules from a database.
 
 You need the modified suricata update utilty that inserts rules into the database here: https://github.com/CosmoRied/suricata-update
 
-Switch to mysql branch: 
+**Switch to mysql branch**
 
 ```
+sudo git clone https://github.com/CosmoRied/suricata-update
+
+# checkout the mysql branch
+
 sudo git checkout remotes/origin/mysql
 
 #Install the neccessary python connector
@@ -93,7 +97,7 @@ mysql -u root -p
 CREATE DATABASE SURICATA;
 ```
 
-Create & Edit this file to have permissions for suricata-update and suricata : my.cnf in /etc/suricata/my.cnf
+**Setup a connection file in a directory in /etc/suricata/my.cnf**
 
 Use the following configuration: 
 
@@ -107,7 +111,7 @@ default-character-set = utf8
 
 # Load rules
 
-Then load the rules from the suricata-update directory.
+Then load the rules using suricata-update with the special options to load using my.cnf connection parameter.
 
 ```sudo suricata-update --database --mysqlconf /etc/suricata/my.cnf```
 
@@ -115,9 +119,9 @@ That will load rules into the database you specified.
 
 # Tell suricata to use database configuration files. 
 
-In /etc/suricata/suricata.yaml file, change the default path for rules files to the database connection file you created in /etc/suricata/my.cnf
+In /usr/local/etc/suricata/suricata.yaml file, change the default path for rules files to the **database connection file** /etc/suricata/my.cnf
 
-The suricata.yaml file should look like this:
+The /etc/suricata/my.cnf file should look like this:
 
 ```
 default-rule-path: /etc/suricata/
@@ -128,7 +132,7 @@ rule-files:
 
 # Start suricata: 
 
-> sudo suricata -c /etc/suricata/suricata.yaml -i eth0
+```sudo suricata -c /usr/local/etc/suricata/suricata.yaml -i eth0```
 
 # Disable / enable / edit rules from database config.
 
@@ -187,10 +191,11 @@ class SuricataRule(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['sid'], name='Signature ID must be unique')
         ]
-        db_table = "signatures"
+        db_table = "signatures" #here you can specify the special table name signatures for your django models. 
 
 
 ```
+
 
 
 
