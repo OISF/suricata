@@ -43,6 +43,8 @@
 #include "util-detect.h"
 #include "util-threshold-config.h"
 
+#include <mysql.h>
+
 #ifdef HAVE_GLOB_H
 #include <glob.h>
 #endif
@@ -114,6 +116,19 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
  *  \param badsigs_tot Will store number of invalid signatures in the file
  *  \retval 0 on success, -1 on error
  */
+
+/*
+void database_error(MYSQL *con)
+{
+  // Create error SC_ERR_OPENING_MYSQL_DATABASE
+  SCLogError(SC_ERR_OPENING_RULE_FILE, "opening mysql database. "
+	     " %s.", strerror(errno));
+  return;
+}
+
+*/
+
+
 static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
         int *goodsigs, int *badsigs)
 {
@@ -208,6 +223,141 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
     return 0;
 }
 
+
+/*
+
+Detect load DB file will attempt to load signatures from the database connection specified in a my.cnf file in syricata.yaml.
+
+Database connection will attempt to load the raw rule column from a table called signatures in the same way that a rule is loaded from a set of files.
+
+Function mimics DetectLoadSigFile except the sig file is in fact the my.cnf file that mysql uses to configure its connection parameters.
+
+At minimum connection parameters need host, database, user, password, and will try some defaults to compensate for that.
+
+*/
+static int DetectLoadDbFile(DetectEngineCtx *de_ctx, char * sig_file,
+        int *goodsigs, int *badsigs)
+{
+  Signature *sig = NULL;
+  int good = 0, bad = 0;
+  int multiline = 0;
+  
+  (*goodsigs) = 0;
+  (*badsigs) = 0;
+  
+  MYSQL *con = mysql_init(NULL);
+
+  if(con == NULL){
+    mysql_error(con);
+    SCLogError(SC_ERR_OPENING_RULE_FILE, "No connection error.");
+  }
+
+  mysql_options(con, MYSQL_READ_DEFAULT_FILE, sig_file);
+
+  if (mysql_real_connect(con, NULL, NULL, NULL, NULL, 0, NULL, 0) == NULL)
+  {
+    mysql_error(con);
+    SCLogError(SC_ERR_OPENING_RULE_FILE, "Opening mysql database.");
+  }
+  
+  if(con == NULL){
+    mysql_error(con);
+  }
+
+  if (mysql_query(con, "SELECT raw FROM signatures where enabled = true;"))
+  {
+    mysql_error(con);
+    SCLogError(SC_ERR_OPENING_RULE_FILE, "Running select statement.");
+  }
+  
+  MYSQL_RES *result = mysql_store_result(con);
+
+  if (result == NULL)
+  {
+    mysql_error(con);
+    SCLogError(SC_ERR_OPENING_RULE_FILE, "Getting database result.");
+  }
+
+  int num_fields = mysql_num_fields(result);
+
+  MYSQL_ROW row;
+  
+  while ((row = mysql_fetch_row(result))){
+
+    unsigned long *lengths;
+    lengths = mysql_fetch_lengths(result);
+
+    for(int lineno = 0; lineno < num_fields; lineno++){
+      
+      char line[DETECT_MAX_RULE_SIZE] = "";
+      
+      if(row[lineno] == NULL)continue;
+      else{
+	if(lengths[lineno] >= DETECT_MAX_RULE_SIZE){
+	  SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature too long to copy into buffer");
+	  continue;
+	}
+	else{
+	  memcpy(line, row[lineno], (int)lengths[lineno]);
+	}
+      }
+
+      size_t len = strlen(line);
+      /* Check if we have a trailing newline, and remove it */
+      len = strlen(line);
+      if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+	line[len - 1] = '\0';
+      }
+
+      if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+	continue;
+
+      de_ctx->rule_file = sig_file;
+      de_ctx->rule_line = lineno;
+      
+      sig = DetectEngineAppendSig(de_ctx, line);
+
+      if (sig != NULL) {
+	if (rule_engine_analysis_set || fp_engine_analysis_set) {
+	  RetrieveFPForSig(de_ctx, sig);
+	  if (fp_engine_analysis_set) {
+	    EngineAnalysisFP(de_ctx, sig, line);
+	  }
+	  if (rule_engine_analysis_set) {
+	    EngineAnalysisRules(de_ctx, sig, line);
+	  }
+	}
+	SCLogDebug("Signature %"PRIu32" loaded", sig->id);
+	good++;
+      } else {
+	if (!de_ctx->sigerror_silent) {
+	  SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from "
+		     "file database at line %"PRId32"", line, (int)lineno);
+	  
+	  if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
+	    SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+		       "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+	  }
+	  if (de_ctx->sigerror) {
+	    de_ctx->sigerror = NULL;
+	  }
+	}
+	if (rule_engine_analysis_set) {
+	  EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
+	}
+	if (!de_ctx->sigerror_ok) {
+	  bad++;
+	}
+      }
+    }
+  }
+  mysql_free_result(result);
+  mysql_close(con);  
+  *goodsigs = good;
+  *badsigs = bad;
+  return 0;
+}
+
 /**
  *  \brief Expands wildcards and reads signatures from each matching file
  *  \param de_ctx Pointer to the detection engine context
@@ -225,14 +375,20 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     }
 
 #ifdef HAVE_GLOB_H
+
     glob_t files;
+
     r = glob(pattern, 0, NULL, &files);
 
     if (r == GLOB_NOMATCH) {
+
         SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
+
         ++(st->bad_files);
         ++(st->total_files);
+
         return -1;
+
     } else if (r != 0) {
         SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s",
                  pattern, strerror(errno));
@@ -248,8 +404,17 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
         if (strcmp("/dev/null", fname) == 0)
             return 0;
 #endif
-        SCLogConfig("Loading rule file: %s", fname);
-        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
+
+        if (strcmp("/etc/suricata/my.cnf", fname) == 0){
+            SCLogWarning(SC_WARN_DEFAULT_WILL_CHANGE, "Trying database connection using option file: %s", fname);
+            SCLogConfig("Trying database connection: %s", fname);
+            r = DetectLoadDbFile(de_ctx, fname, good_sigs, bad_sigs);
+        }
+        else{
+            SCLogConfig("Loading rule file: %s", fname);
+            r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
+        }
+
         if (r < 0) {
             ++(st->bad_files);
         }
@@ -258,6 +423,8 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
 
         st->good_sigs_total += *good_sigs;
         st->bad_sigs_total += *bad_sigs;
+
+
 
 #ifdef HAVE_GLOB_H
     }
