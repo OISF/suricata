@@ -372,7 +372,12 @@ void PoolReturn(Pool *p, void *data)
 
 void PoolPrintSaturation(Pool *p)
 {
-    SCLogDebug("pool %p is using %"PRIu32" out of %"PRIu32" items (%02.1f%%), max %"PRIu32" (%02.1f%%): pool struct memory %"PRIu64".", p, p->outstanding, p->max_buckets, (float)(p->outstanding/(float)(p->max_buckets))*100, p->max_outstanding, (float)(p->max_outstanding/(float)(p->max_buckets))*100, (uint64_t)(p->max_buckets * sizeof(PoolBucket)));
+    SCLogDebug("pool %p is using %" PRIu32 " out of %" PRIu32 " items (%02.1f%%), max %" PRIu32
+               " (%02.1f%%): pool struct memory %" PRIu64 ".",
+            p, p->outstanding, p->max_buckets,
+            (float)(p->outstanding) / (float)(p->max_buckets) * 100, p->max_outstanding,
+            (float)(p->max_outstanding) / (float)(p->max_buckets) * 100,
+            (uint64_t)(p->max_buckets * sizeof(PoolBucket)));
 }
 
 /*
