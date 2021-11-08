@@ -172,22 +172,6 @@ impl HTTP2Transaction {
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
         }
-        if !self.file_range.is_null() {
-            match unsafe { SC } {
-                None => panic!("BUG no suricata_config"),
-                Some(c) => {
-                    //TODO get a file container instead of NULL
-                    (c.HTPFileCloseHandleRange)(
-                        std::ptr::null_mut(),
-                        0,
-                        self.file_range,
-                        std::ptr::null_mut(),
-                        0,
-                    );
-                    (c.HttpRangeFreeBlock)(self.file_range);
-                }
-            }
-        }
     }
 
     pub fn set_event(&mut self, event: HTTP2Event) {
@@ -445,6 +429,23 @@ impl HTTP2State {
             if tx.tx_id == tx_id + 1 {
                 found = true;
                 index = i;
+                // this should be in HTTP2Transaction::free
+                // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
+                if !tx.file_range.is_null() {
+                    match unsafe { SC } {
+                        None => panic!("BUG no suricata_config"),
+                        Some(c) => {
+                            (c.HTPFileCloseHandleRange)(
+                                &mut self.files.files_tc,
+                                0,
+                                tx.file_range,
+                                std::ptr::null_mut(),
+                                0,
+                            );
+                            (c.HttpRangeFreeBlock)(tx.file_range);
+                        }
+                    }
+                }
                 break;
             }
         }
