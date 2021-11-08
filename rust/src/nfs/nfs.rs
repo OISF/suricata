@@ -19,10 +19,10 @@
 
 use std;
 use std::cmp;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 
-use nom;
+use nom7::{Err, Needed};
 
 use crate::applayer;
 use crate::applayer::*;
@@ -252,9 +252,9 @@ pub struct NFSRequestXidMap {
 impl NFSRequestXidMap {
     pub fn new(progver: u32, procedure: u32, chunk_offset: u64) -> NFSRequestXidMap {
         NFSRequestXidMap {
-            progver:progver,
-            procedure:procedure,
-            chunk_offset:chunk_offset,
+            progver,
+            procedure,
+            chunk_offset,
             file_name:Vec::new(),
             file_handle:Vec::new(),
             gssapi_proc: 0,
@@ -1089,7 +1089,7 @@ impl NFSState {
                                             },
                                         }
                                     },
-                                    Err(nom::Err::Incomplete(_)) => {
+                                    Err(Err::Incomplete(_)) => {
                                         // we just size checked for the minimal record size above,
                                         // so if options are used (creds/verifier), we can still
                                         // have Incomplete data. Fall through to the buffer code
@@ -1097,8 +1097,8 @@ impl NFSState {
                                         SCLogDebug!("TS data incomplete");
                                         // fall through to the incomplete below
                                     },
-                                    Err(nom::Err::Error(_e)) |
-                                    Err(nom::Err::Failure(_e)) => {
+                                    Err(Err::Error(_e)) |
+                                    Err(Err::Failure(_e)) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
                                         return AppLayerResult::err();
@@ -1120,7 +1120,7 @@ impl NFSState {
                             cur_i = &cur_i[rec_size..];
                             self.process_request_record(rpc_record);
                         },
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
                             // we shouldn't get incomplete as we have the full data
@@ -1128,26 +1128,27 @@ impl NFSState {
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
                         },
-                        Err(nom::Err::Error(_e)) |
-                        Err(nom::Err::Failure(_e)) => {
+                        Err(Err::Error(_e)) |
+                        Err(Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return AppLayerResult::err();
                         },
                     }
                 },
-                Err(nom::Err::Incomplete(needed)) => {
-                    if let nom::Needed::Size(n) = needed {
+                Err(Err::Incomplete(needed)) => {
+                    if let Needed::Size(n) = needed {
                         SCLogDebug!("Not enough data for partial RPC header {:?}", needed);
                         // 28 is the partial RPC header size parse_rpc_request_partial
                         // looks for.
+                        let n = usize::from(n);
                         let need = if n > 28 { n } else { 28 };
                         return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, need as u32);
                     }
                     return AppLayerResult::err();
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return AppLayerResult::err();
@@ -1235,23 +1236,23 @@ impl NFSState {
                                                 self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
                                                 cur_i = remaining; // progress input past parsed record
                                             },
-                                            Err(nom::Err::Incomplete(_)) => {
+                                            Err(Err::Incomplete(_)) => {
                                             },
-                                            Err(nom::Err::Error(_e)) |
-                                            Err(nom::Err::Failure(_e)) => {
+                                            Err(Err::Error(_e)) |
+                                            Err(Err::Failure(_e)) => {
                                                 self.set_event(NFSEvent::MalformedData);
                                                 SCLogDebug!("Parsing failed: {:?}", _e);
                                                 return AppLayerResult::err();
                                             }
                                         }
                                     },
-                                    Err(nom::Err::Incomplete(_)) => {
+                                    Err(Err::Incomplete(_)) => {
                                         // size check was done for MINIMAL record size,
                                         // so Incomplete is normal.
                                         SCLogDebug!("TC data incomplete");
                                     },
-                                    Err(nom::Err::Error(_e)) |
-                                    Err(nom::Err::Failure(_e)) => {
+                                    Err(Err::Error(_e)) |
+                                    Err(Err::Failure(_e)) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
                                         return AppLayerResult::err();
@@ -1272,7 +1273,7 @@ impl NFSState {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
                             self.process_reply_record(rpc_record);
                         },
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
                             // we shouldn't get incomplete as we have the full data
@@ -1280,26 +1281,27 @@ impl NFSState {
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
                         },
-                        Err(nom::Err::Error(_e)) |
-                        Err(nom::Err::Failure(_e)) => {
+                        Err(Err::Error(_e)) |
+                        Err(Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return AppLayerResult::err();
                         }
                     }
                 },
-                Err(nom::Err::Incomplete(needed)) => {
-                    if let nom::Needed::Size(n) = needed {
+                Err(Err::Incomplete(needed)) => {
+                    if let Needed::Size(n) = needed {
                         SCLogDebug!("Not enough data for partial RPC header {:?}", needed);
                         // 12 is the partial RPC header size parse_rpc_packet_header
                         // looks for.
+                        let n = usize::from(n);
                         let need = if n > 12 { n } else { 12 };
                         return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, need as u32);
                     }
                     return AppLayerResult::err();
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return AppLayerResult::err();
@@ -1330,10 +1332,10 @@ impl NFSState {
                         _ => { },
                     }
                 },
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
                 }
             }
@@ -1350,10 +1352,10 @@ impl NFSState {
                     self.is_udp = true;
                     self.process_reply_record(rpc_record);
                 },
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
                 }
             }
@@ -1722,7 +1724,7 @@ fn nfs_probe_dir(i: &[u8], rdir: *mut u8) -> i8 {
             unsafe { *rdir = dir };
             return 1;
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return 0;
         },
         Err(_) => {
@@ -1742,7 +1744,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i32 {
                     return -1;
                 }
             },
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 match parse_rpc_packet_header (i) {
                     Ok((_, ref rpc_hdr)) => {
                         if rpc_hdr.frag_len >= 24 && rpc_hdr.frag_len <= 35000 && rpc_hdr.xid != 0 && rpc_hdr.msgtype == 1 {
@@ -1752,7 +1754,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i32 {
                             return -1;
                         }
                     },
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         return 0;
                     },
                     Err(_) => {
@@ -1777,7 +1779,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i32 {
                     return -1;
                 }
             },
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 return 0;
             },
             Err(_) => {
