@@ -487,6 +487,7 @@ noinst_HEADERS = \
 	util-base64.h \
 	util-bloomfilter-counting.h \
 	util-bloomfilter.h \
+	util-hwloc.h \
 	util-bpf.h \
 	util-buffer.h \
 	util-byte.h \
@@ -1051,6 +1052,7 @@ libsuricata_c_a_SOURCES = \
 	util-base64.c \
 	util-bloomfilter.c \
 	util-bloomfilter-counting.c \
+	util-hwloc.c \
 	util-bpf.c \
 	util-buffer.c \
 	util-byte.c \
