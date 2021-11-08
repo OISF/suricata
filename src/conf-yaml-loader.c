@@ -181,6 +181,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
     int state = 0;
     int seq_idx = 0;
     int retval = 0;
+    int was_empty = -1;
 
     if (rlevel++ > RECURSION_LIMIT) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "Recursion limit reached while parsing "
@@ -242,8 +243,19 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                ConfNode *seq_node = ConfNodeLookupChild(parent,
-                    sequence_node_name);
+                ConfNode *seq_node = NULL;
+                if (was_empty < 0) {
+                    // initialize was_empty
+                    if (TAILQ_EMPTY(&parent->head)) {
+                        was_empty = 1;
+                    } else {
+                        was_empty = 0;
+                    }
+                }
+                // we only check if the node's list was not empty at first
+                if (was_empty == 0) {
+                    seq_node = ConfNodeLookupChild(parent, sequence_node_name);
+                }
                 if (seq_node != NULL) {
                     /* The sequence node has already been set, probably
                      * from the command line.  Remove it so it gets
