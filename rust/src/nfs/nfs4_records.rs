@@ -25,6 +25,10 @@ use nom7::{Err, IResult};
 
 use crate::nfs::types::*;
 
+// Maximum number of operations per compound
+// Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
+const NFSD_MAX_OPS_PER_COMPOUND: usize = 64;
+
 #[derive(Debug,PartialEq)]
 pub enum Nfs4RequestContent<'a> {
     PutFH(Nfs4Handle<'a>),
@@ -464,6 +468,9 @@ pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompou
     let (i, _tag) = cond(tag_len > 0, take(tag_len as usize))(i)?;
     let (i, _min_ver) = be_u32(i)?;
     let (i, ops_cnt) = be_u32(i)?;
+    if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
+        return Err(Err::Error(make_error(i, ErrorKind::Count)));
+    }
     let (i, commands) = count(parse_request_compound_command, ops_cnt as usize)(i)?;
     Ok((i, Nfs4RequestCompoundRecord { commands }))
 }
@@ -816,6 +823,9 @@ pub fn parse_nfs4_response_compound(i: &[u8]) -> IResult<&[u8], Nfs4ResponseComp
     let (i, tag_len) = be_u32(i)?;
     let (i, _tag) = cond(tag_len > 0, take(tag_len as usize))(i)?;
     let (i, ops_cnt) = be_u32(i)?;
+    if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
+        return Err(Err::Error(make_error(i, ErrorKind::Count)));
+    }
     let (i, commands) = count(nfs4_res_compound_command, ops_cnt as usize)(i)?;
     Ok((i, Nfs4ResponseCompoundRecord { status, commands }))
 }
