@@ -209,7 +209,6 @@ typedef struct ENIPTransaction_
     AppLayerDecoderEvents *decoder_events;      /**< per tx events */
 
     TAILQ_ENTRY(ENIPTransaction_) next;
-    DetectEngineState *de_state;
     AppLayerTxData tx_data;
 } ENIPTransaction;
 

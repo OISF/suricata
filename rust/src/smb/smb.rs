@@ -536,7 +536,6 @@ pub struct SMBTransaction {
     /// Command specific data
     pub type_data: Option<SMBTransactionTypeData>,
 
-    pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
 }
@@ -556,7 +555,6 @@ impl SMBTransaction {
               request_done: false,
               response_done: false,
               type_data: None,
-              de_state: None,
               events: std::ptr::null_mut(),
               tx_data: AppLayerTxData::new(),
         }
@@ -576,12 +574,6 @@ impl SMBTransaction {
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
         if !self.events.is_null() {
             sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        match self.de_state {
-            Some(state) => {
-                sc_detect_engine_state_free(state);
-            }
-            _ => {}
         }
     }
 }
@@ -2055,31 +2047,6 @@ pub unsafe extern "C" fn rs_smb_get_tx_data(
     return &mut tx.tx_data;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut DetectEngineState
-{
-    let tx = cast_pointer!(tx, SMBTransaction);
-    match tx.de_state {
-        Some(ds) => {
-            return ds;
-        },
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx, SMBTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_state_truncate(
@@ -2198,8 +2165,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_smb_tx_get_alstate_progress,
-        get_de_state: rs_smb_state_get_tx_detect_state,
-        set_de_state: rs_smb_state_set_tx_detect_state,
         get_events: Some(rs_smb_state_get_events),
         get_eventinfo: Some(rs_smb_state_get_event_info),
         get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),

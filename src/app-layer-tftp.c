@@ -159,17 +159,6 @@ static int TFTPGetStateProgress(void *tx, uint8_t direction)
     return 1;
 }
 
-static DetectEngineState *TFTPGetTxDetectState(void *vtx)
-{
-    return NULL;
-}
-
-static int TFTPSetTxDetectState(void *vtx,
-    DetectEngineState *s)
-{
-    return 0;
-}
-
 void RegisterTFTPParsers(void)
 {
     const char *proto_name = "tftp";
@@ -241,11 +230,6 @@ void RegisterTFTPParsers(void)
                                                    TFTPGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP,
                                     TFTPGetTx);
-
-        /* What is this being registered for? */
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                               TFTPGetTxDetectState,
-                                               TFTPSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP,
                                            TFTPStateGetEventInfo);

@@ -183,7 +183,6 @@ pub struct DCERPCTransaction {
     pub activityuuid: Vec<u8>,
     pub seqnum: u32,
     pub tx_data: AppLayerTxData,
-    pub de_state: Option<*mut core::DetectEngineState>,
 }
 
 impl DCERPCTransaction {
@@ -195,17 +194,7 @@ impl DCERPCTransaction {
             resp_cmd: DCERPC_TYPE_RESPONSE,
             activityuuid: Vec::new(),
             tx_data: AppLayerTxData::new(),
-            de_state: None,
             ..Default::default()
-        }
-    }
-
-    pub fn free(&mut self) {
-        match self.de_state {
-            Some(state) => {
-                sc_detect_engine_state_free(state);
-            }
-            _ => {}
         }
     }
 
@@ -223,12 +212,6 @@ impl DCERPCTransaction {
 
     pub fn get_endianness(&self) -> u8 {
         self.endianness
-    }
-}
-
-impl Drop for DCERPCTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -1233,26 +1216,6 @@ pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
-    match dce_tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let dce_tx = cast_pointer!(vtx, DCERPCTransaction);
-    dce_tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -1394,8 +1357,6 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
-        get_de_state: rs_dcerpc_get_tx_detect_state,
-        set_de_state: rs_dcerpc_set_tx_detect_state,
         get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid : None,

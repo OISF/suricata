@@ -250,7 +250,6 @@ typedef struct SSLState_ {
     SSLStateConnp client_connp;
     SSLStateConnp server_connp;
 
-    DetectEngineState *de_state;
     AppLayerDecoderEvents *decoder_events;
 } SSLState;
 

@@ -137,10 +137,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     AppLayerParserRegisterGetTx(p->ip_proto, alproto,
         p->StateGetTx);
 
-    /* What is this being registered for? */
-    AppLayerParserRegisterDetectStateFuncs(p->ip_proto, alproto,
-        p->GetTxDetectState, p->SetTxDetectState);
-
     if (p->StateGetEventInfo) {
         AppLayerParserRegisterGetEventInfo(p->ip_proto, alproto,
                 p->StateGetEventInfo);

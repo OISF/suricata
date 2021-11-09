@@ -44,7 +44,6 @@ pub struct RFBTransaction {
     pub tc_failure_reason: Option<parser::FailureReason>,
     pub tc_server_init: Option<parser::ServerInit>,
 
-    de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
@@ -74,7 +73,6 @@ impl RFBTransaction {
             tc_failure_reason: None,
             tc_server_init: None,
 
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
@@ -83,9 +81,6 @@ impl RFBTransaction {
     pub fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
@@ -498,15 +493,6 @@ impl RFBState {
 
 // C exports.
 
-export_tx_get_detect_state!(
-    rs_rfb_tx_get_detect_state,
-    RFBTransaction
-);
-export_tx_set_detect_state!(
-    rs_rfb_tx_set_detect_state,
-    RFBTransaction
-);
-
 #[no_mangle]
 pub extern "C" fn rs_rfb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
@@ -628,8 +614,6 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_de_state: rs_rfb_tx_get_detect_state,
-        set_de_state: rs_rfb_tx_set_detect_state,
         get_events: Some(rs_rfb_state_get_events),
         get_eventinfo: None,
         get_eventinfo_byid: None,

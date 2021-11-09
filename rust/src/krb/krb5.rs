@@ -28,7 +28,7 @@ use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
+use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -76,9 +76,6 @@ pub struct KRB5Transaction {
 
     /// The internal transaction id
     id: u64,
-
-    /// The detection engine state, if present
-    de_state: Option<*mut core::DetectEngineState>,
 
     /// The events associated with this transaction
     events: *mut core::AppLayerDecoderEvents,
@@ -238,7 +235,6 @@ impl KRB5Transaction {
             etype: None,
             error_code: None,
             id: id,
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
@@ -249,9 +245,6 @@ impl Drop for KRB5Transaction {
     fn drop(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            sc_detect_engine_state_free(state);
         }
     }
 }
@@ -323,28 +316,6 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
                                                  -> std::os::raw::c_int
 {
     1
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_krb5_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
 }
 
 #[no_mangle]
@@ -594,8 +565,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
-        get_de_state       : rs_krb5_state_get_tx_detect_state,
-        set_de_state       : rs_krb5_state_set_tx_detect_state,
         get_events         : Some(rs_krb5_state_get_events),
         get_eventinfo      : Some(KRB5Event::get_event_info),
         get_eventinfo_byid : Some(KRB5Event::get_event_info_by_id),

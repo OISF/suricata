@@ -51,8 +51,6 @@ typedef struct TemplateTransaction
     uint8_t response_done; /*<< Flag to be set when the response is
                             * seen. */
 
-    DetectEngineState *de_state;
-
     AppLayerTxData tx_data;
 
     TAILQ_ENTRY(TemplateTransaction) next;

@@ -51,7 +51,7 @@ impl AppLayerTxConfig {
 }
 
 #[repr(C)]
-#[derive(Default, Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
@@ -67,6 +67,22 @@ pub struct AppLayerTxData {
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
+
+    de_state: *mut DetectEngineState,
+}
+
+impl Default for AppLayerTxData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for AppLayerTxData {
+    fn drop(&mut self) {
+        if self.de_state != std::ptr::null_mut() {
+            core::sc_detect_engine_state_free(self.de_state);
+        }
+    }
 }
 
 impl AppLayerTxData {
@@ -79,6 +95,7 @@ impl AppLayerTxData {
             files_stored: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
+            de_state: std::ptr::null_mut(),
         }
     }
     pub fn init_files_opened(&mut self) {
@@ -210,11 +227,6 @@ pub struct RustParser {
     /// Function returning the current transaction progress
     pub tx_get_progress:    StateGetProgressFn,
 
-    /// Function called to get a detection state
-    pub get_de_state:       GetDetectStateFn,
-    /// Function called to set a detection state
-    pub set_de_state:       SetDetectStateFn,
-
     /// Function to get events
     pub get_events:         Option<GetEventsFn>,
     /// Function to get an event id from a description
@@ -278,8 +290,6 @@ pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetDetectStateFn   = unsafe extern "C" fn (*mut c_void) -> *mut DetectEngineState;
-pub type SetDetectStateFn   = unsafe extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type GetEventsFn        = unsafe extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
@@ -394,42 +404,6 @@ impl LoggerFlags {
         self.flags = bits;
     }
 
-}
-
-/// Export a function to get the DetectEngineState on a struct.
-#[macro_export]
-macro_rules!export_tx_get_detect_state {
-    ($name:ident, $type:ty) => (
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut core::DetectEngineState
-        {
-            let tx = cast_pointer!(tx, $type);
-            match tx.de_state {
-                Some(ds) => {
-                    return ds;
-                },
-                None => {
-                    return std::ptr::null_mut();
-                }
-            }
-        }
-    )
-}
-
-/// Export a function to set the DetectEngineState on a struct.
-#[macro_export]
-macro_rules!export_tx_set_detect_state {
-    ($name:ident, $type:ty) => (
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void,
-                de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-        {
-            let tx = cast_pointer!(tx, $type);
-            tx.de_state = Some(de_state);
-            0
-        }
-    )
 }
 
 /// AppLayerEvent trait that will be implemented on enums that
