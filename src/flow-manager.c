@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -90,6 +90,9 @@ static uint32_t flowrec_number = 1;
 SC_ATOMIC_DECLARE(uint32_t, flowrec_cnt);
 SC_ATOMIC_DECLARE(uint32_t, flowrec_busy);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
+
+SCCtrlCondT flow_manager_ctrl_cond;
+SCCtrlMutex flow_manager_ctrl_mutex;
 
 void FlowTimeoutsInit(void)
 {
@@ -817,6 +820,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     SCLogDebug("FM %s/%d starting. min_timeout %us. Full hash pass in %us", th_v->name,
             ftd->instance, min_timeout, pass_in_sec_base);
 
+    struct timespec cond_time;
+    cond_time.tv_sec = time(NULL) + 1;
+    cond_time.tv_nsec = 0;
+
 #ifdef FM_PROFILE
     struct timeval endts;
     struct timeval active;
@@ -881,7 +888,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         memset(&ts, 0, sizeof(ts));
         TimeGet(&ts);
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
-        const uint64_t ts_ms = ts.tv_sec * 1000 + ts.tv_usec / 1000;
+        uint64_t ts_ms = ts.tv_sec * 1000 + ts.tv_usec / 1000;
         const bool emerge_p = (emerg && !prev_emerg);
         if (emerge_p) {
             next_run_ms = 0;
@@ -1025,7 +1032,32 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         memset(&sleep_startts, 0, sizeof(sleep_startts));
         gettimeofday(&sleep_startts, NULL);
 #endif
-        usleep(250);
+
+        if (emerg) {
+            usleep(250);
+        } else {
+            struct timeval cond_tv;
+            gettimeofday(&cond_tv, NULL);
+            struct timeval add_tv;
+            add_tv.tv_sec = 0;
+            add_tv.tv_usec = (sleep_per_wu * 1000);
+            timeradd(&cond_tv, &add_tv, &cond_tv);
+
+            cond_time.tv_sec = cond_tv.tv_sec;
+            cond_time.tv_nsec = cond_tv.tv_usec * 1000;
+
+            SCCtrlMutexLock(&flow_manager_ctrl_mutex);
+            while (1) {
+                int rc = SCCtrlCondTimedwait(&flow_manager_ctrl_cond,
+                        &flow_manager_ctrl_mutex, &cond_time);
+                if (rc == ETIMEDOUT || rc < 0)
+                    break;
+                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                    break;
+                }
+            }
+            SCCtrlMutexUnlock(&flow_manager_ctrl_mutex);
+        }
 
 #ifdef FM_PROFILE
         struct timeval sleep_endts;
@@ -1070,6 +1102,9 @@ void FlowManagerThreadSpawn()
                 "invalid flow.managers setting %"PRIdMAX, setting);
     }
     flowmgr_number = (uint32_t)setting;
+
+    SCCtrlCondInit(&flow_manager_ctrl_cond, NULL);
+    SCCtrlMutexInit(&flow_manager_ctrl_mutex, NULL);
 
     SCLogConfig("using %u flow manager threads", flowmgr_number);
     StatsRegisterGlobalCounter("flow.memuse", FlowGetMemuse);
