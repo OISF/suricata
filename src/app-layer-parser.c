@@ -1233,6 +1233,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
                         flags);
             }
+            AppLayerIncGapErrorCounter(tv, f);
             goto error;
         }
     }
@@ -1240,8 +1241,10 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* Get the parser state (if any) */
     if (pstate == NULL) {
         f->alparser = pstate = AppLayerParserStateAlloc();
-        if (pstate == NULL)
+        if (pstate == NULL) {
+            AppLayerIncAllocErrorCounter(tv, f);
             goto error;
+        }
     }
 
     SetEOFFlags(pstate, flags);
@@ -1249,8 +1252,10 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     alstate = f->alstate;
     if (alstate == NULL || FlowChangeProto(f)) {
         f->alstate = alstate = p->StateAlloc(alstate, f->alproto_orig);
-        if (alstate == NULL)
+        if (alstate == NULL) {
+            AppLayerIncAllocErrorCounter(tv, f);
             goto error;
+        }
         SCLogDebug("alloced new app layer state %p (name %s)",
                    alstate, AppLayerGetProtoName(f->alproto));
     } else {
@@ -1268,6 +1273,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 alp_tctx->alproto_local_storage[f->protomap][alproto],
                 flags);
         if (res.status < 0) {
+            AppLayerIncParserErrorCounter(tv, f);
             goto error;
         } else if (res.status > 0) {
             DEBUG_VALIDATE_BUG_ON(res.consumed > input_len);
@@ -1279,6 +1285,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
             /* put protocol in error state on improper use of the
              * return codes. */
             if (res.consumed > input_len || res.needed + res.consumed < input_len) {
+                AppLayerIncInternalErrorCounter(tv, f);
                 goto error;
             }
 
