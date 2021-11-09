@@ -16,24 +16,22 @@
  */
 
 //! Nom parsers for NFSv2 records
-use nom::combinator::rest;
-use nom::number::streaming::be_u32;
+
 use crate::nfs::nfs_records::*;
+use nom7::bytes::streaming::take;
+use nom7::combinator::rest;
+use nom7::number::streaming::be_u32;
+use nom7::IResult;
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2Handle<'a> {
     pub value: &'a[u8],
 }
 
-named!(pub parse_nfs2_handle<Nfs2Handle>,
-    do_parse!(
-        handle: take!(32)
-        >> (
-            Nfs2Handle {
-                value:handle,
-            }
-        ))
-);
+pub fn parse_nfs2_handle(i: &[u8]) -> IResult<&[u8], Nfs2Handle> {
+    let (i, value) = take(32_usize)(i)?;
+    Ok((i, Nfs2Handle { value }))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2RequestLookup<'a> {
@@ -41,19 +39,17 @@ pub struct Nfs2RequestLookup<'a> {
     pub name_vec: Vec<u8>,
 }
 
-named!(pub parse_nfs2_request_lookup<Nfs2RequestLookup>,
-    do_parse!(
-            handle: parse_nfs2_handle
-        >>  name_len: be_u32
-        >>  name_contents: take!(name_len)
-        >>  _name_padding: rest
-        >> (
-            Nfs2RequestLookup {
-                handle,
-                name_vec:name_contents.to_vec(),
-            }
-        ))
-);
+pub fn parse_nfs2_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs2RequestLookup> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    let (i, name_len) = be_u32(i)?;
+    let (i, name_contents) = take(name_len as usize)(i)?;
+    let (i, _name_padding) = rest(i)?;
+    let req = Nfs2RequestLookup {
+        handle,
+        name_vec: name_contents.to_vec(),
+    };
+    Ok((i, req))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2RequestRead<'a> {
@@ -61,37 +57,30 @@ pub struct Nfs2RequestRead<'a> {
     pub offset: u32,
 }
 
-named!(pub parse_nfs2_request_read<Nfs2RequestRead>,
-    do_parse!(
-            handle: parse_nfs2_handle
-        >>  offset: be_u32
-        >>  _count: be_u32
-        >> (
-            Nfs2RequestRead {
-                handle,
-                offset
-            }
-        ))
-);
+pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    let (i, offset) = be_u32(i)?;
+    let (i, _count) = be_u32(i)?;
+    let req = Nfs2RequestRead { handle, offset };
+    Ok((i, req))
+}
 
-named!(pub parse_nfs2_reply_read<NfsReplyRead>,
-    do_parse!(
-            status: be_u32
-        >>  attr_blob: take!(68)
-        >>  data_len: be_u32
-        >>  data_contents: rest
-        >> (
-            NfsReplyRead {
-                status,
-                attr_follows:1,
-                attr_blob,
-                count:data_len,
-                eof:false,
-                data_len,
-                data:data_contents,
-            }
-        ))
-);
+pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
+    let (i, status) = be_u32(i)?;
+    let (i, attr_blob) = take(68_usize)(i)?;
+    let (i, data_len) = be_u32(i)?;
+    let (i, data_contents) = rest(i)?;
+    let reply = NfsReplyRead {
+        status,
+        attr_follows: 1,
+        attr_blob,
+        count: data_len,
+        eof: false,
+        data_len,
+        data: data_contents,
+    };
+    Ok((i, reply))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2Attributes<> {
@@ -99,16 +88,11 @@ pub struct Nfs2Attributes<> {
     pub asize: u32,
 }
 
-named!(pub parse_nfs2_attribs<Nfs2Attributes>,
-    do_parse!(
-            atype: be_u32
-        >>  _blob1: take!(16)
-        >>  asize: be_u32
-        >>  _blob2: take!(44)
-        >> (
-            Nfs2Attributes {
-                atype,
-                asize
-            }
-        ))
-);
+pub fn parse_nfs2_attribs(i: &[u8]) -> IResult<&[u8], Nfs2Attributes> {
+    let (i, atype) = be_u32(i)?;
+    let (i, _blob1) = take(16_usize)(i)?;
+    let (i, asize) = be_u32(i)?;
+    let (i, _blob2) = take(44_usize)(i)?;
+    let attrs = Nfs2Attributes { atype, asize };
+    Ok((i, attrs))
+}
