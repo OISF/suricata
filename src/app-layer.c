@@ -964,7 +964,6 @@ void AppLayerSetupCounters()
     AppProto alproto;
     AppProto alprotos[ALPROTO_MAX];
     const char *str = "app_layer.flow.";
-    const char *estr = "app_layer.error.";
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
@@ -990,16 +989,16 @@ void AppLayerSetupCounters()
 
                     snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
-                            "%s%s%s.gap_errors", estr, alproto_str, ipproto_suffix);
+                            "%s%s%s.gap_errors", str, alproto_str, ipproto_suffix);
                     snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
-                            "%s%s%s.alloc_errors", estr, alproto_str, ipproto_suffix);
+                            "%s%s%s.alloc_errors", str, alproto_str, ipproto_suffix);
                     snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
-                            "%s%s%s.parser_errors", estr, alproto_str, ipproto_suffix);
+                            "%s%s%s.parser_errors", str, alproto_str, ipproto_suffix);
                     snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
-                            "%s%s%s.internal_errors", estr, alproto_str, ipproto_suffix);
+                            "%s%s%s.internal_errors", str, alproto_str, ipproto_suffix);
                 } else {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
@@ -1010,16 +1009,16 @@ void AppLayerSetupCounters()
 
                     snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
-                            "%s%s.gap_errors", estr, alproto_str);
+                            "%s%s.gap_errors", str, alproto_str);
                     snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
-                            "%s%s.alloc_errors", estr, alproto_str);
+                            "%s%s.alloc_errors", str, alproto_str);
                     snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
-                            "%s%s.parser_errors", estr, alproto_str);
+                            "%s%s.parser_errors", str, alproto_str);
                     snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
-                            "%s%s.internal_errors", estr, alproto_str);
+                            "%s%s.internal_errors", str, alproto_str);
                 }
             } else if (alproto == ALPROTO_FAILED) {
                 snprintf(applayer_counter_names[ipproto_map][alproto].name,
@@ -1028,7 +1027,7 @@ void AppLayerSetupCounters()
 
                 snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
                         sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
-                        "%sfailed%s.gap_errors", estr, ipproto_suffix);
+                        "%sfailed%s.gap_errors", str, ipproto_suffix);
             }
         }
     }
