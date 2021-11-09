@@ -76,11 +76,19 @@ struct AppLayerThreadCtx_ {
 typedef struct AppLayerCounterNames_ {
     char name[MAX_COUNTER_SIZE];
     char tx_name[MAX_COUNTER_SIZE];
+    char gap_error[MAX_COUNTER_SIZE];
+    char parser_error[MAX_COUNTER_SIZE];
+    char internal_error[MAX_COUNTER_SIZE];
+    char alloc_error[MAX_COUNTER_SIZE];
 } AppLayerCounterNames;
 
 typedef struct AppLayerCounters_ {
     uint16_t counter_id;
     uint16_t counter_tx_id;
+    uint16_t gap_error_id;
+    uint16_t parser_error_id;
+    uint16_t internal_error_id;
+    uint16_t alloc_error_id;
 } AppLayerCounters;
 
 /* counter names. Only used at init. */
@@ -116,6 +124,38 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
     const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_tx_id;
     if (likely(tv && id > 0)) {
         StatsAddUI64(tv, id, step);
+    }
+}
+
+void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f)
+{
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].gap_error_id;
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
+void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f)
+{
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].alloc_error_id;
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
+void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f)
+{
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].parser_error_id;
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
+void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f)
+{
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].internal_error_id;
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
     }
 }
 
@@ -924,6 +964,7 @@ void AppLayerSetupCounters()
     AppProto alproto;
     AppProto alprotos[ALPROTO_MAX];
     const char *str = "app_layer.flow.";
+    const char *estr = "app_layer.error.";
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
@@ -946,6 +987,19 @@ void AppLayerSetupCounters()
                     snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
                             "%s%s%s", tx_str, alproto_str, ipproto_suffix);
+
+                    snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                            "%s%s%s.gap_errors", estr, alproto_str, ipproto_suffix);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
+                            "%s%s%s.alloc_errors", estr, alproto_str, ipproto_suffix);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
+                            "%s%s%s.parser_errors", estr, alproto_str, ipproto_suffix);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
+                            "%s%s%s.internal_errors", estr, alproto_str, ipproto_suffix);
                 } else {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
@@ -953,11 +1007,28 @@ void AppLayerSetupCounters()
                     snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
                             "%s%s", tx_str, alproto_str);
+
+                    snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                            "%s%s.gap_errors", estr, alproto_str);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
+                            "%s%s.alloc_errors", estr, alproto_str);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
+                            "%s%s.parser_errors", estr, alproto_str);
+                    snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
+                            "%s%s.internal_errors", estr, alproto_str);
                 }
             } else if (alproto == ALPROTO_FAILED) {
                 snprintf(applayer_counter_names[ipproto_map][alproto].name,
                         sizeof(applayer_counter_names[ipproto_map][alproto].name),
                         "%s%s%s", str, "failed", ipproto_suffix);
+
+                snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
+                        sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                        "%sfailed%s.gap_errors", estr, ipproto_suffix);
             }
         }
     }
@@ -982,9 +1053,21 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 
                 applayer_counters[ipproto_map][alproto].counter_tx_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
+
+                applayer_counters[ipproto_map][alproto].gap_error_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].gap_error, tv);
+                applayer_counters[ipproto_map][alproto].alloc_error_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].alloc_error, tv);
+                applayer_counters[ipproto_map][alproto].parser_error_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].parser_error, tv);
+                applayer_counters[ipproto_map][alproto].internal_error_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].internal_error, tv);
             } else if (alproto == ALPROTO_FAILED) {
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
+
+                applayer_counters[ipproto_map][alproto].gap_error_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].gap_error, tv);
             }
         }
     }

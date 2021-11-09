@@ -144,5 +144,9 @@ void AppLayerUnittestsRegister(void);
 #endif
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step);
+void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f);
+void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f);
+void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f);
+void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f);
 
 #endif
