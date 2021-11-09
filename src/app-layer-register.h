@@ -49,9 +49,6 @@ typedef struct AppLayerParser {
     const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
-    DetectEngineState *(*GetTxDetectState)(void *tx);
-    int (*SetTxDetectState)(void *tx, DetectEngineState *);
-
     AppLayerDecoderEvents *(*StateGetEvents)(void *);
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);

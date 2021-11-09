@@ -1761,19 +1761,6 @@ static AppLayerDecoderEvents *SMTPGetEvents(void *tx)
     return ((SMTPTransaction *)tx)->decoder_events;
 }
 
-static DetectEngineState *SMTPGetTxDetectState(void *vtx)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    return tx->de_state;
-}
-
-static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 static AppLayerTxData *SMTPGetTxData(void *vtx)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
@@ -1808,8 +1795,6 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
-                                               SMTPGetTxDetectState, SMTPSetTxDetectState);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);

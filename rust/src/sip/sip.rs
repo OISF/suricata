@@ -19,7 +19,7 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::sip::parser::*;
 use nom7::Err;
 use std;
@@ -42,7 +42,6 @@ pub struct SIPTransaction {
     pub response: Option<Response>,
     pub request_line: Option<String>,
     pub response_line: Option<String>,
-    de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
@@ -135,7 +134,6 @@ impl SIPTransaction {
     pub fn new(id: u64) -> SIPTransaction {
         SIPTransaction {
             id,
-            de_state: None,
             request: None,
             response: None,
             request_line: None,
@@ -150,9 +148,6 @@ impl Drop for SIPTransaction {
     fn drop(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            sc_detect_engine_state_free(state);
         }
     }
 }
@@ -200,27 +195,6 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
     _direction: u8,
 ) -> std::os::raw::c_int {
     1
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, SIPTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let tx = cast_pointer!(tx, SIPTransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
 }
 
 #[no_mangle]
@@ -318,8 +292,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_sip_tx_get_alstate_progress,
-        get_de_state: rs_sip_state_get_tx_detect_state,
-        set_de_state: rs_sip_state_set_tx_detect_state,
         get_events: Some(rs_sip_state_get_events),
         get_eventinfo: Some(SIPEvent::get_event_info),
         get_eventinfo_byid: Some(SIPEvent::get_event_info_by_id),

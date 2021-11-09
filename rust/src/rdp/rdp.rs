@@ -20,7 +20,7 @@
 //! RDP application layer
 
 use crate::applayer::*;
-use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
 use nom;
 use std;
@@ -51,7 +51,6 @@ pub struct RdpTransaction {
     pub id: u64,
     pub item: RdpTransactionItem,
     // managed by macros `export_tx_get_detect_state!` and `export_tx_set_detect_state!`
-    de_state: Option<*mut DetectEngineState>,
     tx_data: AppLayerTxData,
 }
 
@@ -60,21 +59,8 @@ impl RdpTransaction {
         Self {
             id,
             item,
-            de_state: None,
             tx_data: AppLayerTxData::new(),
         }
-    }
-
-    fn free(&mut self) {
-        if let Some(de_state) = self.de_state {
-            core::sc_detect_engine_state_free(de_state);
-        }
-    }
-}
-
-impl Drop for RdpTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -390,13 +376,6 @@ pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, 
 }
 
 //
-// detection state
-//
-
-export_tx_get_detect_state!(rs_rdp_tx_get_detect_state, RdpTransaction);
-export_tx_set_detect_state!(rs_rdp_tx_set_detect_state, RdpTransaction);
-
-//
 // probe
 //
 
@@ -484,8 +463,6 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rdp_tx_get_progress,
-        get_de_state: rs_rdp_tx_get_detect_state,
-        set_de_state: rs_rdp_tx_set_detect_state,
         get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid: None,

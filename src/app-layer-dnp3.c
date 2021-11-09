@@ -1535,25 +1535,6 @@ static int DNP3StateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
-/**
- * \brief App-layer support.
- */
-static DetectEngineState *DNP3GetTxDetectState(void *vtx)
-{
-    DNP3Transaction *tx = vtx;
-    return tx->de_state;
-}
-
-/**
- * \brief App-layer support.
- */
-static int DNP3SetTxDetectState(void *vtx, DetectEngineState *s)
-{
-    DNP3Transaction *tx = vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 static AppLayerTxData *DNP3GetTxData(void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
@@ -1622,8 +1603,6 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxDetectState, DNP3SetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);

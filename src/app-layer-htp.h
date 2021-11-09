@@ -241,7 +241,6 @@ typedef struct HtpTxUserData_ {
 
     uint8_t request_body_type;
 
-    DetectEngineState *de_state;
     AppLayerTxData tx_data;
 } HtpTxUserData;
 
