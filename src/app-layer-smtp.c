@@ -374,12 +374,12 @@ static SMTPTransaction *SMTPTransactionCreate(void)
 
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
-    if (tx && tx->de_state) {
+    if (tx && tx->tx_data.de_state) {
         SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
-        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
+        tx->tx_data.de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
     } else if (tx == NULL) {
         SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX");
-    } else if (tx->de_state == NULL) {
+    } else if (tx->tx_data.de_state == NULL) {
         SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX DESTATE");
     }
 }
@@ -1533,8 +1533,8 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     if (tx->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
-    if (tx->de_state != NULL)
-        DetectEngineStateFree(tx->de_state);
+    if (tx->tx_data.de_state != NULL)
+        DetectEngineStateFree(tx->tx_data.de_state);
 
     if (tx->mail_from)
         SCFree(tx->mail_from);
@@ -1762,19 +1762,6 @@ static AppLayerDecoderEvents *SMTPGetEvents(void *tx)
     return ((SMTPTransaction *)tx)->decoder_events;
 }
 
-static DetectEngineState *SMTPGetTxDetectState(void *vtx)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    return tx->de_state;
-}
-
-static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 static AppLayerTxData *SMTPGetTxData(void *vtx)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
@@ -1809,8 +1796,6 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
-                                               SMTPGetTxDetectState, SMTPSetTxDetectState);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);

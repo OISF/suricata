@@ -60,7 +60,6 @@ pub struct MQTTTransaction {
     toserver: bool,
 
     logged: LoggerFlags,
-    de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
@@ -75,7 +74,6 @@ impl MQTTTransaction {
             msg: Vec::new(),
             toclient: false,
             toserver: false,
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         };
@@ -86,9 +84,6 @@ impl MQTTTransaction {
     pub fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
@@ -536,9 +531,6 @@ impl MQTTState {
 
 // C exports.
 
-export_tx_get_detect_state!(rs_mqtt_tx_get_detect_state, MQTTTransaction);
-export_tx_set_detect_state!(rs_mqtt_tx_set_detect_state, MQTTTransaction);
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_probing_parser(
     _flow: *const Flow,
@@ -719,8 +711,6 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_mqtt_tx_get_alstate_progress,
-        get_de_state: rs_mqtt_tx_get_detect_state,
-        set_de_state: rs_mqtt_tx_set_detect_state,
         get_events: Some(rs_mqtt_state_get_events),
         get_eventinfo: Some(MQTTEvent::get_event_info),
         get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),

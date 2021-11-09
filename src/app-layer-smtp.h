@@ -80,7 +80,6 @@ typedef struct SMTPTransaction_ {
     MimeDecParseState *mime_state;
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
-    DetectEngineState *de_state;
 
     /* MAIL FROM parameters */
     uint8_t *mail_from;

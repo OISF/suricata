@@ -82,7 +82,6 @@ pub struct SSHTransaction {
     pub srv_hdr: SshHeader,
     pub cli_hdr: SshHeader,
 
-    de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
@@ -92,7 +91,6 @@ impl SSHTransaction {
         SSHTransaction {
             srv_hdr: SshHeader::new(),
             cli_hdr: SshHeader::new(),
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
@@ -101,9 +99,6 @@ impl SSHTransaction {
     pub fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
@@ -351,9 +346,6 @@ impl SSHState {
 
 // C exports.
 
-export_tx_get_detect_state!(rs_ssh_tx_get_detect_state, SSHTransaction);
-export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
-
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
 
 #[no_mangle]
@@ -485,8 +477,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
         tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
-        get_de_state: rs_ssh_tx_get_detect_state,
-        set_de_state: rs_ssh_tx_set_detect_state,
         get_events: Some(rs_ssh_state_get_events),
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),

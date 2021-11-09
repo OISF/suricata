@@ -239,26 +239,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
-    match dce_state.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let dce_state = cast_pointer!(vtx, DCERPCTransaction);
-    dce_state.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
@@ -361,8 +341,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
-        get_de_state: rs_dcerpc_udp_get_tx_detect_state,
-        set_de_state: rs_dcerpc_udp_set_tx_detect_state,
         get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid: None,

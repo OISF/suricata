@@ -179,7 +179,6 @@ pub struct NFSTransaction {
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
-    pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
 
     pub tx_data: AppLayerTxData,
@@ -208,7 +207,6 @@ impl NFSTransaction {
             file_tx_direction: Direction::ToServer,
             file_handle:Vec::new(),
             type_data: None,
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
@@ -219,12 +217,6 @@ impl NFSTransaction {
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
         if !self.events.is_null() {
             sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        match self.de_state {
-            Some(state) => {
-                sc_detect_engine_state_free(state);
-            }
-            _ => {}
         }
     }
 }
@@ -1550,34 +1542,6 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut DetectEngineState) -> i32
-{
-    let tx = cast_pointer!(tx, NFSTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut DetectEngineState
-{
-    let tx = cast_pointer!(tx, NFSTransaction);
-    match tx.de_state {
-        Some(ds) => {
-            SCLogDebug!("{}: getting de_state", tx.id);
-            return ds;
-        },
-        None => {
-            SCLogDebug!("{}: getting de_state: have none", tx.id);
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
@@ -1911,8 +1875,6 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_de_state: rs_nfs_state_get_tx_detect_state,
-        set_de_state: rs_nfs_state_set_tx_detect_state,
         get_events: Some(rs_nfs_state_get_events),
         get_eventinfo: Some(rs_nfs_state_get_event_info),
         get_eventinfo_byid : Some(rs_nfs_state_get_event_info_by_id),
@@ -1990,8 +1952,6 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_de_state: rs_nfs_state_get_tx_detect_state,
-        set_de_state: rs_nfs_state_set_tx_detect_state,
         get_events: Some(rs_nfs_state_get_events),
         get_eventinfo: Some(rs_nfs_state_get_event_info),
         get_eventinfo_byid : None,

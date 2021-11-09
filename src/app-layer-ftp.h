@@ -153,8 +153,6 @@ typedef struct FTPTransaction_  {
     /* Handle multiple responses */
     TAILQ_HEAD(, FTPString_) response_list;
 
-    DetectEngineState *de_state;
-
     TAILQ_ENTRY(FTPTransaction_) next;
 } FTPTransaction;
 
@@ -201,7 +199,6 @@ typedef struct FtpDataState_ {
     uint8_t *input;
     uint8_t *file_name;
     FileContainer *files;
-    DetectEngineState *de_state;
     int32_t input_len;
     int16_t file_len;
     FtpRequestCommand command;

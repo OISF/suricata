@@ -231,7 +231,6 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
-    pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
 }
@@ -249,7 +248,6 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
@@ -258,12 +256,6 @@ impl DNSTransaction {
     pub fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        match self.de_state {
-            Some(state) => {
-                core::sc_detect_engine_state_free(state);
-            }
-            None => { },
         }
     }
 
@@ -807,32 +799,6 @@ pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    tx.de_state = Some(de_state);
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    match tx.de_state {
-        Some(ds) => {
-            return ds;
-        },
-        None => {
-            return std::ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
@@ -840,7 +806,6 @@ pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-#[no_mangle]
 pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
@@ -1004,8 +969,6 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_de_state: rs_dns_state_get_tx_detect_state,
-        set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
@@ -1050,8 +1013,6 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_de_state: rs_dns_state_get_tx_detect_state,
-        set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,

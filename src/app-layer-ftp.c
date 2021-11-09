@@ -326,8 +326,8 @@ static void FTPTransactionFree(FTPTransaction *tx)
 {
     SCEnter();
 
-    if (tx->de_state != NULL) {
-        DetectEngineStateFree(tx->de_state);
+    if (tx->tx_data.de_state != NULL) {
+        DetectEngineStateFree(tx->tx_data.de_state);
     }
 
     if (tx->request) {
@@ -884,13 +884,6 @@ static void FTPStateFree(void *s)
 #endif
 }
 
-static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
-{
-    FTPTransaction *tx = (FTPTransaction *)vtx;
-    tx->de_state = de_state;
-    return 0;
-}
-
 /**
  * \brief This function returns the oldest open transaction; if none
  * are open, then the oldest transaction is returned
@@ -941,13 +934,6 @@ static void *FTPGetTx(void *state, uint64_t tx_id)
     }
     return NULL;
 }
-
-static DetectEngineState *FTPGetTxDetectState(void *vtx)
-{
-    FTPTransaction *tx = (FTPTransaction *)vtx;
-    return tx->de_state;
-}
-
 
 static AppLayerTxData *FTPGetTxData(void *vtx)
 {
@@ -1175,8 +1161,8 @@ static void FTPDataStateFree(void *s)
 {
     FtpDataState *fstate = (FtpDataState *) s;
 
-    if (fstate->de_state != NULL) {
-        DetectEngineStateFree(fstate->de_state);
+    if (fstate->tx_data.de_state != NULL) {
+        DetectEngineStateFree(fstate->tx_data.de_state);
     }
     if (fstate->file_name != NULL) {
         FTPFree(fstate->file_name, fstate->file_len + 1);
@@ -1191,19 +1177,6 @@ static void FTPDataStateFree(void *s)
     ftpdata_state_memuse-=sizeof(FtpDataState);
     SCMutexUnlock(&ftpdata_state_mem_lock);
 #endif
-}
-
-static int FTPDataSetTxDetectState(void *vtx, DetectEngineState *de_state)
-{
-    FtpDataState *ftp_state = (FtpDataState *)vtx;
-    ftp_state->de_state = de_state;
-    return 0;
-}
-
-static DetectEngineState *FTPDataGetTxDetectState(void *vtx)
-{
-    FtpDataState *ftp_state = (FtpDataState *)vtx;
-    return ftp_state->de_state;
 }
 
 static AppLayerTxData *FTPDataGetTxData(void *vtx)
@@ -1303,9 +1276,6 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTP, FTPStateTransactionFree);
 
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP,
-                FTPGetTxDetectState, FTPSetTxDetectState);
-
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxData);
 
@@ -1326,8 +1296,6 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateAlloc, FTPDataStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTPDATA, STREAM_TOSERVER | STREAM_TOCLIENT);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateTransactionFree);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA,
-                FTPDataGetTxDetectState, FTPDataSetTxDetectState);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetFiles);
 

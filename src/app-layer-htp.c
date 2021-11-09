@@ -335,8 +335,8 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
         AppLayerDecoderEventsFreeEvents(&htud->decoder_events);
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
-        if (htud->de_state != NULL) {
-            DetectEngineStateFree(htud->de_state);
+        if (htud->tx_data.de_state != NULL) {
+            DetectEngineStateFree(htud->tx_data.de_state);
         }
         HTPFree(htud, sizeof(HtpTxUserData));
     }
@@ -1291,13 +1291,13 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
 {
     SCEnter();
-    if (tx && tx->de_state) {
+    if (tx && tx->tx_data.de_state) {
         if (dir == STREAM_TOSERVER) {
             SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
-            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
+            tx->tx_data.de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         } else if (STREAM_TOCLIENT) {
             SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
-            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
+            tx->tx_data.de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
     }
 }
@@ -3004,24 +3004,6 @@ static void HTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
-static DetectEngineState *HTPGetTxDetectState(void *vtx)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    return tx_ud ? tx_ud->de_state : NULL;
-}
-
-static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        return -ENOMEM;
-    }
-    tx_ud->de_state = s;
-    return 0;
-}
-
 static AppLayerTxData *HTPGetTxData(void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
@@ -3117,8 +3099,6 @@ void RegisterHTPParsers(void)
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfoById);
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTruncate);
-        AppLayerParserRegisterDetectStateFuncs(
-                IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxDetectState, HTPSetTxDetectState);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxData);
 
         AppLayerParserRegisterSetStreamDepthFlag(

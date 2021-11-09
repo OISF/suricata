@@ -54,9 +54,6 @@ pub struct NTPTransaction {
     /// The internal transaction id
     id: u64,
 
-    /// The detection engine state, if present
-    de_state: Option<*mut core::DetectEngineState>,
-
     /// The events associated with this transaction
     events: *mut core::AppLayerDecoderEvents,
 
@@ -152,7 +149,6 @@ impl NTPTransaction {
         NTPTransaction {
             xid: 0,
             id: id,
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
@@ -161,9 +157,6 @@ impl NTPTransaction {
     fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(de_state) = self.de_state {
-            core::sc_detect_engine_state_free(de_state);
         }
     }
 }
@@ -259,28 +252,6 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
-{
-    let tx = cast_pointer!(tx,NTPTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void)
-    -> *mut core::DetectEngineState
-{
-    let tx = cast_pointer!(tx,NTPTransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
@@ -340,8 +311,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_ntp_tx_get_alstate_progress,
-        get_de_state       : rs_ntp_state_get_tx_detect_state,
-        set_de_state       : rs_ntp_state_set_tx_detect_state,
         get_events         : Some(rs_ntp_state_get_events),
         get_eventinfo      : Some(NTPEvent::get_event_info),
         get_eventinfo_byid : Some(NTPEvent::get_event_info_by_id),

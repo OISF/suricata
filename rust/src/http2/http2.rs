@@ -131,7 +131,6 @@ pub struct HTTP2Transaction {
     decoder: decompression::HTTP2Decoder,
     pub file_range: *mut HttpRangeContainerBlock,
 
-    de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
@@ -159,7 +158,6 @@ impl HTTP2Transaction {
             frames_ts: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
-            de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
             ft_tc: FileTransferTracker::new(),
@@ -171,9 +169,6 @@ impl HTTP2Transaction {
     pub fn free(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
         if !self.file_range.is_null() {
             match unsafe { SC } {
@@ -988,9 +983,6 @@ impl HTTP2State {
 
 // C exports.
 
-export_tx_get_detect_state!(rs_http2_tx_get_detect_state, HTTP2Transaction);
-export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
-
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 
 /// C entry point for a probing parser.
@@ -1165,8 +1157,6 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
-        get_de_state: rs_http2_tx_get_detect_state,
-        set_de_state: rs_http2_tx_set_detect_state,
         get_events: Some(rs_http2_state_get_events),
         get_eventinfo: Some(HTTP2Event::get_event_info),
         get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),

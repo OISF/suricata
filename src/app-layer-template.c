@@ -447,26 +447,6 @@ static AppLayerTxData *TemplateGetTxData(void *vtx)
     return &tx->tx_data;
 }
 
-/**
- * \brief retrieve the detection engine per tx state
- */
-static DetectEngineState *TemplateGetTxDetectState(void *vtx)
-{
-    TemplateTransaction *tx = vtx;
-    return tx->de_state;
-}
-
-/**
- * \brief get the detection engine per tx state
- */
-static int TemplateSetTxDetectState(void *vtx,
-    DetectEngineState *s)
-{
-    TemplateTransaction *tx = vtx;
-    tx->de_state = s;
-    return 0;
-}
-
 void RegisterTemplateParsers(void)
 {
     const char *proto_name = "template";
@@ -552,10 +532,6 @@ void RegisterTemplateParsers(void)
             TemplateGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTxData);
-
-        /* What is this being registered for? */
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateGetTxDetectState, TemplateSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfo);

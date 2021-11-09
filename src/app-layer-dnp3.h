@@ -245,7 +245,6 @@ typedef struct DNP3Transaction_ {
 
     AppLayerDecoderEvents *decoder_events; /**< Per transcation
                                             * decoder events. */
-    DetectEngineState *de_state;
 
     TAILQ_ENTRY(DNP3Transaction_) next;
 } DNP3Transaction;

@@ -48,7 +48,6 @@ pub struct ModbusTransaction {
     pub response: Option<Message>,
 
     pub events: *mut core::AppLayerDecoderEvents,
-    pub de_state: Option<*mut core::DetectEngineState>,
     pub tx_data: AppLayerTxData,
 }
 
@@ -65,7 +64,6 @@ impl ModbusTransaction {
             request: None,
             response: None,
             events: std::ptr::null_mut(),
-            de_state: None,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -97,10 +95,6 @@ impl Drop for ModbusTransaction {
     fn drop(&mut self) {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
@@ -391,26 +385,6 @@ pub unsafe extern "C" fn rs_modbus_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_tx_detect_state(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::DetectEngineState {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    match tx.de_state {
-        Some(ds) => ds,
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_set_tx_detect_state(
-    tx: *mut std::os::raw::c_void, de_state: &mut core::DetectEngineState,
-) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    tx.de_state = Some(de_state);
-    0
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
     tx: *mut std::os::raw::c_void,
 ) -> *mut AppLayerTxData {
@@ -446,8 +420,6 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<ModbusState, ModbusTransaction>),
-        get_de_state: rs_modbus_state_get_tx_detect_state,
-        set_de_state: rs_modbus_state_set_tx_detect_state,
         get_tx_data: rs_modbus_state_get_tx_data,
         apply_tx_config: None,
         flags: 0,

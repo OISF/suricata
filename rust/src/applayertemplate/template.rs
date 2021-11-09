@@ -259,15 +259,6 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 
 // C exports.
 
-export_tx_get_detect_state!(
-    rs_template_tx_get_detect_state,
-    TemplateTransaction
-);
-export_tx_set_detect_state!(
-    rs_template_tx_set_detect_state,
-    TemplateTransaction
-);
-
 /// C entry point for a probing parser.
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_probing_parser(
@@ -483,8 +474,6 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_template_tx_get_alstate_progress,
-        get_de_state: rs_template_tx_get_detect_state,
-        set_de_state: rs_template_tx_set_detect_state,
         get_events: Some(rs_template_state_get_events),
         get_eventinfo: Some(TemplateEvent::get_event_info),
         get_eventinfo_byid : Some(TemplateEvent::get_event_info_by_id),
