@@ -580,6 +580,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, const Packet *p)
             if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
                 SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);
                 FlowTimeoutsEmergency();
+                FlowWakeupFlowManagerThread();
             }
 
             f = FlowGetUsedFlow(tv, fls->dtv, &p->ts);
