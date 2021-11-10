@@ -1235,7 +1235,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
 
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     const int dir_int = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
-    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(ipproto, alproto, tx_ptr);
+    DetectEngineState *tx_de_state = txd->de_state;
     DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
     uint64_t prefilter_flags = detect_flags & APP_LAYER_TX_PREFILTER_MASK;
     DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);

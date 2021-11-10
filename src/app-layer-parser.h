@@ -252,9 +252,6 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f, AppLayerParserState *
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 
 int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
-int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
-DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
-int AppLayerParserSetTxDetectState(const Flow *f, void *tx, DetectEngineState *s);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,

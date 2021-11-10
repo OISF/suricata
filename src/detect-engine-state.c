@@ -222,19 +222,20 @@ void DetectRunStoreStateTx(
         uint32_t inspect_flags, uint8_t flow_flags,
         const uint16_t file_no_match)
 {
-    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
-    if (destate == NULL) {
-        destate = DetectEngineStateAlloc();
-        if (destate == NULL)
+    AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    BUG_ON(tx_data == NULL);
+    if (tx_data == NULL) {
+        SCLogDebug("No TX data for %" PRIu64, tx_id);
+        return;
+    }
+    if (tx_data->de_state == NULL) {
+        tx_data->de_state = DetectEngineStateAlloc();
+        if (tx_data->de_state == NULL)
             return;
-        if (AppLayerParserSetTxDetectState(f, tx, destate) < 0) {
-            DetectEngineStateFree(destate);
-            return;
-        }
         SCLogDebug("destate created for %"PRIu64, tx_id);
     }
-    DeStateSignatureAppend(destate, s, inspect_flags, flow_flags);
-    StoreStateTxHandleFiles(sgh, f, destate, flow_flags, tx_id, file_no_match);
+    DeStateSignatureAppend(tx_data->de_state, s, inspect_flags, flow_flags);
+    StoreStateTxHandleFiles(sgh, f, tx_data->de_state, flow_flags, tx_id, file_no_match);
 
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
@@ -296,8 +297,11 @@ void DetectEngineStateResetTxs(Flow *f)
     for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
         void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
-            DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
-            ResetTxState(tx_de_state);
+            AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, inspect_tx);
+            BUG_ON(txd == NULL);
+            if (txd) {
+                ResetTxState(txd->de_state);
+            }
         }
     }
 }
@@ -625,7 +629,9 @@ static int DeStateSigTest02(void)
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f.alstate, 0);
     FAIL_IF_NULL(tx);
 
-    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP1, tx);
+    AppLayerTxData *tx_data = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_HTTP1, tx);
+    FAIL_IF_NULL(tx_data);
+    DetectEngineState *tx_de_state = tx_data->de_state;
     FAIL_IF_NULL(tx_de_state);
     FAIL_IF(tx_de_state->dir_state[0].cnt != 1);
     /* http_header(mpm): 5, uri: 3, method: 6, cookie: 7 */
