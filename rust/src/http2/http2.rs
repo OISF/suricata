@@ -145,6 +145,12 @@ pub struct HTTP2Transaction {
     pub escaped: Vec<Vec<u8>>,
 }
 
+impl Transaction for HTTP2Transaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
+
 impl HTTP2Transaction {
     pub fn new() -> HTTP2Transaction {
         HTTP2Transaction {
@@ -402,6 +408,12 @@ pub struct HTTP2State {
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: Files,
+}
+
+impl State<HTTP2Transaction> for HTTP2State {
+    fn get_transactions(&self) -> &[HTTP2Transaction] {
+        &self.transactions
+    }
 }
 
 impl HTTP2State {
@@ -975,25 +987,6 @@ impl HTTP2State {
         //then parse all we can
         return self.parse_frames(input, il, STREAM_TOCLIENT, flow);
     }
-
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&HTTP2Transaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
 }
 
 // C exports.
@@ -1140,24 +1133,6 @@ pub unsafe extern "C" fn rs_http2_state_get_events(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, HTTP2State);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
@@ -1201,7 +1176,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_http2_getfiles),
-        get_tx_iterator: Some(rs_http2_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<HTTP2State, HTTP2Transaction>),
         get_tx_data: rs_http2_get_tx_data,
         apply_tx_config: None,
         flags: 0,
