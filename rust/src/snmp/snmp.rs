@@ -86,7 +86,11 @@ pub struct SNMPTransaction<'a> {
     tx_data: applayer::AppLayerTxData,
 }
 
-
+impl<'a> Transaction for SNMPTransaction<'a> {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
 
 impl<'a> SNMPState<'a> {
     pub fn new() -> SNMPState<'a> {
@@ -106,6 +110,12 @@ impl<'a> Default for SNMPPduInfo<'a> {
             trap_type: None,
             vars: Vec::new()
         }
+    }
+}
+
+impl<'a> State<SNMPTransaction<'a>> for SNMPState<'a> {
+    fn get_transactions(&self) -> &[SNMPTransaction<'a>] {
+        &self.transactions
     }
 }
 
@@ -225,28 +235,6 @@ impl<'a> SNMPState<'a> {
     /// Set an event on a specific transaction.
     fn set_event_tx(&self, tx: &mut SNMPTransaction, event: SNMPEvent) {
         core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
-    }
-
-    // for use with the C API call StateGetTxIterator
-    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&SNMPTransaction, u64, bool)>
-    {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        // find tx that is >= min_tx_id
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64 + 1;
-            //SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
-            //        tx.id - 1, (len - index) > 1, len, index, tx);
-            return Some((tx, tx.id - 1, (len - index) > 1));
-        }
-        return None;
     }
 }
 
@@ -395,50 +383,6 @@ pub unsafe extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_get_tx_iterator(
-                                      state: &mut SNMPState,
-                                      min_tx_id: u64,
-                                      istate: &mut u64)
-                                      -> applayer::AppLayerGetTxIterTuple
-{
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
-                                          _alproto: AppProto,
-                                          alstate: *mut std::os::raw::c_void,
-                                          min_tx_id: u64,
-                                          _max_tx_id: u64,
-                                          istate: &mut u64) -> applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(alstate,SNMPState);
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
-
-
 static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
@@ -516,7 +460,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
         get_tx_data        : rs_snmp_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
@@ -531,7 +475,6 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterGetTxIterator(core::IPPROTO_UDP as u8, alproto, rs_snmp_get_tx_iterator);
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();
