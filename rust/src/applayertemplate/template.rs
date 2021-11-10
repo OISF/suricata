@@ -59,6 +59,12 @@ impl TemplateTransaction {
     }
 }
 
+impl Transaction for TemplateTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
+
 impl Drop for TemplateTransaction {
     fn drop(&mut self) {
         self.free();
@@ -70,6 +76,12 @@ pub struct TemplateState {
     transactions: Vec<TemplateTransaction>,
     request_gap: bool,
     response_gap: bool,
+}
+
+impl State<TemplateTransaction> for TemplateState {
+    fn get_transactions(&self) -> &[TemplateTransaction] {
+        &self.transactions
+    }
 }
 
 impl TemplateState {
@@ -219,27 +231,6 @@ impl TemplateState {
 
         // All input was fully consumed.
         return AppLayerResult::ok();
-    }
-
-    fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
-    ) -> Option<(&TemplateTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
     }
 
     fn on_request_gap(&mut self, _size: u32) {
@@ -425,32 +416,6 @@ pub unsafe extern "C" fn rs_template_state_get_events(
     return tx.events;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, TemplateState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx,
-                out_tx_id,
-                has_next,
-            );
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 /// Get the request buffer for a transaction from C.
 ///
 /// No required for parsing, but an example function for retrieving a
@@ -526,7 +491,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: Some(rs_template_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>),
         get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
