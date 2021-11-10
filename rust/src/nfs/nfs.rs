@@ -229,6 +229,12 @@ impl NFSTransaction {
     }
 }
 
+impl Transaction for NFSTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
+
 impl Drop for NFSTransaction {
     fn drop(&mut self) {
         self.free();
@@ -323,6 +329,12 @@ pub struct NFSState {
     ts: u64,
 }
 
+impl State<NFSTransaction> for NFSState {
+    fn get_transactions(&self) -> &[NFSTransaction] {
+        &self.transactions
+    }
+}
+
 impl NFSState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> NFSState {
@@ -404,31 +416,6 @@ impl NFSState {
             }
         }
         SCLogDebug!("Failed to find NFS TX with XID {:04X}", tx_xid);
-        return None;
-    }
-
-    // for use with the C API call StateGetTxIterator
-    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&NFSTransaction, u64, bool)>
-    {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        // find tx that is >= min_tx_id
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            // store current index in the state and not the next
-            // as transactions might be freed between now and the
-            // next time we are called.
-            *state = index as u64;
-            SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
-                    tx.id - 1, (len - index) > 1, len, index, tx);
-            return Some((tx, tx.id - 1, (len - index) > 1));
-        }
         return None;
     }
 
@@ -1527,30 +1514,6 @@ pub unsafe extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
     }
 }
 
-// for use with the C API call StateGetTxIterator
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_tx_iterator(
-                                      _ipproto: u8,
-                                      _alproto: AppProto,
-                                      state: *mut std::os::raw::c_void,
-                                      min_tx_id: u64,
-                                      _max_tx_id: u64,
-                                      istate: &mut u64)
-                                      -> applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(state, NFSState);
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_nfs_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
@@ -1956,7 +1919,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_nfs_getfiles),
-        get_tx_iterator: Some(rs_nfs_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
@@ -2035,7 +1998,7 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_nfs_getfiles),
-        get_tx_iterator: Some(rs_nfs_state_get_tx_iterator),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
