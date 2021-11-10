@@ -51,6 +51,12 @@ pub struct KRB5State {
     tx_id: u64,
 }
 
+impl State<KRB5Transaction> for KRB5State {
+    fn get_transactions(&self) -> &[KRB5Transaction] {
+        &self.transactions
+    }
+}
+
 pub struct KRB5Transaction {
     /// The message type: AS-REQ, AS-REP, etc.
     pub msg_type: MessageType,
@@ -78,6 +84,12 @@ pub struct KRB5Transaction {
     events: *mut core::AppLayerDecoderEvents,
 
     tx_data: applayer::AppLayerTxData,
+}
+
+impl Transaction for KRB5Transaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 pub fn to_hex_string(bytes: &[u8]) -> String {
@@ -590,7 +602,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
         get_tx_data        : rs_krb5_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
