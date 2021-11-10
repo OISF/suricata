@@ -112,6 +112,12 @@ pub struct IKETransaction {
     tx_data: applayer::AppLayerTxData,
 }
 
+impl Transaction for IKETransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
+
 impl IKETransaction {
     pub fn new() -> IKETransaction {
         IKETransaction {
@@ -157,6 +163,12 @@ pub struct IKEState {
 
     pub ikev1_container: Ikev1Container,
     pub ikev2_container: Ikev2Container,
+}
+
+impl State<IKETransaction> for IKEState {
+    fn get_transactions(&self) -> &[IKETransaction] {
+        &self.transactions
+    }
 }
 
 impl IKEState {
@@ -235,26 +247,6 @@ impl IKEState {
                 return AppLayerResult::err();
             }
         }
-    }
-
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&IKETransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
     }
 }
 
@@ -427,24 +419,6 @@ pub unsafe extern "C" fn rs_ike_state_get_events(
 
 static mut ALPROTO_IKE : AppProto = ALPROTO_UNKNOWN;
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, IKEState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ike\0";
 const PARSER_ALIAS: &'static [u8] = b"ikev2\0";
@@ -480,7 +454,7 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
         get_tx_data        : rs_ike_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
