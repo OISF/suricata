@@ -19,7 +19,7 @@
 
 //! RDP application layer
 
-use crate::applayer::*;
+use crate::applayer::{self, *};
 use crate::core::{self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
 use nom;
@@ -53,6 +53,12 @@ pub struct RdpTransaction {
     // managed by macros `export_tx_get_detect_state!` and `export_tx_set_detect_state!`
     de_state: Option<*mut DetectEngineState>,
     tx_data: AppLayerTxData,
+}
+
+impl Transaction for RdpTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 impl RdpTransaction {
@@ -118,6 +124,12 @@ pub struct RdpState {
     transactions: Vec<RdpTransaction>,
     tls_parsing: bool,
     bypass_parsing: bool,
+}
+
+impl State<RdpTransaction> for RdpState {
+    fn get_transactions(&self) -> &[RdpTransaction] {
+        &self.transactions
+    }
 }
 
 impl RdpState {
@@ -492,7 +504,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<RdpState, RdpTransaction>),
         get_tx_data: rs_rdp_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
