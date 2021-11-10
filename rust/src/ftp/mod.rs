@@ -124,8 +124,6 @@ pub fn ftp_epsv_response(i: &[u8]) -> IResult<&[u8], u16> {
     let (i, port) = getu16(i)?;
     let (i, _) = tag("|)")(i)?;
     let (i, _) = opt(complete(tag(".")))(i)?;
-    use nom7::HexDisplay;
-    eprintln!("ftp_epsv_response:\n{}", i.to_hex(16));
     Ok((i, port))
 }
 
