@@ -36,6 +36,12 @@ pub struct SIPState {
     tx_id: u64,
 }
 
+impl State<SIPTransaction> for SIPState {
+    fn get_transactions(&self) -> &[SIPTransaction] {
+        &self.transactions
+    }
+}
+
 pub struct SIPTransaction {
     id: u64,
     pub request: Option<Request>,
@@ -45,6 +51,12 @@ pub struct SIPTransaction {
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
+}
+
+impl Transaction for SIPTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 impl SIPState {
@@ -326,7 +338,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
-        get_tx_iterator: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<SIPState, SIPTransaction>),
         get_tx_data: rs_sip_get_tx_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
