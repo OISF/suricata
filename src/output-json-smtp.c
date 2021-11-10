@@ -88,9 +88,8 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     EveSmtpDataLogger(f, state, tx, tx_id, jb);
     jb_close(jb);
 
-    if (EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
-    }
+    EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id);
+    OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
 
     jb_free(jb);
 
