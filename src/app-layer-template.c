@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -483,13 +483,13 @@ void RegisterTemplateParsers(void)
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
 
-        SCLogNotice("Template TCP protocol detection enabled.");
+        SCLogDebug("Template TCP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TEMPLATE, proto_name);
 
         if (RunmodeIsUnittests()) {
 
-            SCLogNotice("Unittest mode, registering default configuration.");
+            SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
                 TemplateProbingParserTs, TemplateProbingParserTc);
@@ -500,7 +500,7 @@ void RegisterTemplateParsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
                     TemplateProbingParserTs, TemplateProbingParserTc)) {
-                SCLogNotice("No template app-layer configuration, enabling echo"
+                SCLogDebug("No template app-layer configuration, enabling echo"
                     " detection TCP detection on port %s.",
                     TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
@@ -520,7 +520,7 @@ void RegisterTemplateParsers(void)
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
 
-        SCLogNotice("Registering Template protocol parser.");
+        SCLogDebug("Registering Template protocol parser.");
 
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new Template flow. */

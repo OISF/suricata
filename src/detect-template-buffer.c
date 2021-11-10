@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2018 Open Information Security Foundation
+/* Copyright (C) 2015-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,7 @@
 /*
  * TODO: Update the \author in this file and detect-template-buffer.h.
  * TODO: Update description in the \file section below.
- * TODO: Remove SCLogNotice statements or convert to debug.
+ * TODO: Consider whether SCLogDebug statements should be  SCLogNotice statements
  */
 
 /**
@@ -90,7 +90,7 @@ void DetectTemplateBufferRegister(void)
 
     g_template_buffer_id = DetectBufferTypeGetByName("template_buffer");
 
-    SCLogNotice("Template application layer detect registered.");
+    SCLogDebug("Template application layer detect registered.");
 }
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
