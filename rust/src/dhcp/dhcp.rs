@@ -109,6 +109,12 @@ impl DHCPTransaction {
 
 }
 
+impl Transaction for DHCPTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
+
 impl Drop for DHCPTransaction {
     fn drop(&mut self) {
         self.free();
@@ -127,6 +133,12 @@ pub struct DHCPState {
     transactions: Vec<DHCPTransaction>,
 
     events: u16,
+}
+
+impl State<DHCPTransaction> for DHCPState {
+    fn get_transactions(&self) -> &[DHCPTransaction] {
+        &self.transactions
+    }
 }
 
 impl DHCPState {
@@ -188,25 +200,6 @@ impl DHCPState {
                 &mut tx.events, event as u8);
             self.events += 1;
         }
-    }
-
-    fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&DHCPTransaction, u64, bool)>
-    {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-        
-        return None;
     }
 }
 
@@ -304,30 +297,6 @@ pub unsafe extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
     return tx.events;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64)
-    -> applayer::AppLayerGetTxIterTuple
-{
-    let state = cast_pointer!(state, DHCPState);
-    match state.get_tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
 
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
@@ -362,7 +331,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<DHCPState, DHCPTransaction>),
         get_tx_data        : rs_dhcp_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
