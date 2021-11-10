@@ -1144,23 +1144,6 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
-DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
-{
-    SCEnter();
-    AppLayerTxData *d = AppLayerParserGetTxData(ipproto, alproto, tx);
-    DetectEngineState *s = d->de_state;
-    SCReturnPtr(s, "DetectEngineState");
-}
-
-int AppLayerParserSetTxDetectState(const Flow *f,
-                                   void *tx, DetectEngineState *s)
-{
-    SCEnter();
-    AppLayerTxData *d = alp_ctx.ctxs[f->protomap][f->alproto].GetTxData(tx);
-    d->de_state = s;
-    SCReturnInt(0);
-}
-
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
