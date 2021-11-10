@@ -294,10 +294,10 @@ jobs:
       - run: make clean
       - run: make -j2
 
-  fedora-32:
-    name: Fedora 32 (debug, clang, asan, wshadow, rust-strict)
+  fedora-35:
+    name: Fedora 35 (debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:32
+    container: fedora:35
     needs: prep
     steps:
 
@@ -320,6 +320,7 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
+                hiredis-devel \
                 jansson-devel \
                 jq \
                 lua-devel \
@@ -336,8 +337,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nspr-devel \
-                nss-devel \
                 nss-softokn-devel \
                 pcre-devel \
                 pkgconfig \
@@ -355,8 +354,9 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
         env:
+          LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
       - run: make -j2
@@ -364,74 +364,12 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py --quiet
-
-  fedora-32-no-jansson:
-    name: Fedora 32 (no jansson)
-    runs-on: ubuntu-latest
-    container: fedora:32
-    needs: prep
-    steps:
-
-      # Cache Rust stuff.
-      - name: Cache cargo registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: cargo-registry
-
-      - run: |
-          dnf -y install \
-                autoconf \
-                automake \
-                cargo \
-                ccache \
-                clang \
-                diffutils \
-                file-devel \
-                gcc \
-                gcc-c++ \
-                git \
-                lua-devel \
-                libasan \
-                libtool \
-                libyaml-devel \
-                libnfnetlink-devel \
-                libnetfilter_queue-devel \
-                libnet-devel \
-                libcap-ng-devel \
-                libevent-devel \
-                libmaxminddb-devel \
-                libpcap-devel \
-                libtool \
-                lz4-devel \
-                make \
-                nspr-devel \
-                nss-devel \
-                nss-softokn-devel \
-                pcre-devel \
-                pkgconfig \
-                python3-yaml \
-                sudo \
-                which \
-                zlib-devel
-      - run: |
-          cargo install --debug cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: ./autogen.sh
-      - run: |
-          if ./configure; then
-            echo "error: configure should have failed"
-            exit 1
-          else
-            exit 0
-          fi
+        run: python3 ./suricata-verify/run.py -q
+      # Now install and make sure headers and libraries aren't install
+      # until requested.
+      - run: make install
+      - run: test ! -e /usr/local/lib/libsuricata_c.a
+      - run: test ! -e /usr/local/include/suricata
 
   fedora-31:
     name: Fedora 31
