@@ -63,7 +63,11 @@ pub struct NTPTransaction {
     tx_data: applayer::AppLayerTxData,
 }
 
-
+impl Transaction for NTPTransaction {
+    fn id(&self) -> u64 {
+        self.id
+    }
+}
 
 impl NTPState {
     pub fn new() -> NTPState {
@@ -72,6 +76,12 @@ impl NTPState {
             events: 0,
             tx_id: 0,
         }
+    }
+}
+
+impl State<NTPTransaction> for NTPState {
+    fn get_transactions(&self) -> &[NTPTransaction] {
+        &self.transactions
     }
 }
 
@@ -338,7 +348,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         localstorage_new   : None,
         localstorage_free  : None,
         get_files          : None,
-        get_tx_iterator    : None,
+        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<NTPState, NTPTransaction>),
         get_tx_data        : rs_ntp_get_tx_data,
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
