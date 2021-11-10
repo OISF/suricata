@@ -56,6 +56,18 @@ static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
     return !timercmp(first, second, >);
 }
 
+#ifndef timeradd
+#define timeradd(a, b, r)                                                                          \
+    do {                                                                                           \
+        (r)->tv_sec = (a)->tv_sec + (b)->tv_sec;                                                   \
+        (r)->tv_usec = (a)->tv_usec + (b)->tv_usec;                                                \
+        if ((r)->tv_usec >= 1000000) {                                                             \
+            (r)->tv_sec++;                                                                         \
+            (r)->tv_usec -= 1000000;                                                               \
+        }                                                                                          \
+    } while (0)
+#endif
+
 #ifdef UNITTESTS
 void TimeSet(struct timeval *);
 void TimeSetToCurrentTime(void);
