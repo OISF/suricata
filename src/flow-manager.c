@@ -597,8 +597,6 @@ typedef struct FlowQueueTimeoutCounters {
     uint32_t flows_timeout;
 } FlowQueueTimeoutCounters;
 
-extern int g_detect_disabled;
-
 typedef struct FlowCounters_ {
     uint16_t flow_mgr_full_pass;
     uint16_t flow_mgr_cnt_clo;
