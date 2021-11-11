@@ -93,6 +93,8 @@ SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
 SCCtrlCondT flow_manager_ctrl_cond;
 SCCtrlMutex flow_manager_ctrl_mutex;
+SCCtrlCondT flow_recycler_ctrl_cond;
+SCCtrlMutex flow_recycler_ctrl_mutex;
 
 void FlowTimeoutsInit(void)
 {
@@ -300,11 +302,13 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
         FlowQueuePrivateAppendFlow(&recycle, f);
         if (recycle.len == 100) {
             FlowQueueAppendPrivate(&flow_recycle_q, &recycle);
+            FlowWakeupFlowRecyclerThread();
         }
         cnt++;
     }
     if (recycle.len) {
         FlowQueueAppendPrivate(&flow_recycle_q, &recycle);
+        FlowWakeupFlowRecyclerThread();
     }
     return cnt;
 }
@@ -586,9 +590,11 @@ static uint32_t FlowCleanupHash(void)
         FBLOCK_UNLOCK(fb);
         if (local_queue.len >= 25) {
             FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
+            FlowWakeupFlowRecyclerThread();
         }
     }
     FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
+    FlowWakeupFlowRecyclerThread();
 
     return cnt;
 }
@@ -1052,6 +1058,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
     FlowRecyclerThreadData *ftd = (FlowRecyclerThreadData *)thread_data;
     BUG_ON(ftd == NULL);
+    const bool time_is_live = TimeModeIsLive();
     uint64_t recycled_cnt = 0;
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
@@ -1084,7 +1091,30 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
             break;
         }
 
-        usleep(250);
+        const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY);
+        if (emerg || !time_is_live) {
+            usleep(250);
+        } else {
+            struct timeval cond_tv;
+            gettimeofday(&cond_tv, NULL);
+            cond_tv.tv_sec += 1;
+            struct timespec cond_time = FROM_TIMEVAL(cond_tv);
+            SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
+            while (1) {
+                int rc = SCCtrlCondTimedwait(
+                        &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
+                if (rc == ETIMEDOUT || rc < 0) {
+                    break;
+                }
+                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                    break;
+                }
+                if (SC_ATOMIC_GET(flow_recycle_q.non_empty) == true) {
+                    break;
+                }
+            }
+            SCCtrlMutexUnlock(&flow_recycler_ctrl_mutex);
+        }
 
         SCLogDebug("woke up...");
 
@@ -1119,6 +1149,9 @@ void FlowRecyclerThreadSpawn()
                 "invalid flow.recyclers setting %"PRIdMAX, setting);
     }
     flowrec_number = (uint32_t)setting;
+
+    SCCtrlCondInit(&flow_recycler_ctrl_cond, NULL);
+    SCCtrlMutexInit(&flow_recycler_ctrl_mutex, NULL);
 
     SCLogConfig("using %u flow recycler threads", flowrec_number);
 
@@ -1161,6 +1194,7 @@ void FlowDisableFlowRecyclerThread(void)
 
     /* make sure all flows are processed */
     do {
+        FlowWakeupFlowRecyclerThread();
         usleep(10);
     } while (FlowRecyclerReadyToShutdown() == false);
 
@@ -1194,6 +1228,7 @@ again:
         {
             if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
                 SCMutexUnlock(&tv_root_lock);
+                FlowWakeupFlowRecyclerThread();
                 /* sleep outside lock */
                 SleepMsec(1);
                 goto again;
