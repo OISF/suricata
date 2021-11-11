@@ -673,6 +673,31 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap_pressure_max", t);
 }
 
+static void FlowCountersUpdate(
+        ThreadVars *th_v, const FlowManagerThreadData *ftd, const FlowTimeoutCounters *counters)
+{
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters->clo);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters->new);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters->est);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters->byp);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters->flows_checked);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters->flows_notimeout);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters->flows_timeout);
+    StatsAddUI64(
+            th_v, ftd->cnt.flow_mgr_flows_timeout_inuse, (uint64_t)counters->flows_timeout_inuse);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters->flows_aside);
+    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work,
+            (uint64_t)counters->flows_aside_needs_work);
+
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_cnt_clo, (uint64_t)counters->bypassed_count);
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters->bypassed_pkts);
+    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters->bypassed_bytes);
+
+    StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters->rows_maxlen);
+}
+
 static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     FlowManagerThreadData *ftd = SCCalloc(1, sizeof(FlowManagerThreadData));
@@ -863,24 +888,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             const uint32_t spare_pool_len = FlowSpareGetPoolSize();
             StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)spare_pool_len);
 
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters.clo);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters.new);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters.est);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_byp, (uint64_t)counters.byp);
-
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters.flows_checked);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters.flows_notimeout);
-
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters.flows_timeout);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout_inuse, (uint64_t)counters.flows_timeout_inuse);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters.flows_aside);
-            StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work, (uint64_t)counters.flows_aside_needs_work);
-
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_cnt_clo, (uint64_t)counters.bypassed_count);
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters.bypassed_pkts);
-            StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters.bypassed_bytes);
-
-            StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters.rows_maxlen);
+            FlowCountersUpdate(th_v, ftd, &counters);
 
             if (emerg == true) {
                 SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
