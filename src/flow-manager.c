@@ -1050,13 +1050,11 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
  */
 static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
-    struct timeval ts;
-    uint64_t recycled_cnt = 0;
     FlowRecyclerThreadData *ftd = (FlowRecyclerThreadData *)thread_data;
     BUG_ON(ftd == NULL);
-
+    uint64_t recycled_cnt = 0;
+    struct timeval ts;
     memset(&ts, 0, sizeof(ts));
-    uint32_t fr_passes = 0;
 
     while (1)
     {
@@ -1065,7 +1063,6 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
             TmThreadTestThreadUnPaused(th_v);
             TmThreadsUnsetFlag(th_v, THV_PAUSED);
         }
-        fr_passes++;
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
