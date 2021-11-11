@@ -54,6 +54,8 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+#include <mysql.h>
+
 #define DEFAULT_LOG_FILENAME "fast.log"
 
 #define MODULE_NAME "AlertFastLog"
@@ -97,8 +99,55 @@ static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer
     aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
 }
 
+
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
 {
+
+  /*
+
+    Create SQL connection to insert fast log data.
+
+   */
+
+    MYSQL *con = mysql_init(NULL);
+    const char * sig_file = "/etc/suricata/my.cnf";
+    if(con == NULL){
+      mysql_error(con);
+      SCLogError(SC_ERR_OPENING_RULE_FILE, "No connection error.");
+    }
+    mysql_options(con, MYSQL_READ_DEFAULT_FILE, sig_file);
+    if (mysql_real_connect(con, NULL, NULL, NULL, NULL, 0, NULL, 0) == NULL)
+    {
+        mysql_error(con);
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "Opening mysql database.");
+    }
+    if(con == NULL){
+      mysql_error(con);
+    }
+    if (mysql_query(con, "SHOW TABLES LIKE 'fastlog'"))
+    {
+      mysql_error(con);
+      SCLogError(SC_ERR_DATABASE, "No table called fastlog.");
+    }
+    else{
+        MYSQL_RES *result = mysql_store_result(con);
+        int exists_or_not = mysql_num_rows(result);
+        if(exists_or_not == 0){
+            if (mysql_query(con, "CREATE TABLE `fastlog` ( `id` int NOT NULL AUTO_INCREMENT, `timebuf` varchar(200) DEFAULT NULL, `action` varchar(100) DEFAULT NULL, `sid` varchar(100) DEFAULT NULL, `rev` varchar(100) DEFAULT NULL,  `msg` varchar(500) DEFAULT NULL, `class_msg` varchar(500) DEFAULT NULL, `priority` varchar(100) DEFAULT NULL, `protocol` varchar(200) DEFAULT NULL, `srcip` varchar(100) DEFAULT NULL, `srcport` varchar(100) DEFAULT NULL, `dstip` varchar(100) DEFAULT NULL, `dstport` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`) )"))
+            {
+                mysql_error(con);
+                SCLogError(SC_ERR_OPENING_RULE_FILE, "Could not create table fastlog");
+            }
+            else{
+                SCLogError(SC_ERR_DATABASE, "Created table fastlog.");
+            }
+        }
+    }
+
+    /*
+        SQL part end.
+    */
+
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
@@ -123,7 +172,13 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
      * more efficient for multiple alerts and only slightly slower for
      * single alerts.
      */
+
     char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
+
+    //Add alert buffer for mysql query.
+    char alert_buffer_mysql[MAX_FASTLOG_BUFFER_SIZE];
+
+    char buf[MAX_FASTLOG_ALERT_SIZE];
 
     char proto[16] = "";
     char *protoptr;
@@ -151,9 +206,14 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
         }
+	else{
+	  action = "[alert]";
+	}
 
         /* Create the alert string without locking. */
         int size = 0;
+	int length = 0;
+
         if (likely(decoder_event == 0)) {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
@@ -161,8 +221,21 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
                             pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                             protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+
+	    // Copy to the formatted mysql string to insert into the database
+
+	    PrintBufferData(alert_buffer_mysql, &length, MAX_FASTLOG_ALERT_SIZE, "insert into fastlog  (timebuf, action, sid, rev, msg, class_msg, priority, protocol, srcip, srcport, dstip, dstport) values('%s', '%s', '%" PRIu32 "', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%" PRIu32 "')",  timebuf, action, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio, protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+
+	    // copy only the data to buf and run the query on database
+	    //memcpy(buf, alert_buffer_mysql, length);
+
+	    // Log error with insert, & what it was
+	    if(mysql_real_query(con, alert_buffer_mysql, length + 1)){
+	      SCLogError(SC_ERR_DATABASE, "Could not complete db query insert for fastlog :  %s", buf);
+	    };
+
         } else {
-            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32
                             ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
                             "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
@@ -170,7 +243,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
             PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                                   GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
-                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                                 "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
             } else {
                 PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
@@ -178,8 +251,13 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         }
 
         /* Write the alert to output file */
+
         AlertFastLogOutputAlert(aft, alert_buffer, size);
     }
+
+    // Close the sql connection
+
+    mysql_close(con);
 
     return TM_ECODE_OK;
 }
@@ -263,6 +341,7 @@ static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
 
 static int AlertFastLogTest01(void)
 {
+    int result = 0;
     uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n";
 
@@ -275,7 +354,9 @@ static int AlertFastLogTest01(void)
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
+    if (de_ctx == NULL) {
+        return result;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -290,8 +371,9 @@ static int AlertFastLogTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF_NOT(p->alerts.cnt == 1);
-    FAIL_IF_NOT(strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
+    if (p->alerts.cnt == 1) {
+        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
+    }
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -299,11 +381,12 @@ static int AlertFastLogTest01(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    PASS;
+    return result;
 }
 
 static int AlertFastLogTest02(void)
 {
+    int result = 0;
     uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n";
     uint16_t buflen = strlen((char *)buf);
@@ -316,7 +399,9 @@ static int AlertFastLogTest02(void)
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
+    if (de_ctx == NULL) {
+        return result;
+    }
 
     de_ctx->flags |= DE_QUIET;
 
@@ -331,8 +416,12 @@ static int AlertFastLogTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF_NOT(p->alerts.cnt == 1);
-    FAIL_IF_NOT(strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
+    if (p->alerts.cnt == 1) {
+        result = (strcmp(p->alerts.alerts[0].s->class_msg,
+                    "Unknown are we") == 0);
+        if (result == 0)
+            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].s->class_msg);
+    }
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -340,7 +429,7 @@ static int AlertFastLogTest02(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    PASS;
+    return result;
 }
 
 #endif /* UNITTESTS */

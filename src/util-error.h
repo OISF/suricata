@@ -368,7 +368,7 @@ typedef enum {
     SC_ERR_LOG_OUTPUT,
     SC_ERR_RULE_INVALID_UTF8,
     SC_ERR_HASHING_DISABLED,
-
+    SC_ERR_DATABASE,
     SC_ERR_MAX
 } SCError;
 
