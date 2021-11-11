@@ -776,30 +776,30 @@ static void GetWorkUnitSizing(const uint32_t pass_in_sec, const uint32_t rows, c
 static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 {
     FlowManagerThreadData *ftd = thread_data;
-    struct timeval ts;
+    const uint32_t rows = ftd->max - ftd->min;
+    const uint32_t min_timeout = FlowTimeoutsMin();
+    const uint32_t pass_in_sec = min_timeout ? min_timeout * 8 : 60;
+    const bool time_is_live = TimeModeIsLive();
+
+    uint32_t emerg_over_cnt = 0;
+    uint64_t next_run_ms = 0;
+    uint32_t pos = 0;
+    uint32_t rows_per_wu = 0;
+    uint64_t sleep_per_wu = 0;
     bool emerg = false;
     bool prev_emerg = false;
     uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
+    struct timeval ts;
     memset(&ts, 0, sizeof(ts));
-    const uint32_t min_timeout = FlowTimeoutsMin();
-    const uint32_t pass_in_sec = min_timeout ? min_timeout * 8 : 60;
 
     /* don't start our activities until time is setup */
     while (!TimeModeIsReady()) {
         if (suricata_ctl_flags != 0)
             return TM_ECODE_OK;
     }
-    const bool time_is_live = TimeModeIsLive();
 
     SCLogDebug("FM %s/%d starting. min_timeout %us. Full hash pass in %us", th_v->name,
             ftd->instance, min_timeout, pass_in_sec);
-
-    uint32_t emerg_over_cnt = 0;
-    uint64_t next_run_ms = 0;
-    const uint32_t rows = ftd->max - ftd->min;
-    uint32_t pos = 0;
-    uint32_t rows_per_wu = 0;
-    uint64_t sleep_per_wu = 0;
 
     uint32_t mp = MemcapsGetPressure() * 100;
     if (ftd->instance == 0) {
@@ -860,6 +860,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 }
             }
 
+            const uint32_t spare_pool_len = FlowSpareGetPoolSize();
+            StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)spare_pool_len);
+
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_clo, (uint64_t)counters.clo);
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_new, (uint64_t)counters.new);
             StatsAddUI64(th_v, ftd->cnt.flow_mgr_cnt_est, (uint64_t)counters.est);
@@ -879,17 +882,15 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
             StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters.rows_maxlen);
 
-            uint32_t len = FlowSpareGetPoolSize();
-            StatsSetUI64(th_v, ftd->cnt.flow_mgr_spare, (uint64_t)len);
-
             if (emerg == true) {
-                SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
-                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
-                        len, flow_config.prealloc, len * 100 / flow_config.prealloc);
+                SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
+                           "flow_spare_q status: %" PRIu32 "%% flows at the queue",
+                        spare_pool_len, flow_config.prealloc,
+                        spare_pool_len * 100 / flow_config.prealloc);
 
                 /* only if we have pruned this "emergency_recovery" percentage
                  * of flows, we will unset the emergency bit */
-                if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
+                if (spare_pool_len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
                     emerg_over_cnt++;
                 } else {
                     emerg_over_cnt = 0;
@@ -907,7 +908,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                                 "ts.tv_usec:%" PRIuMAX ") flow_spare_q status(): %" PRIu32
                                 "%% flows at the queue",
                             (uintmax_t)ts.tv_sec, (uintmax_t)ts.tv_usec,
-                            len * 100 / flow_config.prealloc);
+                            spare_pool_len * 100 / flow_config.prealloc);
 
                     StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
                 }
