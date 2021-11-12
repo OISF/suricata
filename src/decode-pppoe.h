@@ -28,13 +28,12 @@
 #include "threadvars.h"
 
 // Session header length minus the protocol field
-#define PPPOE_SESSION_HEADER_MIN_LEN 7
+#define PPPOE_SESSION_HEADER_MIN_LEN     7
 #define PPPOE_DISCOVERY_HEADER_MIN_LEN 6
 #define PPPOE_SESSION_GET_VERSION(hdr) ((hdr)->pppoe_version_type & 0xF0) >> 4
 #define PPPOE_SESSION_GET_TYPE(hdr) ((hdr)->pppoe_version_type & 0x0F)
 #define PPPOE_DISCOVERY_GET_VERSION(hdr) ((hdr)->pppoe_version_type & 0xF0) >> 4
 #define PPPOE_DISCOVERY_GET_TYPE(hdr) ((hdr)->pppoe_version_type & 0x0F)
-
 
 typedef struct PPPOESessionHdr_
 {
@@ -81,5 +80,3 @@ typedef struct PPPOEDiscoveryHdr_
 void DecodePPPOERegisterTests(void);
 
 #endif /* __DECODE_PPPOE_H__ */
-
-
