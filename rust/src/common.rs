@@ -1,6 +1,23 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 
+pub mod nom7 {
+    use nom7::bytes::streaming::{tag, take_until};
+    use nom7::error::ParseError;
+    use nom7::IResult;
+
+    pub fn take_until_and_consume<'a, E: ParseError<&'a [u8]>>(t: &'a [u8])
+         -> impl Fn(&'a [u8]) -> IResult<&'a [u8], &'a [u8], E>
+    {
+        move |i: &'a [u8]| {
+            let t = t.clone();
+            let (i, res) = take_until(t)(i)?;
+            let (i, _) = tag(t)(i)?;
+            Ok((i, res))
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! take_until_and_consume (
  ( $i:expr, $needle:expr ) => (
