@@ -32,6 +32,7 @@ use std::ffi::{self, CString};
 use std::collections::HashMap;
 
 use nom;
+use nom7::{Err, Needed};
 
 use crate::core::*;
 use crate::applayer;
@@ -1420,8 +1421,9 @@ impl SMBState {
                     }
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(needed)) => {
-                    if let nom::Needed::Size(n) = needed {
+                Err(Err::Incomplete(needed)) => {
+                    if let Needed::Size(n) = needed {
+                        let n = usize::from(n) + cur_i.len();
                         // 512 is the minimum for parse_tcp_data_ts_partial
                         if n >= 512 && cur_i.len() < 512 {
                             let total_consumed = i.len() - cur_i.len();
@@ -1433,7 +1435,7 @@ impl SMBState {
                             let total_consumed = i.len() - cur_i.len();
                             SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
                                     total_consumed, n, needed, i.len());
-                            let need = n + 4; // Incomplete returns size of data minus NBSS header
+                            let need = n;
                             return AppLayerResult::incomplete(total_consumed as u32, need as u32);
                         }
                         // tracking a write record, which we don't need to
@@ -1661,9 +1663,10 @@ impl SMBState {
                     }
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(needed)) => {
+                Err(Err::Incomplete(needed)) => {
                     SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), needed);
-                    if let nom::Needed::Size(n) = needed {
+                    if let Needed::Size(n) = needed {
+                        let n = usize::from(n) + cur_i.len();
                         // 512 is the minimum for parse_tcp_data_tc_partial
                         if n >= 512 && cur_i.len() < 512 {
                             let total_consumed = i.len() - cur_i.len();
@@ -1675,7 +1678,7 @@ impl SMBState {
                             let total_consumed = i.len() - cur_i.len();
                             SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
                                     total_consumed, n, needed, i.len());
-                            let need = n + 4; // Incomplete returns size of data minus NBSS header
+                            let need = n;
                             return AppLayerResult::incomplete(total_consumed as u32, need as u32);
                         }
                         // tracking a read record, which we don't need to
