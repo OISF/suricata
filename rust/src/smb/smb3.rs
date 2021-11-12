@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-use nom::number::streaming::{le_u16, le_u32, le_u64};
+use nom7::bytes::streaming::{tag, take};
+use nom7::number::streaming::{le_u16, le_u32, le_u64};
+use nom7::IResult;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb3TransformRecord<'a> {
@@ -24,19 +26,19 @@ pub struct Smb3TransformRecord<'a> {
     pub enc_data: &'a[u8],
 }
 
-named!(pub parse_smb3_transform_record<Smb3TransformRecord>,
-    do_parse!(
-            tag!(b"\xfdSMB")
-        >>  _signature: take!(16)
-        >>  _nonce: take!(16)
-        >>  msg_size: le_u32
-        >>  _reserved: le_u16
-        >>  enc_algo: le_u16
-        >>  session_id: le_u64
-        >>  enc_data: take!(msg_size)
-        >> ( Smb3TransformRecord {
-                session_id,
-                enc_algo,
-                enc_data,
-            })
-));
+pub fn parse_smb3_transform_record(i: &[u8]) -> IResult<&[u8], Smb3TransformRecord> {
+    let (i, _) = tag(b"\xfdSMB")(i)?;
+    let (i, _signature) = take(16_usize)(i)?;
+    let (i, _nonce) = take(16_usize)(i)?;
+    let (i, msg_size) = le_u32(i)?;
+    let (i, _reserved) = le_u16(i)?;
+    let (i, enc_algo) = le_u16(i)?;
+    let (i, session_id) = le_u64(i)?;
+    let (i, enc_data) = take(msg_size)(i)?;
+    let record = Smb3TransformRecord {
+        session_id,
+        enc_algo,
+        enc_data,
+    };
+    Ok((i, record))
+}
