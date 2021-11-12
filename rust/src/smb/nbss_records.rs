@@ -15,7 +15,10 @@
  * 02110-1301, USA.
  */
 
-use nom::combinator::rest;
+use nom7::bytes::streaming::take;
+use nom7::combinator::rest;
+use nom7::number::streaming::be_u32;
+use nom7::IResult;
 
 pub const NBSS_MSGTYPE_SESSION_MESSAGE:         u8 = 0x00;
 pub const NBSS_MSGTYPE_SESSION_REQUEST:         u8 = 0x81;
@@ -62,36 +65,37 @@ impl<'a> NbssRecord<'a> {
     }
 }
 
-named!(pub parse_nbss_record<NbssRecord>,
-   do_parse!(
-       type_and_len: bits!(tuple!(
-               take_bits!(8u8),
-               take_bits!(24u32)))
-       >> data: take!(type_and_len.1 as usize)
-       >> (NbssRecord {
-            message_type:type_and_len.0,
-            length:type_and_len.1,
-            data:data,
-        })
-));
+pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord> {
+    let (i, buf) = be_u32(i)?;
+    let message_type = (buf >> 24) as u8;
+    let length = buf & 0xff_ffff;
+    let (i, data) = take(length as usize)(i)?;
+    let record = NbssRecord {
+        message_type,
+        length,
+        data,
+    };
+    Ok((i, record))
+}
 
-named!(pub parse_nbss_record_partial<NbssRecord>,
-   do_parse!(
-       type_and_len: bits!(tuple!(
-               take_bits!(8u8),
-               take_bits!(24u32)))
-       >> data: rest
-       >> (NbssRecord {
-            message_type:type_and_len.0,
-            length:type_and_len.1,
-            data:data,
-        })
-));
+pub fn parse_nbss_record_partial(i: &[u8]) -> IResult<&[u8], NbssRecord> {
+    let (i, buf) = be_u32(i)?;
+    let message_type = (buf >> 24) as u8;
+    let length = buf & 0xff_ffff;
+    let (i, data) = rest(i)?;
+    let record = NbssRecord {
+        message_type,
+        length,
+        data,
+    };
+    Ok((i, record))
+}
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use nom7::Err;
 
     #[test]
     fn test_parse_nbss_record() {
@@ -126,10 +130,10 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((_remainder, err))) => {
-                panic!("Result should not be an error: {:?}.", err);
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err.code);
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
             _ => {
@@ -170,10 +174,10 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((_remainder, err))) => {
-                panic!("Result should not be an error: {:?}.", err);
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err.code);
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
             _ => {
@@ -210,10 +214,10 @@ mod tests {
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
             }
-            Err(nom::Err::Error((_remainder, err))) => {
-                panic!("Result should not be an error: {:?}.", err);
+            Err(Err::Error(err)) => {
+                panic!("Result should not be an error: {:?}.", err.code);
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 panic!("Result should not have returned as incomplete.");
             }
             _ => {
