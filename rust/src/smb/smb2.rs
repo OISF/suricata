@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom;
+use nom7::Err;
 
 use crate::core::*;
 
@@ -392,13 +392,13 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         _ => false,
                     }
                 },
-                Err(nom::Err::Incomplete(_n)) => {
+                Err(Err::Incomplete(_n)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _n);
                     events.push(SMBEvent::MalformedData);
                     false
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _e);
                     events.push(SMBEvent::MalformedData);
                     false
