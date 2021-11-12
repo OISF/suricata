@@ -151,20 +151,20 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t pppoesh_len;
         uint16_t ppp_protocol = SCNtohs(p->pppoesh->protocol);
 
-        /* According to RFC1661-2, if the least significant bit of the most significant octet is set, we're dealing with a single-octet protocol field */
+        /* According to RFC1661-2, if the least significant bit of the most significant octet is
+         * set, we're dealing with a single-octet protocol field */
         if (ppp_protocol & 0x0100) {
             /* Single-octet variant */
-	    ppp_protocol >>= 8;
+            ppp_protocol >>= 8;
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN;
         } else {
             /* Double-octet variant; increase the length of the session header accordingly */
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN + 1;
         }
 
-	SCLogDebug("Protocol %"PRIu16" len %"PRIu8"", ppp_protocol, pppoesh_len);
+        SCLogDebug("Protocol %" PRIu16 " len %" PRIu8 "", ppp_protocol, pppoesh_len);
 
-        switch (ppp_protocol)
-        {
+        switch (ppp_protocol) {
             case PPP_VJ_COMP:
             case PPP_IPX:
             case PPP_OSI:
@@ -198,8 +198,8 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             case PPP_VJ_UCOMP:
 
-                //if(len < (pppoesh_len + IPV4_HEADER_LEN))    {
-                if(len - pppoesh_len < IPV4_HEADER_LEN)    {
+                // if(len < (pppoesh_len + IPV4_HEADER_LEN))    {
+                if (len - pppoesh_len < IPV4_HEADER_LEN) {
                     ENGINE_SET_INVALID_EVENT(p, PPPVJU_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
@@ -207,13 +207,13 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
 
-                if(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + pppoesh_len)) == 4) {
+                if (IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + pppoesh_len)) == 4) {
                     DecodeIPV4(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
                 }
                 break;
 
             case PPP_IP:
-                if(len - pppoesh_len < IPV4_HEADER_LEN)    {
+                if (len - pppoesh_len < IPV4_HEADER_LEN) {
                     ENGINE_SET_INVALID_EVENT(p, PPPIPV4_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
@@ -225,7 +225,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             /* PPP IPv6 was not tested */
             case PPP_IPV6:
-                if(len - pppoesh_len < IPV6_HEADER_LEN)    {
+                if (len - pppoesh_len < IPV6_HEADER_LEN) {
                     ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
@@ -237,7 +237,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 break;
 
             default:
-                SCLogDebug("unknown PPP protocol: %" PRIx32 "",ppp_protocol);
+                SCLogDebug("unknown PPP protocol: %" PRIx32 "", ppp_protocol);
                 ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
                 return TM_ECODE_OK;
         }
@@ -267,7 +267,7 @@ static int DecodePPPOEtest01 (void)
 
     if (ENGINE_ISSET_EVENT(p,PPPOE_PKT_TOO_SMALL))  {
         SCFree(p);
-	PASS;
+        PASS;
     }
 
     SCFree(p);
@@ -280,7 +280,7 @@ static int DecodePPPOEtest01 (void)
  */
 static int DecodePPPOEtest02 (void)
 {
- 
+
     uint8_t raw_pppoe[] = {
         0x11, 0x00, 0x00, 0x01, 0x00, 0x40, 0x00, 0x21,
         0x45, 0x00, 0x00, 0x3c, 0x05, 0x5c, 0x00, 0x00,
@@ -320,7 +320,8 @@ static int DecodePPPOEtest02 (void)
 end:
     FlowShutdown();
     SCFree(p);
-    PASS_IF(ret == 1);
+    FAIL_IF(ret == 0);
+    PASS;
 }
 
 
@@ -385,7 +386,7 @@ static int DecodePPPOEtest04 (void)
 
     if(ENGINE_ISSET_EVENT(p,PPPOE_WRONG_CODE))  {
         SCFree(p);
-	PASS;
+        PASS;
     }
 
     SCFree(p);
@@ -420,7 +421,7 @@ static int DecodePPPOEtest05 (void)
 
     if(ENGINE_ISSET_EVENT(p,PPPOE_MALFORMED_TAGS))  {
         SCFree(p);
-	PASS;
+        PASS;
     }
 
     SCFree(p);
@@ -443,19 +444,19 @@ static int DecodePPPOEtest06 (void)
 
     if (PPPOE_SESSION_GET_VERSION(&pppoesh) != 0x0A) {
         printf("Error, PPPOE macro pppoe_session_get_version failed: ");
-	FAIL;
+        FAIL;
     }
     if (PPPOE_SESSION_GET_TYPE(&pppoesh) != 0x0B) {
         printf("Error, PPPOE macro pppoe_session_get_type failed: ");
-	FAIL;
+        FAIL;
     }
     if (PPPOE_DISCOVERY_GET_VERSION(&pppoedh) != 0x0C) {
         printf("Error, PPPOE macro pppoe_discovery_get_version failed: ");
-	FAIL;
+        FAIL;
     }
     if (PPPOE_DISCOVERY_GET_TYPE(&pppoedh) != 0x0D) {
         printf("Error, PPPOE macro pppoe_discovery_get_type failed: ");
-	FAIL;
+        FAIL;
     }
     PASS;
 }
@@ -464,17 +465,13 @@ static int DecodePPPOEtest06 (void)
  *  \brief Valid PPPOE packet with 8 bit protocol field - check the valid  ICMP type is accepted
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest07 (void)
+static int DecodePPPOEtest07(void)
 {
 
-    uint8_t raw_pppoe[] = {
-        0x11, 0x00, 0x00, 0x2d, 0x00, 0x1c, 0x21, 0x45,
-        0x00, 0x00, 0x1d, 0x97, 0xc3, 0x00, 0x00, 0x40,
-        0x01, 0x47, 0x0f, 0x0a, 0x64, 0x00, 0x00, 0xc0,
-        0xa8, 0xd1, 0x01, 0x08, 0x00, 0xd4, 0x4c, 0x1f,
-        0x32, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    };
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x1c, 0x21, 0x45, 0x00, 0x00, 0x1d, 0x97,
+        0xc3, 0x00, 0x00, 0x40, 0x01, 0x47, 0x0f, 0x0a, 0x64, 0x00, 0x00, 0xc0, 0xa8, 0xd1, 0x01,
+        0x08, 0x00, 0xd4, 0x4c, 0x1f, 0x32, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -487,7 +484,7 @@ static int DecodePPPOEtest07 (void)
 
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    FAIL_IF(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
     SCFree(p);
     PASS;
 }
@@ -496,20 +493,14 @@ static int DecodePPPOEtest07 (void)
  *  \brief Valid PPPOE packet with 8 bit protocol field - check the valid HTTP type is accepted
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest08 (void)
+static int DecodePPPOEtest08(void)
 {
 
-    uint8_t raw_pppoe[] = {
-        0x11, 0x00, 0x00, 0x2d, 0x00, 0x3d, 0x21, 0x45,
-        0x00, 0x00, 0x3c, 0x00, 0x00, 0x40, 0x00, 0x40,
-        0x06, 0xed, 0xda, 0x0a, 0x64, 0x00, 0x00, 0x8e,
-        0xfa, 0xb3, 0x83, 0xde, 0xb5, 0x00, 0x50, 0xd4,
-        0xbd, 0x76, 0x54, 0x00, 0x00, 0x00, 0x00, 0xa0,
-        0x02, 0xfe, 0xcc, 0x74, 0x2f, 0x00, 0x00, 0x02,
-        0x04, 0x05, 0xac, 0x01, 0x03, 0x03, 0x07, 0x04,
-        0x02, 0x08, 0x0a, 0xcb, 0xae, 0x92, 0x63, 0x00,
-        0x00, 0x00, 0x00
-    };
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x3d, 0x21, 0x45, 0x00, 0x00, 0x3c, 0x00,
+        0x00, 0x40, 0x00, 0x40, 0x06, 0xed, 0xda, 0x0a, 0x64, 0x00, 0x00, 0x8e, 0xfa, 0xb3, 0x83,
+        0xde, 0xb5, 0x00, 0x50, 0xd4, 0xbd, 0x76, 0x54, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0xfe,
+        0xcc, 0x74, 0x2f, 0x00, 0x00, 0x02, 0x04, 0x05, 0xac, 0x01, 0x03, 0x03, 0x07, 0x04, 0x02,
+        0x08, 0x0a, 0xcb, 0xae, 0x92, 0x63, 0x00, 0x00, 0x00, 0x00 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -522,7 +513,7 @@ static int DecodePPPOEtest08 (void)
 
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    FAIL_IF(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
     SCFree(p);
     PASS;
 }
@@ -531,17 +522,13 @@ static int DecodePPPOEtest08 (void)
  *  \brief Valid PPPOE packet with 16 bit protocol field - check the valid  ICMP type is accepted
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest09 (void)
+static int DecodePPPOEtest09(void)
 {
 
-    uint8_t raw_pppoe[] = {
-        0x11, 0x00, 0x00, 0x2d, 0x00, 0x1c, 0x00, 0x21, 0x45,
-        0x00, 0x00, 0x1d, 0x97, 0xc3, 0x00, 0x00, 0x40,
-        0x01, 0x47, 0x0f, 0x0a, 0x64, 0x00, 0x00, 0xc0,
-        0xa8, 0xd1, 0x01, 0x08, 0x00, 0xd4, 0x4c, 0x1f,
-        0x32, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    };
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x1c, 0x00, 0x21, 0x45, 0x00, 0x00, 0x1d,
+        0x97, 0xc3, 0x00, 0x00, 0x40, 0x01, 0x47, 0x0f, 0x0a, 0x64, 0x00, 0x00, 0xc0, 0xa8, 0xd1,
+        0x01, 0x08, 0x00, 0xd4, 0x4c, 0x1f, 0x32, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -554,7 +541,7 @@ static int DecodePPPOEtest09 (void)
 
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    FAIL_IF(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
     SCFree(p);
     PASS;
 }
@@ -563,20 +550,14 @@ static int DecodePPPOEtest09 (void)
  *  \brief Valid PPPOE packet with 16 bit protocol field - check the valid HTTP type is accepted
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest10 (void)
+static int DecodePPPOEtest10(void)
 {
 
-    uint8_t raw_pppoe[] = {
-        0x11, 0x00, 0x00, 0x2d, 0x00, 0x3d, 0x00, 0x21, 0x45,
-        0x00, 0x00, 0x3c, 0x00, 0x00, 0x40, 0x00, 0x40,
-        0x06, 0xed, 0xda, 0x0a, 0x64, 0x00, 0x00, 0x8e,
-        0xfa, 0xb3, 0x83, 0xde, 0xb5, 0x00, 0x50, 0xd4,
-        0xbd, 0x76, 0x54, 0x00, 0x00, 0x00, 0x00, 0xa0,
-        0x02, 0xfe, 0xcc, 0x74, 0x2f, 0x00, 0x00, 0x02,
-        0x04, 0x05, 0xac, 0x01, 0x03, 0x03, 0x07, 0x04,
-        0x02, 0x08, 0x0a, 0xcb, 0xae, 0x92, 0x63, 0x00,
-        0x00, 0x00, 0x00
-    };
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x3d, 0x00, 0x21, 0x45, 0x00, 0x00, 0x3c,
+        0x00, 0x00, 0x40, 0x00, 0x40, 0x06, 0xed, 0xda, 0x0a, 0x64, 0x00, 0x00, 0x8e, 0xfa, 0xb3,
+        0x83, 0xde, 0xb5, 0x00, 0x50, 0xd4, 0xbd, 0x76, 0x54, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0xfe, 0xcc, 0x74, 0x2f, 0x00, 0x00, 0x02, 0x04, 0x05, 0xac, 0x01, 0x03, 0x03, 0x07, 0x04,
+        0x02, 0x08, 0x0a, 0xcb, 0xae, 0x92, 0x63, 0x00, 0x00, 0x00, 0x00 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -589,7 +570,7 @@ static int DecodePPPOEtest10 (void)
 
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    FAIL_IF(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
     SCFree(p);
     PASS;
 }
@@ -620,4 +601,3 @@ void DecodePPPOERegisterTests(void)
 /**
  * @}
  */
-
