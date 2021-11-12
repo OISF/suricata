@@ -107,10 +107,11 @@ void FlowTimeoutsEmergency(void)
 
 /* 1 seconds */
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 1
+#define FLOW_NORMAL_MODE_UPDATE_DELAY_USEC 0
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
 /* 0.1 seconds */
 #define FLOW_EMERG_MODE_UPDATE_DELAY_SEC 0
-#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 100000
+#define FLOW_EMERG_MODE_UPDATE_DELAY_USEC 100
 #define NEW_FLOW_COUNT_COND 10
 
 typedef struct FlowTimeoutCounters_ {
@@ -741,9 +742,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
     int emerg = FALSE;
     int prev_emerg = FALSE;
-    struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
-    int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+    int flow_update_delay_usec = FLOW_NORMAL_MODE_UPDATE_DELAY_USEC;
 /* VJ leaving disabled for now, as hosts are only used by tags and the numbers
  * are really low. Might confuse ppl
     uint16_t flow_mgr_host_prune = StatsRegisterCounter("hosts.pruned", th_v);
@@ -850,7 +850,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 prev_emerg = FALSE;
 
                 flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
-                flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+                flow_update_delay_usec = FLOW_NORMAL_MODE_UPDATE_DELAY_USEC;
                 SCLogInfo("Flow emergency mode over, back to normal... unsetting"
                           " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
                           "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
@@ -860,7 +860,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 StatsIncr(th_v, ftd->flow_emerg_mode_over);
             } else {
                 flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
-                flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;
+                flow_update_delay_usec = FLOW_EMERG_MODE_UPDATE_DELAY_USEC;
             }
         }
 
@@ -869,8 +869,14 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             break;
         }
 
-        cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
-        cond_time.tv_nsec = flow_update_delay_nsec;
+        struct timeval cond_tv;
+        gettimeofday(&cond_tv, NULL);
+        struct timeval add_tv;
+        add_tv.tv_sec = flow_update_delay_sec;
+        add_tv.tv_usec = flow_update_delay_usec;
+        timeradd(&cond_tv, &add_tv, &cond_tv);
+
+        struct timespec cond_time = FROM_TIMEVAL(cond_tv);
         SCCtrlMutexLock(&flow_manager_ctrl_mutex);
         SCCtrlCondTimedwait(&flow_manager_ctrl_cond, &flow_manager_ctrl_mutex,
                             &cond_time);
