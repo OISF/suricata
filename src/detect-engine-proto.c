@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -201,12 +201,10 @@ static int ProtoTestParse01 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "6");
-    if (r < 0) {
-        return 1;
-    }
 
-    SCLogDebug("DetectProtoParse should have rejected the \"6\" string");
-    return 0;
+    FAIL_IF_NOT(r < 0);
+
+    PASS;
 }
 /**
  * \test ProtoTestParse02 is a test to make sure that we parse the
@@ -218,12 +216,11 @@ static int ProtoTestParse02 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "tcp");
-    if (r >= 0 && dp.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8))) {
-        return 1;
-    }
 
-    SCLogDebug("ProtoTestParse02: Error in parsing the \"tcp\" string");
-    return 0;
+    FAIL_IF_NOT(r >= 0);
+    FAIL_IF_NOT(dp.proto[(IPPROTO_TCP / 8)] & (1 << (IPPROTO_TCP % 8)));
+
+    PASS;
 }
 /**
  * \test ProtoTestParse03 is a test to make sure that we parse the
@@ -235,12 +232,11 @@ static int ProtoTestParse03 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "ip");
-    if (r >= 0 && dp.flags & DETECT_PROTO_ANY) {
-        return 1;
-    }
 
-    SCLogDebug("ProtoTestParse03: Error in parsing the \"ip\" string");
-    return 0;
+    FAIL_IF_NOT(r >= 0);
+    FAIL_IF_NOT(dp.flags & DETECT_PROTO_ANY);
+
+    PASS;
 }
 
 /**
@@ -254,12 +250,10 @@ static int ProtoTestParse04 (void)
 
     /* Check for a bad number */
     int r = DetectProtoParse(&dp, "4242");
-    if (r < 0) {
-        return 1;
-    }
 
-    SCLogDebug("ProtoTestParse04: it should not parsing the \"4242\" string");
-    return 0;
+    FAIL_IF_NOT(r < 0);
+
+    PASS;
 }
 
 /**
@@ -273,12 +267,10 @@ static int ProtoTestParse05 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp/udp");
-    if (r < 0) {
-        return 1;
-    }
 
-    SCLogDebug("ProtoTestParse05: it should not parsing the \"tcp/udp\" string");
-    return 0;
+    FAIL_IF_NOT(r < 0);
+
+    PASS;
 }
 
 /**
@@ -291,17 +283,11 @@ static int ProtoTestParse06 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-pkt");
-    if (r < 0) {
-        printf("parsing tcp-pkt failed: ");
-        return 0;
-    }
 
-    if (!(dp.flags & DETECT_PROTO_ONLY_PKT)) {
-        printf("DETECT_PROTO_ONLY_PKT flag not set: ");
-        return 0;
-    }
+    FAIL_IF(r < 0);
+    FAIL_IF_NOT(dp.flags & DETECT_PROTO_ONLY_PKT);
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -314,17 +300,11 @@ static int ProtoTestParse07 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-stream");
-    if (r < 0) {
-        printf("parsing tcp-stream failed: ");
-        return 0;
-    }
 
-    if (!(dp.flags & DETECT_PROTO_ONLY_STREAM)) {
-        printf("DETECT_PROTO_ONLY_STREAM flag not set: ");
-        return 0;
-    }
+    FAIL_IF(r < 0);
+    FAIL_IF_NOT(dp.flags & DETECT_PROTO_ONLY_STREAM);
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -336,38 +316,22 @@ static int DetectProtoTestSetup01(void)
     DetectProto dp;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
     int i;
 
     memset(&dp, 0, sizeof(dp));
 
-    result = DetectProtoInitTest(&de_ctx, &sig, &dp, "tcp");
-    if (result == 0) {
-        goto end;
-    }
-
-    result = 0;
+    FAIL_IF_NOT(DetectProtoInitTest(&de_ctx, &sig, &dp, "tcp"));
 
     /* The signature proto should be TCP */
-    if (!(sig->proto.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8)))) {
-         printf("failed in sig matching\n");
-        goto cleanup;
-    }
-    for (i = 2; i < 256/8; i++) {
-        if (sig->proto.proto[i] != 0) {
-            printf("failed in sig clear\n");
-            goto cleanup;
-        }
+    FAIL_IF_NOT(sig->proto.proto[(IPPROTO_TCP / 8)] & (1 << (IPPROTO_TCP % 8)));
+
+    for (i = 2; i < 256 / 8; i++) {
+        FAIL_IF(sig->proto.proto[i] != 0);
     }
 
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
-    return result;
+
+    PASS;
 }
 
 /**
@@ -381,75 +345,22 @@ static int DetectProtoTestSetup02(void)
     Signature *sig_icmpv6 = NULL;
     Signature *sig_icmp = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    int i;
 
     memset(&dp, 0, sizeof(dp));
 
-    if (DetectProtoInitTest(&de_ctx, &sig_icmpv4, &dp, "icmpv4") == 0) {
-        printf("failure - imcpv4.\n");
-        goto end;
-    }
+    FAIL_IF(DetectProtoInitTest(&de_ctx, &sig_icmpv4, &dp, "icmpv4") == 0);
+    FAIL_IF(DetectProtoInitTest(&de_ctx, &sig_icmpv6, &dp, "icmpv6") == 0);
+    FAIL_IF(DetectProtoInitTest(&de_ctx, &sig_icmp, &dp, "icmp") == 0);
 
-    if (DetectProtoInitTest(&de_ctx, &sig_icmpv6, &dp, "icmpv6") == 0) {
-        printf("failure - imcpv6.\n");
-        goto end;
-    }
+    FAIL_IF_NOT(sig_icmpv4->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
+    FAIL_IF_NOT(sig_icmpv6->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
 
-    if (DetectProtoInitTest(&de_ctx, &sig_icmp, &dp, "icmp") == 0) {
-        printf("failure - imcp.\n");
-        goto end;
-    }
+    FAIL_IF_NOT(sig_icmp->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
+    FAIL_IF_NOT(sig_icmp->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
 
-    for (i = 0; i < 256 / 8; i++) {
-        if (i == IPPROTO_ICMP) {
-            if (!(sig_icmpv4->proto.proto[i / 8] & (1 << (i % 8)))) {
-                printf("failed in sig matching - icmpv4 - icmpv4.\n");
-                goto end;
-            }
-            continue;
-        }
-        if (sig_icmpv4->proto.proto[i / 8] & (1 << (i % 8))) {
-            printf("failed in sig matching - icmpv4 - others.\n");
-            goto end;
-        }
-    }
-
-    for (i = 0; i < 256 / 8; i++) {
-        if (i == IPPROTO_ICMPV6) {
-            if (!(sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8)))) {
-                printf("failed in sig matching - icmpv6 - icmpv6.\n");
-                goto end;
-            }
-            continue;
-        }
-        if (sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8))) {
-            printf("failed in sig matching - icmpv6 - others.\n");
-            goto end;
-        }
-    }
-
-    for (i = 0; i < 256 / 8; i++) {
-        if (i == IPPROTO_ICMP || i == IPPROTO_ICMPV6) {
-            if (!(sig_icmp->proto.proto[i / 8] & (1 << (i % 8)))) {
-                printf("failed in sig matching - icmp - icmp.\n");
-                goto end;
-            }
-            continue;
-        }
-        if (sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8))) {
-            printf("failed in sig matching - icmp - others.\n");
-            goto end;
-        }
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-    return result;
+
+    PASS;
 }
 
 /**
@@ -460,11 +371,8 @@ static int DetectProtoTestSetup02(void)
 
 static int DetectProtoTestSig01(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     Flow f;
 
     memset(&f, 0, sizeof(Flow));
@@ -472,66 +380,47 @@ static int DetectProtoTestSig01(void)
 
     FLOW_INITIALIZE(&f);
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert udp any any -> any any "
-            "(msg:\"Not tcp\"; flow:to_server; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"Not tcp\"; flow:to_server; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    if (s == NULL)
-        goto end;
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any "
+                                      "(msg:\"IP\"; flow:to_server; sid:2;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any "
-            "(msg:\"IP\"; flow:to_server; sid:2;)");
-
-    if (s == NULL)
-        goto end;
-
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any "
-            "(msg:\"TCP\"; flow:to_server; sid:3;)");
-
-    if (s == NULL)
-        goto end;
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"TCP\"; flow:to_server; sid:3;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 2) == 0) {
-        printf("sid 2 did not alert, but should have: ");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 3) == 0) {
-        printf("sid 3 did not alert, but should have: ");
-        goto cleanup;
-    }
 
-    result = 1;
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
 
-cleanup:
     FLOW_DESTROY(&f);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-end:
-    return result;
+
+    PASS;
 }
 
 /**
@@ -540,36 +429,22 @@ end:
 
 static int DetectProtoTestSig02(void)
 {
-    Signature *s = NULL;
-    int result = 0;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp-pkt any any -> any any "
-            "(msg:\"tcp-pkt\"; content:\"blah\"; sid:1;)");
-    if (s == NULL) {
-        printf("tcp-pkt sig parsing failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert tcp-pkt any any -> any any (msg:\"tcp-pkt\"; content:\"blah\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert tcp-stream any any -> any any "
-            "(msg:\"tcp-stream\"; content:\"blah\"; sid:2;)");
-    if (s == NULL) {
-        printf("tcp-pkt sig parsing failed: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp-stream any any -> any any (msg:\"tcp-stream\"; content:\"blah\"; sid:2;)");
+    FAIL_IF_NULL(s);
 
-    result = 1;
+    DetectEngineCtxFree(de_ctx);
 
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 #endif /* UNITTESTS */
 
