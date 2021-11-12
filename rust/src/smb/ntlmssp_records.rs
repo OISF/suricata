@@ -15,10 +15,15 @@
  * 02110-1301, USA.
  */
 
+use crate::common::nom7::take_until_and_consume;
 use std::fmt;
-use nom::IResult;
-use nom::combinator::rest;
-use nom::number::streaming::{le_u8, le_u16, le_u32};
+use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bytes::streaming::take;
+use nom7::combinator::{cond, rest};
+use nom7::error::Error;
+use nom7::number::streaming::{le_u8, le_u16, le_u32};
+use nom7::sequence::tuple;
+use nom7::IResult;
 
 #[derive(Debug,PartialEq)]
 pub struct NTLMSSPVersion {
@@ -36,20 +41,20 @@ impl fmt::Display for NTLMSSPVersion {
     }
 }
 
-named!(parse_ntlm_auth_version<NTLMSSPVersion>,
-    do_parse!(
-            ver_major: le_u8
-         >> ver_minor: le_u8
-         >> ver_build: le_u16
-         >> take!(3)
-         >> ver_ntlm_rev: le_u8
-         >> ( NTLMSSPVersion {
-                ver_major: ver_major,
-                ver_minor: ver_minor,
-                ver_build: ver_build,
-                ver_ntlm_rev: ver_ntlm_rev,
-             })
-));
+fn parse_ntlm_auth_version(i: &[u8]) -> IResult<&[u8], NTLMSSPVersion> {
+    let (i, ver_major) = le_u8(i)?;
+    let (i, ver_minor) = le_u8(i)?;
+    let (i, ver_build) = le_u16(i)?;
+    let (i, _) = take(3_usize)(i)?;
+    let (i, ver_ntlm_rev) = le_u8(i)?;
+    let version = NTLMSSPVersion {
+        ver_major,
+        ver_minor,
+        ver_build,
+        ver_ntlm_rev,
+    };
+    Ok((i, version))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct NTLMSSPAuthRecord<'a> {
@@ -60,56 +65,60 @@ pub struct NTLMSSPAuthRecord<'a> {
 }
 
 fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
-    bits!(i, tuple!(take_bits!(6u8),take_bits!(1u8),take_bits!(25u32)))
+    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+        take_bits(6u8),
+        take_bits(1u8),
+        take_bits(25u32),
+    )))(i)
 }
 
-named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
-    do_parse!(
-            _lm_blob_len: le_u16
-         >> _lm_blob_maxlen: le_u16
-         >> _lm_blob_offset: le_u32
+pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
+    let (i, _lm_blob_len) = le_u16(i)?;
+    let (i, _lm_blob_maxlen) = le_u16(i)?;
+    let (i, _lm_blob_offset) = le_u32(i)?;
 
-         >> _ntlmresp_blob_len: le_u16
-         >> _ntlmresp_blob_maxlen: le_u16
-         >> _ntlmresp_blob_offset: le_u32
+    let (i, _ntlmresp_blob_len) = le_u16(i)?;
+    let (i, _ntlmresp_blob_maxlen) = le_u16(i)?;
+    let (i, _ntlmresp_blob_offset) = le_u32(i)?;
 
-         >> domain_blob_len: le_u16
-         >> _domain_blob_maxlen: le_u16
-         >> domain_blob_offset: le_u32
+    let (i, domain_blob_len) = le_u16(i)?;
+    let (i, _domain_blob_maxlen) = le_u16(i)?;
+    let (i, domain_blob_offset) = le_u32(i)?;
 
-         >> user_blob_len: le_u16
-         >> _user_blob_maxlen: le_u16
-         >> _user_blob_offset: le_u32
+    let (i, user_blob_len) = le_u16(i)?;
+    let (i, _user_blob_maxlen) = le_u16(i)?;
+    let (i, _user_blob_offset) = le_u32(i)?;
 
-         >> host_blob_len: le_u16
-         >> _host_blob_maxlen: le_u16
-         >> _host_blob_offset: le_u32
+    let (i, host_blob_len) = le_u16(i)?;
+    let (i, _host_blob_maxlen) = le_u16(i)?;
+    let (i, _host_blob_offset) = le_u32(i)?;
 
-         >> _ssnkey_blob_len: le_u16
-         >> _ssnkey_blob_maxlen: le_u16
-         >> _ssnkey_blob_offset: le_u32
+    let (i, _ssnkey_blob_len) = le_u16(i)?;
+    let (i, _ssnkey_blob_maxlen) = le_u16(i)?;
+    let (i, _ssnkey_blob_offset) = le_u32(i)?;
 
-         >> nego_flags: parse_ntlm_auth_nego_flags
-         >> version: cond!(nego_flags.1==1, parse_ntlm_auth_version)
+    let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
+    let (i, version) = cond(nego_flags.1==1, parse_ntlm_auth_version)(i)?;
 
-         // subtrack 12 as idenfier (8) and type (4) are cut before we are called
-         // subtract 60 for the len/offset/maxlen fields above
-         >> cond!(nego_flags.1==1, take!(domain_blob_offset - (12 + 60)))
-         // or 52 if we have no version
-         >> cond!(nego_flags.1==0, take!(domain_blob_offset - (12 + 52)))
+    // subtrack 12 as idenfier (8) and type (4) are cut before we are called
+    // subtract 60 for the len/offset/maxlen fields above
+    let (i, _) = cond(nego_flags.1==1, |b| take(domain_blob_offset - (12 + 60))(b))(i)?;
+    // or 52 if we have no version
+    let (i, _) = cond(nego_flags.1==0, |b| take(domain_blob_offset - (12 + 52))(b))(i)?;
 
-         >> domain_blob: take!(domain_blob_len)
-         >> user_blob: take!(user_blob_len)
-         >> host_blob: take!(host_blob_len)
+    let (i, domain_blob) = take(domain_blob_len)(i)?;
+    let (i, user_blob) = take(user_blob_len)(i)?;
+    let (i, host_blob) = take(host_blob_len)(i)?;
 
-         >> ( NTLMSSPAuthRecord {
-                domain: domain_blob,
-                user: user_blob,
-                host: host_blob,
+    let record = NTLMSSPAuthRecord {
+        domain: domain_blob,
+        user: user_blob,
+        host: host_blob,
 
-                version: version,
-            })
-));
+        version,
+    };
+    Ok((i, record))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct NTLMSSPRecord<'a> {
@@ -117,14 +126,10 @@ pub struct NTLMSSPRecord<'a> {
     pub data: &'a[u8],
 }
 
-named!(pub parse_ntlmssp<NTLMSSPRecord>,
-    do_parse!(
-            take_until!("NTLMSSP\x00")
-        >>  tag!("NTLMSSP\x00")
-        >>  msg_type: le_u32
-        >>  data: rest
-        >>  (NTLMSSPRecord {
-                msg_type:msg_type,
-                data:data,
-            })
-));
+pub fn parse_ntlmssp(i: &[u8]) -> IResult<&[u8], NTLMSSPRecord> {
+    let (i, _) = take_until_and_consume(b"NTLMSSP\x00")(i)?;
+    let (i, msg_type) = le_u32(i)?;
+    let (i, data) = rest(i)?;
+    let record = NTLMSSPRecord { msg_type, data };
+    Ok((i, record))
+}
