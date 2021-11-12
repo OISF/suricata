@@ -451,19 +451,11 @@ void RegisterTemplateParsers(void)
 {
     const char *proto_name = "template";
 
-    /* TEMPLATE_START_REMOVE */
-#ifndef UNITTESTS
-    /* Ensure template registration for unittests */
-    if (ConfGetNode("app-layer.protocols.template") == NULL) {
-        return;
-    }
-#endif
-    /* TEMPLATE_END_REMOVE */
     /* Check if Template TCP detection is enabled. If it does not exist in
-     * the configuration file then it will be enabled by default. */
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+     * the configuration file then it will be disabled by default. */
+    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
 
-        SCLogNotice("Template TCP protocol detection enabled.");
+        SCLogDebug("Template TCP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TEMPLATE, proto_name);
 
@@ -480,9 +472,9 @@ void RegisterTemplateParsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
                     TemplateProbingParserTs, TemplateProbingParserTc)) {
-                SCLogNotice("No template app-layer configuration, enabling echo"
-                    " detection TCP detection on port %s.",
-                    TEMPLATE_DEFAULT_PORT);
+                SCLogDebug("No template app-layer configuration, enabling echo"
+                           " detection TCP detection on port %s.",
+                        TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     TEMPLATE_DEFAULT_PORT, ALPROTO_TEMPLATE, 0,
                     TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
@@ -494,7 +486,7 @@ void RegisterTemplateParsers(void)
     }
 
     else {
-        SCLogNotice("Protocol detector and parser disabled for Template.");
+        SCLogDebug("Protocol detector and parser disabled for Template.");
         return;
     }
 
@@ -546,7 +538,7 @@ void RegisterTemplateParsers(void)
             APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
-        SCLogNotice("Template protocol parsing disabled.");
+        SCLogDebug("Template protocol parsing disabled.");
     }
 
 #ifdef UNITTESTS
