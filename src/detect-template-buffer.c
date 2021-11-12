@@ -53,12 +53,14 @@ static int g_template_buffer_id = 0;
 void DetectTemplateBufferRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
-#ifndef UNITTESTS
-    /* Ensure registration when running unittests */
-    if (ConfGetNode("app-layer.protocols.template") == NULL) {
-        return;
+    /* Prevent registration of this buffer unless explicitly enabled or when
+     * running unittests. This will be removed during code generation from this
+     * template. */
+    if (!RunmodeIsUnittests()) {
+        if (ConfGetNode("app-layer.protocols.template") == NULL) {
+            return;
+        }
     }
-#endif
     /* TEMPLATE_END_REMOVE */
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
@@ -90,7 +92,8 @@ void DetectTemplateBufferRegister(void)
 
     g_template_buffer_id = DetectBufferTypeGetByName("template_buffer");
 
-    SCLogNotice("Template application layer detect registered.");
+    /* NOTE: You may want to change this to SCLogNotice during development. */
+    SCLogDebug("Template application layer detect registered.");
 }
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
