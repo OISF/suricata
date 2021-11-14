@@ -31,7 +31,6 @@ use std::ffi::{self, CString};
 
 use std::collections::HashMap;
 
-use nom;
 use nom7::{Err, Needed};
 
 use crate::core::*;
@@ -1649,7 +1648,7 @@ impl SMBState {
                                     }
                                 }
                             },
-                            Err(nom::Err::Incomplete(_)) => {
+                            Err(Err::Incomplete(_)) => {
                                 // not enough data to contain basic SMB hdr
                                 // TODO event: empty NBSS_MSGTYPE_SESSION_MESSAGE
                             },

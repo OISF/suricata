@@ -16,7 +16,7 @@
  */
 
 // Author: Pierre Chifflier <chifflier@wzdftpd.net>
-use nom::error::{ErrorKind, ParseError};
+use nom7::error::{ErrorKind, ParseError};
 
 #[derive(Debug)]
 pub enum SmbError {
