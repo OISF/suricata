@@ -101,6 +101,9 @@ typedef struct DPDKThreadVars_ {
     /* references to packet and drop counters */
     uint16_t capture_dpdk_packets;
     uint16_t capture_dpdk_rx_errs;
+    uint16_t capture_dpdk_imissed;
+    uint16_t capture_dpdk_rx_no_mbufs;
+    uint16_t capture_dpdk_ierrors;
     uint16_t capture_dpdk_tx_errs;
     unsigned int flags;
     int threads;
@@ -264,6 +267,9 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
     if (ptv->queue_id == 0) {
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_errs,
                 eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf + ptv->pkts);
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_imissed, eth_stats.imissed);
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_no_mbufs, eth_stats.rx_nombuf);
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_ierrors, eth_stats.ierrors);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_tx_errs, eth_stats.oerrors);
         SC_ATOMIC_SET(ptv->livedev->drop, eth_stats.imissed + eth_stats.ierrors +
                                                   eth_stats.rx_nombuf + eth_stats.oerrors +
@@ -414,6 +420,9 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_packets = StatsRegisterCounter("capture.packets", ptv->tv);
     ptv->capture_dpdk_rx_errs = StatsRegisterCounter("capture.rx_errors", ptv->tv);
     ptv->capture_dpdk_tx_errs = StatsRegisterCounter("capture.tx_errors", ptv->tv);
+    ptv->capture_dpdk_imissed = StatsRegisterCounter("capture.dpdk.imissed", ptv->tv);
+    ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", ptv->tv);
+    ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", ptv->tv);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
