@@ -745,6 +745,100 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
     (struct rte_eth_rss_conf *)rss_conf, (const char *)driver_name;
 }
 
+static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
+{
+    SCLogNotice("REQUESTED (groups):");
+
+    SCLogNotice("ETH_RSS_IP %sset", ((requested & ETH_RSS_IP) == ETH_RSS_IP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_TCP %sset", ((requested & ETH_RSS_TCP) == ETH_RSS_TCP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_UDP %sset", ((requested & ETH_RSS_UDP) == ETH_RSS_UDP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_SCTP %sset", ((requested & ETH_RSS_SCTP) == ETH_RSS_SCTP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_TUNNEL %sset", ((requested & ETH_RSS_TUNNEL) == ETH_RSS_TUNNEL) ? "" : "NOT ");
+
+    SCLogNotice("REQUESTED (individual):");
+    SCLogNotice("ETH_RSS_IPV4 %sset", (requested & ETH_RSS_IPV4) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_FRAG_IPV4 %sset", (requested & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV4_TCP %sset", (requested & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV4_UDP %sset", (requested & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV4_SCTP %sset",
+            (requested & ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV4_OTHER %sset",
+            (requested & ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6 %sset", (requested & ETH_RSS_IPV6) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_FRAG_IPV6 %sset", (requested & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV6_TCP %sset", (requested & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV6_UDP %sset", (requested & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV6_SCTP %sset",
+            (requested & ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV6_OTHER %sset",
+            (requested & ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_L2_PAYLOAD %sset", (requested & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_EX %sset", (requested & ETH_RSS_IPV6_EX) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_TCP_EX %sset", (requested & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_UDP_EX %sset", (requested & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_PORT %sset", (requested & ETH_RSS_PORT) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_VXLAN %sset", (requested & ETH_RSS_VXLAN) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NVGRE %sset", (requested & ETH_RSS_NVGRE) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_GTPU %sset", (requested & ETH_RSS_GTPU) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_L3_SRC_ONLY %sset", (requested & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L3_DST_ONLY %sset", (requested & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L4_SRC_ONLY %sset", (requested & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L4_DST_ONLY %sset", (requested & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
+
+    SCLogNotice("ACTUAL (group):");
+    SCLogNotice("ETH_RSS_IP %sset", ((actual & ETH_RSS_IP) == ETH_RSS_IP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_TCP %sset", ((actual & ETH_RSS_TCP) == ETH_RSS_TCP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_UDP %sset", ((actual & ETH_RSS_UDP) == ETH_RSS_UDP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_SCTP %sset", ((actual & ETH_RSS_SCTP) == ETH_RSS_SCTP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_TUNNEL %sset", ((actual & ETH_RSS_TUNNEL) == ETH_RSS_TUNNEL) ? "" : "NOT ");
+
+    SCLogNotice("ACTUAL (individual flags):");
+    SCLogNotice("ETH_RSS_IPV4 %sset", (actual & ETH_RSS_IPV4) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_FRAG_IPV4 %sset", (actual & ETH_RSS_FRAG_IPV4) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV4_TCP %sset", (actual & ETH_RSS_NONFRAG_IPV4_TCP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV4_UDP %sset", (actual & ETH_RSS_NONFRAG_IPV4_UDP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV4_SCTP %sset", (actual & ETH_RSS_NONFRAG_IPV4_SCTP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV4_OTHER %sset",
+            (actual & ETH_RSS_NONFRAG_IPV4_OTHER) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6 %sset", (actual & ETH_RSS_IPV6) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_FRAG_IPV6 %sset", (actual & ETH_RSS_FRAG_IPV6) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV6_TCP %sset", (actual & ETH_RSS_NONFRAG_IPV6_TCP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV6_UDP %sset", (actual & ETH_RSS_NONFRAG_IPV6_UDP) ? "" : "NOT ");
+    SCLogNotice(
+            "ETH_RSS_NONFRAG_IPV6_SCTP %sset", (actual & ETH_RSS_NONFRAG_IPV6_SCTP) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NONFRAG_IPV6_OTHER %sset",
+            (actual & ETH_RSS_NONFRAG_IPV6_OTHER) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_L2_PAYLOAD %sset", (actual & ETH_RSS_L2_PAYLOAD) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_EX %sset", (actual & ETH_RSS_IPV6_EX) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_TCP_EX %sset", (actual & ETH_RSS_IPV6_TCP_EX) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_IPV6_UDP_EX %sset", (actual & ETH_RSS_IPV6_UDP_EX) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_PORT %sset", (actual & ETH_RSS_PORT) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_VXLAN %sset", (actual & ETH_RSS_VXLAN) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_NVGRE %sset", (actual & ETH_RSS_NVGRE) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_GTPU %sset", (actual & ETH_RSS_GTPU) ? "" : "NOT ");
+
+    SCLogNotice("ETH_RSS_L3_SRC_ONLY %sset", (actual & ETH_RSS_L3_SRC_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L3_DST_ONLY %sset", (actual & ETH_RSS_L3_DST_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L4_SRC_ONLY %sset", (actual & ETH_RSS_L4_SRC_ONLY) ? "" : "NOT ");
+    SCLogNotice("ETH_RSS_L4_DST_ONLY %sset", (actual & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
+}
+
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
@@ -775,6 +869,8 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             uint64_t rss_hf_tmp =
                     port_conf->rx_adv_conf.rss_conf.rss_hf & dev_info->flow_type_rss_offloads;
             if (port_conf->rx_adv_conf.rss_conf.rss_hf != rss_hf_tmp) {
+                DumpRSSFlags(port_conf->rx_adv_conf.rss_conf.rss_hf, rss_hf_tmp);
+
                 SCLogWarning(SC_WARN_DPDK_CONF,
                         "Interface %s modified RSS hash function based on hardware support, "
                         "requested:%#" PRIx64 " configured:%#" PRIx64,
