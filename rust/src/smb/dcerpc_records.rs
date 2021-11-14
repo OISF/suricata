@@ -24,7 +24,7 @@ use nom7::multi::count;
 use nom7::number::Endianness;
 use nom7::number::streaming::{be_u16, le_u8, le_u16, le_u32, u16, u32};
 use nom7::sequence::tuple;
-use nom7::IResult;
+use nom7::{Err, IResult};
 
 #[derive(Debug,PartialEq)]
 pub struct DceRpcResponseRecord<'a> {
@@ -34,18 +34,15 @@ pub struct DceRpcResponseRecord<'a> {
 /// parse a packet type 'response' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
-    -> nom::IResult<&[u8], DceRpcResponseRecord, SmbError>
+    -> IResult<&[u8], DceRpcResponseRecord, SmbError>
 {
     if frag_len < 24 {
-        return Err(nom::Err::Error(SmbError::RecordTooSmall));
+        return Err(Err::Error(SmbError::RecordTooSmall));
     }
-    do_parse!(i,
-                take!(8)
-            >>  data:take!(frag_len - 24)
-            >> (DceRpcResponseRecord {
-                    data:data,
-               })
-    )
+    let (i, _) = take(8_usize)(i)?;
+    let (i, data) = take(frag_len - 24)(i)?;
+    let record = DceRpcResponseRecord { data };
+    Ok((i, record))
 }
 
 #[derive(Debug,PartialEq)]
@@ -57,22 +54,17 @@ pub struct DceRpcRequestRecord<'a> {
 /// parse a packet type 'request' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
-    -> nom::IResult<&[u8], DceRpcRequestRecord, SmbError>
+    -> IResult<&[u8], DceRpcRequestRecord, SmbError>
 {
-    use nom::number::Endianness;
     if frag_len < 24 {
-        return Err(nom::Err::Error(SmbError::RecordTooSmall));
+        return Err(Err::Error(SmbError::RecordTooSmall));
     }
-    do_parse!(i,
-                take!(6)
-            >>  endian: value!(if little { Endianness::Little } else { Endianness::Big })
-            >>  opnum: u16!(endian)
-            >>  data:take!(frag_len - 24)
-            >> (DceRpcRequestRecord {
-                    opnum:opnum,
-                    data:data,
-               })
-    )
+    let (i, _) = take(6_usize)(i)?;
+    let endian = if little { Endianness::Little } else { Endianness::Big };
+    let (i, opnum) = u16(endian)(i)?;
+    let (i, data) = take(frag_len - 24)(i)?;
+    let record = DceRpcRequestRecord { opnum, data };
+    Ok((i, record))
 }
 
 #[derive(Debug,PartialEq)]

@@ -19,8 +19,6 @@
  * - check all parsers for calls on non-SUCCESS status
  */
 
-use nom;
-
 use crate::core::*;
 
 use crate::smb::smb::*;
@@ -30,6 +28,8 @@ use crate::smb::files::*;
 
 use crate::smb::smb1_records::*;
 use crate::smb::smb1_session::*;
+
+use nom7::Err;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
 pub const SMB1_COMMAND_CREATE_DIRECTORY:        u8 = 0x00;
@@ -251,13 +251,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             true
 
                                         },
-                                        Err(nom::Err::Incomplete(_n)) => {
+                                        Err(Err::Incomplete(_n)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(_e)) |
-                                        Err(nom::Err::Failure(_e)) => {
+                                        Err(Err::Error(_e)) |
+                                        Err(Err::Failure(_e)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
@@ -279,13 +279,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
                                             true
                                         },
-                                        Err(nom::Err::Incomplete(_n)) => {
+                                        Err(Err::Incomplete(_n)) => {
                                             SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(_e)) |
-                                        Err(nom::Err::Failure(_e)) => {
+                                        Err(Err::Error(_e)) |
+                                        Err(Err::Failure(_e)) => {
                                             SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
@@ -295,13 +295,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                     false
                                 }
                             },
-                            Err(nom::Err::Incomplete(_n)) => {
+                            Err(Err::Incomplete(_n)) => {
                                 SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS INCOMPLETE {:?}", _n);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
-                            Err(nom::Err::Error(_e)) |
-                            Err(nom::Err::Failure(_e)) => {
+                            Err(Err::Error(_e)) |
+                            Err(Err::Failure(_e)) => {
                                 SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS ERROR {:?}", _e);
                                 events.push(SMBEvent::MalformedData);
                                 false
@@ -334,13 +334,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             true
 
                                         },
-                                        Err(nom::Err::Incomplete(_n)) => {
+                                        Err(Err::Incomplete(_n)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(_e)) |
-                                        Err(nom::Err::Failure(_e)) => {
+                                        Err(Err::Error(_e)) |
+                                        Err(Err::Failure(_e)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
@@ -367,13 +367,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
                                             true
                                         },
-                                        Err(nom::Err::Incomplete(_n)) => {
+                                        Err(Err::Incomplete(_n)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME INCOMPLETE {:?}", _n);
                                             events.push(SMBEvent::MalformedData);
                                             false
                                         },
-                                        Err(nom::Err::Error(_e)) |
-                                        Err(nom::Err::Failure(_e)) => {
+                                        Err(Err::Error(_e)) |
+                                        Err(Err::Failure(_e)) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME ERROR {:?}", _e);
                                             events.push(SMBEvent::MalformedData);
                                             false
@@ -383,13 +383,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                                     false
                                 }
                             },
-                            Err(nom::Err::Incomplete(_n)) => {
+                            Err(Err::Incomplete(_n)) => {
                                 SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS INCOMPLETE {:?}", _n);
                                 events.push(SMBEvent::MalformedData);
                                 false
                             },
-                            Err(nom::Err::Error(_e)) |
-                            Err(nom::Err::Failure(_e)) => {
+                            Err(Err::Error(_e)) |
+                            Err(Err::Failure(_e)) => {
                                 SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS ERROR {:?}", _e);
                                 events.push(SMBEvent::MalformedData);
                                 false
@@ -399,13 +399,13 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
                         false
                     }
                 },
-                Err(nom::Err::Incomplete(_n)) => {
+                Err(Err::Incomplete(_n)) => {
                     SCLogDebug!("TRANS2 INCOMPLETE {:?}", _n);
                     events.push(SMBEvent::MalformedData);
                     false
                 },
-                Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => {
+                Err(Err::Error(_e)) |
+                Err(Err::Failure(_e)) => {
                     SCLogDebug!("TRANS2 ERROR {:?}", _e);
                     events.push(SMBEvent::MalformedData);
                     false
