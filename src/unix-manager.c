@@ -808,6 +808,33 @@ static TmEcode UnixManagerRulesetProfileCommand(json_t *cmd, json_t *server_msg,
     json_object_set_new(server_msg, "message", js);
     SCReturnInt(TM_ECODE_OK);
 }
+
+static TmEcode UnixManagerRulesetProfileStartCommand(json_t *cmd, json_t *server_msg, void *data)
+{
+    SCEnter();
+
+    int ret = SCProfileRuleStartCollection();
+    if (ret != TM_ECODE_OK) {
+        json_object_set_new(server_msg, "message", json_string("NOK"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    json_object_set_new(server_msg, "message", json_string("OK"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static TmEcode UnixManagerRulesetProfileStopCommand(json_t *cmd, json_t *server_msg, void *data)
+{
+    SCEnter();
+
+    int ret = SCProfileRuleStopCollection();
+    if (ret != TM_ECODE_OK) {
+        json_object_set_new(server_msg, "message", json_string("NOK"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    json_object_set_new(server_msg, "message", json_string("OK"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 #endif
 
 static TmEcode UnixManagerShowFailedRules(json_t *cmd,
@@ -1090,6 +1117,10 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("ruleset-failed-rules", UnixManagerShowFailedRules, NULL, 0);
 #ifdef PROFILE_RULES
     UnixManagerRegisterCommand("ruleset-profile", UnixManagerRulesetProfileCommand, NULL, 0);
+    UnixManagerRegisterCommand(
+            "ruleset-profile-start", UnixManagerRulesetProfileStartCommand, NULL, 0);
+    UnixManagerRegisterCommand(
+            "ruleset-profile-stop", UnixManagerRulesetProfileStopCommand, NULL, 0);
 #endif
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
