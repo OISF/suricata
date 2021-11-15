@@ -844,7 +844,12 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             // less or equal to 19.xx
             if (strcmp(dev_info->driver_name, "net_i40e") == 0 && RTE_VER_YEAR <= 19)
                 port_conf->rx_adv_conf.rss_conf.rss_hf =
-                        ETH_RSS_IP | ETH_RSS_TCP | ETH_RSS_UDP | ETH_RSS_SCTP;
+                        ETH_RSS_FRAG_IPV4 | ETH_RSS_NONFRAG_IPV4_TCP | ETH_RSS_NONFRAG_IPV4_UDP | ETH_RSS_NONFRAG_IPV4_SCTP | ETH_RSS_NONFRAG_IPV4_OTHER |
+                        ETH_RSS_FRAG_IPV6 | ETH_RSS_NONFRAG_IPV6_TCP | ETH_RSS_NONFRAG_IPV6_UDP | ETH_RSS_NONFRAG_IPV6_SCTP | ETH_RSS_NONFRAG_IPV6_OTHER |
+                        ETH_RSS_SCTP;
+            else if (strcmp(dev_info->driver_name, "net_ixgbe") == 0 && RTE_VER_YEAR <= 19)
+                port_conf->rx_adv_conf.rss_conf.rss_hf =
+                        ETH_RSS_IPV4 | ETH_RSS_IPV6 | ETH_RSS_IPV6_EX;
 
             uint64_t rss_hf_tmp =
                     port_conf->rx_adv_conf.rss_conf.rss_hf & dev_info->flow_type_rss_offloads;
