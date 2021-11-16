@@ -19,7 +19,7 @@
 
 use std;
 use std::ffi::CString;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
 use nom;
@@ -44,7 +44,6 @@ pub struct RFBTransaction {
     pub tc_failure_reason: Option<parser::FailureReason>,
     pub tc_server_init: Option<parser::ServerInit>,
 
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -73,21 +72,8 @@ impl RFBTransaction {
             tc_failure_reason: None,
             tc_server_init: None,
 
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
-    }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
-}
-
-impl Drop for RFBTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -581,14 +567,6 @@ pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_events(
-    tx: *mut std::os::raw::c_void
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, RFBTransaction);
-    return tx.events;
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"rfb\0";
 
@@ -614,7 +592,6 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_events: Some(rs_rfb_state_get_events),
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,

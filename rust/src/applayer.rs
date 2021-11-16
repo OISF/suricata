@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
@@ -69,6 +69,7 @@ pub struct AppLayerTxData {
     detect_flags_tc: u64,
 
     de_state: *mut DetectEngineState,
+    pub events: *mut core::AppLayerDecoderEvents,
 }
 
 impl Default for AppLayerTxData {
@@ -81,6 +82,9 @@ impl Drop for AppLayerTxData {
     fn drop(&mut self) {
         if self.de_state != std::ptr::null_mut() {
             core::sc_detect_engine_state_free(self.de_state);
+        }
+        if self.events != std::ptr::null_mut() {
+            core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
 }
@@ -96,6 +100,7 @@ impl AppLayerTxData {
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
+            events: std::ptr::null_mut(),
         }
     }
     pub fn init_files_opened(&mut self) {
@@ -103,6 +108,10 @@ impl AppLayerTxData {
     }
     pub fn incr_files_opened(&mut self) {
         self.files_opened += 1;
+    }
+
+    pub fn set_event(&mut self, event: u8) {
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
     }
 }
 
@@ -227,8 +236,6 @@ pub struct RustParser {
     /// Function returning the current transaction progress
     pub tx_get_progress:    StateGetProgressFn,
 
-    /// Function to get events
-    pub get_events:         Option<GetEventsFn>,
     /// Function to get an event id from a description
     pub get_eventinfo:      Option<GetEventInfoFn>,
     /// Function to get an event description from an event id
@@ -292,7 +299,6 @@ pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
-pub type GetEventsFn        = unsafe extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetFilesFn         = unsafe

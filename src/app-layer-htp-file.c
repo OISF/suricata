@@ -180,7 +180,7 @@ static int HTPParseAndCheckContentRange(
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
-        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("parsing range failed, going back to normal file");
         return r;
@@ -197,7 +197,7 @@ static int HTPParseAndCheckContentRange(
         SCLogDebug("range without all information");
         return -3;
     } else if (range->start > range->end) {
-        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("invalid range");
         return -4;

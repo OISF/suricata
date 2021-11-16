@@ -536,7 +536,6 @@ pub struct SMBTransaction {
     /// Command specific data
     pub type_data: Option<SMBTransactionTypeData>,
 
-    pub events: *mut AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
 }
 
@@ -555,7 +554,6 @@ impl SMBTransaction {
               request_done: false,
               response_done: false,
               type_data: None,
-              events: std::ptr::null_mut(),
               tx_data: AppLayerTxData::new(),
         }
     }
@@ -572,9 +570,6 @@ impl SMBTransaction {
     pub fn free(&mut self) {
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
-        if !self.events.is_null() {
-            sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
     }
 }
 
@@ -2065,14 +2060,6 @@ pub unsafe extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, SMBTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
@@ -2171,7 +2158,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_smb_tx_get_alstate_progress,
-        get_events: Some(rs_smb_state_get_events),
         get_eventinfo: Some(rs_smb_state_get_event_info),
         get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),
         localstorage_new: None,

@@ -21,7 +21,7 @@ use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
-use crate::core::{self, *};
+use crate::core::*;
 use nom7::Err;
 use std;
 use std::ffi::CString;
@@ -60,7 +60,6 @@ pub struct MQTTTransaction {
     toserver: bool,
 
     logged: LoggerFlags,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -74,23 +73,10 @@ impl MQTTTransaction {
             msg: Vec::new(),
             toclient: false,
             toserver: false,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         };
         m.msg.push(msg);
         return m;
-    }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
-}
-
-impl Drop for MQTTTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -524,8 +510,7 @@ impl MQTTState {
     }
 
     fn set_event(tx: &mut MQTTTransaction, event: MQTTEvent) {
-        let ev = event as u8;
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+        tx.tx_data.set_event(event as u8);
     }
 }
 
@@ -675,14 +660,6 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
     tx.logged.set(logged);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, MQTTTransaction);
-    return tx.events;
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"mqtt\0";
 
@@ -711,7 +688,6 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_mqtt_tx_get_alstate_progress,
-        get_events: Some(rs_mqtt_state_get_events),
         get_eventinfo: Some(MQTTEvent::get_event_info),
         get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,

@@ -47,7 +47,6 @@ pub struct ModbusTransaction {
     pub request: Option<Message>,
     pub response: Option<Message>,
 
-    pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
 }
 
@@ -63,13 +62,12 @@ impl ModbusTransaction {
             id,
             request: None,
             response: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
     }
 
     fn set_event(&mut self, event: ModbusEvent) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
+        self.tx_data.set_event(event as u8);
     }
 
     fn set_events_from_flags(&mut self, flags: &Flags<ErrorFlags>) {
@@ -87,14 +85,6 @@ impl ModbusTransaction {
         }
         if flags.intersects(ErrorFlags::PROTO_ID) {
             self.set_event(ModbusEvent::InvalidProtocolId);
-        }
-    }
-}
-
-impl Drop for ModbusTransaction {
-    fn drop(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
 }
@@ -377,14 +367,6 @@ pub unsafe extern "C" fn rs_modbus_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_modbus_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, ModbusTransaction);
-    tx.events
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_modbus_state_get_tx_data(
     tx: *mut std::os::raw::c_void,
 ) -> *mut AppLayerTxData {
@@ -413,7 +395,6 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_modbus_tx_get_alstate_progress,
-        get_events: Some(rs_modbus_state_get_events),
         get_eventinfo: Some(ModbusEvent::get_event_info),
         get_eventinfo_byid: Some(ModbusEvent::get_event_info_by_id),
         localstorage_new: None,

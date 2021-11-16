@@ -96,11 +96,6 @@ static uint64_t ENIPGetTxCnt(void *alstate)
     return ((ENIPState *)alstate)->transaction_max;
 }
 
-static AppLayerDecoderEvents *ENIPGetEvents(void *tx)
-{
-    return ((ENIPTransaction *)tx)->decoder_events;
-}
-
 static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, enip_decoder_event_table);
@@ -181,7 +176,7 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
         SCFree(svc);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
     if (tx->tx_data.de_state != NULL) {
         DetectEngineStateFree(tx->tx_data.de_state);
@@ -270,12 +265,11 @@ static void ENIPStateTransactionFree(void *state, uint64_t tx_id)
         if (tx == enip_state->curr)
         enip_state->curr = NULL;
 
-        if (tx->decoder_events != NULL)
-        {
-            if (tx->decoder_events->cnt <= enip_state->events)
-            enip_state->events -= tx->decoder_events->cnt;
+        if (tx->tx_data.events != NULL) {
+            if (tx->tx_data.events->cnt <= enip_state->events)
+                enip_state->events -= tx->tx_data.events->cnt;
             else
-            enip_state->events = 0;
+                enip_state->events = 0;
         }
 
         TAILQ_REMOVE(&enip_state->tx_list, tx, next);
@@ -497,8 +491,6 @@ void RegisterENIPUDPParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
 
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetEvents);
-
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
@@ -571,8 +563,6 @@ void RegisterENIPTCPParsers(void)
                 STREAM_TOCLIENT, ENIPParse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
-
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetEvents);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxData);

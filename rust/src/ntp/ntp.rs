@@ -54,9 +54,6 @@ pub struct NTPTransaction {
     /// The internal transaction id
     id: u64,
 
-    /// The events associated with this transaction
-    events: *mut core::AppLayerDecoderEvents,
-
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -137,8 +134,7 @@ impl NTPState {
     /// Set an event. The event is set on the most recent transaction.
     pub fn set_event(&mut self, event: NTPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.tx_data.set_event(event as u8);
             self.events += 1;
         }
     }
@@ -149,21 +145,8 @@ impl NTPTransaction {
         NTPTransaction {
             xid: 0,
             id: id,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
-    }
-
-    fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
-}
-
-impl Drop for NTPTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -251,14 +234,6 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
     1
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, NTPTransaction);
-    return tx.events;
-}
-
 static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
@@ -311,7 +286,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_ntp_tx_get_alstate_progress,
-        get_events         : Some(rs_ntp_state_get_events),
         get_eventinfo      : Some(NTPEvent::get_event_info),
         get_eventinfo_byid : Some(NTPEvent::get_event_info_by_id),
         localstorage_new   : None,

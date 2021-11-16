@@ -77,9 +77,6 @@ pub struct SNMPTransaction<'a> {
     /// The internal transaction id
     id: u64,
 
-    /// The events associated with this transaction
-    events: *mut core::AppLayerDecoderEvents,
-
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -224,14 +221,13 @@ impl<'a> SNMPState<'a> {
     /// Set an event. The event is set on the most recent transaction.
     fn set_event(&mut self, event: SNMPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.tx_data.set_event(event as u8);
         }
     }
 
     /// Set an event on a specific transaction.
     fn set_event_tx(&self, tx: &mut SNMPTransaction, event: SNMPEvent) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
+        tx.tx_data.set_event(event as u8);
     }
 }
 
@@ -244,28 +240,10 @@ impl<'a> SNMPTransaction<'a> {
             usm: None,
             encrypted: false,
             id: id,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
-
-    fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
 }
-
-impl<'a> Drop for SNMPTransaction<'a> {
-    fn drop(&mut self) {
-        self.free();
-    }
-}
-
-
-
-
-
 
 /// Returns *mut SNMPState
 #[no_mangle]
@@ -345,14 +323,6 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
     1
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_events(tx: *mut std::os::raw::c_void)
-                                           -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, SNMPTransaction);
-    return tx.events;
-}
-
 static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
@@ -422,7 +392,6 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_snmp_tx_get_alstate_progress,
-        get_events         : Some(rs_snmp_state_get_events),
         get_eventinfo      : Some(SNMPEvent::get_event_info),
         get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,

@@ -863,8 +863,6 @@ static void FTPStateFree(void *s)
     if (fstate->line_state[1].db)
         FTPFree(fstate->line_state[1].db, fstate->line_state[1].db_len);
 
-    //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
-
     FTPTransaction *tx = NULL;
     while ((tx = TAILQ_FIRST(&fstate->tx_list))) {
         TAILQ_REMOVE(&fstate->tx_list, tx, next);

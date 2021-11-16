@@ -16,7 +16,7 @@
  */
 
 use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
@@ -32,8 +32,6 @@ pub struct TemplateTransaction {
     pub request: Option<String>,
     pub response: Option<String>,
 
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -43,18 +41,7 @@ impl TemplateTransaction {
             tx_id: 0,
             request: None,
             response: None,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
-    }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
         }
     }
 }
@@ -62,12 +49,6 @@ impl TemplateTransaction {
 impl Transaction for TemplateTransaction {
     fn id(&self) -> u64 {
         self.tx_id
-    }
-}
-
-impl Drop for TemplateTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -399,14 +380,6 @@ pub unsafe extern "C" fn rs_template_tx_get_alstate_progress(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_state_get_events(
-    tx: *mut std::os::raw::c_void
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, TemplateTransaction);
-    return tx.events;
-}
-
 /// Get the request buffer for a transaction from C.
 ///
 /// No required for parsing, but an example function for retrieving a
@@ -474,7 +447,6 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_template_tx_get_alstate_progress,
-        get_events: Some(rs_template_state_get_events),
         get_eventinfo: Some(TemplateEvent::get_event_info),
         get_eventinfo_byid : Some(TemplateEvent::get_event_info_by_id),
         localstorage_new: None,

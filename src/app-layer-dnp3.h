@@ -243,9 +243,6 @@ typedef struct DNP3Transaction_ {
                                          * we do not know. */
     DNP3ObjectList         response_objects;
 
-    AppLayerDecoderEvents *decoder_events; /**< Per transcation
-                                            * decoder events. */
-
     TAILQ_ENTRY(DNP3Transaction_) next;
 } DNP3Transaction;
 

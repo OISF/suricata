@@ -228,8 +228,6 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
-    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
-
     /** Holds the boundary identification string if any (used on
      *  multipart/form-data only)
      */

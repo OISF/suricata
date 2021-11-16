@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use crate::core::*;
 use crate::smb::smb::*;
 
 #[derive(AppLayerEvent)]
@@ -33,13 +32,13 @@ pub enum SMBEvent {
 impl SMBTransaction {
     /// Set event.
     pub fn set_event(&mut self, e: SMBEvent) {
-        sc_app_layer_decoder_events_set_event_raw(&mut self.events, e as u8);
+        self.tx_data.set_event(e as u8);
     }
 
     /// Set events from vector of events.
     pub fn set_events(&mut self, events: Vec<SMBEvent>) {
         for e in events {
-            sc_app_layer_decoder_events_set_event_raw(&mut self.events, e as u8);
+            self.tx_data.set_event(e as u8);
         }
     }
 }
@@ -54,6 +53,5 @@ impl SMBState {
 
         let tx = &mut self.transactions[len - 1];
         tx.set_event(event);
-        //sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
     }
 }

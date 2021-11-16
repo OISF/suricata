@@ -177,8 +177,8 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto proto,
                                  void (*LocalStorageFree)(void *));
 void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
                              FileContainer *(*StateGetFiles)(void *, uint8_t));
-void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
-    AppLayerDecoderEvents *(*StateGetEvents)(void *) __attribute__((nonnull)));
+// void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
+//     AppLayerDecoderEvents *(*StateGetEvents)(void *) __attribute__((nonnull)));
 void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
                          LoggerId (*StateGetTxLogged)(void *, void *),
                          void (*StateSetTxLogged)(void *, void *, LoggerId));

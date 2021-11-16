@@ -240,15 +240,8 @@ void SSLSetEvent(SSLState *ssl_state, uint8_t event)
         return;
     }
 
-    AppLayerDecoderEventsSetEventRaw(&ssl_state->decoder_events, event);
+    AppLayerDecoderEventsSetEventRaw(&ssl_state->tx_data.events, event);
     ssl_state->events++;
-}
-
-static AppLayerDecoderEvents *SSLGetEvents(void *tx)
-{
-    /* for TLS, TX == state, see GetTx */
-    SSLState *ssl_state = (SSLState *)tx;
-    return ssl_state->decoder_events;
 }
 
 static void *SSLGetTx(void *state, uint64_t tx_id)
@@ -2678,7 +2671,7 @@ static void SSLStateFree(void *p)
     if (ssl_state->server_connp.ja3_hash)
         SCFree(ssl_state->server_connp.ja3_hash);
 
-    AppLayerDecoderEventsFreeEvents(&ssl_state->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&ssl_state->tx_data.events);
 
     if (ssl_state->tx_data.de_state != NULL) {
         DetectEngineStateFree(ssl_state->tx_data.de_state);
@@ -2952,8 +2945,6 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOSERVER);
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TLS, SSLStateTransactionFree);
-
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetEvents);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TLS, SSLGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxData);
