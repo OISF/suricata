@@ -155,8 +155,8 @@ impl RdpState {
     }
 
     fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
-        let tx = RdpTransaction::new(self.next_id, item);
         self.next_id += 1;
+        let tx = RdpTransaction::new(self.next_id, item);
         return tx;
     }
 
@@ -602,8 +602,8 @@ mod tests {
         state.transactions.push(tx0);
         state.transactions.push(tx1);
         assert_eq!(2, state.transactions.len());
-        assert_eq!(0, state.transactions[0].id);
-        assert_eq!(1, state.transactions[1].id);
+        assert_eq!(1, state.transactions[0].id);
+        assert_eq!(2, state.transactions[1].id);
         assert_eq!(false, state.tls_parsing);
         assert_eq!(false, state.bypass_parsing);
     }
@@ -626,7 +626,7 @@ mod tests {
         state.transactions.push(tx0);
         state.transactions.push(tx1);
         state.transactions.push(tx2);
-        assert_eq!(Some(&state.transactions[1]), state.get_tx(1));
+        assert_eq!(Some(&state.transactions[1]), state.get_tx(2));
     }
 
     #[test]
@@ -650,8 +650,8 @@ mod tests {
         state.free_tx(1);
         assert_eq!(3, state.next_id);
         assert_eq!(2, state.transactions.len());
-        assert_eq!(0, state.transactions[0].id);
-        assert_eq!(2, state.transactions[1].id);
+        assert_eq!(2, state.transactions[0].id);
+        assert_eq!(3, state.transactions[1].id);
         assert_eq!(None, state.get_tx(1));
     }
 }
