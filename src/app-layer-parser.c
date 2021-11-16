@@ -1389,14 +1389,6 @@ int AppLayerParserIsEnabled(AppProto alproto)
     return 0;
 }
 
-int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto)
-{
-    SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
-    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEvents == NULL) ? 0 : 1;
-    SCReturnInt(r);
-}
-
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
