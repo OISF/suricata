@@ -1,3 +1,32 @@
+5.0.8 -- 2021-11-16
+
+Security #4635: tcp: crafted injected packets cause desync after 3whs
+Security #4727: Bypass of Payload Detection on TCP RST with options of MD5header
+Bug #4345: Failed assert in TCPProtoDetectCheckBailConditions size_ts > 1000000UL
+Bug #4382: fileinfo "stored: false" even if the file is kept on disk
+Bug #4626: DNP3: intra structure overflow in DNP3DecodeObjectG70V6
+Bug #4628: alert count shows up as 0 when stats are disabled
+Bug #4631: Protocol detection : confusion with SMB in midstream
+Bug #4639: Failed assertion in SMTP SMTPTransactionComplete
+Bug #4646: TCP reassembly, failed assert app_progress > last_ack_abs, both sides need to be pruned
+Bug #4647: rules: Unable to find the sm in any of the sm lists
+Bug #4674: rules: mix of drop and pass rules issues
+Bug #4676: rules: drop rules with noalert not fully dropping
+Bug #4688: detect: too many prefilter engines lead to FNs
+Bug #4690: nfs: failed assert self.tx_data.files_logged > 1
+Bug #4691: IPv6 : decoder event on invalid fragment length
+Bug #4696: lua: file info callback returns wrong value
+Bug #4718: protodetect: SEGV due to NULL ptr deref
+Bug #4729: ipv6 evasions : fragmentation
+Bug #4788: Memory leak in SNMP with DetectEngineState
+Bug #4790: af-packet: threads sometimes get stuck in capture
+Bug #4794: loopback: different AF_INET6 values per OS
+Bug #4816: flow-manager: cond_t handling in emergency mode is broken
+Bug #4831: SWF decompression overread
+Bug #4833: Wrong list_id with transforms for http_client_body and http file_data
+Optimization #3429: improve err msg for dataset rules parsing
+Task #4835: libhtp 0.5.39
+
 5.0.7 -- 2021-06-30
 
 Security #4454: Buffer overread in SMTP SMTPParseCommandBDAT
