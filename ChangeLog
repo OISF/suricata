@@ -1,3 +1,47 @@
+6.0.4 -- 2021-11-16
+
+Security #4634: tcp: crafted injected packets cause desync after 3whs
+Security #4726: tcp: Bypass of Payload Detection on TCP RST with options of MD5header
+Bug #4346: Failed assert in TCPProtoDetectCheckBailConditions size_ts > 1000000UL
+Bug #4383: fileinfo "stored: false" even if the file is kept on disk
+Bug #4548: rules: Unable to find the sm in any of the sm lists
+Bug #4552: http2: missing doc and default config for app-layer.protocols.http2.http1-rules
+Bug #4576: analyzer: invalid rules.json
+Bug #4625: DNP3: intra structure overflow in DNP3DecodeObjectG70V6
+Bug #4627: alert count shows up as 0 when stats are disabled
+Bug #4629: Netmap IPS mode in Suricata 6.x ceases to pass traffic after a short, variable period of time on FreeBSD-12
+Bug #4632: HTTP2 null dereference in upgrade
+Bug #4633: eve/flow: many flows logged with reason==unknown
+Bug #4636: Rules based on SSH banner-related keywords only match on acked data
+Bug #4637: Memory leak in Protocol change during protocol detection
+Bug #4638: Failed assertion in SMTP SMTPTransactionComplete
+Bug #4640: Quadratic complexity in HTTP2 gzip decompression
+Bug #4645: TCP reassembly, failed assert app_progress > last_ack_abs, both sides need to be pruned
+Bug #4648: HTTP2 built-in rules are not included in the source tarball for Suricata 6.0.3
+Bug #4673: rules: mix of drop and pass rules issues
+Bug #4675: rules: drop rules with noalert not fully dropping
+Bug #4686: IPv6 : decoder event on invalid fragment length
+Bug #4687: detect: too many prefilter engines lead to FNs
+Bug #4689: nfs: failed assert self.tx_data.files_logged > 1
+Bug #4695: lua: file info callback returns wrong value
+Bug #4712: lua: Use lua_pushinteger for pushing integer types as integers instead of floats
+Bug #4713: Protocol detection evasion enip-dns
+Bug #4717: protodetect: SEGV due to NULL ptr deref
+Bug #4728: ipv6 evasions : fragmentation
+Bug #4732: flows: spare pool not freeing flows aggressively enough
+Bug #4733: flows: TCP flow timeout handling stuck if there is no traffic
+Bug #4787: Memory leak in SNMP with DetectEngineState
+Bug #4789: af-packet: threads sometimes get stuck in capture
+Bug #4792: Flow leaked when flow->use_cnt access race happens
+Bug #4793: loopback: different AF_INET6 values per OS
+Bug #4826: packetpool: packets in pool may have capture method ReleasePacket callbacks set
+Bug #4829: flow: flows not evicted & freed in time
+Bug #4830: SWF decompression overread
+Bug #4832: Wrong list_id with transforms for http_client_body and http file_data
+Feature #4641: HTTP2: support deflate decompression
+Optimization #4642: HTTP2: what to do when HTTP upgrade is requested and HTTP2 is disabled ?
+Task #4834: libhtp 0.5.39
+
 6.0.3 -- 2021-06-30
 
 Security #4420: Heap-use-after-free READ 8 · JsonDNP3LoggerToClient
