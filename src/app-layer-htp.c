@@ -262,7 +262,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     SCLogDebug("setting event %u", e);
 
     if (htud) {
-        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, e);
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
     }
@@ -276,25 +276,12 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     if (tx != NULL) {
         htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
-            AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, e);
+            AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
             s->events++;
             return;
         }
     }
     SCLogDebug("couldn't set event %u", e);
-}
-
-static AppLayerDecoderEvents *HTPGetEvents(void *tx)
-{
-    SCLogDebug("get HTTP events for TX %p", tx);
-
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (htud != NULL) {
-        SCLogDebug("has htud, htud->decoder_events %p", htud->decoder_events);
-        return htud->decoder_events;
-    }
-
-    return NULL;
 }
 
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
@@ -332,7 +319,7 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
-        AppLayerDecoderEventsFreeEvents(&htud->decoder_events);
+        AppLayerDecoderEventsFreeEvents(&htud->tx_data.events);
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
         if (htud->tx_data.de_state != NULL) {
@@ -3093,7 +3080,6 @@ void RegisterHTPParsers(void)
 
         AppLayerParserRegisterStateProgressCompletionStatus(
                 ALPROTO_HTTP1, HTP_REQUEST_COMPLETE, HTP_RESPONSE_COMPLETE);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfoById);

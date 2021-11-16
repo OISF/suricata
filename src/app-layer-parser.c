@@ -105,7 +105,6 @@ typedef struct AppLayerParserProtoCtx_
 
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
-    AppLayerDecoderEvents *(*StateGetEvents)(void *);
 
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -425,17 +424,6 @@ void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles =
         StateGetFiles;
-
-    SCReturn;
-}
-
-void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto alproto,
-    AppLayerDecoderEvents *(*StateGetEvents)(void *))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetEvents =
-        StateGetEvents;
 
     SCReturn;
 }
@@ -833,11 +821,10 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
 
     AppLayerDecoderEvents *ptr = NULL;
 
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-        StateGetEvents != NULL)
-    {
-        ptr = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateGetEvents(tx);
+    /* Access events via the tx_data. */
+    AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+    if (txd != NULL && txd->events != NULL) {
+        ptr = txd->events;
     }
 
     SCReturnPtr(ptr, "AppLayerDecoderEvents *");
@@ -1487,7 +1474,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateGetProgress %p\n", ctx->StateGetProgress);
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
-    printf("- StateGetEvents %p StateGetEventInfo %p StateGetEventInfoById %p\n", ctx->StateGetEvents, ctx->StateGetEventInfo,
+    printf("- StateGetEventInfo %p StateGetEventInfoById %p\n", ctx->StateGetEventInfo,
             ctx->StateGetEventInfoById);
 }
 

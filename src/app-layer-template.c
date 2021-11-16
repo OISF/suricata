@@ -100,7 +100,7 @@ static void TemplateTxFree(void *txv)
         SCFree(tx->response_buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
     SCFree(tx);
 }
@@ -188,11 +188,6 @@ static int TemplateStateGetEventInfoById(int event_id, const char **event_name,
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
-}
-
-static AppLayerDecoderEvents *TemplateGetEvents(void *tx)
-{
-    return ((TemplateTransaction *)tx)->decoder_events;
 }
 
 /**
@@ -303,8 +298,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
     if ((input_len == 1 && tx->request_buffer[0] == '\n') ||
         (input_len == 2 && tx->request_buffer[0] == '\r')) {
         SCLogNotice("Creating event for empty message.");
-        AppLayerDecoderEventsSetEventRaw(&tx->decoder_events,
-            TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
+        AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
     }
 
 end:
@@ -529,8 +523,6 @@ void RegisterTemplateParsers(void)
             TemplateStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfoById);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateGetEvents);
 
         /* Leave this is if your parser can handle gaps, otherwise
          * remove. */

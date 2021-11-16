@@ -231,7 +231,6 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
-    pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
 }
 
@@ -248,14 +247,7 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
-        }
-    }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
 
@@ -281,12 +273,6 @@ impl DNSTransaction {
         return 0;
     }
 
-}
-
-impl Drop for DNSTransaction {
-    fn drop(&mut self) {
-        self.free();
-    }
 }
 
 struct ConfigTracker {
@@ -394,8 +380,7 @@ impl DNSState {
         }
 
         let tx = &mut self.transactions[len - 1];
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
-                                                        event as u8);
+        tx.tx_data.set_event(event as u8);
         self.events += 1;
     }
 
@@ -798,14 +783,6 @@ pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    return tx.events;
-}
-
 pub unsafe extern "C" fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
@@ -962,7 +939,6 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
@@ -1006,7 +982,6 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,

@@ -179,8 +179,6 @@ pub struct NFSTransaction {
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
-    pub events: *mut AppLayerDecoderEvents,
-
     pub tx_data: AppLayerTxData,
 }
 
@@ -207,7 +205,6 @@ impl NFSTransaction {
             file_tx_direction: Direction::ToServer,
             file_handle:Vec::new(),
             type_data: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -215,9 +212,6 @@ impl NFSTransaction {
     pub fn free(&mut self) {
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
-        if !self.events.is_null() {
-            sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
     }
 }
 
@@ -419,7 +413,7 @@ impl NFSState {
         }
 
         let tx = &mut self.transactions[len - 1];
-        sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
+        tx.tx_data.set_event(event as u8);
         self.events += 1;
     }
 
@@ -1544,14 +1538,6 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
-                                          -> *mut AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, NFSTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                               event_name: *mut *const std::os::raw::c_char,
                                               event_type: *mut AppLayerEventType)
@@ -1877,7 +1863,6 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_events: Some(rs_nfs_state_get_events),
         get_eventinfo: Some(rs_nfs_state_get_event_info),
         get_eventinfo_byid : Some(rs_nfs_state_get_event_info_by_id),
         localstorage_new: None,
@@ -1954,7 +1939,6 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_events: Some(rs_nfs_state_get_events),
         get_eventinfo: Some(rs_nfs_state_get_event_info),
         get_eventinfo_byid : None,
         localstorage_new: None,

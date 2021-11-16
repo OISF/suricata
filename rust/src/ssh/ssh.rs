@@ -17,7 +17,7 @@
 
 use super::parser;
 use crate::applayer::*;
-use crate::core::{self, *};
+use crate::core::*;
 use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -82,7 +82,6 @@ pub struct SSHTransaction {
     pub srv_hdr: SshHeader,
     pub cli_hdr: SshHeader,
 
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -91,21 +90,8 @@ impl SSHTransaction {
         SSHTransaction {
             srv_hdr: SshHeader::new(),
             cli_hdr: SshHeader::new(),
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
-    }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
-}
-
-impl Drop for SSHTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -121,8 +107,7 @@ impl SSHState {
     }
 
     fn set_event(&mut self, event: SSHEvent) {
-        let ev = event as u8;
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.transaction.events, ev);
+        self.transaction.tx_data.set_event(event as u8);
     }
 
     fn parse_record(
@@ -349,14 +334,6 @@ impl SSHState {
 export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ssh_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, SSHTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SSHState::new();
     let boxed = Box::new(state);
@@ -477,7 +454,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
         tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
-        get_events: Some(rs_ssh_state_get_events),
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
         localstorage_new: None,

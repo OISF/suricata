@@ -353,8 +353,8 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
     SCLogDebug("setting event %u", e);
 
     if (s->curr_tx != NULL) {
-        AppLayerDecoderEventsSetEventRaw(&s->curr_tx->decoder_events, e);
-//        s->events++;
+        AppLayerDecoderEventsSetEventRaw(&s->curr_tx->tx_data.events, e);
+        //        s->events++;
         return;
     }
     SCLogDebug("couldn't set event %u", e);
@@ -1530,8 +1530,8 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     /* Free list of MIME message recursively */
     MimeDecFreeEntity(tx->msg_head);
 
-    if (tx->decoder_events != NULL)
-        AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    if (tx->tx_data.events != NULL)
+        AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
     if (tx->tx_data.de_state != NULL)
         DetectEngineStateFree(tx->tx_data.de_state);
@@ -1544,12 +1544,6 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
         TAILQ_REMOVE(&tx->rcpt_to_list, str, next);
         SMTPStringFree(str);
     }
-#if 0
-        if (tx->decoder_events->cnt <= smtp_state->events)
-            smtp_state->events -= tx->decoder_events->cnt;
-        else
-            smtp_state->events = 0;
-#endif
     SCFree(tx);
 }
 
@@ -1755,13 +1749,6 @@ static void SMTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
-static AppLayerDecoderEvents *SMTPGetEvents(void *tx)
-{
-    SCLogDebug("get SMTP events for TX %p", tx);
-
-    return ((SMTPTransaction *)tx)->decoder_events;
-}
-
 static AppLayerTxData *SMTPGetTxData(void *vtx)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
@@ -1795,7 +1782,6 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);

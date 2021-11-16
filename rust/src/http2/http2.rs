@@ -21,7 +21,7 @@ use super::parser;
 use super::range;
 
 use crate::applayer::{self, *};
-use crate::core::{self, *};
+use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
 use nom;
@@ -131,7 +131,6 @@ pub struct HTTP2Transaction {
     decoder: decompression::HTTP2Decoder,
     pub file_range: *mut HttpRangeContainerBlock,
 
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
     pub ft_tc: FileTransferTracker,
     ft_ts: FileTransferTracker,
@@ -158,7 +157,6 @@ impl HTTP2Transaction {
             frames_ts: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
             ft_tc: FileTransferTracker::new(),
             ft_ts: FileTransferTracker::new(),
@@ -167,9 +165,6 @@ impl HTTP2Transaction {
     }
 
     pub fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
         if !self.file_range.is_null() {
             match unsafe { SC } {
                 None => panic!("BUG no suricata_config"),
@@ -189,8 +184,7 @@ impl HTTP2Transaction {
     }
 
     pub fn set_event(&mut self, event: HTTP2Event) {
-        let ev = event as u8;
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, ev);
+        self.tx_data.set_event(event as u8);
     }
 
     fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
@@ -435,8 +429,7 @@ impl HTTP2State {
             return;
         }
         let tx = &mut self.transactions[len - 1];
-        let ev = event as u8;
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+        tx.tx_data.set_event(event as u8);
     }
 
     // Free a transaction by ID.
@@ -1131,14 +1124,6 @@ pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-    return tx.events;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
     state: *mut std::os::raw::c_void, direction: u8,
 ) -> *mut FileContainer {
@@ -1174,7 +1159,6 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
-        get_events: Some(rs_http2_state_get_events),
         get_eventinfo: Some(HTTP2Event::get_event_info),
         get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),
         localstorage_new: None,

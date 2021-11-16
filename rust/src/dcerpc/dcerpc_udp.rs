@@ -341,7 +341,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dcerpc_get_alstate_progress,
-        get_events: None,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,

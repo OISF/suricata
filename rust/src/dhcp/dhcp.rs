@@ -18,7 +18,6 @@
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
-use crate::core::sc_app_layer_decoder_events_free_events;
 use crate::dhcp::parser::*;
 use std;
 use std::ffi::CString;
@@ -79,7 +78,6 @@ pub enum DHCPEvent {
 pub struct DHCPTransaction {
     tx_id: u64,
     pub message: DHCPMessage,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -88,28 +86,14 @@ impl DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
             message: message,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
-
-    pub fn free(&mut self) {
-        if !self.events.is_null() {
-            sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-    }
-
 }
 
 impl Transaction for DHCPTransaction {
     fn id(&self) -> u64 {
         self.tx_id
-    }
-}
-
-impl Drop for DHCPTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -185,8 +169,7 @@ impl DHCPState {
 
     fn set_event(&mut self, event: DHCPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            core::sc_app_layer_decoder_events_set_event_raw(
-                &mut tx.events, event as u8);
+            tx.tx_data.set_event(event as u8);
             self.events += 1;
         }
     }
@@ -278,14 +261,6 @@ pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut DHCPState));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
-                                           -> *mut core::AppLayerDecoderEvents
-{
-    let tx = cast_pointer!(tx, DHCPTransaction);
-    return tx.events;
-}
-
 export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
 
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
@@ -312,7 +287,6 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
         tx_get_progress    : rs_dhcp_tx_get_alstate_progress,
-        get_events         : Some(rs_dhcp_state_get_events),
         get_eventinfo      : Some(DHCPEvent::get_event_info),
         get_eventinfo_byid : Some(DHCPEvent::get_event_info_by_id),
         localstorage_new   : None,

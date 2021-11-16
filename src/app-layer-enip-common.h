@@ -206,8 +206,6 @@ typedef struct ENIPTransaction_
 
     TAILQ_HEAD(, CIPServiceEntry_) service_list; /**< list for CIP  */
 
-    AppLayerDecoderEvents *decoder_events;      /**< per tx events */
-
     TAILQ_ENTRY(ENIPTransaction_) next;
     AppLayerTxData tx_data;
 } ENIPTransaction;

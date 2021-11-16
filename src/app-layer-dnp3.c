@@ -466,7 +466,7 @@ static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
 {
     if (dnp3 && dnp3->curr) {
-        AppLayerDecoderEventsSetEventRaw(&dnp3->curr->decoder_events, event);
+        AppLayerDecoderEventsSetEventRaw(&dnp3->curr->tx_data.events, event);
         dnp3->events++;
     }
     else {
@@ -479,7 +479,7 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
  */
 static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 {
-    AppLayerDecoderEventsSetEventRaw(&tx->decoder_events, event);
+    AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, event);
     tx->dnp3->events++;
 }
 
@@ -1329,11 +1329,6 @@ error:
     SCReturnStruct(APP_LAYER_ERROR);
 }
 
-static AppLayerDecoderEvents *DNP3GetEvents(void *tx)
-{
-    return ((DNP3Transaction *) tx)->decoder_events;
-}
-
 static void *DNP3GetTx(void *alstate, uint64_t tx_id)
 {
     SCEnter();
@@ -1390,7 +1385,7 @@ static void DNP3TxFree(DNP3Transaction *tx)
         SCFree(tx->response_buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
 
     if (tx->tx_data.de_state != NULL) {
         DetectEngineStateFree(tx->tx_data.de_state);
@@ -1426,11 +1421,10 @@ static void DNP3StateTxFree(void *state, uint64_t tx_id)
             dnp3->curr = NULL;
         }
 
-        if (tx->decoder_events != NULL) {
-            if (tx->decoder_events->cnt <= dnp3->events) {
-                dnp3->events -= tx->decoder_events->cnt;
-            }
-            else {
+        if (tx->tx_data.events != NULL) {
+            if (tx->tx_data.events->cnt <= dnp3->events) {
+                dnp3->events -= tx->tx_data.events->cnt;
+            } else {
                 dnp3->events = 0;
             }
         }
@@ -1600,9 +1594,6 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateAlloc, DNP3StateFree);
-
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetEvents);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);

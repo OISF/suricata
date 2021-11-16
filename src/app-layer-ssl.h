@@ -249,8 +249,6 @@ typedef struct SSLState_ {
 
     SSLStateConnp client_connp;
     SSLStateConnp server_connp;
-
-    AppLayerDecoderEvents *decoder_events;
 } SSLState;
 
 void RegisterSSLParsers(void);

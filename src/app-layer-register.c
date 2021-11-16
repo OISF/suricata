@@ -145,10 +145,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterGetEventInfoById(p->ip_proto, alproto,
                 p->StateGetEventInfoById);
     }
-    if (p->StateGetEvents) {
-        AppLayerParserRegisterGetEventsFunc(p->ip_proto, alproto,
-                p->StateGetEvents);
-    }
     if (p->LocalStorageAlloc && p->LocalStorageFree) {
         AppLayerParserRegisterLocalStorageFunc(p->ip_proto, alproto,
                 p->LocalStorageAlloc, p->LocalStorageFree);

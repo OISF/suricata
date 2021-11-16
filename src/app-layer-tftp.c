@@ -71,11 +71,6 @@ static int TFTPStateGetEventInfo(const char *event_name, int *event_id,
     return -1;
 }
 
-static AppLayerDecoderEvents *TFTPGetEvents(void *tx)
-{
-    return NULL;
-}
-
 /**
  * \brief Probe the input to see if it looks like tftp.
  *
@@ -233,8 +228,6 @@ void RegisterTFTPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP,
                                            TFTPStateGetEventInfo);
-        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
-                                            TFTPGetEvents);
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                          rs_tftp_get_tx_data);

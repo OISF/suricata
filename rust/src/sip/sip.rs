@@ -48,7 +48,6 @@ pub struct SIPTransaction {
     pub response: Option<Response>,
     pub request_line: Option<String>,
     pub response_line: Option<String>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -92,8 +91,7 @@ impl SIPState {
 
     fn set_event(&mut self, event: SIPEvent) {
         if let Some(tx) = self.transactions.last_mut() {
-            let ev = event as u8;
-            core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+            tx.tx_data.set_event(event as u8);
         }
     }
 
@@ -150,16 +148,7 @@ impl SIPTransaction {
             response: None,
             request_line: None,
             response_line: None,
-            events: std::ptr::null_mut(),
             tx_data: applayer::AppLayerTxData::new(),
-        }
-    }
-}
-
-impl Drop for SIPTransaction {
-    fn drop(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
 }
@@ -207,14 +196,6 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
     _direction: u8,
 ) -> std::os::raw::c_int {
     1
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, SIPTransaction);
-    return tx.events;
 }
 
 static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
@@ -304,7 +285,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_sip_tx_get_alstate_progress,
-        get_events: Some(rs_sip_state_get_events),
         get_eventinfo: Some(SIPEvent::get_event_info),
         get_eventinfo_byid: Some(SIPEvent::get_event_info_by_id),
         localstorage_new: None,
