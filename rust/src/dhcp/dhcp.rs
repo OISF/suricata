@@ -57,8 +57,8 @@ pub const DHCP_TYPE_NAK: u8 = 6;
 pub const DHCP_TYPE_RELEASE: u8 = 7;
 pub const DHCP_TYPE_INFORM: u8 = 8;
 
-/// DHCP parameter types.
-/// https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.txt
+// DHCP parameter types.
+// https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.txt
 pub const DHCP_PARAM_SUBNET_MASK: u8 = 1;
 pub const DHCP_PARAM_ROUTER: u8 = 3;
 pub const DHCP_PARAM_DNS_SERVER: u8 = 6;
