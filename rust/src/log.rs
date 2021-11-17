@@ -81,9 +81,10 @@ macro_rules!function {
          &name[..name.len() - 5]
     }}
 }
-/// Return the function name, but for now just return <rust> as Rust
-/// has no macro to return the function name, but may in the future,
-/// see: https://github.com/rust-lang/rfcs/pull/1719
+
+// Return the function name, but for now just return <rust> as Rust
+// has no macro to return the function name, but may in the future,
+// see: https://github.com/rust-lang/rfcs/pull/1719
 #[cfg(not(feature = "function-macro"))]
 #[macro_export(local_inner_macros)]
 macro_rules!function {
