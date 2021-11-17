@@ -1243,6 +1243,8 @@ int SCProfileRuleStart(Packet *p)
         return 1;
     }
 #endif
+    if (p->flags & PKT_PROFILE)
+        return 1;
     return 0;
 }
 
