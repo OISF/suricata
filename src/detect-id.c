@@ -364,10 +364,6 @@ static int DetectIdTestMatch01(void)
     /* UDP IP id = 91011 */
     p[2]->ip4h->ip_id = htons(5101);
 
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
-
     UTHFreePackets(p, 3);
 
     PASS;
