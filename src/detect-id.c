@@ -379,8 +379,6 @@ static int DetectIdTestMatch01(void)
                               /* packet 2 should not match */
                               {0, 0, 1} };
 
-    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 3);
-
     UTHFreePackets(p, 3);
 
     PASS;
