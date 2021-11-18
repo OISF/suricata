@@ -364,20 +364,10 @@ static int DetectIdTestMatch01(void)
     /* UDP IP id = 91011 */
     p[2]->ip4h->ip_id = htons(5101);
 
-    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
-
-    uint32_t results[3][3] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {1, 0, 0},
-                              /* packet 1 should not match */
-                              {0, 1, 0},
-                              /* packet 2 should not match */
-                              {0, 0, 1} };
 
     UTHFreePackets(p, 3);
 
