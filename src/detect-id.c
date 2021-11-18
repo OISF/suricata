@@ -368,7 +368,6 @@ static int DetectIdTestMatch01(void)
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
 
-
     UTHFreePackets(p, 3);
 
     PASS;
