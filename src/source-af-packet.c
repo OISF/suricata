@@ -295,6 +295,9 @@ typedef struct AFPThreadVars_
     uint16_t capture_afp_poll_timeout;
     uint16_t capture_afp_poll_data;
     uint16_t capture_afp_poll_err;
+    uint16_t capture_afp_send_err;
+
+    uint64_t send_errors_logged; /**< snapshot of send errors logged. */
 
     /* handle state */
     uint8_t afp_state;
@@ -422,7 +425,6 @@ static void AFPPeerUpdate(AFPThreadVars *ptv)
     (void)SC_ATOMIC_SET(ptv->mpeer->if_idx, AFPGetIfnumByDev(ptv->socket, ptv->iface, 0));
     (void)SC_ATOMIC_SET(ptv->mpeer->socket, ptv->socket);
     (void)SC_ATOMIC_SET(ptv->mpeer->state, ptv->afp_state);
-    (void)SC_ATOMIC_SET(ptv->mpeer->send_errors, 0);
 }
 
 /**
@@ -619,6 +621,12 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         StatsAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
+
+        const uint64_t value = SC_ATOMIC_GET(ptv->mpeer->send_errors);
+        if (value > ptv->send_errors_logged) {
+            StatsAddUI64(ptv->tv, ptv->capture_afp_send_err, value - ptv->send_errors_logged);
+            ptv->send_errors_logged = value;
+        }
     }
 #endif
 }
@@ -2564,6 +2572,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->capture_afp_poll_timeout = StatsRegisterCounter("capture.afpacket.poll_timeout", ptv->tv);
     ptv->capture_afp_poll_data = StatsRegisterCounter("capture.afpacket.poll_data", ptv->tv);
     ptv->capture_afp_poll_err = StatsRegisterCounter("capture.afpacket.poll_errors", ptv->tv);
+    ptv->capture_afp_send_err = StatsRegisterCounter("capture.afpacket.send_errors", ptv->tv);
 #endif
 
     ptv->copy_mode = afpconfig->copy_mode;
