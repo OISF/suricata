@@ -262,8 +262,6 @@ void FlowInitFromFlow(Flow* f, const Flow* old_f, const Packet* p) {
     f->sp = old_f->sp;
     f->dp = old_f->dp;
 
-    f->flags = old_f->flags;
-
     f->flow_hash = old_f->flow_hash;
     
     if (PKT_IS_IPV4(p)) {
