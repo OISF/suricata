@@ -3032,8 +3032,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 #endif
     }
 
-    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
-
     SCFree(det_ctx);
 }
 
@@ -4302,11 +4300,6 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
 {
     AppLayerDecoderEventsSetEventRaw(&det_ctx->p->decoder_events, e);
     det_ctx->events++;
-}
-
-AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx)
-{
-    return det_ctx->decoder_events;
 }
 
 int DetectEngineGetEventInfo(const char *event_name, int *event_id,
