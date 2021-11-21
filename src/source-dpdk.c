@@ -84,6 +84,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have DPDK support */
 
 #include "util-dpdk.h"
+#include "util-dpdk-i40e.h"
 #include <numa.h>
 
 #define BURST_SIZE 32
@@ -188,10 +189,25 @@ static uint64_t DPDKGetSeconds()
 
 static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
+    // The PMD Driver i40e has a special way to set the RSS, it can be set via rte_flow rules
+    // and only after the start of the port
+    if (strcmp(driver_name, "net_i40e") == 0)
+        i40eDeviceSetRSS(ptv->port_id, ptv->threads);
 }
 
 static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
+    int retval;
+
+    if (strcmp(driver_name, "net_i40e") == 0) {
+        // Flush the RSS rules that have been inserted in the post start section
+        struct rte_flow_error flush_error = { 0 };
+        retval = rte_flow_flush(ptv->port_id, &flush_error);
+        if (retval != 0) {
+            SCLogError(SC_ERR_DPDK_CONF, "Unable to flush rte_flow rules: %s Flush error msg: %s",
+                    rte_strerror(-retval), flush_error.message);
+        }
+    }
 }
 
 /**

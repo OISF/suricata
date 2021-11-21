@@ -38,6 +38,7 @@
 #include "util-byte.h"
 #include "util-cpu.h"
 #include "util-dpdk.h"
+#include "util-dpdk-i40e.h"
 
 #ifdef HAVE_DPDK
 
@@ -742,6 +743,9 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
 
 static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const char *driver_name)
 {
+    // RSS is configured in a specific way for a driver i40e and DPDK version <= 19.xx
+    if (strcmp(driver_name, "net_i40e") == 0)
+        i40eDeviceSetRSSHashFunction(&rss_conf->rss_hf);
 }
 
 static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
