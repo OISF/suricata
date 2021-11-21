@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -379,15 +379,13 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s)
  */
 static int DetectICodeParseTest01(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "8");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->mode == DETECT_ICODE_EQ)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "8");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_EQ);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -396,15 +394,13 @@ static int DetectICodeParseTest01(void)
  */
 static int DetectICodeParseTest02(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, ">8");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->mode == DETECT_ICODE_GT)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, ">8");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_GT);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -413,15 +409,13 @@ static int DetectICodeParseTest02(void)
  */
 static int DetectICodeParseTest03(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "<8");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->mode == DETECT_ICODE_LT)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "<8");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_LT);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -430,15 +424,14 @@ static int DetectICodeParseTest03(void)
  */
 static int DetectICodeParseTest04(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "8<>20");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->code2 == 20 && icd->mode == DETECT_ICODE_RN)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "8<>20");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->code2 == 20);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_RN);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -447,15 +440,13 @@ static int DetectICodeParseTest04(void)
  */
 static int DetectICodeParseTest05(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "  8 ");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->mode == DETECT_ICODE_EQ)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "  8 ");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_EQ);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -464,15 +455,13 @@ static int DetectICodeParseTest05(void)
  */
 static int DetectICodeParseTest06(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "  >  8 ");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->mode == DETECT_ICODE_GT)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "  >  8 ");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_GT);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -481,15 +470,14 @@ static int DetectICodeParseTest06(void)
  */
 static int DetectICodeParseTest07(void)
 {
-    DetectICodeData *icd = NULL;
-    int result = 0;
-    icd = DetectICodeParse(NULL, "  8  <>  20 ");
-    if (icd != NULL) {
-        if (icd->code1 == 8 && icd->code2 == 20 && icd->mode == DETECT_ICODE_RN)
-            result = 1;
-        DetectICodeFree(NULL, icd);
-    }
-    return result;
+    DetectICodeData *icd = DetectICodeParse(NULL, "  8  <>  20 ");
+    FAIL_IF_NULL(icd);
+    FAIL_IF_NOT(icd->code1 == 8);
+    FAIL_IF_NOT(icd->code2 == 20);
+    FAIL_IF_NOT(icd->mode == DETECT_ICODE_RN);
+    DetectICodeFree(NULL, icd);
+
+    PASS;
 }
 
 /**
@@ -497,12 +485,11 @@ static int DetectICodeParseTest07(void)
  */
 static int DetectICodeParseTest08(void)
 {
-    DetectICodeData *icd = NULL;
-    icd = DetectICodeParse(NULL, "> 8 <> 20");
-    if (icd == NULL)
-        return 1;
+    DetectICodeData *icd = DetectICodeParse(NULL, "> 8 <> 20");
+    FAIL_IF_NOT_NULL(icd);
+
     DetectICodeFree(NULL, icd);
-    return 0;
+    PASS;
 }
 
 /**
@@ -517,7 +504,6 @@ static int DetectICodeMatchTest01(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -526,70 +512,42 @@ static int DetectICodeMatchTest01(void)
     p->icmpv4h->code = 10;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert icmp any any -> any any (icode:10; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:10; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:<15; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:<15; sid:2;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:>20; sid:3;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:>20; sid:3;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:8<>20; sid:4;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:8<>20; sid:4;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:20<>8; sid:5;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:20<>8; sid:5;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) == 0) {
-        SCLogDebug("sid 1 did not alert, but should have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 2) == 0) {
-        SCLogDebug("sid 2 did not alert, but should have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 3)) {
-        SCLogDebug("sid 3 alerted, but should not have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 4) == 0) {
-        SCLogDebug("sid 4 did not alert, but should have");
-        goto cleanup;
-    } else if (PacketAlertCheck(p, 5) == 0) {
-        SCLogDebug("sid 5 did not alert, but should have");
-        goto cleanup;
-    }
 
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF(PacketAlertCheck(p, 1) == 0);
+    FAIL_IF(PacketAlertCheck(p, 2) == 0);
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4) == 0);
+    FAIL_IF(PacketAlertCheck(p, 5) == 0);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-end:
-    return result;
+
+    PASS;
 }
 
 /**
