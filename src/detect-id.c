@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -283,14 +283,14 @@ static bool PrefilterIdIsPrefilterable(const Signature *s)
  */
 static int DetectIdTestParse01 (void)
 {
-    DetectIdData *id_d = NULL;
-    id_d = DetectIdParse(" 35402 ");
-    if (id_d != NULL &&id_d->id==35402) {
-        DetectIdFree(NULL, id_d);
-        return 1;
-    }
+    DetectIdData *id_d = DetectIdParse(" 35402 ");
 
-    return 0;
+    FAIL_IF_NULL(id_d);
+    FAIL_IF_NOT(id_d->id == 35402);
+
+    DetectIdFree(NULL, id_d);
+
+    PASS;
 }
 
 /**
@@ -300,14 +300,11 @@ static int DetectIdTestParse01 (void)
  */
 static int DetectIdTestParse02 (void)
 {
-    DetectIdData *id_d = NULL;
-    id_d = DetectIdParse("65537");
-    if (id_d == NULL) {
-        DetectIdFree(NULL, id_d);
-        return 1;
-    }
+    DetectIdData *id_d = DetectIdParse("65537");
 
-    return 0;
+    FAIL_IF_NOT_NULL(id_d);
+
+    PASS;
 }
 
 /**
@@ -317,14 +314,11 @@ static int DetectIdTestParse02 (void)
  */
 static int DetectIdTestParse03 (void)
 {
-    DetectIdData *id_d = NULL;
-    id_d = DetectIdParse("12what?");
-    if (id_d == NULL) {
-        DetectIdFree(NULL, id_d);
-        return 1;
-    }
+    DetectIdData *id_d = DetectIdParse("12what?");
 
-    return 0;
+    FAIL_IF_NOT_NULL(id_d);
+
+    PASS;
 }
 
 /**
@@ -333,15 +327,15 @@ static int DetectIdTestParse03 (void)
  */
 static int DetectIdTestParse04 (void)
 {
-    DetectIdData *id_d = NULL;
     /* yep, look if we trim blank spaces correctly and ignore "'s */
-    id_d = DetectIdParse(" \"35402\" ");
-    if (id_d != NULL &&id_d->id==35402) {
-        DetectIdFree(NULL, id_d);
-        return 1;
-    }
+    DetectIdData *id_d = DetectIdParse(" \"35402\" ");
 
-    return 0;
+    FAIL_IF_NULL(id_d);
+    FAIL_IF_NOT(id_d->id == 35402);
+
+    DetectIdFree(NULL, id_d);
+
+    PASS;
 }
 
 /**
@@ -350,7 +344,6 @@ static int DetectIdTestParse04 (void)
  */
 static int DetectIdTestMatch01(void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
     Packet *p[3];
@@ -358,8 +351,9 @@ static int DetectIdTestMatch01(void)
     p[1] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_UDP);
     p[2] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_ICMP);
 
-    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
-        goto end;
+    FAIL_IF_NULL(p[0]);
+    FAIL_IF_NULL(p[1]);
+    FAIL_IF_NULL(p[2]);
 
     /* TCP IP id = 1234 */
     p[0]->ip4h->ip_id = htons(1234);
@@ -385,11 +379,11 @@ static int DetectIdTestMatch01(void)
                               /* packet 2 should not match */
                               {0, 0, 1} };
 
-    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 3);
+    FAIL_IF_NOT(UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 3));
 
     UTHFreePackets(p, 3);
-end:
-    return result;
+
+    PASS;
 }
 
 /**
