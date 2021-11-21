@@ -69,6 +69,9 @@ enum PktSrcEnum {
 #include "source-af-packet.h"
 #include "source-netmap.h"
 #include "source-windivert.h"
+#ifdef HAVE_DPDK
+#include "source-dpdk.h"
+#endif
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
 #endif
@@ -481,6 +484,9 @@ typedef struct Packet_
 #ifdef WINDIVERT
         WinDivertPacketVars windivert_v;
 #endif /* WINDIVERT */
+#ifdef HAVE_DPDK
+        DPDKPacketVars dpdk_v;
+#endif
 
         /* A chunk of memory that a plugin can use for its packet vars. */
         uint8_t plugin_v[PLUGIN_VAR_SIZE];

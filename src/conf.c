@@ -976,6 +976,61 @@ int ConfNodeIsSequence(const ConfNode *node)
     return node->is_seq == 0 ? 0 : 1;
 }
 
+/**
+ * @brief Finds an interface from the list of interfaces.
+ * @param ifaces_node_name - name of the node which holds a list of intefaces
+ * @param iface - interfaces name
+ * @return NULL on failure otherwise a valid pointer
+ */
+ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface)
+{
+    ConfNode *if_node;
+    ConfNode *ifaces_list_node;
+    /* Find initial node which holds all interfaces */
+    ifaces_list_node = ConfGetNode(ifaces_node_name);
+    if (ifaces_list_node == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "unable to find %s config", ifaces_node_name);
+        return NULL;
+    }
+
+    if_node = ConfFindDeviceConfig(ifaces_list_node, iface);
+    if (if_node == NULL)
+        SCLogNotice("unable to find interface %s in DPDK config", iface);
+
+    return if_node;
+}
+
+/**
+ * @brief Finds and sets root and default node of the interface.
+ * @param ifaces_node_name Node which holds list of interfaces
+ * @param iface Name of the interface e.g. eth3
+ * @param if_root Node which will hold the interface configuration
+ * @param if_default Node which is the default configuration in the given list of interfaces
+ * @return 0 on success, -ENODEV when neither the root interface nor the default interface was found
+ */
+int ConfSetRootAndDefaultNodes(
+        const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default)
+{
+    const char *default_iface = "default";
+    *if_root = ConfSetIfaceNode(ifaces_node_name, iface);
+    *if_default = ConfSetIfaceNode(ifaces_node_name, default_iface);
+
+    if (*if_root == NULL && *if_default == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR,
+                "unable to find configuration for the interface \"%s\" or the default "
+                "configuration (\"%s\")",
+                iface, default_iface);
+        return (-ENODEV);
+    }
+
+    /* If there is no setting for current interface use default one as main iface */
+    if (*if_root == NULL) {
+        *if_root = *if_default;
+        *if_default = NULL;
+    }
+    return 0;
+}
+
 #ifdef UNITTESTS
 
 /**
