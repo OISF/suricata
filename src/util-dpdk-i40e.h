@@ -21,25 +21,17 @@
  * \author Lukas Sismis <lukas.sismis@gmail.com>
  */
 
-#ifndef UTIL_DPDK_H
-#define UTIL_DPDK_H
+#ifndef UTIL_DPDK_I40E_H
+#define UTIL_DPDK_I40E_H
+
+#include "suricata-common.h"
+#include "util-dpdk.h"
 
 #ifdef HAVE_DPDK
 
-#include <rte_eal.h>
-#include <rte_ethdev.h>
-#include <rte_launch.h>
-#include <rte_lcore.h>
-#include <rte_log.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_flow.h>
+int i40eDeviceSetRSS(int port_id, int nb_rx_queues);
+void i40eDeviceSetRSSHashFunction(uint64_t *rss_conf);
 
 #endif /* HAVE_DPDK */
 
-#include "util-device.h"
-
-void DPDKCleanupEAL(void);
-void DPDKCloseDevice(LiveDevice *ldev);
-
-#endif /* UTIL_DPDK_H */
+#endif /* UTIL_DPDK_I40E_H */
