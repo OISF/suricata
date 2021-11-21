@@ -424,6 +424,7 @@ noinst_HEADERS = \
 	respond-reject.h \
 	respond-reject-libnet11.h \
 	runmode-af-packet.h \
+	runmode-dpdk.h \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
@@ -441,6 +442,7 @@ noinst_HEADERS = \
 	rust-context.h \
 	rust.h \
 	source-af-packet.h \
+	source-dpdk.h \
 	source-erf-dag.h \
 	source-erf-file.h \
 	source-ipfw.h \
@@ -505,6 +507,7 @@ noinst_HEADERS = \
 	util-decode-mime.h \
 	util-detect.h \
 	util-device.h \
+	util-dpdk.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
@@ -999,6 +1002,7 @@ libsuricata_c_a_SOURCES = \
 	respond-reject.c \
 	respond-reject-libnet11.c \
 	runmode-af-packet.c \
+	runmode-dpdk.c \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
 	runmode-ipfw.c \
@@ -1015,6 +1019,7 @@ libsuricata_c_a_SOURCES = \
 	runmode-windivert.c \
 	rust-context.c \
 	source-af-packet.c \
+	source-dpdk.c \
 	source-erf-dag.c \
 	source-erf-file.c \
 	source-ipfw.c \
@@ -1067,6 +1072,7 @@ libsuricata_c_a_SOURCES = \
 	util-decode-mime.c \
 	util-detect.c \
 	util-device.c \
+	util-dpdk.c \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
