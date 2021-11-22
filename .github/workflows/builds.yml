@@ -25,6 +25,9 @@ env:
   # A known good Rust version we should test against.
   RUST_VERSION_KNOWN: "1.37.0"
 
+  # The minimum version of Rust supported.
+  RUST_VERSION_MIN: "1.33.0"
+
 jobs:
 
   prep:
@@ -762,12 +765,12 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py --quiet
 
-  # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
-  # build above.
-  ubuntu-16-04:
-    name: Ubuntu 16.04
+  # An Ubuntu 20.04 build using the tarball generated in the CentOS 8
+  # build above also testing the minimum supported Rust version.
+  ubuntu-20-04-msrv:
+    name: Ubuntu 20.04 (MSRV)
     runs-on: ubuntu-latest
-    container: ubuntu:16.04
+    container: ubuntu:20.04
     needs: centos-8
     steps:
       - name: Install dependencies
@@ -794,11 +797,12 @@ jobs:
                 libyaml-0-2 \
                 libyaml-dev \
                 make \
+                python3-distutils \
                 python3-yaml \
                 zlib1g \
                 zlib1g-dev
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
