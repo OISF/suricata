@@ -501,7 +501,10 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         *len -= 4;
 {% elif field.type == "bytearray" %}
 {% if field.len_from_prefix %}
-        object->{{field.len_field}} = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->{{field.len_field}} = (uint16_t) (prefix - (offset - *len));
 {% endif %}
         if (object->{{field.len_field}} > 0) {
             if (*len < object->{{field.len_field}}) {
@@ -518,10 +521,14 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         }
 {% elif field.type == "chararray" %}
 {% if field.len_from_prefix %}
-        if (prefix - (offset - *len) >= {{field.size}}) {
+        if (prefix - (offset - *len) >= {{field.size}} || prefix < (offset - *len)) {
             goto error;
         }
-        object->{{field.len_field}} = prefix - (offset - *len);
+{% if field.size == 255 %}
+        object->{{field.len_field}} = (uint8_t) (prefix - (offset - *len));
+{% else %}
+        object->{{field.len_field}} = (uint16_t) (prefix - (offset - *len));
+{% endif %}
 {% endif %}
         if (object->{{field.len_field}} > 0) {
             if (*len < object->{{field.len_field}}) {
