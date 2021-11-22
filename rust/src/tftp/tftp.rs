@@ -23,6 +23,8 @@ use std::str;
 use std;
 use std::mem::transmute;
 
+use crate::core;
+
 use crate::applayer::AppLayerTxData;
 
 #[derive(Debug)]
@@ -32,6 +34,7 @@ pub struct TFTPTransaction {
     pub mode : String,
     id: u64,
     tx_data: AppLayerTxData,
+    pub de_state: Option<*mut core::DetectEngineState>,
 }
 
 pub struct TFTPState {
@@ -62,6 +65,7 @@ impl TFTPTransaction {
             mode : mode.to_lowercase(),
             id : 0,
             tx_data: AppLayerTxData::new(),
+            de_state: None,
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -69,6 +73,21 @@ impl TFTPTransaction {
             "netascii" | "mail" | "octet" => true,
             _ => false
         }
+    }
+
+    pub fn free(&mut self) {
+        match self.de_state {
+            Some(state) => {
+                core::sc_detect_engine_state_free(state);
+            }
+            None => { },
+        }
+    }
+}
+
+impl Drop for TFTPTransaction {
+    fn drop(&mut self) {
+        self.free();
     }
 }
 
@@ -123,6 +142,31 @@ named!(pub tftp_request<TFTPTransaction>,
     )
 );
 
+#[no_mangle]
+pub extern "C" fn rs_tftp_state_set_tx_detect_state(
+    tx: *mut std::os::raw::c_void,
+    de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
+{
+    let tx = cast_pointer!(tx, TFTPTransaction);
+    tx.de_state = Some(de_state);
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_tftp_state_get_tx_detect_state(
+    tx: *mut std::os::raw::c_void)
+    -> *mut core::DetectEngineState
+{
+    let tx = cast_pointer!(tx, TFTPTransaction);
+    match tx.de_state {
+        Some(ds) => {
+            return ds;
+        },
+        None => {
+            return std::ptr::null_mut();
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
