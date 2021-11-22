@@ -97,9 +97,6 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     {NULL, -1},
 };
 
-/* Some DNP3 servers start with a banner. */
-static const char banner[] = "DNP3";
-
 /* Calculate the next transport sequence number. */
 #define NEXT_TH_SEQNO(current) ((current + 1) % DNP3_MAX_TRAN_SEQNO)
 
@@ -251,6 +248,9 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
         header->start_byte1 == DNP3_START_BYTE1;
 }
 
+/* Some DNP3 servers start with a banner. */
+#define DNP3_BANNER "DNP3"
+
 /**
  * \brief Check if a frame contains a banner.
  *
@@ -261,7 +261,7 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
  */
 static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 {
-    return BasicSearch(input, len, (uint8_t *)banner, strlen(banner)) != NULL;
+    return BasicSearch(input, len, (uint8_t *)DNP3_BANNER, strlen(DNP3_BANNER)) != NULL;
 }
 
 /**
