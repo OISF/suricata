@@ -177,13 +177,13 @@ static int TFTPGetStateProgress(void *tx, uint8_t direction)
 
 static DetectEngineState *TFTPGetTxDetectState(void *vtx)
 {
-    return NULL;
+    return rs_tftp_state_get_tx_detect_state(vtx);
 }
 
 static int TFTPSetTxDetectState(void *vtx,
     DetectEngineState *s)
 {
-    return 0;
+    return rs_tftp_state_set_tx_detect_state(vtx, s);
 }
 
 void RegisterTFTPParsers(void)
@@ -262,7 +262,6 @@ void RegisterTFTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP,
                                     TFTPGetTx);
 
-        /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,
                                                TFTPGetTxDetectState,
                                                TFTPSetTxDetectState);
