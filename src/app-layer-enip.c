@@ -93,7 +93,7 @@ static void *ENIPGetTx(void *alstate, uint64_t tx_id)
 
 static uint64_t ENIPGetTxCnt(void *alstate)
 {
-    return ((uint64_t) ((ENIPState *) alstate)->transaction_max);
+    return ((ENIPState *)alstate)->transaction_max;
 }
 
 static AppLayerDecoderEvents *ENIPGetEvents(void *tx)
