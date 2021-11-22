@@ -120,8 +120,8 @@ typedef struct ENIPEncapAddresItem_
 {
     uint16_t type;
     uint16_t length;
-    uint16_t conn_id;
-    uint16_t sequence_num;
+    uint32_t conn_id;
+    uint32_t sequence_num;
 } ENIPEncapAddresItem;
 
 /**
@@ -182,7 +182,7 @@ typedef struct CIPServiceEntry_
         } request;
         struct
         {
-            uint8_t status;
+            uint16_t status;
         } response;
     };
 
