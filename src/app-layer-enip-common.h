@@ -195,7 +195,7 @@ typedef struct CIPServiceEntry_
 typedef struct ENIPTransaction_
 {
     struct ENIPState_ *enip;
-    uint16_t tx_num;                            /**< internal: id */
+    uint64_t tx_num;                            /**< internal: id */
     uint16_t tx_id;                             /**< transaction id */
     uint16_t service_count;
 
