@@ -191,6 +191,7 @@ impl HTTP2Transaction {
                         0,
                     );
                     (c.HttpRangeFreeBlock)(self.file_range);
+                    self.file_range = std::ptr::null_mut();
                 }
             }
         }
@@ -457,6 +458,26 @@ impl HTTP2State {
     }
 
     pub fn free(&mut self) {
+        // this should be in HTTP2Transaction::free
+        // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
+        for tx in &mut self.transactions {
+            if !tx.file_range.is_null() {
+                match unsafe { SC } {
+                    None => panic!("BUG no suricata_config"),
+                    Some(c) => {
+                        (c.HTPFileCloseHandleRange)(
+                            &mut self.files.files_tc,
+                            0,
+                            tx.file_range,
+                            std::ptr::null_mut(),
+                            0,
+                        );
+                        (c.HttpRangeFreeBlock)(tx.file_range);
+                        tx.file_range = std::ptr::null_mut();
+                    }
+                }
+            }
+        }
         self.transactions.clear();
         self.files.free();
     }
@@ -477,7 +498,7 @@ impl HTTP2State {
         let mut found = false;
         let mut index = 0;
         for i in 0..len {
-            let tx = &self.transactions[i];
+            let tx = &mut self.transactions[i];
             if tx.tx_id == tx_id + 1 {
                 found = true;
                 index = i;
@@ -495,6 +516,7 @@ impl HTTP2State {
                                 0,
                             );
                             (c.HttpRangeFreeBlock)(tx.file_range);
+                            tx.file_range = std::ptr::null_mut();
                         }
                     }
                 }
