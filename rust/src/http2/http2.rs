@@ -426,6 +426,25 @@ impl HTTP2State {
     }
 
     pub fn free(&mut self) {
+        // this should be in HTTP2Transaction::free
+        // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
+        for tx in &mut self.transactions {
+            if !tx.file_range.is_null() {
+                match unsafe { SC } {
+                    None => panic!("BUG no suricata_config"),
+                    Some(c) => {
+                        (c.HTPFileCloseHandleRange)(
+                            &mut self.files.files_tc,
+                            0,
+                            tx.file_range,
+                            std::ptr::null_mut(),
+                            0,
+                        );
+                        (c.HttpRangeFreeBlock)(tx.file_range);
+                    }
+                }
+            }
+        }
         self.transactions.clear();
     }
 
