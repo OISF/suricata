@@ -310,12 +310,18 @@ impl PgsqlState {
 
     /// When the state changes based on a specific response, there are other actions we may need to perform
     // TODO find a more appropriate name
-    fn response_get_next_state(&mut self, response: &PgsqlBEMessage) -> Option<PgsqlStateProgress> {
+    fn response_get_next_state(
+        &mut self, response: &PgsqlBEMessage, f: *const Flow,
+    ) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 SCLogDebug!("SSL Request accepted");
-                Some(PgsqlStateProgress::SSLAcceptedReceived)
-            },
+                unsafe {
+                    AppLayerRequestProtocolTLSUpgrade(f);
+                }
+                // Some(PgsqlStateProgress::SSLAcceptedReceived)
+                Some(PgsqlStateProgress::Finished)
+            }
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLRejected) => {
                 SCLogDebug!("SSL Request rejected");
                 Some(PgsqlStateProgress::SSLRejectedReceived)
@@ -370,7 +376,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.len() == 0 {
             return AppLayerResult::ok();
@@ -393,7 +399,7 @@ impl PgsqlState {
                 Ok((rem, response)) => {
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_get_next_state(&response) {
+                    if let Some(state) = self.response_get_next_state(&response, flow) {
                         self.state_progress = state;
                     };
                     let tx_completed = self.is_tx_completed();
@@ -544,7 +550,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_pgsql_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
@@ -563,7 +569,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
     } else {
         let buf: &[u8];
         buf = build_slice!(input, input_len as usize);
-        state_safe.parse_response(buf)
+        state_safe.parse_response(buf, flow)
     }
 }
 
