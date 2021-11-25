@@ -935,6 +935,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 return -1;
             }
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
 
@@ -1028,6 +1029,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             }
 
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
         }
 
         /* set the state */
@@ -1094,6 +1096,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 return -1;
             }
             StatsIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_active_sessions);
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
         /* set the state */
@@ -5353,6 +5356,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)stt;
 
+    stt->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
     stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", tv);
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);

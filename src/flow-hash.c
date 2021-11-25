@@ -486,6 +486,8 @@ static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
 #ifdef UNITTESTS
     if (tv && dtv) {
 #endif
+        StatsIncr(tv, dtv->counter_flow_total);
+        StatsIncr(tv, dtv->counter_flow_active);
         switch (proto){
             case IPPROTO_UDP:
                 StatsIncr(tv, dtv->counter_flow_udp);
