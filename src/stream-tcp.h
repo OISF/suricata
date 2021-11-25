@@ -29,6 +29,8 @@
 
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
+#include "rust.h"
+#include "rust-bindings.h"
 
 #define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine
@@ -195,8 +197,7 @@ int StreamTcpInlineMode(void);
 
 int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
 
-void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
-        const uint32_t progress);
+void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, Direction direction, const uint32_t progress);
 
 #endif /* __STREAM_TCP_H__ */
 

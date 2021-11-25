@@ -303,7 +303,7 @@ static int TCPProtoDetect(ThreadVars *tv,
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
-    int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    Direction direction = (flags & STREAM_TOSERVER) ? ToServer : ToClient;
 
     if (flags & STREAM_TOSERVER) {
         alproto = &f->alproto_ts;
@@ -370,7 +370,8 @@ static int TCPProtoDetect(ThreadVars *tv,
             } else {
                 *stream = &ssn->client;
             }
-            direction = 1 - direction;
+            // switch direction
+            direction = (direction == ToClient) ? ToServer : ToClient;
         }
 
         /* account flow if we have both sides */
@@ -602,7 +603,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         goto end;
     }
 
-    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    const Direction direction = (flags & STREAM_TOSERVER) ? ToServer : ToClient;
 
     if (flags & STREAM_TOSERVER) {
         alproto = f->alproto_ts;
