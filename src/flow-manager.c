@@ -599,17 +599,6 @@ static uint32_t FlowCleanupHash(void)
     return cnt;
 }
 
-static void Recycler(ThreadVars *tv, void *output_thread_data, Flow *f)
-{
-    FLOWLOCK_WRLOCK(f);
-
-    (void)OutputFlowLog(tv, output_thread_data, f);
-
-    FlowClearMemory (f, f->protomap);
-    FLOWLOCK_UNLOCK(f);
-    FlowSparePoolReturnFlow(f);
-}
-
 typedef struct FlowQueueTimeoutCounters {
     uint32_t flows_removed;
     uint32_t flows_timeout;
@@ -1028,6 +1017,14 @@ void FlowManagerThreadSpawn()
 
 typedef struct FlowRecyclerThreadData_ {
     void *output_thread_data;
+
+    uint16_t counter_flows;
+    uint16_t counter_queue_avg;
+    uint16_t counter_queue_max;
+
+    uint16_t counter_flow_active;
+    uint16_t counter_tcp_active_sessions;
+    FlowEndCounters fec;
 } FlowRecyclerThreadData;
 
 static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -1042,6 +1039,15 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
     }
     SCLogDebug("output_thread_data %p", ftd->output_thread_data);
 
+    ftd->counter_flows = StatsRegisterCounter("flow.recycler.recycled", t);
+    ftd->counter_queue_avg = StatsRegisterAvgCounter("flow.recycler.queue_avg", t);
+    ftd->counter_queue_max = StatsRegisterMaxCounter("flow.recycler.queue_max", t);
+
+    ftd->counter_flow_active = StatsRegisterCounter("flow.active", t);
+    ftd->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", t);
+
+    FlowEndCountersRegister(t, &ftd->fec);
+
     *data = ftd;
     return TM_ECODE_OK;
 }
@@ -1054,6 +1060,23 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(data);
     return TM_ECODE_OK;
+}
+
+static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
+{
+    FLOWLOCK_WRLOCK(f);
+
+    (void)OutputFlowLog(tv, ftd->output_thread_data, f);
+
+    FlowEndCountersUpdate(tv, &ftd->fec, f);
+    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+        StatsDecr(tv, ftd->counter_tcp_active_sessions);
+    }
+    StatsDecr(tv, ftd->counter_flow_active);
+
+    FlowClearMemory(f, f->protomap);
+    FLOWLOCK_UNLOCK(f);
+    FlowSparePoolReturnFlow(f);
 }
 
 /** \brief Thread that manages timed out flows.
@@ -1079,6 +1102,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
+        StatsAddUI64(th_v, ftd->counter_queue_avg, list.len);
+        StatsSetUI64(th_v, ftd->counter_queue_max, list.len);
+
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));
 
         /* Get the time */
@@ -1088,8 +1114,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
         Flow *f;
         while ((f = FlowQueuePrivateGetFromTop(&list)) != NULL) {
-            Recycler(th_v, ftd->output_thread_data, f);
+            Recycler(th_v, ftd, f);
             recycled_cnt++;
+            StatsIncr(th_v, ftd->counter_flows);
         }
         SC_ATOMIC_SUB(flowrec_busy,1);
 
