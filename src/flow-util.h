@@ -26,6 +26,7 @@
 
 #include "detect-engine-state.h"
 #include "tmqh-flow.h"
+#include "stream-tcp-private.h"
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
@@ -150,6 +151,24 @@ void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, const Packet *);
 uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
+
+/* flow end counter logic */
+
+typedef struct FlowEndCounters_ {
+    uint16_t flow_state[FLOW_STATE_SIZE];
+    uint16_t flow_tcp_state[TCP_CLOSED + 1];
+} FlowEndCounters;
+
+static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, Flow *f)
+{
+    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+        TcpSession *ssn = f->protoctx;
+        StatsIncr(tv, fec->flow_tcp_state[ssn->state]);
+    }
+    StatsIncr(tv, fec->flow_state[f->flow_state]);
+}
+
+void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec);
 
 #endif /* __FLOW_UTIL_H__ */
 

@@ -724,6 +724,9 @@ typedef struct DecodeThreadVars_
 
     uint16_t counter_flow_memcap;
 
+    uint16_t counter_tcp_active_sessions;
+    uint16_t counter_flow_total;
+    uint16_t counter_flow_active;
     uint16_t counter_flow_tcp;
     uint16_t counter_flow_udp;
     uint16_t counter_flow_icmp4;
