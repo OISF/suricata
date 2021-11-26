@@ -710,7 +710,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 
         /* apply min inspect depth: if it is set we need to keep data
          * before the raw progress. */
-        if (use_app && stream->min_inspect_depth) {
+        if (use_app && stream->min_inspect_depth && ssn->state < TCP_CLOSED) {
             if (raw_progress < stream->min_inspect_depth)
                 raw_progress = 0;
             else
