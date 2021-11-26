@@ -41,7 +41,7 @@ typedef struct StatsCounter_ {
     uint16_t gid;
 
     /* counter value(s): copies from the 'private' counter */
-    uint64_t value;     /**< sum of updates/increments, or 'set' value */
+    int64_t value;      /**< sum of updates/increments, or 'set' value */
     uint64_t updates;   /**< number of updates (for avg) */
 
     /* when using type STATS_TYPE_Q_FUNC this function is called once
@@ -84,7 +84,7 @@ typedef struct StatsLocalCounter_ {
     uint16_t id;
 
     /* total value of the adds/increments, or exact value in case of 'set' */
-    uint64_t value;
+    int64_t value;
 
     /* no of times the local counter has been updated */
     uint64_t updates;
@@ -124,6 +124,7 @@ uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
+void StatsDecr(struct ThreadVars_ *, uint16_t);
 
 /* utility functions */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
