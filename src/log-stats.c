@@ -142,7 +142,7 @@ static int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
                     continue;
 
                 char line[256];
-                size_t len = snprintf(line, sizeof(line), "%-45s | %-25s | %-" PRIu64 "\n",
+                size_t len = snprintf(line, sizeof(line), "%-45s | %-25s | %-" PRIi64 "\n",
                         st->tstats[u].name, st->tstats[u].tm_name, st->tstats[u].value);
 
                 /* since we can have many threads, the buffer might not be big enough.
