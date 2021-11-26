@@ -182,6 +182,27 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
 }
 
 /**
+ * \brief Decrements the local counter
+ *
+ * \param id  Index of the counter in the counter array
+ * \param pca Counter array that holds the local counters for this TM
+ */
+void StatsDecr(ThreadVars *tv, uint16_t id)
+{
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON((id < 1) || (id > pca->size));
+#endif
+    pca->head[id].value--;
+    pca->head[id].updates++;
+    return;
+}
+
+/**
  * \brief Sets a value of type double to the local counter
  *
  * \param id  Index of the local counter in the counter array
@@ -199,8 +220,7 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
 
-    if ((pca->head[id].pc->type == STATS_TYPE_MAXIMUM) &&
-            (x > pca->head[id].value)) {
+    if ((pca->head[id].pc->type == STATS_TYPE_MAXIMUM) && ((int64_t)x > pca->head[id].value)) {
         pca->head[id].value = x;
     } else if (pca->head[id].pc->type == STATS_TYPE_NORMAL) {
         pca->head[id].value = x;
@@ -666,7 +686,7 @@ static int StatsOutput(ThreadVars *tv)
      *  especially needed for the average counters */
     struct CountersMergeTable {
         int type;
-        uint64_t value;
+        int64_t value;
         uint64_t updates;
     } merge_table[max_id];
     memset(&merge_table, 0x00,
