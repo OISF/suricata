@@ -1862,10 +1862,11 @@ end:
             if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
                 (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+                const uint32_t data_size = (uint32_t)((uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+                const uint32_t depth = MIN(data_size, hstate->cfg->request.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
-                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, x);
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, depth);
                 AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
             }
         /* after the start of the body, disable the depth logic */
@@ -1948,10 +1949,11 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
             if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
                 (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
             {
-                uint32_t x = (uint32_t)((uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp);
+                const uint32_t data_size = (uint32_t)((uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp);
+                const uint32_t depth = MIN(data_size, hstate->cfg->response.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
-                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, x);
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, depth);
                 AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
             }
         /* after the start of the body, disable the depth logic */
