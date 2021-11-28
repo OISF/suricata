@@ -5468,6 +5468,10 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
     uint8_t os_policy;
 
+    if (ssn->lossy_be_liberal) {
+        SCReturnInt(1);
+    }
+
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
         if (!StreamTcpValidateTimestamp(ssn, p)) {
             SCReturnInt(0);
