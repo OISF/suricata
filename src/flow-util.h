@@ -157,6 +157,7 @@ uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 typedef struct FlowEndCounters_ {
     uint16_t flow_state[FLOW_STATE_SIZE];
     uint16_t flow_tcp_state[TCP_CLOSED + 1];
+    uint16_t flow_tcp_liberal;
 } FlowEndCounters;
 
 static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, Flow *f)
@@ -164,6 +165,9 @@ static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, F
     if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = f->protoctx;
         StatsIncr(tv, fec->flow_tcp_state[ssn->state]);
+        if (ssn->lossy_be_liberal) {
+            StatsIncr(tv, fec->flow_tcp_liberal);
+        }
     }
     StatsIncr(tv, fec->flow_state[f->flow_state]);
 }
