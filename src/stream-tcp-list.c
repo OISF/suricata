@@ -651,6 +651,9 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             StatsIncr(tv, ra_ctx->counter_tcp_reass_data_normal_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
+            if (res == -1) {
+                SCReturnInt(-ENOMEM);
+            }
             SCReturnInt(-1);
         }
 

@@ -283,6 +283,7 @@ typedef struct TcpSession_ {
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
     uint32_t reassembly_depth;      /**< reassembly depth for the stream */
+    bool lossy_be_liberal;
     TcpStream server;
     TcpStream client;
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
