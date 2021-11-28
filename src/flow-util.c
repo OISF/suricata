@@ -306,4 +306,5 @@ void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
 
         fec->flow_tcp_state[i] = StatsRegisterCounter(name, t);
     }
+    fec->flow_tcp_liberal = StatsRegisterCounter("flow.end.tcp_liberal", t);
 }
