@@ -177,10 +177,10 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
 {% elif field.type == "bytearray" %}
             unsigned long {{field.name}}_b64_len = BASE64_BUFFER_SIZE(data->{{field.len_field}});
             uint8_t {{field.name}}_b64[{{field.name}}_b64_len];
-            Base64Encode(data->{{field.name}}, data->{{field.len_field}},
-                {{field.name}}_b64, &{{field.name}}_b64_len);
-            json_object_set_new(js, "data->{{field.name}}",
-                json_string((char *){{field.name}}_b64));
+            if (Base64Encode(data->{{field.name}}, data->{{field.len_field}},
+                    {{field.name}}_b64, &{{field.name}}_b64_len) == SC_BASE64_OK)
+                json_object_set_new(js, "data->{{field.name}}",
+                    json_string((char *){{field.name}}_b64));
 {% elif field.type == "vstr4" %}
             json_object_set_new(js, "data->{{field.name}}", SCJsonString(data->{{field.name}}));
 {% elif field.type == "chararray" %}
@@ -507,7 +507,10 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         *len -= 4;
 {% elif field.type == "bytearray" %}
 {% if field.len_from_prefix %}
-        object->{{field.len_field}} = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
 {% endif %}
         if (object->{{field.len_field}} > 0) {
             if (*len < object->{{field.len_field}}) {
@@ -527,7 +530,11 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         if (prefix - (offset - *len) >= {{field.size}}) {
             goto error;
         }
-        object->{{field.len_field}} = prefix - (offset - *len);
+{% if field.size == 255 %}
+        object->{{field.len_field}} = (uint8_t)(prefix - (offset - *len));
+{% else %}
+        object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
+{% endif %}
 {% endif %}
         if (object->{{field.len_field}} > 0) {
             if (*len < object->{{field.len_field}}) {

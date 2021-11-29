@@ -7156,7 +7156,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 255) {
             goto error;
         }
-        object->optional_text_len = prefix - (offset - *len);
+        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7223,7 +7223,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 255) {
             goto error;
         }
-        object->file_data_len = prefix - (offset - *len);
+        object->file_data_len = (uint8_t)(prefix - (offset - *len));
         if (object->file_data_len > 0) {
             if (*len < object->file_data_len) {
                 /* Not enough data. */
@@ -7293,7 +7293,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 255) {
             goto error;
         }
-        object->optional_text_len = prefix - (offset - *len);
+        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7425,7 +7425,7 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 65535) {
             goto error;
         }
-        object->file_specification_len = prefix - (offset - *len);
+        object->file_specification_len = (uint16_t)(prefix - (offset - *len));
         if (object->file_specification_len > 0) {
             if (*len < object->file_specification_len) {
                 /* Not enough data. */
@@ -7764,7 +7764,10 @@ static int DNP3DecodeObjectG120V1(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->reason)) {
             goto error;
         }
-        object->challenge_data_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->challenge_data_len = (uint16_t)(prefix - (offset - *len));
         if (object->challenge_data_len > 0) {
             if (*len < object->challenge_data_len) {
                 /* Not enough data. */
@@ -7834,7 +7837,10 @@ static int DNP3DecodeObjectG120V2(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->usr)) {
             goto error;
         }
-        object->mac_value_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->mac_value_len = (uint16_t)(prefix - (offset - *len));
         if (object->mac_value_len > 0) {
             if (*len < object->mac_value_len) {
                 /* Not enough data. */
@@ -8018,7 +8024,10 @@ static int DNP3DecodeObjectG120V5(const uint8_t **buf, uint32_t *len,
             *buf += object->challenge_data_len;
             *len -= object->challenge_data_len;
         }
-        object->mac_value_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->mac_value_len = (uint16_t)(prefix - (offset - *len));
         if (object->mac_value_len > 0) {
             if (*len < object->mac_value_len) {
                 /* Not enough data. */
@@ -8091,7 +8100,10 @@ static int DNP3DecodeObjectG120V6(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->usr)) {
             goto error;
         }
-        object->wrapped_key_data_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->wrapped_key_data_len = (uint16_t)(prefix - (offset - *len));
         if (object->wrapped_key_data_len > 0) {
             if (*len < object->wrapped_key_data_len) {
                 /* Not enough data. */
@@ -8173,7 +8185,7 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 65535) {
             goto error;
         }
-        object->error_text_len = prefix - (offset - *len);
+        object->error_text_len = (uint16_t)(prefix - (offset - *len));
         if (object->error_text_len > 0) {
             if (*len < object->error_text_len) {
                 /* Not enough data. */
@@ -8237,7 +8249,10 @@ static int DNP3DecodeObjectG120V8(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->certificate_type)) {
             goto error;
         }
-        object->certificate_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->certificate_len = (uint16_t)(prefix - (offset - *len));
         if (object->certificate_len > 0) {
             if (*len < object->certificate_len) {
                 /* Not enough data. */
@@ -8297,7 +8312,10 @@ static int DNP3DecodeObjectG120V9(const uint8_t **buf, uint32_t *len,
 
         offset = *len;
 
-        object->mac_value_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->mac_value_len = (uint16_t)(prefix - (offset - *len));
         if (object->mac_value_len > 0) {
             if (*len < object->mac_value_len) {
                 /* Not enough data. */
@@ -8688,7 +8706,10 @@ static int DNP3DecodeObjectG120V14(const uint8_t **buf, uint32_t *len,
 
         offset = *len;
 
-        object->digital_signature_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->digital_signature_len = (uint16_t)(prefix - (offset - *len));
         if (object->digital_signature_len > 0) {
             if (*len < object->digital_signature_len) {
                 /* Not enough data. */
@@ -8752,7 +8773,10 @@ static int DNP3DecodeObjectG120V15(const uint8_t **buf, uint32_t *len,
 
         offset = *len;
 
-        object->mac_len = prefix - (offset - *len);
+        if (prefix < (offset - *len)) {
+            goto error;
+        }
+        object->mac_len = (uint16_t)(prefix - (offset - *len));
         if (object->mac_len > 0) {
             if (*len < object->mac_len) {
                 /* Not enough data. */
