@@ -173,9 +173,9 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
 {% elif field.type == "bytearray" %}
             unsigned long {{field.name}}_b64_len = BASE64_BUFFER_SIZE(data->{{field.len_field}});
             uint8_t {{field.name}}_b64[{{field.name}}_b64_len];
-            Base64Encode(data->{{field.name}}, data->{{field.len_field}},
-                {{field.name}}_b64, &{{field.name}}_b64_len);
-            jb_set_string(js, "data->{{field.name}}", (char *){{field.name}}_b64);
+            if (Base64Encode(data->{{field.name}}, data->{{field.len_field}},
+                    {{field.name}}_b64, &{{field.name}}_b64_len) == SC_BASE64_OK)
+                jb_set_string(js, "data->{{field.name}}", (char *){{field.name}}_b64);
 {% elif field.type == "vstr4" %}
             jb_set_string(js, "data->{{field.name}}", data->{{field.name}});
 {% elif field.type == "chararray" %}
