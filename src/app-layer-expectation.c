@@ -322,8 +322,12 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
         if ((exp->direction & flags) && ((exp->sp == 0) || (exp->sp == f->sp)) &&
                 ((exp->dp == 0) || (exp->dp == f->dp))) {
             alproto = exp->alproto;
-            f->alproto_ts = alproto;
-            f->alproto_tc = alproto;
+            if (f->alproto_ts == ALPROTO_UNKNOWN) {
+                f->alproto_ts = alproto;
+            }
+            if (f->alproto_tc == ALPROTO_UNKNOWN) {
+                f->alproto_tc = alproto;
+            }
             void *fdata = FlowGetStorageById(f, g_expectation_data_id);
             if (fdata) {
                 /* We already have an expectation so let's clean this one */
