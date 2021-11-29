@@ -509,6 +509,7 @@ noinst_HEADERS = \
 	util-device.h \
 	util-dpdk.h \
 	util-dpdk-i40e.h \
+	util-dpdk-ice.h \
 	util-dpdk-ixgbe.h \
 	util-ebpf.h \
 	util-enum.h \
@@ -1076,6 +1077,7 @@ libsuricata_c_a_SOURCES = \
 	util-device.c \
 	util-dpdk.c \
 	util-dpdk-i40e.c \
+	util-dpdk-ice.c \
 	util-dpdk-ixgbe.c \
 	util-ebpf.c \
 	util-enum.c \

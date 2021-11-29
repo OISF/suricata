@@ -39,6 +39,7 @@
 #include "util-cpu.h"
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
+#include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 
 #ifdef HAVE_DPDK
@@ -747,6 +748,8 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
     // RSS is configured in a specific way for a driver i40e and DPDK version <= 19.xx
     if (strcmp(driver_name, "net_i40e") == 0)
         i40eDeviceSetRSSHashFunction(&rss_conf->rss_hf);
+    if (strcmp(driver_name, "net_ice") == 0)
+        iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
     if (strcmp(driver_name, "net_ixgbe") == 0)
         ixgbeDeviceSetRSSHashFunction(&rss_conf->rss_hf);
 }
