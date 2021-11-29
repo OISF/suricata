@@ -198,7 +198,6 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             case PPP_VJ_UCOMP:
 
-                // if(len < (pppoesh_len + IPV4_HEADER_LEN))    {
                 if (len - pppoesh_len < IPV4_HEADER_LEN) {
                     ENGINE_SET_INVALID_EVENT(p, PPPVJU_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
