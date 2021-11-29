@@ -33,7 +33,7 @@
  * required output bytes are 4 * ceil(input_len / 3) and an additional byte
  * for storing the NULL pointer.
  * */
-#define BASE64_BUFFER_SIZE(x)  ((4 * ((x) + 2) / 3) + 1)
+#define BASE64_BUFFER_SIZE(x) ((4 * (((x) + 2) / 3)) + 1)
 
 typedef enum {
     SC_SHA_1_OK,
