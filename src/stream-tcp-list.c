@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "rust.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"

@@ -530,9 +530,5 @@ extern int g_ut_covered;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#ifndef NAME_MAX
-#define NAME_MAX 255
-#endif
-
 #endif /* __SURICATA_COMMON_H__ */
 
