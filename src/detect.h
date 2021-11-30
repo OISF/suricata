@@ -1066,8 +1066,8 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t discontinue_matching;
     uint16_t flags;
 
-    /* bool: if tx_id is set, this is 1, otherwise 0 */
-    uint16_t tx_id_set;
+    /* true if tx_id is set */
+    bool tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     Packet *p;
