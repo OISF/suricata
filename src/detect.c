@@ -1419,7 +1419,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
 
         det_ctx->tx_id = tx.tx_id;
-        det_ctx->tx_id_set = 1;
+        det_ctx->tx_id_set = true;
         det_ctx->p = p;
 
         /* run rules: inspect the match candidates */
@@ -1487,7 +1487,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
 
         det_ctx->tx_id = 0;
-        det_ctx->tx_id_set = 0;
+        det_ctx->tx_id_set = false;
         det_ctx->p = NULL;
 
         /* see if we have any updated state to store in the tx */
