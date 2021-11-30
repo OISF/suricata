@@ -338,8 +338,8 @@ static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
     }
 }
 
-void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa,
-        JsonBuilder *js, uint16_t flags, JsonAddrInfo *addr)
+void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
+        uint16_t flags, JsonAddrInfo *addr, char *xff_buffer)
 {
     AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
@@ -389,6 +389,9 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa,
 
     if (flags & LOG_JSON_RULE) {
         jb_set_string(js, "rule", pa->s->sig_str);
+    }
+    if (xff_buffer && xff_buffer[0]) {
+        jb_set_string(js, "xff", xff_buffer);
     }
 
     jb_close(js);
@@ -650,6 +653,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
         int have_xff_ip = 0;
         char xff_buffer[XFF_MAXLEN];
+        xff_buffer[0] = 0;
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
@@ -671,6 +675,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                  * logged below. */
                 have_xff_ip = false;
             }
+            if (have_xff_ip && !(xff_cfg->flags & XFF_EXTRADATA)) {
+                // reset xff_buffer so as not to log it
+                xff_buffer[0] = 0;
+            }
         }
 
         JsonBuilder *jb =
@@ -680,8 +688,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 
         /* alert */
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags,
-                &addr);
+        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, jb);
@@ -759,10 +766,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             EvePacket(p, jb, 0);
         }
 
-        if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
-            jb_set_string(jb, "xff", xff_buffer);
-        }
-
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
     }
@@ -805,7 +808,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         /* just the timestamp, no tuple */
         jb_set_string(jb, "timestamp", timebuf);
 
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL);
+        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL, NULL);
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
