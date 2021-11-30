@@ -519,7 +519,10 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             }
             break;
         case ALPROTO_FTPDATA:
+            jb_get_mark(jb, &mark);
+            jb_open_object(jb, "ftp_data");
             EveFTPDataAddMetadata(p->flow, jb);
+            jb_close(jb);
             break;
         case ALPROTO_DNP3:
             AlertJsonDnp3(p->flow, tx_id, jb);
