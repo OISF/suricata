@@ -119,7 +119,7 @@ exclude = [
 # * "functions":
 #
 # default: []
-item_types = ["enums","structs","opaque","functions"]
+item_types = ["enums","structs","opaque","functions","constants"]
 
 # Whether applying rules in export.rename prevents export.prefix from applying.
 #

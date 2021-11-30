@@ -131,9 +131,7 @@ fn mime_find_header_token<'a>(
     }
 }
 
-// TODO ? export with "constants" in cbindgen
-// and use in outbuf definition for rs_mime_find_header_token
-// but other constants are now defined twice in rust and in C
+// used on the C side
 pub const RS_MIME_MAX_TOKEN_LEN: usize = 255;
 
 #[no_mangle]

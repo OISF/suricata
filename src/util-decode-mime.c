@@ -1842,7 +1842,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
     uint8_t *rptr = NULL;
     uint32_t blen = 0;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
-    uint8_t bptr[NAME_MAX];
+    uint8_t bptr[RS_MIME_MAX_TOKEN_LEN];
 
     /* Look for mime header in current line */
     ret = FindMimeHeader(buf, len, state);
@@ -1871,14 +1871,13 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
             bool truncated_name = false;
-            // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
             if (rs_mime_find_header_token(field->value, field->value_len,
                         (const uint8_t *)"filename", strlen("filename"), &bptr, &blen)) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
 
-                if (blen > NAME_MAX) {
-                    blen = NAME_MAX;
+                if (blen > RS_MIME_MAX_TOKEN_LEN) {
+                    blen = RS_MIME_MAX_TOKEN_LEN;
                     truncated_name = true;
                 }
 
@@ -1902,7 +1901,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TYPE_STR);
         if (field != NULL) {
             /* Check if child entity boundary definition found */
-            // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
+            // RS_MIME_MAX_TOKEN_LEN is RS_MIME_MAX_TOKEN_LEN on the rust side
             if (rs_mime_find_header_token(field->value, field->value_len,
                         (const uint8_t *)"boundary", strlen("boundary"), &bptr, &blen)) {
                 state->found_child = 1;
@@ -1926,14 +1925,13 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
                 bool truncated_name = false;
-                // NAME_MAX is RS_MIME_MAX_TOKEN_LEN on the rust side
                 if (rs_mime_find_header_token(field->value, field->value_len,
                             (const uint8_t *)"name", strlen("name"), &bptr, &blen)) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
 
-                    if (blen > NAME_MAX) {
-                        blen = NAME_MAX;
+                    if (blen > RS_MIME_MAX_TOKEN_LEN) {
+                        blen = RS_MIME_MAX_TOKEN_LEN;
                         truncated_name = true;
                     }
 
@@ -3014,7 +3012,7 @@ static int MimeDecParseLongFilename01(void)
     FAIL_IF_NOT(msg);
 
     FAIL_IF_NOT(msg->anomaly_flags & ANOM_LONG_FILENAME);
-    FAIL_IF_NOT(msg->filename_len == NAME_MAX);
+    FAIL_IF_NOT(msg->filename_len == RS_MIME_MAX_TOKEN_LEN);
 
     MimeDecFreeEntity(msg);
 
