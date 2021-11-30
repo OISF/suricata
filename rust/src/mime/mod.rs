@@ -16,6 +16,7 @@
  */
 
 use std;
+use std::collections::HashMap;
 
 use nom::combinator::rest;
 use nom::error::ErrorKind;
@@ -30,7 +31,7 @@ pub struct MIMEHeaderToken<'a> {
 
 #[derive(Clone)]
 pub struct MIMEHeaderTokens<'a> {
-    pub tokens: Vec<MIMEHeaderToken<'a>>,
+    pub tokens: HashMap<&'a [u8], &'a [u8]>,
 }
 
 pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -41,8 +42,11 @@ pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], MIMEHeaderToken> {
-    // maybe only U+0020 space and U+0009 tab
-    let (input, _) = take_while!(input, |ch: u8| ch.is_ascii_whitespace())?;
+    // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
+    let (input, _) = take_while!(input, |ch: u8| ch == 0x20
+        || ch == 0x09
+        || ch == 0x0a
+        || ch == 0x0d)?;
     let (input, name) = take_until!(input, "=")?;
     let (input, _) = tag!(input, "=")?;
     let (input, value) = alt!(
@@ -55,11 +59,11 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], MIMEHeaderToken> 
 
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
     let (mut input, _) = take_until_and_consume!(input, ";")?;
-    let mut tokens = Vec::new();
+    let mut tokens = HashMap::new();
     while input.len() > 0 {
         match mime_parse_header_token(input) {
             Ok((rem, t)) => {
-                tokens.push(t);
+                tokens.insert(t.name, t.value);
                 // should never happen
                 debug_validate_bug_on!(input.len() == rem.len());
                 if input.len() == rem.len() {
@@ -83,81 +87,62 @@ fn mime_find_header_token<'a>(
     match mime_parse_header_tokens(header) {
         Ok((_rem, t)) => {
             // in case of multiple sections for the parameter cf RFC2231
-            let mut current_section_seen = 0;
             let mut current_section_slice = Vec::new();
 
             // look for the specific token
-            for i in 0..t.tokens.len() {
-                if t.tokens[i].name == token {
-                    // easy nominal case
-                    return Ok(t.tokens[i].value);
+            match t.tokens.get(token) {
+                // easy nominal case
+                Some(value) => return Ok(value),
+                None => {
+                    // check for initial section of a parameter
+                    current_section_slice.extend_from_slice(token);
+                    current_section_slice.extend_from_slice(b"*0");
+                    match t.tokens.get(&current_section_slice[..]) {
+                        Some(value) => {
+                            sections_values.extend_from_slice(value);
+                            let l = current_section_slice.len();
+                            current_section_slice[l - 1] = b'1';
+                        }
+                        None => return Err(()),
+                    }
                 }
+            }
 
-                // check for initial section of a parameter
-                if current_section_seen == 0
-                    && t.tokens[i].name.len() == token.len() + 2
-                    && t.tokens[i].name[t.tokens[i].name.len() - 2] == b'*'
-                    && t.tokens[i].name[t.tokens[i].name.len() - 1] == b'0'
-                    && &t.tokens[i].name[..t.tokens[i].name.len() - 2] == token
-                {
-                    // initial section found, get name of next section in current_section_slice
-                    current_section_seen = 1;
-                    sections_values.extend_from_slice(t.tokens[i].value);
-                    current_section_slice.extend_from_slice(t.tokens[i].name);
-                    current_section_slice[t.tokens[i].name.len() - 1] = b'1';
-                } else if current_section_seen > 0 {
-                    if t.tokens[i].name == &current_section_slice[..] {
+            let mut current_section_seen = 1;
+            // we have at least the initial section
+            // try looping until we do not find anymore a next section
+            loop {
+                match t.tokens.get(&current_section_slice[..]) {
+                    Some(value) => {
+                        sections_values.extend_from_slice(value);
                         current_section_seen += 1;
-                        sections_values.extend_from_slice(t.tokens[i].value);
                         let nbdigits = current_section_slice.len() - token.len() - 1;
                         current_section_slice.truncate(current_section_slice.len() - nbdigits);
                         current_section_slice
                             .extend_from_slice(current_section_seen.to_string().as_bytes());
                     }
+                    None => return Ok(sections_values),
                 }
-            }
-            if current_section_seen > 0 {
-                loop {
-                    // we have at least the initial section
-                    // try looping until we do not find anymore a next section
-                    let mut increased = false;
-                    for i in 0..t.tokens.len() {
-                        if t.tokens[i].name == &current_section_slice[..] {
-                            current_section_seen += 1;
-                            sections_values.extend_from_slice(t.tokens[i].value);
-                            let nbdigits = current_section_slice.len() - token.len() - 1;
-                            current_section_slice.truncate(current_section_slice.len() - nbdigits);
-                            current_section_slice
-                                .extend_from_slice(current_section_seen.to_string().as_bytes());
-                            increased = true;
-                        }
-                    }
-                    if !increased {
-                        break;
-                    }
-                }
-                return Ok(sections_values);
             }
         }
         Err(_) => {
             return Err(());
         }
     }
-    return Err(());
 }
 
 // TODO ? export with "constants" in cbindgen
 // and use in outbuf definition for rs_mime_find_header_token
 // but other constants are now defined twice in rust and in C
-const RS_MIME_MAX_TOKEN_LEN: usize = 255;
+pub const RS_MIME_MAX_TOKEN_LEN: usize = 255;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mime_find_header_token(
     hinput: *const u8, hlen: u32, tinput: *const u8, tlen: u32, outbuf: &mut [u8; 255],
     outlen: *mut u32,
 ) -> bool {
-    let hbuf = std::slice::from_raw_parts(hinput, hlen as usize);
-    let tbuf = std::slice::from_raw_parts(tinput, tlen as usize);
+    let hbuf = build_slice!(hinput, hlen as usize);
+    let tbuf = build_slice!(tinput, tlen as usize);
     let mut sections_values = Vec::new();
     match mime_find_header_token(hbuf, tbuf, &mut sections_values) {
         Ok(value) => {
@@ -223,6 +208,13 @@ mod test {
             &mut outvec,
         );
         assert_eq!(missend, Ok("test".as_bytes()));
+
+        let spaces = mime_find_header_token(
+            "attachment; filename=test me wrong".as_bytes(),
+            "filename".as_bytes(),
+            &mut outvec,
+        );
+        assert_eq!(spaces, Ok("test me wrong".as_bytes()));
 
         assert_eq!(outvec.len(), 0);
         let multi = mime_find_header_token(
