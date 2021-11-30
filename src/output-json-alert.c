@@ -438,8 +438,8 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js
     }
 }
 
-static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
-        const uint64_t tx_id, const uint16_t option_flags)
+static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb, const uint64_t tx_id,
+        const uint16_t option_flags, const char *xff_buffer)
 {
     const AppProto proto = FlowGetAppProtocol(p->flow);
     JsonBuilderMark mark = { 0, 0, 0 };
@@ -454,6 +454,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 if (option_flags & LOG_JSON_HTTP_BODY_BASE64) {
                     EveHttpLogJSONBodyBase64(jb, p->flow, tx_id);
                 }
+            }
+            if (xff_buffer[0]) {
+                jb_set_string(jb, "xff", xff_buffer);
             }
             jb_close(jb);
             break;
@@ -639,6 +642,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
         int have_xff_ip = 0;
         char xff_buffer[XFF_MAXLEN];
+        xff_buffer[0] = 0;
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
@@ -660,6 +664,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                  * logged below. */
                 have_xff_ip = false;
             }
+            if (have_xff_ip && !(xff_cfg->flags & XFF_EXTRADATA)) {
+                // reset xff_buffer so as not to log it
+                xff_buffer[0] = 0;
+            }
         }
 
         JsonBuilder *jb =
@@ -678,7 +686,12 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (p->flow != NULL) {
             if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
+                AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags, xff_buffer);
+            } else if (xff_buffer[0]) {
+                // logs http.xff even without LOG_JSON_APP_LAYER
+                jb_open_object(jb, "http");
+                jb_set_string(jb, "xff", xff_buffer);
+                jb_close(jb);
             }
             /* including fileinfo data is configured by the metadata setting */
             if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
@@ -746,10 +759,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
             EvePacket(p, jb, 0);
-        }
-
-        if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
-            jb_set_string(jb, "xff", xff_buffer);
         }
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
