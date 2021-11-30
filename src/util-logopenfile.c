@@ -41,6 +41,8 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
+#define LOGFILE_NAME_MAX 255
+
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append, int i);
 
 // Threaded eve.json identifier
@@ -765,7 +767,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 
     *thread = *parent_ctx;
     if (parent_ctx->type == LOGFILE_TYPE_FILE) {
-        char fname[NAME_MAX];
+        char fname[LOGFILE_NAME_MAX];
         if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to create threaded filename for log");
             goto error;
