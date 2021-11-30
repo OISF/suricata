@@ -104,6 +104,8 @@ exclude = [
     "TFTPState",
     "TFTPTransaction",
     "free",
+    "IPPROTO_TCP",
+    "IPPROTO_UDP",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
