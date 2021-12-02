@@ -13,4 +13,5 @@ alert mqtt any any -> any any (msg:"SURICATA MQTT message seen before CONNECT/CO
 alert mqtt any any -> any any (msg:"SURICATA MQTT invalid QOS level"; app-layer-event:mqtt.invalid_qos_level; classtype:protocol-command-decode; sid:2229006; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT missing message ID"; app-layer-event:mqtt.missing_msg_id; classtype:protocol-command-decode; sid:2229007; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT unassigned message type (0 or >15)"; app-layer-event:mqtt.unassigned_msg_type; classtype:protocol-command-decode; sid:2229008; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT too many transactions"; app-layer-event:mqtt.too_many_transactions; classtype:protocol-command-decode; sid:2229009; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT malformed traffic"; app-layer-event:mqtt.malformed_traffic; classtype:protocol-command-decode; sid:2229010; rev:1;)

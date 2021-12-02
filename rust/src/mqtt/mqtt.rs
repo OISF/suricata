@@ -37,6 +37,9 @@ const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
+//TODO make this configurable
+const MQTT_MAX_TX: usize = 1024;
+
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug)]
@@ -51,6 +54,7 @@ pub enum MQTTEvent {
     InvalidQosLevel,
     MissingMsgId,
     UnassignedMsgtype,
+    TooManyTransactions,
     MalformedTraffic,
 }
 
@@ -177,6 +181,15 @@ impl MQTTState {
             tx.toclient = true;
         } else {
             tx.toserver = true;
+        }
+        if self.transactions.len() > MQTT_MAX_TX {
+            for tx_old in &mut self.transactions {
+                if !tx_old.complete {
+                    tx_old.complete = true;
+                    MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
+                    break;
+                }
+            }
         }
         return tx;
     }
@@ -738,6 +751,7 @@ pub extern "C" fn rs_mqtt_state_get_event_info_by_id(event_id: std::os::raw::c_i
             MQTTEvent::InvalidQosLevel     => { "invalid_qos_level\0" },
             MQTTEvent::MissingMsgId        => { "missing_msg_id\0" },
             MQTTEvent::UnassignedMsgtype   => { "unassigned_msg_type\0" },
+            MQTTEvent::TooManyTransactions => { "too_many_transactions\0" },
             MQTTEvent::MalformedTraffic    => { "malformed_traffic\0" },
         };
         unsafe{
