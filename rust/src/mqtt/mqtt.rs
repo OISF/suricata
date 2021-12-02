@@ -664,19 +664,11 @@ pub extern "C" fn rs_mqtt_tx_is_toclient(tx: *const std::os::raw::c_void) -> std
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
-    direction: u8,
+    _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.complete {
-        if direction == core::STREAM_TOSERVER {
-            if tx.toserver {
-                return 1;
-            }
-        } else if direction == core::STREAM_TOCLIENT {
-            if tx.toclient {
-                return 1;
-            }
-        }
+        return 1;
     }
     return 0;
 }
