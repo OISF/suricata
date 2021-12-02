@@ -35,6 +35,9 @@ const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
+//TODO make this configurable
+const MQTT_MAX_TX: usize = 1024;
+
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
@@ -48,6 +51,7 @@ pub enum MQTTEvent {
     InvalidQosLevel,
     MissingMsgId,
     UnassignedMsgType,
+    TooManyTransactions,
 }
 
 #[derive(Debug)]
@@ -162,6 +166,15 @@ impl MQTTState {
             tx.toclient = true;
         } else {
             tx.toserver = true;
+        }
+        if self.transactions.len() > MQTT_MAX_TX {
+            for tx_old in &mut self.transactions {
+                if !tx_old.complete {
+                    tx_old.complete = true;
+                    MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
+                    break;
+                }
+            }
         }
         return tx;
     }
