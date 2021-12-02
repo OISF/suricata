@@ -627,13 +627,14 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
     direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
-    if tx.complete {
-        if direction == Direction::ToServer.into() {
-            if tx.toserver {
+    match direction.into() {
+        Direction::ToServer => {
+            if tx.complete || tx.toclient {
                 return 1;
             }
-        } else if direction == Direction::ToClient.into() {
-            if tx.toclient {
+        }
+        Direction::ToClient => {
+            if tx.complete || tx.toserver {
                 return 1;
             }
         }
