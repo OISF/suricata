@@ -669,11 +669,11 @@ pub extern "C" fn rs_mqtt_tx_get_alstate_progress(
     let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.complete {
         if direction == core::STREAM_TOSERVER {
-            if tx.toserver {
+            if tx.complete || tx.toclient {
                 return 1;
             }
         } else if direction == core::STREAM_TOCLIENT {
-            if tx.toclient {
+            if tx.complete || tx.toserver {
                 return 1;
             }
         }
