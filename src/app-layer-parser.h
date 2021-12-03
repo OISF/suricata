@@ -155,6 +155,9 @@ typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
 
 /***** Parser related registration *****/
 
+typedef int (*AppLayerParserGetFrameIdByNameFn)(const char *frame_name);
+typedef const char *(*AppLayerParserGetFrameNameByIdFn)(const uint8_t id);
+
 /**
  * \brief Register app layer parser for the protocol.
  *
@@ -203,6 +206,9 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfoById)(int event_id, const char **event_name,
                                  AppLayerEventType *event_type));
+void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetFrameIdByNameFn GetFrameIdByName,
+        AppLayerParserGetFrameNameByIdFn GetFrameNameById);
 void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
                                           AppProto alproto,
                                           uint32_t (*GetStreamDepth)(void));
@@ -269,6 +275,8 @@ void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t st
 uint32_t AppLayerParserGetStreamDepth(const Flow *f);
 void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *state, uint64_t tx_id, uint8_t flags);
 int AppLayerParserIsEnabled(AppProto alproto);
+int AppLayerParserGetFrameIdByName(uint8_t ipproto, AppProto alproto, const char *name);
+const char *AppLayerParserGetFrameNameById(uint8_t ipproto, AppProto alproto, const uint8_t id);
 
 /***** Cleanup *****/
 

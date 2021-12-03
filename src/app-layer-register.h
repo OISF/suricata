@@ -70,6 +70,9 @@ typedef struct AppLayerParser {
 
     void (*Truncate)(void *state, uint8_t direction);
 
+    AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
+    AppLayerParserGetFrameNameByIdFn GetFrameNameById;
+
 } AppLayerParser;
 
 /**
