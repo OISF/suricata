@@ -920,6 +920,31 @@ const char *DetectBufferTypeGetDescriptionByName(const char *name)
     return exists->description;
 }
 
+void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name)
+{
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    BUG_ON(!exists);
+    exists->packet = true;
+    SCLogDebug("%p %s -- %d supports packet inspection", exists, name, exists->id);
+}
+
+void DetectEngineBufferTypeSupportsMpm(DetectEngineCtx *de_ctx, const char *name)
+{
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    BUG_ON(!exists);
+    exists->mpm = true;
+    SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
+}
+
+void DetectEngineBufferTypeSupportsTransformations(DetectEngineCtx *de_ctx, const char *name)
+{
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    BUG_ON(!exists);
+    BUG_ON(!exists);
+    exists->supports_transforms = true;
+    SCLogDebug("%p %s -- %d supports transformations", exists, name, exists->id);
+}
+
 bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id)
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
