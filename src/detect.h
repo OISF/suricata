@@ -417,8 +417,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
 } DetectEngineAppInspectionEngine;
 
 typedef struct DetectBufferType_ {
-    const char *string;
-    const char *description;
+    char name[32];
+    char description[128];
     int id;
     int parent_id;
     bool mpm;
