@@ -782,6 +782,9 @@ static inline void DetectRulePacketRules(
         if (DetectEnginePktInspectionRun(tv, det_ctx, s, pflow, p, &alert_flags) == false) {
             goto next;
         }
+        if (DetectEngineRecordInspectionRun(tv, det_ctx, s, pflow, p, &alert_flags) == false) {
+            goto next;
+        }
 
 #ifdef PROFILING
         smatch = true;
