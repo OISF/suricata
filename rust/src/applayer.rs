@@ -218,6 +218,47 @@ impl From<i32> for AppLayerResult {
     }
 }
 
+pub enum Frame {}
+
+// Defined in app-layer-register.h
+extern {
+    pub fn AppLayerFrameNew2(flow: *const Flow, frame_start_rel: u32, len: i32, dir: i32, frame_type: u8) -> *const Frame;
+    pub fn AppLayerFrameAddEvent(frame: *const Frame, event: u8);
+    pub fn AppLayerFrameGetId(frame: *const Frame) -> i64;
+}
+
+/// Returns a pointer to the frame and the frame ID.
+/// The frame pointer should not be stored anywhere. If you need to keep a reference to it use the ID.
+fn applayer_new_frame_with_dir(
+        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, dir: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    let offset = base.len() as u64 - frame_start.len() as u64;
+    let frame = unsafe { AppLayerFrameNew2(flow, offset as u32, frame_len, dir, frame_type) };
+    let frame_id = unsafe { AppLayerFrameGetId(frame) };
+    (frame, frame_id)
+}
+
+pub fn applayer_new_frame_ts(
+        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    applayer_new_frame_with_dir(flow, base, frame_start, frame_len, 0, frame_type)
+}
+pub fn applayer_new_frame_tc(
+        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    applayer_new_frame_with_dir(flow, base, frame_start, frame_len, 1, frame_type)
+}
+
+pub fn applayer_frame_set_tx(_frame: *const Frame, _tx_id: u64)
+{
+
+}
+
+pub fn applayer_frame_add_event(frame: *const Frame, event: u8)
+{
+    unsafe { AppLayerFrameAddEvent(frame, event); };
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
