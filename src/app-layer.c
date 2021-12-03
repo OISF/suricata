@@ -32,6 +32,7 @@
 #include "app-layer-expectation.h"
 #include "app-layer-ftp.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-records.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
@@ -455,6 +456,10 @@ static int TCPProtoDetect(ThreadVars *tv,
         ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
         /* finally, invoke the parser */
+        app_record_base_offset = STREAM_APP_PROGRESS(*stream);
+        app_record_base_ptr = (void *)data;
+        app_record_base_len = data_len;
+
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
@@ -527,6 +532,10 @@ static int TCPProtoDetect(ThreadVars *tv,
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
                 if (*alproto_otherdir != ALPROTO_FAILED) {
+                    app_record_base_offset = STREAM_APP_PROGRESS(*stream);
+                    app_record_base_ptr = (void *)data;
+                    app_record_base_len = data_len;
+
                     PACKET_PROFILING_APP_START(app_tctx, f->alproto);
                     int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
                             f->alproto, flags,
@@ -626,6 +635,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("Cannot handle gap while changing protocol");
             goto failure;
         }
+        app_record_base_offset = STREAM_APP_PROGRESS(*stream);
+        app_record_base_ptr = (void *)data;
+        app_record_base_len = data_len;
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
@@ -705,6 +717,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
+            app_record_base_offset = STREAM_APP_PROGRESS(*stream);
+            app_record_base_ptr = (void *)data;
+            app_record_base_len = data_len;
             PACKET_PROFILING_APP_START(app_tctx, f->alproto);
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);

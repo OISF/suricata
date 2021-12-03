@@ -43,6 +43,7 @@ noinst_HEADERS = \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-rdp.h \
+	app-layer-records.h \
 	app-layer-register.h \
 	app-layer-rfb.h \
 	app-layer-sip.h \
@@ -624,6 +625,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-rdp.c \
+	app-layer-records.c \
 	app-layer-register.c \
 	app-layer-rfb.c \
 	app-layer-sip.c \
