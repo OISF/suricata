@@ -1778,6 +1778,31 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
+    bool has_pmatch = false;
+    bool has_record = false;
+    bool has_app = false;
+
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        has_pmatch |= (i == DETECT_SM_LIST_PMATCH);
+
+        const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, i);
+        if (b == NULL)
+            continue;
+
+        has_record |= b->record;
+        has_app |= (b->record == false && b->packet == false);
+    }
+    if (has_pmatch && has_record) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pure content and record inspection");
+        SCReturnInt(0);
+    }
+    if (has_app && has_record) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't app-layer buffer and record inspection");
+        SCReturnInt(0);
+    }
+
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
