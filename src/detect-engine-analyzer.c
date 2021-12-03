@@ -828,6 +828,17 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
     jb_close(ctx.js);
+    jb_open_array(ctx.js, "frame_engines");
+    const DetectEngineFrameInspectionEngine *frame = s->frame_inspect;
+    for (; frame != NULL; frame = frame->next) {
+        const char *name = DetectEngineBufferTypeGetNameById(de_ctx, frame->sm_list);
+        jb_start_object(ctx.js);
+        jb_set_string(ctx.js, "name", name);
+        jb_set_bool(ctx.js, "is_mpm", frame->mpm);
+        DumpMatches(&ctx, ctx.js, frame->smd);
+        jb_close(ctx.js);
+    }
+    jb_close(ctx.js);
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         bool has_stream = false;
