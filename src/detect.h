@@ -1071,12 +1071,13 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
-    uint16_t flags;
+    uint16_t flags; /**< DETECT_ENGINE_THREAD_CTX_* flags */
 
     /* true if tx_id is set */
     bool tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
+    int64_t record_id;
     Packet *p;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
