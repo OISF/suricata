@@ -572,6 +572,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
                     STREAM_TOSERVER : STREAM_TOCLIENT);
             FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
+            FramesPrune(p->flow, p);
         }
 
         /* run tx cleanup last */
