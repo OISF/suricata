@@ -162,7 +162,41 @@ struct AppLayerParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
+
+    FramesContainer *frames;
 };
+
+static void AppLayerFramesFreeContainer(FramesContainer *frames)
+{
+    if (frames != NULL) {
+        FramesFree(&frames->toserver);
+        FramesFree(&frames->toclient);
+        SCFree(frames);
+    }
+}
+
+FramesContainer *AppLayerFramesGetContainer(Flow *f)
+{
+    if (f == NULL || f->alparser == NULL)
+        return NULL;
+    return f->alparser->frames;
+}
+
+FramesContainer *AppLayerFramesSetupContainer(Flow *f)
+{
+#ifdef UNITTESTS
+    if (f == NULL || f->alparser == NULL || f->protoctx == NULL)
+        return NULL;
+#endif
+    DEBUG_VALIDATE_BUG_ON(f == NULL || f->alparser == NULL);
+    if (f->alparser->frames == NULL) {
+        f->alparser->frames = SCCalloc(1, sizeof(FramesContainer));
+        if (f->alparser->frames == NULL) {
+            return NULL;
+        }
+    }
+    return f->alparser->frames;
+}
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -205,6 +239,7 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
 
     if (pstate->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
+    AppLayerFramesFreeContainer(pstate->frames);
     SCFree(pstate);
 
     SCReturn;
