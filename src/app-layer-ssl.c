@@ -37,6 +37,7 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 #include "app-layer-ssl.h"
 
 #include "decode-events.h"
@@ -53,6 +54,22 @@
 #include "flow-util.h"
 #include "flow-private.h"
 #include "util-validate.h"
+
+SCEnumCharMap tls_frame_table[] = {
+    {
+            "pdu",
+            TLS_FRAME_PDU,
+    },
+    {
+            "hdr",
+            TLS_FRAME_HDR,
+    },
+    {
+            "data",
+            TLS_FRAME_DATA,
+    },
+    { NULL, -1 },
+};
 
 SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
@@ -2252,9 +2269,8 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
     }
 }
 
-static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
-                       AppLayerParserState *pstate, const uint8_t *input,
-                       const uint32_t input_len)
+static int SSLv3Decode(uint8_t direction, SSLState *ssl_state, AppLayerParserState *pstate,
+        const uint8_t *input, const uint32_t input_len, const StreamSlice stream_slice)
 {
     uint32_t parsed = 0;
     uint32_t record_len; /* slice of input_len for the current record */
@@ -2267,6 +2283,10 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return -1;
         }
+        SCLogDebug("%s input %p record_length %u", (direction == 0) ? "toserver" : "toclient",
+                input, ssl_state->curr_connp->record_length);
+        AppLayerFrameNew(ssl_state->f, &stream_slice, input,
+                ssl_state->curr_connp->record_length + retval, direction, TLS_FRAME_PDU);
         parsed += retval;
         record_len = MIN(input_len - parsed, ssl_state->curr_connp->record_length);
         SCLogDebug("record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",
@@ -2468,21 +2488,23 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  *
  * \retval >=0 On success.
  */
-static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
-                     const uint8_t *input, uint32_t ilen)
+static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
+        AppLayerParserState *pstate, StreamSlice stream_slice)
 {
     SSLState *ssl_state = (SSLState *)alstate;
     uint32_t counter = 0;
-    int32_t input_len = (int32_t)ilen;
+    int32_t input_len = (int32_t)stream_slice.input_len;
     ssl_state->f = f;
+    const uint8_t *input = stream_slice.input;
 
-    if (input == NULL &&
+    if (stream_slice.input == NULL &&
             ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
-             (direction == 1 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
+                    (direction == 1 &&
+                            AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
         SCReturnStruct(APP_LAYER_OK);
-    } else if (input == NULL || input_len == 0) {
+    } else if (stream_slice.input == NULL || stream_slice.input_len == 0) {
         SCReturnStruct(APP_LAYER_ERROR);
     }
 
@@ -2552,8 +2574,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
                 SCLogDebug("Continuing parsing TLS record: record_length %u, bytes_processed %u",
                         ssl_state->curr_connp->record_length, ssl_state->curr_connp->bytes_processed);
             }
-            int retval = SSLv3Decode(direction, ssl_state, pstate, input,
-                    input_len);
+            int retval = SSLv3Decode(direction, ssl_state, pstate, input, input_len, stream_slice);
             if (retval < 0 || retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(retval > input_len);
                 SCLogDebug("Error parsing TLS. Reseting parser "
@@ -2596,14 +2617,14 @@ static AppLayerResult SSLParseClientRecord(Flow *f, void *alstate, AppLayerParse
         StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
         const uint8_t flags)
 {
-    return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 0 /* toserver */, alstate, pstate, stream_slice);
 }
 
 static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
         StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
         const uint8_t flags)
 {
-    return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 1 /* toclient */, alstate, pstate, stream_slice);
 }
 
 /**
@@ -2708,6 +2729,22 @@ static AppProto SSLProbingParser(Flow *f, uint8_t direction,
     }
 
     return ALPROTO_FAILED;
+}
+
+static int SSLStateGetFrameIdByName(const char *frame_name)
+{
+    int id = SCMapEnumNameToValue(frame_name, tls_frame_table);
+    if (id < 0) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "unknown frame type \"%s\"", frame_name);
+        return -1;
+    }
+    return id;
+}
+
+static const char *SSLStateGetFrameNameById(const uint8_t frame_id)
+{
+    const char *name = SCMapEnumValueToName(frame_id, tls_frame_table);
+    return name;
 }
 
 static int SSLStateGetEventInfo(const char *event_name,
@@ -2937,6 +2974,8 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOCLIENT,
                                      SSLParseServerRecord);
 
+        AppLayerParserRegisterGetFrameFuncs(
+                IPPROTO_TCP, ALPROTO_TLS, SSLStateGetFrameIdByName, SSLStateGetFrameNameById);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfoById);
 
