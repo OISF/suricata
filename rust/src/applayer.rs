@@ -193,6 +193,47 @@ impl From<i32> for AppLayerResult {
     }
 }
 
+pub enum Record {}
+
+// Defined in app-layer-register.h
+extern {
+    pub fn AppLayerRecordNew2(flow: *const Flow, rec_start_rel: u32, len: i32, dir: i32, rec_type: u8) -> *const Record;
+    pub fn AppLayerRecordAddEvent(rec: *const Record, event: u8);
+    pub fn AppLayerRecordGetId(rec: *const Record) -> i64;
+}
+
+/// Returns a pointer to the record and the record ID.
+/// The record pointer should not be stored anywhere. If you need to keep a reference to it use the ID.
+fn applayer_new_record_with_dir(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, dir: i32, rec_type: u8) -> (*const Record, i64)
+{
+    let offset = base.len() as u64 - rec_start.len() as u64;
+    let rec = unsafe { AppLayerRecordNew2(flow, offset as u32, rec_len, dir, rec_type) };
+    let rec_id = unsafe { AppLayerRecordGetId(rec) };
+    (rec, rec_id)
+}
+
+pub fn applayer_new_record_ts(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, rec_type: u8) -> (*const Record, i64)
+{
+    applayer_new_record_with_dir(flow, base, rec_start, rec_len, 0, rec_type)
+}
+pub fn applayer_new_record_tc(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, rec_type: u8) -> (*const Record, i64)
+{
+    applayer_new_record_with_dir(flow, base, rec_start, rec_len, 1, rec_type)
+}
+
+pub fn applayer_record_set_tx(_rec: *const Record, _tx_id: u64)
+{
+
+}
+
+pub fn applayer_record_add_event(rec: *const Record, event: u8)
+{
+    unsafe { AppLayerRecordAddEvent(rec, event); };
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
