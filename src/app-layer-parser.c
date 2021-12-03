@@ -122,6 +122,9 @@ typedef struct AppLayerParserProtoCtx_
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
 
+    AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
+    AppLayerParserGetFrameNameByIdFn GetFrameNameById;
+
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -532,6 +535,16 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
         StateGetEventInfoById = StateGetEventInfoById;
 
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetFrameIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetFrameNameByIdFn GetNameByIdFunc)
+{
+    SCEnter();
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameIdByName = GetIdByNameFunc;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameNameById = GetNameByIdFunc;
     SCReturn;
 }
 
@@ -1447,6 +1460,24 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
         }
     }
     SCReturn;
+}
+
+int AppLayerParserGetFrameIdByName(uint8_t ipproto, AppProto alproto, const char *name)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameIdByName != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameIdByName(name);
+    } else {
+        return -1;
+    }
+}
+
+const char *AppLayerParserGetFrameNameById(uint8_t ipproto, AppProto alproto, const uint8_t id)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameNameById != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetFrameNameById(id);
+    } else {
+        return NULL;
+    }
 }
 
 /***** Cleanup *****/
