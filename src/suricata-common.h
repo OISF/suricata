@@ -126,16 +126,16 @@
 #endif
 
 #ifdef HAVE_TYPE_U_LONG_NOT_DEFINED
-typedef unsigned long int u_long
+typedef unsigned long int u_long;
 #endif
 #ifdef HAVE_TYPE_U_INT_NOT_DEFINED
-typedef unsigned int u_int
+typedef unsigned int u_int;
 #endif
 #ifdef HAVE_TYPE_U_SHORT_NOT_DEFINED
-typedef unsigned short u_short
+typedef unsigned short u_short;
 #endif
 #ifdef HAVE_TYPE_U_CHAR_NOT_DEFINED
-typedef unsigned char u_char
+typedef unsigned char u_char;
 #endif
 
 #include <pcre2.h>
