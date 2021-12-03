@@ -1968,6 +1968,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     int r = DetectMpmPrepareBuiltinMpms(de_ctx);
     r |= DetectMpmPrepareAppMpms(de_ctx);
     r |= DetectMpmPreparePktMpms(de_ctx);
+    r |= DetectMpmPrepareFrameMpms(de_ctx);
     if (r != 0) {
         FatalError(SC_ERR_FATAL, "initializing the detection engine failed");
     }

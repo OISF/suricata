@@ -32,6 +32,8 @@
 
 #include "stream.h"
 
+void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx);
+int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
@@ -112,11 +114,24 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
+void DetectFrameMpmRegister(const char *name, int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type);
+void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
+        DetectEngineTransforms *transforms);
+void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int direction,
+        int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type);
 
 int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
          SigGroupHead *sgh, MpmCtx *mpm_ctx,
          const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
+int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 typedef struct PrefilterMpmListId {
     int list_id;
