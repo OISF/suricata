@@ -239,6 +239,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
 #include "app-layer-template.h"
+#include "detect-frame.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
@@ -517,6 +518,8 @@ void SigTableSetup(void)
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
+
+    DetectFrameRegister();
 
     DetectPcreRegister();
     DetectDepthRegister();
