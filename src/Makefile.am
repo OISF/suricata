@@ -174,6 +174,7 @@ noinst_HEADERS = \
 	detect-flowvar.h \
 	detect-fragbits.h \
 	detect-fragoffset.h \
+	detect-frame.h \
 	detect-ftpbounce.h \
 	detect-ftpdata.h \
 	detect-geoip.h \
@@ -761,6 +762,7 @@ libsuricata_c_a_SOURCES = \
 	detect-flowvar.c \
 	detect-fragbits.c \
 	detect-fragoffset.c \
+	detect-frame.c \
 	detect-ftpbounce.c \
 	detect-ftpdata.c \
 	detect-geoip.c \
