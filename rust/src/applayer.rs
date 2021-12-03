@@ -223,6 +223,48 @@ impl From<i32> for AppLayerResult {
     }
 }
 
+pub enum Frame {}
+
+// Defined in app-layer-register.h
+extern {
+    pub fn AppLayerFrameNewByRelativeOffset(flow: *const Flow, stream_slice: *const StreamSlice, frame_start_rel: u32, len: i32, dir: i32, frame_type: u8) -> *const Frame;
+    pub fn AppLayerFrameAddEvent(frame: *const Frame, event: u8);
+    pub fn AppLayerFrameSetTxId(frame: *const Frame, tx_id: u64);
+    pub fn AppLayerFrameGetId(frame: *const Frame) -> i64;
+}
+
+/// Returns a pointer to the frame and the frame ID.
+/// The frame pointer should not be stored anywhere. If you need to keep a reference to it use the ID.
+fn applayer_new_frame_with_dir(
+        flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i32, dir: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    let offset = stream_slice.len() as u64 - frame_start.len() as u64;
+    let frame = unsafe { AppLayerFrameNewByRelativeOffset(flow, stream_slice, offset as u32, frame_len, dir, frame_type) };
+    let frame_id = unsafe { AppLayerFrameGetId(frame) };
+    (frame, frame_id)
+}
+
+pub fn applayer_new_frame_ts(
+        flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    applayer_new_frame_with_dir(flow, stream_slice, frame_start, frame_len, 0, frame_type)
+}
+pub fn applayer_new_frame_tc(
+        flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+{
+    applayer_new_frame_with_dir(flow, stream_slice, frame_start, frame_len, 1, frame_type)
+}
+
+pub fn applayer_frame_set_tx(frame: *const Frame, tx_id: u64)
+{
+    unsafe { AppLayerFrameSetTxId(frame, tx_id); };
+}
+
+pub fn applayer_frame_add_event(frame: *const Frame, event: u8)
+{
+    unsafe { AppLayerFrameAddEvent(frame, event); };
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
