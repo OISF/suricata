@@ -139,6 +139,7 @@ noinst_HEADERS = \
 	detect-engine-enip.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
+	detect-engine-frame.h \
 	detect-engine.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
@@ -720,6 +721,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-enip.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
+	detect-engine-frame.c \
 	detect-engine-iponly.c \
 	detect-engine-loader.c \
 	detect-engine-mpm.c \
