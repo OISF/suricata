@@ -32,6 +32,12 @@
 #include "util-ja3.h"
 #include "queue.h"
 
+enum TlsFrameTypes {
+    TLS_FRAME_PDU = 0, /**< whole PDU, so header + data */
+    TLS_FRAME_HDR,     /**< only header portion */
+    TLS_FRAME_DATA,    /**< only data portion */
+};
+
 enum {
     /* TLS protocol messages */
     TLS_DECODER_EVENT_INVALID_SSLV2_HEADER,
