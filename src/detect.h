@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -318,7 +318,7 @@ typedef struct SigMatchCtx_ {
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint8_t type; /**< match type */
+    uint16_t type; /**< match type */
     uint16_t idx; /**< position in the signature */
     SigMatchCtx *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
@@ -327,7 +327,7 @@ typedef struct SigMatch_ {
 
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
-    uint8_t type; /**< match type */
+    uint16_t type;   /**< match type */
     uint8_t is_last; /**< Last element of the list */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
