@@ -162,7 +162,41 @@ struct AppLayerParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
+
+    RecordsContainer *records;
 };
+
+static void AppLayerRecordsFreeContainer(RecordsContainer *records)
+{
+    if (records != NULL) {
+        RecordsFree(&records->toserver);
+        RecordsFree(&records->toclient);
+        SCFree(records);
+    }
+}
+
+RecordsContainer *AppLayerRecordsGetContainer(Flow *f)
+{
+    if (f == NULL || f->alparser == NULL)
+        return NULL;
+    return f->alparser->records;
+}
+
+RecordsContainer *AppLayerRecordsSetupContainer(Flow *f)
+{
+#ifdef UNITTESTS
+    if (f == NULL || f->alparser == NULL || f->protoctx == NULL)
+        return NULL;
+#endif
+    DEBUG_VALIDATE_BUG_ON(f == NULL || f->alparser == NULL);
+    if (f->alparser->records == NULL) {
+        f->alparser->records = SCCalloc(1, sizeof(RecordsContainer));
+        if (f->alparser->records == NULL) {
+            return NULL;
+        }
+    }
+    return f->alparser->records;
+}
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -205,6 +239,7 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
 
     if (pstate->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
+    AppLayerRecordsFreeContainer(pstate->records);
     SCFree(pstate);
 
     SCReturn;
