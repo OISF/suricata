@@ -122,6 +122,9 @@ typedef struct AppLayerParserProtoCtx_
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
 
+    AppLayerParserGetRecordIdByNameFn GetRecordIdByName;
+    AppLayerParserGetRecordNameByIdFn GetRecordNameById;
+
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -567,6 +570,16 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
         StateGetEventInfoById = StateGetEventInfoById;
 
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetRecordFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetRecordIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetRecordNameByIdFn GetNameByIdFunc)
+{
+    SCEnter();
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName = GetIdByNameFunc;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById = GetNameByIdFunc;
     SCReturn;
 }
 
@@ -1466,6 +1479,24 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
         }
     }
     SCReturn;
+}
+
+int AppLayerParserGetRecordIdByName(uint8_t ipproto, AppProto alproto, const char *name)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName(name);
+    } else {
+        return -1;
+    }
+}
+
+const char *AppLayerParserGetRecordNameById(uint8_t ipproto, AppProto alproto, const uint8_t id)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById(id);
+    } else {
+        return NULL;
+    }
 }
 
 /***** Cleanup *****/

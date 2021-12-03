@@ -179,6 +179,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterTruncateFunc(p->ip_proto, alproto, p->Truncate);
     }
 
+    if (p->GetRecordIdByName && p->GetRecordNameById) {
+        AppLayerParserRegisterGetRecordFuncs(
+                p->ip_proto, alproto, p->GetRecordIdByName, p->GetRecordNameById);
+    }
+
     return 0;
 }
 
