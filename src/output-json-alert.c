@@ -50,6 +50,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-ftp.h"
+#include "app-layer-records.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
@@ -73,6 +74,7 @@
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
+#include "output-json-record.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -584,6 +586,42 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
     }
 }
 
+static void AlertAddRecord(const Packet *p, JsonBuilder *jb, const int64_t record_id)
+{
+    if (p->flow == NULL || p->flow->protoctx == NULL)
+        return;
+
+    RecordsContainer *records_container = AppLayerRecordsGetContainer(p->flow);
+    if (records_container == NULL)
+        return;
+
+    Records *recs;
+    TcpSession *ssn = p->flow->protoctx;
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        recs = &records_container->toserver;
+    } else {
+        stream = &ssn->server;
+        recs = &records_container->toclient;
+    }
+
+    Record *rec = RecordGetById(recs, record_id);
+    if (rec != NULL && rec->rel_offset >= 0) {
+        uint64_t abs_offset = (uint64_t)rec->rel_offset + (uint64_t)STREAM_BASE_OFFSET(stream);
+
+        jb_open_object(jb, "record");
+        jb_set_string(
+                jb, "type", AppLayerParserGetRecordNameById(p->proto, p->flow->alproto, rec->type));
+        jb_set_uint(jb, "id", rec->id);
+        jb_set_uint(jb, "offset", abs_offset);
+        jb_set_uint(jb, "length", rec->len);
+        jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
+        RecordAddPayload(jb, stream, rec);
+        jb_close(jb);
+    }
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -708,6 +746,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
 
             jb_set_uint(jb, "stream", stream);
+        }
+
+        if (pa->flags & PACKET_ALERT_FLAG_RECORD) {
+            AlertAddRecord(p, jb, pa->record_id);
         }
 
         /* base64-encoded full packet */
