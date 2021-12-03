@@ -270,6 +270,7 @@ noinst_HEADERS = \
 	detect-prefilter.h \
 	detect-priority.h \
 	detect-rawbytes.h \
+	detect-record.h \
 	detect-reference.h \
 	detect-replace.h \
 	detect-rev.h \
@@ -849,6 +850,7 @@ libsuricata_c_a_SOURCES = \
 	detect-prefilter.c \
 	detect-priority.c \
 	detect-rawbytes.c \
+	detect-record.c \
 	detect-reference.c \
 	detect-replace.c \
 	detect-rev.c \
