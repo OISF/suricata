@@ -71,10 +71,14 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
     if (sghid->pkt_mpms != NULL) {
         SCFree(sghid->pkt_mpms);
     }
+    if (sghid->rec_mpms != NULL) {
+        SCFree(sghid->rec_mpms);
+    }
 
     PrefilterFreeEnginesList(sghid->tx_engines);
     PrefilterFreeEnginesList(sghid->pkt_engines);
     PrefilterFreeEnginesList(sghid->payload_engines);
+    PrefilterFreeEnginesList(sghid->rec_engines);
 
     SCFree(sghid);
 }

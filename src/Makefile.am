@@ -149,6 +149,7 @@ noinst_HEADERS = \
 	detect-engine-prefilter.h \
 	detect-engine-profile.h \
 	detect-engine-proto.h \
+	detect-engine-record.h \
 	detect-engine-register.h \
 	detect-engine-siggroup.h \
 	detect-engine-sigorder.h \
@@ -729,6 +730,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-prefilter-common.c \
 	detect-engine-profile.c \
 	detect-engine-proto.c \
+	detect-engine-record.c \
 	detect-engine-register.c \
 	detect-engine-siggroup.c \
 	detect-engine-sigorder.c \
