@@ -28,6 +28,8 @@
 #include "tm-threads.h"
 #include "flow-private.h"
 
+#include "detect-engine-frame.h"
+
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
@@ -49,6 +51,7 @@ int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);
 void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
+void DetectBufferTypeSupportsFrames(const char *name);
 void DetectBufferTypeSupportsTransformations(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
@@ -61,6 +64,8 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
 
 /* detect engine related buffer funcs */
 
+int DetectEngineBufferTypeRegisterWithFrameEngines(DetectEngineCtx *de_ctx, const char *name,
+        const int direction, const AppProto alproto, const uint8_t frame_type);
 int DetectEngineBufferTypeRegister(DetectEngineCtx *de_ctx, const char *name);
 const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
@@ -75,6 +80,7 @@ bool DetectEngineBufferRunValidateCallback(
         const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
 bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
         const uint8_t *content, uint16_t content_len, const char **namestr);
+void DetectEngineBufferTypeSupportsFrames(DetectEngineCtx *de_ctx, const char *name);
 void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name);
 void DetectEngineBufferTypeSupportsMpm(DetectEngineCtx *de_ctx, const char *name);
 void DetectEngineBufferTypeSupportsTransformations(DetectEngineCtx *de_ctx, const char *name);
@@ -161,9 +167,16 @@ void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
 
+void DetectFrameInspectEngineRegister(const char *name, int dir,
+        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
+void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char *name, int dir,
+        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
+
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *, Signature *s);
 
+bool DetectEngineFrameInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags);
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p,
