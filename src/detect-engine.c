@@ -680,11 +680,6 @@ static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
-static DetectEngineTransforms no_transforms = {
-    .transforms[0] = {0, NULL},
-    .cnt = 0,
-};
-
 int DetectBufferTypeMaxId(void)
 {
     return g_buffer_type_id;
@@ -693,7 +688,7 @@ int DetectBufferTypeMaxId(void)
 static uint32_t DetectBufferTypeHashNameFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     const DetectBufferType *map = (DetectBufferType *)data;
-    uint32_t hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    uint32_t hash = hashlittle_safe(map->name, strlen(map->name), 0);
     hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
     hash %= ht->array_size;
     return hash;
@@ -712,7 +707,7 @@ static char DetectBufferTypeCompareNameFunc(void *data1, uint16_t len1, void *da
     DetectBufferType *map1 = (DetectBufferType *)data1;
     DetectBufferType *map2 = (DetectBufferType *)data2;
 
-    int r = (strcmp(map1->string, map2->string) == 0);
+    int r = (strcmp(map1->name, map2->name) == 0);
     r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
     return r;
 }
@@ -771,21 +766,25 @@ static void DetectBufferTypeFree(void)
 #endif
 static int DetectBufferTypeAdd(const char *string)
 {
+    BUG_ON(string == NULL || strlen(string) >= 32);
+
     DetectBufferType *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
         return -1;
 
-    map->string = string;
+    strlcpy(map->name, string, sizeof(map->name));
     map->id = g_buffer_type_id++;
 
     BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
-    SCLogDebug("buffer %s registered with id %d", map->string, map->id);
+    SCLogDebug("buffer %s registered with id %d", map->name, map->id);
     return map->id;
 }
 
 static DetectBufferType *DetectBufferTypeLookupByName(const char *string)
 {
-    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, NULL, NULL, no_transforms };
+    DetectBufferType map;
+    memset(&map, 0, sizeof(map));
+    strlcpy(map.name, string, sizeof(map.name));
 
     DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
     return res;
@@ -847,7 +846,9 @@ int DetectBufferTypeGetByName(const char *name)
 static DetectBufferType *DetectEngineBufferTypeLookupByName(
         const DetectEngineCtx *de_ctx, const char *string)
 {
-    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, NULL, NULL, no_transforms };
+    DetectBufferType map;
+    memset(&map, 0, sizeof(map));
+    strlcpy(map.name, string, sizeof(map.name));
 
     DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_name, &map, 0);
     return res;
@@ -866,21 +867,23 @@ const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_
 const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
 {
     const DetectBufferType *res = DetectEngineBufferTypeGetById(de_ctx, id);
-    return res ? res->string : NULL;
+    return res ? res->name : NULL;
 }
 
 static int DetectEngineBufferTypeAdd(DetectEngineCtx *de_ctx, const char *string)
 {
+    BUG_ON(string == NULL || strlen(string) >= 32);
+
     DetectBufferType *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
         return -1;
 
-    map->string = string;
+    strlcpy(map->name, string, sizeof(map->name));
     map->id = de_ctx->buffer_type_id++;
 
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)map, 0) != 0);
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_id, (void *)map, 0) != 0);
-    SCLogDebug("buffer %s registered with id %d", map->string, map->id);
+    SCLogDebug("buffer %s registered with id %d", map->name, map->id);
     return map->id;
 }
 
@@ -896,11 +899,13 @@ int DetectEngineBufferTypeRegister(DetectEngineCtx *de_ctx, const char *name)
 
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
 {
+    BUG_ON(desc == NULL || strlen(desc) >= 128);
+
     DetectBufferType *exists = DetectBufferTypeLookupByName(name);
     if (!exists) {
         return;
     }
-    exists->description = desc;
+    strlcpy(exists->description, desc, sizeof(exists->description));
 }
 
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id)
@@ -1297,7 +1302,7 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
 
         SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
                    "Callbacks: Setup %p Validate %p",
-                map->string, map->id, map->mpm ? "true" : "false", map->packet ? "true" : "false",
+                map->name, map->id, map->mpm ? "true" : "false", map->packet ? "true" : "false",
                 map->description, map->SetupCallback, map->ValidateCallback);
         b = HashListTableGetListNext(b);
     }
@@ -1361,11 +1366,11 @@ int DetectEngineBufferTypeGetByIdTransforms(
     }
     if (!base_map->supports_transforms) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "buffer '%s' does not support transformations",
-                base_map->string);
+                base_map->name);
         return -1;
     }
 
-    SCLogDebug("base_map %s", base_map->string);
+    SCLogDebug("base_map %s", base_map->name);
 
     DetectEngineTransforms t;
     memset(&t, 0, sizeof(t));
@@ -1374,7 +1379,10 @@ int DetectEngineBufferTypeGetByIdTransforms(
     }
     t.cnt = transform_cnt;
 
-    DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
+    DetectBufferType lookup_map;
+    memset(&lookup_map, 0, sizeof(lookup_map));
+    strlcpy(lookup_map.name, base_map->name, sizeof(lookup_map.name));
+    lookup_map.transforms = t;
     DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_name, &lookup_map, 0);
 
     SCLogDebug("res %p", res);
@@ -1386,7 +1394,7 @@ int DetectEngineBufferTypeGetByIdTransforms(
     if (map == NULL)
         return -1;
 
-    map->string = base_map->string;
+    strlcpy(map->name, base_map->name, sizeof(map->name));
     map->id = de_ctx->buffer_type_id++;
     map->parent_id = base_map->id;
     map->transforms = t;
@@ -1404,7 +1412,7 @@ int DetectEngineBufferTypeGetByIdTransforms(
 
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)map, 0) != 0);
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_id, (void *)map, 0) != 0);
-    SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
+    SCLogDebug("buffer %s registered with id %d, parent %d", map->name, map->id, map->parent_id);
     de_ctx->buffer_type_id++;
 
     if (map->packet) {
