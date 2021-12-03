@@ -428,6 +428,7 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     /* Prune any stored files. */
     FlowPruneFiles(p);
 
+    FramesPrune(p->flow, p);
     /*  Release tcp segments. Done here after alerting can use them. */
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
     StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
@@ -568,6 +569,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
                 StreamTcpSessionCleanup(p->flow->protoctx);
             }
         } else if (p->proto == IPPROTO_TCP && p->flow->protoctx) {
+            FramesPrune(p->flow, p);
             FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
             StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
                     STREAM_TOSERVER : STREAM_TOCLIENT);

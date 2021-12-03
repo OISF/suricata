@@ -22,6 +22,7 @@ noinst_HEADERS = \
 	app-layer-enip.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
+	app-layer-frames.h \
 	app-layer-ftp.h \
 	app-layer.h \
 	app-layer-htp-body.h \
@@ -611,6 +612,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-events.c \
 	app-layer-expectation.c \
 	app-layer-ftp.c \
+	app-layer-frames.c \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
 	app-layer-htp-file.c \
