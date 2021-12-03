@@ -389,6 +389,7 @@ noinst_HEADERS = \
 	output-json-email-common.h \
 	output-json-file.h \
 	output-json-flow.h \
+	output-json-frame.h \
 	output-json-ftp.h \
 	output-json.h \
 	output-json-http2.h \
@@ -972,6 +973,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-email-common.c \
 	output-json-file.c \
 	output-json-flow.c \
+	output-json-frame.c \
 	output-json-ftp.c \
 	output-json-http2.c \
 	output-json-http.c \
