@@ -179,6 +179,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterTruncateFunc(p->ip_proto, alproto, p->Truncate);
     }
 
+    if (p->GetFrameIdByName && p->GetFrameNameById) {
+        AppLayerParserRegisterGetFrameFuncs(
+                p->ip_proto, alproto, p->GetFrameIdByName, p->GetFrameNameById);
+    }
+
     return 0;
 }
 
