@@ -26,6 +26,7 @@
 #define __APP_LAYER_PARSER_H__
 
 #include "app-layer-events.h"
+#include "app-layer-frames.h"
 #include "detect-engine-state.h"
 #include "util-file.h"
 #include "stream-tcp-private.h"
@@ -314,5 +315,7 @@ void AppLayerParserBackupParserTable(void);
 void AppLayerParserRestoreParserTable(void);
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min);
 #endif
+
+void AppLayerFramesFreeContainer(Flow *f);
 
 #endif /* __APP_LAYER_PARSER_H__ */

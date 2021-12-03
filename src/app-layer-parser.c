@@ -165,7 +165,55 @@ struct AppLayerParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
+
+    FramesContainer *frames;
 };
+
+static void AppLayerParserFramesFreeContainer(FramesContainer *frames)
+{
+    if (frames != NULL) {
+        FramesFree(&frames->toserver);
+        FramesFree(&frames->toclient);
+        SCFree(frames);
+    }
+}
+
+void AppLayerFramesFreeContainer(Flow *f)
+{
+    if (f == NULL || f->alparser == NULL || f->alparser->frames == NULL)
+        return;
+    AppLayerParserFramesFreeContainer(f->alparser->frames);
+    f->alparser->frames = NULL;
+}
+
+FramesContainer *AppLayerFramesGetContainer(Flow *f)
+{
+    if (f == NULL || f->alparser == NULL)
+        return NULL;
+    return f->alparser->frames;
+}
+
+FramesContainer *AppLayerFramesSetupContainer(Flow *f)
+{
+#ifdef UNITTESTS
+    if (f == NULL || f->alparser == NULL || f->protoctx == NULL)
+        return NULL;
+#endif
+    DEBUG_VALIDATE_BUG_ON(f == NULL || f->alparser == NULL);
+    if (f->alparser->frames == NULL) {
+        f->alparser->frames = SCCalloc(1, sizeof(FramesContainer));
+        if (f->alparser->frames == NULL) {
+            return NULL;
+        }
+#ifdef DEBUG
+        f->alparser->frames->toserver.ipproto = f->proto;
+        f->alparser->frames->toserver.alproto = f->alproto;
+        f->alparser->frames->toclient.ipproto = f->proto;
+        f->alparser->frames->toclient.alproto = f->alproto;
+#endif
+    }
+    return f->alparser->frames;
+}
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -208,6 +256,7 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
 
     if (pstate->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
+    AppLayerParserFramesFreeContainer(pstate->frames);
     SCFree(pstate);
 
     SCReturn;
