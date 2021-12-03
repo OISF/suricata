@@ -299,6 +299,9 @@ pub struct RustParser {
     /// Function to handle the end of data coming on one of the sides
     /// due to the stream reaching its 'depth' limit.
     pub truncate: Option<TruncateFn>,
+
+    pub get_frame_id_by_name: Option<GetFrameIdByName>,
+    pub get_frame_name_by_id: Option<GetFrameNameById>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -344,6 +347,8 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
+pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
+pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
