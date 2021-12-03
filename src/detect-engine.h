@@ -75,6 +75,9 @@ bool DetectEngineBufferRunValidateCallback(
         const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
 bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
         const uint8_t *content, uint16_t content_len, const char **namestr);
+void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name);
+void DetectEngineBufferTypeSupportsMpm(DetectEngineCtx *de_ctx, const char *name);
+void DetectEngineBufferTypeSupportsTransformations(DetectEngineCtx *de_ctx, const char *name);
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
