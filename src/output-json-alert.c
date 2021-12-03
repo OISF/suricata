@@ -50,6 +50,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-ftp.h"
+#include "app-layer-frames.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
@@ -73,6 +74,7 @@
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
+#include "output-json-frame.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -587,6 +589,32 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
     }
 }
 
+static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_id)
+{
+    if (p->flow == NULL || p->flow->protoctx == NULL)
+        return;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
+    if (frames_container == NULL)
+        return;
+
+    Frames *frames;
+    TcpSession *ssn = p->flow->protoctx;
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        frames = &frames_container->toserver;
+    } else {
+        stream = &ssn->server;
+        frames = &frames_container->toclient;
+    }
+
+    Frame *frame = FrameGetById(frames, frame_id);
+    if (frame != NULL && frame->rel_offset >= 0) {
+        FrameJsonLogOneFrame(frame, p->flow, stream, p, jb);
+    }
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -711,6 +739,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
 
             jb_set_uint(jb, "stream", stream);
+        }
+
+        if (pa->flags & PACKET_ALERT_FLAG_FRAME) {
+            AlertAddFrame(p, jb, pa->frame_id);
         }
 
         /* base64-encoded full packet */
