@@ -61,6 +61,7 @@
 #include "app-layer.h"
 #include "app-layer-events.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 
 #include "detect-engine-state.h"
 
@@ -1166,6 +1167,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                 (uint8_t *)mydata, mydata_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
+        AppLayerFrameDump(p->flow);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
@@ -1353,6 +1355,14 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream = &ssn->client;
     } else {
         stream = &ssn->server;
+    }
+
+    /* Record updates */
+    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+        if (progress > STREAM_APP_PROGRESS(stream)) {
+            AppLayerFramesUpdateProgress(p->flow, stream, progress,
+                    PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        }
     }
 
     if (progress > STREAM_RAW_PROGRESS(stream)) {

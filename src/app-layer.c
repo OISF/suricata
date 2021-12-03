@@ -32,6 +32,7 @@
 #include "app-layer-expectation.h"
 #include "app-layer-ftp.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-frames.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
