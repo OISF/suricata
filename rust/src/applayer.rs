@@ -230,23 +230,23 @@ extern {
 /// Returns a pointer to the frame and the frame ID.
 /// The frame pointer should not be stored anywhere. If you need to keep a reference to it use the ID.
 fn applayer_new_frame_with_dir(
-        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, dir: i32, frame_type: u8) -> (*const Frame, i64)
+        flow: *const Flow, app_stream: &AppLayerStream, frame_start: &[u8], frame_len: i32, dir: i32, frame_type: u8) -> (*const Frame, i64)
 {
-    let offset = base.len() as u64 - frame_start.len() as u64;
+    let offset = app_stream.len() as u64 - frame_start.len() as u64;
     let frame = unsafe { AppLayerFrameNew2(flow, offset as u32, frame_len, dir, frame_type) };
     let frame_id = unsafe { AppLayerFrameGetId(frame) };
     (frame, frame_id)
 }
 
 pub fn applayer_new_frame_ts(
-        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+        flow: *const Flow, app_stream: &AppLayerStream, frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
 {
-    applayer_new_frame_with_dir(flow, base, frame_start, frame_len, 0, frame_type)
+    applayer_new_frame_with_dir(flow, app_stream, frame_start, frame_len, 0, frame_type)
 }
 pub fn applayer_new_frame_tc(
-        flow: *const Flow, base: &[u8], frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
+        flow: *const Flow, app_stream: &AppLayerStream, frame_start: &[u8], frame_len: i32, frame_type: u8) -> (*const Frame, i64)
 {
-    applayer_new_frame_with_dir(flow, base, frame_start, frame_len, 1, frame_type)
+    applayer_new_frame_with_dir(flow, app_stream, frame_start, frame_len, 1, frame_type)
 }
 
 pub fn applayer_frame_set_tx(_frame: *const Frame, _tx_id: u64)
