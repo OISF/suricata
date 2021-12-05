@@ -1129,6 +1129,7 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _stream_slice: StreamSlice,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
@@ -1152,6 +1153,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _stream_slice: StreamSlice,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
