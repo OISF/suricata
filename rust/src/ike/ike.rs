@@ -316,6 +316,7 @@ pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _stream_slice: StreamSlice,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
@@ -327,6 +328,7 @@ pub unsafe extern "C" fn rs_ike_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _stream_slice: StreamSlice,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);

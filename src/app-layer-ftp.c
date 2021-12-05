@@ -546,10 +546,9 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
  * \retval APP_LAYER_OK when input was process successfully
  * \retval APP_LAYER_ERROR when a unrecoverable error was encountered
  */
-static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
-                           AppLayerParserState *pstate,
-                           const uint8_t *input, uint32_t input_len,
-                           void *local_data, const uint8_t flags)
+static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     FTPThreadCtx *thread_data = local_data;
 
@@ -733,8 +732,8 @@ static inline bool FTPIsPPR(const uint8_t *input, uint32_t input_len)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-                            const uint8_t *input, uint32_t input_len,
-                            void *local_data, const uint8_t flags)
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
 
@@ -1113,19 +1112,17 @@ out:
     SCReturnStruct(APP_LAYER_OK);
 }
 
-static AppLayerResult FTPDataParseRequest(Flow *f, void *ftp_state,
-        AppLayerParserState *pstate,
-        const uint8_t *input, uint32_t input_len,
-        void *local_data, const uint8_t flags)
+static AppLayerResult FTPDataParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,
                                local_data, STREAM_TOSERVER);
 }
 
-static AppLayerResult FTPDataParseResponse(Flow *f, void *ftp_state,
-        AppLayerParserState *pstate,
-        const uint8_t *input, uint32_t input_len,
-        void *local_data, const uint8_t flags)
+static AppLayerResult FTPDataParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,
                                local_data, STREAM_TOCLIENT);
