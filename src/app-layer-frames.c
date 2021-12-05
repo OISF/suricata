@@ -28,9 +28,9 @@
 
 #include "app-layer-frames.h"
 
-thread_local uint64_t app_frame_base_offset;
-thread_local uint8_t *app_frame_base_ptr;
-thread_local uint32_t app_frame_base_len;
+//thread_local uint64_t app_frame_base_offset;
+//thread_local uint8_t *app_frame_base_ptr;
+//thread_local uint32_t app_frame_base_len;
 
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {
@@ -138,28 +138,6 @@ static Frame *FrameNew(Frames *frames, uint32_t rel_offset, int32_t len)
         frames->dframes[dyn_cnt].id = frames->base_id++;
         return &frames->dframes[dyn_cnt];
     }
-}
-
-static Frame *AddFrameWithAbsOffset(Frames *frames, uint64_t abs_offset, int32_t len)
-{
-    BUG_ON(abs_offset < app_frame_base_offset);
-    BUG_ON(abs_offset - app_frame_base_offset >= (uint64_t)UINT_MAX);
-
-    uint32_t rel_offset = abs_offset - app_frame_base_offset;
-    return FrameNew(frames, rel_offset, len);
-}
-
-static Frame *AddFrameFromPointers(
-        TcpStream *stream, Frames *frames, const uint8_t *base, const uint8_t *frame, uint32_t len)
-{
-    BUG_ON(app_frame_base_offset < STREAM_BASE_OFFSET(stream));
-    uint32_t app_ahead_of_base = app_frame_base_offset - STREAM_BASE_OFFSET(stream);
-    BUG_ON(frame < app_frame_base_ptr);
-    uint32_t rel_offset = frame - app_frame_base_ptr + app_ahead_of_base;
-    SCLogDebug("new frame: rel_offset %u len %u (base:%" PRIu64 ",app:%" PRIu64
-               ",app_ahead_of_base:%u)",
-            rel_offset, len, STREAM_BASE_OFFSET(stream), app_frame_base_offset, app_ahead_of_base);
-    return FrameNew(frames, rel_offset, len);
 }
 
 static void FrameClean(Frame *frame)
@@ -345,8 +323,8 @@ Frame *AppLayerFrameNew(
     BUG_ON(f->proto != IPPROTO_TCP);
     BUG_ON(f->protoctx == NULL);
 
-#ifdef DEBUG
     ptrdiff_t ptr_offset = frame_start - app_stream->input;
+#ifdef DEBUG
     uint64_t offset = ptr_offset + app_stream->offset;
     SCLogDebug("flow %p diframetion %s frame %p starting at %" PRIu64 " len %u (offset %" PRIu64
                ")",
@@ -369,7 +347,7 @@ Frame *AppLayerFrameNew(
         frames = &frames_container->toclient;
     }
 
-    Frame *r = AddFrameFromPointers(stream, frames, app_stream->input, frame_start, len);
+    Frame *r = FrameNew(frames, (uint32_t)ptr_offset, len);
     if (r != NULL) {
         r->type = frame_type;
     }
@@ -377,25 +355,25 @@ Frame *AppLayerFrameNew(
 }
 
 Frame *AppLayerFrameNew2(
-        Flow *f, const uint32_t frame_start_rel, const uint32_t len, int dir, uint8_t frame_type)
+        Flow *f, const AppLayerStream *app_stream, const uint32_t frame_start_rel, const uint32_t len, int dir, uint8_t frame_type)
 {
     /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     if (f->protoctx == NULL)
         return NULL;
-    if (app_frame_base_ptr == NULL)
+    if (app_stream->input == NULL)
         return NULL;
 #endif
-    BUG_ON(app_frame_base_ptr == NULL);
+    BUG_ON(app_stream->input == NULL);
     BUG_ON(f->proto != IPPROTO_TCP);
     BUG_ON(f->protoctx == NULL);
     BUG_ON(f->alparser == NULL);
 
-    const uint64_t offset = (uint64_t)frame_start_rel + app_frame_base_offset;
+    const uint64_t offset = (uint64_t)frame_start_rel + app_stream->offset;
     SCLogDebug("flow %p diframetion %s frame offset %u (abs %" PRIu64 ") starting at %" PRIu64
                " len %u (offset %" PRIu64 ")",
             f, dir == 0 ? "toserver" : "toclient", frame_start_rel, offset, offset, len,
-            app_frame_base_offset);
+            app_stream->offset);
 
     FramesContainer *frames_container = AppLayerFramesSetupContainer(f);
     if (frames_container == NULL)
@@ -408,7 +386,7 @@ Frame *AppLayerFrameNew2(
         frames = &frames_container->toclient;
     }
 
-    Frame *r = AddFrameWithAbsOffset(frames, offset, len);
+    Frame *r = FrameNew(frames, frame_start_rel, len);
     if (r != NULL) {
         r->type = frame_type;
     }

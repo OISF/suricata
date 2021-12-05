@@ -32,9 +32,9 @@
 #include "app-layer-parser.h"
 
 /* TODO can we get rid of this somehow? */
-extern thread_local uint64_t app_frame_base_offset;
-extern thread_local uint8_t *app_frame_base_ptr;
-extern thread_local uint32_t app_frame_base_len;
+//extern thread_local uint64_t app_frame_base_offset;
+//extern thread_local uint8_t *app_frame_base_ptr;
+//extern thread_local uint32_t app_frame_base_len;
 
 typedef int64_t FrameId;
 
@@ -80,7 +80,7 @@ int FrameSlide(Frames *frames, uint32_t slide);
 Frame *AppLayerFrameNew(
         Flow *f, const AppLayerStream *app_stream, const uint8_t *frame_start, const uint32_t len, int dir, uint8_t frame_type);
 Frame *AppLayerFrameNew2(
-        Flow *f, const uint32_t frame_start_rel, const uint32_t len, int dir, uint8_t frame_type);
+        Flow *f, const AppLayerStream *app_stream, const uint32_t frame_start_rel, const uint32_t len, int dir, uint8_t frame_type);
 void AppLayerFrameDump(Flow *f);
 
 Frame *FrameGetByIndex(Frames *frames, const uint32_t idx);

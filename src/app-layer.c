@@ -456,9 +456,9 @@ static int TCPProtoDetect(ThreadVars *tv,
         ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
         /* finally, invoke the parser */
-        app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
-        app_frame_base_ptr = (void *)data;
-        app_frame_base_len = data_len;
+        //app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
+        //app_frame_base_ptr = (void *)data;
+        //app_frame_base_len = data_len;
 
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
@@ -532,9 +532,9 @@ static int TCPProtoDetect(ThreadVars *tv,
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
                 if (*alproto_otherdir != ALPROTO_FAILED) {
-                    app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
-                    app_frame_base_ptr = (void *)data;
-                    app_frame_base_len = data_len;
+                    //app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
+                    //app_frame_base_ptr = (void *)data;
+                    //app_frame_base_len = data_len;
 
                     PACKET_PROFILING_APP_START(app_tctx, f->alproto);
                     int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
@@ -635,9 +635,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("Cannot handle gap while changing protocol");
             goto failure;
         }
-        app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
-        app_frame_base_ptr = (void *)data;
-        app_frame_base_len = data_len;
+        //app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
+        //app_frame_base_ptr = (void *)data;
+        //app_frame_base_len = data_len;
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
@@ -717,9 +717,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
-            app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
-            app_frame_base_ptr = (void *)data;
-            app_frame_base_len = data_len;
+            //app_frame_base_offset = STREAM_APP_PROGRESS(*stream);
+            //app_frame_base_ptr = (void *)data;
+            //app_frame_base_len = data_len;
             PACKET_PROFILING_APP_START(app_tctx, f->alproto);
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);

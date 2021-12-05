@@ -222,7 +222,7 @@ pub enum Frame {}
 
 // Defined in app-layer-register.h
 extern {
-    pub fn AppLayerFrameNew2(flow: *const Flow, frame_start_rel: u32, len: i32, dir: i32, frame_type: u8) -> *const Frame;
+    pub fn AppLayerFrameNew2(flow: *const Flow, app_stream: *const AppLayerStream, frame_start_rel: u32, len: i32, dir: i32, frame_type: u8) -> *const Frame;
     pub fn AppLayerFrameAddEvent(frame: *const Frame, event: u8);
     pub fn AppLayerFrameGetId(frame: *const Frame) -> i64;
 }
@@ -233,7 +233,7 @@ fn applayer_new_frame_with_dir(
         flow: *const Flow, app_stream: &AppLayerStream, frame_start: &[u8], frame_len: i32, dir: i32, frame_type: u8) -> (*const Frame, i64)
 {
     let offset = app_stream.len() as u64 - frame_start.len() as u64;
-    let frame = unsafe { AppLayerFrameNew2(flow, offset as u32, frame_len, dir, frame_type) };
+    let frame = unsafe { AppLayerFrameNew2(flow, app_stream, offset as u32, frame_len, dir, frame_type) };
     let frame_id = unsafe { AppLayerFrameGetId(frame) };
     (frame, frame_id)
 }
