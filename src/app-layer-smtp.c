@@ -1415,10 +1415,9 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
     SCReturnStruct(APP_LAYER_OK);
 }
 
-static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate,
-                                 AppLayerParserState *pstate,
-                                 const uint8_t *input, uint32_t input_len,
-                                 void *local_data, const uint8_t flags)
+static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCEnter();
 
@@ -1426,10 +1425,9 @@ static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate,
     return SMTPParse(0, f, alstate, pstate, input, input_len, local_data);
 }
 
-static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate,
-                                 AppLayerParserState *pstate,
-                                 const uint8_t *input, uint32_t input_len,
-                                 void *local_data, const uint8_t flags)
+static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCEnter();
 

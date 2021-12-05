@@ -26,6 +26,31 @@ use crate::core::SC;
 use std::ffi::CStr;
 
 #[repr(C)]
+pub struct AppLayerStream {
+    input: *const u8,
+    input_len: u32,
+    offset: u64,
+}
+
+impl AppLayerStream {
+    pub fn is_gap(&self) -> bool {
+        self.input.is_null() && self.input_len > 0
+    }
+    pub fn gap_size(&self) -> u32 {
+        self.input_len
+    }
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
+    }
+    pub fn len(&self) -> u32 {
+        self.input_len
+    }
+    pub fn offset_from(&self, slice: &[u8]) -> u32 {
+        self.len() - slice.len() as u32
+    }
+}
+
+#[repr(C)]
 #[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxConfig {
     /// config: log flags
@@ -286,6 +311,7 @@ macro_rules! cast_pointer {
 pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
+                                       app_stream: AppLayerStream,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void,

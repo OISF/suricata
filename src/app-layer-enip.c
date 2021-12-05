@@ -290,7 +290,7 @@ static void ENIPStateTransactionFree(void *state, uint64_t tx_id)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
-        const uint8_t *input, uint32_t input_len, void *local_data,
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
         const uint8_t flags)
 {
     SCEnter();

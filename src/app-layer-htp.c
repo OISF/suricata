@@ -814,10 +814,9 @@ error:
  *
  *  \retval On success returns 1 or on failure returns -1.
  */
-static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
-                                AppLayerParserState *pstate,
-                                const uint8_t *input, uint32_t input_len,
-                                void *local_data, const uint8_t flags)
+static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerParserState *pstate,
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCEnter();
     int ret = 0;
@@ -878,10 +877,9 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
  *
  *  \retval On success returns 1 or on failure returns -1
  */
-static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
-                                 AppLayerParserState *pstate,
-                                 const uint8_t *input, uint32_t input_len,
-                                 void *local_data, const uint8_t flags)
+static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerParserState *pstate,
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCEnter();
     int ret = 0;

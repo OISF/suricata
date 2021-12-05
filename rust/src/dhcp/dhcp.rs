@@ -228,6 +228,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_
 pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 state: *mut std::os::raw::c_void,
                                 _pstate: *mut std::os::raw::c_void,
+                                _app_stream: AppLayerStream,
                                 input: *const u8,
                                 input_len: u32,
                                 _data: *const std::os::raw::c_void,

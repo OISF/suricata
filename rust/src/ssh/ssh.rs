@@ -353,6 +353,7 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    _app_stream: AppLayerStream,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
@@ -368,6 +369,7 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    _app_stream: AppLayerStream,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);

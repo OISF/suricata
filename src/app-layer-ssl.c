@@ -2593,15 +2593,15 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
 }
 
 static AppLayerResult SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-                         const uint8_t *input, uint32_t input_len,
-                         void *local_data, const uint8_t flags)
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
 static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-                         const uint8_t *input, uint32_t input_len,
-                         void *local_data, const uint8_t flags)
+        AppLayerStream app_stream, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
 }

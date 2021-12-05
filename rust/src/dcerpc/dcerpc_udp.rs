@@ -207,6 +207,7 @@ impl DCERPCUDPState {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _app_stream: AppLayerStream,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
