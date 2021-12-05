@@ -232,9 +232,9 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
-    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-    void *local_data, const uint8_t flags)
+static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParserState *pstate,
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     TemplateState *state = statev;
 
@@ -306,8 +306,8 @@ end:
 }
 
 static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     TemplateState *state = statev;
     TemplateTransaction *tx = NULL, *ttx;

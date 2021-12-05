@@ -1162,6 +1162,21 @@ static inline void SetEOFFlags(AppLayerParserState *pstate, const uint8_t flags)
     }
 }
 
+static void Setup(Flow *f, const uint8_t direction, const uint8_t *input, uint32_t input_len,
+        const uint8_t flags, StreamSlice *as)
+{
+    memset(as, 0, sizeof(*as));
+    as->input = input;
+    as->input_len = input_len;
+    as->flags = flags;
+
+    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+        TcpSession *ssn = f->protoctx;
+        TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
+        as->offset = STREAM_APP_PROGRESS(stream);
+    }
+}
+
 /** \retval int -1 in case of unrecoverable error. App-layer tracking stops for this flow.
  *  \retval int 0 ok: we did not update app_progress
  *  \retval int 1 ok: we updated app_progress */
@@ -1174,6 +1189,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 #endif
     AppLayerParserState *pstate = f->alparser;
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][alproto];
+    StreamSlice stream_slice;
     void *alstate = NULL;
     uint64_t p_tx_cnt = 0;
     uint32_t consumed = input_len;
@@ -1219,11 +1235,11 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
+        Setup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), input, input_len, flags,
+                &stream_slice);
         /* invoke the parser */
-        AppLayerResult res = p->Parser[direction](f, alstate, pstate,
-                input, input_len,
-                alp_tctx->alproto_local_storage[f->protomap][alproto],
-                flags);
+        AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice, input,
+                input_len, alp_tctx->alproto_local_storage[f->protomap][alproto], flags);
         if (res.status < 0) {
             goto error;
         } else if (res.status > 0) {
@@ -1650,8 +1666,8 @@ typedef struct TestState_ {
  *          parser of occurence of an error.
  */
 static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
-                              const uint8_t *input, uint32_t input_len,
-                              void *local_data, const uint8_t flags)
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCEnter();
     SCReturnStruct(APP_LAYER_ERROR);
@@ -1736,8 +1752,7 @@ static int AppLayerParserTest01(void)
     memset(&ssn, 0, sizeof(ssn));
 
     /* Register the Test protocol state and parser functions */
-    AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TEST, STREAM_TOSERVER,
-                      TestProtocolParser);
+    AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TEST, STREAM_TOSERVER, TestProtocolParser);
     AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TEST,
                           TestProtocolStateAlloc, TestProtocolStateFree);
     AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEST, TestStateTransactionFree);
