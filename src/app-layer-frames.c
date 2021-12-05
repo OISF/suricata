@@ -328,29 +328,29 @@ void FramesFree(Frames *frames)
 }
 
 Frame *AppLayerFrameNew(
-        Flow *f, const uint8_t *frame_start, const uint32_t len, int dir, uint8_t frame_type)
+        Flow *f, const AppLayerStream *app_stream, const uint8_t *frame_start, const uint32_t len, int dir, uint8_t frame_type)
 {
-    SCLogDebug("app_frame_base_offset %" PRIu64, app_frame_base_offset);
-    SCLogDebug("frame_start %p app_frame_base_ptr %p", frame_start, app_frame_base_ptr);
+    SCLogDebug("app_stream offset %" PRIu64, app_stream->offset);
+    SCLogDebug("frame_start %p app_stream->input %p", frame_start, app_stream->input);
 
     /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     if (f->protoctx == NULL)
         return NULL;
-    if (frame_start < app_frame_base_ptr || frame_start >= app_frame_base_ptr + app_frame_base_len)
+    if (frame_start < app_stream->input || frame_start >= app_stream->input + app_stream->input_len)
         return NULL;
 #endif
-    BUG_ON(frame_start < app_frame_base_ptr);
-    BUG_ON(app_frame_base_ptr == NULL);
+    BUG_ON(frame_start < app_stream->input);
+    BUG_ON(app_stream->input == NULL);
     BUG_ON(f->proto != IPPROTO_TCP);
     BUG_ON(f->protoctx == NULL);
 
 #ifdef DEBUG
-    ptrdiff_t ptr_offset = frame_start - app_frame_base_ptr;
-    uint64_t offset = ptr_offset + app_frame_base_offset;
+    ptrdiff_t ptr_offset = frame_start - app_stream->input;
+    uint64_t offset = ptr_offset + app_stream->offset;
     SCLogDebug("flow %p diframetion %s frame %p starting at %" PRIu64 " len %u (offset %" PRIu64
                ")",
-            f, dir == 0 ? "toserver" : "toclient", frame_start, offset, len, app_frame_base_offset);
+            f, dir == 0 ? "toserver" : "toclient", frame_start, offset, len, app_stream->offset);
 #endif
     BUG_ON(f->alparser == NULL);
 
@@ -369,7 +369,7 @@ Frame *AppLayerFrameNew(
         frames = &frames_container->toclient;
     }
 
-    Frame *r = AddFrameFromPointers(stream, frames, app_frame_base_ptr, frame_start, len);
+    Frame *r = AddFrameFromPointers(stream, frames, app_stream->input, frame_start, len);
     if (r != NULL) {
         r->type = frame_type;
     }

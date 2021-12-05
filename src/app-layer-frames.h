@@ -78,7 +78,7 @@ void FramesFree(Frames *frames);
 int FrameSlide(Frames *frames, uint32_t slide);
 
 Frame *AppLayerFrameNew(
-        Flow *f, const uint8_t *frame_start, const uint32_t len, int dir, uint8_t frame_type);
+        Flow *f, const AppLayerStream *app_stream, const uint8_t *frame_start, const uint32_t len, int dir, uint8_t frame_type);
 Frame *AppLayerFrameNew2(
         Flow *f, const uint32_t frame_start_rel, const uint32_t len, int dir, uint8_t frame_type);
 void AppLayerFrameDump(Flow *f);
