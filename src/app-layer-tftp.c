@@ -91,9 +91,9 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static AppLayerResult TFTPParseRequest(Flow *f, void *state,
-    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-    void *local_data, const uint8_t flags)
+static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCLogDebug("Parsing tftp request: len=%" PRIu32, input_len);
 
@@ -120,8 +120,8 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state,
  * \brief Response parsing is not implemented
  */
 static AppLayerResult TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t flags)
 {
     SCReturnStruct(APP_LAYER_OK);
 }
