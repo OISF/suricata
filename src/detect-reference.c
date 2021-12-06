@@ -184,24 +184,12 @@ static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
 {
     SCEnter();
 
-    DetectReference *sig_refs = NULL;
-
     DetectReference *ref = DetectReferenceParse(rawstr, de_ctx);
     if (ref == NULL)
         SCReturnInt(-1);
 
     SCLogDebug("ref %s %s", ref->key, ref->reference);
-
-    if (s->references == NULL)  {
-        s->references = ref;
-    } else {
-        sig_refs = s->references;
-        while (sig_refs->next != NULL) {
-            sig_refs = sig_refs->next;
-        }
-        sig_refs->next = ref;
-        ref->next = NULL;
-    }
+    DetectReferenceFree(ref);
 
     SCReturnInt(0);
 }
@@ -229,11 +217,6 @@ static int DetectReferenceParseTest01(void)
     Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
             "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->references);
-
-    DetectReference *ref = s->references;
-    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -260,16 +243,6 @@ static int DetectReferenceParseTest02(void)
                                    "reference:one,openinfosecdoundation.txt; "
                                    "reference:two,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->references);
-    FAIL_IF_NULL(s->references->next);
-
-    DetectReference *ref = s->references;
-    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "openinfosecdoundation.txt") != 0);
-
-    ref = s->references->next;
-    FAIL_IF (strcmp(ref->key, "http://www.two.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
 
     DetectEngineCtxFree(de_ctx);
     PASS;

@@ -1331,36 +1331,6 @@ static void SigMetadataFree(Signature *s)
     SCReturn;
 }
 
-/**
- * \internal
- * \brief Free Reference list
- *
- * \param s Pointer to the signature
- */
-static void SigRefFree (Signature *s)
-{
-    SCEnter();
-
-    DetectReference *ref = NULL;
-    DetectReference *next_ref = NULL;
-
-    if (s == NULL) {
-        SCReturn;
-    }
-
-    SCLogDebug("s %p, s->references %p", s, s->references);
-
-    for (ref = s->references; ref != NULL;)   {
-        next_ref = ref->next;
-        DetectReferenceFree(ref);
-        ref = next_ref;
-    }
-
-    s->references = NULL;
-
-    SCReturn;
-}
-
 static void SigMatchFreeArrays(DetectEngineCtx *de_ctx, Signature *s, int ctxs)
 {
     if (s != NULL) {
@@ -1453,7 +1423,6 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
         SCFree(s->sig_str);
     }
 
-    SigRefFree(s);
     SigMetadataFree(s);
 
     DetectEngineAppInspectionEngineSignatureFree(de_ctx, s);
