@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -198,7 +198,7 @@ fn smb1_command_is_andx(c: u8) -> bool {
     }
 }
 
-fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) -> u32 {
+fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) {
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
@@ -593,7 +593,6 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
             }
         }
     }
-    return 0;
 }
 
 pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
@@ -602,9 +601,8 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
-        if smb1_request_record_one(state, r, command, &mut andx_offset) != 0 {
-             break;
-        }
+        smb1_request_record_one(state, r, command, &mut andx_offset);
+
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
             if let Ok((_, andx_hdr)) = smb1_parse_andx_header(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {
@@ -623,7 +621,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     0
 }
 
-fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) -> u32 {
+fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command: u8, andx_offset: &mut usize) {
     SCLogDebug!("record: command {} status {} -> {:?}", r.command, r.nt_status, r);
 
     let key_ssn_id = r.ssn_id;
@@ -693,7 +691,7 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
                     },
                     None => { },
                 }
-                return 0;
+                return;
             }
 
             match parse_smb_connect_tree_andx_response_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
@@ -835,17 +833,13 @@ fn smb1_response_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command
     } else {
         SCLogDebug!("have tx for cmd {}", command);
     }
-
-    return 0;
 }
 
 pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
-        if smb1_response_record_one(state, r, command, &mut andx_offset) != 0 {
-            break;
-        }
+        smb1_response_record_one(state, r, command, &mut andx_offset);
 
         // continue for next andx command if any
         if smb1_command_is_andx(command) {

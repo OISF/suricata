@@ -54,6 +54,7 @@ pub fn parse_smb2_record_direction(i: &[u8]) -> IResult<&[u8], Smb2RecordDir> {
 #[derive(Debug,PartialEq)]
 pub struct Smb2Record<'a> {
     pub direction: u8,    // 0 req, 1 res
+    pub header_len: u16,
     pub nt_status: u32,
     pub command: u16,
     pub message_id: u64,
@@ -104,6 +105,7 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     };
     let record = Smb2Record {
         direction: flags.7,
+        header_len: hlen,
         nt_status: 0,
         command,
         message_id,
@@ -558,6 +560,7 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     };
     let record = Smb2Record {
         direction: flags.7,
+        header_len: hlen,
         nt_status,
         message_id,
         tree_id: tree_id.unwrap_or(0),
