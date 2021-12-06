@@ -539,16 +539,12 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
 /**
  * \brief This function is called to retrieve a ftp request
  * \param ftp_state the ftp state structure for the parser
- * \param input input line of the command
- * \param input_len length of the request
- * \param output the resulting output
  *
  * \retval APP_LAYER_OK when input was process successfully
  * \retval APP_LAYER_ERROR when a unrecoverable error was encountered
  */
 static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     FTPThreadCtx *thread_data = local_data;
 
@@ -557,6 +553,9 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
     FtpState *state = (FtpState *)ftp_state;
     void *ptmp;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
         SCReturnStruct(APP_LAYER_OK);
@@ -732,10 +731,12 @@ static inline bool FTPIsPPR(const uint8_t *input, uint32_t input_len)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     FtpState *state = (FtpState *)ftp_state;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (unlikely(input_len == 0)) {
         SCReturnStruct(APP_LAYER_OK);
@@ -1021,19 +1022,18 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 /**
  * \brief This function is called to retrieve a ftp request
  * \param ftp_state the ftp state structure for the parser
- * \param input input line of the command
- * \param input_len length of the request
  * \param output the resulting output
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
-        AppLayerParserState *pstate,
-        const uint8_t *input, uint32_t input_len,
-        void *local_data, int direction)
+        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_data, int direction)
 {
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
     uint16_t flags = FileFlowToFlags(f, direction);
     int ret = 0;
+
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
     if (ftpdata_state->files == NULL) {
@@ -1113,19 +1113,15 @@ out:
 }
 
 static AppLayerResult FTPDataParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
-    return FTPDataParse(f, ftp_state, pstate, input, input_len,
-                               local_data, STREAM_TOSERVER);
+    return FTPDataParse(f, ftp_state, pstate, stream_slice, local_data, STREAM_TOSERVER);
 }
 
 static AppLayerResult FTPDataParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
-    return FTPDataParse(f, ftp_state, pstate, input, input_len,
-                               local_data, STREAM_TOCLIENT);
+    return FTPDataParse(f, ftp_state, pstate, stream_slice, local_data, STREAM_TOCLIENT);
 }
 
 #ifdef DEBUG

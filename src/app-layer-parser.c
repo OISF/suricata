@@ -1238,8 +1238,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         Setup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), input, input_len, flags,
                 &stream_slice);
         /* invoke the parser */
-        AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice, input,
-                input_len, alp_tctx->alproto_local_storage[f->protomap][alproto], flags);
+        AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice,
+                alp_tctx->alproto_local_storage[f->protomap][alproto]);
         if (res.status < 0) {
             goto error;
         } else if (res.status > 0) {
@@ -1666,8 +1666,7 @@ typedef struct TestState_ {
  *          parser of occurence of an error.
  */
 static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     SCReturnStruct(APP_LAYER_ERROR);

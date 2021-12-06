@@ -235,15 +235,11 @@ pub unsafe extern "C" fn rs_sip_parse_request(
     _flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
-    let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
-    state.parse_request(buf).into()
+    state.parse_request(stream_slice.as_slice()).into()
 }
 
 #[no_mangle]
@@ -251,15 +247,11 @@ pub unsafe extern "C" fn rs_sip_parse_response(
     _flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
-    let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
-    state.parse_response(buf).into()
+    state.parse_response(stream_slice.as_slice()).into()
 }
 
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);

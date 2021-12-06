@@ -34,6 +34,7 @@
 
 #include "stream.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-enip.h"
@@ -290,12 +291,14 @@ static void ENIPStateTransactionFree(void *state, uint64_t tx_id)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     ENIPState *enip = (ENIPState *) state;
     ENIPTransaction *tx;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate,
             APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC))

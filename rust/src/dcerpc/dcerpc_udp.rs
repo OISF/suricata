@@ -207,13 +207,12 @@ impl DCERPCUDPState {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
-    if input_len > 0 && !input.is_null() {
-        let buf = build_slice!(input, input_len as usize);
-        return state.handle_input_data(buf);
+    if !stream_slice.is_gap() {
+        return state.handle_input_data(stream_slice.as_slice());
     }
     AppLayerResult::err()
 }
