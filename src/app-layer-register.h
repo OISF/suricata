@@ -27,7 +27,7 @@
 typedef struct AppLayerParser {
     const char *name;
     const char *default_port;
-    int ip_proto;
+    uint8_t ip_proto;
 
     ProbingParserFPtr ProbeTS;
     ProbingParserFPtr ProbeTC;
