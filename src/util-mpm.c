@@ -46,7 +46,7 @@
 #endif
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
-int mpm_default_matcher;
+uint16_t mpm_default_matcher;
 
 /**
  * \brief Register a new Mpm Context.
