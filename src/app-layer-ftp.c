@@ -640,14 +640,17 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                      * Min size has been checked in FTPParseRequestCommand
                      * PATH_MAX includes the null
                      */
-                    int file_name_len = MIN(PATH_MAX - 1, state->current_line_len - 5);
+                    uint32_t file_name_len = MIN(PATH_MAX - 1, state->current_line_len - 5);
+#if PATH_MAX > UINT16_MAX
+#error PATH_MAX is greater than UINT16_MAX
+#endif
                     data->file_name = FTPCalloc(file_name_len + 1, sizeof(char));
                     if (data->file_name == NULL) {
                         FtpTransferCmdFree(data);
                         SCReturnStruct(APP_LAYER_ERROR);
                     }
                     data->file_name[file_name_len] = 0;
-                    data->file_len = file_name_len;
+                    data->file_len = (uint16_t)file_name_len;
                     memcpy(data->file_name, state->current_line + 5, file_name_len);
                     data->cmd = state->command;
                     data->flow_id = FlowGetId(f);
@@ -1027,7 +1030,7 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
-        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_data, int direction)
+        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_data, uint8_t direction)
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
@@ -1354,7 +1357,7 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     }
 
     char *c = strchr(buffer, '\n');
-    return c == NULL ? len : c - buffer + 1;
+    return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
 void EveFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)

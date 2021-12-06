@@ -127,7 +127,7 @@ typedef struct FtpLineState_ {
 
 typedef struct FTPString_ {
     uint8_t *str;
-    uint16_t len;
+    uint32_t len;
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
