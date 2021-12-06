@@ -457,9 +457,12 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32, depth);
             StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
 
+            uint16_t flen = (uint16_t)entity->filename_len;
+            if (entity->filename_len > UINT16_MAX) {
+                flen = UINT16_MAX;
+            }
             if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,
-                        (uint8_t *) entity->filename, entity->filename_len,
-                        (uint8_t *) chunk, len, flags) != 0) {
+                        (uint8_t *)entity->filename, flen, (uint8_t *)chunk, len, flags) != 0) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }
@@ -1154,7 +1157,11 @@ static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8
         return -1;
     memcpy(*target, state->current_line + i, spc_i - i);
     (*target)[spc_i - i] = '\0';
-    *target_len = spc_i - i;
+    if (spc_i - i > UINT16_MAX) {
+        *target_len = UINT16_MAX;
+    } else {
+        *target_len = (uint16_t)(spc_i - i);
+    }
 
     return 0;
 }
@@ -1215,6 +1222,9 @@ static int NoNewTx(SMTPState *state)
     return 0;
 }
 
+/* XXX have a better name */
+#define rawmsgname "rawmsg"
+
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
@@ -1255,7 +1265,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
             if (smtp_config.raw_extraction) {
-                const char *msgname = "rawmsg"; /* XXX have a better name */
                 if (state->files_ts == NULL)
                     state->files_ts = FileContainerAlloc();
                 if (state->files_ts == NULL) {
@@ -1272,10 +1281,9 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                     TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
                     tx->tx_id = state->tx_cnt++;
                 }
-                if (FileOpenFileWithId(state->files_ts, &smtp_config.sbcfg,
-                        state->file_track_id++,
-                        (uint8_t*) msgname, strlen(msgname), NULL, 0,
-                        FILE_NOMD5|FILE_NOMAGIC|FILE_USE_DETECT) == 0) {
+                if (FileOpenFileWithId(state->files_ts, &smtp_config.sbcfg, state->file_track_id++,
+                            (uint8_t *)rawmsgname, strlen(rawmsgname), NULL, 0,
+                            FILE_NOMD5 | FILE_NOMAGIC | FILE_USE_DETECT) == 0) {
                     SMTPNewFile(state->curr_tx, state->files_ts->tail);
                 }
             } else if (smtp_config.decode_mime) {
@@ -1378,10 +1386,9 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     }
 }
 
-static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
-                     AppLayerParserState *pstate, const uint8_t *input,
-                     uint32_t input_len,
-                     SMTPThreadCtx *thread_data)
+static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
+        SMTPThreadCtx *thread_data)
 {
     SCEnter();
 
