@@ -524,7 +524,7 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
 /* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
 struct {
     const char *msg;
-    int  de;
+    uint8_t de;
 } htp_errors[] = {
     { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
     { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
@@ -547,7 +547,7 @@ struct {
 
 struct {
     const char *msg;
-    int  de;
+    uint8_t de;
 } htp_warnings[] = {
     { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
     { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
@@ -594,7 +594,7 @@ struct {
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleWarningGetId(const char *msg)
+static uint8_t HTPHandleWarningGetId(const char *msg)
 {
     SCLogDebug("received warning \"%s\"", msg);
     size_t idx;
@@ -618,7 +618,7 @@ static int HTPHandleWarningGetId(const char *msg)
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleErrorGetId(const char *msg)
+static uint8_t HTPHandleErrorGetId(const char *msg)
 {
     SCLogDebug("received error \"%s\"", msg);
 
@@ -675,7 +675,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
 
         SCLogDebug("message %s", log->msg);
 
-        int id = HTPHandleErrorGetId(log->msg);
+        uint8_t id = HTPHandleErrorGetId(log->msg);
         if (id == 0) {
             id = HTPHandleWarningGetId(log->msg);
             if (id == 0)
@@ -1255,9 +1255,9 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         ft_len = USHRT_MAX;
 
     *filename = fn;
-    *filename_len = fn_len;
+    *filename_len = (uint16_t)fn_len;
     *filetype = ft;
-    *filetype_len = ft_len;
+    *filetype_len = (uint16_t)ft_len;
 }
 
 /**
@@ -1304,8 +1304,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 {
     int result = 0;
     uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
-    uint32_t expected_boundary_len = htud->boundary_len + 2;
-    uint32_t expected_boundary_end_len = htud->boundary_len + 4;
+    uint16_t expected_boundary_len = htud->boundary_len + 2;
+    uint16_t expected_boundary_end_len = htud->boundary_len + 4;
     int tx_progress = 0;
 
 #ifdef PRINT
@@ -1434,7 +1434,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
         /* skip empty records */
         if (expected_boundary_len == header_len) {
             goto next;
-        } else if ((expected_boundary_len + 2) <= header_len) {
+        } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
             header_len -= (expected_boundary_len + 2);
             header = (uint8_t *)header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
@@ -1536,7 +1536,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
 
-                    if (filedata_len >= (expected_boundary_len + 2)) {
+                    if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
                         filedata_len -= (expected_boundary_len + 2 - 1);
                         SCLogDebug("opening file with partial data");
                     } else {
@@ -1630,7 +1630,11 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+            if (filename_len > UINT16_MAX) {
+                // explicitly truncate the file name if too long
+                filename_len = UINT16_MAX;
+            }
+            result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                     HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
@@ -1703,11 +1707,15 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         if (filename != NULL) {
             // set range if present
             htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+            if (filename_len > UINT16_MAX) {
+                // explicitly truncate the file name if too long
+                filename_len = UINT16_MAX;
+            }
             if (h_content_range != NULL) {
-                result = HTPFileOpenWithRange(hstate, htud, filename, (uint32_t)filename_len, data,
+                result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
                         data_len, HtpGetActiveResponseTxID(hstate), h_content_range->value, htud);
             } else {
-                result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+                result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                         HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
             }
             SCLogDebug("result %d", result);
@@ -3025,7 +3033,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
              * but the pattern matching should only be one char
             */
             register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
-                    method_buffer, strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
+                    method_buffer, (uint16_t)strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
                 return -1;
             }
@@ -3035,7 +3043,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     /* Loop through all the http verions patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
         register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
-                versions[versions_pos], strlen(versions[versions_pos]), 0, STREAM_TOCLIENT);
+                versions[versions_pos], (uint16_t)strlen(versions[versions_pos]), 0,
+                STREAM_TOCLIENT);
         if (register_result < 0) {
             return -1;
         }
