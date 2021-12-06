@@ -228,14 +228,11 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_
 pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 state: *mut std::os::raw::c_void,
                                 _pstate: *mut std::os::raw::c_void,
-                                _stream_slice: StreamSlice,
-                                input: *const u8,
-                                input_len: u32,
+                                stream_slice: StreamSlice,
                                 _data: *const std::os::raw::c_void,
-                                _flags: u8) -> AppLayerResult {
+                                ) -> AppLayerResult {
     let state = cast_pointer!(state, DHCPState);
-    let buf = build_slice!(input, input_len as usize);
-    if state.parse(buf) {
+    if state.parse(stream_slice.as_slice()) {
         return AppLayerResult::ok();
     }
     return AppLayerResult::err();

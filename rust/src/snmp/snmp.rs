@@ -265,28 +265,22 @@ pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
 pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, Direction::ToServer).into()
+    state.parse(stream_slice.as_slice(), Direction::ToServer).into()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, Direction::ToClient).into()
+    state.parse(stream_slice.as_slice(), Direction::ToClient).into()
 }
 
 #[no_mangle]
