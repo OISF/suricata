@@ -239,7 +239,7 @@ typedef struct SSLState_ {
     uint32_t flags;
 
     /* there might be a better place to store this*/
-    uint16_t hb_record_len;
+    uint32_t hb_record_len;
 
     uint16_t events;
 
