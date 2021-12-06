@@ -2459,8 +2459,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  * \param direction 0 for toserver, 1 for toclient.
  * \param alstate   Pointer to the state.
  * \param pstate    Application layer parser state for this session.
- * \param input     Pointer the received input data.
- * \param input_len Length in bytes of the received data.
  * \param output    Pointer to the list of parsed output elements.
  *
  * \todo On reaching an inconsistent state, check if the input has
@@ -2468,13 +2466,14 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  *
  * \retval >=0 On success.
  */
-static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
-                     const uint8_t *input, uint32_t ilen)
+static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
+        AppLayerParserState *pstate, StreamSlice stream_slice)
 {
     SSLState *ssl_state = (SSLState *)alstate;
     uint32_t counter = 0;
-    int32_t input_len = (int32_t)ilen;
     ssl_state->f = f;
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    int32_t input_len = (int32_t)StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL &&
             ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
@@ -2593,17 +2592,15 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
 }
 
 static AppLayerResult SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
-    return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 0 /* toserver */, alstate, pstate, stream_slice);
 }
 
 static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
-    return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 1 /* toclient */, alstate, pstate, stream_slice);
 }
 
 /**

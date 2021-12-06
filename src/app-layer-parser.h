@@ -137,8 +137,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
 /** \brief Prototype for parsing functions */
 typedef AppLayerResult (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
-        AppLayerParserState *pstate, StreamSlice stream_slice, const uint8_t *buf, uint32_t buf_len,
-        void *local_storage, const uint8_t flags);
+        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_storage);
 
 typedef struct AppLayerGetTxIterState {
     union {
