@@ -621,7 +621,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         return -1;
     }
 
-    uint16_t version = *input << 8 | *(input + 1);
+    uint16_t version = (uint16_t)(*input << 8) | *(input + 1);
     ssl_state->curr_connp->version = version;
 
     /* TLSv1.3 draft1 to draft21 use the version field as earlier TLS
@@ -745,7 +745,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
     if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
         cipher_suites_length = 2;
     } else if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
-        cipher_suites_length = *input << 8 | *(input + 1);
+        cipher_suites_length = (uint16_t)(*input << 8) | *(input + 1);
         input += 2;
     } else {
         return -1;
@@ -773,7 +773,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
                 goto invalid_length;
             }
 
-            uint16_t cipher_suite = *input << 8 | *(input + 1);
+            uint16_t cipher_suite = (uint16_t)(*input << 8) | *(input + 1);
             input += 2;
 
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
@@ -871,7 +871,7 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    uint16_t sni_len = *input << 8 | *(input + 1);
+    uint16_t sni_len = (uint16_t)(*input << 8) | *(input + 1);
     input += 2;
 
     /* host_name contains the fully qualified domain name,
@@ -944,7 +944,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
             goto invalid_length;
 
         /* Use the first (and prefered) version as client version */
-        ssl_state->curr_connp->version = *input << 8 | *(input + 1);
+        ssl_state->curr_connp->version = (uint16_t)(*input << 8) | *(input + 1);
 
         /* Set a flag to indicate that we have seen this extension */
         ssl_state->flags |= SSL_AL_FLAG_CH_VERSION_EXTENSION;
@@ -955,7 +955,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         if (!(HAS_SPACE(2)))
             goto invalid_length;
 
-        uint16_t ver = *input << 8 | *(input + 1);
+        uint16_t ver = (uint16_t)(*input << 8) | *(input + 1);
 
         if ((ssl_state->flags & SSL_AL_FLAG_CH_VERSION_EXTENSION) &&
                 (ver > TLS_VERSION_12)) {
@@ -990,7 +990,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    uint16_t elliptic_curves_len = *input << 8 | *(input + 1);
+    uint16_t elliptic_curves_len = (uint16_t)(*input << 8) | *(input + 1);
     input += 2;
 
     if (!(HAS_SPACE(elliptic_curves_len)))
@@ -1005,7 +1005,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
             if (!(HAS_SPACE(2)))
                 goto invalid_length;
 
-            uint16_t elliptic_curve = *input << 8 | *(input + 1);
+            uint16_t elliptic_curve = (uint16_t)(*input << 8) | *(input + 1);
             input += 2;
 
             if (TLSDecodeValueIsGREASE(elliptic_curve) != 1) {
@@ -1121,7 +1121,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
     if (!(HAS_SPACE(2)))
         goto end;
 
-    uint16_t extensions_len = *input << 8 | *(input + 1);
+    uint16_t extensions_len = (uint16_t)(*input << 8) | *(input + 1);
     input += 2;
 
     if (!(HAS_SPACE(extensions_len)))
@@ -1134,13 +1134,13 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         if (!(HAS_SPACE(2)))
             goto invalid_length;
 
-        uint16_t ext_type = *input << 8 | *(input + 1);
+        uint16_t ext_type = (uint16_t)(*input << 8) | *(input + 1);
         input += 2;
 
         if (!(HAS_SPACE(2)))
             goto invalid_length;
 
-        uint16_t ext_len = *input << 8 | *(input + 1);
+        uint16_t ext_len = (uint16_t)(*input << 8) | *(input + 1);
         input += 2;
 
         if (!(HAS_SPACE(ext_len)))
@@ -1708,7 +1708,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, const uint8_t *input
 {
     uint8_t hb_type;
     uint16_t payload_len;
-    uint16_t padding_len;
+    uint32_t padding_len;
 
     /* expect at least 3 bytes: heartbeat type (1) + length (2) */
     if (input_len < 3) {
@@ -1744,8 +1744,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, const uint8_t *input
             return (ssl_state->curr_connp->record_length - 3);
         }
 
-        payload_len = (*input++) << 8;
-        payload_len |= (*input++);
+        payload_len = (uint16_t)(*input << 8) | *(input + 1);
 
         /* check that the requested payload length is really present in
            the record (CVE-2014-0160) */
@@ -1846,8 +1845,7 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
             if (input_len >= 5) {
                 ssl_state->curr_connp->content_type = input[0];
                 if (!skip_version) {
-                    ssl_state->curr_connp->version = input[1] << 8;
-                    ssl_state->curr_connp->version |= input[2];
+                    ssl_state->curr_connp->version = (uint16_t)(input[1] << 8) | input[2];
                 }
                 ssl_state->curr_connp->record_length = input[3] << 8;
                 ssl_state->curr_connp->record_length |= input[4];
@@ -1862,7 +1860,7 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
             /* fall through */
         case 1:
             if (!skip_version) {
-                ssl_state->curr_connp->version = *(input++) << 8;
+                ssl_state->curr_connp->version = (uint16_t)(*(input++) << 8);
             } else {
                 input++;
             }
@@ -2046,7 +2044,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 4:
                         if (input_len >= 6) {
-                            uint16_t session_id_length = input[5] | (input[4] << 8);
+                            uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
@@ -2102,7 +2100,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 switch (ssl_state->curr_connp->bytes_processed) {
                     case 3:
                         if (input_len >= 6) {
-                            uint16_t session_id_length = input[5] | (input[4] << 8);
+                            uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
                             input += 6;
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
