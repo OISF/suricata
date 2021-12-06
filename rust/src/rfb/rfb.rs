@@ -506,15 +506,11 @@ pub unsafe extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf);
+    return state.parse_request(stream_slice.as_slice());
 }
 
 #[no_mangle]
@@ -522,15 +518,11 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf);
+    return state.parse_response(stream_slice.as_slice());
 }
 
 #[no_mangle]

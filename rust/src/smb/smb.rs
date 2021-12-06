@@ -1793,30 +1793,29 @@ pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
 pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
                                        state: *mut ffi::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       flags: u8)
+                                       )
                                        -> AppLayerResult
 {
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
     let file_flags = FileFlowToFlags(flow, Direction::ToServer as u8);
     rs_smb_setfileflags(Direction::ToServer as u8, state, file_flags|FILE_USE_DETECT);
-    SCLogDebug!("parsing {} bytes of request data", input_len);
 
-    if input.is_null() && input_len > 0 {
-        return rs_smb_parse_request_tcp_gap(state, input_len);
+    if stream_slice.is_gap() {
+        return rs_smb_parse_request_tcp_gap(state, stream_slice.gap_size());
     }
+
+    SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
+
     /* START with MISTREAM set: record might be starting the middle. */
-    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+    if stream_slice.flags() & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
         state.ts_gap = true;
     }
 
     state.update_ts(flow.get_last_time().as_secs());
-    state.parse_tcp_data_ts(buf)
+    state.parse_tcp_data_ts(stream_slice.as_slice())
 }
 
 #[no_mangle]
@@ -1833,11 +1832,9 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
                                         state: *mut ffi::c_void,
                                         _pstate: *mut std::os::raw::c_void,
-                                        _stream_slice: StreamSlice,
-                                        input: *const u8,
-                                        input_len: u32,
+                                        stream_slice: StreamSlice,
                                         _data: *const ffi::c_void,
-                                        flags: u8)
+                                        )
                                         -> AppLayerResult
 {
     let mut state = cast_pointer!(state, SMBState);
@@ -1845,19 +1842,18 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
     let file_flags = FileFlowToFlags(flow, Direction::ToClient as u8);
     rs_smb_setfileflags(Direction::ToClient as u8, state, file_flags|FILE_USE_DETECT);
 
-    if input.is_null() && input_len > 0 {
-        return rs_smb_parse_response_tcp_gap(state, input_len);
+    if stream_slice.is_gap() {
+        return rs_smb_parse_response_tcp_gap(state, stream_slice.gap_size());
     }
-    SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
+    SCLogDebug!("parsing {} bytes of response data", stream_slice.len());
 
     /* START with MISTREAM set: record might be starting the middle. */
-    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+    if stream_slice.flags() & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
         state.tc_gap = true;
     }
 
     state.update_ts(flow.get_last_time().as_secs());
-    state.parse_tcp_data_tc(buf)
+    state.parse_tcp_data_tc(stream_slice.as_slice())
 }
 
 #[no_mangle]

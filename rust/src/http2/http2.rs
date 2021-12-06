@@ -1087,11 +1087,11 @@ pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
 
     state.files.flags_ts = FileFlowToFlags(flow, Direction::ToServer.into());
     state.files.flags_ts = state.files.flags_ts | FILE_USE_DETECT;
@@ -1101,11 +1101,11 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     state.files.flags_tc = FileFlowToFlags(flow, Direction::ToClient.into());
     state.files.flags_tc = state.files.flags_tc | FILE_USE_DETECT;
     return state.parse_tc(buf, flow);

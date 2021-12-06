@@ -353,11 +353,11 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, false, pstate);
@@ -369,11 +369,11 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, true, pstate);

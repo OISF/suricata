@@ -1129,23 +1129,24 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
-    SCLogDebug!("Handling request: input {:p} input_len {} flags {:x} EOF {}",
-            input, input_len, flags, flags & core::STREAM_EOF != 0);
-    if flags & core::STREAM_EOF != 0 && input_len == 0 {
+    let flags = stream_slice.flags();
+
+    SCLogDebug!("Handling request: input_len {} flags {:x} EOF {}",
+            stream_slice.len(), flags, flags & core::STREAM_EOF != 0);
+    if flags & core::STREAM_EOF != 0 && stream_slice.len() == 0 {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
     if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
         state.ts_gap = true;
     }
-    if input_len > 0 && !input.is_null() {
-        let buf = build_slice!(input, input_len as usize);
+    if !stream_slice.is_gap() {
         state.flow = Some(flow);
-        return state.handle_input_data(buf, Direction::ToServer);
+        return state.handle_input_data(stream_slice.as_slice(), Direction::ToServer);
     }
     AppLayerResult::err()
 }
@@ -1153,23 +1154,22 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
-    if flags & core::STREAM_EOF != 0 && input_len == 0 {
+    let flags = stream_slice.flags();
+
+    if flags & core::STREAM_EOF != 0 && stream_slice.len() == 0 {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
     if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
         state.tc_gap = true;
     }
-    if input_len > 0 {
-        if !input.is_null() {
-            let buf = build_slice!(input, input_len as usize);
-            state.flow = Some(flow);
-            return state.handle_input_data(buf, Direction::ToClient);
-        }
+    if !stream_slice.is_gap() {
+        state.flow = Some(flow);
+        return state.handle_input_data(stream_slice.as_slice(), Direction::ToClient);
     }
     AppLayerResult::err()
 }

@@ -664,15 +664,12 @@ pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
 pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8)
+                                       )
                                        -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_request(buf) {
+    if state.parse_request(stream_slice.as_slice()) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -683,15 +680,12 @@ pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
-                                        _stream_slice: StreamSlice,
-                                        input: *const u8,
-                                        input_len: u32,
+                                        stream_slice: StreamSlice,
                                         _data: *const std::os::raw::c_void,
-                                        _flags: u8)
+                                        )
                                         -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_response(buf) {
+    if state.parse_response(stream_slice.as_slice()) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -703,19 +697,15 @@ pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            state: *mut std::os::raw::c_void,
                                            _pstate: *mut std::os::raw::c_void,
-                                           _stream_slice: StreamSlice,
-                                           input: *const u8,
-                                           input_len: u32,
+                                           stream_slice: StreamSlice,
                                            _data: *const std::os::raw::c_void,
-                                           _flags: u8)
+                                           )
                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if !input.is_null() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_request_tcp(buf);
-        }
-        state.request_gap(input_len);
+    if stream_slice.is_gap() {
+        state.request_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_request_tcp(stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -724,19 +714,15 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             state: *mut std::os::raw::c_void,
                                             _pstate: *mut std::os::raw::c_void,
-                                            _stream_slice: StreamSlice,
-                                            input: *const u8,
-                                            input_len: u32,
+                                            stream_slice: StreamSlice,
                                             _data: *const std::os::raw::c_void,
-                                            _flags: u8)
+                                            )
                                             -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if !input.is_null() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_response_tcp(buf);
-        }
-        state.response_gap(input_len);
+    if stream_slice.is_gap() {
+        state.response_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_response_tcp(stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }

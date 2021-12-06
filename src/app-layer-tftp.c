@@ -31,6 +31,7 @@
 
 #include "util-unittest.h"
 
+#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
@@ -92,9 +93,11 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
 }
 
 static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+
     SCLogDebug("Parsing tftp request: len=%" PRIu32, input_len);
 
     /* Likely connection closed, we can just return here. */
@@ -120,8 +123,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState
  * \brief Response parsing is not implemented
  */
 static AppLayerResult TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCReturnStruct(APP_LAYER_OK);
 }
