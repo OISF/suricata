@@ -815,7 +815,7 @@ error:
  *  \retval On success returns 1 or on failure returns -1.
  */
 static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        StreamSlice stream_slice, const uint8_t *_input, uint32_t _input_len, void *local_data,
         const uint8_t flags)
 {
     SCEnter();
@@ -832,6 +832,9 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
         }
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
@@ -878,12 +881,15 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
  *  \retval On success returns 1 or on failure returns -1
  */
 static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
+        StreamSlice stream_slice, const uint8_t *_input, uint32_t _input_len, void *local_data,
         const uint8_t flags)
 {
     SCEnter();
     int ret = 0;
     HtpState *hstate = (HtpState *)htp_state;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
