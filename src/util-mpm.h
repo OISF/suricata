@@ -170,7 +170,7 @@ typedef struct MpmTableElmt_ {
 } MpmTableElmt;
 
 extern MpmTableElmt mpm_table[MPM_TABLE_SIZE];
-extern int mpm_default_matcher;
+extern uint16_t mpm_default_matcher;
 
 struct DetectEngineCtx_;
 
