@@ -1379,11 +1379,12 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 }
 
 static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
-                     AppLayerParserState *pstate, const uint8_t *input,
-                     uint32_t input_len,
-                     SMTPThreadCtx *thread_data)
+        AppLayerParserState *pstate, StreamSlice stream_slice, SMTPThreadCtx *thread_data)
 {
     SCEnter();
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input == NULL &&
             ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
@@ -1416,23 +1417,21 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
 }
 
 static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
 
     /* first arg 0 is toserver */
-    return SMTPParse(0, f, alstate, pstate, input, input_len, local_data);
+    return SMTPParse(0, f, alstate, pstate, stream_slice, local_data);
 }
 
 static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, const uint8_t *input, uint32_t input_len, void *local_data,
-        const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
 
     /* first arg 1 is toclient */
-    return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
+    return SMTPParse(1, f, alstate, pstate, stream_slice, local_data);
 }
 
 /**

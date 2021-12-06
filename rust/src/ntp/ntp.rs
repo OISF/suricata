@@ -170,14 +170,11 @@ pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
 pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,NTPState);
-    if state.parse(buf, 0) < 0 {
+    if state.parse(stream_slice.as_slice(), 0) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()
@@ -187,14 +184,11 @@ pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       _stream_slice: StreamSlice,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,NTPState);
-    if state.parse(buf, 1) < 0 {
+    if state.parse(stream_slice.as_slice(), 1) < 0 {
         return AppLayerResult::err();
     }
     AppLayerResult::ok()

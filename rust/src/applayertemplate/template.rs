@@ -285,11 +285,8 @@ pub unsafe extern "C" fn rs_template_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
         true
@@ -304,13 +301,13 @@ pub unsafe extern "C" fn rs_template_parse_request(
 
     let state = cast_pointer!(state, TemplateState);
 
-    if input.is_null() && input_len > 0 {
+    if stream_slice.is_gap() {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
-        state.on_request_gap(input_len);
+        state.on_request_gap(stream_slice.gap_size());
         AppLayerResult::ok()
     } else {
-        let buf = build_slice!(input, input_len as usize);
+        let buf = stream_slice.as_slice();
         state.parse_request(buf)
     }
 }
@@ -320,11 +317,8 @@ pub unsafe extern "C" fn rs_template_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
-    _stream_slice: StreamSlice,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let _eof = if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
         true
@@ -333,13 +327,13 @@ pub unsafe extern "C" fn rs_template_parse_response(
     };
     let state = cast_pointer!(state, TemplateState);
 
-    if input.is_null() && input_len > 0 {
+    if stream_slice.is_gap() {
         // Here we have a gap signaled by the input being null, but a greater
         // than 0 input_len which provides the size of the gap.
-        state.on_response_gap(input_len);
+        state.on_response_gap(stream_slice.gap_size());
         AppLayerResult::ok()
     } else {
-        let buf = build_slice!(input, input_len as usize);
+        let buf = stream_slice.as_slice();
         state.parse_response(buf)
     }
 }
