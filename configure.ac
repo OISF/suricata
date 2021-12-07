@@ -1481,6 +1481,8 @@
     ])
 
   # Netmap support
+    AC_ARG_ENABLE(netmap_v14,
+            AS_HELP_STRING([--enable-netmap-v14], [Enable Netmap v14+ support]),[enable_netmap_v14=$enableval],[enable_netmap_v14=no])
     AC_ARG_ENABLE(netmap,
             AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),[enable_netmap=$enableval],[enable_netmap=no])
     AC_ARG_WITH(netmap_includes,
@@ -1554,7 +1556,29 @@
         #endif
         ])], [have_gtv13_netmap="yes"])
         if test "x$have_gtv13_netmap" = "xyes"; then
-            have_netmap_version="> v13"
+            have_netmap_version="v14+"
+            if test "x$enable_netmap_v14" = "xyes"; then
+                AC_CHECK_HEADER(libnetmap.h,,[AC_MSG_ERROR(libnetmap.h not found ...)],)
+                LIBNETMAP=""
+                AC_SEARCH_LIBS([nmport_open],[netmap],,[LIBNETMAP="no"])
+                if test "$LIBNETMAP" = "no"; then
+                    echo
+                    echo "   ERROR!  libnetmap library not found!"
+                    echo "   Go get it from https://github.com/luigirizzo/netmap"
+                    echo "   or your distribution."
+                    echo
+                    exit 1
+                fi
+                AC_DEFINE([USE_NEW_NETMAP_API],[1],(NETMAP new support enabled))
+            else
+                echo
+                echo "Notice: Netmap version v14+ found."
+                echo "To the new Netmap APIs from this version, use the"
+                echo "--enable-netmap-v14 option."
+                echo
+                echo "Using legacy Netmap APIs; reconfigure if the new APIs should be used"
+                echo
+            fi
         fi
   ])
 
@@ -2783,7 +2807,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   NFQueue support:                         ${enable_nfqueue}
   NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}
-  Netmap support:                          ${enable_netmap} ${have_netmap_version}
+  Netmap support:                          ${enable_netmap} ${have_netmap_version} [using new api: $enable_netmap_v14]
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
   WinDivert enabled:                       ${enable_windivert}
