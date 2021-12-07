@@ -96,6 +96,7 @@ pub mod conf;
 pub mod jsonbuilder;
 #[macro_use]
 pub mod applayer;
+/// cbindgen:ignore
 pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
