@@ -36,6 +36,7 @@ use nom;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
+use crate::frames::*;
 use crate::conf::*;
 use crate::filecontainer::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
@@ -1437,12 +1438,12 @@ impl SMBState {
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
                     SCLogDebug!("nbss frame offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
-                    let (_nbss_pdu, _nbss_pdu_id) = applayer_new_frame_ts(flow, stream_slice, cur_i, nbss_hdr.length as i32 + 4, SMBFrameType::NBSS as u8);
-                    SCLogDebug!("NBSS PDU frame {:p}", _nbss_pdu);
-                    let (_nbss_hdr_frame, _nbss_frame_id) = applayer_new_frame_ts(flow, stream_slice, cur_i, 4, SMBFrameType::NBSSHdr as u8);
-                    SCLogDebug!("NBSS HDR frame {:p}", _nbss_hdr_frame);
-                    let (_nbss_data_frame, _nbss_data_frame_id) = applayer_new_frame_ts(flow, stream_slice, &cur_i[4..], nbss_hdr.length as i32, SMBFrameType::NBSSData as u8);
-                    SCLogDebug!("NBSS DATA frame {:p}", _nbss_data_frame);
+                    let _nbss_pdu = Frame::new_ts(flow, stream_slice, cur_i, nbss_hdr.length as i32 + 4, SMBFrameType::NBSS as u8);
+                    SCLogDebug!("NBSS PDU frame {:?}", _nbss_pdu);
+                    let _nbss_hdr_frame = Frame::new_ts(flow, stream_slice, cur_i, 4, SMBFrameType::NBSSHdr as u8);
+                    SCLogDebug!("NBSS HDR frame {:?}", _nbss_hdr_frame);
+                    let _nbss_data_frame = Frame::new_ts(flow, stream_slice, &cur_i[4..], nbss_hdr.length as i32, SMBFrameType::NBSSData as u8);
+                    SCLogDebug!("NBSS DATA frame {:?}", _nbss_data_frame);
 
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
@@ -1452,8 +1453,8 @@ impl SMBState {
 
                                 SCLogDebug!("SMB {:?}", smb);
                                 if smb.version == 0xff_u8 { // SMB1
-                                    let (smb_pdu, _smb_pdu_id) = applayer_new_frame_ts(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i32, SMBFrameType::SMB1 as u8);
-                                    SCLogDebug!("SMB PDU frame {:p}", smb_pdu);
+                                    let smb_pdu = Frame::new_ts(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i32, SMBFrameType::SMB1 as u8);
+                                    SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
 
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
@@ -1461,7 +1462,7 @@ impl SMBState {
                                             smb1_request_record(self, smb_record, flow, stream_slice, nbss_hdr.data);
                                         },
                                         _ => {
-                                            applayer_frame_add_event(smb_pdu, SMBEvent::MalformedData as u8);
+                                            smb_pdu.add_event(SMBEvent::MalformedData as u8);
                                             self.set_event(SMBEvent::MalformedData);
                                             return AppLayerResult::err();
                                         },
@@ -1469,8 +1470,8 @@ impl SMBState {
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
-                                        let (smb_pdu, _smb_pdu_id) = applayer_new_frame_ts(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i32, SMBFrameType::SMB2 as u8);
-                                        SCLogDebug!("SMB PDU frame {:p}", smb_pdu);
+                                        let smb_pdu = Frame::new_ts(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i32, SMBFrameType::SMB2 as u8);
+                                        SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
 
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_request_record(nbss_data) {
@@ -1480,7 +1481,7 @@ impl SMBState {
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
-                                                applayer_frame_add_event(smb_pdu, SMBEvent::MalformedData as u8);
+                                                smb_pdu.add_event(SMBEvent::MalformedData as u8);
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
                                             },
@@ -1578,12 +1579,12 @@ impl SMBState {
         match parse_nbss_record_partial(input) {
             Ok((output, ref nbss_part_hdr)) => {
 
-                let (_nbss_pdu, _nbss_pdu_id) = applayer_new_frame_tc(flow, stream_slice, input, nbss_part_hdr.length as i32 + 4, SMBFrameType::NBSS as u8);
-                SCLogDebug!("NBSS PDU frame {:p}", _nbss_pdu);
-                let (_nbss_hdr_frame, _nbss_hdr_frame_id) = applayer_new_frame_tc(flow, stream_slice, input, 4, SMBFrameType::NBSSHdr as u8);
-                SCLogDebug!("NBSS HDR frameord {:p}", _nbss_hdr_frame);
-                let (_nbss_data_frame, _nbss_data_frame_id) = applayer_new_frame_tc(flow, stream_slice, &input[4..], nbss_part_hdr.length as i32, SMBFrameType::NBSSData as u8);
-                SCLogDebug!("NBSS DATA frameord {:p}", _nbss_data_frame);
+                let _nbss_pdu = Frame::new_tc(flow, stream_slice, input, nbss_part_hdr.length as i32 + 4, SMBFrameType::NBSS as u8);
+                SCLogDebug!("NBSS PDU frame {:?}", _nbss_pdu);
+                let _nbss_hdr_frame = Frame::new_tc(flow, stream_slice, input, 4, SMBFrameType::NBSSHdr as u8);
+                SCLogDebug!("NBSS HDR frameord {:?}", _nbss_hdr_frame);
+                let _nbss_data_frame = Frame::new_tc(flow, stream_slice, &input[4..], nbss_part_hdr.length as i32, SMBFrameType::NBSSData as u8);
+                SCLogDebug!("NBSS DATA frameord {:?}", _nbss_data_frame);
 
                 SCLogDebug!("parse_nbss_record_partial ok, output len {}", output.len());
                 if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
@@ -1700,15 +1701,15 @@ impl SMBState {
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
                     SCLogDebug!("nbss record offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
-                    let (_nbss_pdu, _nbss_pdu_id) = applayer_new_frame_tc(
+                    let _nbss_pdu = Frame::new_tc(
                             flow, stream_slice, cur_i, nbss_hdr.length as i32 + 4, SMBFrameType::NBSS as u8);
-                    SCLogDebug!("NBSS PDU frame {:p}", _nbss_pdu);
-                    let (_nbss_hdr_frame, _nbss_hdr_frame_id) = applayer_new_frame_tc(
+                    SCLogDebug!("NBSS PDU frame {:?}", _nbss_pdu);
+                    let _nbss_hdr_frame = Frame::new_tc(
                             flow, stream_slice, cur_i, 4, SMBFrameType::NBSSHdr as u8);
-                    SCLogDebug!("NBSS HDR frame {:p}", _nbss_hdr_frame);
-                    let (_nbss_data_frame, _nbss_data_frame_id) = applayer_new_frame_tc(
+                    SCLogDebug!("NBSS HDR frame {:?}", _nbss_hdr_frame);
+                    let _nbss_data_frame = Frame::new_tc(
                             flow, stream_slice, &cur_i[4..], nbss_hdr.length as i32, SMBFrameType::NBSSData as u8);
-                    SCLogDebug!("NBSS DATA frame {:p}", _nbss_data_frame);
+                    SCLogDebug!("NBSS DATA frame {:?}", _nbss_data_frame);
 
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
@@ -1730,10 +1731,10 @@ impl SMBState {
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
-                                        let (_smb_pdu, _smb_pdu_id) = applayer_new_frame_tc(
+                                        let _smb_pdu = Frame::new_tc(
                                                 flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i32,
                                                 SMBFrameType::SMB2 as u8);
-                                        SCLogDebug!("SMB PDU frame {:p}", _smb_pdu);
+                                        SCLogDebug!("SMBv2 PDU frame {:?}", _smb_pdu);
 
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(nbss_data) {
