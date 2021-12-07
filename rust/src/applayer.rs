@@ -222,7 +222,7 @@ impl From<i32> for AppLayerResult {
         }
     }
 }
-
+/*
 pub enum Frame {}
 
 // Defined in app-layer-register.h
@@ -264,7 +264,7 @@ pub fn applayer_frame_add_event(frame: *const Frame, event: u8)
 {
     unsafe { AppLayerFrameAddEvent(frame, event); };
 }
-
+*/
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
