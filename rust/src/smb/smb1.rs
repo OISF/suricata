@@ -23,6 +23,7 @@ use nom;
 
 use crate::core::*;
 use crate::applayer::*;
+use crate::frames::*;
 
 use crate::smb::smb::*;
 use crate::smb::dcerpc::*;
@@ -606,15 +607,15 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, flow: *c
         if smb1_request_record_one(state, r, command, &mut andx_offset) != 0 {
              break;
         }
-        let (_smb_hdr_frame, _smb_hdr_frame_id) = applayer_new_frame_ts(flow, stream_slice, frame_start,
+        let _smb_hdr_frame = Frame::new_ts(flow, stream_slice, frame_start,
                 std::cmp::min(frame_start.len(),SMB1_HEADER_SIZE) as i32, SMBFrameType::SMB1Hdr as u8);
-        SCLogDebug!("SMB1 HDR frame {:p}", _smb_hdr_frame);
+        SCLogDebug!("SMB1 HDR frame {:?}", _smb_hdr_frame);
 
         let o = if r.data.len() >= andx_offset { andx_offset } else { 0 };
         SCLogDebug!("o {} o r.data.len() {} andx_offset {}", o, r.data.len(), andx_offset);
-        let (_smb_data_frame, _smb_data_frame_id) = applayer_new_frame_ts(flow, stream_slice, r.data,
+        let _smb_data_frame = Frame::new_ts(flow, stream_slice, r.data,
                 (r.data.len() - o) as i32, SMBFrameType::SMB1Data as u8);
-        SCLogDebug!("SMB1 DATA frame {:p}", _smb_data_frame);
+        SCLogDebug!("SMB1 DATA frame {:?}", _smb_data_frame);
 
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
