@@ -58,6 +58,9 @@ typedef struct SCMd5 SCMd5;
 #define FILE_USE_DETECT BIT_U16(13) /**< use content_inspected tracker */
 #define FILE_HAS_GAPS   BIT_U16(15)
 
+// to be used instead of PATH_MAX which depends on the OS
+#define SC_FILENAME_MAX 4096
+
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
     FILE_STATE_OPENED,      /**< flow file is opened */
