@@ -1631,9 +1631,9 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            if (filename_len > PATH_MAX) {
+            if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
-                filename_len = PATH_MAX;
+                filename_len = SC_FILENAME_MAX;
                 HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
             result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
@@ -1709,9 +1709,9 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         if (filename != NULL) {
             // set range if present
             htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
-            if (filename_len > PATH_MAX) {
+            if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
-                filename_len = PATH_MAX;
+                filename_len = SC_FILENAME_MAX;
                 HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
             if (h_content_range != NULL) {

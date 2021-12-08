@@ -458,8 +458,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
 
             uint16_t flen = (uint16_t)entity->filename_len;
-            if (entity->filename_len > PATH_MAX) {
-                flen = PATH_MAX;
+            if (entity->filename_len > SC_FILENAME_MAX) {
+                flen = SC_FILENAME_MAX;
                 SMTPSetEvent(smtp_state, SMTP_DECODER_EVENT_MIME_LONG_FILENAME);
             }
             if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,

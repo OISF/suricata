@@ -640,11 +640,11 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
                     data->DFree = FtpTransferCmdFree;
                     /*
                      * Min size has been checked in FTPParseRequestCommand
-                     * PATH_MAX includes the null
+                     * SC_FILENAME_MAX includes the null
                      */
-                    uint32_t file_name_len = MIN(PATH_MAX - 1, state->current_line_len - 5);
-#if PATH_MAX > UINT16_MAX
-#error PATH_MAX is greater than UINT16_MAX
+                    uint32_t file_name_len = MIN(SC_FILENAME_MAX - 1, state->current_line_len - 5);
+#if SC_FILENAME_MAX > UINT16_MAX
+#error SC_FILENAME_MAX is greater than UINT16_MAX
 #endif
                     data->file_name = FTPCalloc(file_name_len + 1, sizeof(char));
                     if (data->file_name == NULL) {
