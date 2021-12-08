@@ -54,80 +54,20 @@ use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
-#[repr(C)]
+#[derive(AppLayerFrameType)]
 pub enum SMBFrameType {
-    NBSSPdu = 0,
-    NBSSHdr = 1,
-    NBSSData = 2,
-    SMB1Pdu = 3,
-    SMB1Hdr = 4,
-    SMB1Data = 5,
-    SMB2Pdu = 6,
-    SMB2Hdr = 7,
-    SMB2Data = 8,
-    SMB3Pdu = 9,
-    SMB3Hdr = 10,
-    SMB3Data = 11,
-}
-
-impl SMBFrameType {
-    fn from_u8(value: u8) -> Option<SMBFrameType> {
-        match value {
-            0 =>  Some(SMBFrameType::NBSSPdu),
-            1 =>  Some(SMBFrameType::NBSSHdr),
-            2 =>  Some(SMBFrameType::NBSSData),
-            3 =>  Some(SMBFrameType::SMB1Pdu),
-            4 =>  Some(SMBFrameType::SMB1Hdr),
-            5 =>  Some(SMBFrameType::SMB1Data),
-            6 =>  Some(SMBFrameType::SMB2Pdu),
-            7 =>  Some(SMBFrameType::SMB2Hdr),
-            8 =>  Some(SMBFrameType::SMB2Data),
-            9 =>  Some(SMBFrameType::SMB3Pdu),
-            10 => Some(SMBFrameType::SMB3Hdr),
-            11 => Some(SMBFrameType::SMB3Data),
-            _ => None,
-        }
-    }
-}
-
-fn smb_frame_type_string(s: &str) -> i32 {
-    match s {
-        "nbss.pdu" => SMBFrameType::NBSSPdu as i32,
-        "nbss.hdr" => SMBFrameType::NBSSHdr as i32,
-        "nbss.data" => SMBFrameType::NBSSData as i32,
-        "smb1.pdu" => SMBFrameType::SMB1Pdu as i32,
-        "smb1.hdr" => SMBFrameType::SMB1Hdr as i32,
-        "smb1.data" => SMBFrameType::SMB1Data as i32,
-        "smb2.pdu" => SMBFrameType::SMB2Pdu as i32,
-        "smb2.hdr" => SMBFrameType::SMB2Hdr as i32,
-        "smb2.data" => SMBFrameType::SMB2Data as i32,
-        "smb3.pdu" => SMBFrameType::SMB3Pdu as i32,
-        "smb3.hdr" => SMBFrameType::SMB3Hdr as i32,
-        "smb3.data" => SMBFrameType::SMB3Data as i32,
-        _ => -1,
-    }
-}
-
-fn smb_frame_string_type(id: u8) -> *const std::os::raw::c_char {
-    if let Some(s) = SMBFrameType::from_u8(id) {
-        let estr = match s {
-            SMBFrameType::NBSSPdu => "nbss.pdu\0",
-            SMBFrameType::NBSSHdr => "nbss.hdr\0",
-            SMBFrameType::NBSSData => "nbss.data\0",
-            SMBFrameType::SMB1Pdu => "smb1.pdu\0",
-            SMBFrameType::SMB1Hdr => "smb1.hdr\0",
-            SMBFrameType::SMB1Data => "smb1.data\0",
-            SMBFrameType::SMB2Pdu => "smb2.pdu\0",
-            SMBFrameType::SMB2Hdr => "smb2.hdr\0",
-            SMBFrameType::SMB2Data => "smb2.data\0",
-            SMBFrameType::SMB3Pdu => "smb3.pdu\0",
-            SMBFrameType::SMB3Hdr => "smb3.hdr\0",
-            SMBFrameType::SMB3Data => "smb3.data\0",
-        };
-
-        return estr.as_ptr() as *const std::os::raw::c_char;
-    }
-    return std::ptr::null();
+    NBSSPdu,
+    NBSSHdr,
+    NBSSData,
+    SMB1Pdu,
+    SMB1Hdr,
+    SMB1Data,
+    SMB2Pdu,
+    SMB2Hdr,
+    SMB2Data,
+    SMB3Pdu,
+    SMB3Hdr,
+    SMB3Data,
 }
 
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
@@ -2250,18 +2190,6 @@ pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u
     return ALPROTO_SMB;
 }
 
-pub unsafe extern "C" fn smb_frames_get_frame_id_by_name(name: *const std::os::raw::c_char) -> std::os::raw::c_int {
-    if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
-        smb_frame_type_string(s) as std::os::raw::c_int
-    } else {
-        -1
-    }
-}
-
-pub unsafe extern "C" fn smb_frames_get_frame_by_id(id: u8) -> *const std::os::raw::c_char {
-    smb_frame_string_type(id)
-}
-
 fn register_pattern_probe() -> i8 {
     let mut r = 0;
     unsafe {
@@ -2330,8 +2258,8 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: Some(rs_smb_state_truncate),
-        get_frame_id_by_name: Some(smb_frames_get_frame_id_by_name),
-        get_frame_name_by_id: Some(smb_frames_get_frame_by_id),
+        get_frame_id_by_name: Some(SMBFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(SMBFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
