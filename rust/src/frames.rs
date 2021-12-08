@@ -7,7 +7,7 @@ struct CFrame {
 }
 
 // Defined in app-layer-register.h
-extern "C" {
+extern {
     fn AppLayerFrameNewByRelativeOffset(
         flow: *const Flow, stream_slice: *const StreamSlice, frame_start_rel: u32, len: i32,
         dir: i32, frame_type: u8,
