@@ -20,6 +20,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 
 mod applayerevent;
+mod applayerframetype;
 
 /// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
 /// implementation for enums that define AppLayerEvents.
@@ -39,4 +40,9 @@ mod applayerevent;
 #[proc_macro_derive(AppLayerEvent)]
 pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
     applayerevent::derive_app_layer_event(input)
+}
+
+#[proc_macro_derive(AppLayerFrameType)]
+pub fn derive_app_layer_frame_type(input: TokenStream) -> TokenStream {
+    applayerframetype::derive_app_layer_frame_type(input)
 }
