@@ -564,3 +564,54 @@ pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
     let state = cast_pointer!(state, S);
     state.get_transaction_iterator(min_tx_id, istate)
 }
+
+/// AppLayerFrameType trait.
+///
+/// This is the behavior expected from an enum of frame types. For most instances
+/// this behavior can be derived.
+///
+/// Example:
+///
+/// #[derive(AppLayerFrameType)]
+/// enum SomeProtoFrameType {
+///     PDU,
+///     Data,
+/// }
+pub trait AppLayerFrameType {
+    /// Create a frame type variant from a u8.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_u8(value: u8) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return the u8 value of the enum where the first entry has the value of 0.
+    fn as_u8(&self) -> u8;
+
+    /// Create a frame type variant from a &str.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_str(s: &str) -> Option<Self> where Self: std::marker::Sized;
+
+    /// Return a pointer to a C string of the enum variant suitable as-is for
+    /// FFI.
+    fn to_cstring(&self) -> *const std::os::raw::c_char;
+
+    /// Converts a C string formatted name to a frame type ID.
+    extern "C" fn ffi_id_from_name(name: *const std::os::raw::c_char) -> i32 where Self: Sized {
+        if name.is_null() {
+            return -1;
+        }
+        unsafe {
+            let frame_id = if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
+                Self::from_str(s).map(|t| t.as_u8() as i32).unwrap_or(-1)
+            } else {
+                -1
+            };
+            frame_id
+        }
+    }
+
+    /// Converts a variant ID to an FFI safe name.
+    extern "C" fn ffi_name_from_id(id: u8) -> *const std::os::raw::c_char where Self: Sized {
+        Self::from_u8(id).map(|s| s.to_cstring()).unwrap_or_else(|| std::ptr::null())
+    }
+}
