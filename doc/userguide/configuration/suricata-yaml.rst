@@ -998,7 +998,7 @@ the option prealloc_sessions instructs Suricata to keep a number of
 sessions ready in memory.
 
 A TCP-session starts with the three-way-handshake. After that, data
-can be send en received. A session can last a long time. It can happen
+can be sent and received. A session can last a long time. It can happen
 that Suricata will be started after a few TCP sessions have already been
 started. This way, Suricata misses the original setup of those
 sessions. This setup always includes a lot of information. If you want
