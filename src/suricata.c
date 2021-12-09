@@ -2329,6 +2329,7 @@ void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
+    DatasetsInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {
         /* As the above did some necessary startup initialization, it
