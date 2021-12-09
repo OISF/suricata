@@ -1507,6 +1507,11 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         }
     }
 
+    if (AppLayerProtoDetectGetProtoName(alproto) == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "disabled alproto %s, rule can never match",
+                AppProtoToString(alproto));
+        return -1;
+    }
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
