@@ -135,7 +135,6 @@ noinst_HEADERS = \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
 	detect-engine-dcepayload.h \
-	detect-engine-dns.h \
 	detect-engine-enip.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
@@ -723,7 +722,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
-	detect-engine-dns.c \
 	detect-engine-enip.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
