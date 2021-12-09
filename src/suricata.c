@@ -2000,8 +2000,6 @@ static int InitSignalHandler(SCInstance *suri)
  * Will be run once per pcap in unix-socket mode */
 void PreRunInit(const int runmode)
 {
-    /* Initialize Datasets to be able to use them with unix socket */
-    DatasetsInit();
     HttpRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
@@ -2029,6 +2027,7 @@ void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
+    DatasetsInit();
 
     if (runmode == RUNMODE_UNIX_SOCKET) {
         /* As the above did some necessary startup initialization, it
