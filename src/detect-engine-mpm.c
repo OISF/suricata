@@ -53,7 +53,6 @@
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-dns.h"
 
 #include "stream.h"
 
