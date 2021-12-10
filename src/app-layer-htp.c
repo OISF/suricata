@@ -56,6 +56,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer.h"
+#include "app-layer-frames.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
@@ -169,6 +170,39 @@ SCEnumCharMap http_decoder_event_table[] = {
 
     { NULL, -1 },
 };
+
+enum HttpFrameTypes {
+    HTTP_FRAME_REQUEST,
+    HTTP_FRAME_RESPONSE,
+};
+
+SCEnumCharMap http_frame_table[] = {
+    {
+            "request",
+            HTTP_FRAME_REQUEST,
+    },
+    {
+            "response",
+            HTTP_FRAME_RESPONSE,
+    },
+    { NULL, -1 },
+};
+
+static int HTTPGetFrameIdByName(const char *frame_name)
+{
+    int id = SCMapEnumNameToValue(frame_name, http_frame_table);
+    if (id < 0) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "unknown frame type \"%s\"", frame_name);
+        return -1;
+    }
+    return id;
+}
+
+static const char *HTTPGetFrameNameById(const uint8_t frame_id)
+{
+    const char *name = SCMapEnumValueToName(frame_id, http_frame_table);
+    return name;
+}
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
@@ -829,6 +863,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
         }
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
+    hstate->slice = &stream_slice;
 
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
@@ -857,6 +892,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);
+    hstate->slice = NULL;
 
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -897,6 +933,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
         }
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
+    hstate->slice = &stream_slice;
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     htp_tx_t *tx = NULL;
@@ -924,6 +961,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                         dp = (uint16_t)tx->request_port_number;
                     }
                     consumed = htp_connp_res_data_consumed(hstate->connp);
+                    hstate->slice = NULL;
                     AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
                     // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                     // and we need to parser the remaining part with HTTP2
@@ -948,6 +986,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);
+    hstate->slice = NULL;
 
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -2045,6 +2084,18 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
+    uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+    SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
+            (uint64_t)hstate->conn->in_data_counter);
+
+    Frame *frame = AppLayerFrameNewByAbsoluteOffset(
+            hstate->f, hstate->slice, consumed, -1, 0, HTTP_FRAME_REQUEST);
+    if (frame) {
+        SCLogDebug("frame %p/%" PRIi64, frame, frame->id);
+        hstate->request_frame_id = frame->id;
+        AppLayerFrameSetTxId(frame, HtpGetActiveRequestTxID(hstate));
+    }
+
     if (hstate->cfg)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                 hstate->cfg->request.inspect_min_size);
@@ -2069,6 +2120,18 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
+    }
+
+    uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+    SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
+            (uint64_t)hstate->conn->out_data_counter);
+
+    Frame *frame = AppLayerFrameNewByAbsoluteOffset(
+            hstate->f, hstate->slice, consumed, -1, 1, HTTP_FRAME_RESPONSE);
+    if (frame) {
+        SCLogDebug("frame %p/%" PRIi64, frame, frame->id);
+        hstate->response_frame_id = frame->id;
+        AppLayerFrameSetTxId(frame, HtpGetActiveResponseTxID(hstate));
     }
 
     if (hstate->cfg)
@@ -2104,6 +2167,22 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
+    }
+
+    if (hstate->request_frame_id > 0) {
+        Frame *frame = AppLayerFrameGetById(hstate->f, 0, hstate->request_frame_id);
+        if (frame) {
+            const uint64_t abs_right_edge =
+                    hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+            const uint64_t request_size = abs_right_edge - hstate->last_request_data_stamp;
+
+            SCLogDebug("HTTP request complete: data offset %" PRIu64 ", request_size %" PRIu64,
+                    hstate->last_request_data_stamp, request_size);
+            SCLogDebug("frame %p/%" PRIi64 " setting len to  %" PRIu64, frame, frame->id,
+                    request_size);
+            frame->len = (int64_t)request_size;
+        }
+        hstate->request_frame_id = 0;
     }
 
     SCLogDebug("transaction_cnt %"PRIu64", list_size %"PRIu64,
@@ -2148,6 +2227,22 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
 
     /* we have one whole transaction now */
     hstate->transaction_cnt++;
+
+    if (hstate->response_frame_id > 0) {
+        Frame *frame = AppLayerFrameGetById(hstate->f, 1, hstate->response_frame_id);
+        if (frame) {
+            const uint64_t abs_right_edge =
+                    hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+            const uint64_t response_size = abs_right_edge - hstate->last_response_data_stamp;
+
+            SCLogDebug("HTTP response complete: data offset %" PRIu64 ", response_size %" PRIu64,
+                    hstate->last_response_data_stamp, response_size);
+            SCLogDebug("frame %p/%" PRIi64 " setting len to  %" PRIu64, frame, frame->id,
+                    response_size);
+            frame->len = (int64_t)response_size;
+        }
+        hstate->response_frame_id = 0;
+    }
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (htud != NULL) {
@@ -3111,6 +3206,8 @@ void RegisterHTPParsers(void)
                 IPPROTO_TCP, ALPROTO_HTTP1, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
         AppLayerParserRegisterParserAcceptableDataDirection(
                 IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_TOCLIENT);
+        AppLayerParserRegisterGetFrameFuncs(
+                IPPROTO_TCP, ALPROTO_HTTP1, HTTPGetFrameIdByName, HTTPGetFrameNameById);
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -4895,6 +4992,97 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(true);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+static int HTPParserDecodingTest01a(void)
+{
+    uint8_t httpbuf1[] = "GET /abc%2fdef HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
+                         "GET /abc/def?ghi%2fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
+                         "GET /abc/def?ghi%252fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: Apache_2\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    const char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP1;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            (STREAM_TOSERVER | STREAM_START | STREAM_EOF), httpbuf1, httplen1);
+    FAIL_IF(r != 0);
+
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
+
+    uint8_t ref1[] = "/abc%2fdef";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    FAIL_IF_NULL(tx);
+
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    uint8_t ref2[] = "/abc/def?ghi/jkl";
+    reflen = sizeof(ref2) - 1;
+
+    tx = HTPStateGetTx(htp_state, 1);
+    FAIL_IF_NULL(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    uint8_t ref3[] = "/abc/def?ghi%2fjkl";
+    reflen = sizeof(ref3) - 1;
+    tx = HTPStateGetTx(htp_state, 2);
+    FAIL_IF_NULL(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
     FAIL_IF_NULL(tx_ud->request_uri_normalized);
     FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
@@ -6903,6 +7091,7 @@ static void HTPParserRegisterTests(void)
 #endif
 
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01);
+    UtRegisterTest("HTPParserDecodingTest01a", HTPParserDecodingTest01a);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02);
     UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03);
     UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04);
