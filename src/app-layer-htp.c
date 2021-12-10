@@ -2083,7 +2083,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackRequest(htp_tx_t *tx)
+static int HTPCallbackRequestComplete(htp_tx_t *tx)
 {
     SCEnter();
 
@@ -2127,7 +2127,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackResponse(htp_tx_t *tx)
+static int HTPCallbackResponseComplete(htp_tx_t *tx)
 {
     SCEnter();
 
@@ -2330,10 +2330,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
 
     htp_config_register_request_start(cfg_prec->cfg, HTPCallbackRequestStart);
-    htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequest);
+    htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequestComplete);
 
     htp_config_register_response_start(cfg_prec->cfg, HTPCallbackResponseStart);
-    htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponse);
+    htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponseComplete);
 
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
 
