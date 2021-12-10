@@ -260,6 +260,9 @@ typedef struct HtpState_ {
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
+    StreamSlice *slice;
+    FrameId request_frame_id;
+    FrameId response_frame_id;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
