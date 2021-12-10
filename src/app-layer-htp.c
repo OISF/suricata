@@ -4806,8 +4806,6 @@ end:
  */
 static int HTPParserDecodingTest01(void)
 {
-    int result = 0;
-    Flow *f = NULL;
     uint8_t httpbuf1[] =
         "GET /abc%2fdef HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
         "GET /abc/def?ghi%2fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
@@ -4815,9 +4813,8 @@ static int HTPParserDecodingTest01(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
-    HtpState *htp_state =  NULL;
-    int r = 0;
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -4835,125 +4832,66 @@ libhtp:\n\
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
 
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
-    if (f == NULL)
-        goto end;
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
 
-    uint32_t u;
-    for (u = 0; u < httplen1; u++) {
+    for (uint32_t u = 0; u < httplen1; u++) {
         uint8_t flags = 0;
-
         if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
-            goto end;
-        }
-        FLOWLOCK_UNLOCK(f);
+        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
+        FAIL_IF(r != 0);
     }
 
-    htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
 
     uint8_t ref1[] = "/abc%2fdef";
     size_t reflen = sizeof(ref1) - 1;
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx);
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref1, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref2, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref3, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
@@ -4961,7 +4899,7 @@ end:
 
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test %2f decoding in profile IDS
