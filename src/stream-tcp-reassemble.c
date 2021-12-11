@@ -321,6 +321,15 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     }
 }
 
+static inline uint64_t GetAbsLastAck(const TcpStream *stream)
+{
+    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+        return STREAM_BASE_OFFSET(stream) + (stream->last_ack - stream->base_seq);
+    } else {
+        return STREAM_BASE_OFFSET(stream);
+    }
+}
+
 #ifdef UNITTESTS
 /** \internal
  *  \brief check if segments falls before stream 'offset' */
@@ -746,44 +755,21 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
     if (p->flags & PKT_PSEUDO_STREAM_END)
         SCReturnInt(1);
 
+    const uint64_t last_ack_abs = GetAbsLastAck(stream);
+    int64_t diff = last_ack_abs - STREAM_RAW_PROGRESS(stream);
+    int64_t chunk_size = PKT_IS_TOSERVER(p) ? (int64_t)stream_config.reassembly_toserver_chunk_size
+                                            : (int64_t)stream_config.reassembly_toclient_chunk_size;
+
     /* check if we have enough data to do raw reassembly */
-    if (PKT_IS_TOSERVER(p)) {
-        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-            uint32_t delta = stream->last_ack - stream->base_seq;
-            /* get max absolute offset */
-            uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
-
-            int64_t diff = max_offset - STREAM_RAW_PROGRESS(stream);
-            if ((int64_t)stream_config.reassembly_toserver_chunk_size <= diff) {
-                SCReturnInt(1);
-            } else {
-                SCLogDebug("toserver min chunk len not yet reached: "
-                        "last_ack %"PRIu32", ra_raw_base_seq %"PRIu32", %"PRIu32" < "
-                        "%"PRIu32"", stream->last_ack, stream->base_seq,
-                        (stream->last_ack - stream->base_seq),
-                        stream_config.reassembly_toserver_chunk_size);
-                SCReturnInt(0);
-            }
-        }
+    if (chunk_size <= diff) {
+        SCReturnInt(1);
     } else {
-        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-            uint32_t delta = stream->last_ack - stream->base_seq;
-            /* get max absolute offset */
-            uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
-
-            int64_t diff = max_offset - STREAM_RAW_PROGRESS(stream);
-
-            if ((int64_t)stream_config.reassembly_toclient_chunk_size <= diff) {
-                SCReturnInt(1);
-            } else {
-                SCLogDebug("toclient min chunk len not yet reached: "
-                        "last_ack %"PRIu32", base_seq %"PRIu32",  %"PRIu32" < "
-                        "%"PRIu32"", stream->last_ack, stream->base_seq,
-                        (stream->last_ack - stream->base_seq),
-                        stream_config.reassembly_toclient_chunk_size);
-                SCReturnInt(0);
-            }
-        }
+        SCLogDebug("%s min chunk len not yet reached: "
+                   "last_ack %" PRIu32 ", ra_raw_base_seq %" PRIu32 ", %" PRIu32 " < "
+                   "%" PRIi64,
+                PKT_IS_TOSERVER(p) ? "toserver" : "toclient", stream->last_ack, stream->base_seq,
+                (stream->last_ack - stream->base_seq), chunk_size);
+        SCReturnInt(0);
     }
 
     SCReturnInt(0);
@@ -958,51 +944,43 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
 static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
-    uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
+    const int ackadded = (ssn->state >= TCP_FIN_WAIT1) ? 1 : 0;
+    const uint64_t last_ack_abs = GetAbsLastAck(stream) - (uint64_t)ackadded;
 
-    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-        /* get window of data that is acked */
-        const uint32_t delta = stream->last_ack - stream->base_seq;
-        /* get max absolute offset */
-        last_ack_abs += delta;
+    SCLogDebug("last_ack %u abs %" PRIu64, stream->last_ack, last_ack_abs);
+    SCLogDebug("next_seq %u", stream->next_seq);
 
-        const int ackadded = (ssn->state >= TCP_FIN_WAIT1) ? 1 : 0;
-        last_ack_abs -= ackadded;
-
-        SCLogDebug("last_ack %u abs %"PRIu64, stream->last_ack, last_ack_abs);
-        SCLogDebug("next_seq %u", stream->next_seq);
-
-        /* if last_ack_abs is beyond the app_progress data that we haven't seen
-         * has been ack'd. This looks like a GAP. */
-        if (last_ack_abs > app_progress) {
-            /* however, we can accept ACKs a bit too liberally. If last_ack
-             * is beyond next_seq, we only consider it a gap now if we do
-             * already have data beyond the gap. */
-            if (SEQ_GT(stream->last_ack, stream->next_seq)) {
-                if (RB_EMPTY(&stream->sb.sbb_tree)) {
-                    SCLogDebug("packet %"PRIu64": no GAP. "
-                            "next_seq %u < last_ack %u, but no data in list",
+    /* if last_ack_abs is beyond the app_progress data that we haven't seen
+     * has been ack'd. This looks like a GAP. */
+    if (last_ack_abs > app_progress) {
+        /* however, we can accept ACKs a bit too liberally. If last_ack
+         * is beyond next_seq, we only consider it a gap now if we do
+         * already have data beyond the gap. */
+        if (SEQ_GT(stream->last_ack, stream->next_seq)) {
+            if (RB_EMPTY(&stream->sb.sbb_tree)) {
+                SCLogDebug("packet %" PRIu64 ": no GAP. "
+                           "next_seq %u < last_ack %u, but no data in list",
+                        p->pcap_cnt, stream->next_seq, stream->last_ack);
+                return false;
+            } else {
+                const uint64_t next_seq_abs =
+                        STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
+                const StreamingBufferBlock *blk = stream->sb.head;
+                if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
+                    /* ack'd data after the gap */
+                    SCLogDebug("packet %" PRIu64 ": GAP. "
+                               "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
                             p->pcap_cnt, stream->next_seq, stream->last_ack);
-                    return false;
-                } else {
-                    const uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                    const StreamingBufferBlock *blk = stream->sb.head;
-                    if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
-                        /* ack'd data after the gap */
-                        SCLogDebug("packet %"PRIu64": GAP. "
-                                "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
-                                p->pcap_cnt, stream->next_seq, stream->last_ack);
-                        return true;
-                    }
+                    return true;
                 }
             }
-
-            SCLogDebug("packet %"PRIu64": GAP! "
-                    "last_ack_abs %"PRIu64" > app_progress %"PRIu64", "
-                    "but we have no data.",
-                    p->pcap_cnt, last_ack_abs, app_progress);
-            return true;
         }
+
+        SCLogDebug("packet %" PRIu64 ": GAP! "
+                   "last_ack_abs %" PRIu64 " > app_progress %" PRIu64 ", "
+                   "but we have no data.",
+                p->pcap_cnt, last_ack_abs, app_progress);
+        return true;
     }
     SCLogDebug("packet %"PRIu64": no GAP. "
             "last_ack_abs %"PRIu64" <= app_progress %"PRIu64,
@@ -1499,12 +1477,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
          * - if our block matches or starts before last ack, return right edge of
          *   our block.
          */
-        uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
-        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-            uint32_t delta = stream->last_ack - stream->base_seq;
-            /* get max absolute offset */
-            last_ack_abs += delta;
-        }
+        const uint64_t last_ack_abs = GetAbsLastAck(stream);
         SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
 
         if (STREAM_RAW_PROGRESS(stream) < last_ack_abs) {
@@ -1563,7 +1536,9 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
 
     StreamingBufferBlock *iter = NULL;
     uint64_t progress = progress_in;
-    uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream); /* absolute right edge of ack'd data */
+    /* absolute right edge of ack'd data */
+    const uint64_t last_ack_abs = GetAbsLastAck(stream);
+    SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
 
     /* if the app layer triggered a flush, and we're supposed to
      * use a minimal inspect depth, we actually take the app progress
@@ -1593,15 +1568,6 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
     }
 
     SCLogDebug("progress %"PRIu64", min inspect depth %u %s", progress, stream->min_inspect_depth, stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW ? "STREAMTCP_STREAM_FLAG_TRIGGER_RAW":"(no trigger)");
-
-    /* get window of data that is acked */
-    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-        SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
-        uint32_t delta = stream->last_ack - stream->base_seq;
-        /* get max absolute offset */
-        last_ack_abs += delta;
-        SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
-    }
 
     /* loop through available buffers. On no packet loss we'll have a single
      * iteration. On missing data we'll walk the blocks */
