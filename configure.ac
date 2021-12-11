@@ -1524,12 +1524,19 @@
     AC_ARG_WITH(netmap_includes,
             [  --with-netmap-includes=DIR netmap include directory],
             [with_netmap_includes="$withval"],[with_netmap_includes=no])
+    AC_ARG_WITH(netmap_libraries,
+            [  --with-netmap-libraries=DIR netmap library directory],
+            [with_netmap_libraries="$withval"],[with_netmap_libraries=no])
 
     AS_IF([test "x$enable_netmap" = "xyes"], [
         AC_DEFINE([HAVE_NETMAP],[1],(NETMAP support enabled))
 
         if test "$with_netmap_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_netmap_includes}"
+        fi
+
+        if test "$with_netmap_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_netmap_libraries}"
         fi
 
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_MSG_ERROR(net/netmap_user.h not found ...)],)
