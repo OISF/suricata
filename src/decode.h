@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -577,6 +577,8 @@ typedef struct Packet_
 
     AppLayerDecoderEvents *app_layer_events;
 
+    AppLayerDecoderEvents *decoder_events;
+
     /* double linked list ptrs */
     struct Packet_ *next;
     struct Packet_ *prev;
@@ -829,6 +831,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->tunnel_tpr_cnt = 0;                                                                   \
         (p)->events.cnt = 0;                                                                       \
         AppLayerDecoderEventsResetEvents((p)->app_layer_events);                                   \
+        AppLayerDecoderEventsResetEvents((p)->decoder_events);                                     \
         (p)->next = NULL;                                                                          \
         (p)->prev = NULL;                                                                          \
         (p)->root = NULL;                                                                          \
@@ -847,16 +850,17 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
-#define PACKET_DESTRUCTOR(p) do {                  \
-        if ((p)->pktvar != NULL) {              \
-            PktVarFree((p)->pktvar);            \
-        }                                       \
-        PACKET_FREE_EXTDATA((p));               \
-        SCMutexDestroy(&(p)->tunnel_mutex);     \
-        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
-        PACKET_PROFILING_RESET((p));            \
+#define PACKET_DESTRUCTOR(p)                                                                       \
+    do {                                                                                           \
+        if ((p)->pktvar != NULL) {                                                                 \
+            PktVarFree((p)->pktvar);                                                               \
+        }                                                                                          \
+        PACKET_FREE_EXTDATA((p));                                                                  \
+        SCMutexDestroy(&(p)->tunnel_mutex);                                                        \
+        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events);                                   \
+        AppLayerDecoderEventsFreeEvents(&(p)->decoder_events);                                     \
+        PACKET_PROFILING_RESET((p));                                                               \
     } while (0)
-
 
 /* macro's for setting the action
  * handle the case of a root packet
