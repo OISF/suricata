@@ -242,6 +242,11 @@ static inline bool AnomalyHasPacketAppLayerEvents(const Packet *p)
     return p->app_layer_events && p->app_layer_events->cnt;
 }
 
+static inline bool AnomalyHasPacketDecoderEvents(const Packet *p)
+{
+    return p->decoder_events && p->decoder_events->cnt;
+}
+
 static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
 {
     int rc = TM_ECODE_OK;
@@ -259,6 +264,11 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
         if (rc == TM_ECODE_OK && AnomalyHasPacketAppLayerEvents(p)) {
             rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
                                                  true, "proto_detect", TX_ID_UNUSED);
+        }
+
+        if (rc == TM_ECODE_OK && AnomalyHasPacketDecoderEvents(p)) {
+            rc = AnomalyAppLayerDecoderEventJson(
+                    aft, p, p->decoder_events, true, "decoder_detect", TX_ID_UNUSED);
         }
 
         /* parser state events */
@@ -283,9 +293,8 @@ static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAnomalyLogCondition(ThreadVars *tv, const Packet *p)
 {
-    return p->events.cnt > 0 ||
-           (p->app_layer_events && p->app_layer_events->cnt > 0) ||
-           AnomalyHasParserEvents(p);
+    return p->events.cnt > 0 || (p->app_layer_events && p->app_layer_events->cnt > 0) ||
+           (p->decoder_events && p->decoder_events->cnt > 0) || AnomalyHasParserEvents(p);
 }
 
 static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, void **data)
