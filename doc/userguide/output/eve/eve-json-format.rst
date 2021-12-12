@@ -173,7 +173,10 @@ The following field is included when "type" has the value "applayer":
 
 * "layer" Indicates the handling layer that detected the event. This will be
   "proto_parser" (protocol parser), "proto_detect" (protocol detection) or
-  "parser."
+  "decoder_detect" (decoder events) or "parser."
+
+"decoder_detect" events are conditions that occur while decoding packet contents
+such as SWF file handling on HTTP payloads.
 
 When ``packethdr`` is enabled, the first 32 bytes of the packet are included
 as a byte64-encoded blob in the main part of record. This applies to events
@@ -258,6 +261,24 @@ Examples
         "event": "INVALID_RECORD_TYPE",
         "layer": "proto_parser"
       }
+    }
+
+    {
+      "timestamp": "2021-11-29T09:56:36.348743-0500",
+       "flow_id": 1266018553187300,
+       "pcap_cnt": 22799597,
+       "event_type": "anomaly",
+       "src_ip": "127.0.0.1",
+       "src_port": 8080,
+       "dest_ip": "127.0.0.1",
+       "dest_port": 50608,
+       "proto": "TCP",
+       "anomaly": {
+         "app_proto": "http",
+         "type": "applayer",
+         "event": "FILE_DECODER_EVENT_INVALID_SWF_VERSION",
+         "layer": "decoder_detect"
+       }
     }
 
 Event type: HTTP
