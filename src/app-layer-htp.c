@@ -2158,11 +2158,12 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
+    const uint64_t abs_right_edge =
+            hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+
     if (hstate->request_frame_id > 0) {
         Frame *frame = AppLayerFrameGetById(hstate->f, 0, hstate->request_frame_id);
         if (frame) {
-            const uint64_t abs_right_edge =
-                    hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
             const uint64_t request_size = abs_right_edge - hstate->last_request_data_stamp;
 
             SCLogDebug("HTTP request complete: data offset %" PRIu64 ", request_size %" PRIu64,
@@ -2187,12 +2188,14 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
-            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
-                    (uint32_t)hstate->conn->in_data_counter);
+            if (abs_right_edge < (uint64_t)UINT32_MAX) {
+                StreamTcpReassemblySetMinInspectDepth(
+                        hstate->f->protoctx, STREAM_TOSERVER, (uint32_t)abs_right_edge);
+            }
         }
     }
 
-    hstate->last_request_data_stamp = (uint64_t)hstate->conn->in_data_counter;
+    hstate->last_request_data_stamp = abs_right_edge;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
@@ -2217,11 +2220,12 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
     /* we have one whole transaction now */
     hstate->transaction_cnt++;
 
+    const uint64_t abs_right_edge =
+            hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+
     if (hstate->response_frame_id > 0) {
         Frame *frame = AppLayerFrameGetById(hstate->f, 1, hstate->response_frame_id);
         if (frame) {
-            const uint64_t abs_right_edge =
-                    hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
             const uint64_t response_size = abs_right_edge - hstate->last_response_data_stamp;
 
             SCLogDebug("HTTP response complete: data offset %" PRIu64 ", response_size %" PRIu64,
@@ -2264,7 +2268,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
         }
     }
 
-    hstate->last_response_data_stamp = (uint64_t)hstate->conn->out_data_counter;
+    hstate->last_response_data_stamp = abs_right_edge;
     SCReturnInt(HTP_OK);
 }
 
