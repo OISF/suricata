@@ -96,6 +96,7 @@ pub mod conf;
 pub mod jsonbuilder;
 #[macro_use]
 pub mod applayer;
+pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
