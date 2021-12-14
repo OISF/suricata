@@ -28,7 +28,7 @@ env:
   RUST_VERSION_KNOWN: "1.49.0"
 
   # The minimum version of Rust supported.
-  RUST_VERSION_MIN: 1.34.2
+  RUST_VERSION_MIN: 1.41.1
 jobs:
 
   prepare-deps:
