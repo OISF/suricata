@@ -505,38 +505,8 @@ fail:
  */
 static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
 {
-    SCEnter();
-    int retval;
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
-
-    if (ptv->queue_id == 0) {
-        struct rte_eth_stats eth_stats;
-        char port_name[RTE_ETH_NAME_MAX_LEN];
-
-        retval = rte_eth_dev_get_name_by_port(ptv->port_id, port_name);
-        if (unlikely(retval != 0)) {
-            SCLogError(SC_ERR_STAT, "Failed to convert port id %d to the interface name: %s",
-                    ptv->port_id, strerror(-retval));
-            SCReturn;
-        }
-        retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
-        if (unlikely(retval != 0)) {
-            SCLogError(SC_ERR_STAT, "Failed to get stats for interface %s: %s", port_name,
-                    strerror(-retval));
-            SCReturn;
-        }
-        SCLogPerf("Total RX stats of %s: packets %" PRIu64 " bytes: %" PRIu64 " missed: %" PRIu64
-                  " errors: %" PRIu64 " nombufs: %" PRIu64,
-                port_name, eth_stats.ipackets, eth_stats.ibytes, eth_stats.imissed,
-                eth_stats.ierrors, eth_stats.rx_nombuf);
-        if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS)
-            SCLogPerf("Total TX stats of %s: packets %" PRIu64 " bytes: %" PRIu64
-                      " errors: %" PRIu64,
-                    port_name, eth_stats.opackets, eth_stats.obytes, eth_stats.oerrors);
-    }
-
     DPDKDumpCounters(ptv);
-    SCLogPerf("(%s) received packets %" PRIu64, tv->name, ptv->pkts);
 }
 
 /**
