@@ -12,7 +12,6 @@
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 
-
 #define HEADER_LEN 6
 
 //rule of thumb constant, so as not to timeout target
