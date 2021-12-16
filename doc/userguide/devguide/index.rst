@@ -2,7 +2,6 @@ Suricata Developer Guide
 ========================
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
 
    codebase/index.rst
