@@ -1806,37 +1806,40 @@ firewall at rule number 5500:
 Rules
 -----
 
-Rule-files
+Rule Files
 ~~~~~~~~~~
 
-For different categories of risk there are different rule-files
-available containing one or more rules. There is a possibility to
-instruct Suricata where to find these rules and which rules you want
-to be load for use. You can set the directory where the files can be
-found.
+Suricata by default is setup for rules to be managed by Suricata-Update with
+the following rule file configuration:
 
-::
+.. code-block:: yaml
 
-  default-rule-path: /etc/suricata/rules/
-  rule-files:
-    - backdoor.rules
-    - bad-traffic.rules
-    - chat.rules
-    - ddos.rules
-    - ....
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
 
-The above mentioned is an example of rule-files of which can be chosen
-from. There are much more rule-files available.
+A default installation of Suricata-Update will write out the rules to
+/var/lib/suricata/rules/suricata.rules.
 
-If wanted, you can set a full path for a specific rule or
-rule-file. In that case, the above directory (/etc/suricata/rules/)
-will be ignored for that specific file. This is convenient in case you
-write your own rules and want to store them separate from other rules
-like that of VRT, ET or ET pro.
+You may want to edit this section if you are not using Suricata-Update or want
+to add rule files that are not managed by Suricata-Update, for example:
 
-If you set a file-name that appears to be not existing, Suricata will
-ignore that entry and display a error-message during the engine
-startup. It will continue with the startup as usual.
+.. code-block:: yaml
+
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
+      - /etc/suricata/rules/custom.rules
+
+File names can be specific with an absolute path, or just the base name. If
+just the base name is provided it will be looked for in the
+``default-rule-path``.
+
+If a rule file cannot be found, Suricata will log a warning message and
+continue to load, unless ``--init-errors-fatal`` has been specified on the
+command line, in which case Suricata will exit with an error code.
+
+For more information on rule management see :doc:`../rule-management/index`.
 
 Threshold-file
 ~~~~~~~~~~~~~~
