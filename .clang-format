@@ -1,5 +1,5 @@
 ﻿# Suricata settings as per
-#   doc/devguide/codebase/code-style.rst
+#   doc/userguide/devguide/codebase/code-style.rst
 #
 # This file is set up for clang 9. For the settings available, see
 #   https://releases.llvm.org/9.0.0/tools/clang/docs/ClangFormatStyleOptions.html
