@@ -118,7 +118,7 @@ https://en.wikipedia.org/wiki/IEEE_802.1ad) most implementations only add
 inner one has different VLAN tags it will still end up in the same queue in
 **cluster_qm** mode. This was observed with the i40e driver up to 2.8.20 and
 the firmare version up to 7.00, feel free to report if newer versions have
-fixed this (see https://suricata-ids.org/support/).
+fixed this (see https://suricata.io/support/).
 
 
 If you want to use **tshark** to get an overview of the traffic direction use
@@ -172,7 +172,7 @@ fair amount of load should still be seen. If the load is still very high and
 drops are seen and the hardware should be capable to deal with such traffic
 loads you should deep dive if there is any specific traffic issue (see above)
 or report the performance issue so it can be investigated (see
-https://suricata-ids.org/support/).
+https://suricata.io/join-our-community/).
 
 Suricata also provides several specific traffic related signatures in the rules
 folder that could be enabled for testing to spot specific traffic issues. Those
