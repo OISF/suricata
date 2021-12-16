@@ -50,6 +50,7 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
+	rm -f extending/app-layer/diagrams/*.png
 
 html:
 	$(BUILD_IMG)

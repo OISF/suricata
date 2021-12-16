@@ -29,3 +29,4 @@ Suricata User Guide
    manpages/index.rst
    acknowledgements
    licenses/index.rst
+   devguide/index.rst

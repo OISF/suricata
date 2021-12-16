@@ -3,7 +3,10 @@
 # Script to generate Sequence Diagram images with mscgen
 #
 
-cd extending/app-layer/diagrams
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)
+
+cd "$parent_path"
+cd ../extending/app-layer/diagrams
 
 for FILE in *.msc ; do
     # call mscgen and convert each file in images dir
