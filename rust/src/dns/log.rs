@@ -478,7 +478,7 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
     js.set_string("rcode", &dns_rcode_string(header.flags));
 
     if response.answers.len() > 0 {
-        let js_answers = Json::array();
+        let js_answers = if flags & LOG_FORMAT_DETAILED != 0 { Some(Json::array()) } else { None };
 
         // For grouped answers we use a HashMap keyed by the rrtype.
         let mut answer_types = HashMap::new();
@@ -526,12 +526,13 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
                 }
             }
 
-            if flags & LOG_FORMAT_DETAILED != 0 {
+            if let Some(js_answers) = &js_answers {
                 js_answers.array_append(dns_log_json_answer_detail(answer));
             }
         }
 
-        if flags & LOG_FORMAT_DETAILED != 0 {
+
+        if let Some(js_answers) = js_answers {
             js.set("answers", js_answers);
         }
 
