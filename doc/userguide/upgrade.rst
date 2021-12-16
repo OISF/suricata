@@ -50,6 +50,7 @@ Logging changes
 Other changes
 ~~~~~~~~~~~~~
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
+- If installing Suricata without the bundled Suricata-Update, the ``default-rule-path`` has been changed from ``/etc/suricata/rules`` to ``/var/lib/suricata/rules`` to be consistent with Suricata when installed with Suricata-Update.
 
 Logging changes
 ~~~~~~~~~~~~~~~
