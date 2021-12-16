@@ -1,3 +1,5 @@
+SUBDIRS = devguide
+
 EXTRA_DIST = \
 	_static \
 	3rd-party-integration \

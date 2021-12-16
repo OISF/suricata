@@ -38,14 +38,14 @@ html:
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b html -d _build/doctrees \
-		$(top_srcdir)/doc/devguide _build/html
+		$(top_srcdir)/doc/userguide/devguide _build/html
 
 _build/latex/Suricata.pdf:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b latex -d _build/doctrees \
-		$(top_srcdir)/doc/devguide _build/latex
+		$(top_srcdir)/doc/userguide/devguide _build/latex
 # The Sphinx generated Makefile is GNU Make specific, so just do what
 # it does here - yes, multiple passes of pdflatex is required.
 	cd _build/latex && pdflatex Suricata.tex
@@ -62,9 +62,10 @@ pdf: devguide.pdf
 
 # Remove build artifacts that aren't tracked by autotools.
 clean-local:
-	rm -rf $(top_builddir)/doc/devguide/_build
-	rm -f $(top_builddir)/doc/devguide/suricata.1
-	rm -f $(top_builddir)/doc/devguide/devguide.pdf
+	rm -rf $(top_builddir)/doc/userguide/devguide/_build
+	rm -f $(top_builddir)/doc/userguide/devguide/suricata.1
+	rm -f $(top_builddir)/doc/userguide/devguide/devguide.pdf
+	rm -f $(top_builddir)/doc/userguide/devguide/extending/app-layer/diagrams/*.png
 
 endif # HAVE_MSCGEN
 endif # HAVE_SPHINXBUILD
