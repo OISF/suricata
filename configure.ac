@@ -1431,7 +1431,6 @@
 
     # Assume suircata-update will not be installed.
     have_suricata_update="no"
-    ruledirprefix="$sysconfdir"
 
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
@@ -1453,7 +1452,6 @@
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
-            ruledirprefix="$localstatedir/lib"
 	fi
     fi
 
@@ -2513,7 +2511,7 @@ else
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
-    EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
+    EXPAND_VARIABLE(localstatedir, e_defaultruledir, "/lib/suricata/rules")
 
     e_abs_srcdir=$(cd $srcdir && pwd)
     EXPAND_VARIABLE(e_abs_srcdir, e_rustdir, "/rust")
