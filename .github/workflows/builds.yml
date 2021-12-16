@@ -1160,7 +1160,6 @@ jobs:
       - run: make dist
       - name: Checking that documentation was built
         run: |
-          test -e doc/devguide/devguide.pdf
           test -e doc/userguide/userguide.pdf
           test -e doc/userguide/suricata.1
       - name: Extracting suricata-verify

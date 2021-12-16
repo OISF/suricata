@@ -1,4 +1,4 @@
-SUBDIRS = userguide devguide
+SUBDIRS = userguide
 
 EXTRA_DIST = \
 AUTHORS \
