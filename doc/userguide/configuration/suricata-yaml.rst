@@ -625,7 +625,7 @@ Pattern matcher settings
 
 The multi-pattern-matcher (MPM) is a part of the detection engine
 within Suricata that searches for multiple patterns at
-once. Often, signatures have one ore more patterns. Of each
+once. Often, signatures have one or more patterns. Of each
 signature, one pattern is used by the multi-pattern-matcher. That way
 Suricata can exclude many signatures from being examined, because a
 signature can only match when all its patterns match.
@@ -1466,7 +1466,7 @@ configuration (console, file, syslog) if not otherwise set.
           line option <cmdline-option-v>`.
 
 The ``default-log-level`` set in the configuration value can be
-overriden by the ``SC_LOG_LEVEL`` environment variable.
+overridden by the ``SC_LOG_LEVEL`` environment variable.
 
 Default Log Format
 ~~~~~~~~~~~~~~~~~~
