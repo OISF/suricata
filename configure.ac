@@ -2239,10 +2239,6 @@ fi
     AC_MSG_RESULT(yes)
 
     RUST_FEATURES=""
-    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
-        [],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"])
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
