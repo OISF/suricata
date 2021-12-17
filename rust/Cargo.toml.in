@@ -9,7 +9,7 @@ members = [".", "./derive"]
 [lib]
 crate-type = ["staticlib", "rlib"]
 path = "@e_rustdir@/src/lib.rs"
-name = "suricata_rust"
+name = "suricata"
 
 [profile.release]
 debug = true
