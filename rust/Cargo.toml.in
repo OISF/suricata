@@ -20,7 +20,6 @@ lua_int8 = ["lua"]
 strict = []
 debug = []
 debug-validate = []
-function-macro = []
 
 [dependencies]
 nom = "~5.1.2"
