@@ -25,6 +25,10 @@ use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
 
+// Make the AppLayerEvent derive macro available to users importing
+// AppLayerEvent from this module.
+pub use suricata_derive::AppLayerEvent;
+
 #[repr(C)]
 #[derive(Default, Debug,PartialEq)]
 pub struct AppLayerTxConfig {
