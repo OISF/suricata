@@ -198,5 +198,8 @@ int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn
 void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
         const uint32_t progress);
 
+uint64_t StreamTcpGetAcked(const TcpStream *stream);
+uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof);
+
 #endif /* __STREAM_TCP_H__ */
 

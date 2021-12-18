@@ -331,6 +331,20 @@ static inline uint64_t GetAbsLastAck(const TcpStream *stream)
     }
 }
 
+uint64_t StreamTcpGetAcked(const TcpStream *stream)
+{
+    return GetAbsLastAck(stream);
+}
+
+uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof)
+{
+    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+    if (!eof && StreamTcpInlineMode() == FALSE) {
+        right_edge = MIN(GetAbsLastAck(stream), right_edge);
+    }
+    return right_edge;
+}
+
 #ifdef UNITTESTS
 /** \internal
  *  \brief check if segments falls before stream 'offset' */
