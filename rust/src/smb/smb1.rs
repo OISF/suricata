@@ -29,6 +29,8 @@ use crate::smb::files::*;
 use crate::smb::smb1_records::*;
 use crate::smb::smb1_session::*;
 
+use crate::smb::smb_status::*;
+
 use nom7::Err;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
