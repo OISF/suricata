@@ -94,21 +94,8 @@ static const char *StateFlags[] = { "NONE",
         NULL };
 
 /* URL executable file extensions */
-static const char *UrlExeExts[] = { ".exe",
-        ".vbs",
-        ".bin",
-        ".cmd",
-        ".bat",
-        ".jar",
-        ".js",
-        ".ps",
-        ".ps1",
-        ".sh",
-        ".run",
-        ".hta",
-        ".bin",
-        ".elf",
-        NULL };
+static const char *UrlExeExts[] = { ".exe", ".vbs", ".bin", ".cmd", ".bat", ".jar", ".js", ".ps",
+    ".ps1", ".sh", ".run", ".hta", ".bin", ".elf", NULL };
 
 /**
  * \brief Function used to print character strings that are not null-terminated
