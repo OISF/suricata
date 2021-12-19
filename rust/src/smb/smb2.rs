@@ -26,6 +26,7 @@ use crate::smb::smb2_ioctl::*;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
+use crate::smb::smb_status::*;
 
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL:      u16 = 0;
 pub const SMB2_COMMAND_SESSION_SETUP:           u16 = 1;
