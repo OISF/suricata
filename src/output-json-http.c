@@ -545,9 +545,9 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
             }
             else if (xff_cfg->flags & XFF_OVERWRITE) {
                 if (p->flowflags & FLOW_PKT_TOCLIENT) {
-                    json_object_set(js, "dest_ip", json_string(buffer));
+                    json_object_set_new(js, "dest_ip", json_string(buffer));
                 } else {
-                    json_object_set(js, "src_ip", json_string(buffer));
+                    json_object_set_new(js, "src_ip", json_string(buffer));
                 }
             }
         }
