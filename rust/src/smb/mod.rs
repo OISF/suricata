@@ -17,6 +17,7 @@
 
 pub mod error;
 pub mod smb_records;
+pub mod smb_status;
 pub mod smb1_records;
 pub mod smb2_records;
 pub mod nbss_records;
