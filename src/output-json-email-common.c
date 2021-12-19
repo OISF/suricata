@@ -292,15 +292,27 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
         JsonBuilder *js_url = jb_new_array();
         if (entity->url_list != NULL) {
             MimeDecUrl *url;
+            bool has_ipv6_url = false;
+            bool has_ipv4_url = false;
+            bool has_exe_url = false;
             for (url = entity->url_list; url != NULL; url = url->next) {
                 char *s = BytesToString((uint8_t *)url->url,
                                         (size_t)url->url_len);
                 if (s != NULL) {
                     jb_append_string(js_url, s);
+                    if (url->url_flags & URL_IS_EXE)
+                        has_exe_url = true;
+                    if (url->url_flags & URL_IS_IP6)
+                        has_ipv6_url = true;
+                    if (url->url_flags & URL_IS_IP4)
+                        has_ipv6_url = true;
                     SCFree(s);
                     url_cnt += 1;
                 }
             }
+            jb_set_bool(sjs, "has_ipv6_url", has_ipv6_url);
+            jb_set_bool(sjs, "has_ipv4_url", has_ipv4_url);
+            jb_set_bool(sjs, "has_exe_url", has_exe_url);
         }
         for (entity = entity->child; entity != NULL; entity = entity->next) {
             if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
