@@ -1056,16 +1056,17 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                     SCLogDebug("Found url string");
 
                     /* First copy to temp URL string */
-                    tempUrl = SCMalloc(tokLen);
+                    tempUrl = SCMalloc(schemeStrLen + tokLen);
                     if (unlikely(tempUrl == NULL)) {
                         SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                         return MIME_DEC_ERR_MEM;
                     }
+                    memcpy(tempUrl, schemeStr, schemeStrLen);
 
                     PrintChars(SC_LOG_DEBUG, "RAW URL", tok, tokLen);
 
                     /* Copy over to temp URL while decoding */
-                    tempUrlLen = 0;
+                    tempUrlLen = schemeStrLen;
                     for (i = 0; i < tokLen && tok[i] != 0; i++) {
                         /* url is all lowercase */
                         tempUrl[tempUrlLen] = u8_tolower(tok[i]);
