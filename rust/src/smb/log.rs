@@ -24,6 +24,7 @@ use crate::smb::smb1::*;
 use crate::smb::smb2::*;
 use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
+use crate::smb::smb_status::*;
 
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> { Ok(()) }

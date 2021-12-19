@@ -23,6 +23,7 @@ use crate::smb::smb2::*;
 use crate::smb::dcerpc_records::*;
 use crate::smb::events::*;
 use crate::dcerpc::dcerpc::*;
+use crate::smb::smb_status::*;
 
 impl SMBCommonHdr {
     /// helper for DCERPC tx tracking. Check if we need
