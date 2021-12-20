@@ -101,6 +101,13 @@ static const char *UrlExeExts[] = { ".exe",
         ".bat",
         ".jar",
         ".js",
+        ".ps",
+        ".ps1",
+        ".sh",
+        ".run",
+        ".hta",
+        ".bin",
+        ".elf",
         NULL };
 
 /**
