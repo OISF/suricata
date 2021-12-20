@@ -2074,7 +2074,6 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
-    TimeGet(&tx_ud->response_end_timestamp);
     SCReturnInt(HTP_OK);
 }
 
