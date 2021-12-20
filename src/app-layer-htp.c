@@ -2074,7 +2074,6 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
-    TimeGet(&tx_ud->response_end_timestamp);
     SCReturnInt(HTP_OK);
 }
 
@@ -2286,6 +2285,10 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
         return HTP_OK;
+    }
+    if (!tx_ud->response_end_time_updated) {
+        TimeGet(&tx_ud->response_end_timestamp);
+        tx_ud->response_end_time_updated = 1;
     }
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
