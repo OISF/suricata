@@ -1905,7 +1905,6 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
-    SCLogInfo("HTPCallbackResponseBodyData : status_number : =%d=", (int)(d->tx->response_status_number));
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
     }
@@ -2075,7 +2074,6 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         }
         htp_tx_set_user_data(tx, tx_ud);
     }
-    SCLogInfo("HTPCallbackResponseStart : status_number : =%d=", (int)(tx->response_status_number));
     TimeGet(&tx_ud->response_end_timestamp);
     SCReturnInt(HTP_OK);
 }
@@ -2149,7 +2147,6 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
             htud->tcflags &= ~HTP_FILENAME_SET;
-            SCLogInfo("HTPCallbackResponseComplete : status_number : =%d=", (int)(tx->response_status_number));
         }
     }
 
@@ -2290,7 +2287,10 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     if (tx_ud == NULL) {
         return HTP_OK;
     }
-    SCLogInfo("HTPCallbackResponseHeaderData : status_number : =%d=", (int)(tx_data->tx->response_status_number));
+    if (!tx_ud->response_end_time_updated) {
+        TimeGet(&tx_ud->response_end_timestamp);
+        tx_ud->response_end_time_updated = 1;
+    }
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);

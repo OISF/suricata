@@ -242,6 +242,7 @@ typedef struct HtpTxUserData_ {
     AppLayerTxData tx_data;
     struct timeval request_start_timestamp;
     struct timeval response_end_timestamp;
+    uint8_t response_end_time_updated;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
