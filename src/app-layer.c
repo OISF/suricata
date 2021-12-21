@@ -460,10 +460,11 @@ static int TCPProtoDetect(ThreadVars *tv,
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        if (r != 1) {
+            StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+        }
         if (r < 0) {
             SCReturnInt(-1);
-        } else if (r == 0) {
-            StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
     } else {
         /* if the ssn is midstream, we may end up with a case where the
@@ -533,7 +534,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                             f->alproto, flags,
                             data, data_len);
                     PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-                    if (r == 0) {
+                    if (r != 1) {
                         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                     }
 
@@ -710,7 +711,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-            if (r == 0) {
+            if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
             }
         }
