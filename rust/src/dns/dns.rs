@@ -358,15 +358,17 @@ impl DNSState {
                     return false;
                 }
 
-                if request.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = request.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
                 self.transactions.push(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -395,15 +397,17 @@ impl DNSState {
                     self.set_event(DNSEvent::NotResponse);
                 }
 
-                if response.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = response.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 tx.response = Some(response);
                 self.transactions.push(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
             Err(nom::Err::Incomplete(_)) => {

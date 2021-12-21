@@ -1156,8 +1156,8 @@ static int DetectDnsQueryTest07(void)
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
                             buf2, sizeof(buf2));
-    if (r != -1) {
-        printf("toserver client 1 returned %" PRId32 ", expected -1\n", r);
+    if (r != 0) {
+        printf("toserver client 1 returned %" PRId32 ", expected 0\n", r);
         FLOWLOCK_UNLOCK(&f);
         FAIL;
     }
