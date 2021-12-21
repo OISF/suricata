@@ -577,6 +577,9 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
                 js.set_string_from_bytes("rrname", &query.name);
                 js.set_string("rrtype", &dns_rrtype_string(query.rrtype));
                 js.set_integer("tx_id", tx.id - 1);
+                if request.header.flags & 0x0040 != 0 {
+                    js.set_boolean("z", true);
+                }
                 return js.unwrap();
             }
         }
