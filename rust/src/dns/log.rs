@@ -629,6 +629,9 @@ fn dns_log_query(tx: &mut DNSTransaction,
                 jb.set_string_from_bytes("rrname", &query.name)?;
                 jb.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
                 jb.set_uint("tx_id", tx.id - 1)?;
+                if request.header.flags & 0x0040 != 0 {
+                    jb.set_bool("z", true)?;
+                }
                 return Ok(true);
             }
         }
