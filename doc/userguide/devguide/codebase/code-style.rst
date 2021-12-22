@@ -1,3 +1,5 @@
+.. _Coding Style:
+
 Coding Style
 ============
 
