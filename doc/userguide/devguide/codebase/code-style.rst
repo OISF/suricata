@@ -1,3 +1,5 @@
+.. _Coding Style:
+
 Coding Style
 ============
 
@@ -10,16 +12,13 @@ clang-format
 ^^^^^^^^^^^^
 ``clang-format`` is configured to help you with formatting C code.
 
-.. Argh, github does not support admonitions such as .. note::
+.. note::
 
-+-------------------------------------------------------+
-| **Note**                                              |
-|                                                       |
-| The ``.clang-format`` file requires clang 9 or newer. |
-+-------------------------------------------------------+
+    The ``.clang-format`` script requires clang 9 or newer.
 
 Format your Changes
 *******************
+
 Before opening a pull request, please also try to ensure it is formatted
 properly. We use ``clang-format`` for this, which has git integration through the
 ``git-clang-format`` script to only format your changes.
@@ -29,19 +28,15 @@ manager). If so, you can simply run it.
 It is recommended to format each commit as you go. However, you can always
 reformat your whole branch after the fact.
 
-.. Argh, github does not support admonitions such as .. note::
+.. note::
 
-+----------------------------------------------------------------------------+
-| **Note**                                                                   |
-|                                                                            |
-| Depending on your installation, you might have to use the version-specific |
-| ``git clang-format`` in the commands below, e.g. ``git clang-format-9``,   |
-| and possibly even provide the ``clang-format`` binary with                 |
-| ``--binary clang-format-9``.                                               |
-|                                                                            |
-| As an alternative, you can use the provided ``scripts/clang-format.sh``    |
-| that isolates you from the different versions.                             |
-+----------------------------------------------------------------------------+
+    Depending on your installation, you might have to use the version-specific
+    ``git clang-format`` in the commands below, e.g. ``git clang-format-9``,
+    and possibly even provide the ``clang-format`` binary with
+    ``--binary clang-format-9``.
+
+    As an alternative, you can use the provided ``scripts/clang-format.sh``
+    that isolates you from the different versions.
 
 Formatting the most recent commit only
 """"""""""""""""""""""""""""""""""""""
@@ -121,8 +116,6 @@ change.
 
 Formatting a whole file
 """""""""""""""""""""""
-
-.. Argh, github does not support admonitions such as .. note::
 
 +--------------------------------------------------------------------+
 | **Note**                                                           |
@@ -250,7 +243,7 @@ Functions should have the opening brace on a newline:
         DoSomething();
     }
 
-Note: this is a fairly new requirement, so you'll encounter a lot of non-compliant code.
+Note: you may encounter non-compliant code.
 
 Control and loop statements should have the opening brace on the same line:
 
