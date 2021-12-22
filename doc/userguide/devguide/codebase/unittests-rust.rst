@@ -80,11 +80,12 @@ From ``nfs > rpc_records.rs``:
 
 Once that is done, Rust should recognize the new test. If you want to check a single test, run::
 
-    cargo test module::test_name
+    cargo test module::file_name::tests::test_name
 
-or even::
+Where ``tests`` refers to ``mod tests``. If you know the test name is unique, you can even run::
 
     cargo test test_name
 
-if you know it's a unique function name. Following the same idea, it is also possible to test specific modules or
-submodules.
+Following the same idea, it is also possible to test specific modules or submodules. For instance::
+
+    cargo test nfs::rpc_records
