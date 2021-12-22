@@ -1,6 +1,8 @@
 Code Submission Process
 =======================
 
+.. _commits:
+
 Commits
 ~~~~~~~
 
@@ -24,6 +26,8 @@ Information that needs to be part of a commit (if applicable):
 #. Compiler warnings addressed.
 #. Coverity Scan issues addressed.
 #. Static analyzer error it fixes (cppcheck/scan-build/etc)
+
+.. _pull-requests-criteria:
 
 Pull Requests
 ~~~~~~~~~~~~~
