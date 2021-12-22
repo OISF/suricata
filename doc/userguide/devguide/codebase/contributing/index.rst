@@ -2,6 +2,7 @@ Contributing
 ============
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   code-submission-process
+    contribution-process
+    code-submission-process
