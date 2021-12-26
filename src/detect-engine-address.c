@@ -1644,10 +1644,9 @@ int DetectAddressMatchIPv4(const DetectMatchAddressIPv4 *addrs,
         SCReturnInt(0);
     }
 
+    uint32_t match_addr = SCNtohl(a->addr_data32[0]);
     for (uint16_t idx = 0; idx < addrs_cnt; idx++) {
-        if (SCNtohl(a->addr_data32[0]) >= addrs[idx].ip &&
-            SCNtohl(a->addr_data32[0]) <= addrs[idx].ip2)
-        {
+        if (match_addr >= addrs[idx].ip && match_addr <= addrs[idx].ip2) {
             SCReturnInt(1);
         }
     }
@@ -1678,6 +1677,12 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
         SCReturnInt(0);
     }
 
+    uint32_t match_addr[4];
+    match_addr[0] = SCNtohl(a->addr_data32[0]);
+    match_addr[1] = SCNtohl(a->addr_data32[1]);
+    match_addr[2] = SCNtohl(a->addr_data32[2]);
+    match_addr[3] = SCNtohl(a->addr_data32[3]);
+
     /* See if the packet address is within the range of any entry in the
      * signature's address match array.
      */
@@ -1685,18 +1690,10 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
         uint16_t result1 = 0, result2 = 0;
 
         /* See if packet address equals either limit. Return 1 if true. */
-        if (SCNtohl(a->addr_data32[0]) == addrs[idx].ip[0] &&
-            SCNtohl(a->addr_data32[1]) == addrs[idx].ip[1] &&
-            SCNtohl(a->addr_data32[2]) == addrs[idx].ip[2] &&
-            SCNtohl(a->addr_data32[3]) == addrs[idx].ip[3])
-        {
+        if (memcmp(match_addr, addrs[idx].ip, sizeof(match_addr))) {
             SCReturnInt(1);
         }
-        if (SCNtohl(a->addr_data32[0]) == addrs[idx].ip2[0] &&
-            SCNtohl(a->addr_data32[1]) == addrs[idx].ip2[1] &&
-            SCNtohl(a->addr_data32[2]) == addrs[idx].ip2[2] &&
-            SCNtohl(a->addr_data32[3]) == addrs[idx].ip2[3])
-        {
+        if (memcmp(match_addr, addrs[idx].ip2, sizeof(match_addr))) {
             SCReturnInt(1);
         }
 
@@ -1704,11 +1701,11 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
          * of the current signature address match pair.
          */
         for (int i = 0; i < 4; i++) {
-            if (SCNtohl(a->addr_data32[i]) > addrs[idx].ip[i]) {
+            if (match_addr[i] > addrs[idx].ip[i]) {
                 result1 = 1;
                 break;
             }
-            if (SCNtohl(a->addr_data32[i]) < addrs[idx].ip[i]) {
+            if (match_addr[i] < addrs[idx].ip[i]) {
                 result1 = 0;
                 break;
             }
@@ -1722,11 +1719,11 @@ int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
          * of the current signature address match pair.
          */
         for (int i = 0; i < 4; i++) {
-            if (SCNtohl(a->addr_data32[i]) < addrs[idx].ip2[i]) {
+            if (match_addr[i] < addrs[idx].ip2[i]) {
                 result2 = 1;
                 break;
             }
-            if (SCNtohl(a->addr_data32[i]) > addrs[idx].ip2[i]) {
+            if (match_addr[i] > addrs[idx].ip2[i]) {
                 result2 = 0;
                 break;
             }
