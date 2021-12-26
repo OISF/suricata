@@ -1436,25 +1436,25 @@
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
           have_suricata_update="yes"
-	fi
+        fi
     fi
 
     if test "$have_suricata_update" = "yes"; then
         if test "$have_python_yaml" != "yes"; then
-	    echo ""
-	    echo "    Warning: suricata-update will not be installed as the"
-	    echo "        Python yaml module is not installed.."
-	    echo ""
+            echo ""
+            echo "    Warning: suricata-update will not be installed as the"
+            echo "        Python yaml module is not installed.."
+            echo ""
             echo "    Install the yaml module for Python ${pymv} to enable"
             echo "    suricata-update."
-	    echo
-	else
+            echo
+        else
             SURICATA_UPDATE_DIR="suricata-update"
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
             ruledirprefix="$localstatedir/lib"
-	fi
+        fi
     fi
 
     # Test to see if suricatactl (and suricatasc) can be installed.
