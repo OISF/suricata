@@ -1432,6 +1432,7 @@
     # Assume suircata-update will not be installed.
     have_suricata_update="no"
     ruledirprefix="$sysconfdir"
+    classificationconfprefix="$sysconfdir"
 
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
@@ -1454,6 +1455,7 @@
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
             ruledirprefix="$localstatedir/lib"
+            classificationconfprefix="$ruledirprefix"
         fi
     fi
 
@@ -2488,6 +2490,7 @@ if test "$WINDOWS_PATH" = "yes"; then
 
     e_sysconfdir="${e_winbase}\\\\"
     e_defaultruledir="$e_winbase\\\\rules\\\\"
+    e_classificationconfprefix="$e_sysconfdir\\\\"
     e_magic_file="$e_winbase\\\\magic.mgc"
     e_logdir="$e_winbase\\\\log"
     e_logfilesdir="$e_logdir\\\\files"
@@ -2511,7 +2514,11 @@ else
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
     EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
-
+    if test "$have_suricata_update" = "yes"; then
+        EXPAND_VARIABLE(classificationconfprefix, e_classificationconfprefix, "/suricata/rules/")
+    else
+        EXPAND_VARIABLE(classificationconfprefix, e_classificationconfprefix, "/suricata/")
+    fi
     e_abs_srcdir=$(cd $srcdir && pwd)
     EXPAND_VARIABLE(e_abs_srcdir, e_rustdir, "/rust")
 fi
@@ -2528,6 +2535,7 @@ AC_SUBST(e_magic_file_comment)
 AC_SUBST(e_enable_evelog)
 AC_SUBST(e_datarulesdir)
 AC_SUBST(e_defaultruledir)
+AC_SUBST(e_classificationconfprefix)
 AC_SUBST(e_rustdir)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
