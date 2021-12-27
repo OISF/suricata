@@ -96,3 +96,159 @@ pub fn parse_nfs2_attribs(i: &[u8]) -> IResult<&[u8], Nfs2Attributes> {
     let attrs = Nfs2Attributes { atype, asize };
     Ok((i, attrs))
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::nfs::nfs2_records::*;
+
+    #[test]
+    fn test_nfs2_handle() {
+
+        // file_handle bytes
+        let buf: &[u8] = &[
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7,
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5a,
+            0x00, 0x00, 0x00, 0x29, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29
+        ];
+
+        let result = parse_nfs2_handle(buf).unwrap();
+        match result {
+            (r, res) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(res.value, buf);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_request_lookup() {
+
+        let buf: &[u8] = &[
+        // [file_handle]
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7,
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5a,
+            0x00, 0x00, 0x00, 0x29, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29,
+        // [name]
+            0x00, 0x00, 0x00, 0x02, 0x61, 0x6d, 0x00, 0x00,
+        ];
+
+        let (_, handle) = parse_nfs2_handle(buf).expect("Parsing nfs2_handle failed!");
+        assert_eq!(handle.value, &buf[..32]);
+
+        let result = parse_nfs2_request_lookup(buf).unwrap();
+        match result {
+            (r, request) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(request.handle, handle);
+                assert_eq!(request.name_vec, b"am".to_vec());
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_request_read() {
+
+        let buf: &[u8] = &[
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7, // [file_handle]
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5d,
+            0x00, 0x00, 0x00, 0x2a, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29,
+            0x00, 0x00, 0x00, 0x00,                         // offset
+            0x00, 0x00, 0x20, 0x00,                         // count
+            0x00, 0x00, 0x20, 0x00,                         // total count
+        ];
+
+        let (_, handle) = parse_nfs2_handle(buf).expect("Parsing nfs2_handle failed!");
+        assert_eq!(handle.value, &buf[..32]);
+
+        let result = parse_nfs2_request_read(buf).unwrap();
+        match result {
+            (r, request) => {
+                assert_eq!(r.len(), 4);
+                assert_eq!(request.handle, handle);
+                assert_eq!(request.offset, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_reply_read() {
+
+        let buf: &[u8] = &[
+        // Status: NFS_OK - (0)
+            0x00, 0x00, 0x00, 0x00,
+        // attr_blob
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x81, 0xa4,
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0b,
+            0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x10, 0x85,
+            0x00, 0x00, 0xb2, 0x5d, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x0b, 0x71, 0xb0, 0x38, 0x47, 0x71, 0xc4,
+            0x00, 0x08, 0xb2, 0x90, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x09, 0x00, 0xb0,
+        // data_len: (11)
+            0x00, 0x00, 0x00, 0x0b,
+        // data_contents: ("the b file")
+            0x74, 0x68, 0x65, 0x20,
+            0x62, 0x20, 0x66, 0x69, 0x6c, 0x65, 0x0a,
+        // _data_padding: parsed as part of data_contents
+            0x00,
+        ];
+
+        let result = parse_nfs2_reply_read(buf).unwrap();
+        match result {
+            (r, response) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(response.status, 0);
+                assert_eq!(response.attr_follows, 1);
+                assert_eq!(response.attr_blob.len(), 68);
+                assert_eq!(response.count, response.data_len);
+                assert_eq!(response.eof, false);
+                assert_eq!(response.data_len, 11);
+                assert_eq!(response.data, "the b file\n\0".as_bytes());
+                assert_eq!(response.data, &buf[76..]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_attributes() {
+
+        let buf: &[u8] = &[
+        // Type: Regular File (1)
+            0x00, 0x00, 0x00, 0x01,
+        // Attributes
+        // _blob1
+            0x00, 0x00, 0x81, 0xa4,
+            0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
+        // Size: (0)
+            0x00, 0x00, 0x00, 0x00,
+        // _blob2
+            0x00, 0x00, 0x40, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x10, 0x10, 0x85,
+            0x00, 0x00, 0xa3, 0xe7,
+            0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x64, 0x70,
+            0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x64, 0x70,
+            0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x64, 0x70,
+        ];
+
+        let result = parse_nfs2_attribs(buf).unwrap();
+        match result {
+            (r, res) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(res.atype, 1);
+                assert_eq!(res.asize, 0);
+            }
+        }
+    }
+}
