@@ -77,6 +77,7 @@ pub fn parse_nfs3_request_create(i: &[u8]) -> IResult<&[u8], Nfs3RequestCreate> 
     let (i, handle) = parse_nfs3_handle(i)?;
     let (i, name_len) = be_u32(i)?;
     let (i, name) = take(name_len as usize)(i)?;
+    let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
     let (i, create_mode) = be_u32(i)?;
     let (i, verifier) = rest(i)?;
     let req = Nfs3RequestCreate {
@@ -227,7 +228,6 @@ pub fn parse_nfs3_request_read(i: &[u8]) -> IResult<&[u8], Nfs3RequestRead> {
 #[derive(Debug, PartialEq)]
 pub struct Nfs3RequestLookup<'a> {
     pub handle: Nfs3Handle<'a>,
-
     pub name_vec: Vec<u8>,
 }
 
@@ -290,6 +290,7 @@ pub fn parse_nfs3_response_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3ResponseR
     let (i, status) = be_u32(i)?;
     let (i, dir_attr_follows) = be_u32(i)?;
     let (i, _dir_attr) = cond(dir_attr_follows == 1, take(84_usize))(i)?;
+    let (i, _verifier) = be_u64(i)?;
     let (i, data) = rest(i)?;
     let resp = Nfs3ResponseReaddirplus { status, data };
     Ok((i, resp))
@@ -301,11 +302,11 @@ pub(crate) fn many0_nfs3_response_readdirplus_entries<'a>(
     many0(complete(parse_nfs3_response_readdirplus_entry_cond))(input)
 }
 
+
 #[derive(Debug, PartialEq)]
 pub struct Nfs3RequestReaddirplus<'a> {
     pub handle: Nfs3Handle<'a>,
-
-    pub cookie: u32,
+    pub cookie: u64,
     pub verifier: &'a [u8],
     pub dircount: u32,
     pub maxcount: u32,
@@ -313,7 +314,7 @@ pub struct Nfs3RequestReaddirplus<'a> {
 
 pub fn parse_nfs3_request_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3RequestReaddirplus> {
     let (i, handle) = parse_nfs3_handle(i)?;
-    let (i, cookie) = be_u32(i)?;
+    let (i, cookie) = be_u64(i)?;
     let (i, verifier) = take(8_usize)(i)?;
     let (i, dircount) = be_u32(i)?;
     let (i, maxcount) = be_u32(i)?;
@@ -330,7 +331,6 @@ pub fn parse_nfs3_request_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3RequestRea
 #[derive(Debug, PartialEq)]
 pub struct Nfs3RequestWrite<'a> {
     pub handle: Nfs3Handle<'a>,
-
     pub offset: u64,
     pub count: u32,
     pub stable: u32,
@@ -344,7 +344,8 @@ pub fn parse_nfs3_request_write(i: &[u8]) -> IResult<&[u8], Nfs3RequestWrite> {
     let (i, count) = be_u32(i)?;
     let (i, stable) = be_u32(i)?;
     let (i, file_len) = be_u32(i)?;
-    let (i, file_data) = rest(i)?;
+    let (i, file_data) = take(file_len as usize)(i)?;
+    let (i, _file_padding) = cond(file_len % 4 !=0, take(4 - (file_len % 4)))(i)?;
     let req = Nfs3RequestWrite {
         handle,
         offset,
@@ -374,7 +375,8 @@ pub fn parse_nfs3_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
     let (i, count) = be_u32(i)?;
     let (i, eof) = be_u32(i)?;
     let (i, data_len) = be_u32(i)?;
-    let (i, data) = rest(i)?;
+    let (i, data) = take(data_len as usize)(i)?;
+    let (i, _data_padding) = cond(data_len % 4 !=0, take(4 - (data_len % 4)))(i)?;
     let reply = NfsReplyRead {
         status,
         attr_follows,
