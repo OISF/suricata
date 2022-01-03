@@ -29,6 +29,7 @@
 #include "../detect.h"
 #include "../detect-isdataat.h"
 
+#if 0
 static int DetectEngineSMTPFiledataTest01(void)
 {
     uint8_t mimemsg[] = {0x4D, 0x49, 0x4D, 0x45, 0x2D, 0x56, 0x65, 0x72,
@@ -114,6 +115,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     UTHFreePackets(&p, 1);
     PASS;
 }
+#endif
 
 static int DetectEngineSMTPFiledataTest02(void)
 {
@@ -131,6 +133,7 @@ static int DetectEngineSMTPFiledataTest02(void)
     PASS;
 }
 
+#if 0
 static int DetectEngineSMTPFiledataTest03(void)
 {
     uint8_t mimemsg1[] = {0x65, 0x76,};
@@ -204,6 +207,7 @@ static int DetectEngineSMTPFiledataTest03(void)
     UTHFreePackets(&p, 1);
     PASS;
 }
+#endif
 
 static int DetectFiledataParseTest01(void)
 {
@@ -337,13 +341,16 @@ static int DetectFiledataIsdataatParseTest2(void)
 
 void DetectFiledataRegisterTests(void)
 {
+#if 0
     UtRegisterTest("DetectEngineSMTPFiledataTest01",
                    DetectEngineSMTPFiledataTest01);
+#endif
     UtRegisterTest("DetectEngineSMTPFiledataTest02",
                    DetectEngineSMTPFiledataTest02);
+#if 0
     UtRegisterTest("DetectEngineSMTPFiledataTest03",
                    DetectEngineSMTPFiledataTest03);
-
+#endif
     UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01);
     UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02);
     UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
