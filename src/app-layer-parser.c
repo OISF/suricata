@@ -1663,6 +1663,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterTemplateParsers();
     RegisterRdpParsers();
     RegisterHTTP2Parsers();
+    rs_telnet_register_parser();
 
     /** IMAP */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");
