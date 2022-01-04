@@ -168,7 +168,7 @@ outputs:
         # app layer frames
         - frame:
             # disabled by default as this is very verbose.
-            enabled: no
+            enabled: yes
         - anomaly:
             # Anomaly log records describe unexpected conditions such
             # as truncated packets, packets with invalid IP/UDP/TCP
@@ -773,6 +773,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    telnet:
+      enabled: yes
     rfb:
       enabled: yes
       detection-ports:

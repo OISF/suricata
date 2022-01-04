@@ -65,6 +65,7 @@
 #include "app-layer-sip.h"
 #include "app-layer-rfb.h"
 #include "app-layer-mqtt.h"
+#include "app-layer-telnet.h"
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
 #include "app-layer-rdp.h"
@@ -1660,6 +1661,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterTemplateRustParsers();
     RegisterRFBParsers();
     RegisterMQTTParsers();
+    RegisterTelnetParsers();
     RegisterTemplateParsers();
     RegisterRdpParsers();
     RegisterHTTP2Parsers();
