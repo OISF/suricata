@@ -170,24 +170,27 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
             AppLayerParserTransactionsCleanup(f);
 
-            const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
-            uint64_t min = 0;
-            AppLayerGetTxIterState state;
-            memset(&state, 0, sizeof(state));
-            uint64_t nbtx = 0;
-            AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
-            while (1) {
-                AppLayerGetTxIterTuple ires =
-                        IterFunc(f->proto, f->alproto, f->alstate, min, total_txs, &state);
-                if (ires.tx_ptr == NULL)
-                    break;
-                min = ires.tx_id;
-                if (nbtx > ALPROTO_MAXTX) {
-                    printf("Too many open transactions for protocol %s\n",
-                            AppProtoToString(f->alproto));
-                    printf("Assertion failure: %s\n", AppProtoToString(f->alproto));
-                    fflush(stdout);
-                    abort();
+            if (f->alstate && f->alparser) {
+                // check if we have too many open transactions
+                const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
+                uint64_t min = 0;
+                AppLayerGetTxIterState state;
+                memset(&state, 0, sizeof(state));
+                uint64_t nbtx = 0;
+                AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
+                while (1) {
+                    AppLayerGetTxIterTuple ires =
+                            IterFunc(f->proto, f->alproto, f->alstate, min, total_txs, &state);
+                    if (ires.tx_ptr == NULL)
+                        break;
+                    min = ires.tx_id;
+                    if (nbtx > ALPROTO_MAXTX) {
+                        printf("Too many open transactions for protocol %s\n",
+                                AppProtoToString(f->alproto));
+                        printf("Assertion failure: %s\n", AppProtoToString(f->alproto));
+                        fflush(stdout);
+                        abort();
+                    }
                 }
             }
         }
