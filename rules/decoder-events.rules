@@ -23,7 +23,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Hop-By-Hop Option
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Destination Options extension header"; decode-event:ipv6.exthdr_dupl_dh; classtype:protocol-command-decode; sid:2200018; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Authentication Header extension header"; decode-event:ipv6.exthdr_dupl_ah; classtype:protocol-command-decode; sid:2200019; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicate ESP extension header"; decode-event:ipv6.exthdr_dupl_eh; classtype:protocol-command-decode; sid:2200020; rev:2;)
-alert pkthdr any any -> any any (msg:"SURICATA IPv6 invalid option lenght in header"; decode-event:ipv6.exthdr_invalid_optlen; classtype:protocol-command-decode; sid:2200021; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA IPv6 invalid option length in header"; decode-event:ipv6.exthdr_invalid_optlen; classtype:protocol-command-decode; sid:2200021; rev:3;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 wrong IP version"; decode-event:ipv6.wrong_ip_version; classtype:protocol-command-decode; sid:2200022; rev:2;)
 # RFC 4302 states the reserved field should be 0.
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 AH reserved field not 0"; decode-event:ipv6.exthdr_ah_res_not_null; classtype:protocol-command-decode; sid:2200081; rev:2;)

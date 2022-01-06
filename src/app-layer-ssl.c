@@ -2022,7 +2022,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
         return -1;
     }
 
-    /* record_lenghts_length should never be zero */
+    /* record_lengths_length should never be zero */
     if (ssl_state->curr_connp->record_lengths_length == 0) {
         SCLogDebug("SSLv2 record lengths length is zero");
         SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
