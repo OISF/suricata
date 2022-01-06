@@ -833,6 +833,10 @@ app-layer:
       #hassh: yes
     http2:
       enabled: yes
+      # Maximum number of live HTTP2 streams in a flow
+      #max-streams: 4096
+      # Maximum headers table size
+      #max-table-size: 65536
     smtp:
       enabled: yes
       raw-extraction: no
