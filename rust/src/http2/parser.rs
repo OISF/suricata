@@ -446,7 +446,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 //in case of overflow, best effort is to keep first headers
                 if dyn_headers.overflow > 0 {
                     if dyn_headers.overflow == 1 {
-                        if dyn_headers.current_size <= (HTTP2_MAX_TABLESIZE as usize) {
+                        if dyn_headers.current_size <= (unsafe { HTTP2_MAX_TABLESIZE } as usize) {
                             //overflow had not yet happened
                             dyn_headers.table.push(headcopy);
                         } else if dyn_headers.current_size > dyn_headers.max_size {

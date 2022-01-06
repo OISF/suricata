@@ -21,6 +21,7 @@ use super::parser;
 use super::range;
 
 use crate::applayer::{self, *};
+use crate::conf::conf_get;
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
@@ -58,9 +59,8 @@ const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 5;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
-//TODO make these configurable
-pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
-pub const HTTP2_MAX_STREAMS: usize = 0x1000; // 4096
+pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
+static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
@@ -575,7 +575,7 @@ impl HTTP2State {
             tx.stream_id = sid;
             tx.state = HTTP2TransactionState::HTTP2StateOpen;
             // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
-            if self.transactions.len() > HTTP2_MAX_STREAMS {
+            if self.transactions.len() > unsafe { HTTP2_MAX_STREAMS } {
                 // set at least one another transaction to the drop state
                 for tx_old in &mut self.transactions {
                     if tx_old.state != HTTP2TransactionState::HTTP2StateTodrop {
@@ -651,7 +651,7 @@ impl HTTP2State {
                                     &mut self.dynamic_headers_tc
                                 };
                                 dyn_headers.max_size = set[i].value as usize;
-                                if set[i].value > HTTP2_MAX_TABLESIZE {
+                                if set[i].value > unsafe { HTTP2_MAX_TABLESIZE } {
                                     //mark potential overflow
                                     dyn_headers.overflow = 1;
                                 } else {
@@ -1103,8 +1103,7 @@ pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
@@ -1117,8 +1116,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
@@ -1218,6 +1216,20 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ALPROTO_HTTP2 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-streams") {
+            if let Ok(v) = val.parse::<usize>() {
+                HTTP2_MAX_STREAMS = v;
+            } else {
+                SCLogError!("Invalid value for http2.max-streams");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-table-size") {
+            if let Ok(v) = val.parse::<u32>() {
+                HTTP2_MAX_TABLESIZE = v;
+            } else {
+                SCLogError!("Invalid value for http2.max-table-size");
+            }
         }
         SCLogDebug!("Rust http2 parser registered.");
     } else {
