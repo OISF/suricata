@@ -219,7 +219,7 @@ static int DetectEngineContentInspectionTest09(void) {
 /** \test mix in byte_extract */
 static int DetectEngineContentInspectionTest10(void) {
     TEST_HEADER;
-    /* extract first byte as lenght field and check with isdataat */
+    /* extract first byte as length field and check with isdataat */
     TEST_RUN("9abcdefghi", 10, "byte_extract:1,0,data_size,string; isdataat:data_size;", true, 2);
     TEST_RUN("9abcdefgh", 9, "byte_extract:1,0,data_size,string; isdataat:!data_size;", true, 2);
     /* anchor len field to pattern 'x' to test recursion */

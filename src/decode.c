@@ -376,7 +376,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     else
         p->root = parent;
 
-    /* copy packet and set lenght, proto */
+    /* copy packet and set length, proto */
     if (pkt && len) {
         PacketCopyData(p, pkt, len);
     }
