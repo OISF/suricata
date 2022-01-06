@@ -385,15 +385,7 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
     uint32_t option;
     uint16_t nbitems;
 
-    int ret = ByteExtractUint16(
-            &enip_len, BYTE_LITTLE_ENDIAN, sizeof(uint16_t), (const uint8_t *)(input + 2));
-    if (ret < 0) {
-        return ALPROTO_FAILED;
-    }
-    if (enip_len < sizeof(ENIPEncapHdr)) {
-        return ALPROTO_FAILED;
-    }
-    ret = ByteExtractUint32(
+    int ret = ByteExtractUint32(
             &status, BYTE_LITTLE_ENDIAN, sizeof(uint32_t), (const uint8_t *)(input + 8));
     if (ret < 0) {
         return ALPROTO_FAILED;
@@ -417,6 +409,11 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
     }
     ret = ByteExtractUint32(
             &option, BYTE_LITTLE_ENDIAN, sizeof(uint32_t), (const uint8_t *)(input + 20));
+    if (ret < 0) {
+        return ALPROTO_FAILED;
+    }
+    ret = ByteExtractUint16(
+            &enip_len, BYTE_LITTLE_ENDIAN, sizeof(uint16_t), (const uint8_t *)(input + 2));
     if (ret < 0) {
         return ALPROTO_FAILED;
     }
