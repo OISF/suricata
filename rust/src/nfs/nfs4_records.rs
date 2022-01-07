@@ -826,6 +826,275 @@ pub fn parse_nfs4_response_compound(i: &[u8]) -> IResult<&[u8], Nfs4ResponseComp
     if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
+
     let (i, commands) = count(nfs4_res_compound_command, ops_cnt as usize)(i)?;
     Ok((i, Nfs4ResponseCompoundRecord { status, commands }))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nfs::nfs4_records::*;
+
+    #[test]
+    fn test_nfs4_request_compound() {
+    // Operations: SEQUENCE, PUTFH, CLOSE
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*Tag*/
+            0x00, 0x00, 0x00, 0x01, /*min_ver*/
+            0x00, 0x00, 0x00, 0x03, /*ops_cnt*/
+        // SEQUENCE
+            0x00, 0x00, 0x00, 0x35, /*op_code*/
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
+            0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        // PUTFH
+            0x00, 0x00, 0x00, 0x16, /*op_code*/
+            0x00, 0x00, 0x00, 0x20, 0x01, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x84, 0x72, 0x00, 0x00, 0x23, 0xa6, 0xc0, 0x12,
+            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        // CLOSE
+            0x00, 0x00, 0x00, 0x04, /*op_code*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x82, 0x14, 0xe0, 0x5b, 0x00, 0x88, 0xd9,
+            0x04, 0x00, 0x00, 0x00,
+        ];
+
+        let sequence_buf: &[u8] = &buf[16..48];
+        let putfh_buf: &[u8] = &buf[52..88];
+        let close_buf: &[u8] = &buf[92..];
+
+        let (_, req_sequence) = nfs4_req_sequence(sequence_buf).unwrap();
+        let (_, req_putfh) = nfs4_req_putfh(putfh_buf).unwrap();
+        let (_, req_close) = nfs4_req_close(close_buf).unwrap();
+
+        let (_, compound_ops) = parse_nfs4_request_compound(buf).unwrap();
+        assert_eq!(compound_ops.commands[0], req_sequence);
+        assert_eq!(compound_ops.commands[1], req_putfh);
+        assert_eq!(compound_ops.commands[2], req_close);
+    }
+
+
+    #[test]
+    fn test_nfs4_request_open() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x12, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*_seq_id*/
+            0x00, 0x00, 0x00, 0x02, /*_share_access*/
+            0x00, 0x00, 0x00, 0x00, /*_share_deny*/
+            0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2, /*_client_id*/
+        // OWNER
+            0x00, 0x00, 0x00, 0x18, /*owner_len*/
+            0x6f, 0x70, 0x65, 0x6e, 0x20, 0x69, 0x64, 0x3a,
+            0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x48, 0x0c, 0xae, 0x9b, 0x05, 0x08,
+        // OPEN
+            0x00, 0x00, 0x00, 0x01, /*open_type: OPEN4_CREATE*/
+            0x00, 0x00, 0x00, 0x00, /*create_mode: UNCHECKED4*/
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x10, /*attr_mask*/
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0c,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0xb4,
+        // CLAIM_TYPE
+            0x00, 0x00, 0x00, 0x00, /*_claim_type: CLAIM_NULL*/
+            0x00, 0x00, 0x00, 0x04, 0x66, 0x69, 0x6c, 0x65, /*filename*/
+        ];
+
+        let (_, attr_buf) = nfs4_parse_attrbits(&buf[60..88]).unwrap();
+        let (_, filename_buf) = nfs4_parse_nfsstring(&buf[92..]).unwrap();
+
+        let (_, request) = nfs4_req_open(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::Open(req_open) => {
+                assert_eq!(req_open.open_type, 1);
+                assert_eq!(req_open.open_data, Some(Nfs4OpenRequestContent::Unchecked4(attr_buf)));
+                assert_eq!(req_open.filename, filename_buf);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_write() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x26, /*op_code*/
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x82, 0x14, 0xe0, /*stateid*/
+            0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /*offset*/
+            0x00, 0x00, 0x00, 0x02, /*stable*/
+            0x00, 0x00, 0x00, 0x05, /*write_len*/
+            0x74, 0x65, 0x73, 0x74, 0x0a, /*data*/
+            0x00, 0x00, 0x00, /*_padding*/
+        ];
+
+        let (_, stateid_buf) = nfs4_parse_stateid(&buf[4..20]).unwrap();
+
+        let (_, request) = nfs4_req_write(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::Write(req_write) => {
+                assert_eq!(req_write.stateid, stateid_buf);
+                assert_eq!(req_write.offset, 0);
+                assert_eq!(req_write.stable, 2);
+                assert_eq!(req_write.write_len, 5);
+                assert_eq!(req_write.data, "test\n".as_bytes());
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_exchangeid() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2a, /*opcode*/
+        // eia_clientowner
+            0x5c, 0x8a, 0x9b, 0xfe, 0x0c, 0x09, 0x5e, 0x92, /*_verifier*/
+            0x00, 0x00, 0x00, 0x17, 0x4c, 0x69, 0x6e, 0x75, /*eia_clientstring*/
+            0x78, 0x20, 0x4e, 0x46, 0x53, 0x76, 0x34, 0x2e,
+            0x31, 0x20, 0x6e, 0x65, 0x74, 0x61, 0x70, 0x70,
+            0x2d, 0x32, 0x36, 0x00,
+            0x00, 0x00, 0x01, 0x01, /*_eia_clientflags*/
+            0x00, 0x00, 0x00, 0x00, /*_eia_state_protect*/
+        // _eia_client_impl_id
+            0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x0a, 0x6b, 0x65, 0x72, 0x6e, /*nii_domain*/
+            0x65, 0x6c, 0x2e, 0x6f, 0x72, 0x67, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x45, 0x4c, 0x69, 0x6e, 0x75, /*nii_name*/
+            0x78, 0x20, 0x33, 0x2e, 0x31, 0x30, 0x2e, 0x30,
+            0x2d, 0x39, 0x35, 0x37, 0x2e, 0x65, 0x6c, 0x37,
+            0x2e, 0x78, 0x38, 0x36, 0x5f, 0x36, 0x34, 0x20,
+            0x23, 0x31, 0x20, 0x53, 0x4d, 0x50, 0x20, 0x54,
+            0x68, 0x75, 0x20, 0x4f, 0x63, 0x74, 0x20, 0x34,
+            0x20, 0x32, 0x30, 0x3a, 0x34, 0x38, 0x3a, 0x35,
+            0x31, 0x20, 0x55, 0x54, 0x43, 0x20, 0x32, 0x30,
+            0x31, 0x38, 0x20, 0x78, 0x38, 0x36, 0x5f, 0x36,
+            0x34, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /*_nii_data_sec*/
+            0x00, 0x00, 0x00, 0x00, /*_nii_data_nsec*/
+        ];
+
+        /*(   .Linux NFSv4.1 netapp-26 )*/
+        let (_, client_string_buf) = nfs4_parse_nfsstring(&buf[12..40]).unwrap();
+        /*(kernel.org\0\0\0\n)*/
+        let (_, nii_domain_buf) = nfs4_parse_nfsstring(&buf[52..68]).unwrap();
+        /* (   ELinux 3.10.0-957.el7.x86_64 #1 SMP Thu Oct 4 20:48:51 UTC 2018 x86_64   ) */
+        let (_, nii_name_buf) = nfs4_parse_nfsstring(&buf[68..144]).unwrap();
+
+        let (_, request) = nfs4_req_exchangeid(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::ExchangeId(req_exchangeid) => {
+                assert_eq!(req_exchangeid.client_string, client_string_buf);
+                assert_eq!(req_exchangeid.nii_domain, nii_domain_buf);
+                assert_eq!(req_exchangeid.nii_name, nii_name_buf);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_close() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x04, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*_seq_id*/
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x82, 0x14, 0xe0, /*stateid*/
+            0x5b, 0x00, 0x88, 0xd9, 0x04, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, stateid_buf) = nfs4_parse_stateid(&buf[8..]).unwrap();
+
+        let (_, request) = nfs4_req_close(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::Close(req_stateid) => {
+                assert_eq!(req_stateid, stateid_buf);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_sequenece() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x35, /*opcode*/
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00, /*ssn_id*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
+            0x00, 0x00, 0x00, 0x18, /*_seq_id*/
+            0x00, 0x00, 0x00, 0x00, /*_slot_id*/
+            0x00, 0x00, 0x00, 0x00, /*_high_slot_id*/
+            0x00, 0x00, 0x00, 0x01, /*_catch_this*/
+        ];
+
+        let (_, req_sequence) = nfs4_req_sequence(&buf[4..]).unwrap();
+        match req_sequence {
+            Nfs4RequestContent::Sequence(seq_buf) => {
+                assert_eq!(seq_buf.ssn_id, &buf[4..20]);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_lookup() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x0f, /*opcode*/
+            0x00, 0x00, 0x00, 0x04, 0x76, 0x6f, 0x6c, 0x31, /*fiename: (vol1)*/
+        ];
+
+        let (_, filename_buf) = nfs4_parse_nfsstring(&buf[4..]).unwrap();
+
+        let (_, request) = nfs4_req_lookup(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::Lookup(req_lookup) => {
+                assert_eq!(req_lookup.filename, filename_buf);
+            }
+            _ => { panic!("Failure!"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_putfh() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x16, /*opcode*/
+            0x00, 0x00, 0x00, 0x20, /*handle_len*/
+            0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /*handle*/
+            0x00, 0x00, 0x00, 0x00, 0x84, 0x72, 0x00, 0x00,
+            0x23, 0xa6, 0xc0, 0x12, 0x00, 0xf2, 0xfa, 0x80,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, handle_buf) = nfs4_parse_handle(&buf[4..]).unwrap();
+
+        let (_, result) = nfs4_req_putfh(&buf[4..]).unwrap();
+        match result {
+            Nfs4RequestContent::PutFH(putfh_handle) => {
+                assert_eq!(putfh_handle.value, handle_buf.value);
+                assert_eq!(putfh_handle.len, handle_buf.len);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_attrs() {
+
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x09, /*opcode*/
+            0x00, 0x00, 0x00, 0x03, /*attr_cnt*/
+            0x00, 0x00, 0x20, 0x65, /*attr_mask[0]*/
+            0x00, 0x00, 0x00, 0x00, /*attr_mask[1]*/
+            0x00, 0x00, 0x08, 0x00, /*attr_mask[2]*/
+        ];
+
+        let (r, attr) = nfs4_parse_attrbits(&buf[4..]).unwrap();
+        assert_eq!(r.len(), 0);
+        // assert_eq!(attr.attr_mask, 35618163785728);
+        assert_eq!(attr.attr_mask, ((0x00002065 as u64) << 32 | 0 as u64));
+    }
 }
