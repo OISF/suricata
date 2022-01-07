@@ -625,7 +625,7 @@ Pattern matcher settings
 
 The multi-pattern-matcher (MPM) is a part of the detection engine
 within Suricata that searches for multiple patterns at
-once. Often, signatures have one ore more patterns. Of each
+once. Often, signatures have one or more patterns. Of each
 signature, one pattern is used by the multi-pattern-matcher. That way
 Suricata can exclude many signatures from being examined, because a
 signature can only match when all its patterns match.
@@ -1466,7 +1466,7 @@ configuration (console, file, syslog) if not otherwise set.
           line option <cmdline-option-v>`.
 
 The ``default-log-level`` set in the configuration value can be
-overriden by the ``SC_LOG_LEVEL`` environment variable.
+overridden by the ``SC_LOG_LEVEL`` environment variable.
 
 Default Log Format
 ~~~~~~~~~~~~~~~~~~
@@ -2330,6 +2330,21 @@ inspected for possible presence of Teredo.
 Advanced Options
 ----------------
 
+stacktrace
+~~~~~~~~~~
+Display diagnostic stacktraces when a signal unexpectedly terminates Suricata, e.g., such as
+SIGSEGV or SIGABRT. Requires the ``libunwind`` library to be available. The default value is
+to display the diagnostic message if a signal unexpectedly terminates Suricata -- e.g.,
+``SIGABRT`` or ``SIGSEGV`` occurs while Suricata is running.
+
+::
+
+    logging:
+        # Requires libunwind to be available when Suricata is configured and built.
+        # If a signal unexpectedly terminates Suricata, displays a brief diagnostic
+        # message with the offending stacktrace if enabled.
+        #stacktrace-on-signal: on
+
 luajit
 ~~~~~~
 
@@ -2349,4 +2364,4 @@ States are allocated as follows: for each detect script a state is used per
 detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
-.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+.. _deprecation policy: https://suricata.io/about/deprecation-policy/

@@ -1626,6 +1626,13 @@
     ;;
     esac
 
+    AC_CHECK_LIB(unwind,unw_backtrace,,LIBUNW="no")
+    if test "$LIBUNW" = "no"; then
+        echo
+        echo "   libunwind library and development headers not found"
+        echo "   stacktrace on unexpected termination due to signal not possible"
+        echo
+    fi;
 
     AC_ARG_ENABLE(ebpf,
 	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
