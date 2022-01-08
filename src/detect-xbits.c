@@ -196,7 +196,8 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     DetectXbitsData *cd = NULL;
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
-    int ret = 0, res = 0;
+    int ret = 0, res = 0, rawstr_len = 0;
+    int args_len = 0;
     size_t pcre2len;
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
@@ -209,6 +210,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         return -1;
     }
     SCLogDebug("ret %d, %s", ret, rawstr);
+    rawstr_len = strlen(rawstr);
     pcre2len = sizeof(fb_cmd_str);
     res = pcre2_substring_copy_bynumber(
             parse_regex.match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
@@ -235,6 +237,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
             if (strlen(hb_dir_str) > 0) {
+                args_len += 5; // storing len for "track"
                 if (strcmp(hb_dir_str, "ip_src") == 0) {
                     hb_dir = DETECT_XBITS_TRACK_IPSRC;
                     var_type = VAR_TYPE_HOST_BIT;
@@ -259,6 +262,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_copy_bynumber failed");
                     return -1;
                 }
+                args_len += 6; // storing len for expire
                 SCLogDebug("expire_str %s", expire_str);
                 if (StringParseUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
                     SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
@@ -270,6 +274,33 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     return -1;
                 }
                 SCLogDebug("expire %d", expire);
+            }
+            int32_t vsize =  pcre2_get_ovector_count(parse_regex.match); // Get the number of pairs of values
+            int32_t stripped_rawstr_len = rawstr_len;
+            /* Calculate the length of raw string without chars parsed or returned
+             * by the pcre lib */
+            for (int i=0; i < rawstr_len; i++) {
+                if (rawstr[i] == ' ' || rawstr[i] == ',') {
+                    stripped_rawstr_len -= 1;
+                }
+            }
+            const char *bufptr, *prev_buf;
+            for (int i = 1; i <= vsize; i++) {
+                size_t buflen = 0;
+                res = pcre2_substring_get_bynumber(parse_regex.match, i, (PCRE2_UCHAR **)&bufptr, (PCRE2_SIZE *)&buflen);
+                if (res < 0 || bufptr == NULL) {
+                    continue; // We know that ovector may have more values of interest for us
+                }
+                /* Avoid counting length of repeated buffers as ovector can keep
+                 * up to 2n+1 values, where n = no. of capturing parentheses */
+                if (bufptr != prev_buf) { // FIXME Dangerous check? Could it be wrong in any cases?
+                    args_len += strlen(bufptr);
+                }
+                prev_buf = bufptr;
+            }
+            if (args_len != stripped_rawstr_len) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Invalid values found in the xbits setting");
+                return -1;
             }
         }
     }
@@ -546,6 +577,87 @@ static int XBitsTestSig02(void)
     PASS;
 }
 
+/* Test to demonstrate redmine bug 4786 */
+static int XBitsTestSig03(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"TEST - No Error\")\";\
+            flow:established,to_server; http.method; content:\"GET\"; \
+            xbits:set,ET.2020_8260.1,track ip_src,expire 10,noalert; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+/* Test to demonstrate redmine bug 4786 */
+static int XBitsTestSig04(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"TEST - Error\")\"; \
+            flow:established,to_server; http.method; content:\"GET\"; \
+            xbits:set,ET.2020_8260.1,noalert,track ip_src,expire 10; sid:2;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+/* Test to demonstrate redmine bug 4786 */
+static int XBitsTestSig05(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"TEST - No Error\")\"; \
+            flow:established,to_server; http.method; content:\"GET\"; \
+            xbits:set,ET.2020_8260.1,track ip_src,expire 10,asdf; sid:3;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+#if 0
+static int XBitsTestSig06(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "drop http any any -> any any (msg:\"Malicious file detected\"; \
+            filesha256:blacklist; xbits:set, blocked_http, track ip_pair, \
+            expire 3600; sid:2; rev:2;");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+#endif
+
 /**
  * \brief this function registers unit tests for XBits
  */
@@ -554,5 +666,11 @@ static void XBitsRegisterTests(void)
     UtRegisterTest("XBitsTestParse01", XBitsTestParse01);
     UtRegisterTest("XBitsTestSig01", XBitsTestSig01);
     UtRegisterTest("XBitsTestSig02", XBitsTestSig02);
+    UtRegisterTest("XBitsTestSig03", XBitsTestSig03);
+    UtRegisterTest("XBitsTestSig04", XBitsTestSig04);
+    UtRegisterTest("XBitsTestSig05", XBitsTestSig05);
+#if 0
+    UtRegisterTest("XBitsTestSig06", XBitsTestSig06);
+#endif
 }
 #endif /* UNITTESTS */
