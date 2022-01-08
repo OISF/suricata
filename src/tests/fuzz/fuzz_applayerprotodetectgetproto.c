@@ -10,12 +10,14 @@
 #include "flow-util.h"
 #include "app-layer-parser.h"
 #include "util-unittest-helper.h"
-
+#include "conf-yaml-loader.h"
 
 #define HEADER_LEN 6
 
 //rule of thumb constant, so as not to timeout target
 #define PROTO_DETECT_MAX_LEN 1024
+
+#include "confyaml.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -37,6 +39,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //global init
         InitGlobal();
         run_mode = RUNMODE_UNITTEST;
+        if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
+            abort();
+        }
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();
@@ -62,6 +67,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
          * Otherwise, we have evasion with TCP splitting
          */
         for (size_t i = 0; i < size-HEADER_LEN && i < PROTO_DETECT_MAX_LEN; i++) {
+            AppLayerProtoDetectReset(f);
             alproto2 = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, i, f->proto, data[0], &reverse);
             if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
                 printf("Failed with input length %" PRIuMAX " versus %" PRIuMAX
