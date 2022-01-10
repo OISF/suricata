@@ -2365,14 +2365,17 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
-    SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
+    if (!SCClassConfLoadClassficationConfigFile(de_ctx, NULL)) {
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
             goto error;
     }
 
     if (ActionInitConfig() < 0) {
         goto error;
+    }
+    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+            goto error;
     }
 
     de_ctx->version = DetectEngineGetVersion();
@@ -2773,8 +2776,10 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     }
     if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {
-        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
-                "forr detect.grouping.udp-whitelist", ports);
+        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "'%s' is not a valid value "
+                "for detect.grouping.udp-whitelist",
+                ports);
     }
     for (x = de_ctx->udp_whitelist; x != NULL;  x = x->next) {
         if (x->port != x->port2) {
