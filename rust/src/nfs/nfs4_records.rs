@@ -770,6 +770,7 @@ pub struct Nfs4ResponseSequence<'a> {
 
 fn nfs4_res_sequence_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseSequence> {
     let (i, ssn_id) = take(16_usize)(i)?;
+    let (i, _seqid) = be_u32(i)?;
     let (i, _slots) = take(12_usize)(i)?;
     let (i, _flags) = be_u32(i)?;
     Ok((i, Nfs4ResponseSequence { ssn_id }))
