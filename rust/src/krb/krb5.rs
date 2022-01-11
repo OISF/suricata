@@ -19,9 +19,8 @@
 
 use std;
 use std::ffi::CString;
-use nom;
-use nom::IResult;
-use nom::number::streaming::be_u32;
+use nom7::{Err, IResult};
+use nom7::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
 use der_parser::ber::BerClass;
 use kerberos_parser::krb5_parser;
@@ -186,7 +185,7 @@ impl KRB5State {
                 }
                 0
             },
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing KRB5 data");
                 self.set_event(KRB5Event::MalformedData);
                 -1
@@ -346,7 +345,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
             }
             return ALPROTO_FAILED;
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
@@ -370,7 +369,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
             return rs_krb5_probing_parser(_flow, direction,
                     rem.as_ptr(), rem.len() as u32, rdir);
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
@@ -442,7 +441,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                     state.record_ts = record as usize;
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     state.defrag_buf_ts.extend_from_slice(cur_i);
                     return AppLayerResult::ok();
                 }
@@ -500,7 +499,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                     state.record_tc = record as usize;
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     state.defrag_buf_tc.extend_from_slice(cur_i);
                     return AppLayerResult::ok();
                 }

@@ -26,9 +26,8 @@ use std::ffi::CString;
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
 use der_parser::oid::Oid;
-use nom;
-use nom::IResult;
-use nom::error::ErrorKind;
+use nom7::{Err, IResult};
+use nom7::error::{ErrorKind, make_error};
 
 #[derive(AppLayerEvent)]
 pub enum SNMPEvent {
@@ -343,11 +342,11 @@ fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
                 },
                 _ => ()
             };
-            Err(nom::Err::Error(error_position!(i, ErrorKind::Verify)))
+            Err(Err::Error(make_error(i, ErrorKind::Verify)))
         },
-        Err(nom::Err::Incomplete(i)) => Err(nom::Err::Incomplete(i)),
-        Err(nom::Err::Failure(_)) |
-        Err(nom::Err::Error(_))      => Err(nom::Err::Error(error_position!(i,ErrorKind::Verify)))
+        Err(Err::Incomplete(i)) => Err(Err::Incomplete(i)),
+        Err(Err::Failure(_)) |
+        Err(Err::Error(_))      => Err(Err::Error(make_error(i,ErrorKind::Verify)))
     }
 }
 
@@ -361,9 +360,9 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
     let alproto = ALPROTO_SNMP;
     if slice.len() < 4 { return ALPROTO_FAILED; }
     match parse_pdu_enveloppe_version(slice) {
-        Ok((_,_))                    => alproto,
-        Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        _                            => ALPROTO_FAILED,
+        Ok((_,_))               => alproto,
+        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
+        _                       => ALPROTO_FAILED,
     }
 }
 
