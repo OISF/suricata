@@ -118,9 +118,14 @@ class SuricataSC:
         data = ""
         while True:
             if sys.version < '3':
-                data += self.socket.recv(INC_SIZE)
+                received = self.socket.recv(INC_SIZE)
             else:
-                data += self.socket.recv(INC_SIZE).decode('iso-8859-1')
+                received = self.socket.recv(INC_SIZE).decode('iso-8859-1')
+
+            if not received:
+                break
+
+            data += received
             if data.endswith('\n'):
                 cmdret = json.loads(data)
                 break
