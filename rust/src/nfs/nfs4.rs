@@ -17,9 +17,9 @@
 
 // written by Victor Julien
 
-use nom::bytes::streaming::take;
-use nom::number::streaming::be_u32;
-use nom7::Err;
+use nom7::bytes::streaming::take;
+use nom7::number::streaming::be_u32;
+use nom7::{Err, IResult};
 
 use crate::core::*;
 use crate::nfs::nfs::*;
@@ -30,8 +30,7 @@ use crate::nfs::types::*;
 
 use crate::kerberos::{parse_kerberos5_request, Kerberos5Ticket, SecBlobError};
 
-// use the old nom type until both SMB and NFS are migrated to nom 7
-fn parse_req_gssapi(i: &[u8]) -> nom::IResult<&[u8], Kerberos5Ticket, SecBlobError> {
+fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     let (i, len) = be_u32(i)?;
     let (i, buf) = take(len as usize)(i)?;
     let (_, ap) = parse_kerberos5_request(buf)?;
