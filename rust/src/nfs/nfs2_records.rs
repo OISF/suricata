@@ -19,7 +19,7 @@
 
 use crate::nfs::nfs_records::*;
 use nom7::bytes::streaming::take;
-use nom7::combinator::rest;
+use nom7::combinator::{rest, cond};
 use nom7::number::streaming::be_u32;
 use nom7::IResult;
 
@@ -69,7 +69,9 @@ pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
     let (i, status) = be_u32(i)?;
     let (i, attr_blob) = take(68_usize)(i)?;
     let (i, data_len) = be_u32(i)?;
-    let (i, data_contents) = rest(i)?;
+    let (i, data_contents) = take(data_len)(i)?;
+    let fill_bytes = 4 - (data_len % 4);
+    let (i, _) = cond(fill_bytes != 0, take(fill_bytes))(i)?;
     let reply = NfsReplyRead {
         status,
         attr_follows: 1,
