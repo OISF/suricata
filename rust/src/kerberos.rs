@@ -15,15 +15,14 @@
  * 02110-1301, USA.
  */
 
+use nom7::IResult;
+use nom7::error::{ErrorKind, ParseError};
+use nom7::number::streaming::le_u16;
 use der_parser;
 use der_parser::der::parse_der_oid;
 use der_parser::error::BerError;
 use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
 use kerberos_parser::krb5_parser::parse_ap_req;
-use nom;
-use nom::error::{ErrorKind, ParseError};
-use nom::number::complete::le_u16;
-use nom::IResult;
 
 #[derive(Debug)]
 pub enum SecBlobError {
@@ -55,22 +54,19 @@ pub struct Kerberos5Ticket {
     pub sname: PrincipalName,
 }
 
-fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError> {
-    let (_, b) = der_parser::parse_der(blob).map_err(nom::Err::convert)?;
-    let blob = b
-        .as_slice()
-        .or(Err(nom::Err::Error(SecBlobError::KrbFmtError)))?;
-    let (blob, _) = parse_der_oid(blob).map_err(nom::Err::convert)?;
-    let (blob, _) = le_u16(blob)?;
-    // Should be parse_ap_req(blob).map_err(nom::Err::convert)
-    // But upgraded kerberos parser uses a newer der_parser crate
-    // Hence the enum `der_parser::error::BerError` are different
-    // and we cannot convert to SecBlobError with the From impl
-    // Next is to upgrade the der_parser crate (and nom to nom7 by the way)
-    match parse_ap_req(blob) {
-        Ok((blob, ap_req)) => Ok((blob, ap_req)),
-        _ => Err(nom::Err::Error(SecBlobError::KrbReqError)),
-    }
+fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError>
+{
+    let (_,b) = der_parser::parse_der(blob).map_err(nom7::Err::convert)?;
+    let blob = b.as_slice().or(
+        Err(nom7::Err::Error(SecBlobError::KrbFmtError))
+    )?;
+    let parser = |i| {
+        let (i, _base_o) = parse_der_oid(i)?;
+        let (i, _tok_id) = le_u16(i)?;
+        let (i, ap_req) = parse_ap_req(i)?;
+        Ok((i, ap_req))
+    };
+    parser(blob).map_err(nom7::Err::convert)
 }
 
 pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
