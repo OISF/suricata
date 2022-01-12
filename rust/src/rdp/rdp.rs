@@ -22,11 +22,10 @@
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
-use tls_parser::nom::Err;
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 
