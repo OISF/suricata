@@ -25,7 +25,7 @@ use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
 
-use nom;
+use nom7::Err;
 
 #[derive(AppLayerEvent)]
 pub enum NTPEvent {
@@ -87,15 +87,19 @@ impl NTPState {
         match parse_ntp(i) {
             Ok((_,ref msg)) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
-                if msg.mode == NtpMode::SymmetricActive || msg.mode == NtpMode::Client {
+                let (mode, ref_id) = match msg {
+                    NtpPacket::V3(pkt) => (pkt.mode, pkt.ref_id),
+                    NtpPacket::V4(pkt) => (pkt.mode, pkt.ref_id),
+                };
+                if mode == NtpMode::SymmetricActive || mode == NtpMode::Client {
                     let mut tx = self.new_tx();
                     // use the reference id as identifier
-                    tx.xid = msg.ref_id;
+                    tx.xid = ref_id;
                     self.transactions.push(tx);
                 }
                 0
             },
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing NTP data");
                 self.set_event(NTPEvent::MalformedData);
                 -1
@@ -241,14 +245,11 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, input_len as usize) };
     let alproto = unsafe{ ALPROTO_NTP };
     match parse_ntp(slice) {
-        Ok((_, ref msg)) => {
-            if msg.version == 3 || msg.version == 4 {
-                return alproto;
-            } else {
-                return unsafe{ALPROTO_FAILED};
-            }
+        Ok((_, _)) => {
+            // parse_ntp already checks for supported version (3 or 4)
+            return alproto;
         },
-        Err(nom::Err::Incomplete(_)) => {
+        Err(Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
