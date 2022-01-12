@@ -24,7 +24,7 @@ use crate::applayer::{self, *};
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
-use nom;
+use nom7::Err;
 use std;
 use std::ffi::CString;
 use std::fmt;
@@ -647,7 +647,7 @@ impl HTTP2State {
                         //we could set an event on remaining data
                         return HTTP2FrameTypeData::SETTINGS(set);
                     }
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
                             return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -738,7 +738,7 @@ impl HTTP2State {
                         self.process_headers(&hs.blocks, dir);
                         return HTTP2FrameTypeData::PUSHPROMISE(hs);
                     }
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
                             return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -772,7 +772,7 @@ impl HTTP2State {
                         self.process_headers(&hs.blocks, dir);
                         return HTTP2FrameTypeData::CONTINUATION(hs);
                     }
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
                             return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -807,7 +807,7 @@ impl HTTP2State {
                         }
                         return HTTP2FrameTypeData::HEADERS(hs);
                     }
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
                             return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -929,7 +929,7 @@ impl HTTP2State {
                     }
                     input = &rem[hlsafe..];
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     //we may have consumed data from previous records
                     return AppLayerResult::incomplete(
                         (il - input.len()) as u32,
@@ -1035,7 +1035,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
                 }
                 return ALPROTO_HTTP2;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 return ALPROTO_UNKNOWN;
             }
             Err(_) => {
