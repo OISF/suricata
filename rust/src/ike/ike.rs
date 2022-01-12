@@ -26,7 +26,7 @@ use crate::core::{self, *};
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -215,7 +215,7 @@ impl IKEState {
                 }
                 return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKE");
                 return AppLayerResult::err();
             }
