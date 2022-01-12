@@ -738,6 +738,8 @@ app-layer:
       # max-msg-length: 1mb
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
+      # Maximum number of live MQTT transactions per flow
+      # max-tx: 4096
     krb5:
       enabled: yes
     snmp:

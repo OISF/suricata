@@ -23,6 +23,7 @@ use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use num_traits::FromPrimitive;
+use crate::conf::conf_get;
 use nom;
 use std;
 use std::ffi::{CStr,CString};
@@ -37,8 +38,7 @@ const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
-//TODO make this configurable
-const MQTT_MAX_TX: usize = 1024;
+static mut MQTT_MAX_TX: usize = 1024;
 
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
@@ -182,7 +182,7 @@ impl MQTTState {
         } else {
             tx.toserver = true;
         }
-        if self.transactions.len() > MQTT_MAX_TX {
+        if self.transactions.len() > unsafe { MQTT_MAX_TX } {
             for tx_old in &mut self.transactions {
                 if !tx_old.complete {
                     tx_old.complete = true;
@@ -868,6 +868,13 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         ALPROTO_MQTT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.mqtt.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                MQTT_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for mqtt.max-tx");
+            }
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for MQTT.");
