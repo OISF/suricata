@@ -22,7 +22,7 @@
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::rdp::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
 
@@ -179,7 +179,7 @@ impl RdpState {
                         available = remainder;
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -187,7 +187,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }
@@ -291,7 +291,7 @@ impl RdpState {
                         }
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -299,7 +299,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }
