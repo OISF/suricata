@@ -28,6 +28,9 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
             if let Some(req_type) = tx.req_type {
                 jsb.set_string("failed_request", &format!("{:?}", req_type))?;
             } else {
+                // In case we capture the response but not the request
+                // we can't know the failed request type, since it could be
+                // AS-REQ or TGS-REQ
                 jsb.set_string("failed_request", "UNKNOWN")?;
             }
             jsb.set_string("error_code", &format!("{:?}", c))?;
