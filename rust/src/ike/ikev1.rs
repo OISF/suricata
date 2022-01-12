@@ -22,7 +22,7 @@ use crate::common::to_hex;
 use crate::core::Direction;
 use crate::ike::ike::{IKEState, IkeEvent};
 use crate::ike::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::HashSet;
 
@@ -153,7 +153,7 @@ pub fn handle_ikev1(
                     state.set_event(IkeEvent::PayloadExtraData);
                 }
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKEV1");
                 return AppLayerResult::err();
             }
