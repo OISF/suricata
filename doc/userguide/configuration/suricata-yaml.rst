@@ -1375,6 +1375,36 @@ independent. The ``probing parsers`` will only run on the ``detection-ports``.
 SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
 this parser.
 
+Configure HTTP2
+~~~~~~~~~~~~~~~
+
+HTTP2 has 2 parameters that can be customized.
+The point of these 2 parameters is to find a balance between the completeness
+of analysis and the resource consumption.
+
+`http2.max-table-size` refers to `SETTINGS_HEADER_TABLE_SIZE` from rfc 7540 section 6.5.2.
+Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
+
+`http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
+Its default value is unlimited.
+
+Configure MQTT
+~~~~~~~~~~~~~~
+
+MQTT has one parameter that can be customized.
+`mqtt.max-tx` refers to the maximum number of live transactions for each flow.
+The app-layer event `mqtt.too_many_transactions` is triggered when this value is reached.
+The point of this parameter is to find a balance between the completeness of analysis
+and the resource consumption.
+
+Configure FTP
+~~~~~~~~~~~~~
+
+FTP has one parameter that can be customized.
+`ftp.max-tx` refers to the maximum number of live transactions for each flow.
+The point of this parameter is to find a balance between the completeness of analysis
+and the resource consumption.
+
 Engine Logging
 --------------
 
