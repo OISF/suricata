@@ -55,6 +55,7 @@ static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFiledataRegisterTests(void);
 #endif
+static _Bool DetectFiledataValidateCallback(const Signature *s, const char **sigerror);
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s);
 static int g_file_data_buffer_id = 0;
@@ -118,6 +119,7 @@ void DetectFiledataRegister(void)
             DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
+    DetectBufferTypeRegisterValidateCallback("file_data", DetectFiledataValidateCallback);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata, NULL);
@@ -205,6 +207,16 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     s->init_data->init_flags |= SIG_FLAG_INIT_FILEDATA;
     SetupDetectEngineConfig(de_ctx);
     return 0;
+}
+
+static _Bool DetectFiledataValidateCallback(const Signature *s, const char **sigerror)
+{
+    if (s->alproto == ALPROTO_NFS) {
+        *sigerror = "Can't use file_data with NFS keywords";
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with NFS keywords");
+        return FALSE;
+    }
+    return TRUE;
 }
 
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
