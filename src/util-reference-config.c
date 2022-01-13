@@ -120,10 +120,15 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
      * reference strings */
     if (fd == NULL) {
         const char *filename = SCRConfGetConfFilename(de_ctx);
+#if 1
+        SCLogNotice("using reference config = %s", filename);
+#endif
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
-            if (RunmodeIsUnittests())
+            if (RunmodeIsUnittests()) {
+                printf("fopen of %s failed\n", filename);
                 return NULL; // silently fail
+            }
 #endif
             SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename,
                        strerror(errno));
@@ -131,6 +136,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
         }
     }
 
+    printf("fd is non-null: %p\n", fd);
     return fd;
 }
 
