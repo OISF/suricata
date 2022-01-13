@@ -21,6 +21,7 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
+#include "detect-smb-ntlmssp.h"
 #include "suricata-common.h"
 #include "suricata.h"
 #include "debug.h"
@@ -581,6 +582,7 @@ void SigTableSetup(void)
     DetectDceStubDataRegister();
     DetectSmbNamedPipeRegister();
     DetectSmbShareRegister();
+    DetectSmbNtlmsspUserRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
