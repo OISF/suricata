@@ -170,3 +170,26 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
     }
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(tx: &mut SMBTransaction,
+                                            buffer: *mut *const u8,
+                                            buffer_len: *mut u32)
+                                            -> u8
+{
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if let Some(ref ntlmssp) = x.ntlmssp {
+                *buffer = ntlmssp.user.as_ptr();
+                *buffer_len = ntlmssp.user.len() as u32;
+                return 1;
+            }
+        }
+        _ => {
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return 0;
+}
