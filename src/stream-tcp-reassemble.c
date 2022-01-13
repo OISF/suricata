@@ -841,9 +841,41 @@ static uint64_t GetStreamSize(TcpStream *stream)
     if (stream) {
         uint64_t size = 0;
         uint32_t cnt = 0;
+        uint64_t last_ack_abs = GetAbsLastAck(stream);
+        uint64_t last_re = 0;
+
+        SCLogNotice("stream_offset %" PRIu64, stream->sb.stream_offset);
 
         TcpSegment *seg;
         RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
+            const uint64_t seg_abs =
+                    STREAM_BASE_OFFSET(stream) + (uint64_t)(seg->seq - stream->base_seq);
+            if (last_re != 0 && last_re < seg_abs) {
+                const char *gacked = NULL;
+                if (last_ack_abs >= seg_abs) {
+                    gacked = "fully ack'd";
+                } else if (last_ack_abs > last_re) {
+                    gacked = "partly ack'd";
+                } else {
+                    gacked = "not yet ack'd";
+                }
+                SCLogDebug(" -> gap of size %" PRIu64 ", ack:%s", seg_abs - last_re, gacked);
+            }
+
+            const char *acked = NULL;
+            if (last_ack_abs >= seg_abs + (uint64_t)TCP_SEG_LEN(seg)) {
+                acked = "fully ack'd";
+            } else if (last_ack_abs > seg_abs) {
+                acked = "partly ack'd";
+            } else {
+                acked = "not yet ack'd";
+            }
+
+            SCLogDebug("%u -> seg %p seq %u abs %" PRIu64 " size %u abs %" PRIu64 " (%" PRIu64
+                       ") ack:%s",
+                    cnt, seg, seg->seq, seg_abs, TCP_SEG_LEN(seg),
+                    seg_abs + (uint64_t)TCP_SEG_LEN(seg), STREAM_BASE_OFFSET(stream), acked);
+            last_re = seg_abs + (uint64_t)TCP_SEG_LEN(seg);
             cnt++;
             size += (uint64_t)TCP_SEG_LEN(seg);
         }
@@ -909,6 +941,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
             *data_len = 0;
             return;
         }
+        SCLogDebug("blk %p blk->offset %" PRIu64 ", blk->len %u", blk, blk->offset, blk->len);
 
         /* block at expected offset */
         if (blk->offset == offset) {
