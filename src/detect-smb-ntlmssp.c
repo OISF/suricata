@@ -22,6 +22,7 @@
  *
  */
 
+#include "detect-engine-register.h"
 #include "suricata-common.h"
 
 #include "detect.h"
@@ -89,4 +90,65 @@ void DetectSmbNtlmsspUserRegister(void)
             DetectEngineInspectBufferGeneric, GetNtlmsspUserData);
 
     g_smb_nltmssp_user_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+}
+
+#undef BUFFER_NAME
+#undef KEYWORD_NAME
+#undef KEYWORD_NAME_LEGACY
+#undef KEYWORD_ID
+
+#define BUFFER_NAME         "smb_ntlmssp_domain"
+#define KEYWORD_NAME        "smb.ntlmssp_domain"
+#define KEYWORD_NAME_LEGACY BUFFER_NAME
+#define KEYWORD_ID          DETECT_SMB_NTLMSSP_DOMAIN
+
+static int g_smb_nltmssp_domain_buffer_id = 0;
+
+static int DetectSmbNtlmsspDomainSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(s, g_smb_nltmssp_domain_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMB) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetNtlmsspDomainData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (rs_smb_tx_get_ntlmssp_domain(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
+void DetectSmbNtlmsspDomainRegister(void)
+{
+    sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
+    sigmatch_table[KEYWORD_ID].alias = KEYWORD_NAME_LEGACY;
+    sigmatch_table[KEYWORD_ID].Setup = DetectSmbNtlmsspDomainSetup;
+    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[KEYWORD_ID].desc =
+            "sticky buffer to match on SMB ntlmssp domain in session setup";
+
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetNtlmsspDomainData, ALPROTO_SMB, 1);
+
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetNtlmsspDomainData);
+
+    g_smb_nltmssp_domain_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
