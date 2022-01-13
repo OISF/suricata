@@ -502,7 +502,8 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
     if (fd == NULL) {
 #ifdef UNITTESTS
         if (RunmodeIsUnittests() && fd == NULL) {
-            return -1;
+            /* Silently fail */
+            return 0;
         }
 #endif
         SCLogError(SC_ERR_OPENING_FILE, "please check the \"reference-config-file\" "
