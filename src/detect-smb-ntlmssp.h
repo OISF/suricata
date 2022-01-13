@@ -25,5 +25,6 @@
 #define __DETECT_SMB_NTLMSSP_H__
 
 void DetectSmbNtlmsspUserRegister(void);
+void DetectSmbNtlmsspDomainRegister(void);
 
 #endif /* __DETECT_SMB_NTLMSSP_H__ */
