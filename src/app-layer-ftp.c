@@ -125,6 +125,7 @@ const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1] = {
     { FTP_COMMAND_UNKNOWN, NULL, 0}
 };
 uint64_t ftp_config_memcap = 0;
+uint32_t ftp_config_maxtx = 1024;
 
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
@@ -152,6 +153,16 @@ static void FTPParseMemcap(void)
 
     SC_ATOMIC_INIT(ftp_memuse);
     SC_ATOMIC_INIT(ftp_memcap);
+
+    if ((ConfGet("app-layer.protocols.ftp.maxtx", &conf_val)) == 1) {
+        if (ParseSizeStringU32(conf_val, &ftp_config_maxtx) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE,
+                    "Error parsing ftp.maxtx "
+                    "from conf file - %s.",
+                    conf_val);
+        }
+        SCLogInfo("FTP maxtx: %" PRIu32, ftp_config_maxtx);
+    }
 }
 
 static void FTPIncrMemuse(uint64_t size)
@@ -308,6 +319,11 @@ static void FTPLocalStorageFree(void *ptr)
 static FTPTransaction *FTPTransactionCreate(FtpState *state)
 {
     SCEnter();
+    FTPTransaction *firsttx = TAILQ_FIRST(&state->tx_list);
+    if (firsttx && state->tx_cnt - firsttx->tx_id > ftp_config_maxtx) {
+        // FTP does not set events yet...
+        return NULL;
+    }
     FTPTransaction *tx = FTPCalloc(1, sizeof(*tx));
     if (tx == NULL) {
         return NULL;
