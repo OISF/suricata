@@ -243,7 +243,7 @@ static int DecodePPPOEtest01 (void)
     uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-        return 0;
+        FAIL;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -252,13 +252,13 @@ static int DecodePPPOEtest01 (void)
 
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    if (ENGINE_ISSET_EVENT(p,PPPOE_PKT_TOO_SMALL))  {
+    if (!ENGINE_ISSET_EVENT(p, PPPOE_PKT_TOO_SMALL)) {
         SCFree(p);
-        return 1;
+        FAIL;
     }
 
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** DecodePPPOEtest02
@@ -281,7 +281,7 @@ static int DecodePPPOEtest02 (void)
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-        return 0;
+        FAIL;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -307,7 +307,8 @@ static int DecodePPPOEtest02 (void)
 end:
     FlowShutdown();
     SCFree(p);
-    return ret;
+    FAIL_IF(ret == 0);
+    PASS;
 }
 
 
@@ -329,7 +330,7 @@ static int DecodePPPOEtest03 (void)
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-        return 0;
+        FAIL;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -339,11 +340,11 @@ static int DecodePPPOEtest03 (void)
     DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
     if (p->pppoedh == NULL) {
     SCFree(p);
-    return 0;
+    FAIL;
     }
 
     SCFree(p);
-    return 1;
+    PASS;
 }
 
 /** DecodePPPOEtest04
@@ -361,7 +362,7 @@ static int DecodePPPOEtest04 (void)
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-        return 0;
+        FAIL;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -370,13 +371,13 @@ static int DecodePPPOEtest04 (void)
 
     DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    if(ENGINE_ISSET_EVENT(p,PPPOE_WRONG_CODE))  {
+    if (!ENGINE_ISSET_EVENT(p, PPPOE_WRONG_CODE)) {
         SCFree(p);
-        return 1;
+        FAIL;
     }
 
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** DecodePPPOEtest05
@@ -396,7 +397,7 @@ static int DecodePPPOEtest05 (void)
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-        return 0;
+        FAIL;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -405,13 +406,13 @@ static int DecodePPPOEtest05 (void)
 
     DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
-    if(ENGINE_ISSET_EVENT(p,PPPOE_MALFORMED_TAGS))  {
+    if (!ENGINE_ISSET_EVENT(p, PPPOE_MALFORMED_TAGS)) {
         SCFree(p);
-        return 1;
+        FAIL;
     }
 
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** DecodePPPOEtest06
@@ -430,22 +431,21 @@ static int DecodePPPOEtest06 (void)
 
     if (PPPOE_SESSION_GET_VERSION(&pppoesh) != 0x0A) {
         printf("Error, PPPOE macro pppoe_session_get_version failed: ");
-        return 0;
+        FAIL;
     }
     if (PPPOE_SESSION_GET_TYPE(&pppoesh) != 0x0B) {
         printf("Error, PPPOE macro pppoe_session_get_type failed: ");
-        return 0;
+        FAIL;
     }
     if (PPPOE_DISCOVERY_GET_VERSION(&pppoedh) != 0x0C) {
         printf("Error, PPPOE macro pppoe_discovery_get_version failed: ");
-        return 0;
+        FAIL;
     }
     if (PPPOE_DISCOVERY_GET_TYPE(&pppoedh) != 0x0D) {
         printf("Error, PPPOE macro pppoe_discovery_get_type failed: ");
-        return 0;
+        FAIL;
     }
-
-    return 1;
+    PASS;
 }
 #endif /* UNITTESTS */
 
@@ -470,3 +470,4 @@ void DecodePPPOERegisterTests(void)
 /**
  * @}
  */
+
