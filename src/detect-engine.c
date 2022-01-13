@@ -2364,8 +2364,11 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     (void)SRepInit(de_ctx);
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0)
-        goto error;
+
+    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+            goto error;
+    }
 
     if (ActionInitConfig() < 0) {
         goto error;

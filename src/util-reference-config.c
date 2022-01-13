@@ -120,13 +120,9 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
      * reference strings */
     if (fd == NULL) {
         const char *filename = SCRConfGetConfFilename(de_ctx);
-#if 1
-        SCLogNotice("using reference config = %s", filename);
-#endif
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests()) {
-                printf("fopen of %s failed\n", filename);
                 return NULL; // silently fail
             }
 #endif
@@ -136,7 +132,6 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
         }
     }
 
-    printf("fd is non-null: %p\n", fd);
     return fd;
 }
 
@@ -330,14 +325,18 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
     char line[1024];
     uint8_t i = 1;
 
+    int runmode = RunmodeGetCurrent();
+    bool is_conf_test_mode = runmode == RUNMODE_CONF_TEST;
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCRConfIsLineBlankOrComment(line))
             continue;
 
-        if (SCRConfAddReference(de_ctx, line) != 0)
-            if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
+        if (SCRConfAddReference(de_ctx, line) != 0) {
+            if (is_conf_test_mode) {
+                SCLogNotice("current runmode = runmode_conf_test; returning false\n");
                 return false;
             }
+        }
         i++;
     }
 
@@ -501,9 +500,8 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
     fd = SCRConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
 #ifdef UNITTESTS
-        if (RunmodeIsUnittests() && fd == NULL) {
-            /* Silently fail */
-            return 0;
+        if (RunmodeIsUnittests()) {
+            return -1;
         }
 #endif
         SCLogError(SC_ERR_OPENING_FILE, "please check the \"reference-config-file\" "

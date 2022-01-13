@@ -1717,7 +1717,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             suri->conf_filename = optarg;
             break;
         case 'T':
-            SCLogInfo("Running suricata under test mode");
+            SCLogNotice("Running suricata under test mode");
             conf_test = 1;
             if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                 fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
