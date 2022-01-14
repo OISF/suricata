@@ -298,7 +298,7 @@ uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen,
 static uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -318,7 +318,7 @@ static uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times)
 static uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -335,7 +335,7 @@ static uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int tim
 static uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -355,7 +355,7 @@ static uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times)
 static uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -375,7 +375,7 @@ static uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
 static uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)needle);
 
     BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
@@ -395,7 +395,7 @@ static uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times)
 static uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *in_needle, int times)
 {
     uint32_t textlen = strlen((char *)text);
-    uint16_t needlelen = strlen((char *)in_needle);
+    uint16_t needlelen = (uint16_t)strlen((char *)in_needle);
 
     /* Make a copy of in_needle to be able to convert it to lowercase. */
     uint8_t *needle = SCMalloc(needlelen);
@@ -2631,7 +2631,7 @@ static int SpmSearchTest02(void) {
             uint16_t prefix;
             for (prefix = 0; prefix < 32; prefix++) {
                 d.needle = needle;
-                d.needle_len = strlen(needle);
+                d.needle_len = (uint16_t)strlen(needle);
                 uint16_t haystack_len = prefix + d.needle_len;
                 char *haystack = SCMalloc(haystack_len);
                 if (haystack == NULL) {
@@ -2655,7 +2655,7 @@ static int SpmSearchTest02(void) {
                 d.nocase = 1;
                 uint16_t j;
                 for (j = 0; j < haystack_len; j++) {
-                    haystack[j] = toupper(haystack[j]);
+                    haystack[j] = (char)toupper(haystack[j]);
                 }
                 if (SpmTestSearch(&d, matcher) == 0) {
                     printf("  test %" PRIu32 ": fail (case-insensitive)\n", i);
