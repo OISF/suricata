@@ -20,8 +20,9 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("quic")?;
-    js.set_uint("version", u32::from(tx.header.version).into())?;
-
+    if tx.header.flags.is_long {
+        js.set_string("version", String::from(tx.header.version).as_str())?;
+    }
     js.open_array("cyu")?;
     for cyu in &tx.cyu {
         js.start_object()?;
