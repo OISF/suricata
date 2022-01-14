@@ -116,7 +116,7 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
 
         /* For each alpha-numeric letter in the source array, find the numeric
          * value */
-        b64[bbidx++] = (val > 0 ? val : 0);
+        b64[bbidx++] = (val > 0 ? (uint8_t)val : 0);
 
         /* Decode every 4 base64 bytes into 3 ascii bytes */
         if (bbidx == B64_BLOCK) {

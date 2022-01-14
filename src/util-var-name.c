@@ -61,7 +61,7 @@ static SCMutex g_varnamestore_staging_m = SCMUTEX_INITIALIZER;
 /** \brief Name2idx mapping structure for flowbits, flowvars and pktvars. */
 typedef struct VariableName_ {
     char *name;
-    uint8_t type; /* flowbit, pktvar, etc */
+    enum VarTypes type; /* flowbit, pktvar, etc */
     uint32_t idx;
 } VariableName;
 

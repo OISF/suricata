@@ -488,8 +488,8 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
  *
  * \retval node Pointer to the newly created node
  */
-static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
-                                  SCRadixTree *tree, void *user, uint8_t netmask)
+static SCRadixNode *SCRadixAddKey(
+        uint8_t *key_stream, uint8_t key_bitlen, SCRadixTree *tree, void *user, uint8_t netmask)
 {
     SCRadixNode *node = NULL;
     SCRadixNode *new_node = NULL;
@@ -501,11 +501,11 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     uint8_t *stream = NULL;
     uint8_t bitlen = 0;
 
-    int check_bit = 0;
-    int differ_bit = 0;
+    uint16_t check_bit = 0;
+    uint16_t differ_bit = 0;
 
-    int i = 0;
-    int j = 0;
+    uint16_t i = 0;
+    uint16_t j = 0;
     int temp = 0;
 
     if (tree == NULL) {
@@ -683,14 +683,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
                 node->netmasks[node->netmask_cnt - 1] = netmask;
 
-                for (i = node->netmask_cnt - 2; i >= 0; i--) {
-                    if (netmask < node->netmasks[i]) {
-                        node->netmasks[i + 1] = netmask;
+                for (i = node->netmask_cnt - 1; i > 0; i--) {
+                    if (netmask < node->netmasks[i - 1]) {
+                        node->netmasks[i] = netmask;
                         break;
                     }
 
-                    node->netmasks[i + 1] = node->netmasks[i];
-                    node->netmasks[i] = netmask;
+                    node->netmasks[i] = node->netmasks[i - 1];
+                    node->netmasks[i - 1] = netmask;
                 }
             }
         } else {
@@ -811,38 +811,18 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
         node->netmasks[node->netmask_cnt - 1] = netmask;
 
-        for (i = node->netmask_cnt - 2; i >= 0; i--) {
-            if (netmask < node->netmasks[i]) {
-                node->netmasks[i + 1] = netmask;
+        for (i = node->netmask_cnt - 1; i > 0; i--) {
+            if (netmask < node->netmasks[i - 1]) {
+                node->netmasks[i] = netmask;
                 break;
             }
 
-            node->netmasks[i + 1] = node->netmasks[i];
-            node->netmasks[i] = netmask;
+            node->netmasks[i] = node->netmasks[i - 1];
+            node->netmasks[i - 1] = netmask;
         }
     }
 
     return new_node;
-}
-
-/**
- * \brief Adds a new generic key to the Radix tree
- *
- * \param key_stream Data that has to be added to the Radix tree
- * \param key_bitlen The bitlen of the the above stream.  For example if the
- *                   stream is the string "abcd", the bitlen would be 32
- * \param tree       Pointer to the Radix tree
- * \param user       Pointer to the user data that has to be associated with the
- *                   key
- *
- * \retval node Pointer to the newly created node
- */
-SCRadixNode *SCRadixAddKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
-                                  SCRadixTree *tree, void *user)
-{
-    SCRadixNode *node = SCRadixAddKey(key_stream, key_bitlen, tree, user, 255);
-
-    return node;
 }
 
 /**
@@ -1482,7 +1462,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
  * \param exact_match The key to be searched is an ip address
  * \param netmask     Netmask used during exact match
  */
-static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen, uint8_t netmask,
+static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint8_t netmask,
         SCRadixTree *tree, int exact_match, void **user_data_result)
 {
     if (tree == NULL || tree->head == NULL)
@@ -1492,9 +1472,6 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen, uin
     uint32_t mask = 0;
     int bytes = 0;
     uint8_t tmp_stream[255];
-
-    if (key_bitlen > 255)
-        return NULL;
 
     memset(tmp_stream, 0, 255);
     memcpy(tmp_stream, key_stream, key_bitlen / 8);
@@ -1536,19 +1513,6 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen, uin
 
     SCRadixNode *ret = SCRadixFindKeyIPNetblock(tmp_stream, key_bitlen, node, user_data_result);
     return ret;
-}
-
-/**
- * \brief Checks if a key is present in the tree
- *
- * \param key_stream Data that has to be found in the Radix tree
- * \param key_bitlen The bitlen of the the above stream.
- * \param tree       Pointer to the Radix tree instance
- */
-SCRadixNode *SCRadixFindKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
-                                   SCRadixTree *tree, void **user_data_result)
-{
-    return SCRadixFindKey(key_stream, key_bitlen, 0, tree, 1, user_data_result); /* TODO netmask? */
 }
 
 /**

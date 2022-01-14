@@ -118,7 +118,7 @@ typedef struct SCLogOPIfaceCtx_ {
     SCLogOPIface iface;
 
     int16_t use_color;
-    int16_t type;
+    SCLogOPType type;
 
     /* the output file to be used if the interface is SC_LOG_IFACE_FILE */
     const char *file;
