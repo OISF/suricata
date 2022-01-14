@@ -850,7 +850,7 @@ static uint64_t GetStreamSize(TcpStream *stream)
         uint64_t last_ack_abs = GetAbsLastAck(stream);
         uint64_t last_re = 0;
 
-        SCLogNotice("stream_offset %" PRIu64, stream->sb.stream_offset);
+        SCLogDebug("stream_offset %" PRIu64, stream->sb.stream_offset);
 
         TcpSegment *seg;
         RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
