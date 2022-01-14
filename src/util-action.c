@@ -432,8 +432,8 @@ action-order:\n\
 static int UtilActionTest08(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -497,8 +497,8 @@ end:
 static int UtilActionTest09(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -573,10 +573,10 @@ end:
 static int UtilActionTest10(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
-    uint8_t *buf2 = (uint8_t *)"wo!";
-    uint16_t buflen2 = strlen((char *)buf2);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
+    uint8_t buf2[] = "wo!";
+    uint16_t buflen2 = sizeof(buf2) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -640,10 +640,10 @@ end:
 static int UtilActionTest11(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
-    uint8_t *buf2 = (uint8_t *)"Hi all wo!";
-    uint16_t buflen2 = strlen((char *)buf2);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
+    uint8_t buf2[] = "Hi all wo!";
+    uint16_t buflen2 = sizeof(buf2) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -718,8 +718,8 @@ end:
 static int UtilActionTest12(void)
 {
     int res = 0;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
                    "192.168.1.5", "192.168.1.1",
@@ -781,8 +781,8 @@ end:
 static int UtilActionTest13(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -856,8 +856,8 @@ end:
 static int UtilActionTest14(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -930,8 +930,8 @@ end:
 static int UtilActionTest15(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -994,8 +994,8 @@ end:
 static int UtilActionTest16(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -1058,8 +1058,8 @@ end:
 static int UtilActionTest17(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     p[0] = UTHBuildPacketReal((uint8_t *)buf, buflen, IPPROTO_TCP,
@@ -1122,8 +1122,8 @@ end:
 static int UtilActionTest18(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1197,8 +1197,8 @@ end:
 static int UtilActionTest19(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1272,8 +1272,8 @@ end:
 static int UtilActionTest20(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1341,8 +1341,8 @@ end:
 static int UtilActionTest21(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1416,8 +1416,8 @@ end:
 static int UtilActionTest22(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;
@@ -1491,8 +1491,8 @@ end:
 static int UtilActionTest23(void)
 {
     int res = 1;
-    uint8_t *buf = (uint8_t *)"Hi all!";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "Hi all!";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p[3];
 
     action_order_sigs[0] = ACTION_DROP;

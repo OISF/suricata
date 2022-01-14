@@ -2953,7 +2953,7 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3013,7 +3013,7 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3073,7 +3073,7 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3133,7 +3133,7 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3439,7 +3439,7 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3499,7 +3499,7 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3559,7 +3559,7 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
@@ -3619,7 +3619,7 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
-    uint32_t i = 0;
+    uint8_t i = 0;
 
     uint32_t *user;
 
