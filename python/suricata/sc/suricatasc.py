@@ -230,11 +230,10 @@ class SuricataSC:
     def parse_command(self, command):
         arguments = None
         cmd = command.split()[0] if command else None
-        if cmd in self.cmd_list:
-            if cmd in self.fn_commands:
-                cmd, arguments = getattr(self, "execute")(command=command)
-        else:
+        if cmd not in self.cmd_list:
             raise SuricataCommandException("Unknown command {}".format(command))
+        if cmd in self.fn_commands:
+            cmd, arguments = getattr(self, "execute")(command=command)
         return cmd, arguments
 
     def interactive(self):
