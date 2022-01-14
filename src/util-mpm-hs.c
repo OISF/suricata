@@ -1538,8 +1538,8 @@ static int SCHSTest13(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcdefghijklmnopqrstuvwxyzABCD";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1572,8 +1572,8 @@ static int SCHSTest14(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcdefghijklmnopqrstuvwxyzABCDE";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1606,8 +1606,8 @@ static int SCHSTest15(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1640,8 +1640,8 @@ static int SCHSTest16(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcdefghijklmnopqrstuvwxyzABC";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcdefghijklmnopqrstuvwxyzABC";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1674,8 +1674,8 @@ static int SCHSTest17(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcdefghijklmnopqrstuvwxyzAB";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcdefghijklmnopqrstuvwxyzAB";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1708,13 +1708,13 @@ static int SCHSTest18(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 match */
-    const char *pat = "abcde"
-                "fghij"
-                "klmno"
-                "pqrst"
-                "uvwxy"
-                "z";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "abcde"
+                       "fghij"
+                       "klmno"
+                       "pqrst"
+                       "uvwxy"
+                       "z";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1752,8 +1752,8 @@ static int SCHSTest19(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 */
-    const char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -1786,14 +1786,14 @@ static int SCHSTest20(void)
     MpmInitCtx(&mpm_ctx, MPM_HS);
 
     /* 1 */
-    const char *pat = "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AA";
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+    const char pat[] = "AAAAA"
+                       "AAAAA"
+                       "AAAAA"
+                       "AAAAA"
+                       "AAAAA"
+                       "AAAAA"
+                       "AA";
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, sizeof(pat) - 1, 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
@@ -2086,8 +2086,8 @@ static int SCHSTest28(void)
 
 static int SCHSTest29(void)
 {
-    uint8_t *buf = (uint8_t *)"onetwothreefourfivesixseveneightnine";
-    uint16_t buflen = strlen((char *)buf);
+    uint8_t buf[] = "onetwothreefourfivesixseveneightnine";
+    uint16_t buflen = sizeof(buf) - 1;
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
