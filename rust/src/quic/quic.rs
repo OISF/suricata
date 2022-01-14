@@ -20,7 +20,7 @@ use super::{
     parser::{QuicData, QuicHeader},
 };
 use crate::applayer::{self, *};
-use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::ffi::CString;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
@@ -32,9 +32,6 @@ pub struct QuicTransaction {
     tx_id: u64,
     pub header: QuicHeader,
     pub cyu: Vec<Cyu>,
-
-    de_state: Option<*mut core::DetectEngineState>,
-    events: *mut core::AppLayerDecoderEvents,
     tx_data: AppLayerTxData,
 }
 
@@ -45,25 +42,8 @@ impl QuicTransaction {
             tx_id: 0,
             header,
             cyu,
-            de_state: None,
-            events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
         }
-    }
-
-    fn free(&mut self) {
-        if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
-        }
-        if let Some(state) = self.de_state {
-            core::sc_detect_engine_state_free(state);
-        }
-    }
-}
-
-impl Drop for QuicTransaction {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
@@ -232,30 +212,6 @@ pub unsafe extern "C" fn rs_quic_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_state_get_events(
-    tx: *mut std::os::raw::c_void,
-) -> *mut core::AppLayerDecoderEvents {
-    let tx = cast_pointer!(tx, QuicTransaction);
-    return tx.events;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_quic_state_get_event_info(
-    _event_name: *const std::os::raw::c_char, _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
-) -> std::os::raw::c_int {
-    return -1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_quic_state_get_event_info_by_id(
-    _event_id: std::os::raw::c_int, _event_name: *mut *const std::os::raw::c_char,
-    _event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    return -1;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
@@ -299,15 +255,15 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_quic_tx_get_alstate_progress,
-        get_eventinfo: Some(rs_quic_state_get_event_info),
-        get_eventinfo_byid: Some(rs_quic_state_get_event_info_by_id),
+        get_eventinfo: None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: Some(rs_quic_state_get_tx_iterator),
         get_tx_data: rs_quic_get_tx_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
