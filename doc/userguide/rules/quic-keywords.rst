@@ -26,19 +26,19 @@ Match on the CYU string
 Examples::
 
   alert quic any any -> any any (msg:"QUIC CYU STRING"; \
-  quic.cyu.string; content:"46,PAD-SNI-VER-CCS-UAID-TCID-PDMD-SMHL-ICSL-NONP-MIDS-SCLS-CSCT-COPT-IRTT-CFCW-SFCW"; \
-  sid:2;)
+    quic.cyu.string; content:"46,PAD-SNI-VER-CCS-UAID-TCID-PDMD-SMHL-ICSL-NONP-MIDS-SCLS-CSCT-COPT-IRTT-CFCW-SFCW"; \
+    sid:2;)
 
 quic.version
----------------
+------------
 
-Match on the Quic header version
+Sticky buffer for matching on the Quic header version in long headers.
 
 Examples::
 
   alert quic any any -> any any (msg:"QUIC VERSION"; \
-  quic.version:1362113590; \
-  sid:3;)
+    quic.version; content:"Q046"; \
+    sid:3;)
 
 Additional information
 ----------------------
