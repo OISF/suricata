@@ -401,7 +401,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
                    filename, strerror(errno));
     } else {
         if (mode != 0) {
-            int r = chmod(filename, mode);
+            int r = chmod(filename, (mode_t)mode);
             if (r < 0) {
                 SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
                              filename, mode, strerror(errno));
@@ -494,9 +494,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
-    if (filemode != NULL &&
-            StringParseUint32(&mode, 8, strlen(filemode),
-                                    filemode) > 0) {
+    if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
         log_ctx->filemode = mode;
     }
 

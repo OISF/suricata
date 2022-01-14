@@ -380,7 +380,7 @@ static char ProtoNameHashCompareFunc(void *data1, uint16_t datalen1, void *data2
     return len1 == len2 && memcmp(p1->name, p2->name, len1) == 0;
 }
 
-static void ProtoNameAddEntry(const char *proto_name, const int proto_number)
+static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number)
 {
     ProtoNameHashEntry *proto_ent = SCCalloc(1, sizeof(ProtoNameHashEntry));
     if (!proto_ent) {
@@ -423,15 +423,15 @@ void SCProtoNameInit(void)
         FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to initialize protocol name/number table");
     }
 
-    for (uint32_t i = 0; i < ARRAY_SIZE(known_proto); i++) {
+    for (uint16_t i = 0; i < ARRAY_SIZE(known_proto); i++) {
         if (known_proto[i]) {
-            ProtoNameAddEntry(known_proto[i], i);
+            ProtoNameAddEntry(known_proto[i], (uint8_t)i);
         }
     }
 
-    for (uint32_t i = 0; i < ARRAY_SIZE(proto_aliases); i++) {
+    for (uint16_t i = 0; i < ARRAY_SIZE(proto_aliases); i++) {
         if (proto_aliases[i]) {
-            ProtoNameAddEntry(proto_aliases[i], i);
+            ProtoNameAddEntry(proto_aliases[i], (uint8_t)i);
         }
     }
 }
