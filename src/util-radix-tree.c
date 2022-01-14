@@ -681,14 +681,14 @@ static SCRadixNode *SCRadixAddKey(
 
                 node->netmasks[node->netmask_cnt - 1] = netmask;
 
-                for (i = node->netmask_cnt - 2; i >= 0; i--) {
-                    if (netmask < node->netmasks[i]) {
-                        node->netmasks[i + 1] = netmask;
+                for (i = node->netmask_cnt - 1; i > 0; i--) {
+                    if (netmask < node->netmasks[i - 1]) {
+                        node->netmasks[i] = netmask;
                         break;
                     }
 
-                    node->netmasks[i + 1] = node->netmasks[i];
-                    node->netmasks[i] = netmask;
+                    node->netmasks[i] = node->netmasks[i - 1];
+                    node->netmasks[i - 1] = netmask;
                 }
             }
         } else {
@@ -809,14 +809,14 @@ static SCRadixNode *SCRadixAddKey(
 
         node->netmasks[node->netmask_cnt - 1] = netmask;
 
-        for (i = node->netmask_cnt - 2; i >= 0; i--) {
-            if (netmask < node->netmasks[i]) {
-                node->netmasks[i + 1] = netmask;
+        for (i = node->netmask_cnt - 1; i > 0; i--) {
+            if (netmask < node->netmasks[i - 1]) {
+                node->netmasks[i] = netmask;
                 break;
             }
 
-            node->netmasks[i + 1] = node->netmasks[i];
-            node->netmasks[i] = netmask;
+            node->netmasks[i] = node->netmasks[i - 1];
+            node->netmasks[i - 1] = netmask;
         }
     }
 
