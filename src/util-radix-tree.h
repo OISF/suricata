@@ -66,7 +66,7 @@ typedef struct SCRadixNode_ {
     uint16_t pad0;
 
     /* total no of netmasks that are registered under this node */
-    int netmask_cnt;
+    uint16_t netmask_cnt;
     /* holds a list of netmaks that come under this node in the tree */
     uint8_t *netmasks;
 
@@ -101,7 +101,6 @@ void SCRadixChopIPAddressAgainstNetmask(uint8_t *, uint8_t, uint16_t);
 SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*));
 void SCRadixReleaseRadixTree(SCRadixTree *);
 
-SCRadixNode *SCRadixAddKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV4(uint8_t *, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV6(uint8_t *, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *,
@@ -116,8 +115,6 @@ void SCRadixRemoveKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t);
 void SCRadixRemoveKeyIPV4(uint8_t *, SCRadixTree *);
 void SCRadixRemoveKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);
 void SCRadixRemoveKeyIPV6(uint8_t *, SCRadixTree *);
-
-SCRadixNode *SCRadixFindKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void **);
 
 SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *, SCRadixTree *, void **);
 SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t, void **);

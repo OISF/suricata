@@ -46,7 +46,7 @@
 #endif
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
-uint16_t mpm_default_matcher;
+uint8_t mpm_default_matcher;
 
 /**
  * \brief Register a new Mpm Context.
@@ -197,7 +197,7 @@ void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher)
     mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx);
 }
 
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
+void MpmInitCtx(MpmCtx *mpm_ctx, uint8_t matcher)
 {
     mpm_ctx->mpm_type = matcher;
     mpm_table[matcher].InitCtx(mpm_ctx);
