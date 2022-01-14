@@ -36,7 +36,7 @@
  *  values
  */
 
-const char *known_proto[256] = {
+const char *known_proto[255] = {
     "HOPOPT",   /* 0x00: 0 - IPv6 Hop-by-Hop Option	RFC 8200 */
     "ICMP",     /* 0x01: 1 - Internet Control Message Protocol	RFC 792 */
     "IGMP",     /* 0x02: 2 - Internet Group Management Protocol	RFC 1112 */
@@ -193,7 +193,7 @@ const char *known_proto[256] = {
 /*
  * Protocol name aliases
  */
-const char *proto_aliases[256] = {
+const char *proto_aliases[255] = {
     "ip",      /* 0x00: 0 - IPv6 Hop-by-Hop Option	RFC 8200 */
     "icmp",    /* 0x01: 1 - Internet Control Message Protocol	RFC 792 */
     "igmp",    /* 0x02: 2 - Internet Group Management Protocol	RFC 1112 */
@@ -380,7 +380,7 @@ static char ProtoNameHashCompareFunc(void *data1, uint16_t datalen1, void *data2
     return len1 == len2 && memcmp(p1->name, p2->name, len1) == 0;
 }
 
-static void ProtoNameAddEntry(const char *proto_name, const int proto_number)
+static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number)
 {
     ProtoNameHashEntry *proto_ent = SCCalloc(1, sizeof(ProtoNameHashEntry));
     if (!proto_ent) {
@@ -423,13 +423,13 @@ void SCProtoNameInit(void)
         FatalError(SC_ERR_HASH_TABLE_INIT, "Unable to initialize protocol name/number table");
     }
 
-    for (uint32_t i = 0; i < ARRAY_SIZE(known_proto); i++) {
+    for (uint8_t i = 0; i < ARRAY_SIZE(known_proto); i++) {
         if (known_proto[i]) {
             ProtoNameAddEntry(known_proto[i], i);
         }
     }
 
-    for (uint32_t i = 0; i < ARRAY_SIZE(proto_aliases); i++) {
+    for (uint8_t i = 0; i < ARRAY_SIZE(proto_aliases); i++) {
         if (proto_aliases[i]) {
             ProtoNameAddEntry(proto_aliases[i], i);
         }

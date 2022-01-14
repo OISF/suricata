@@ -27,7 +27,7 @@
 /** Lookup array to hold the information related to known protocol
  *  values
  */
-extern const char *known_proto[256];
+extern const char *known_proto[255];
 
 bool SCProtoNameValid(uint16_t);
 bool SCGetProtoByName(const char *protoname, uint8_t *proto_number);

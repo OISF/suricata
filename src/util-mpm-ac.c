@@ -59,6 +59,7 @@
 #include "util-memcmp.h"
 #include "util-mpm-ac.h"
 #include "util-memcpy.h"
+#include "util-validate.h"
 
 void SCACInitCtx(MpmCtx *);
 void SCACInitThreadCtx(MpmCtx *, MpmThreadCtx *);
@@ -578,7 +579,8 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         memset(&q, 0, sizeof(StateQueue));
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
-            SC_AC_STATE_TYPE_U16 temp_state = ctx->goto_table[0][ascii_code];
+            DEBUG_VALIDATE_BUG_ON(ctx->goto_table[0][ascii_code] > UINT16_MAX);
+            SC_AC_STATE_TYPE_U16 temp_state = (uint16_t)ctx->goto_table[0][ascii_code];
             ctx->state_table_u16[0][ascii_code] = temp_state;
             if (temp_state != 0)
                 SCACEnqueue(&q, temp_state);
@@ -591,7 +593,8 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 int32_t temp_state = ctx->goto_table[r_state][ascii_code];
                 if (temp_state != SC_AC_FAIL) {
                     SCACEnqueue(&q, temp_state);
-                    ctx->state_table_u16[r_state][ascii_code] = temp_state;
+                    DEBUG_VALIDATE_BUG_ON(temp_state > UINT16_MAX);
+                    ctx->state_table_u16[r_state][ascii_code] = (uint16_t)temp_state;
                 } else {
                     ctx->state_table_u16[r_state][ascii_code] =
                         ctx->state_table_u16[ctx->failure_table[r_state]][ascii_code];

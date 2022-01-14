@@ -109,7 +109,7 @@
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
 #define TCP_GET_X2(p)                        TCP_GET_RAW_X2((p)->tcph)
-#define TCP_GET_HLEN(p)                      (TCP_GET_OFFSET((p)) << 2)
+#define TCP_GET_HLEN(p)                      ((uint8_t)(TCP_GET_OFFSET((p)) << 2))
 #define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT((p)->tcph)
 #define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT((p)->tcph)
 #define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ((p)->tcph)
