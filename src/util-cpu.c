@@ -121,7 +121,7 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
         return UINT16_MAX;
     }
 
-    return nprocs;
+    return (uint16_t)nprocs;
 #elif OS_WIN32
 	return UtilCpuGetNumProcessorsConfigured();
 #else

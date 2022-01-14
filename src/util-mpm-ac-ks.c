@@ -78,6 +78,7 @@
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-memcpy.h"
+#include "util-validate.h"
 #include "util-mpm-ac-ks.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -198,7 +199,8 @@ static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
         }
         if (ctx->alpha_hist[i]) {
             ctx->alphabet_size++;
-            ctx->translate_table[i] = ctx->alphabet_size;
+            DEBUG_VALIDATE_BUG_ON(ctx->alphabet_size > UINT8_MAX);
+            ctx->translate_table[i] = (uint8_t)ctx->alphabet_size;
         } else
             ctx->translate_table[i] = 0;
     }
@@ -554,7 +556,8 @@ static void SCACTileSetState1Byte(SCACTileCtx *ctx, int state, int aa,
                                   int next_state, int outputs)
 {
     uint8_t *state_table = (uint8_t*)ctx->state_table;
-    uint8_t encoded_next_state = next_state;
+    DEBUG_VALIDATE_BUG_ON(next_state < 0 || next_state > UINT8_MAX);
+    uint8_t encoded_next_state = (uint8_t)next_state;
 
     if (next_state == SC_AC_TILE_FAIL) {
         FatalError(SC_ERR_FATAL, "Error FAIL state in output");
@@ -573,7 +576,8 @@ static void SCACTileSetState2Bytes(SCACTileCtx *ctx, int state, int aa,
                                    int next_state, int outputs)
 {
     uint16_t *state_table = (uint16_t*)ctx->state_table;
-    uint16_t encoded_next_state = next_state;
+    DEBUG_VALIDATE_BUG_ON(next_state < 0 || next_state > UINT16_MAX);
+    uint16_t encoded_next_state = (uint16_t)next_state;
 
     if (next_state == SC_AC_TILE_FAIL) {
         FatalError(SC_ERR_FATAL, "Error FAIL state in output");
@@ -929,7 +933,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     /* Now make the copies of the no-case strings. */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
-            uint32_t len = ctx->parray[i]->len;
+            uint16_t len = ctx->parray[i]->len;
             uint32_t space = ((len + 7) / 8) * 8;
             memcpy(string_space, ctx->parray[i]->original_pat, len);
             ctx->pattern_list[i].cs = string_space;
@@ -1248,7 +1252,8 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
     for (i = 0; i < buflen; i++) {
         state = state_table_u32[state & 0x00FFFFFF][xlate[buf[i]]];
         if (SCHECK(state)) {
-            matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches, mpm_bitarray);
+            DEBUG_VALIDATE_BUG_ON(state < 0 || state > UINT16_MAX);
+            matches = CheckMatch(ctx, pmq, buf, buflen, (uint16_t)state, i, matches, mpm_bitarray);
         }
     } /* for (i = 0; i < buflen; i++) */
 

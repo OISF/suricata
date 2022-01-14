@@ -54,7 +54,6 @@ FixChecksum(uint16_t sum, uint16_t old, uint16_t new)
 
     l = sum + old - new;
     l = (l >> 16) + (l & 65535);
-    l = l & 65535;
 
-    return l;
+    return (uint16_t)(l & 65535);
 }
