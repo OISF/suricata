@@ -271,7 +271,7 @@ static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs)
     }
     j = 0;
     for (i = m; i > 0; --i) {
-        if (suff[i-1] == i) {
+        if (suff[i - 1] == i) {
             for (; j < m - i; ++j) {
                 if (bmGs[j] == m) {
                     bmGs[j] = m - i;
