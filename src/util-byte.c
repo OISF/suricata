@@ -877,10 +877,10 @@ static int ByteTest06 (void)
 
 static int ByteTest07 (void)
 {
-    const char *str = "1234567890";
+    const char str[] = "1234567890";
     uint64_t val = 1234567890;
     uint64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
-    int ret = ByteExtractStringUint64(&i64, 10, strlen(str), str);
+    int ret = ByteExtractStringUint64(&i64, 10, sizeof(str) - 1, str);
 
     if ((ret == 10) && (i64 == val)) {
         return 1;
@@ -891,10 +891,10 @@ static int ByteTest07 (void)
 
 static int ByteTest08 (void)
 {
-    const char *str = "1234567890";
+    const char str[] = "1234567890";
     uint32_t val = 1234567890;
     uint32_t i32 = 0xbfbfbfbf;
-    int ret = ByteExtractStringUint32(&i32, 10, strlen(str), str);
+    int ret = ByteExtractStringUint32(&i32, 10, sizeof(str) - 1, str);
 
     if ((ret == 10) && (i32 == val)) {
         return 1;
@@ -905,10 +905,10 @@ static int ByteTest08 (void)
 
 static int ByteTest09 (void)
 {
-    const char *str = "12345";
+    const char str[] = "12345";
     uint16_t val = 12345;
     uint16_t i16 = 0xbfbf;
-    int ret = ByteExtractStringUint16(&i16, 10, strlen(str), str);
+    int ret = ByteExtractStringUint16(&i16, 10, sizeof(str) - 1, str);
 
     if ((ret == 5) && (i16 == val)) {
         return 1;
@@ -919,10 +919,10 @@ static int ByteTest09 (void)
 
 static int ByteTest10 (void)
 {
-    const char *str = "123";
+    const char str[] = "123";
     uint8_t val = 123;
     uint8_t i8 = 0xbf;
-    int ret = ByteExtractStringUint8(&i8, 10, strlen(str), str);
+    int ret = ByteExtractStringUint8(&i8, 10, sizeof(str) - 1, str);
 
     if ((ret == 3) && (i8 == val)) {
         return 1;
@@ -933,10 +933,10 @@ static int ByteTest10 (void)
 
 static int ByteTest11 (void)
 {
-    const char *str = "-1234567890";
+    const char str[] = "-1234567890";
     int64_t val = -1234567890;
     int64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
-    int ret = ByteExtractStringInt64(&i64, 10, strlen(str), str);
+    int ret = ByteExtractStringInt64(&i64, 10, sizeof(str) - 1, str);
 
     if ((ret == 11) && (i64 == val)) {
         return 1;
@@ -947,10 +947,10 @@ static int ByteTest11 (void)
 
 static int ByteTest12 (void)
 {
-    const char *str = "-1234567890";
+    const char str[] = "-1234567890";
     int32_t val = -1234567890;
     int32_t i32 = 0xbfbfbfbf;
-    int ret = ByteExtractStringInt32(&i32, 10, strlen(str), str);
+    int ret = ByteExtractStringInt32(&i32, 10, sizeof(str) - 1, str);
 
     if ((ret == 11) && (i32 == val)) {
         return 1;
@@ -961,10 +961,10 @@ static int ByteTest12 (void)
 
 static int ByteTest13 (void)
 {
-    const char *str = "-12345";
+    const char str[] = "-12345";
     int16_t val = -12345;
     int16_t i16 = 0xbfbf;
-    int ret = ByteExtractStringInt16(&i16, 10, strlen(str), str);
+    int ret = ByteExtractStringInt16(&i16, 10, sizeof(str) - 1, str);
 
     if ((ret == 6) && (i16 == val)) {
         return 1;
@@ -975,10 +975,10 @@ static int ByteTest13 (void)
 
 static int ByteTest14 (void)
 {
-    const char *str = "-123";
+    const char str[] = "-123";
     int8_t val = -123;
     int8_t i8 = 0xbf;
-    int ret = ByteExtractStringInt8(&i8, 10, strlen(str), str);
+    int ret = ByteExtractStringInt8(&i8, 10, sizeof(str) - 1, str);
 
     if ((ret == 4) && (i8 == val)) {
         return 1;
@@ -990,11 +990,11 @@ static int ByteTest14 (void)
 /** \test max u32 value */
 static int ByteTest15 (void)
 {
-    const char *str = "4294967295";
+    const char str[] = "4294967295";
     uint32_t val = 4294967295UL;
     uint32_t u32 = 0xffffffff;
 
-    int ret = ByteExtractStringUint32(&u32, 10, strlen(str), str);
+    int ret = ByteExtractStringUint32(&u32, 10, sizeof(str) - 1, str);
     if ((ret == 10) && (u32 == val)) {
         return 1;
     }
@@ -1005,10 +1005,10 @@ static int ByteTest15 (void)
 /** \test max u32 value + 1 */
 static int ByteTest16 (void)
 {
-    const char *str = "4294967296";
+    const char str[] = "4294967296";
     uint32_t u32 = 0;
 
-    int ret = ByteExtractStringUint32(&u32, 10, strlen(str), str);
+    int ret = ByteExtractStringUint32(&u32, 10, sizeof(str) - 1, str);
     if (ret != 0) {
         return 1;
     }

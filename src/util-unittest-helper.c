@@ -656,13 +656,13 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
     int i = 0;
     int res = 1;
     for (; i < numsids; i++) {
-        uint16_t r = PacketAlertCheck(p, sids[i]);
+        uint32_t r = PacketAlertCheck(p, sids[i]);
         if (r != results[i]) {
-            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu32
-                    " as expected", sids[i], r, results[i]);
+            SCLogInfo("Sid %" PRIu32 " matched %" PRIu32 " times, and not %" PRIu32 " as expected",
+                    sids[i], r, results[i]);
             res = 0;
         } else {
-            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, as expected", sids[i], r);
+            SCLogInfo("Sid %" PRIu32 " matched %" PRIu32 " times, as expected", sids[i], r);
         }
     }
     return res;
