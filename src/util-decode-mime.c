@@ -448,7 +448,7 @@ static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
         /* convert to lowercase and store */
         uint32_t u;
         for (u = 0; u < nlen; u++)
-            name[u] = tolower(name[u]);
+            name[u] = u8_tolower(name[u]);
 
         field->name = (uint8_t *)name;
         field->name_len = nlen;
@@ -687,7 +687,11 @@ static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
 static inline uint8_t * FindBuffer(const uint8_t *src, uint32_t len, const uint8_t *find, uint32_t find_len)
 {
     /* Use utility search function */
-    return BasicSearchNocase(src, len, find, find_len);
+    if (find_len > UINT16_MAX) {
+        // TODO rewrite all this to have app-layer events
+        find_len = UINT16_MAX;
+    }
+    return BasicSearchNocase(src, len, find, (uint16_t)find_len);
 }
 
 /**
@@ -1059,7 +1063,7 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                     // URL decoding would probably go here
 
                     /* url is all lowercase */
-                    tempUrl[tempUrlLen] = tolower(tok[i]);
+                    tempUrl[tempUrlLen] = u8_tolower(tok[i]);
                     tempUrlLen++;
                 }
 
@@ -1206,11 +1210,12 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \return Number of bytes pulled from the current buffer
  */
-static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state, int force)
+static uint8_t ProcessBase64Remainder(
+        const uint8_t *buf, uint8_t len, MimeDecParseState *state, int force)
 {
     uint32_t ret;
-    uint8_t remainder = 0, remdec = 0;
+    uint8_t remainder = 0;
+    uint32_t remdec = 0;
 
     SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
@@ -1302,7 +1307,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         SCLogDebug("Base64 line remainder found: %u", state->bvr_len);
 
         /* Process remainder and return number of bytes pulled from current buffer */
-        rem1 = ProcessBase64Remainder(buf, len, state, 0);
+        rem1 = ProcessBase64Remainder(buf, (uint8_t)len, state, 0);
     }
 
     /* No error and at least some more data needs to be decoded */
@@ -1390,9 +1395,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
  *
  * \return byte value on success, -1 if failed
  **/
-static int16_t DecodeQPChar(char h)
+static int8_t DecodeQPChar(char h)
 {
-    uint16_t res = 0;
+    int8_t res = 0;
 
     /* 0-9 */
     if (h >= 48 && h <= 57) {
@@ -1471,7 +1476,7 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                     state->msg->anomaly_flags |= ANOM_INVALID_QP;
                     SCLogDebug("Error: Quoted-printable decoding failed");
                 } else {
-                    val = (res << 4); /* Shift result left */
+                    val = (uint8_t)(res << 4); /* Shift result left */
                     h2 = *(buf + offset + 2);
                     res = DecodeQPChar(h2);
                     if (res < 0) {
@@ -2588,10 +2593,14 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
 
             line = tok;
 
-            state->current_line_delimiter_len = (remainPtr - tok) - tokLen;
+            if ((remainPtr - tok) - tokLen > UINT8_MAX) {
+                SCLogDebug("Error: MimeDecParseLine() overflow: %ld", (remainPtr - tok) - tokLen);
+                ret = MIME_DEC_ERR_OVERFLOW;
+                break;
+            }
+            state->current_line_delimiter_len = (uint8_t)((remainPtr - tok) - tokLen);
             /* Parse the line */
-            ret = MimeDecParseLine(line, tokLen,
-                                   (remainPtr - tok) - tokLen, state);
+            ret = MimeDecParseLine(line, tokLen, state->current_line_delimiter_len, state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("Error: MimeDecParseLine() function failed: %d",
                         ret);

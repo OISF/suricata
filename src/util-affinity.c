@@ -296,7 +296,7 @@ void AffinitySetupLoadFromConfig()
  */
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
-    int ncpu = 0;
+    uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     int iter = 0;
     SCMutexLock(&taf->taf_mutex);

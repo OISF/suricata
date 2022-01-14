@@ -126,7 +126,7 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     struct in_addr *ipv4_addr = NULL;
     struct in6_addr *ipv6_addr = NULL;
     char *netmask_str = NULL;
-    int netmask_value = 0;
+    uint8_t netmask_value = 0;
     int *user_data = NULL;
     bool recursive = false;
 
@@ -185,7 +185,8 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            if (StringParseI32RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 32) < 0) {
+            if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 32) <
+                    0) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv4_addr);
@@ -210,7 +211,8 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            if (StringParseI32RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 128) < 0) {
+            if (StringParseU8RangeCheck(&netmask_value, 10, 0, (const char *)netmask_str, 0, 128) <
+                    0) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
                 SCFree(ipv6_addr);
