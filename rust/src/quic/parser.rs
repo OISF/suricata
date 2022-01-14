@@ -76,7 +76,7 @@ pub enum QuicType {
 
 #[derive(Debug, PartialEq)]
 pub struct PublicFlags {
-    is_long: bool,
+    pub is_long: bool,
 }
 
 impl PublicFlags {
@@ -93,6 +93,7 @@ pub struct QuicHeader {
     pub flags: PublicFlags,
     pub ty: QuicType,
     pub version: QuicVersion,
+    pub version_buf: Vec<u8>,
     pub dcid: Vec<u8>,
     pub scid: Vec<u8>,
 }
@@ -111,6 +112,7 @@ impl QuicHeader {
             flags,
             ty,
             version,
+            version_buf: Vec::new(),
             dcid,
             scid,
         }
@@ -132,12 +134,14 @@ impl QuicHeader {
                     flags,
                     ty: QuicType::Short,
                     version: QuicVersion(0),
+                    version_buf: Vec::new(),
                     dcid: dcid.to_vec(),
                     scid: Vec::new(),
                 },
             ));
         } else {
             // Decode Long header
+            let (_, version_buf) = take(4_usize)(rest)?;
             let (rest, version) = map(be_u32, QuicVersion)(rest)?;
 
             let ty = if version == QuicVersion(0) {
@@ -213,6 +217,7 @@ impl QuicHeader {
                     flags,
                     ty,
                     version,
+                    version_buf: version_buf.to_vec(),
                     dcid,
                     scid,
                 },
@@ -253,6 +258,7 @@ mod tests {
                 flags: PublicFlags { is_long: true },
                 ty: QuicType::Initial,
                 version: QuicVersion(0xff00001d),
+                version_buf: vec![0xff, 0x00, 0x00, 0x1d],
                 dcid: hex::decode("91d0b10ac886039973885dfa07c46943")
                     .unwrap()
                     .to_vec(),
@@ -275,6 +281,7 @@ mod tests {
                 flags: PublicFlags { is_long: true },
                 ty: QuicType::Initial,
                 version: QuicVersion::Q044,
+                version_buf: vec![0x51, 0x30, 0x34, 0x34],
                 dcid: hex::decode("05cad2cc06c4d0e4").unwrap().to_vec(),
                 scid: Vec::new(),
             },

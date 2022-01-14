@@ -19,6 +19,22 @@ use crate::quic::quic::{QuicTransaction};
 use std::ptr;
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_version(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if tx.header.flags.is_long {
+        let s = &tx.header.version_buf;
+        *buffer = s.as_ptr();
+        *buffer_len = s.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
     tx: &QuicTransaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
@@ -57,9 +73,4 @@ pub unsafe extern "C" fn rs_quic_tx_get_cyu_string(
 
         0
     }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_quic_tx_get_version(tx: &QuicTransaction) -> u32 {
-    tx.header.version.into()
 }
