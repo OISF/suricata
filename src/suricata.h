@@ -175,7 +175,7 @@ extern uint16_t g_vlan_mask;
 extern bool g_disable_hashing;
 
 #include <ctype.h>
-#define u8_tolower(c) tolower((uint8_t)(c))
+#define u8_tolower(c) ((uint8_t)tolower((uint8_t)(c)))
 #define u8_toupper(c) toupper((uint8_t)(c))
 
 void EngineStop(void);

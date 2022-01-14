@@ -210,7 +210,7 @@ static char *SCRConfStringToLowercase(const char *str)
 
     temp_str = new_str;
     while (*temp_str != '\0') {
-        *temp_str = tolower((unsigned char)*temp_str);
+        *temp_str = (char)tolower(*temp_str);
         temp_str++;
     }
 

@@ -220,7 +220,7 @@ static char *SCClassConfStringToLowercase(const char *str)
 
     temp_str = new_str;
     while (*temp_str != '\0') {
-        *temp_str = tolower((unsigned char)*temp_str);
+        *temp_str = (char)tolower(*temp_str);
         temp_str++;
     }
 
@@ -560,7 +560,7 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
     char name[strlen(ct_name) + 1];
     size_t s;
     for (s = 0; s < strlen(ct_name); s++)
-        name[s] = tolower((unsigned char)ct_name[s]);
+        name[s] = (char)tolower(ct_name[s]);
     name[s] = '\0';
 
     SCClassConfClasstype ct_lookup = {0, 0, name, NULL };
