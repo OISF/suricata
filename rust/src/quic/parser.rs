@@ -52,6 +52,17 @@ impl QuicVersion {
     }
 }
 
+impl From<QuicVersion> for String {
+    fn from(from: QuicVersion) -> Self {
+        match from {
+            QuicVersion(0x51303433) => "Q043".to_string(),
+            QuicVersion(0x51303434) => "Q044".to_string(),
+            QuicVersion(0x51303435) => "Q045".to_string(),
+            QuicVersion(0x51303436) => "Q046".to_string(),
+            QuicVersion(x) => format!("{:x}", x),
+        }
+    }
+}
 impl From<QuicVersion> for u32 {
     fn from(from: QuicVersion) -> Self {
         from.0
