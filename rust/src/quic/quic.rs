@@ -17,7 +17,8 @@
 
 use super::{
     cyu::Cyu,
-    parser::{QuicData, QuicHeader},
+    parser::{QuicType, QuicData, QuicHeader},
+    frames::{Frame, StreamTag},
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -32,16 +33,18 @@ pub struct QuicTransaction {
     tx_id: u64,
     pub header: QuicHeader,
     pub cyu: Vec<Cyu>,
+    pub sni: Option<Vec<u8>>,
     tx_data: AppLayerTxData,
 }
 
 impl QuicTransaction {
-    fn new(header: QuicHeader, data: QuicData) -> Self {
+    fn new(header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
             header,
             cyu,
+            sni,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -81,8 +84,8 @@ impl QuicState {
         self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
     }
 
-    fn new_tx(&mut self, header: QuicHeader, data: QuicData) -> QuicTransaction {
-        let mut tx = QuicTransaction::new(header, data);
+    fn new_tx(&mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>) -> QuicTransaction {
+        let mut tx = QuicTransaction::new(header, data, sni);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         return tx;
@@ -111,9 +114,25 @@ impl QuicState {
         match QuicHeader::from_bytes(input, DEFAULT_DCID_LEN) {
             Ok((rest, header)) => match QuicData::from_bytes(rest) {
                 Ok(data) => {
-                    let transaction = self.new_tx(header, data);
-                    self.transactions.push(transaction);
+                    // no tx for the short header (data) frames
+                    if header.ty != QuicType::Short {
+                        let mut sni : Option<Vec<u8>> = None;
+                        for frame in &data.frames {
+                            if let Frame::Stream(s) = frame {
+                                if let Some(tags) = &s.tags {
+                                    for (tag, value) in tags {
+                                        if tag == &StreamTag::Sni {
+                                            sni = Some(value.to_vec());
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
+                        let transaction = self.new_tx(header, data, sni);
+                        self.transactions.push(transaction);
+                    }
                     return true;
                 }
                 Err(_e) => {
