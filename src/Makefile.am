@@ -243,6 +243,7 @@ noinst_HEADERS = \
 	detect-metadata.h \
 	detect-modbus.h \
 	detect-quic-sni.h \
+	detect-quic-ua.h \
 	detect-quic-version.h \
 	detect-quic-cyu-hash.h \
 	detect-quic-cyu-string.h \
@@ -834,6 +835,7 @@ libsuricata_c_a_SOURCES = \
 	detect-metadata.c \
 	detect-modbus.c \
 	detect-quic-sni.c \
+	detect-quic-ua.c \
 	detect-quic-version.c \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \

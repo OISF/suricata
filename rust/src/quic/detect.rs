@@ -19,6 +19,21 @@ use crate::quic::quic::{QuicTransaction};
 use std::ptr;
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_ua(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some(ua) = &tx.ua {
+        *buffer = ua.as_ptr();
+        *buffer_len = ua.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_sni(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
