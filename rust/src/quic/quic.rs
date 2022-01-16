@@ -34,17 +34,19 @@ pub struct QuicTransaction {
     pub header: QuicHeader,
     pub cyu: Vec<Cyu>,
     pub sni: Option<Vec<u8>>,
+    pub ua: Option<Vec<u8>>,
     tx_data: AppLayerTxData,
 }
 
 impl QuicTransaction {
-    fn new(header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>) -> Self {
+    fn new(header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
             header,
             cyu,
             sni,
+            ua,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -84,8 +86,8 @@ impl QuicState {
         self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
     }
 
-    fn new_tx(&mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>) -> QuicTransaction {
-        let mut tx = QuicTransaction::new(header, data, sni);
+    fn new_tx(&mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>) -> QuicTransaction {
+        let mut tx = QuicTransaction::new(header, data, sni, ua);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         return tx;
@@ -117,12 +119,17 @@ impl QuicState {
                     // no tx for the short header (data) frames
                     if header.ty != QuicType::Short {
                         let mut sni : Option<Vec<u8>> = None;
+                        let mut ua : Option<Vec<u8>> = None;
                         for frame in &data.frames {
                             if let Frame::Stream(s) = frame {
                                 if let Some(tags) = &s.tags {
                                     for (tag, value) in tags {
                                         if tag == &StreamTag::Sni {
                                             sni = Some(value.to_vec());
+                                        } else if tag == &StreamTag::Uaid {
+                                            ua = Some(value.to_vec());
+                                        }
+                                        if sni.is_some() && ua.is_some() {
                                             break;
                                         }
                                     }
@@ -130,7 +137,7 @@ impl QuicState {
                             }
                         }
 
-                        let transaction = self.new_tx(header, data, sni);
+                        let transaction = self.new_tx(header, data, sni, ua);
                         self.transactions.push(transaction);
                     }
                     return true;
