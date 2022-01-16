@@ -26,6 +26,9 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         if let Some(sni) = &tx.sni {
             js.set_string("sni", &String::from_utf8_lossy(&sni))?;
         }
+        if let Some(ua) = &tx.ua {
+            js.set_string("ua", &String::from_utf8_lossy(&ua))?;
+        }
     }
     js.open_array("cyu")?;
     for cyu in &tx.cyu {
