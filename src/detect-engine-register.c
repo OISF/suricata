@@ -218,6 +218,7 @@
 #include "detect-mqtt-subscribe-topic.h"
 #include "detect-mqtt-unsubscribe-topic.h"
 #include "detect-quic-sni.h"
+#include "detect-quic-ua.h"
 #include "detect-quic-version.h"
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
@@ -652,6 +653,7 @@ void SigTableSetup(void)
     DetectMQTTSubscribeTopicRegister();
     DetectMQTTUnsubscribeTopicRegister();
     DetectQuicSniRegister();
+    DetectQuicUaRegister();
     DetectQuicVersionRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
