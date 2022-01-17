@@ -902,7 +902,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
-            int cpu = AffinityGetNextCPU(taf);
+            uint16_t cpu = AffinityGetNextCPU(taf);
             SetCPUAffinity(cpu);
             /* If CPU is in a set overwrite the default thread prio */
             if (CPU_ISSET(cpu, &taf->lowprio_cpu)) {
@@ -2343,7 +2343,7 @@ uint16_t TmThreadsGetWorkerThreadMax()
         SCLogWarning(SC_ERR_RUNMODE, "limited number of 'worker' threads to 1024. Wanted %d", thread_max);
         thread_max = 1024;
     }
-    return thread_max;
+    return (uint16_t)thread_max;
 }
 
 static inline void ThreadBreakLoop(ThreadVars *tv)
