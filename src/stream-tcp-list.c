@@ -77,7 +77,7 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
 static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, uint8_t *data, uint16_t data_len)
 {
     uint64_t stream_offset;
-    uint16_t data_offset;
+    uint32_t data_offset;
 
     if (likely(SEQ_GEQ(seg->seq, stream->base_seq))) {
         stream_offset = STREAM_BASE_OFFSET(stream) + (seg->seq - stream->base_seq);
@@ -370,8 +370,8 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
      * data, we have to update buf with the list data */
     if (data_is_different && !use_new_data) {
         /* we need to copy list into seg */
-        uint16_t list_offset = 0;
-        uint16_t seg_offset = 0;
+        uint32_t list_offset = 0;
+        uint32_t seg_offset = 0;
         uint32_t list_len;
         uint16_t seg_len = p->payload_len;
         uint32_t list_seq = list->seq;

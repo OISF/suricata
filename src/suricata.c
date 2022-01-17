@@ -2631,8 +2631,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     const char *custom_umask;
     if (ConfGet("umask", &custom_umask) == 1) {
         uint16_t mask;
-        if (StringParseUint16(&mask, 8, strlen(custom_umask),
-                                    custom_umask) > 0) {
+        if (StringParseUint16(&mask, 8, (uint16_t)strlen(custom_umask), custom_umask) > 0) {
             umask((mode_t)mask);
         }
     }
