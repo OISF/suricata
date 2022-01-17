@@ -288,6 +288,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         fd->scope = CONFIG_SCOPE_TX;
     }
 
+    if (fd->scope == CONFIG_SCOPE_TX) {
+        s->flags |= SIG_FLAG_APPLAYER;
+    } else if (fd->scope == CONFIG_SCOPE_FLOW) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
+    }
+
     sm->ctx = (SigMatchCtx*)fd;
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
 
