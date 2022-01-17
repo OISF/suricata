@@ -83,8 +83,8 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
 
         SCLogDebug("seq %u, end %u", seq, end);
 
-        uint16_t pkt_off = seq - pkt_seq;
-        uint16_t seg_off = seq - seg->seq;
+        uint32_t pkt_off = seq - pkt_seq;
+        uint32_t seg_off = seq - seg->seq;
         SCLogDebug("pkt_off %u, seg_off %u", pkt_off, seg_off);
 
         uint32_t range = end - seq;
@@ -138,8 +138,8 @@ void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
     uint32_t seq = (SEQ_LT(pseq, tseq)) ? tseq : pseq;
     SCLogDebug("seq %u, end %u", seq, end);
 
-    uint16_t poff = seq - pseq;
-    uint16_t toff = seq - tseq;
+    uint32_t poff = seq - pseq;
+    uint32_t toff = seq - tseq;
     SCLogDebug("poff %u, toff %u", poff, toff);
 
     uint32_t range = end - seq;
