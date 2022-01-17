@@ -33,6 +33,7 @@
 #include "detect-dsize.h"
 #include "detect-tcp-flags.h"
 #include "detect-flow.h"
+#include "detect-config.h"
 #include "detect-flowbits.h"
 
 #include "util-profiling.h"
@@ -560,6 +561,13 @@ static int SignatureCreateMask(Signature *s)
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
+            case DETECT_CONFIG: {
+                DetectConfigData *fd = (DetectConfigData *)sm->ctx;
+                if (fd->scope == CONFIG_SCOPE_FLOW) {
+                    s->mask |= SIG_MASK_REQUIRE_FLOW;
+                }
+                break;
+            }
         }
     }
 
