@@ -374,8 +374,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
     if (seg) {
         uint32_t prealloc = 0;
-        if (StringParseUint32(&prealloc, 10, strlen(seg->val), seg->val) < 0)
-        {
+        if (StringParseUint32(&prealloc, 10, (uint16_t)strlen(seg->val), seg->val) < 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "segment-prealloc of "
                     "%s is invalid", seg->val);
             return -1;
@@ -669,7 +668,8 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(-1);
     }
 
-    TCP_SEG_LEN(seg) = size;
+    DEBUG_VALIDATE_BUG_ON(size > UINT16_MAX);
+    TCP_SEG_LEN(seg) = (uint16_t)size;
     seg->seq = TCP_GET_SEQ(p);
 
     /* HACK: for TFO SYN packets the seq for data starts at + 1 */
@@ -1918,7 +1918,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
  */
 TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
 {
-    TcpSegment *seg = (TcpSegment *) PoolThreadGetById(segment_thread_pool, ra_ctx->segment_thread_pool_id);
+    TcpSegment *seg = (TcpSegment *)PoolThreadGetById(
+            segment_thread_pool, (uint16_t)ra_ctx->segment_thread_pool_id);
     SCLogDebug("seg we return is %p", seg);
     if (seg == NULL) {
         /* Increment the counter to show that we are not able to serve the
