@@ -135,7 +135,6 @@ static void AlertJsonTls(const Flow *f, JsonBuilder *js)
     if (ssl_state) {
         jb_open_object(js, "tls");
 
-        JsonTlsLogJSONBasic(js, ssl_state);
         JsonTlsLogJSONExtended(js, ssl_state);
 
         jb_close(js);
