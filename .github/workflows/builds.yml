@@ -1129,7 +1129,6 @@ jobs:
                 texlive-latex-extra
       - name: Install Coccinelle
         run: |
-          add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
