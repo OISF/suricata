@@ -33,6 +33,7 @@
 #include "util-random.h"
 #include "util-misc.h"
 #include "util-byte.h"
+#include "util-validate.h"
 
 #include "ippair-queue.h"
 
@@ -168,8 +169,10 @@ void IPPairClearMemory(IPPair *h)
 void IPPairInitConfig(bool quiet)
 {
     SCLogDebug("initializing ippair engine...");
-    if (IPPairStorageSize() > 0)
-        g_ippair_size = sizeof(IPPair) + IPPairStorageSize();
+    if (IPPairStorageSize() > 0) {
+        DEBUG_VALIDATE_BUG_ON(sizeof(IPPair) + IPPairStorageSize() > UINT16_MAX);
+        g_ippair_size = (uint16_t)(sizeof(IPPair) + IPPairStorageSize());
+    }
 
     memset(&ippair_config,  0, sizeof(ippair_config));
     //SC_ATOMIC_INIT(flow_flags);
@@ -204,16 +207,14 @@ void IPPairInitConfig(bool quiet)
     }
     if ((ConfGet("ippair.hash-size", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ippair_config.hash_size = configval;
         }
     }
 
     if ((ConfGet("ippair.prealloc", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ippair_config.prealloc = configval;
         } else {
             WarnInvalidConfEntry("ippair.prealloc", "%"PRIu32, ippair_config.prealloc);

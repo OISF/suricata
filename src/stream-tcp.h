@@ -175,7 +175,7 @@ enum {
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
-int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
+uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);
