@@ -580,8 +580,7 @@ void FlowInitConfig(bool quiet)
             FatalError(SC_ERR_FATAL, "Invalid value for flow.hash-size: NULL");
         }
 
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             flow_config.hash_size = configval;
         }
     }
@@ -591,8 +590,7 @@ void FlowInitConfig(bool quiet)
             FatalError(SC_ERR_FATAL, "Invalid value for flow.prealloc: NULL");
         }
 
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             flow_config.prealloc = configval;
         }
     }
@@ -780,54 +778,46 @@ void FlowInitFlowProto(void)
             emergency_bypassed = ConfNodeLookupChildValue(proto,
                 "emergency-bypassed");
 
-            if (new != NULL &&
-                StringParseUint32(&configval, 10, strlen(new), new) > 0) {
+            if (new != NULL && StringParseUint32(&configval, 10, (uint16_t)strlen(new), new) > 0) {
 
-                    flow_timeouts_normal[FLOW_PROTO_DEFAULT].new_timeout = configval;
+                flow_timeouts_normal[FLOW_PROTO_DEFAULT].new_timeout = configval;
             }
-            if (established != NULL &&
-                StringParseUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
+            if (established != NULL && StringParseUint32(&configval, 10,
+                                               (uint16_t)strlen(established), established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_DEFAULT].est_timeout = configval;
             }
             if (closed != NULL &&
-                StringParseUint32(&configval, 10, strlen(closed),
-                                        closed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(closed), closed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_DEFAULT].closed_timeout = configval;
             }
             if (bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(bypassed),
-                                            bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(bypassed), bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
-                StringParseUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
+                    StringParseUint32(
+                            &configval, 10, (uint16_t)strlen(emergency_new), emergency_new) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].new_timeout = configval;
             }
             if (emergency_established != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_established),
-                                            emergency_established) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_established),
+                            emergency_established) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].est_timeout= configval;
             }
             if (emergency_closed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_closed),
-                                            emergency_closed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_closed),
+                            emergency_closed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].closed_timeout = configval;
             }
             if (emergency_bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_bypassed),
-                                            emergency_bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_bypassed),
+                            emergency_bypassed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
             }
@@ -848,54 +838,46 @@ void FlowInitFlowProto(void)
             emergency_bypassed = ConfNodeLookupChildValue(proto,
                 "emergency-bypassed");
 
-            if (new != NULL &&
-                StringParseUint32(&configval, 10, strlen(new), new) > 0) {
+            if (new != NULL && StringParseUint32(&configval, 10, (uint16_t)strlen(new), new) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].new_timeout = configval;
             }
-            if (established != NULL &&
-                StringParseUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
+            if (established != NULL && StringParseUint32(&configval, 10,
+                                               (uint16_t)strlen(established), established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].est_timeout = configval;
             }
             if (closed != NULL &&
-                StringParseUint32(&configval, 10, strlen(closed),
-                                        closed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(closed), closed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].closed_timeout = configval;
             }
             if (bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(bypassed),
-                                            bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(bypassed), bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
-                StringParseUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
+                    StringParseUint32(
+                            &configval, 10, (uint16_t)strlen(emergency_new), emergency_new) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].new_timeout = configval;
             }
             if (emergency_established != NULL &&
-                StringParseUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_established),
+                            emergency_established) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].est_timeout = configval;
             }
             if (emergency_closed != NULL &&
-                StringParseUint32(&configval, 10,
-                                        strlen(emergency_closed),
-                                        emergency_closed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_closed),
+                            emergency_closed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].closed_timeout = configval;
             }
             if (emergency_bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_bypassed),
-                                            emergency_bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_bypassed),
+                            emergency_bypassed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].bypassed_timeout = configval;
             }
@@ -913,41 +895,35 @@ void FlowInitFlowProto(void)
             emergency_bypassed = ConfNodeLookupChildValue(proto,
                 "emergency-bypassed");
 
-            if (new != NULL &&
-                StringParseUint32(&configval, 10, strlen(new), new) > 0) {
+            if (new != NULL && StringParseUint32(&configval, 10, (uint16_t)strlen(new), new) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_UDP].new_timeout = configval;
             }
-            if (established != NULL &&
-                StringParseUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
+            if (established != NULL && StringParseUint32(&configval, 10,
+                                               (uint16_t)strlen(established), established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_UDP].est_timeout = configval;
             }
             if (bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(bypassed),
-                                            bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(bypassed), bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_UDP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
-                StringParseUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
+                    StringParseUint32(
+                            &configval, 10, (uint16_t)strlen(emergency_new), emergency_new) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_UDP].new_timeout = configval;
             }
             if (emergency_established != NULL &&
-                StringParseUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_established),
+                            emergency_established) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_UDP].est_timeout = configval;
             }
             if (emergency_bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_bypassed),
-                                            emergency_bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_bypassed),
+                            emergency_bypassed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
             }
@@ -965,41 +941,35 @@ void FlowInitFlowProto(void)
             emergency_bypassed = ConfNodeLookupChildValue(proto,
                 "emergency-bypassed");
 
-            if (new != NULL &&
-                StringParseUint32(&configval, 10, strlen(new), new) > 0) {
+            if (new != NULL && StringParseUint32(&configval, 10, (uint16_t)strlen(new), new) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_ICMP].new_timeout = configval;
             }
-            if (established != NULL &&
-                StringParseUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
+            if (established != NULL && StringParseUint32(&configval, 10,
+                                               (uint16_t)strlen(established), established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_ICMP].est_timeout = configval;
             }
             if (bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(bypassed),
-                                            bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(bypassed), bypassed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_ICMP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
-                StringParseUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
+                    StringParseUint32(
+                            &configval, 10, (uint16_t)strlen(emergency_new), emergency_new) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_ICMP].new_timeout = configval;
             }
             if (emergency_established != NULL &&
-                StringParseUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_established),
+                            emergency_established) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_ICMP].est_timeout = configval;
             }
             if (emergency_bypassed != NULL &&
-                    StringParseUint32(&configval, 10,
-                                            strlen(emergency_bypassed),
-                                            emergency_bypassed) > 0) {
+                    StringParseUint32(&configval, 10, (uint16_t)strlen(emergency_bypassed),
+                            emergency_bypassed) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_ICMP].bypassed_timeout = configval;
             }
@@ -1159,7 +1129,8 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 {
     if (s != f->flow_state) {
         /* set the state */
-        f->flow_state = s;
+        // Explicit cast from the enum type to the compact version
+        f->flow_state = (FlowStateType)s;
 
         /* update timeout policy and value */
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);

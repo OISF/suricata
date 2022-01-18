@@ -34,6 +34,7 @@
 #include "util-random.h"
 #include "util-misc.h"
 #include "util-byte.h"
+#include "util-validate.h"
 
 #include "host-queue.h"
 
@@ -174,8 +175,10 @@ void HostClearMemory(Host *h)
 void HostInitConfig(bool quiet)
 {
     SCLogDebug("initializing host engine...");
-    if (HostStorageSize() > 0)
-        g_host_size = sizeof(Host) + HostStorageSize();
+    if (HostStorageSize() > 0) {
+        DEBUG_VALIDATE_BUG_ON(sizeof(Host) + HostStorageSize() > UINT16_MAX);
+        g_host_size = (uint16_t)(sizeof(Host) + HostStorageSize());
+    }
 
     memset(&host_config,  0, sizeof(host_config));
     //SC_ATOMIC_INIT(flow_flags);
@@ -210,16 +213,14 @@ void HostInitConfig(bool quiet)
     }
     if ((ConfGetValue("host.hash-size", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             host_config.hash_size = configval;
         }
     }
 
     if ((ConfGetValue("host.prealloc", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             host_config.prealloc = configval;
         } else {
             WarnInvalidConfEntry("host.prealloc", "%"PRIu32, host_config.prealloc);
