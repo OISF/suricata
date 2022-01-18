@@ -80,7 +80,7 @@ typedef struct Libnet11Packet_ {
     struct libnet_in6_addr src6, dst6;
     uint32_t src4, dst4;
     uint16_t sp, dp;
-    size_t len;
+    uint16_t len;
     uint8_t *smac, *dmac;
 } Libnet11Packet;
 
@@ -351,7 +351,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    const int iplen = IPV4_GET_IPLEN(p);
+    const uint16_t iplen = IPV4_GET_IPLEN(p);
     if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + LIBNET_IPV4_H + 8) {
         lpacket.len = MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, (LIBNET_IPV4_H + iplen));
     } else {
@@ -493,7 +493,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    const int iplen = IPV6_GET_PLEN(p);
+    const uint16_t iplen = IPV6_GET_PLEN(p);
     if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + IPV6_HEADER_LEN + 8) {
         lpacket.len = IPV6_HEADER_LEN + MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, iplen);
     } else {
