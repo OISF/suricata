@@ -63,6 +63,6 @@ void DetectByteExtractRegister(void);
 
 SigMatch *DetectByteExtractRetrieveSMVar(const char *, const Signature *);
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *, const SigMatchData *, const Signature *,
-                             const uint8_t *, uint16_t, uint64_t *, uint8_t);
+        const uint8_t *, uint32_t, uint64_t *, uint8_t);
 
 #endif /* __DETECT_BYTEEXTRACT_H__ */

@@ -118,8 +118,8 @@ void DetectAppLayerMpmRegister2(const char *name,
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
     DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > INT16_MAX);
-    am->sm_list = sm_list;
-    am->sm_list_base = sm_list;
+    am->sm_list = (int16_t)sm_list;
+    am->sm_list_base = (int16_t)sm_list;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_APP;
 
@@ -159,7 +159,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             am->direction = t->direction;
             DEBUG_VALIDATE_BUG_ON(id < 0 || id > INT16_MAX);
-            am->sm_list = id; // use new id
+            am->sm_list = (uint16_t)id; // use new id
             am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_APP;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
@@ -302,7 +302,7 @@ void DetectFrameMpmRegister(const char *name, int direction, int priority,
     DetectBufferTypeSupportsFrames(name);
     DetectBufferTypeSupportsTransformations(name);
     int sm_list = DetectBufferTypeGetByName(name);
-    if (sm_list == -1) {
+    if (sm_list < 0 || sm_list > UINT16_MAX) {
         FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
     }
 
@@ -310,7 +310,7 @@ void DetectFrameMpmRegister(const char *name, int direction, int priority,
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
-    am->sm_list = sm_list;
+    am->sm_list = (uint16_t)sm_list;
     am->direction = direction;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
@@ -350,7 +350,8 @@ void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, con
             BUG_ON(am == NULL);
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
-            am->sm_list = id; // use new id
+            DEBUG_VALIDATE_BUG_ON(id < 0 || id > UINT16_MAX);
+            am->sm_list = (uint16_t)id; // use new id
             am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
@@ -386,7 +387,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
             AppProtoToString(alproto), type);
 
     const int sm_list = DetectEngineBufferTypeRegister(de_ctx, name);
-    if (sm_list < 0) {
+    if (sm_list < 0 || sm_list > UINT16_MAX) {
         FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
     }
 
@@ -398,7 +399,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
     BUG_ON(am == NULL);
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
-    am->sm_list = sm_list;
+    am->sm_list = (uint16_t)sm_list;
     am->direction = direction;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
@@ -549,7 +550,7 @@ void DetectPktMpmRegister(const char *name,
     am->name = name;
     snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > INT16_MAX);
-    am->sm_list = sm_list;
+    am->sm_list = (uint16_t)sm_list;
     am->priority = priority;
     am->type = DETECT_BUFFER_MPM_TYPE_PKT;
 
@@ -587,7 +588,7 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             DEBUG_VALIDATE_BUG_ON(id < 0 || id > INT16_MAX);
-            am->sm_list = id; // use new id
+            am->sm_list = (uint16_t)id; // use new id
             am->sm_list_base = t->sm_list;
             am->type = DETECT_BUFFER_MPM_TYPE_PKT;
             am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
@@ -869,7 +870,7 @@ uint8_t PatternMatchDefaultMatcher(void)
             if (strcmp("auto", mpm_algo) == 0) {
                 goto done;
             }
-            for (uint16_t u = 0; u < MPM_TABLE_SIZE; u++) {
+            for (uint8_t u = 0; u < MPM_TABLE_SIZE; u++) {
                 if (mpm_table[u].name == NULL)
                     continue;
 
