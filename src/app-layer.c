@@ -125,20 +125,21 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
  * so in this case we set a flag in the flow so that the first
  * packet in the correct direction can be tagged.
  *
- * For IPS things are much simpler, and we don't use the flow
- * flag. We just tag the packet directly. */
+ * For IPS we update packet and flow. */
 static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t flags)
 {
-    if (EngineModeIsIPS()) {
+    if (p->proto != IPPROTO_TCP || EngineModeIsIPS()) {
         if (flags & STREAM_TOSERVER) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 p->flags |= PKT_PROTO_DETECT_TS_DONE;
+                f->flags |= FLOW_PROTO_DETECT_TS_DONE;
             } else {
                 f->flags |= FLOW_PROTO_DETECT_TS_DONE;
             }
         } else {
             if (p->flowflags & FLOW_PKT_TOCLIENT) {
                 p->flags |= PKT_PROTO_DETECT_TC_DONE;
+                f->flags |= FLOW_PROTO_DETECT_TC_DONE;
             } else {
                 f->flags |= FLOW_PROTO_DETECT_TC_DONE;
             }
