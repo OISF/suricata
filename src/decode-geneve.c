@@ -51,11 +51,11 @@
 #define GENEVE_RESERVED_FLAGS(hdr_ptr) (hdr_ptr->flags & 0x3F)
 
 #define GENEVE_MIN_HEADER_LEN            sizeof(GeneveHeader)
-#define GENEVE_TOTAL_OPT_LEN(hdr_ptr)    ((hdr_ptr->ver_plus_len & 0x3F) << 2)
+#define GENEVE_TOTAL_OPT_LEN(hdr_ptr)    ((uint8_t)((hdr_ptr->ver_plus_len & 0x3F) << 2))
 #define GENEVE_TOTAL_HEADER_LEN(hdr_ptr) (GENEVE_MIN_HEADER_LEN + GENEVE_TOTAL_OPT_LEN(hdr_ptr))
 
 #define GENEVE_MIN_SINGLE_OPT_LEN         sizeof(GeneveOption)
-#define GENEVE_SINGLE_OPT_LEN(option_ptr) ((option_ptr->flags_plus_len & 0x1F) << 2)
+#define GENEVE_SINGLE_OPT_LEN(option_ptr) ((uint8_t)((option_ptr->flags_plus_len & 0x1F) << 2))
 #define GENEVE_SINGLE_OPT_TOTAL_LEN(option_ptr)                                                    \
     (GENEVE_MIN_SINGLE_OPT_LEN + GENEVE_SINGLE_OPT_LEN(option_ptr))
 
