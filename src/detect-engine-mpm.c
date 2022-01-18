@@ -852,10 +852,10 @@ int SignatureHasStreamContent(const Signature *s)
  *
  *  \retval mpm algo value
  */
-uint16_t PatternMatchDefaultMatcher(void)
+uint8_t PatternMatchDefaultMatcher(void)
 {
     const char *mpm_algo;
-    uint16_t mpm_algo_val = mpm_default_matcher;
+    uint8_t mpm_algo_val = mpm_default_matcher;
 
     /* Get the mpm algo defined in config file by the user */
     if ((ConfGet("mpm-algo", &mpm_algo)) == 1) {
