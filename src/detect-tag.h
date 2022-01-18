@@ -66,7 +66,7 @@ typedef struct DetectTagData_ {
     uint8_t type;          /**< tag type */
     uint8_t direction;     /**< host direction */
     uint32_t count;        /**< count */
-    uint32_t metric;       /**< metric */
+    uint8_t metric;        /**< metric */
 } DetectTagData;
 
 /** This is the installed data at the session/global or host table */

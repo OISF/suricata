@@ -320,11 +320,10 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
                         i);
                 goto error;
             }
-            int32_t multiplier;
-            if (StringParseI32RangeCheck(&multiplier, 10, 0,
-                                 (const char *)multiplier_str,
-                                 DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
-                                 DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
+            uint16_t multiplier;
+            if (StringParseU16RangeCheck(&multiplier, 10, 0, (const char *)multiplier_str,
+                        DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
+                        DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for"
                         "multiplier: \"%s\".", multiplier_str);
                 goto error;

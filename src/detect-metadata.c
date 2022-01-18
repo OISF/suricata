@@ -85,7 +85,8 @@ void DetectMetadataHashFree(DetectEngineCtx *de_ctx)
 
 static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *string)
 {
-    const char * hstring = (char *)HashTableLookup(de_ctx->metadata_table, (void *)string, strlen(string));
+    const char *hstring = (char *)HashTableLookup(
+            de_ctx->metadata_table, (void *)string, (uint16_t)strlen(string));
     if (hstring) {
         return hstring;
     }
@@ -95,8 +96,9 @@ static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *st
         return NULL;
     }
 
-    if (HashTableAdd(de_ctx->metadata_table, (void *)astring, strlen(astring)) == 0) {
-        return (char *)HashTableLookup(de_ctx->metadata_table, (void *)astring, strlen(astring));
+    if (HashTableAdd(de_ctx->metadata_table, (void *)astring, (uint16_t)strlen(astring)) == 0) {
+        return (char *)HashTableLookup(
+                de_ctx->metadata_table, (void *)astring, (uint16_t)strlen(astring));
     } else {
         SCFree((void *)astring);
     }

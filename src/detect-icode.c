@@ -181,7 +181,7 @@ static void
 PrefilterPacketICodeSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectU8Data *a = smctx;
-    v->u8[0] = a->mode;
+    v->u8[0] = (uint8_t)a->mode;
     v->u8[1] = a->arg1;
     v->u8[2] = a->arg2;
 }

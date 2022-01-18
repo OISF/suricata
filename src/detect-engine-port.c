@@ -260,10 +260,10 @@ error:
 static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
                          DetectPort *b, DetectPort **c)
 {
-    uint32_t a_port1 = a->port;
-    uint32_t a_port2 = a->port2;
-    uint32_t b_port1 = b->port;
-    uint32_t b_port2 = b->port2;
+    uint16_t a_port1 = a->port;
+    uint16_t a_port2 = a->port2;
+    uint16_t b_port1 = b->port;
+    uint16_t b_port2 = b->port2;
 
     /* default to NULL */
     *c = NULL;

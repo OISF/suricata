@@ -320,8 +320,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str,
-        uint32_t type, int list)
+int DetectFileHashSetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *str, uint16_t type, int list)
 {
     DetectFileHashData *filehash = NULL;
     SigMatch *sm = NULL;

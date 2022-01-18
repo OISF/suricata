@@ -171,8 +171,8 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                         goto error;
                 }
 
-                int cidr;
-                if (StringParseI32RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
+                uint8_t cidr;
+                if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
                     goto error;
 
                 dd->netmask = cidr;
@@ -1179,7 +1179,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1207,7 +1207,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *) user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1240,7 +1240,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (src->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                 if (src->negated > 0)
                     /* Unset it */
@@ -1273,7 +1273,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
 
                     if (src->negated > 0)
                         /* Unset it */
@@ -1298,7 +1298,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *)user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (src->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
                     if (src->negated > 0)
                         /* Unset it */
                         sna->array[src->signum / 8] &= ~tmp;
@@ -1322,7 +1322,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (src->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
                 if (src->negated > 0)
                     /* Unset it */
                     sna->array[src->signum / 8] &= ~tmp;
@@ -1375,7 +1375,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /** Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /** Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1402,7 +1402,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *) user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1429,7 +1429,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (dst->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                 if (dst->negated > 0)
                     /* Unset it */
                     sna->array[dst->signum / 8] &= ~tmp;
@@ -1463,7 +1463,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1488,7 +1488,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     sna = SigNumArrayCopy((SigNumArray *)user_data);
 
                     /* Update the sig */
-                    uint8_t tmp = 1 << (dst->signum % 8);
+                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                     if (dst->negated > 0)
                         /* Unset it */
                         sna->array[dst->signum / 8] &= ~tmp;
@@ -1513,7 +1513,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 SigNumArray *sna = (SigNumArray *)user_data;
 
                 /* Update the sig */
-                uint8_t tmp = 1 << (dst->signum % 8);
+                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
                 if (dst->negated > 0)
                     /* Unset it */
                     sna->array[dst->signum / 8] &= ~tmp;

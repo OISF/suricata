@@ -169,7 +169,8 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                     if (strlen(arg3) == 0)
                         return NULL;
 
-                    if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg3), arg3) < 0) {
+                    if (ByteExtractStringUint32(&u32da.arg1, 10, (uint16_t)strlen(arg3), arg3) <
+                            0) {
                         SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
                         return NULL;
                     }
@@ -205,11 +206,11 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                     return NULL;
 
                 u32da.mode = DETECT_UINT_RA;
-                if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg1), arg1) < 0) {
+                if (ByteExtractStringUint32(&u32da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
                     return NULL;
                 }
-                if (ByteExtractStringUint32(&u32da.arg2, 10, strlen(arg3), arg3) < 0) {
+                if (ByteExtractStringUint32(&u32da.arg2, 10, (uint16_t)strlen(arg3), arg3) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
                     return NULL;
                 }
@@ -228,7 +229,7 @@ DetectU32Data *DetectU32Parse (const char *u32str)
                     strlen(arg1) == 0)
                     return NULL;
 
-                if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg1), arg1) < 0) {
+                if (ByteExtractStringUint32(&u32da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
                     return NULL;
                 }
@@ -240,7 +241,7 @@ DetectU32Data *DetectU32Parse (const char *u32str)
             strlen(arg1) == 0)
             return NULL;
 
-        if (ByteExtractStringUint32(&u32da.arg1, 10, strlen(arg1), arg1) < 0) {
+        if (ByteExtractStringUint32(&u32da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
             SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint32 failed");
             return NULL;
         }
@@ -263,7 +264,7 @@ void
 PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectU32Data *a = smctx;
-    v->u8[0] = a->mode;
+    v->u8[0] = (uint8_t)a->mode;
     v->u32[1] = a->arg1;
     v->u32[2] = a->arg2;
 }
@@ -421,7 +422,7 @@ DetectU8Data *DetectU8Parse (const char *u8str)
             case '<':
             case '>':
                 if (strlen(arg2) == 1) {
-                    if (StringParseUint8(&u8da.arg1, 10, strlen(arg3), arg3) < 0) {
+                    if (StringParseUint8(&u8da.arg1, 10, (uint16_t)strlen(arg3), arg3) < 0) {
                         SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
                         return NULL;
                     }
@@ -452,11 +453,11 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                 // fall through
             case '-':
                 u8da.mode = DETECT_UINT_RA;
-                if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
+                if (StringParseUint8(&u8da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
                     return NULL;
                 }
-                if (StringParseUint8(&u8da.arg2, 10, strlen(arg3), arg3) < 0) {
+                if (StringParseUint8(&u8da.arg2, 10, (uint16_t)strlen(arg3), arg3) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
                     return NULL;
                 }
@@ -474,7 +475,7 @@ DetectU8Data *DetectU8Parse (const char *u8str)
                     strlen(arg3) > 0)
                     return NULL;
 
-                if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
+                if (StringParseUint8(&u8da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
                     SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
                     return NULL;
                 }
@@ -485,7 +486,7 @@ DetectU8Data *DetectU8Parse (const char *u8str)
         if (strlen(arg3) > 0)
             return NULL;
 
-        if (StringParseUint8(&u8da.arg1, 10, strlen(arg1), arg1) < 0) {
+        if (StringParseUint8(&u8da.arg1, 10, (uint16_t)strlen(arg1), arg1) < 0) {
             SCLogError(SC_ERR_BYTE_EXTRACT_FAILED, "ByteExtractStringUint8 failed");
             return NULL;
         }

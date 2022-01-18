@@ -287,7 +287,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const uin
 void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
-    int i = 0;
+    uint16_t i = 0;
 
     while (i < p->alerts.cnt) {
         const Signature *s = de_ctx->sig_array[p->alerts.alerts[i].num];

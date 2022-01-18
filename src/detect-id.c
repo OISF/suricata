@@ -122,7 +122,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  */
 static DetectIdData *DetectIdParse (const char *idstr)
 {
-    uint32_t temp;
+    uint16_t temp;
     DetectIdData *id_d = NULL;
     int ret = 0, res = 0;
     size_t pcre2len;
@@ -154,8 +154,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
     }
 
     /* ok, fill the id data */
-    if (StringParseU32RangeCheck(&temp, 10, 0, (const char *)tmp_str,
-                                 DETECT_IPID_MIN, DETECT_IPID_MAX) < 0) {
+    if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) < 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'", tmp_str);
         return NULL;
     }

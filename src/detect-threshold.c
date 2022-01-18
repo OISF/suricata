@@ -194,13 +194,13 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
         goto error;
     }
 
-    if (StringParseUint32(&de->count, 10, strlen(args[count_pos]),
-                args[count_pos]) <= 0) {
+    if (StringParseUint32(&de->count, 10, (uint16_t)strlen(args[count_pos]), args[count_pos]) <=
+            0) {
         goto error;
     }
 
-    if (StringParseUint32(&de->seconds, 10, strlen(args[second_pos]),
-                args[second_pos]) <= 0) {
+    if (StringParseUint32(&de->seconds, 10, (uint16_t)strlen(args[second_pos]), args[second_pos]) <=
+            0) {
         goto error;
     }
 

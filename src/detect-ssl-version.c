@@ -177,7 +177,7 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
 struct SSLVersionKeywords {
     const char *word;
     int index;
-    int value;
+    uint16_t value;
 };
 
 struct SSLVersionKeywords ssl_version_keywords[TLS_SIZE] = {
