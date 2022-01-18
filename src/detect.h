@@ -843,7 +843,7 @@ typedef struct DetectEngineCtx_ {
     DetectEngineIPOnlyCtx io_ctx;
     ThresholdCtx ths_ctx;
 
-    uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
     uint16_t spm_matcher; /**< spm matcher this ctx uses */
 
     /* spm thread context prototype, built as spm matchers are constructed and
@@ -1021,7 +1021,7 @@ typedef struct HttpReassembledBody_ {
 typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
-    uint8_t alproto;
+    AppProto alproto;
 } SignatureNonPrefilterStore;
 
 /** array of TX inspect rule candidates */
