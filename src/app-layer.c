@@ -769,6 +769,12 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         if (f->alproto != ALPROTO_UNKNOWN) {
             AppLayerIncFlowCounter(tv, f);
 
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                f->alproto_ts = f->alproto;
+            } else {
+                f->alproto_tc = f->alproto;
+            }
+
             if (reverse_flow) {
                 SCLogDebug("reversing flow after proto detect told us so");
                 PacketSwap(p);
