@@ -101,13 +101,13 @@ static int InspectFtpRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
  *
  * \retval 1 if ftpbounce detected, 0 if not
  */
-static int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
-                             uint32_t ip_orig, uint16_t offset)
+static int DetectFtpbounceMatchArgs(
+        uint8_t *payload, uint32_t payload_len, uint32_t ip_orig, uint32_t offset)
 {
     SCEnter();
     SCLogDebug("Checking ftpbounce condition");
     char *c = NULL;
-    uint16_t i = 0;
+    uint32_t i = 0;
     int octet = 0;
     int octet_ascii_len = 0;
     int noctet = 0;

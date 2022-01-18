@@ -201,7 +201,7 @@ static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
         for (u = 0; u < cd->content_len; u++)
         {
             if (islower(cd->content[u])) {
-                cd->content[u] = toupper(cd->content[u]);
+                cd->content[u] = (uint8_t)toupper(cd->content[u]);
                 changed = true;
             }
         }

@@ -26,7 +26,7 @@
 
 typedef struct DetectAppLayerEventData_ {
     AppProto alproto;
-    int event_id;
+    uint8_t event_id;
 
     /* it's used to check if there are event set into the detect engine */
     bool needs_detctx;

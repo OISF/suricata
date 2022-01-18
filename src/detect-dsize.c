@@ -219,7 +219,7 @@ static DetectDsizeData *DetectDsizeParse (const char *rawstr)
     }
 
     /** set the first dsize value */
-    if (StringParseUint16(&dd->dsize,10,strlen(value1),value1) <= 0) {
+    if (StringParseUint16(&dd->dsize, 10, (uint16_t)strlen(value1), value1) <= 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size value1:\"%s\"", value1);
         goto error;
     }
@@ -231,7 +231,7 @@ static DetectDsizeData *DetectDsizeParse (const char *rawstr)
             goto error;
         }
 
-        if (StringParseUint16(&dd->dsize2,10,strlen(value2),value2) <= 0) {
+        if (StringParseUint16(&dd->dsize2, 10, (uint16_t)strlen(value2), value2) <= 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size value2:\"%s\"",value2);
             goto error;
         }

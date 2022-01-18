@@ -181,8 +181,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectEngineEventSetupDo (DetectEngineCtx *de_ctx, Signature *s,
-        const char *rawstr, int smtype)
+static int DetectEngineEventSetupDo(
+        DetectEngineCtx *de_ctx, Signature *s, const char *rawstr, uint16_t smtype)
 {
     DetectEngineEventData *de = DetectEngineEventParse(rawstr);
     if (de == NULL)

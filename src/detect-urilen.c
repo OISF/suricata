@@ -175,7 +175,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     }
 
     /** set the first urilen value */
-    if (StringParseUint16(&urilend->urilen1,10,strlen(arg2),arg2) <= 0){
+    if (StringParseUint16(&urilend->urilen1, 10, (uint16_t)strlen(arg2), arg2) <= 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg2);
         goto error;
     }
@@ -188,8 +188,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
             goto error;
         }
 
-        if(StringParseUint16(&urilend->urilen2,10,strlen(arg4),arg4) <= 0)
-        {
+        if (StringParseUint16(&urilend->urilen2, 10, (uint16_t)strlen(arg4), arg4) <= 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg4);
             goto error;
         }

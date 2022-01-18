@@ -104,9 +104,9 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
 
     char* token;
     char *save;
-    int var;
-    int input[3] = { 0, 0, 0 };
-    int i = 0;
+    uint8_t var;
+    uint8_t input[3] = { 0, 0, 0 };
+    uint8_t i = 0;
 
     token = strtok_r(rulestr, delims, &save);
     while (token != NULL)
@@ -156,7 +156,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
             goto error;
         }
 
-        sscanf(token, "%d", &var);
+        sscanf(token, "%2" SCNu8, &var);
         input[i++] = var;
 
         token = strtok_r(NULL, delims, &save);

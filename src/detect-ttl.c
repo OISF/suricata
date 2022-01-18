@@ -175,7 +175,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
 
     uint8_t ttl1 = 0;
     uint8_t ttl2 = 0;
-    int mode = 0;
+    uint8_t mode = 0;
 
     if (strlen(arg2) > 0) {
         switch (arg2[0]) {

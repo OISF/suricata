@@ -96,7 +96,7 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
         DetectTransformXorFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
-    pxd->length = keylen / 2;
+    pxd->length = (uint8_t)(keylen / 2);
     pxd->key = SCMalloc(keylen / 2);
     if (pxd->key == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
@@ -105,9 +105,9 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     }
     for (size_t i = 0; i < keylen / 2; i++) {
         if ((isxdigit(optstr[2 * i])) && (isxdigit(optstr[2 * i + 1]))) {
-            pxd->key[i] = (optstr[2 * i] >= 'A' ? ((optstr[2 * i] & 0xdf) - 'A') + 10
-                                                : (optstr[2 * i] - '0'))
-                          << 4;
+            pxd->key[i] = (uint8_t)((optstr[2 * i] >= 'A' ? ((optstr[2 * i] & 0xdf) - 'A') + 10
+                                                          : (optstr[2 * i] - '0'))
+                                    << 4);
             pxd->key[i] |= (optstr[2 * i + 1] >= 'A' ? ((optstr[2 * i + 1] & 0xdf) - 'A') + 10
                                                      : (optstr[2 * i + 1] - '0'));
         } else {
