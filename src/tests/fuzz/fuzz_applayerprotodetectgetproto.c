@@ -50,7 +50,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
     }
 
-    f = TestHelperBuildFlow(AF_INET, "1.2.3.4", "5.6.7.8", (data[2] << 8) | data[3], (data[4] << 8) | data[5]);
+    f = TestHelperBuildFlow(AF_INET, "1.2.3.4", "5.6.7.8", (uint16_t)((data[2] << 8) | data[3]),
+            (uint16_t)((data[4] << 8) | data[5]));
     if (f == NULL) {
         return 0;
     }
