@@ -96,6 +96,8 @@ static void OutputPgsqlLogDeInitCtxSub(OutputCtx *output_ctx)
 
 static void JsonPgsqlLogParseConfig(ConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx)
 {
+    pgsqllog_ctx->flags = ~0U;
+
     const char *query = ConfNodeLookupChildValue(conf, "passwords");
     if (query != NULL) {
         if (ConfValIsTrue(query)) {
