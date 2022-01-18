@@ -212,7 +212,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 }
 
                 if (IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + pppoesh_len)) == 4) {
-                    DecodeIPV4(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
+                    DecodeIPV4(tv, dtv, p, pkt + pppoesh_len, (uint16_t)(len - pppoesh_len));
                 }
                 break;
 
@@ -224,7 +224,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 if (unlikely(len - pppoesh_len > USHRT_MAX)) {
                     return TM_ECODE_FAILED;
                 }
-                DecodeIPV4(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
+                DecodeIPV4(tv, dtv, p, pkt + pppoesh_len, (uint16_t)(len - pppoesh_len));
                 break;
 
             /* PPP IPv6 was not tested */
@@ -237,7 +237,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
 
-                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
+                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, (uint16_t)(len - pppoesh_len));
                 break;
 
             default:

@@ -105,10 +105,12 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
         case DECODE_TUNNEL_PPP:
             return DecodePPP(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_IPV4:
-            return DecodeIPV4(tv, dtv, p, pkt, len);
+            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+            return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_IPV6:
         case DECODE_TUNNEL_IPV6_TEREDO:
-            return DecodeIPV6(tv, dtv, p, pkt, len);
+            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+            return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ETHERNET:
@@ -798,7 +800,7 @@ void DecodeGlobalConfig(void)
         if (value < 0 || value > UINT8_MAX) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for decoder.max-layers");
         } else {
-            decoder_max_layers = value;
+            decoder_max_layers = (uint8_t)value;
         }
     }
     PacketAlertGetMaxConfig();
