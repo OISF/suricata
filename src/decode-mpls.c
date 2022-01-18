@@ -53,7 +53,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     uint32_t shim;
     int label;
-    int event = 0;
+    uint8_t event = 0;
 
     StatsIncr(tv, dtv->counter_mpls);
 
@@ -75,7 +75,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        return DecodeIPV4(tv, dtv, p, pkt, len);
+        return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
     }
     else if (label == MPLS_LABEL_ROUTER_ALERT) {
         /* Not valid at the bottom of the stack. */
@@ -85,7 +85,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        return DecodeIPV6(tv, dtv, p, pkt, len);
+        return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
     }
     else if (label == MPLS_LABEL_NULL) {
         /* Shouldn't appear on the wire. */
@@ -112,13 +112,13 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        DecodeIPV4(tv, dtv, p, pkt, len);
+        DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
         break;
     case MPLS_PROTO_IPV6:
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        DecodeIPV6(tv, dtv, p, pkt, len);
+        DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
         break;
     case MPLS_PROTO_ETHERNET_PW:
         DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN);

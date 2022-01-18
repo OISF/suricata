@@ -42,6 +42,7 @@
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 #include "host.h"
 
 /**
@@ -236,7 +237,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 uint16_t optslen = 0;
 
                 IPV6_SET_L4PROTO(p,nh);
-                hdrextlen =  (*(pkt+1) + 1) << 3;
+                hdrextlen = (uint16_t)((*(pkt + 1) + 1) << 3);
                 if (hdrextlen > plen) {
                     ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
@@ -259,15 +260,15 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
                     hh = 1;
 
-                    optslen = ((*(pkt + 1) + 1 ) << 3) - 2;
+                    optslen = (uint16_t)((*(pkt + 1) + 1) << 3) - 2;
                 }
                 else if (nh == IPPROTO_DSTOPTS)
                 {
                     if (dstopts == 0) {
-                        optslen = ((*(pkt + 1) + 1 ) << 3) - 2;
+                        optslen = (uint16_t)((*(pkt + 1) + 1) << 3) - 2;
                         dstopts = 1;
                     } else if (dstopts == 1) {
-                        optslen = ((*(pkt + 1) + 1 ) << 3) - 2;
+                        optslen = (uint16_t)((*(pkt + 1) + 1) << 3) - 2;
                         dstopts = 2;
                     } else {
                         ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_DH);
@@ -410,7 +411,8 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                  * past the ipv6 header. We use it in defrag for creating
                  * a defragmented packet without the frag header */
                 if (exthdr_fh_done == 0) {
-                    p->ip6eh.fh_offset = pkt - orig_pkt;
+                    DEBUG_VALIDATE_BUG_ON(pkt - orig_pkt > UINT16_MAX);
+                    p->ip6eh.fh_offset = (uint16_t)(pkt - orig_pkt);
                     exthdr_fh_done = 1;
                 }
 

@@ -62,7 +62,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    uint32_t proto;
+    uint16_t proto;
 
     if (p->vlan_idx == 0)
         StatsIncr(tv, dtv->counter_vlan);

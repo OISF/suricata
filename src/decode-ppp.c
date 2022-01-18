@@ -75,7 +75,8 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
 
             if (likely(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPP_HEADER_LEN)) == 4)) {
-                return DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN);
+                return DecodeIPV4(
+                        tv, dtv, p, pkt + PPP_HEADER_LEN, (uint16_t)(len - PPP_HEADER_LEN));
             } else
                 return TM_ECODE_FAILED;
             break;
@@ -90,7 +91,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 return TM_ECODE_FAILED;
             }
 
-            return DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN);
+            return DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, (uint16_t)(len - PPP_HEADER_LEN));
 
             /* PPP IPv6 was not tested */
         case PPP_IPV6:
@@ -103,7 +104,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 return TM_ECODE_FAILED;
             }
 
-            return DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN);
+            return DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, (uint16_t)(len - PPP_HEADER_LEN));
 
         case PPP_VJ_COMP:
         case PPP_IPX:
