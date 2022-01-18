@@ -1255,7 +1255,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     void *alstate = NULL;
     uint64_t p_tx_cnt = 0;
     uint32_t consumed = input_len;
-    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    const uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL)
