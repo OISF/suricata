@@ -16,13 +16,14 @@
  */
 
 use super::huffman;
+use crate::common::nom7::bits;
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::branch::alt;
 use nom7::bytes::streaming::{is_a, is_not, tag, take, take_while};
 use nom7::character::complete::digit1;
 use nom7::combinator::{complete, cond, map_opt, opt, rest, verify};
-use nom7::error::{make_error, Error, ErrorKind};
+use nom7::error::{make_error, ErrorKind};
 use nom7::multi::many0;
 use nom7::number::streaming::{be_u16, be_u24, be_u32, be_u8};
 use nom7::sequence::tuple;
@@ -357,7 +358,7 @@ fn http2_parse_headers_block_indexed<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(complete(tuple((
+        bits(complete(tuple((
             verify(take_bits(1u8), |&x| x == 1),
             take_bits(7u8),
         ))))(input)
@@ -375,8 +376,7 @@ fn http2_parse_headers_block_indexed<'a>(
 
 fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        let (i, b) = be_u8(input)?;
-        Ok((i, (b >> 7, b & 0x7f)))
+        bits(tuple((take_bits(1u8), take_bits(7u8))))(input)
     }
     let (i1, huffslen) = parser(input)?;
     let (i2, stringlen) = http2_parse_var_uint(i1, huffslen.1 as u64, 0x7F)?;
@@ -387,8 +387,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
     } else {
-        let (_, val) =
-            bits::<_, _, Error<(&[u8], usize)>, _, _>(many0(huffman::http2_decode_huffman))(data)?;
+        let (_, val) = bits(many0(huffman::http2_decode_huffman))(data)?;
         return Ok((i3, val));
     }
 }
@@ -431,7 +430,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(complete(tuple((
+        bits(complete(tuple((
             verify(take_bits(2u8), |&x| x == 1),
             take_bits(6u8),
         ))))(input)
@@ -485,7 +484,7 @@ fn http2_parse_headers_block_literal_noindex<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(complete(tuple((
+        bits(complete(tuple((
             verify(take_bits(4u8), |&x| x == 0),
             take_bits(4u8),
         ))))(input)
@@ -503,7 +502,7 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(complete(tuple((
+        bits(complete(tuple((
             verify(take_bits(4u8), |&x| x == 1),
             take_bits(4u8),
         ))))(input)
@@ -543,7 +542,7 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(complete(tuple((
+        bits(complete(tuple((
             verify(take_bits(3u8), |&x| x == 1),
             take_bits(5u8),
         ))))(input)
@@ -660,8 +659,7 @@ pub fn http2_parse_frame_push_promise<'a>(
     input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
     let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
-    let (mut i3, stream_id) =
-        bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
+    let (mut i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
     let mut blocks = Vec::new();
     while i3.len() > 0 {
         match http2_parse_headers_block(i3, dyn_headers) {

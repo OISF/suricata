@@ -17,12 +17,12 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
+use crate::common::nom7::bits;
 use crate::mqtt::mqtt_message::*;
 use crate::mqtt::mqtt_property::*;
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take_while_m_n;
 use nom7::combinator::{complete, cond, verify};
-use nom7::error::Error;
 use nom7::multi::{length_data, many0, many1};
 use nom7::number::streaming::*;
 use nom7::sequence::tuple;
@@ -132,7 +132,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
 
 #[inline]
 fn parse_fixed_header_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(4u8),
         take_bits(1u8),
         take_bits(2u8),
@@ -176,7 +176,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 
 #[inline]
 fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8, u8, u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(1u8),
         take_bits(1u8),
         take_bits(1u8),

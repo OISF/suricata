@@ -17,10 +17,10 @@
 
 //! Nom parsers for RPCv2
 
-use nom7::bits::{bits, streaming::take as take_bits};
+use crate::common::nom7::bits;
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
 use nom7::combinator::cond;
-use nom7::error::Error;
 use nom7::multi::length_data;
 use nom7::number::streaming::be_u32;
 use nom7::sequence::tuple;
@@ -121,7 +121,7 @@ pub struct RpcPacketHeader {
 }
 
 fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(1u8),   // is_last
         take_bits(31u32), // len
     )))(i)
