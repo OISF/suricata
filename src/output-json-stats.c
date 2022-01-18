@@ -65,7 +65,7 @@ typedef enum OutputEngineInfo_ {
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t flags; /** Store mode */
+    uint8_t flags; /** Store mode */
 } OutputStatsCtx;
 
 typedef struct JsonStatsLogThread_ {

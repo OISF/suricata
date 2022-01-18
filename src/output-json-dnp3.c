@@ -278,8 +278,7 @@ json_t *JsonDNP3LogResponse(DNP3Transaction *dnp3tx)
     json_object_set_new(al, "function_code",
         json_integer(dnp3tx->response_ah.function_code));
 
-    json_t *iinjs = JsonDNP3LogIin(dnp3tx->response_iin.iin1 << 8 |
-        dnp3tx->response_iin.iin2);
+    json_t *iinjs = JsonDNP3LogIin((uint16_t)(dnp3tx->response_iin.iin1 << 8 | dnp3tx->response_iin.iin2));
     if (iinjs != NULL) {
         json_object_set_new(dnp3js, "iin", iinjs);
     }
