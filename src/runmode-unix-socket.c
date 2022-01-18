@@ -808,7 +808,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         }
 
         SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)traffic_id);
+        r = DetectEngineTentantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler setup failure"));
@@ -889,7 +889,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         }
 
         SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint32_t)traffic_id);
+        r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler unregister failure"));
