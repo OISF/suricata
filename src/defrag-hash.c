@@ -201,8 +201,7 @@ void DefragInitConfig(bool quiet)
     }
     if ((ConfGet("defrag.hash-size", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             defrag_config.hash_size = configval;
         } else {
             WarnInvalidConfEntry("defrag.hash-size", "%"PRIu32, defrag_config.hash_size);
@@ -212,8 +211,7 @@ void DefragInitConfig(bool quiet)
 
     if ((ConfGet("defrag.trackers", &conf_val)) == 1)
     {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             defrag_config.prealloc = configval;
         } else {
             WarnInvalidConfEntry("defrag.trackers", "%"PRIu32, defrag_config.prealloc);
