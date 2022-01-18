@@ -106,9 +106,15 @@ int DecodeNSH(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     /* Try to decode the payload */
     switch (next_protocol) {
         case NSH_NEXT_PROTO_IPV4:
-            return DecodeIPV4(tv, dtv, p, pkt + length, len - length);
+            if (len - length > USHRT_MAX) {
+                return TM_ECODE_FAILED;
+            }
+            return DecodeIPV4(tv, dtv, p, pkt + length, (uint16_t)(len - length));
         case NSH_NEXT_PROTO_IPV6:
-            return DecodeIPV6(tv, dtv, p, pkt + length, len - length);
+            if (len - length > USHRT_MAX) {
+                return TM_ECODE_FAILED;
+            }
+            return DecodeIPV6(tv, dtv, p, pkt + length, (uint16_t)(len - length));
         case NSH_NEXT_PROTO_ETHERNET:
             return DecodeEthernet(tv, dtv, p, pkt + length, len - length);
         case NSH_NEXT_PROTO_MPLS:

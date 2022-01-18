@@ -94,8 +94,11 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         }
          */
 
+        if (unlikely(len - hdr_len > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         /* invoke the next decoder on the remainder of the data */
-        return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, len - hdr_len);
+        return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, (uint16_t)(len - hdr_len));
     } else {
         //ENGINE_SET_EVENT(p,TEMPLATE_UNSUPPORTED_PROTOCOL);
         return TM_ECODE_FAILED;

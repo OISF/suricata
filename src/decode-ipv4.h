@@ -120,8 +120,7 @@ typedef struct IPV4Hdr_
  */
 #define IPV4_GET_VER(p) \
     IPV4_GET_RAW_VER((p)->ip4h)
-#define IPV4_GET_HLEN(p) \
-    (IPV4_GET_RAW_HLEN((p)->ip4h) << 2)
+#define IPV4_GET_HLEN(p) ((uint8_t)(IPV4_GET_RAW_HLEN((p)->ip4h) << 2))
 #define IPV4_GET_IPTOS(p) \
     IPV4_GET_RAW_IPTOS((p)->ip4h)
 #define IPV4_GET_IPLEN(p) \
