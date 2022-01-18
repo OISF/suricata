@@ -903,7 +903,7 @@ void RunModeInitializeOutputs(void)
     }
 
     /* register the logger bits to the app-layer */
-    int a;
+    AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {
         if (logger_bits[a] == 0)
             continue;
