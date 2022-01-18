@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
+use crate::common::nom7::bits;
 use crate::smb::error::SmbError;
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
 use nom7::combinator::{cond, rest};
-use nom7::error::Error;
 use nom7::multi::count;
 use nom7::number::Endianness;
 use nom7::number::streaming::{be_u16, le_u8, le_u16, le_u32, u16, u32};
@@ -204,7 +204,7 @@ pub struct DceRpcRecord<'a> {
 }
 
 fn parse_dcerpc_flags1(i:&[u8]) -> IResult<&[u8],(u8,u8,u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(6u8),
         take_bits(1u8),   // last (1)
         take_bits(1u8),
@@ -212,7 +212,7 @@ fn parse_dcerpc_flags1(i:&[u8]) -> IResult<&[u8],(u8,u8,u8)> {
 }
 
 fn parse_dcerpc_flags2(i:&[u8]) -> IResult<&[u8],(u32,u32,u32)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
        take_bits(3u32),
        take_bits(1u32),     // endianess
        take_bits(28u32),

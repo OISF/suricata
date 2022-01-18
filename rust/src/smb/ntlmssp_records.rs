@@ -15,12 +15,11 @@
  * 02110-1301, USA.
  */
 
-use crate::common::nom7::take_until_and_consume;
+use crate::common::nom7::{bits, take_until_and_consume};
 use std::fmt;
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
 use nom7::combinator::{cond, rest};
-use nom7::error::Error;
 use nom7::number::streaming::{le_u8, le_u16, le_u32};
 use nom7::sequence::tuple;
 use nom7::IResult;
@@ -65,7 +64,7 @@ pub struct NTLMSSPAuthRecord<'a> {
 }
 
 fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(6u8),
         take_bits(1u8),
         take_bits(25u32),
