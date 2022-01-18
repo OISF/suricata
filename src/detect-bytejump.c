@@ -40,6 +40,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "detect-pcre.h"
 
 /**
@@ -221,7 +222,8 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
      */
     if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
         ptr = p->payload + det_ctx->buffer_offset;
-        len = p->payload_len - det_ctx->buffer_offset;
+        DEBUG_VALIDATE_BUG_ON(p->payload_len - det_ctx->buffer_offset > UINT16_MAX);
+        len = (uint16_t)(p->payload_len - det_ctx->buffer_offset);
 
         /* No match if there is no relative base */
         if (ptr == NULL || len == 0) {
@@ -233,7 +235,8 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
     }
     else {
         ptr = p->payload + data->offset;
-        len = p->payload_len - data->offset;
+        DEBUG_VALIDATE_BUG_ON(p->payload_len - data->offset > UINT16_MAX);
+        len = (uint16_t)(p->payload_len - data->offset);
     }
 
     /* Verify the to-be-extracted data is within the packet */
@@ -395,7 +398,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
      */
 
     /* Number of bytes */
-    if (StringParseUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
+    if (StringParseUint32(&nbytes, 10, (uint16_t)strlen(args[0]), args[0]) <= 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", optstr);
         goto error;
     }
@@ -412,7 +415,7 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
         if (*offset == NULL)
             goto error;
     } else {
-        if (StringParseInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
+        if (StringParseInt32(&data->offset, 0, (uint16_t)strlen(args[1]), args[1]) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", optstr);
             goto error;
         }
@@ -445,18 +448,14 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
         } else if (strcasecmp("align", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_ALIGN;
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
-            if (StringParseUint32(&data->multiplier, 10,
-                                        strlen(args[i]) - 11,
-                                        args[i] + 11) <= 0)
-            {
+            if (StringParseUint32(
+                        &data->multiplier, 10, (uint16_t)strlen(args[i]) - 11, args[i] + 11) <= 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed multiplier: %s", optstr);
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
-            if (StringParseInt32(&data->post_offset, 10,
-                                       strlen(args[i]) - 12,
-                                       args[i] + 12) <= 0)
-            {
+            if (StringParseInt32(&data->post_offset, 10, (uint16_t)strlen(args[i]) - 12,
+                        args[i] + 12) <= 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed post_offset: %s", optstr);
                 goto error;
             }

@@ -154,8 +154,8 @@ void DetectPktInspectEngineRegister(const char *name,
         FatalError(SC_ERR_INITIALIZATION,
             "failed to register inspect engine %s: %s", name, strerror(errno));
     }
-    new_engine->sm_list = sm_list;
-    new_engine->sm_list_base = sm_list;
+    new_engine->sm_list = (uint16_t)sm_list;
+    new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->v1.Callback = Callback;
     new_engine->v1.GetData = GetPktData;
 
@@ -188,7 +188,7 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
         BUG_ON(1);
     }
 
-    int direction;
+    uint8_t direction;
     if (dir == SIG_FLAG_TOSERVER) {
         direction = 0;
     } else {
@@ -200,8 +200,8 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
         FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
                 strerror(errno));
     }
-    new_engine->sm_list = sm_list;
-    new_engine->sm_list_base = sm_list;
+    new_engine->sm_list = (uint16_t)sm_list;
+    new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->dir = direction;
     new_engine->v1.Callback = Callback;
     new_engine->alproto = alproto;
@@ -250,7 +250,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         BUG_ON(1);
     }
 
-    int direction;
+    uint8_t direction;
     if (dir == SIG_FLAG_TOSERVER) {
         direction = 0;
     } else {
@@ -264,9 +264,9 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     memset(new_engine, 0, sizeof(*new_engine));
     new_engine->alproto = alproto;
     new_engine->dir = direction;
-    new_engine->sm_list = sm_list;
-    new_engine->sm_list_base = sm_list;
-    new_engine->progress = progress;
+    new_engine->sm_list = (uint16_t)sm_list;
+    new_engine->sm_list_base = (uint16_t)sm_list;
+    new_engine->progress = (int16_t)progress;
     new_engine->v2.Callback = Callback2;
     new_engine->v2.GetData = GetData;
 
@@ -297,8 +297,10 @@ static void DetectAppLayerInspectEngineCopy(
             }
             new_engine->alproto = t->alproto;
             new_engine->dir = t->dir;
-            new_engine->sm_list = new_list;         /* use new list id */
-            new_engine->sm_list_base = sm_list;
+            DEBUG_VALIDATE_BUG_ON(new_list < 0 || new_list > UINT16_MAX);
+            new_engine->sm_list = (uint16_t)new_list; /* use new list id */
+            DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
+            new_engine->sm_list_base = (uint16_t)sm_list;
             new_engine->progress = t->progress;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
@@ -359,8 +361,10 @@ static void DetectPktInspectEngineCopy(
             if (unlikely(new_engine == NULL)) {
                 exit(EXIT_FAILURE);
             }
-            new_engine->sm_list = new_list;         /* use new list id */
-            new_engine->sm_list_base = sm_list;
+            DEBUG_VALIDATE_BUG_ON(new_list < 0 || new_list > UINT16_MAX);
+            new_engine->sm_list = (uint16_t)new_list; /* use new list id */
+            DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
+            new_engine->sm_list_base = (uint16_t)sm_list;
             new_engine->v1 = t->v1;
             new_engine->v1.transforms = transforms; /* assign transforms */
 
@@ -424,7 +428,7 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
         BUG_ON(1);
     }
 
-    int direction;
+    uint8_t direction;
     if (dir == SIG_FLAG_TOSERVER) {
         direction = 0;
     } else {
@@ -436,8 +440,8 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
         FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
                 strerror(errno));
     }
-    new_engine->sm_list = sm_list;
-    new_engine->sm_list_base = sm_list;
+    new_engine->sm_list = (uint16_t)sm_list;
+    new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->dir = direction;
     new_engine->v1.Callback = Callback;
     new_engine->alproto = alproto;
@@ -469,8 +473,10 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
             if (unlikely(new_engine == NULL)) {
                 exit(EXIT_FAILURE);
             }
-            new_engine->sm_list = new_list; /* use new list id */
-            new_engine->sm_list_base = sm_list;
+            DEBUG_VALIDATE_BUG_ON(new_list < 0 || new_list > UINT16_MAX);
+            new_engine->sm_list = (uint16_t)new_list; /* use new list id */
+            DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
+            new_engine->sm_list_base = (uint16_t)sm_list;
             new_engine->dir = t->dir;
             new_engine->alproto = t->alproto;
             new_engine->type = t->type;
@@ -528,7 +534,8 @@ static void DetectFrameInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
  *
  *  If stream inspection is MPM, then prepend it.
  */
-static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int direction, uint32_t id)
+static void AppendStreamInspectEngine(
+        Signature *s, SigMatchData *stream, uint8_t direction, uint8_t id)
 {
     bool prepend = false;
 
@@ -695,7 +702,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     }
 
     bool head_is_mpm = false;
-    uint32_t last_id = DE_STATE_FLAG_BASE;
+    uint8_t last_id = DE_STATE_FLAG_BASE;
     const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines;
     while (t != NULL) {
         bool prepend = false;
@@ -937,7 +944,7 @@ static char DetectBufferTypeCompareNameFunc(void *data1, uint16_t len1, void *da
     DetectBufferType *map1 = (DetectBufferType *)data1;
     DetectBufferType *map2 = (DetectBufferType *)data2;
 
-    int r = (strcmp(map1->name, map2->name) == 0);
+    char r = (strcmp(map1->name, map2->name) == 0);
     r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
     return r;
 }
@@ -1827,8 +1834,9 @@ static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInsp
         return -1;
 
     e->mpm = s->init_data->mpm_sm_list == list_id;
-    e->sm_list = list_id;
-    e->sm_list_base = list_id;
+    DEBUG_VALIDATE_BUG_ON(list_id < 0 || list_id > UINT16_MAX);
+    e->sm_list = (uint16_t)list_id;
+    e->sm_list_base = (uint16_t)list_id;
     e->v1.Callback = Callback;
     e->smd = data;
 
@@ -2638,9 +2646,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             }
             if (max_uniq_toclient_groups_str != NULL) {
                 if (StringParseUint16(&de_ctx->max_uniq_toclient_groups, 10,
-                    strlen(max_uniq_toclient_groups_str),
-                    (const char *)max_uniq_toclient_groups_str) <= 0)
-                {
+                            (uint16_t)strlen(max_uniq_toclient_groups_str),
+                            (const char *)max_uniq_toclient_groups_str) <= 0) {
                     de_ctx->max_uniq_toclient_groups = 20;
 
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
@@ -2655,9 +2662,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
             if (max_uniq_toserver_groups_str != NULL) {
                 if (StringParseUint16(&de_ctx->max_uniq_toserver_groups, 10,
-                    strlen(max_uniq_toserver_groups_str),
-                    (const char *)max_uniq_toserver_groups_str) <= 0)
-                {
+                            (uint16_t)strlen(max_uniq_toserver_groups_str),
+                            (const char *)max_uniq_toserver_groups_str) <= 0) {
                     de_ctx->max_uniq_toserver_groups = 40;
 
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
@@ -3862,9 +3868,8 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappi
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (StringParseUint32(&tenant_id, 10, strlen(tenant_id_node->val),
-                        tenant_id_node->val) < 0)
-            {
+            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
+                        tenant_id_node->val) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
                         "of %s is invalid", tenant_id_node->val);
                 goto bad_mapping;
@@ -3922,18 +3927,16 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (StringParseUint32(&tenant_id, 10, strlen(tenant_id_node->val),
-                        tenant_id_node->val) < 0)
-            {
+            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
+                        tenant_id_node->val) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
                         "of %s is invalid", tenant_id_node->val);
                 goto bad_mapping;
             }
 
             uint16_t vlan_id = 0;
-            if (StringParseUint16(&vlan_id, 10, strlen(vlan_id_node->val),
-                        vlan_id_node->val) < 0)
-            {
+            if (StringParseUint16(
+                        &vlan_id, 10, (uint16_t)strlen(vlan_id_node->val), vlan_id_node->val) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
                         "of %s is invalid", vlan_id_node->val);
                 goto bad_mapping;
@@ -3944,7 +3947,7 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
                 goto bad_mapping;
             }
 
-            if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+            if (DetectEngineTentantRegisterVlanId(tenant_id, vlan_id) != 0) {
                 goto error;
             }
             SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
@@ -4078,9 +4081,8 @@ int DetectEngineMultiTenantSetup(void)
                 }
 
                 uint32_t tenant_id = 0;
-                if (StringParseUint32(&tenant_id, 10, strlen(id_node->val),
-                            id_node->val) < 0)
-                {
+                if (StringParseUint32(
+                            &tenant_id, 10, (uint16_t)strlen(id_node->val), id_node->val) < 0) {
                     SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant_id  "
                             "of %s is invalid", id_node->val);
                     goto bad_tenant;

@@ -336,12 +336,12 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
             AlertQueueSortHelper);
 
-    int i = 0;
+    uint16_t i = 0;
     uint16_t max_pos = det_ctx->alert_queue_size;
 
     while (i < max_pos) {
         const Signature *s = de_ctx->sig_array[det_ctx->alert_queue[i].num];
-        uint8_t res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &det_ctx->alert_queue[i]);
 
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want

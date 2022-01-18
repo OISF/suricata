@@ -200,7 +200,7 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
-        ssh->len = strlen((char *) ssh->ver);
+        ssh->len = (uint16_t)strlen((char *)ssh->ver);
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
         SCLogDebug("will look for ssh %s", ssh->ver);
