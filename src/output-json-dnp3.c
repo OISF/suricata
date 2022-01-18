@@ -207,7 +207,7 @@ void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
     jb_close(js);
 
     jb_open_object(js, "iin");
-    JsonDNP3LogIin(js, dnp3tx->response_iin.iin1 << 8 | dnp3tx->response_iin.iin2);
+    JsonDNP3LogIin(js, (uint16_t)(dnp3tx->response_iin.iin1 << 8 | dnp3tx->response_iin.iin2));
     jb_close(js);
 }
 
