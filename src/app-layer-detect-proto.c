@@ -1960,7 +1960,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
 
         node = ConfGetNode(param);
         if (node == NULL) {
-            SCLogDebug("Entry for %s not found.", param);
+            SCLogWarning(SC_ERR_CONF_YAML_ERROR,
+                    "Config for protocol %s not found, so enabling by default."
+                    " This behavior will change in Suricata 7, so please update"
+                    " your config. See ticket #4744 for more details.",
+                    alproto);
             goto enabled;
         }
     }
