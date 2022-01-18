@@ -43,6 +43,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
@@ -74,7 +75,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     p->icmpv4vars.emb_ip4_src = IPV4_GET_RAW_IPSRC(icmp4_ip4h);
     p->icmpv4vars.emb_ip4_dst = IPV4_GET_RAW_IPDST(icmp4_ip4h);
 
-    p->icmpv4vars.emb_ip4_hlen=IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2;
+    p->icmpv4vars.emb_ip4_hlen = (uint8_t)(IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2);
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
@@ -193,8 +194,11 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             } else {
                 /* parse IP header plus 64 bytes */
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     (void)DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
-                                            len - ICMPV4_HEADER_PKT_OFFSET );
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -208,7 +212,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -222,7 +227,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -244,7 +250,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -258,7 +265,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
                     if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
                         return TM_ECODE_FAILED;
                     }
-                    DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                    DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                            (uint16_t)(len - ICMPV4_HEADER_PKT_OFFSET));
                 }
             }
             break;
@@ -341,7 +349,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     }
 
     p->payload = (uint8_t *)pkt + p->icmpv4vars.hlen;
-    p->payload_len = len - p->icmpv4vars.hlen;
+    DEBUG_VALIDATE_BUG_ON(len - p->icmpv4vars.hlen > UINT16_MAX);
+    p->payload_len = (uint16_t)(len - p->icmpv4vars.hlen);
 
     FlowSetupPacket(p);
     return TM_ECODE_OK;

@@ -41,6 +41,7 @@
 #include "flow.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 #include "pkt-var.h"
 #include "util-profiling.h"
@@ -201,7 +202,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     p->proto = IPPROTO_ICMPV6;
     p->icmp_s.type = p->icmpv6h->type;
     p->icmp_s.code = p->icmpv6h->code;
-    p->payload_len = len - ICMPV6_HEADER_LEN;
+    DEBUG_VALIDATE_BUG_ON(len - ICMPV6_HEADER_LEN > UINT16_MAX);
+    p->payload_len = (uint16_t)(len - ICMPV6_HEADER_LEN);
     p->payload = (uint8_t *)pkt + ICMPV6_HEADER_LEN;
 
     int ctype = ICMPv6GetCounterpart(p->icmp_s.type);
@@ -222,8 +224,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
                     return TM_ECODE_FAILED;
                 }
-                DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
-                                  len - ICMPV6_HEADER_LEN );
+                DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
+                        (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
             }
 
@@ -238,8 +240,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
                 p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
-                DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
-                                  len - ICMPV6_HEADER_LEN );
+                DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
+                        (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
             }
 
@@ -253,8 +255,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
                     return TM_ECODE_FAILED;
                 }
-                DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
-                                  len - ICMPV6_HEADER_LEN );
+                DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
+                        (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
             }
 
@@ -269,8 +271,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
                 p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
-                DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
-                                  len - ICMPV6_HEADER_LEN );
+                DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
+                        (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
             }
 
