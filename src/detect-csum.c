@@ -819,7 +819,7 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 
     if (p->level4_comp_csum == -1) {
         uint16_t len = IPV6_GET_RAW_PLEN(p->ip6h) -
-            ((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
+                       (uint16_t)((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
         p->level4_comp_csum = ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                       (uint16_t *)p->icmpv6h,
                                                       len);

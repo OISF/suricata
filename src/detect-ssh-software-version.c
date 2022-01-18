@@ -193,7 +193,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
         }
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
-        ssh->len = strlen((char *)ssh->software_ver);
+        ssh->len = (uint16_t)strlen((char *)ssh->software_ver);
 
         SCLogDebug("will look for ssh %s", ssh->software_ver);
     }

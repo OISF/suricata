@@ -1330,8 +1330,7 @@ static char DetectAddressMapCompareFunc(void *data1, uint16_t len1, void *data2,
     DetectAddressMap *map1 = (DetectAddressMap *)data1;
     DetectAddressMap *map2 = (DetectAddressMap *)data2;
 
-
-    int r = (strcmp(map1->string, map2->string) == 0);
+    char r = (strcmp(map1->string, map2->string) == 0);
     return r;
 }
 

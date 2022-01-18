@@ -52,6 +52,7 @@
 #include "util-spm.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -527,10 +528,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                        DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
         }
 
-        if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer,
-                                     buffer_len,
-                                     &det_ctx->byte_values[bed->local_id],
-                                     endian) != 1) {
+        if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer, buffer_len,
+                    &det_ctx->byte_values[bed->local_id], endian) != 1) {
             goto no_match;
         }
 
@@ -561,12 +560,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              rvalue = bmd->rvalue;
         }
 
-
-        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer,
-                                     buffer_len,
-                                     rvalue,
-                                     &det_ctx->byte_values[bmd->local_id],
-                                     endian) != 1) {
+        DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
+        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer, (uint16_t)buffer_len, rvalue,
+                    &det_ctx->byte_values[bmd->local_id], endian) != 1) {
             goto no_match;
         }
 
