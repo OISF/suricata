@@ -1960,7 +1960,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
 
         node = ConfGetNode(param);
         if (node == NULL) {
-            SCLogDebug("Entry for %s not found.", param);
+            SCLogWarning(SC_ERR_CONF_YAML_ERROR,
+                    "Proto entry not found in suricata.yaml. Enabling anyway."
+                    "Behavior to be discontinued in Suricata 7. Update configuration.");
             goto enabled;
         }
     }
