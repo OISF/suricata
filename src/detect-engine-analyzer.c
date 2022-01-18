@@ -38,6 +38,7 @@
 #include "detect-tcp-flags.h"
 #include "feature.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
@@ -457,7 +458,7 @@ int PerCentEncodingSetup ()
  * \retval 0 if it doesn't have % encoding
  * \retval -1 on error
  */
-int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
+static int PerCentEncodingMatch(uint8_t *content, uint16_t content_len)
 {
     int ret = 0;
 
@@ -1073,7 +1074,9 @@ static void EngineAnalysisItemsInit(void)
     for (size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
         DetectEngineAnalyzerItems *analyzer_item = &analyzer_items[i];
 
-        analyzer_item->item_id = DetectBufferTypeGetByName(analyzer_item->item_name);
+        int item_id = DetectBufferTypeGetByName(analyzer_item->item_name);
+        DEBUG_VALIDATE_BUG_ON(item_id < 0 || item_id > UINT16_MAX);
+        analyzer_item->item_id = (uint16_t)item_id;
         if (analyzer_item->item_id == -1) {
             /* Mismatch between the analyzer_items array and what's supported */
             FatalError(SC_ERR_INITIALIZATION,

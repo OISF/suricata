@@ -112,9 +112,8 @@ void DetectByteExtractRegister(void)
 }
 
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
-                             const Signature *s, const uint8_t *payload,
-                             uint16_t payload_len, uint64_t *value,
-                             uint8_t endian)
+        const Signature *s, const uint8_t *payload, uint32_t payload_len, uint64_t *value,
+        uint8_t endian)
 {
     DetectByteExtractData *data = (DetectByteExtractData *)smd->ctx;
     const uint8_t *ptr = NULL;
@@ -320,11 +319,10 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
                         i);
                 goto error;
             }
-            int32_t multiplier;
-            if (StringParseI32RangeCheck(&multiplier, 10, 0,
-                                 (const char *)multiplier_str,
-                                 DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
-                                 DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
+            uint16_t multiplier;
+            if (StringParseU16RangeCheck(&multiplier, 10, 0, (const char *)multiplier_str,
+                        DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
+                        DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for"
                         "multiplier: \"%s\".", multiplier_str);
                 goto error;
