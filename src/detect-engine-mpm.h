@@ -41,7 +41,7 @@ int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
 
 uint32_t PatternStrength(uint8_t *, uint16_t);
 
-uint16_t PatternMatchDefaultMatcher(void);
+uint8_t PatternMatchDefaultMatcher(void);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
