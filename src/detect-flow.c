@@ -86,8 +86,8 @@ void DetectFlowRegister (void)
  * \param dflags detect flow flags
  * \param match_cnt number of matches to trigger
  */
-static inline int FlowMatch(const uint32_t pflags, const uint8_t pflowflags,
-    const uint16_t tflags, const uint16_t dflags, const uint8_t match_cnt)
+static inline int FlowMatch(const uint32_t pflags, const uint8_t pflowflags, const uint16_t tflags,
+        const uint16_t dflags, const uint16_t match_cnt)
 {
     uint8_t cnt = 0;
 
@@ -439,8 +439,7 @@ PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (FlowMatch(p->flags, p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
-    {
+    if (FlowMatch(p->flags, p->flowflags, det_ctx->flags, ctx->v1.u16[0], ctx->v1.u16[1])) {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
@@ -449,17 +448,15 @@ static void
 PrefilterPacketFlowSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectFlowData *fb = smctx;
-    v->u8[0] = fb->flags;
-    v->u8[1] = fb->match_cnt;
+    v->u16[0] = fb->flags;
+    v->u16[1] = fb->match_cnt;
 }
 
 static bool
 PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowData *fb = smctx;
-    if (v.u8[0] == fb->flags &&
-        v.u8[1] == fb->match_cnt)
-    {
+    if (v.u16[0] == fb->flags && v.u16[1] == fb->match_cnt) {
         return true;
     }
     return false;

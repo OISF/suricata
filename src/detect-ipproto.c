@@ -241,7 +241,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 goto error;
             }
             if (!lt_set && !not_set) {
-                s->proto.proto[data->proto / 8] = 0xfe << (data->proto % 8);
+                s->proto.proto[data->proto / 8] = (uint8_t)(0xfe << (data->proto % 8));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
                     s->proto.proto[i] = 0xff;
                 }
@@ -319,7 +319,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 for (i = 0; i < (data->proto / 8); i++) {
                     s->proto.proto[i] = 0xff;
                 }
-                s->proto.proto[data->proto / 8] = ~(0xff << (data->proto % 8));
+                s->proto.proto[data->proto / 8] = (uint8_t)(~(0xff << (data->proto % 8)));
             } else if (gt_set && !not_set) {
                 SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
@@ -394,7 +394,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 for (i = 0; i < (data->proto / 8); i++) {
                     s->proto.proto[i] = 0xff;
                 }
-                s->proto.proto[data->proto / 8] = ~(1 << (data->proto % 8));
+                s->proto.proto[data->proto / 8] = (uint8_t)(~(1 << (data->proto % 8)));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
                     s->proto.proto[i] = 0xff;
                 }

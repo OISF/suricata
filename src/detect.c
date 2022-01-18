@@ -369,15 +369,14 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 /** \internal
  *  \brief build non-prefilter list based on the rule group list we've set.
  */
-static inline void
-DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx,
-        const SignatureMask mask, const uint8_t alproto)
+static inline void DetectPrefilterBuildNonPrefilterList(
+        DetectEngineThreadCtx *det_ctx, const SignatureMask mask, const AppProto alproto)
 {
     for (uint32_t x = 0; x < det_ctx->non_pf_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
-        const uint8_t rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
+        const AppProto rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
         if ((rule_mask & mask) == rule_mask &&
                 (rule_alproto == 0 || AppProtoEquals(rule_alproto, alproto))) {
             det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
@@ -1070,7 +1069,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
-    int file_no_match = 0;
+    uint16_t file_no_match = 0;
     bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
@@ -1150,7 +1149,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
-                    can->stream_result = match;
+                    // TODO change Callback prototype ?
+                    can->stream_result = (uint8_t)match;
                     TRACE_SID_TXS(s->id, tx, "stream ran, store result %d for next tx (if any)", match);
                 }
             }
