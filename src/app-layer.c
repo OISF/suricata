@@ -345,7 +345,7 @@ static int TCPProtoDetect(ThreadVars *tv,
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
-    int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     if (flags & STREAM_TOSERVER) {
         alproto = &f->alproto_ts;
@@ -651,7 +651,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         goto end;
     }
 
-    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    const uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     if (flags & STREAM_TOSERVER) {
         alproto = f->alproto_ts;
