@@ -26,7 +26,7 @@
 
 typedef struct DetectPktvarData_ {
     uint32_t id;
-    uint8_t content_len;
+    uint16_t content_len;
     uint8_t flags;
     uint8_t *content;
 } DetectPktvarData;

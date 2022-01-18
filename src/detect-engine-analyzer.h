@@ -33,7 +33,6 @@ int SetupRuleAnalyzer(void);
 void CleanupRuleAnalyzer (void);
 
 int PerCentEncodingSetup (void);
-int PerCentEncodingMatch (uint8_t *content, uint8_t content_len);
 
 void EngineAnalysisFP(const DetectEngineCtx *de_ctx,
         const Signature *s, char *line);

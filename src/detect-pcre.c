@@ -181,7 +181,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCEnter();
     int ret = 0;
     const uint8_t *ptr = NULL;
-    uint16_t len = 0;
+    uint32_t len = 0;
     PCRE2_SIZE capture_len = 0;
 
     DetectPcreData *pe = (DetectPcreData *)smd->ctx;
@@ -273,20 +273,17 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                         memcpy(str_ptr2, pcre2_str_ptr2, capture_len);
                         pcre2_substring_free((PCRE2_UCHAR8 *)pcre2_str_ptr2);
 
-                        (void)DetectVarStoreMatchKeyValue(det_ctx,
-                                (uint8_t *)str_ptr, key_len,
-                                (uint8_t *)str_ptr2, capture_len,
+                        (void)DetectVarStoreMatchKeyValue(det_ctx, (uint8_t *)str_ptr, key_len,
+                                (uint8_t *)str_ptr2, (uint16_t)capture_len,
                                 DETECT_VAR_TYPE_PKT_POSTMATCH);
 
                     } else if (pe->captypes[x] == VAR_TYPE_PKT_VAR) {
-                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
-                                (uint8_t *)str_ptr, capture_len,
-                                DETECT_VAR_TYPE_PKT_POSTMATCH);
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
+                                (uint16_t)capture_len, DETECT_VAR_TYPE_PKT_POSTMATCH);
 
                     } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
-                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
-                                (uint8_t *)str_ptr, capture_len,
-                                DETECT_VAR_TYPE_FLOW_POSTMATCH);
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
+                                (uint16_t)capture_len, DETECT_VAR_TYPE_FLOW_POSTMATCH);
                     } else {
                         BUG_ON(1); // Impossible captype
                         SCFree(str_ptr);
