@@ -178,7 +178,7 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
     if (dd->sa_type == NULL)
         goto error;
 
-    if (ByteExtractStringUint32(&dd->sa_value, 10, strlen(value), value) <= 0) {
+    if (ByteExtractStringUint32(&dd->sa_value, 10, (uint16_t)strlen(value), value) <= 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid input as arg "
                                              "to ike.chosen_sa_attribute keyword");
         goto error;

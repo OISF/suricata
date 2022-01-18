@@ -156,8 +156,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             if (*offset == NULL)
                 goto error;
         } else {
-            if (StringParseUint16(&idad->dataat, 10,
-                                        strlen(args[0]), args[0]) < 0 ) {
+            if (StringParseUint16(&idad->dataat, 10, (uint16_t)strlen(args[0]), args[0]) < 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
                 SCFree(idad);
                 idad = NULL;

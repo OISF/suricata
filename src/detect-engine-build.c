@@ -830,7 +830,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    for (int i = 0; i < ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));
@@ -1178,7 +1178,8 @@ static int RuleSetWhitelist(Signature *s)
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
-static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint32_t direction) {
+static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
+{
     /* step 1: create a hash of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */

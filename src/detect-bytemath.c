@@ -285,9 +285,8 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         goto error;
     }
 
-    res = ByteExtractStringUint8(&bmd->nbytes, 10,
-                                strlen(tmp_str),
-                                (const char *)tmp_str);
+    res = ByteExtractStringUint8(
+            &bmd->nbytes, 10, (uint16_t)strlen(tmp_str), (const char *)tmp_str);
     if (res < 1 || bmd->nbytes > 10) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math invalid bytes "
                    "value \"%s\" specified.", tmp_str);
@@ -306,8 +305,8 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
         goto error;
     }
 
-    if (StringParseI32RangeCheck(
-                &bmd->offset, 10, strlen(tmp_str), (const char *)tmp_str, -65535, 65535) < 0) {
+    if (StringParseI32RangeCheck(&bmd->offset, 10, (uint16_t)strlen(tmp_str), (const char *)tmp_str,
+                -65535, 65535) < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math invalid offset "
                    "value \"%s\"", tmp_str);
         goto error;
@@ -363,7 +362,8 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
             goto error;
         }
     } else {
-        if (ByteExtractStringUint32(&bmd->rvalue, 10, strlen(tmp_str), (const char *)tmp_str) < 0) {
+        if (ByteExtractStringUint32(
+                    &bmd->rvalue, 10, (uint16_t)strlen(tmp_str), (const char *)tmp_str) < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_math invalid rvalue "
                        "value \"%s\"", tmp_str);
             goto error;
@@ -517,7 +517,7 @@ static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const ch
             goto error;
         }
 
-        res = ByteExtractStringUint32(&bmd->bitmask_val, 16, strlen(tmp_str), tmp_str);
+        res = ByteExtractStringUint32(&bmd->bitmask_val, 16, (uint16_t)strlen(tmp_str), tmp_str);
         if (res < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to extract bitmask "
                        "value: \"%s\"", tmp_str);

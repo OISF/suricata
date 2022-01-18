@@ -199,8 +199,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         }
 
         /* count */
-        if (StringParseUint32(&td.count, 10, strlen(str_ptr),
-                    str_ptr) <= 0) {
+        if (StringParseUint32(&td.count, 10, (uint16_t)strlen(str_ptr), str_ptr) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument for count. Must be a value in the range of 0 to %"PRIu32" (%s)", UINT32_MAX, tagstr);
             goto error;
         }

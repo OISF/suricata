@@ -213,7 +213,7 @@ static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
     }
 
     /* set the first value */
-    if (ByteExtractStringUint32(&dd->version, 10, strlen(value1), value1) <= 0) {
+    if (ByteExtractStringUint32(&dd->version, 10, (uint16_t)strlen(value1), value1) <= 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
                    "to rfb.sectype keyword");
         goto error;
