@@ -76,7 +76,7 @@ static void SRepCIDRFreeUserData(void *data)
     return;
 }
 
-static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
+static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8_t value)
 {
     SReputation *user_data = NULL;
     if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
@@ -304,11 +304,11 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
-    int c, v;
-    if (StringParseI32RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS - 1) < 0)
+    uint8_t c, v;
+    if (StringParseU8RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS - 1) < 0)
         return -1;
 
-    if (StringParseI32RangeCheck(&v, 10, 0, (const char *)ptrs[2], 0, SREP_MAX_VAL) < 0)
+    if (StringParseU8RangeCheck(&v, 10, 0, (const char *)ptrs[2], 0, SREP_MAX_VAL) < 0)
         return -1;
 
     if (strchr(ptrs[0], '/') != NULL) {
