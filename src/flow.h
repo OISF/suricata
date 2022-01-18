@@ -580,7 +580,7 @@ int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
 
-void FlowUpdateState(Flow *f, enum FlowState s);
+void FlowUpdateState(Flow *f, const FlowStateType s);
 
 int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
