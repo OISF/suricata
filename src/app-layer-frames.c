@@ -70,7 +70,7 @@ Frame *FrameGetByIndex(Frames *frames, const uint32_t idx)
         FrameDebug("get_by_idx(s)", frames, frame);
         return frame;
     } else {
-        const uint16_t o = idx - FRAMES_STATIC_CNT;
+        const uint32_t o = idx - FRAMES_STATIC_CNT;
         Frame *frame = &frames->dframes[o];
         FrameDebug("get_by_idx(d)", frames, frame);
         return frame;
