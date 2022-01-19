@@ -18,6 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::common::rust_string_to_c;
+use nom7::Err;
 use std;
 use std::os::raw::c_char;
 use x509_parser::prelude::*;
@@ -131,10 +132,10 @@ pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
     drop(Box::from_raw(ptr));
 }
 
-fn x509_parse_error_to_errcode(e: &nom::Err<X509Error>) -> X509DecodeError {
+fn x509_parse_error_to_errcode(e: &Err<X509Error>) -> X509DecodeError {
     match e {
-        nom::Err::Incomplete(_) => X509DecodeError::InvalidLength,
-        nom::Err::Error(e) | nom::Err::Failure(e) => match e {
+        Err::Incomplete(_) => X509DecodeError::InvalidLength,
+        Err::Error(e) | Err::Failure(e) => match e {
             X509Error::InvalidVersion => X509DecodeError::InvalidVersion,
             X509Error::InvalidSerial => X509DecodeError::InvalidSerial,
             X509Error::InvalidAlgorithmIdentifier => X509DecodeError::InvalidAlgorithmIdentifier,
