@@ -15,8 +15,6 @@
  * 02110-1301, USA.
  */
 
-extern crate nom;
-
 use std;
 use std::ffi::CString;
 use std::collections::HashMap;

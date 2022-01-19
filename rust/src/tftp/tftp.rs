@@ -17,8 +17,6 @@
 
 // written by Clément Galland <clement.galland@epita.fr>
 
-extern crate nom;
-
 use std::str;
 use std;
 use nom7::IResult;

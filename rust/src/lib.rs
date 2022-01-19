@@ -65,9 +65,6 @@
 #![allow(clippy::field_reassign_with_default)]
 
 #[macro_use]
-extern crate nom;
-
-#[macro_use]
 extern crate bitflags;
 extern crate byteorder;
 extern crate crc;
