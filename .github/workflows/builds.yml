@@ -781,7 +781,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: LIB_FUZZING_ENGINE="fail_to_onefile_driver" CC=clang-10 CXX=clang++-10 CFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" CXXFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++" ac_cv_func_malloc_0_nonnull=yes ac_cv_func_realloc_0_nonnull=yes ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
+      - run: LIB_FUZZING_ENGINE="fail_to_onefile_driver" CC=clang-10 CXX=clang++-10 CFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" CXXFLAGS="-fprofile-arcs -ftest-coverage -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion" ac_cv_func_malloc_0_nonnull=yes ac_cv_func_realloc_0_nonnull=yes ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
       - run: make -j2
       - run: ./qa/run-ossfuzz-corpus.sh
       - name: Gcov
