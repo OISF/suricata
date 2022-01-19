@@ -221,7 +221,7 @@ pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>
             Err(Err::Failure(_)) => {}
             Err(Err::Incomplete(e)) => return Err(Err::Incomplete(e)),
         };
-        let (rest, header) = try_parse!(input, message_header);
+        let (rest, header) = message_header(input)?;
         headers_map.insert(header.name, header.value);
         input = rest;
     }
