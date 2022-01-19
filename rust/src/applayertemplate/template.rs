@@ -20,7 +20,7 @@ use std::collections::VecDeque;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use std::ffi::CString;
-use nom;
+use nom7 as nom;
 use super::parser;
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
