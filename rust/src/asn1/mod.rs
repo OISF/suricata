@@ -16,6 +16,7 @@
  */
 
 use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, BerTag};
+use nom7::Err;
 use std::convert::TryFrom;
 
 mod parse_rules;
@@ -30,7 +31,7 @@ pub struct Asn1<'a>(Vec<BerObject<'a>>);
 enum Asn1DecodeError {
     InvalidKeywordParameter,
     MaxFrames,
-    BerError(nom::Err<der_parser::error::BerError>),
+    BerError(Err<der_parser::error::BerError>),
 }
 
 /// Enumeration of Asn1 checks
@@ -278,8 +279,8 @@ impl From<std::num::TryFromIntError> for Asn1DecodeError {
     }
 }
 
-impl From<nom::Err<der_parser::error::BerError>> for Asn1DecodeError {
-    fn from(e: nom::Err<der_parser::error::BerError>) -> Asn1DecodeError {
+impl From<Err<der_parser::error::BerError>> for Asn1DecodeError {
+    fn from(e: Err<der_parser::error::BerError>) -> Asn1DecodeError {
         Asn1DecodeError::BerError(e)
     }
 }
