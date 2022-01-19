@@ -230,7 +230,7 @@ impl RdpState {
                         }
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -238,7 +238,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
                             let r = self.parse_ts(available);
@@ -345,7 +345,7 @@ impl RdpState {
                         }
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -353,7 +353,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
                             let r = self.parse_tc(available);
