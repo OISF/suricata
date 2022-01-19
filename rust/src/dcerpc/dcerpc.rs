@@ -18,9 +18,9 @@
 use crate::applayer::*;
 use crate::core::{self, *};
 use crate::dcerpc::parser;
-use nom::error::ErrorKind;
-use nom::number::Endianness;
-use nom;
+use nom7::error::{Error, ErrorKind};
+use nom7::number::Endianness;
+use nom7::{Err, IResult, Needed};
 use std;
 use std::cmp;
 use std::ffi::CString;
@@ -590,7 +590,7 @@ impl DCERPCState {
         }
     }
 
-    pub fn search_dcerpc_record<'a>(&mut self, i: &'a[u8]) -> nom::IResult<&'a[u8], &'a[u8]> {
+    pub fn search_dcerpc_record<'a>(&mut self, i: &'a[u8]) -> IResult<&'a[u8], &'a[u8]> {
         let mut d = i;
         while d.len() >= 2 {
             if d[0] == 0x05 && d[1] == 0x00 {
@@ -598,7 +598,7 @@ impl DCERPCState {
             }
             d = &d[1..];
         }
-        Err(nom::Err::Incomplete(nom::Needed::Size(2 as usize - d.len())))
+        Err(Err::Incomplete(Needed::new(2 as usize - d.len())))
     }
 
     /// Makes a call to the nom parser for parsing DCERPC Header.
@@ -628,12 +628,12 @@ impl DCERPCState {
                 self.header = Some(header);
                 (input.len() - leftover_bytes.len()) as i32
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC header");
                 -1
             }
-            Err(nom::Err::Error(([], ErrorKind::Eof))) => {
+            Err(Err::Error(Error{code:ErrorKind::Eof, ..})) => {
                 SCLogDebug!("EoF reached while parsing DCERPC header");
                 -1
             }
@@ -667,7 +667,7 @@ impl DCERPCState {
                 }
                 (input.len() - leftover_bytes.len()) as i32
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC BIND CTXItem");
                 -1
@@ -707,7 +707,7 @@ impl DCERPCState {
                 // of bindctxitems)
                 (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC BIND header");
                 -1
@@ -742,7 +742,7 @@ impl DCERPCState {
                 }
                 (input.len() - leftover_bytes.len()) as i32
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC BINDACK");
                 -1
@@ -892,7 +892,7 @@ impl DCERPCState {
                 );
                 parsed
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC REQUEST");
                 -1

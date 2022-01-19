@@ -21,6 +21,7 @@ use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use nom7::Err;
 use std;
 use std::ffi::CString;
 use crate::dcerpc::parser;
@@ -189,7 +190,7 @@ impl DCERPCUDPState {
                     return AppLayerResult::err();
                 }
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC request");
                 return AppLayerResult::err();
