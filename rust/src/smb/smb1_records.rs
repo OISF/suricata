@@ -769,14 +769,11 @@ pub struct SmbRequestCloseRecord<'a> {
     pub fid: &'a[u8],
 }
 
-named!(pub parse_smb1_close_request_record<SmbRequestCloseRecord>,
-    do_parse!(
-            take!(1)
-        >>  fid: take!(2)
-       >> (SmbRequestCloseRecord {
-                fid:fid,
-           }))
-);
+pub fn parse_smb1_close_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestCloseRecord> {
+    let (i, _) = take(1_usize)(i)?;
+    let (i,  fid) = take(2_usize)(i)?;
+    Ok((i, SmbRequestCloseRecord { fid, }))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct SmbVersion<> {
