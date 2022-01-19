@@ -15,13 +15,14 @@
  * 02110-1301, USA.
  */
 
+use crate::common::nom7::take_until_and_consume;
+use nom7::branch::alt;
+use nom7::bytes::streaming::{tag, take_until, take_while};
+use nom7::combinator::{complete, opt, rest};
+use nom7::error::{make_error, ErrorKind};
+use nom7::{Err, IResult};
 use std;
 use std::collections::HashMap;
-
-use nom::combinator::rest;
-use nom::error::ErrorKind;
-use nom::Err;
-use nom::IResult;
 
 #[derive(Clone)]
 pub struct MIMEHeaderTokens<'a> {
@@ -29,30 +30,31 @@ pub struct MIMEHeaderTokens<'a> {
 }
 
 pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, _) = tag!(input, "\"")?;
-    let (input, value) = take_until!(input, "\"")?;
-    let (input, _) = tag!(input, "\"")?;
+    let (input, _) = tag("\"")(input)?;
+    let (input, value) = take_until("\"")(input)?;
+    let (input, _) = tag("\"")(input)?;
     return Ok((input, value));
 }
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
-    let (input, _) = take_while!(input, |ch: u8| ch == 0x20
+    let (input, _) = take_while(|ch: u8| ch == 0x20
         || ch == 0x09
         || ch == 0x0a
-        || ch == 0x0d)?;
-    let (input, name) = take_until!(input, "=")?;
-    let (input, _) = tag!(input, "=")?;
-    let (input, value) = alt!(
-        input,
-        mime_parse_value_delimited | complete!(take_until!(";")) | rest
-    )?;
-    let (input, _) = opt!(input, complete!(tag!(";")))?;
+        || ch == 0x0d)(input)?;
+    let (input, name) = take_until("=")(input)?;
+    let (input, _) = tag("=")(input)?;
+    let (input, value) = alt((
+        mime_parse_value_delimited,
+        complete(take_until(";")),
+        rest
+    ))(input)?;
+    let (input, _) = opt(complete(tag(";")))(input)?;
     return Ok((input, (name, value)));
 }
 
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
-    let (mut input, _) = take_until_and_consume!(input, ";")?;
+    let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
     while input.len() > 0 {
         match mime_parse_header_token(input) {
@@ -62,7 +64,7 @@ fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
                 debug_validate_bug_on!(input.len() == rem.len());
                 if input.len() == rem.len() {
                     //infinite loop
-                    return Err(Err::Error((input, ErrorKind::Eof)));
+                    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
                 }
                 input = rem;
             }
