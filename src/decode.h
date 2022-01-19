@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -292,15 +292,20 @@ typedef struct PacketAlert_ {
 /** action was changed by rate_filter */
 #define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
 
+extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
 
 typedef struct PacketAlerts_ {
     uint16_t cnt;
-    PacketAlert alerts[PACKET_ALERT_MAX];
+    PacketAlert *alerts;
     /* single pa used when we're dropping,
      * so we can log it out in the drop log. */
     PacketAlert drop;
 } PacketAlerts;
+
+PacketAlert *PacketAlertCreate(void);
+
+void PacketAlertFree(PacketAlert *pa);
 
 /** number of decoder events we support per packet. Power of 2 minus 1
  *  for memory layout */
@@ -746,11 +751,13 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Initialize a packet structure for use.
  */
-#define PACKET_INITIALIZE(p) {         \
-    SCMutexInit(&(p)->tunnel_mutex, NULL); \
-    PACKET_RESET_CHECKSUMS((p)); \
-    (p)->livedev = NULL; \
-}
+#define PACKET_INITIALIZE(p)                                                                       \
+    {                                                                                              \
+        SCMutexInit(&(p)->tunnel_mutex, NULL);                                                     \
+        (p)->alerts.alerts = PacketAlertCreate();                                                  \
+        PACKET_RESET_CHECKSUMS((p));                                                               \
+        (p)->livedev = NULL;                                                                       \
+    }
 
 #define PACKET_RELEASE_REFS(p) do {              \
         FlowDeReference(&((p)->flow));          \
@@ -844,6 +851,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         if ((p)->pktvar != NULL) {                                                                 \
             PktVarFree((p)->pktvar);                                                               \
         }                                                                                          \
+        PacketAlertFree((p)->alerts.alerts);                                                       \
         PACKET_FREE_EXTDATA((p));                                                                  \
         SCMutexDestroy(&(p)->tunnel_mutex);                                                        \
         AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events);                                   \
@@ -982,6 +990,7 @@ void AddressDebugPrint(Address *);
 typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
          const uint8_t *pkt, uint32_t len);
 void DecodeGlobalConfig(void);
+void PacketAlertGetMaxConfig(void);
 void DecodeUnregisterCounters(void);
 
 /** \brief Set the No payload inspection Flag for the packet.
