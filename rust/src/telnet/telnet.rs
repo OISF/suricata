@@ -20,7 +20,7 @@ use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use crate::frames::*;
 use std::ffi::CString;
-use nom;
+use nom7::IResult;
 use super::parser;
 
 static mut ALPROTO_TELNET: AppProto = ALPROTO_UNKNOWN;
@@ -375,7 +375,7 @@ impl TelnetState {
 
 /// Probe for a valid header.
 ///
-fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
+fn probe(input: &[u8]) -> IResult<&[u8], ()> {
     // TODO see if we can implement something here. Ctl message is easy,
     // and 'login: ' is common, but we can have random text and possibly
     // other output as well. So for now data on port 23 is it.
