@@ -86,7 +86,8 @@ void AlertFastLogRegister(void)
     OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
         AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
         AlertFastLogThreadInit, AlertFastLogThreadDeinit, NULL);
-    AlertFastLogRegisterTests();
+        conf_file_exists = CheckMySqlConfExists();
+        AlertFastLogRegisterTests();
 }
 
 typedef struct AlertFastLogThread_ {
