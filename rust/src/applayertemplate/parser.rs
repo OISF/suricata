@@ -15,28 +15,29 @@
  * 02110-1301, USA.
  */
 
+use nom7::{
+    bytes::streaming::{take, take_until},
+    combinator::map_res,
+    IResult,
+};
 use std;
 
 fn parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
     input.parse::<u32>()
 }
 
-named!(pub parse_message<String>,
-       do_parse!(
-           len:  map_res!(
-                 map_res!(take_until!(":"), std::str::from_utf8), parse_len) >>
-           _sep: take!(1) >>
-           msg:  take_str!(len) >>
-               (
-                   msg.to_string()
-               )
-       ));
+pub fn parse_message(i: &[u8]) -> IResult<&[u8], String> {
+    let (i, len) = map_res(map_res(take_until(":"), std::str::from_utf8), parse_len)(i)?;
+    let (i, _sep) = take(1_usize)(i)?;
+    let (i, msg) = map_res(take(len as usize), std::str::from_utf8)(i)?;
+    let result = msg.to_string();
+    Ok((i, result))
+}
 
 #[cfg(test)]
 mod tests {
-
-    use nom::*;
     use super::*;
+    use nom7::Err;
 
     /// Simple test of some valid data.
     #[test]
