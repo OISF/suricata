@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -190,7 +190,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
 {
     int i = 0;
 
-    if (p->alerts.cnt == PACKET_ALERT_MAX)
+    if (p->alerts.cnt == packet_alert_max)
         return 0;
 
     SCLogDebug("sid %"PRIu32"", s->id);
