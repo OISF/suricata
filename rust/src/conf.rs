@@ -21,11 +21,12 @@ use std::os::raw::c_int;
 use std::ffi::{CString, CStr};
 use std::ptr;
 use std::str;
-use nom::{
+use nom7::{
     character::complete::{multispace0, not_line_ending},
     sequence::{preceded, tuple},
     number::complete::double,
     combinator::verify,
+    IResult,
 };
 
 extern {
@@ -86,9 +87,7 @@ pub struct ConfNode {
 impl ConfNode {
 
     pub fn wrap(conf: *const c_void) -> Self {
-        return Self {
-            conf: conf,
-        }
+        return Self { conf }
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
@@ -170,9 +169,9 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     let arg = arg.trim();
     let val: f64;
     let mut unit: &str;
-    let parser = tuple((preceded(multispace0, double),
+    let mut parser = tuple((preceded(multispace0, double),
                         preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 3))));
-    let r: nom::IResult<&str, (f64, &str)> = parser(arg);
+    let r: IResult<&str, (f64, &str)> = parser(arg);
     if let Ok(r) = r {
         val = (r.1).0;
         unit = (r.1).1;
