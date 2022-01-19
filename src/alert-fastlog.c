@@ -56,6 +56,10 @@
 
 #include <mysql.h>
 
+#ifdef HAVE_GLOB_H
+#include <glob.h>
+#endif
+
 #define DEFAULT_LOG_FILENAME "fast.log"
 
 #define MODULE_NAME "AlertFastLog"
@@ -73,6 +77,9 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 
 int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
+
+const char * sig_file = "/etc/suricata/my.cnf";
+int conf_file_exists;
 
 void AlertFastLogRegister(void)
 {
@@ -102,52 +109,50 @@ static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer
 
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
 {
-
   /*
-
     Create SQL connection to insert fast log data.
-
    */
 
-    MYSQL *con = mysql_init(NULL);
-    const char * sig_file = "/etc/suricata/my.cnf";
-    if(con == NULL){
-      mysql_error(con);
-      SCLogError(SC_ERR_OPENING_RULE_FILE, "No connection error.");
-    }
-    mysql_options(con, MYSQL_READ_DEFAULT_FILE, sig_file);
-    if (mysql_real_connect(con, NULL, NULL, NULL, NULL, 0, NULL, 0) == NULL)
-    {
-        mysql_error(con);
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "Opening mysql database.");
-    }
-    if(con == NULL){
-      mysql_error(con);
-    }
-    if (mysql_query(con, "SHOW TABLES LIKE 'fastlog'"))
-    {
-      mysql_error(con);
-      SCLogError(SC_ERR_DATABASE, "No table called fastlog.");
-    }
-    else{
-        MYSQL_RES *result = mysql_store_result(con);
-        int exists_or_not = mysql_num_rows(result);
-        if(exists_or_not == 0){
-            if (mysql_query(con, "CREATE TABLE `fastlog` ( `id` int NOT NULL AUTO_INCREMENT, `timebuf` varchar(200) DEFAULT NULL, `action` varchar(100) DEFAULT NULL, `sid` varchar(100) DEFAULT NULL, `rev` varchar(100) DEFAULT NULL,  `msg` varchar(500) DEFAULT NULL, `class_msg` varchar(500) DEFAULT NULL, `priority` varchar(100) DEFAULT NULL, `protocol` varchar(200) DEFAULT NULL, `srcip` varchar(100) DEFAULT NULL, `srcport` varchar(100) DEFAULT NULL, `dstip` varchar(100) DEFAULT NULL, `dstport` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`) )"))
-            {
-                mysql_error(con);
-                SCLogError(SC_ERR_OPENING_RULE_FILE, "Could not create table fastlog");
-            }
-            else{
-                SCLogError(SC_ERR_DATABASE, "Created table fastlog.");
+    MYSQL *con;
+    if(conf_file_exists == 0){
+        con = mysql_init(NULL);
+        const char * sig_file = "/etc/suricata/my.cnf";
+        if(con == NULL){
+          mysql_error(con);
+          SCLogError(SC_ERR_OPENING_RULE_FILE, "No connection error.");
+        }
+        mysql_options(con, MYSQL_READ_DEFAULT_FILE, sig_file);
+        if (mysql_real_connect(con, NULL, NULL, NULL, NULL, 0, NULL, 0) == NULL)
+        {
+            mysql_error(con);
+            SCLogError(SC_ERR_OPENING_RULE_FILE, "Opening mysql database.");
+        }
+        if(con == NULL){
+          mysql_error(con);
+        }
+        if (mysql_query(con, "SHOW TABLES LIKE 'fastlog'"))
+        {
+          mysql_error(con);
+          SCLogError(SC_ERR_DATABASE, "No table called fastlog.");
+        }
+        else{
+            MYSQL_RES *result = mysql_store_result(con);
+            int exists_or_not = mysql_num_rows(result);
+            if(exists_or_not == 0){
+                if (mysql_query(con, "CREATE TABLE `fastlog` ( `id` int NOT NULL AUTO_INCREMENT, `timebuf` varchar(200) DEFAULT NULL, `action` varchar(100) DEFAULT NULL, `sid` varchar(100) DEFAULT NULL, `rev` varchar(100) DEFAULT NULL,  `msg` varchar(500) DEFAULT NULL, `class_msg` varchar(500) DEFAULT NULL, `priority` varchar(100) DEFAULT NULL, `protocol` varchar(200) DEFAULT NULL, `srcip` varchar(100) DEFAULT NULL, `srcport` varchar(100) DEFAULT NULL, `dstip` varchar(100) DEFAULT NULL, `dstport` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`) )"))
+                {
+                    mysql_error(con);
+                    SCLogError(SC_ERR_OPENING_RULE_FILE, "Could not create table fastlog");
+                }
+                else{
+                    SCLogError(SC_ERR_DATABASE, "Created table fastlog.");
+                }
             }
         }
     }
-
     /*
         SQL part end.
     */
-
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
@@ -223,18 +228,19 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
 
 	    // Copy to the formatted mysql string to insert into the database
+            if(conf_file_exists == 0){
+                PrintBufferData(alert_buffer_mysql, &length, MAX_FASTLOG_ALERT_SIZE, "insert into fastlog  (timebuf, action, sid, rev, msg, class_msg, priority, protocol, srcip, srcport, dstip, dstport) values('%s', '%s', '%" PRIu32 "', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%" PRIu32 "')",  timebuf, action, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio, protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
 
-	    PrintBufferData(alert_buffer_mysql, &length, MAX_FASTLOG_ALERT_SIZE, "insert into fastlog  (timebuf, action, sid, rev, msg, class_msg, priority, protocol, srcip, srcport, dstip, dstport) values('%s', '%s', '%" PRIu32 "', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%s', '%" PRIu32 "', '%s', '%" PRIu32 "')",  timebuf, action, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio, protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+                // copy only the data to buf and run the query on database
+                //memcpy(buf, alert_buffer_mysql, length);
 
-	    // copy only the data to buf and run the query on database
-	    //memcpy(buf, alert_buffer_mysql, length);
-
-	    // Log error with insert, & what it was
-	    if(mysql_real_query(con, alert_buffer_mysql, length + 1)){
-	      SCLogError(SC_ERR_DATABASE, "Could not complete db query insert for fastlog :  %s", buf);
-	    };
-
-        } else {
+                // Log error with insert, & what it was
+                if(mysql_real_query(con, alert_buffer_mysql, length + 1)){
+                  SCLogError(SC_ERR_DATABASE, "Could not complete db query insert for fastlog :  %s", buf);
+                };
+            }
+        }
+         else {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32
                             ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
@@ -255,9 +261,10 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         AlertFastLogOutputAlert(aft, alert_buffer, size);
     }
 
-    // Close the sql connection
-
-    mysql_close(con);
+    if(conf_file_exists == 0){
+        // Close the sql connection
+        mysql_close(con);
+    }
 
     return TM_ECODE_OK;
 }
@@ -334,6 +341,44 @@ static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
     LogFileFreeCtx(logfile_ctx);
     SCFree(output_ctx);
 }
+
+/*
+Check fastlog db connection using the parameters of the default sql file in the suricata.yaml.
+*/
+
+int CheckMySqlConfExists(void){
+int r = 0;
+const char * pattern = "/etc/suricata/my.cnf";
+#ifdef HAVE_GLOB_H
+    glob_t files;
+    r = glob(pattern, 0, NULL, &files);
+    if (r == GLOB_NOMATCH) {
+        SCLogWarning(SC_WARN_DATABASE, "To use database, include configuration options in the file: %s", pattern);
+        return -1;
+    } else if (r != 0) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s", pattern, strerror(errno));
+        return -1;
+    }
+    for (size_t i = 0; i < (size_t)files.gl_pathc; i++) {
+        char *fname = files.gl_pathv[i];
+        if (strcmp("/dev/null", fname) == 0)
+            continue;
+#else
+        char *fname = pattern;
+        if (strcmp("/dev/null", fname) == 0)
+            return 1;
+#endif
+        if (strcmp("/etc/suricata/my.cnf", fname) == 0){
+            SCLogWarning(SC_WARN_DATABASE, "Found valid database configuration file. : %s", fname);
+            return 0;
+        }
+#ifdef HAVE_GLOB_H
+    }
+    globfree(&files);
+#endif
+return 1; // added
+}
+
 
 /*------------------------------Unittests-------------------------------------*/
 

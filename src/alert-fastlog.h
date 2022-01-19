@@ -27,6 +27,7 @@
 void AlertFastLogRegister(void);
 void TmModuleAlertFastLogIPv4Register(void);
 void TmModuleAlertFastLogIPv6Register(void);
+int CheckMySqlConfExists(void);
 OutputInitResult AlertFastLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_FASTLOG_H__ */

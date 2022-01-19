@@ -380,6 +380,8 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ERR_HASHING_DISABLED);
 
         CASE_CODE (SC_ERR_MAX);
+        CASE_CODE (SC_ERR_DATABASE);
+        CASE_CODE (SC_WARN_DATABASE);
     }
 
     return "UNKNOWN_ERROR";
