@@ -258,7 +258,7 @@ impl SSHState {
                     }
                     return r;
                 }
-                Err(nom::Err::Incomplete(_)) => {
+                Err(Err::Incomplete(_)) => {
                     return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
                 }
                 Err(_e) => {
@@ -296,7 +296,7 @@ impl SSHState {
                 }
                 return r;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 if input.len() < SSH_MAX_BANNER_LEN {
                     //0 consumed, needs at least one more byte
                     return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
