@@ -19,11 +19,12 @@ use digest::Digest;
 use digest::Update;
 use md5::Md5;
 use nom7::branch::alt;
-use nom7::bytes::streaming::{is_not, tag, take};
+use nom7::bytes::streaming::{is_not, tag, take, take_while};
 use nom7::character::streaming::char;
-use nom7::combinator::{complete, rest, verify};
+use nom7::combinator::{complete, eof, not, rest, verify};
 use nom7::multi::length_data;
 use nom7::number::streaming::{be_u32, be_u8};
+use nom7::sequence::terminated;
 use nom7::IResult;
 use std::fmt;
 
@@ -70,17 +71,18 @@ fn is_not_lineend(b: u8) -> bool {
 }
 
 //may leave \r at the end to be removed
-named!(pub ssh_parse_line<&[u8], &[u8]>,
-    terminated!(
-        take_while!(is_not_lineend),
-        alt!( tag!("\n") | tag!("\r\n") |
-              do_parse!(
-                    bytes: tag!("\r") >>
-                    not!(eof!()) >> (bytes)
-                )
-            )
-    )
-);
+pub fn ssh_parse_line(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    fn parser(i: &[u8]) -> IResult<&[u8], &[u8]> {
+        let (i, bytes) = tag("\r")(i)?;
+        let (i, _) = not(eof)(i)?;
+        Ok((i, bytes))
+    }
+    terminated(
+        take_while(is_not_lineend),
+        alt(( tag("\n"), tag("\r\n"), parser
+            ))
+        )(i)
+}
 
 #[derive(PartialEq)]
 pub struct SshBanner<'a> {
@@ -316,7 +318,7 @@ mod tests {
             Ok((_, _)) => {
                 panic!("Expected incomplete result");
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 //OK
                 assert_eq!(1, 1);
             }
