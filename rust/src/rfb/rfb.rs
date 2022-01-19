@@ -22,7 +22,7 @@ use std::ffi::CString;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
-use nom;
+use nom7::Err;
 use super::parser;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
@@ -174,7 +174,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -202,7 +202,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -224,7 +224,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -246,7 +246,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -300,7 +300,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -330,7 +330,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -364,7 +364,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -386,7 +386,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -414,7 +414,7 @@ impl RFBState {
                                 // TODO: Event: unknown security result value
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -432,7 +432,7 @@ impl RFBState {
                             }
                             return AppLayerResult::err();
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -456,7 +456,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
