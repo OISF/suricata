@@ -1012,14 +1012,14 @@ static int RuleMatchCandidateTxArrayExpand(DetectEngineThreadCtx *det_ctx, const
 void AlertQueueInit(DetectEngineThreadCtx *det_ctx)
 {
     det_ctx->alert_queue_size = 0;
-    det_ctx->alert_queue = SCCalloc(PACKET_ALERT_MAX, sizeof(PacketAlert));
+    det_ctx->alert_queue = SCCalloc(packet_alert_max, sizeof(PacketAlert));
     if (det_ctx->alert_queue == NULL) {
         FatalError(SC_ERR_MEM_ALLOC, "failed to allocate %" PRIu64 " bytes",
-                (uint64_t)(PACKET_ALERT_MAX * sizeof(PacketAlert)));
+                (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
     }
-    det_ctx->alert_queue_capacity = PACKET_ALERT_MAX;
-    SCLogDebug("alert queue initialized to %u elements (%" PRIu64 " bytes)", PACKET_ALERT_MAX,
-            (uint64_t)(PACKET_ALERT_MAX * sizeof(PacketAlert)));
+    det_ctx->alert_queue_capacity = packet_alert_max;
+    SCLogDebug("alert queue initialized to %u elements (%" PRIu64 " bytes)", packet_alert_max,
+            (uint64_t)(packet_alert_max * sizeof(PacketAlert)));
 }
 
 void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
