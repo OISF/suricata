@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -73,6 +73,26 @@ extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
+uint16_t packet_alert_max = PACKET_ALERT_MAX;
+
+/**
+ * \brief Initialize PacketAlerts with dynamic alerts array size
+ *
+ */
+PacketAlert *PacketAlertCreate(void)
+{
+    PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
+    BUG_ON(pa_array == NULL);
+
+    return pa_array;
+}
+
+void PacketAlertFree(PacketAlert *pa)
+{
+    if (pa != NULL) {
+        SCFree(pa);
+    }
+}
 
 static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
         PacketQueue *, enum DecodeTunnelProto) WARN_UNUSED;
@@ -753,6 +773,21 @@ void DecodeGlobalConfig(void)
             decoder_max_layers = value;
         }
     }
+    PacketAlertGetMaxConfig();
+}
+
+void PacketAlertGetMaxConfig(void)
+{
+    intmax_t max = 0;
+    if (ConfGetInt("packet-alert-max", &max) == 1) {
+        if (max <= 0 || max > UINT8_MAX) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                    "Invalid value for packet-alert-max, default value set instead");
+        } else {
+            packet_alert_max = max;
+        }
+    }
+    SCLogDebug("detect->packet_alert_max set to %d", packet_alert_max);
 }
 
 /**
