@@ -1081,6 +1081,10 @@ legacy:
 #   - reject
 #   - alert
 
+# Define maximum number of possible alerts that can be triggered for the same
+# packet. Default is 15
+#packet-alert-max: 15
+
 # IP Reputation
 #reputation-categories-file: @e_sysconfdir@iprep/categories.txt
 #default-reputation-path: @e_sysconfdir@iprep
