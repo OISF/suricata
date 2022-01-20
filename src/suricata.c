@@ -2250,16 +2250,10 @@ static int MayDaemonize(SCInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int InitSignalHandler(SCInstance *suri)
+/* Initialize the user and group Suricata is to run as. */
+static int InitRunAs(SCInstance *suri)
 {
-    /* registering signals we use */
-    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
 #ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
-    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
-    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
-
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
     if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
@@ -2291,6 +2285,37 @@ static int InitSignalHandler(SCInstance *suri)
 
         sc_set_caps = TRUE;
     }
+#endif
+    return TM_ECODE_OK;
+}
+
+static int InitSignalHandler(SCInstance *suri)
+{
+    /* registering signals we use */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#if HAVE_LIBUNWIND
+    int enabled;
+    if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
+        enabled = 1;
+    }
+
+    if (enabled) {
+        SCLogInfo("Preparing unexpected signal handling");
+        struct sigaction stacktrace_action;
+        memset(&stacktrace_action, 0, sizeof(stacktrace_action));
+        stacktrace_action.sa_sigaction = SignalHandlerUnexpected;
+        stacktrace_action.sa_flags = SA_SIGINFO;
+        sigaction(SIGSEGV, &stacktrace_action, NULL);
+        sigaction(SIGABRT, &stacktrace_action, NULL);
+    }
+#endif /* HAVE_LIBUNWIND */
+#endif
+#ifndef OS_WIN32
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
+    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
+    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
 #endif /* OS_WIN32 */
 
     return TM_ECODE_OK;
@@ -3052,6 +3077,7 @@ int main(int argc, char **argv)
     SCLogDebug("vlan tracking is %s", vlan_tracking == 1 ? "enabled" : "disabled");
 
     SetupUserMode(&suricata);
+    InitRunAs(&suricata);
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
