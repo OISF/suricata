@@ -596,6 +596,6 @@ int SCLogDebugEnabled(void);
 
 void SCLogRegisterTests(void);
 
-void SCLogLoadConfig(int daemon, int verbose);
+void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid);
 
 #endif /* __UTIL_DEBUG_H__ */
