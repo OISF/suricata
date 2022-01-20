@@ -1075,9 +1075,9 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
     suri->group_name = NULL;
     suri->do_setuid = FALSE;
     suri->do_setgid = FALSE;
+#endif /* OS_WIN32 */
     suri->userid = 0;
     suri->groupid = 0;
-#endif /* OS_WIN32 */
     suri->delayed_detect = 0;
     suri->daemon = 0;
     suri->offline = 0;
@@ -2887,7 +2887,7 @@ int SuricataMain(int argc, char **argv)
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(suricata.daemon, suricata.verbose);
+    SCLogLoadConfig(suricata.daemon, suricata.verbose, suricata.userid, suricata.groupid);
 
     LogVersion(&suricata);
     UtilCpuPrintSummary();
