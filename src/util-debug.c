@@ -727,10 +727,8 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx(void)
  * \retval iface_ctx Pointer to the file output interface context created
  * \initonly
  */
-static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
-                                                    const char *log_format,
-                                                    int log_level,
-                                                    SCLogOPType type)
+static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file, uint32_t userid,
+        uint32_t groupid, const char *log_format, int log_level, SCLogOPType type)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -750,6 +748,15 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         printf("Error opening file %s\n", file);
         goto error;
     }
+
+#ifndef OS_WIN32
+    if (userid != 0 || groupid != 0) {
+        if (chown(file, userid, groupid) == -1) {
+            SCLogWarning(SC_WARN_CHOWN, "Failed to change ownership of file %s: %s", file,
+                    strerror(errno));
+        }
+    }
+#endif
 
     if ((iface_ctx->file = SCStrdup(file)) == NULL) {
         goto error;
@@ -1070,11 +1077,11 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 if (s == NULL) {
                     char *str = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
                     if (str != NULL) {
-                        op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX,0);
+                        op_ifaces_ctx = SCLogInitFileOPIface(str, 0, 0, NULL, SC_LOG_LEVEL_MAX, 0);
                         SCFree(str);
                     }
                 } else {
-                    op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX,0);
+                    op_ifaces_ctx = SCLogInitFileOPIface(s, 0, 0, NULL, SC_LOG_LEVEL_MAX, 0);
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
@@ -1272,7 +1279,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
         case SC_LOG_OP_IFACE_CONSOLE:
             return SCLogInitConsoleOPIface(log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
         case SC_LOG_OP_IFACE_FILE:
-            return SCLogInitFileOPIface(arg, log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
+            return SCLogInitFileOPIface(arg, 0, 0, log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
         case SC_LOG_OP_IFACE_SYSLOG:
             return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCSyslogGetFacilityMap()),
                     log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
@@ -1326,7 +1333,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     return;
 }
 
-void SCLogLoadConfig(int daemon, int verbose)
+void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
 {
     ConfNode *outputs;
     SCLogInitData *sc_lid;
@@ -1437,7 +1444,7 @@ void SCLogLoadConfig(int daemon, int verbose)
             if (path == NULL)
                 FatalError(SC_ERR_FATAL, "failed to setup output to file");
             have_logging = 1;
-            op_iface_ctx = SCLogInitFileOPIface(path, format, level, type);
+            op_iface_ctx = SCLogInitFileOPIface(path, userid, groupid, format, level, type);
             SCFree(path);
         }
         else if (strcmp(output->name, "syslog") == 0) {
