@@ -16,10 +16,10 @@
  */
 use super::error::QuicError;
 use super::frames::Frame;
-use nom::bytes::complete::take;
-use nom::combinator::{all_consuming, map};
-use nom::number::complete::{be_u32, be_u8};
-use nom::IResult;
+use nom7::bytes::complete::take;
+use nom7::combinator::{all_consuming, map};
+use nom7::number::complete::{be_u32, be_u8};
+use nom7::{Err, IResult};
 
 /*
    gQUIC is the Google version of QUIC.
@@ -166,7 +166,7 @@ impl QuicHeader {
                         0x7d => QuicType::Handshake,
                         0x7c => QuicType::ZeroRTT,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 } else {
@@ -176,7 +176,7 @@ impl QuicHeader {
                         0x02 => QuicType::Handshake,
                         0x03 => QuicType::Retry,
                         _ => {
-                            return Err(nom::Err::Error(QuicError::InvalidPacket));
+                            return Err(Err::Error(QuicError::InvalidPacket));
                         }
                     }
                 }

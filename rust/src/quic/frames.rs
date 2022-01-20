@@ -16,12 +16,12 @@
  */
 
 use super::error::QuicError;
-use nom::bytes::complete::take;
-use nom::combinator::{all_consuming, complete};
-use nom::multi::{count, many0};
-use nom::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
-use nom::sequence::pair;
-use nom::IResult;
+use nom7::bytes::complete::take;
+use nom7::combinator::{all_consuming, complete};
+use nom7::multi::{count, many0};
+use nom7::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
+use nom7::sequence::pair;
+use nom7::{Err, IResult};
 use num::FromPrimitive;
 use std::fmt;
 
@@ -125,7 +125,7 @@ pub(crate) enum Frame {
 fn parse_tag(input: &[u8]) -> IResult<&[u8], StreamTag, QuicError> {
     let (rest, tag) = be_u32(input)?;
 
-    let tag = StreamTag::from_u32(tag).ok_or(nom::Err::Error(QuicError::StreamTagNoMatch(tag)))?;
+    let tag = StreamTag::from_u32(tag).ok_or(Err::Error(QuicError::StreamTagNoMatch(tag)))?;
 
     Ok((rest, tag))
 }
@@ -151,7 +151,7 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
         // offsets should be increasing
         let value_len = offset
             .checked_sub(previous_offset)
-            .ok_or(nom::Err::Error(QuicError::InvalidPacket))?;
+            .ok_or(Err::Error(QuicError::InvalidPacket))?;
         let (new_rest, value) = take(value_len)(rest)?;
 
         previous_offset = offset;
