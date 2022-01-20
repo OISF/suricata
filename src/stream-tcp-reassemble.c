@@ -1721,7 +1721,11 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     } else if (p->tcph->th_flags & TH_RST) { // accepted rst
         dir = UPDATE_DIR_PACKET;
     } else if ((p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
-        dir = UPDATE_DIR_PACKET;
+        if (p->tcph->th_flags & TH_ACK) {
+            dir = UPDATE_DIR_BOTH;
+        } else {
+            dir = UPDATE_DIR_PACKET;
+        }
     } else if (ssn->state == TCP_CLOSED) {
         dir = UPDATE_DIR_BOTH;
     }
