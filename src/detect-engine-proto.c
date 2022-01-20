@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -364,70 +364,10 @@ static int DetectProtoTestSetup02(void)
 }
 
 /**
- * \test DetectProtoTestSig01 is a test for checking the working of protocol
- *       detection by setting up the signature and later testing its working
- *       by matching the received packet against the sig.
- */
-
-static int DetectProtoTestSig01(void)
-{
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    Flow f;
-
-    memset(&f, 0, sizeof(Flow));
-    memset(&th_v, 0, sizeof(th_v));
-
-    FLOW_INITIALIZE(&f);
-
-    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    FAIL_IF_NULL(p);
-
-    p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flags |= PKT_HAS_FLOW;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
-                                                 "(msg:\"Not tcp\"; flow:to_server; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any "
-                                      "(msg:\"IP\"; flow:to_server; sid:2;)");
-    FAIL_IF_NULL(s);
-
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                                      "(msg:\"TCP\"; flow:to_server; sid:3;)");
-    FAIL_IF_NULL(s);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    FAIL_IF(PacketAlertCheck(p, 1));
-    FAIL_IF_NOT(PacketAlertCheck(p, 2));
-    FAIL_IF_NOT(PacketAlertCheck(p, 3));
-
-    FLOW_DESTROY(&f);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
-
-    PASS;
-}
-
-/**
  * \test signature parsing with tcp-pkt and tcp-stream
  */
 
-static int DetectProtoTestSig02(void)
+static int DetectProtoTestSig01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -466,7 +406,6 @@ void DetectProtoTests(void)
     UtRegisterTest("DetectProtoTestSetup02", DetectProtoTestSetup02);
 
     UtRegisterTest("DetectProtoTestSig01", DetectProtoTestSig01);
-    UtRegisterTest("DetectProtoTestSig02", DetectProtoTestSig02);
 #endif /* UNITTESTS */
 }
 
