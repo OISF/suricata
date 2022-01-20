@@ -70,6 +70,7 @@ pub const SMB1_COMMAND_LOGOFF_ANDX:             u8 = 0x74;
 pub const SMB1_COMMAND_TREE_CONNECT_ANDX:       u8 = 0x75;
 pub const SMB1_COMMAND_QUERY_INFO_DISK:         u8 = 0x80;
 pub const SMB1_COMMAND_NT_TRANS:                u8 = 0xa0;
+pub const SMB1_COMMAND_NT_TRANS_SECONDARY:      u8 = 0xa1;
 pub const SMB1_COMMAND_NT_CREATE_ANDX:          u8 = 0xa2;
 pub const SMB1_COMMAND_NT_CANCEL:               u8 = 0xa4;
 pub const SMB1_COMMAND_NONE:                    u8 = 0xff;
@@ -114,6 +115,7 @@ pub fn smb1_command_string(c: u8) -> String {
         SMB1_COMMAND_TREE_CONNECT_ANDX  => "SMB1_COMMAND_TREE_CONNECT_ANDX",
         SMB1_COMMAND_QUERY_INFO_DISK    => "SMB1_COMMAND_QUERY_INFO_DISK",
         SMB1_COMMAND_NT_TRANS           => "SMB1_COMMAND_NT_TRANS",
+        SMB1_COMMAND_NT_TRANS_SECONDARY => "SMB1_COMMAND_NT_TRANS_SECONDARY",
         SMB1_COMMAND_NT_CREATE_ANDX     => "SMB1_COMMAND_NT_CREATE_ANDX",
         SMB1_COMMAND_NT_CANCEL          => "SMB1_COMMAND_NT_CANCEL",
         _ => { return (c).to_string(); },
@@ -552,6 +554,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
             if command == SMB1_COMMAND_LOGOFF_ANDX ||
                command == SMB1_COMMAND_TREE_DISCONNECT ||
                command == SMB1_COMMAND_NT_TRANS ||
+               command == SMB1_COMMAND_NT_TRANS_SECONDARY ||
                command == SMB1_COMMAND_NT_CANCEL ||
                command == SMB1_COMMAND_RENAME ||
                command == SMB1_COMMAND_CHECK_DIRECTORY ||
