@@ -137,9 +137,9 @@ typedef struct SCInstance_ {
     const char *group_name;
     uint8_t do_setuid;
     uint8_t do_setgid;
+#endif /* OS_WIN32 */
     uint32_t userid;
     uint32_t groupid;
-#endif /* OS_WIN32 */
 
     bool system;
     bool set_logdir;

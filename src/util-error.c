@@ -377,6 +377,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PLUGIN);
         CASE_CODE(SC_ERR_LOG_OUTPUT);
         CASE_CODE(SC_ERR_RULE_INVALID_UTF8);
+        CASE_CODE(SC_WARN_CHOWN);
 
         CASE_CODE (SC_ERR_MAX);
     }
