@@ -4,6 +4,8 @@ on:
   - push
   - pull_request
 
+permissions: read-all
+
 env:
   DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
   DEFAULT_LIBHTP_BRANCH: 0.5.x
