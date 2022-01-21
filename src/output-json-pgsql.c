@@ -47,7 +47,7 @@
 #include "output-json-pgsql.h"
 #include "rust.h"
 
-#define PGSQL_LOG_PASSWORDS BIT_U32(1)
+#define PGSQL_LOG_PASSWORDS BIT_U32(0)
 
 typedef struct OutputPgsqlCtx_ {
     uint32_t flags;
@@ -103,10 +103,10 @@ static void JsonPgsqlLogParseConfig(ConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx
         if (ConfValIsTrue(query)) {
             pgsqllog_ctx->flags |= PGSQL_LOG_PASSWORDS;
         } else {
-            pgsqllog_ctx->flags &= !PGSQL_LOG_PASSWORDS;
+            pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
         }
     } else {
-        pgsqllog_ctx->flags &= !PGSQL_LOG_PASSWORDS;
+        pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
     }
 }
 
