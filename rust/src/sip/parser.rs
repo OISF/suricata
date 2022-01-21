@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,6 +16,11 @@
  */
 
 // written by Giuseppe Longo <giuseppe@glono.it>
+
+use super::sip::SIPFrameType;
+use crate::core;
+use crate::frames::*;
+use crate::applayer::{*};
 
 use nom7::bytes::streaming::{take, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
@@ -86,6 +91,42 @@ fn is_header_value(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
 }
 
+pub fn sip_parse_request_frames(flow: *const core::Flow, stream_slice: &StreamSlice) -> IResult<&[u8], Request> {
+    let oi = stream_slice.as_slice();
+    let _pdu = Frame::new_ts(flow, stream_slice, oi, oi.len() as i64, SIPFrameType::Pdu as u8);
+    SCLogDebug!("ts: pdu {:?}", _pdu);
+
+    let (i, method) = parse_method(oi)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, path) = parse_request_uri(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, version) = parse_version(i)?;
+    let (i, _) = crlf(i)?;
+    let _f = Frame::new_ts(flow, stream_slice, oi, (oi.len() - i.len()) as i64, SIPFrameType::RequestLine as u8);
+    SCLogDebug!("ts: request_line {:?}", _f);
+
+    let pre_hdrs = i;
+    let (i, headers) = parse_headers(i)?;
+    let _f = Frame::new_ts(flow, stream_slice, pre_hdrs, (pre_hdrs.len() - i.len()) as i64, SIPFrameType::RequestHeaders as u8);
+    SCLogDebug!("ts: request_headers {:?}", _f);
+    let (i, _) = crlf(i)?;
+
+    if i.len() > 0 {
+        let _f = Frame::new_ts(flow, stream_slice, i, i.len() as i64, SIPFrameType::RequestBody as u8);
+        SCLogDebug!("ts: request_body {:?}", _f);
+    }
+
+    Ok((
+        i,
+        Request {
+            method: method.into(),
+            path: path.into(),
+            version: version.into(),
+            headers,
+        },
+    ))
+}
+
 pub fn sip_parse_request(i: &[u8]) -> IResult<&[u8], Request> {
     let (i, method) = parse_method(i)?;
     let (i, _) = char(' ')(i)?;
@@ -106,12 +147,50 @@ pub fn sip_parse_request(i: &[u8]) -> IResult<&[u8], Request> {
     ))
 }
 
+pub fn sip_parse_response_frames(flow: *const core::Flow, stream_slice: &StreamSlice) -> IResult<&[u8], Response> {
+    let oi = stream_slice.as_slice();
+    let _pdu = Frame::new_tc(flow, stream_slice, oi, oi.len() as i64, SIPFrameType::Pdu as u8);
+    SCLogDebug!("tc: pdu {:?}", _pdu);
+
+    let (i, version) = parse_version(oi)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, code) = parse_code(i)?;
+    let (i, _) = char(' ')(i)?;
+    let (i, reason) = parse_reason(i)?;
+    let (i, _) = crlf(i)?;
+
+    let _f = Frame::new_tc(flow, stream_slice, oi, (oi.len() - i.len()) as i64, SIPFrameType::ResponseLine as u8);
+    SCLogDebug!("tc: response_line {:?}", _f);
+
+    let pre_hdrs = i;
+    let (i, _headers) = parse_headers(i)?;
+    let _f = Frame::new_tc(flow, stream_slice, pre_hdrs, (pre_hdrs.len() - i.len()) as i64, SIPFrameType::ResponseHeaders as u8);
+    SCLogDebug!("tc: response_headers {:?}", _f);
+    let (i, _) = crlf(i)?;
+
+    if i.len() > 0 {
+        let _f = Frame::new_tc(flow, stream_slice, i, i.len() as i64, SIPFrameType::ResponseBody as u8);
+        SCLogDebug!("tc: response_body {:?}", _f);
+    }
+
+    Ok((
+        i,
+        Response {
+            version: version.into(),
+            code: code.into(),
+            reason: reason.into(),
+        },
+    ))
+}
+
 pub fn sip_parse_response(i: &[u8]) -> IResult<&[u8], Response> {
     let (i, version) = parse_version(i)?;
     let (i, _) = char(' ')(i)?;
     let (i, code) = parse_code(i)?;
     let (i, _) = char(' ')(i)?;
     let (i, reason) = parse_reason(i)?;
+    let (i, _) = crlf(i)?;
+    let (i, _headers) = parse_headers(i)?;
     let (i, _) = crlf(i)?;
     Ok((
         i,
@@ -271,15 +350,16 @@ mod tests {
         let buf: &[u8] = "REGISTER sip:sip.cybercity.dk SIP/2.0\r\n\
                           From: <sip:voi18063@sip.cybercity.dk>;tag=903df0a\r\n\
                           To: <sip:voi18063@sip.cybercity.dk>\r\n\
-                          Content-Length: 0  \r\n\
-                          \r\n"
+                          Content-Length: 4  \r\n\
+                          \r\nABCD"
             .as_bytes();
 
-        let (_, req) = sip_parse_request(buf).expect("parsing failed");
+        let (body, req) = sip_parse_request(buf).expect("parsing failed");
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
-        assert_eq!(req.headers["Content-Length"], "0");
+        assert_eq!(req.headers["Content-Length"], "4");
+        assert_eq!(body, "ABCD".as_bytes());
     }
 
     #[test]
