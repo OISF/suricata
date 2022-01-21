@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,17 @@ use crate::sip::parser::*;
 use nom7::Err;
 use std;
 use std::ffi::CString;
+
+#[derive(AppLayerFrameType)]
+pub enum SIPFrameType {
+    Pdu,
+    RequestLine,
+    ResponseLine,
+    RequestHeaders,
+    ResponseHeaders,
+    RequestBody,
+    ResponseBody,
+}
 
 #[derive(AppLayerEvent)]
 pub enum SIPEvent {
@@ -95,12 +106,12 @@ impl SIPState {
         }
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> bool {
-        match sip_parse_request(input) {
+    fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        match sip_parse_request_frames(flow, &stream_slice) {
             Ok((_, request)) => {
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
-                if let Ok((_, req_line)) = sip_take_line(input) {
+                if let Ok((_, req_line)) = sip_take_line(stream_slice.as_slice()) {
                     tx.request_line = req_line;
                 }
                 self.transactions.push(tx);
@@ -117,12 +128,12 @@ impl SIPState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> bool {
-        match sip_parse_response(input) {
+    fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        match sip_parse_response_frames(flow, &stream_slice) {
             Ok((_, response)) => {
                 let mut tx = self.new_tx();
                 tx.response = Some(response);
-                if let Ok((_, resp_line)) = sip_take_line(input) {
+                if let Ok((_, resp_line)) = sip_take_line(stream_slice.as_slice()) {
                     tx.response_line = resp_line;
                 }
                 self.transactions.push(tx);
@@ -232,26 +243,26 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(
-    _flow: *const core::Flow,
+    flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_request(stream_slice.as_slice()).into()
+    state.parse_request(flow, stream_slice).into()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_response(
-    _flow: *const core::Flow,
+    flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_response(stream_slice.as_slice()).into()
+    state.parse_response(flow, stream_slice).into()
 }
 
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
@@ -289,8 +300,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(SIPFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(SIPFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
