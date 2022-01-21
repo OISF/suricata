@@ -3,6 +3,8 @@ name: commit-check
 on:
   - pull_request
 
+permissions: read-all
+
 jobs:
 
   check-commits:
