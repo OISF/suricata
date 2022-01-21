@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo
           key: cargo
@@ -111,7 +111,7 @@ jobs:
       - name: Cleaning up
         run: rm -rf libhtp suricata-update suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         with:
           name: prep
           path: .
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo
           key: cbindgen
@@ -135,7 +135,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         with:
           name: prep
           path: .
@@ -148,12 +148,12 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
 
       # Prebuild check for duplicat SIDs
       - name: Check for duplicate SIDs
@@ -166,7 +166,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -247,7 +247,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         name: Uploading distribution
         with:
           name: dist
@@ -293,7 +293,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -310,7 +310,7 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -326,7 +326,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -367,8 +367,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -413,7 +413,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -454,8 +454,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -500,7 +500,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -540,8 +540,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -574,7 +574,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -612,8 +612,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -681,8 +681,8 @@ jobs:
                 exuberant-ctags \
                 curl \
                 dpdk-dev
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -707,7 +707,7 @@ jobs:
           cd ../libhtp/htp
           gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         with:
           flags: suricata-verify
 
@@ -758,8 +758,8 @@ jobs:
                 exuberant-ctags \
                 curl \
                 dpdk-dev
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -781,7 +781,7 @@ jobs:
           cd ../libhtp/htp
           gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         with:
           flags: unittests
 
@@ -838,8 +838,8 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -859,7 +859,7 @@ jobs:
           cd src
           llvm-cov-10 gcov -p *.c
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         with:
           flags: fuzzcorpus
 
@@ -908,8 +908,8 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags \
                 dpdk-dev
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -984,7 +984,7 @@ jobs:
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -1005,7 +1005,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1046,8 +1046,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1076,7 +1076,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1130,8 +1130,8 @@ jobs:
       - name: Install Coccinelle
         run: |
           apt -y install coccinelle
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1170,7 +1170,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1208,8 +1208,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1261,7 +1261,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: dist
       - name: Extract
@@ -1284,7 +1284,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1327,8 +1327,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1388,8 +1388,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1416,7 +1416,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1441,9 +1441,9 @@ jobs:
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
       - name: Downloading prep archive
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
@@ -1464,8 +1464,8 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
         with:
           msystem: MINGW64
           update: true
@@ -1474,8 +1474,8 @@ jobs:
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
         with:
           name: prep
           path: prep
