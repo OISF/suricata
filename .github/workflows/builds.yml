@@ -1456,8 +1456,8 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
 
-  windows-msys2-mingw64:
-    name: Windows MSYS2 MINGW64
+  windows-msys2-mingw64-npcap:
+    name: Windows MSYS2 MINGW64 (NPcap)
     runs-on: windows-latest
     needs: [prepare-deps]
     defaults:
@@ -1504,3 +1504,40 @@ jobs:
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
+
+  windows-msys2-mingw64-libpcap:
+    name: Windows MSYS2 MINGW64 (libpcap)
+    runs-on: windows-latest
+    needs: [prepare-deps]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+      # hack: install our own cbindgen system wide as we can't get the
+      # preinstalled one to be picked up by configure
+      - name: cbindgen
+        run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          make -j3
+      - name: Run
+        run: |
+          ./src/suricata --build-info
+          ./src/suricata -u -l /tmp/
+          python3 ./suricata-verify/run.py -q
