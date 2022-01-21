@@ -65,7 +65,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     alproto = AppLayerProtoDetectGetProto(
             alpd_tctx, f, data + HEADER_LEN, size - HEADER_LEN, f->proto, flags, &reverse);
-    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
+    // Fuzzing can craft a valid polyglot ENIP/DNS, so we exclude ENIP from further analysis.
+    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP &&
+            alproto != ALPROTO_ENIP) {
         /* If we find a valid protocol at the start of a stream :
          * check that with smaller input
          * we find the same protocol or ALPROTO_UNKNOWN.
