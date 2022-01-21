@@ -220,13 +220,11 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
         return NULL;
     }
 
-    cd = SCMalloc(sizeof(DetectContentData) + len);
+    cd = SCCalloc(1, sizeof(DetectContentData) + len);
     if (unlikely(cd == NULL)) {
         SCFree(content);
         exit(EXIT_FAILURE);
     }
-
-    memset(cd, 0, sizeof(DetectContentData) + len);
 
     cd->content = (uint8_t *)cd + sizeof(DetectContentData);
     memcpy(cd->content, content, len);
