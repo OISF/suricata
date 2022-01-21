@@ -156,6 +156,42 @@ int DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, co
     return false;
 }
 
+/** \internal
+ *  \brief setup buffer based on frame in UDP payload
+ */
+static InspectionBuffer *DetectFrame2InspectBufferUdp(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, InspectionBuffer *buffer,
+        const Frames *frames, const Frame *frame, const int list_id, const uint32_t idx,
+        const bool first)
+{
+    DEBUG_VALIDATE_BUG_ON(frame->rel_offset >= p->payload_len);
+    if (frame->rel_offset >= p->payload_len)
+        return NULL;
+
+    int frame_len = frame->len != -1 ? frame->len : p->payload_len - frame->rel_offset;
+    uint8_t ci_flags = DETECT_CI_FLAGS_START;
+
+    if (frame->rel_offset + frame_len > p->payload_len) {
+        frame_len = p->payload_len - frame->rel_offset;
+    } else {
+        ci_flags |= DETECT_CI_FLAGS_END;
+    }
+    const uint8_t *data = p->payload + frame->rel_offset;
+    const uint32_t data_len = frame_len;
+
+    SCLogDebug("packet %" PRIu64 " -> frame %p/%" PRIi64 "/%s rel_offset %" PRIi64
+               " type %u len %" PRIi64,
+            p->pcap_cnt, frame, frame->id,
+            AppLayerParserGetFrameNameById(p->flow->proto, p->flow->alproto, frame->type),
+            frame->rel_offset, frame->type, frame->len);
+    // PrintRawDataFp(stdout, data, MIN(64,data_len));
+
+    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    buffer->inspect_offset = 0;
+    buffer->flags = ci_flags;
+    return buffer;
+}
+
 InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const Frames *frames,
         const Frame *frame, const int list_id, const uint32_t idx, const bool first)
@@ -168,6 +204,12 @@ InspectionBuffer *DetectFrame2InspectBuffer(DetectEngineThreadCtx *det_ctx,
         return buffer;
 
     BUG_ON(p->flow == NULL);
+
+    if (p->proto == IPPROTO_UDP) {
+        return DetectFrame2InspectBufferUdp(
+                det_ctx, transforms, p, buffer, frames, frame, list_id, idx, first);
+    }
+
     BUG_ON(p->flow->protoctx == NULL);
     TcpSession *ssn = p->flow->protoctx;
     TcpStream *stream;
