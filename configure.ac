@@ -1191,23 +1191,15 @@
         exit 1
     fi
 
-    # pcap_activate and pcap_create only exists in libpcap >= 1.0
-    LIBPCAPVTEST=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_activate,, LPCAPVTEST="no")
-    if test "$LPCAPVTEST" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library too old, need at least 1+, "
-        echo "   go get it from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
-    fi
+    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_activate,
+        [AC_DEFINE([HAVE_PCAP_ACTIVATE], [1], [libpcap has pcap_activate])],
+        [
+            echo ""
+            echo "   Warning: libpcap does not have pcap_activate. Suricata will"
+            echo "       not be able to use libpcap for live capture."
+            echo ""
+        ])
+
     AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
     if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
         AC_MSG_RESULT(no pcap-config is use)
@@ -1215,18 +1207,10 @@
         PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
         AC_SUBST(PCAP_CFLAGS)
     fi
-    LIBS="${TMPLIBS}"
 
-    #Appears as if pcap_set_buffer_size is linux only?
-    LIBPCAPSBUFF=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_set_buffer_size,, LPCAPSBUFF="no")
-    if test "$LPCAPSBUFF" != "no"; then
-        AC_DEFINE([HAVE_PCAP_SET_BUFF],[1],(libpcap has pcap_set_buffer_size function))
-    fi
-    LIBS="${TMPLIBS}"
+    # Appears as if pcap_set_buffer_size is linux only?
+    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_set_buffer_size,
+        [AC_DEFINE([HAVE_PCAP_SET_BUFF],[1],[libpcap has pcap_set_buffer_size function])])
 
   # libpfring
     # libpfring (currently only supported for libpcap enabled pfring)

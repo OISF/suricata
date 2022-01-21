@@ -386,6 +386,7 @@ static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
 static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
+#ifdef HAVE_PCAP_ACTIVATE
     PcapIfaceConfig *pcapconfig = (PcapIfaceConfig *)initdata;
 
     if (initdata == NULL) {
@@ -552,6 +553,10 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);
+#else
+    FatalError(SC_ERR_FATAL, "Live capture not available");
+    SCReturnInt(TM_ECODE_FAILED);
+#endif
 }
 
 /**
