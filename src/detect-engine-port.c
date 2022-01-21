@@ -213,8 +213,12 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                     goto error;
 
                 r = DetectPortInsert(de_ctx, head, new);
-                if (r == -1)
+                if (r == -1) {
+                    if (c != NULL) {
+                        DetectPortFree(de_ctx, c);
+                    }
                     goto error;
+                }
 
                 if (c != NULL) {
                     SCLogDebug("inserting C (%p)", c);
