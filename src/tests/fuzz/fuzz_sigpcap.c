@@ -22,6 +22,7 @@
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"
+#include "flow-util.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -185,6 +186,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //close structure
     pcap_close(pkts);
     PacketFree(p);
+    for (uint32_t u = 0; u < flow_config.hash_size; u++) {
+        Flow *f = flow_hash[u].head;
+        while (f) {
+            Flow *n = f->next;
+            uint8_t proto_map = FlowGetProtoMapping(f->proto);
+            FlowClearMemory(f, proto_map);
+            FlowFree(f);
+            f = n;
+        }
+        flow_hash[u].head = NULL;
+    }
 
     return 0;
 }
