@@ -23,7 +23,7 @@ use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMess
 use crate::applayer::*;
 use crate::conf::*;
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use nom;
+use nom7::{Err, IResult};
 use std;
 use std::ffi::CString;
 
@@ -255,7 +255,7 @@ impl PgsqlState {
 
     fn state_based_req_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> Result<(&[u8], parser::PgsqlFEMessage), nom::Err<(&[u8], nom::error::ErrorKind)>> {
+    ) -> IResult<&[u8], parser::PgsqlFEMessage> {
         match state {
             PgsqlStateProgress::SASLAuthenticationReceived => {
                 parser::parse_sasl_initial_response(input)
@@ -314,7 +314,7 @@ impl PgsqlState {
                         return AppLayerResult::ok();
                     };
                 }
-                Err(nom::Err::Incomplete(_needed)) => {
+                Err(Err::Incomplete(_needed)) => {
                     let consumed = input.len() - start.len();
                     let needed_estimation = start.len() + 1;
                     SCLogDebug!(
@@ -399,7 +399,7 @@ impl PgsqlState {
 
     fn state_based_resp_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> Result<(&[u8], parser::PgsqlBEMessage), nom::Err<(&[u8], nom::error::ErrorKind)>> {
+    ) -> IResult<&[u8], parser::PgsqlBEMessage> {
         if state == PgsqlStateProgress::SSLRequestReceived {
             parser::parse_ssl_response(input)
         } else {
@@ -462,7 +462,7 @@ impl PgsqlState {
                         return AppLayerResult::ok();
                     };
                 }
-                Err(nom::Err::Incomplete(_needed)) => {
+                Err(Err::Incomplete(_needed)) => {
                     let consumed = input.len() - start.len();
                     let needed_estimation = start.len() + 1;
                     SCLogDebug!(
@@ -548,7 +548,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
             Ok((_, _response)) => {
                 return ALPROTO_PGSQL;
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 return ALPROTO_UNKNOWN;
             }
             Err(_) => {
