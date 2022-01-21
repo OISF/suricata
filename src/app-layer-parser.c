@@ -197,7 +197,7 @@ FramesContainer *AppLayerFramesGetContainer(Flow *f)
 FramesContainer *AppLayerFramesSetupContainer(Flow *f)
 {
 #ifdef UNITTESTS
-    if (f == NULL || f->alparser == NULL || f->protoctx == NULL)
+    if (f == NULL || f->alparser == NULL || (f->proto == IPPROTO_TCP && f->protoctx == NULL))
         return NULL;
 #endif
     DEBUG_VALIDATE_BUG_ON(f == NULL || f->alparser == NULL);
