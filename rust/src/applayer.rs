@@ -39,6 +39,10 @@ pub struct StreamSlice {
 }
 
 impl StreamSlice {
+    pub fn new(input: *const u8, input_len: u32, flags: u8, offset: u64) -> Self {
+        Self { input, input_len, flags, offset }
+    }
+
     pub fn is_gap(&self) -> bool {
         self.input.is_null() && self.input_len > 0
     }
