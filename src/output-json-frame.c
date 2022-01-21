@@ -126,7 +126,7 @@ static void PayloadAsHex(const uint8_t *data, uint32_t data_len, char *str, size
 }
 #endif
 
-static void FrameAddPayload(JsonBuilder *js, const TcpStream *stream, const Frame *frame)
+static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const Frame *frame)
 {
     uint32_t sb_data_len = 0;
     const uint8_t *data = NULL;
@@ -178,43 +178,111 @@ static void FrameAddPayload(JsonBuilder *js, const TcpStream *stream, const Fram
 #endif
 }
 
+static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *frame)
+{
+    const uint8_t *data = p->payload + frame->rel_offset;
+    const uint32_t data_len = frame->len;
+
+    JB_SET_TRUE(js, "complete");
+
+    const uint32_t log_data_len = MIN(data_len, 256);
+    jb_set_base64(js, "payload", data, log_data_len);
+
+    uint8_t printable_buf[log_data_len + 1];
+    uint32_t o = 0;
+    PrintStringsToBuffer(printable_buf, &o, log_data_len + 1, data, log_data_len);
+    printable_buf[log_data_len] = '\0';
+    jb_set_string(js, "payload_printable", (char *)printable_buf);
+#if 0
+    char pretty_buf[data_len * 4 + 1];
+    pretty_buf[0] = '\0';
+    PayloadAsHex(data, data_len, pretty_buf, data_len * 4 + 1);
+    jb_set_string(js, "payload_hex", pretty_buf);
+#endif
+}
+
 // TODO separate between stream_offset and frame_offset
 void FrameJsonLogOneFrame(const Frame *frame, const Flow *f, const TcpStream *stream,
         const Packet *p, JsonBuilder *jb)
 {
-    int64_t abs_offset = frame->rel_offset + (int64_t)STREAM_BASE_OFFSET(stream);
-
     jb_open_object(jb, "frame");
     jb_set_string(jb, "type", AppLayerParserGetFrameNameById(f->proto, f->alproto, frame->type));
     jb_set_uint(jb, "id", frame->id);
-    jb_set_uint(jb, "stream_offset", (uint64_t)abs_offset);
+    jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
 
-    if (frame->len < 0) {
-        uint64_t usable = StreamTcpGetUsable(stream, true);
-        uint64_t len = usable - abs_offset;
-        jb_set_uint(jb, "length", len);
+    if (f->proto == IPPROTO_TCP) {
+        int64_t abs_offset = frame->rel_offset + (int64_t)STREAM_BASE_OFFSET(stream);
+        jb_set_uint(jb, "stream_offset", (uint64_t)abs_offset);
+
+        if (f->proto == IPPROTO_TCP && frame->len < 0) {
+            uint64_t usable = StreamTcpGetUsable(stream, true);
+            uint64_t len = usable - abs_offset;
+            jb_set_uint(jb, "length", len);
+        } else {
+            jb_set_uint(jb, "length", frame->len);
+        }
+        FrameAddPayloadTCP(jb, stream, frame);
     } else {
         jb_set_uint(jb, "length", frame->len);
+        FrameAddPayloadUDP(jb, p, frame);
     }
-    jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
     if (frame->flags & FRAME_FLAG_TX_ID_SET) {
         jb_set_uint(jb, "tx_id", frame->tx_id);
     }
-    FrameAddPayload(jb, stream, frame);
     jb_close(jb);
+}
+
+static int FrameJsonUdp(
+        JsonFrameLogThread *aft, const Packet *p, Flow *f, FramesContainer *frames_container)
+{
+    FrameJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
+
+    Frames *frames;
+    if (PKT_IS_TOSERVER(p)) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+
+    for (uint32_t idx = 0; idx < frames->cnt; idx++) {
+        Frame *frame = FrameGetByIndex(frames, idx);
+        if (frame == NULL || frame->flags & FRAME_FLAG_LOGGED)
+            continue;
+
+        /* First initialize the address info (5-tuple). */
+        JsonAddrInfo addr = json_addr_info_zero;
+        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+
+        JsonBuilder *jb =
+                CreateEveHeader(p, LOG_DIR_PACKET, "frame", &addr, json_output_ctx->eve_ctx);
+        if (unlikely(jb == NULL))
+            return TM_ECODE_OK;
+
+        jb_set_string(jb, "app_proto", AppProtoToString(f->alproto));
+        FrameJsonLogOneFrame(frame, p->flow, NULL, p, jb);
+        OutputJsonBuilderBuffer(jb, aft->ctx);
+        jb_free(jb);
+        frame->flags |= FRAME_FLAG_LOGGED;
+    }
+    return TM_ECODE_OK;
 }
 
 static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
 {
     FrameJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
-    BUG_ON(p->proto != IPPROTO_TCP);
     BUG_ON(p->flow == NULL);
-    BUG_ON(p->flow->protoctx == NULL);
 
     FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
     if (frames_container == NULL)
         return TM_ECODE_OK;
+
+    if (p->proto == IPPROTO_UDP) {
+        return FrameJsonUdp(aft, p, p->flow, frames_container);
+    }
+
+    BUG_ON(p->proto != IPPROTO_TCP);
+    BUG_ON(p->flow->protoctx == NULL);
 
     /* TODO can we set these EOF flags once per packet? We have them in detect, tx, file, filedata,
      * etc */
@@ -288,7 +356,7 @@ static int JsonFrameLogCondition(ThreadVars *tv, const Packet *p)
     if (p->flow == NULL || p->flow->alproto == ALPROTO_UNKNOWN)
         return FALSE;
 
-    if (p->proto == IPPROTO_TCP && p->flow->alparser != NULL) {
+    if ((p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) && p->flow->alparser != NULL) {
         FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
         if (frames_container == NULL)
             return FALSE;

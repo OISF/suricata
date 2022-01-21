@@ -391,20 +391,30 @@ static void FrameFreeSingleFrame(Frames *frames, Frame *r)
     FrameClean(r);
 }
 
-void FramesFree(Frames *frames)
+static void FramesClear(Frames *frames)
 {
     BUG_ON(frames == NULL);
 
+    SCLogDebug("frames %u", frames->cnt);
     for (uint16_t i = 0; i < frames->cnt; i++) {
         if (i < FRAMES_STATIC_CNT) {
             Frame *r = &frames->sframes[i];
+            SCLogDebug("removing frame %p", r);
             FrameFreeSingleFrame(frames, r);
         } else {
             const uint16_t o = i - FRAMES_STATIC_CNT;
             Frame *r = &frames->dframes[o];
+            SCLogDebug("removing frame %p", r);
             FrameFreeSingleFrame(frames, r);
         }
     }
+    frames->cnt = 0;
+}
+
+void FramesFree(Frames *frames)
+{
+    BUG_ON(frames == NULL);
+    FramesClear(frames);
     SCFree(frames->dframes);
     frames->dframes = NULL;
 }
@@ -419,7 +429,7 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
 
     /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    if (f->protoctx == NULL)
+    if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
     if (frame_start < stream_slice->input ||
             frame_start >= stream_slice->input + stream_slice->input_len)
@@ -427,8 +437,7 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
 #endif
     BUG_ON(frame_start < stream_slice->input);
     BUG_ON(stream_slice->input == NULL);
-    BUG_ON(f->proto != IPPROTO_TCP);
-    BUG_ON(f->protoctx == NULL);
+    BUG_ON(f->proto == IPPROTO_TCP && f->protoctx == NULL);
 
     ptrdiff_t ptr_offset = frame_start - stream_slice->input;
 #ifdef DEBUG
@@ -464,6 +473,29 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
     return r;
 }
 
+static Frame *AppLayerFrameUdp(Flow *f, const StreamSlice *stream_slice,
+        const uint32_t frame_start_rel, const int64_t len, int dir, uint8_t frame_type)
+{
+    BUG_ON(f->proto != IPPROTO_UDP);
+
+    FramesContainer *frames_container = AppLayerFramesSetupContainer(f);
+    if (frames_container == NULL)
+        return NULL;
+
+    Frames *frames;
+    if (dir == 0) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+
+    Frame *r = FrameNew(frames, frame_start_rel, len);
+    if (r != NULL) {
+        r->type = frame_type;
+    }
+    return r;
+}
+
 /** \brief create new frame using a relative offset from the start of the stream slice
  */
 Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice,
@@ -471,15 +503,18 @@ Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice
 {
     /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    if (f->protoctx == NULL)
+    if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
     if (stream_slice->input == NULL)
         return NULL;
 #endif
     BUG_ON(stream_slice->input == NULL);
-    BUG_ON(f->proto != IPPROTO_TCP);
-    BUG_ON(f->protoctx == NULL);
+    BUG_ON(f->proto == IPPROTO_TCP && f->protoctx == NULL);
     BUG_ON(f->alparser == NULL);
+
+    if (f->proto == IPPROTO_UDP) {
+        return AppLayerFrameUdp(f, stream_slice, frame_start_rel, len, dir, frame_type);
+    }
 
     FramesContainer *frames_container = AppLayerFramesSetupContainer(f);
     if (frames_container == NULL)
@@ -545,14 +580,13 @@ Frame *AppLayerFrameNewByAbsoluteOffset(Flow *f, const StreamSlice *stream_slice
 {
     /* workarounds for many (unit|fuzz)tests not handling TCP data properly */
 #if defined(UNITTESTS) || defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    if (f->protoctx == NULL)
+    if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
     if (stream_slice->input == NULL)
         return NULL;
 #endif
     BUG_ON(stream_slice->input == NULL);
-    BUG_ON(f->proto != IPPROTO_TCP);
-    BUG_ON(f->protoctx == NULL);
+    BUG_ON(f->proto == IPPROTO_TCP && f->protoctx == NULL);
     BUG_ON(f->alparser == NULL);
     BUG_ON(frame_start < stream_slice->offset);
     BUG_ON(frame_start - stream_slice->offset >= (uint64_t)INT_MAX);
@@ -751,13 +785,25 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
 
 void FramesPrune(Flow *f, Packet *p)
 {
-    if (f->protoctx == NULL)
+    if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return;
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
     if (frames_container == NULL)
         return;
 
     Frames *frames;
+
+    if (p->proto == IPPROTO_UDP) {
+        SCLogDebug("clearing all UDP frames");
+        if (PKT_IS_TOSERVER(p)) {
+            frames = &frames_container->toserver;
+        } else {
+            frames = &frames_container->toclient;
+        }
+        FramesClear(frames);
+        return;
+    }
+
     TcpSession *ssn = f->protoctx;
 
     if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
