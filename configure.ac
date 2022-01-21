@@ -309,6 +309,7 @@
             CFLAGS="${CFLAGS} -DOS_WIN32"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
+            TRY_WPCAP="yes"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
             RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh -lbcrypt"
             ;;
@@ -316,6 +317,7 @@
             LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
+            TRY_WPCAP="yes"
             ;;
         *-*-solaris*)
             AC_MSG_WARN([support for Solaris/Illumos/SunOS is experimental])
@@ -1176,20 +1178,35 @@
                 #define _DEFAULT_SOURCE 1
             ]])
 
-    LIBPCAP=""
-    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_open_dead,, LIBPCAP="no")
-    if test "$LIBPCAP" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library not found, go get it"
-        echo "   from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
+    have_wpcap=""
+    if test "$TRY_WPCAP" = "yes"; then
+        AC_CHECK_LIB(wpcap, pcap_activate, [], have_wpcap="no")
+        if test "$have_wpcap" = "no"; then
+            echo ""
+            echo "    Warning: NPCap was not found. Live capture will not be available."
+            echo ""
+        else
+            PCAP_LIB_NAME="wpcap"
+            have_wpcap="yes"
+        fi
     fi
+
+    if test "$have_wpcap" != "yes"; then
+        AC_CHECK_LIB(pcap, pcap_open_dead, [], [
+            echo
+            echo "   ERROR!  libpcap library not found, go get it"
+            echo "   from http://www.tcpdump.org or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libpcap-dev"
+            echo "   Fedora: dnf install libpcap-devel"
+            echo "   CentOS/RHEL: yum install libpcap-devel"
+            echo
+            exit 1
+        ])
+        PCAP_LIB_NAME="pcap"
+    fi
+
+    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
 
     AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_activate,
         [AC_DEFINE([HAVE_PCAP_ACTIVATE], [1], [libpcap has pcap_activate])],
