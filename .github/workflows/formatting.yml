@@ -22,7 +22,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -82,7 +82,7 @@ jobs:
       # My patience simply ran too short to keep on looking. See follow-on
       # action to manually fix this up.
       - name: Checkout - might be merge commit!
-        uses: actions/checkout@v1
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
         # Use last commit of branch, not potential merge commit!
         #
         # This works perfectly well on pull requests within forked repos, but
