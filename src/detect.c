@@ -145,6 +145,8 @@ static void DetectRun(ThreadVars *th_v,
                 DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
                 // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
             }
+        } else if (p->proto == IPPROTO_UDP) {
+            DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         }
 
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);

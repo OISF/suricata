@@ -64,14 +64,20 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     char value[256] = "";
     strlcpy(value, str, sizeof(value));
 
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_TCP))) {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "'frame' keyword only supported for TCP");
+    const bool is_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
+    const bool is_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
+
+    if (!(is_tcp || is_udp)) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "'frame' keyword only supported for TCP and UDP");
         return -1;
     }
 
-    int raw_frame_type;
+    int raw_frame_type = -1;
     if (AppProtoIsValid(s->alproto)) {
-        raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, str);
+        if (is_tcp)
+            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, str);
+        if (is_udp && raw_frame_type < 0)
+            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, str);
         if (raw_frame_type < 0) {
             char *dot = strchr(value, '.');
             if (dot != NULL)
@@ -89,7 +95,10 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
                 if (DetectSignatureSetAppProto(s, keyword_alproto) < 0)
                     return -1;
             }
-            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
+            if (is_tcp)
+                raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
+            if (is_udp && raw_frame_type < 0)
+                raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, val);
             if (raw_frame_type < 0) {
                 SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'",
                         val, proto);
@@ -115,7 +124,10 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
         if (DetectSignatureSetAppProto(s, alproto) < 0)
             return -1;
 
-        raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
+        if (is_tcp)
+            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_TCP, s->alproto, val);
+        if (is_udp && raw_frame_type < 0)
+            raw_frame_type = AppLayerParserGetFrameIdByName(IPPROTO_UDP, s->alproto, val);
         if (raw_frame_type < 0) {
             SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "unknown frame '%s' for protocol '%s'", val,
                     proto);
