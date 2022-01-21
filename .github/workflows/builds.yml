@@ -1209,13 +1209,13 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - name: Npcap DLL
         run: |
-          curl -s -O https://nmap.org/npcap/dist/npcap-1.00.exe
+          curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
           7z -y x -o/npcap-bin npcap-1.00.exe
           # hack: place dlls in cwd
           cp /npcap-bin/*.dll .
       - name: Npcap SDK
         run: |
-          curl -s -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
+          curl -sL -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
           unzip npcap-sdk-1.06.zip -d /npcap
           cp /npcap/Lib/x64/* /usr/lib/
       - run: tar xf prep/suricata-verify.tar.gz
