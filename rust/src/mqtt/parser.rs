@@ -106,13 +106,13 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
     // parse properties length
     match parse_mqtt_variable_integer(input) {
         Ok((rem, mut proplen)) => {
-            if proplen == 0 {
+            if proplen == 0 || proplen as usize > rem.len() {
                 // no properties
                 return Ok((rem, None));
             }
             // parse properties
             let mut props = Vec::<MQTTProperty>::new();
-            let mut newrem = rem;
+            let mut newrem = &rem[..proplen as usize];
             while proplen > 0 {
                 match parse_property(newrem) {
                     Ok((rem, val)) => {
