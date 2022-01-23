@@ -528,11 +528,11 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     for i in 0..varia.len() {
         varval += ((varia[i] & 0x7F) as u64) << (7 * i);
     }
-    varval += (finalv as u64) << (7 * varia.len());
-    if varval < max {
-        // this has overflown u64
+    if (finalv as u64) << (7 * varia.len()) > u64::MAX - varval {
+        // this would overflow u64
         return Ok((i3, 0));
     }
+    varval += (finalv as u64) << (7 * varia.len());
     return Ok((i3, varval));
 }
 
