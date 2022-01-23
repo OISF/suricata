@@ -207,200 +207,157 @@ static void DetectUricontentPrint(DetectContentData *cd)
  */
 static int DetectUriSigTest01(void)
 {
-    int result = 0;
     Signature *s = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; sid:1;)");
-    if (s == NULL ||
-        s->sm_lists[g_http_uri_buffer_id] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 1 failed to parse: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent\"; "
+                                      "uricontent:\"foo\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";sid:1;)");
-    if (s == NULL ||
-        s->sm_lists[g_http_uri_buffer_id] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 2 failed to parse: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";sid:1;)");
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; sid:1;)");
-    if (s == NULL ||
-        s->sm_lists[g_http_uri_buffer_id] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 3 failed to parse: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "content:\"foo\"; uricontent:\"bar\";"
-                                   " depth:10; offset: 5; sid:1;)");
-    if (s == NULL ||
-        s->sm_lists[g_http_uri_buffer_id] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-        ((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->depth != 15 ||
-        ((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->offset != 5 ||
-        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 4 failed to parse: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; sid:1;)");
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; within:3; sid:1;)");
-    if (s != NULL) {
-        printf("sig 5 failed to parse: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; distance:3; sid:1;)");
-    if (s != NULL) {
-        printf("sig 6 failed to parse: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "content:\"foo\"; uricontent:\"bar\";"
+                                      " depth:10; offset: 5; sid:1;)");
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; content:"
-                                   "\"two_contents\"; within:30; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    } else if (s->sm_lists[g_http_uri_buffer_id] == NULL ||
-            s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 30 ||
-            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 7 failed to parse: ");
-        DetectContentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->offset != 5);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; within:30; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    } else if (s->sm_lists[g_http_uri_buffer_id] == NULL ||
-            s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 30 ||
-            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 8 failed to parse: ");
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; within:3; sid:1;)");
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; content:"
-                                   "\"two_contents\"; distance:30; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    } else if (
-            s->sm_lists[g_http_uri_buffer_id] == NULL ||
-            s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 30 ||
-            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 9 failed to parse: ");
-        DetectContentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; distance:30; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    } else if (
-            s->sm_lists[g_http_uri_buffer_id] == NULL ||
-            s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30 ||
-            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
-    {
-        printf("sig 10 failed to parse: ");
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; distance:3; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; distance:30; "
-                                   "within:60; content:\"two_contents\";"
-                                   " within:70; distance:45; sid:1;)");
-    if (s == NULL) {
-        printf("sig 10 failed to parse: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; content:"
+                                      "\"two_contents\"; within:30; sid:1;)");
 
-    if (s->sm_lists[g_http_uri_buffer_id] == NULL || s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("umatch %p or pmatch %p: ", s->sm_lists[g_http_uri_buffer_id], s->sm_lists[DETECT_SM_LIST_PMATCH]);
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 30);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
 
-    if (    ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
-            ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30 ||
-            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 60 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 45 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 70 ||
-            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        printf("sig 10 failed to parse, content not setup properly: ");
-        DetectContentPrint((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx);
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
-        DetectContentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
-        goto end;
-    }
+    DetectContentPrint((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
 
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; uricontent:"
+                                      "\"two_uricontents\"; within:30; sid:1;)");
+
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 30);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+
+    DetectUricontentPrint((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; content:"
+                                      "\"two_contents\"; distance:30; sid:1;)");
+
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT(
+            ((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 30);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+
+    DetectContentPrint((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; uricontent:"
+                                      "\"two_uricontents\"; distance:30; sid:1;)");
+
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+
+    DetectUricontentPrint((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:"
+                                      "\" Test uricontent and content\"; "
+                                      "uricontent:\"foo\"; content:\"bar\";"
+                                      " depth:10; offset: 5; uricontent:"
+                                      "\"two_uricontents\"; distance:30; "
+                                      "within:60; content:\"two_contents\";"
+                                      " within:70; distance:45; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    FAIL_IF_NULL(s->sm_lists[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_PMATCH]);
+
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 60);
+    FAIL_IF_NOT(
+            ((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 45);
+    FAIL_IF_NOT(((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 70);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+
+    DetectContentPrint((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx);
+    DetectUricontentPrint((DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
+    DetectContentPrint((DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -408,28 +365,16 @@ end:
  */
 static int DetectUriSigTest02(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"\"; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"\"; sid:238012;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -437,28 +382,16 @@ static int DetectUriSigTest02(void)
  */
 static int DetectUriSigTest03(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"; sid:238012;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -466,28 +399,16 @@ static int DetectUriSigTest03(void)
  */
 static int DetectUriSigTest04(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"boo; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"boo; sid:238012;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -495,28 +416,16 @@ static int DetectUriSigTest04(void)
  */
 static int DetectUriSigTest05(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:boo\"; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:boo\"; sid:238012;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -524,38 +433,25 @@ static int DetectUriSigTest05(void)
  */
 static int DetectUriSigTest06(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
     DetectContentData *ud = 0;
     Signature *s = NULL;
-    int result = 0;
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert udp any any -> any any "
-                                   "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL: ");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                      "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)");
+    FAIL_IF_NULL(s);
 
-    if (s->sm_lists_tail[g_http_uri_buffer_id] == NULL || s->sm_lists_tail[g_http_uri_buffer_id]->ctx == NULL) {
-        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s->sm_lists_tail[g_http_uri_buffer_id]);
+    FAIL_IF_NULL(s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
 
     ud = (DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx;
-    result = (strncmp("boo", (char *)ud->content, ud->content_len) == 0);
+    FAIL_IF_NOT(strncmp("boo", (char *)ud->content, ud->content_len) == 0);
 
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 
@@ -564,28 +460,16 @@ end:
  */
 static int DetectUriContentParseTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"|\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -593,28 +477,16 @@ static int DetectUriContentParseTest01(void)
  */
 static int DetectUriContentParseTest02(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"|af\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -622,28 +494,16 @@ static int DetectUriContentParseTest02(void)
  */
 static int DetectUriContentParseTest03(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"af|\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"af|\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -651,28 +511,16 @@ static int DetectUriContentParseTest03(void)
  */
 static int DetectUriContentParseTest04(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"|af|\"; sid:1;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -680,28 +528,16 @@ static int DetectUriContentParseTest04(void)
  */
 static int DetectUriContentParseTest05(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"aast|\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -709,28 +545,16 @@ static int DetectUriContentParseTest05(void)
  */
 static int DetectUriContentParseTest06(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|af\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"aast|af\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -738,28 +562,16 @@ static int DetectUriContentParseTest06(void)
  */
 static int DetectUriContentParseTest07(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|af|\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"aast|af|\"; sid:1;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -767,28 +579,16 @@ static int DetectUriContentParseTest07(void)
  */
 static int DetectUriContentParseTest08(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|asdf\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"|af|asdf\"; sid:1;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -796,28 +596,16 @@ static int DetectUriContentParseTest08(void)
  */
 static int DetectUriContentParseTest09(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"|af|af|\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -825,28 +613,17 @@ static int DetectUriContentParseTest09(void)
  */
 static int DetectUriContentParseTest10(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|af\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                          "(msg:\"test\"; uricontent:\"|af|af|af\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -854,28 +631,17 @@ static int DetectUriContentParseTest10(void)
  */
 static int DetectUriContentParseTest11(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|af|\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
+                                          "(msg:\"test\"; uricontent:\"|af|af|af|\"; sid:1;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -883,28 +649,16 @@ static int DetectUriContentParseTest11(void)
  */
 static int DetectUriContentParseTest12(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"\"; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"test\"; uricontent:\"\"; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 static int DetectUricontentIsdataatParseTest(void)
