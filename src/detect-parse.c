@@ -1801,11 +1801,11 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
     if (has_app && has_frame) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't app-layer buffer and frame inspection");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix app-layer buffer and frame inspection");
         SCReturnInt(0);
     }
     if (has_pkt && has_frame) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't pkt buffer and frame inspection");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pkt buffer and frame inspection");
         SCReturnInt(0);
     }
 
