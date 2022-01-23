@@ -848,13 +848,47 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
     SCLogConfig("ETH_RSS_L4_DST_ONLY %sset", (actual & ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
 }
 
+static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    if (iconf->mtu > dev_info->max_mtu || iconf->mtu < dev_info->min_mtu) {
+        SCLogError(SC_ERR_DPDK_INIT,
+                "Loaded MTU of \"%s\" is out of bounds. "
+                "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
+                iconf->iface, dev_info->min_mtu, dev_info->max_mtu);
+        SCReturnInt(-ERANGE);
+    }
+
+#if RTE_VER_YEAR < 21 || RTE_VER_YEAR == 21 && RTE_VER_MONTH < 11
+    // check if jumbo frames are set and are available
+    if (iconf->mtu > RTE_ETHER_MAX_LEN &&
+            !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
+        SCLogError(SC_ERR_DPDK_CONF, "Jumbo frames not supported, set MTU of \"%s\" to 1500B",
+                iconf->iface);
+        SCReturnInt(-EINVAL);
+    }
+#endif
+
+    SCReturnInt(0);
+}
+
+static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
+{
+#if RTE_VER_YEAR > 21 || RTE_VER_YEAR == 21 && RTE_VER_MONTH == 11
+    port_conf->rxmode.mtu = mtu;
+#else
+    port_conf->rxmode.max_rx_pkt_len = mtu;
+    if (mtu > RTE_ETHER_MAX_LEN) {
+        port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
+    }
+#endif
+}
+
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
     *port_conf = (struct rte_eth_conf){
             .rxmode = {
                     .mq_mode = ETH_MQ_RX_NONE,
-                    .max_rx_pkt_len = iconf->mtu,
                     .offloads = 0, // turn every offload off to prevent any packet modification
             },
             .txmode = {
@@ -912,9 +946,7 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         }
     }
 
-    if (iconf->mtu > RTE_ETHER_MAX_LEN) {
-        port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
-    }
+    DeviceSetMTU(port_conf, iconf->mtu);
 
     if (dev_info->tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE) {
         port_conf->txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
@@ -1120,23 +1152,9 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(-ERANGE);
     }
 
-    if (iconf->mtu > dev_info.max_mtu || iconf->mtu < dev_info.min_mtu) {
-        SCLogError(SC_ERR_DPDK_INIT,
-                "Loaded MTU of \"%s\" is out of bounds. "
-                "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
-                iconf->iface, dev_info.min_mtu, dev_info.max_mtu);
-        SCReturnInt(-ERANGE);
-    }
-
-    // check if jumbo frames are set and are available
-    if (iconf->mtu > RTE_ETHER_MAX_LEN &&
-            !(dev_info.rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError(SC_ERR_DPDK_CONF,
-                "Jumbo frames not supported, "
-                "set MTU of \"%s\" to 1500B",
-                iconf->iface);
-        SCReturnInt(-EINVAL);
-    }
+    retval = DeviceValidateMTU(iconf, &dev_info);
+    if (retval != 0)
+        return retval;
 
     DeviceInitPortConf(iconf, &dev_info, &port_conf);
     if (port_conf.rxmode.offloads & DEV_RX_OFFLOAD_CHECKSUM) {
