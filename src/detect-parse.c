@@ -1672,7 +1672,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     /* check for sticky buffers that were set w/o matches
      * e.g. alert ... (file_data; sid:1;) */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->smlists[s->init_data->list] == NULL) {
+        if (s->init_data->list >= (int)s->init_data->smlists_array_size ||
+                s->init_data->smlists[s->init_data->list] == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "rule %u setup buffer %s but didn't add matches to it", s->id,
                     DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
