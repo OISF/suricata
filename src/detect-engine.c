@@ -463,7 +463,7 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
 {
     /* take the list from the detect engine as the buffers can be registered
      * dynamically. */
-    const DetectEngineFrameInspectionEngine *t = de_ctx->frame_inspect_engines;
+    DetectEngineFrameInspectionEngine *t = de_ctx->frame_inspect_engines;
     while (t) {
         if (t->sm_list == sm_list) {
             DetectEngineFrameInspectionEngine *new_engine =
@@ -479,16 +479,14 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
             new_engine->v1 = t->v1;
             new_engine->v1.transforms = transforms; /* assign transforms */
 
-            if (de_ctx->frame_inspect_engines == NULL) {
-                de_ctx->frame_inspect_engines = new_engine;
-            } else {
-                DetectEngineFrameInspectionEngine *list = de_ctx->frame_inspect_engines;
-                while (list->next != NULL) {
-                    list = list->next;
-                }
-
-                list->next = new_engine;
+            /* append to the list */
+            DetectEngineFrameInspectionEngine *list = t;
+            while (list->next != NULL) {
+                list = list->next;
             }
+
+            list->next = new_engine;
+            break;
         }
         t = t->next;
     }
