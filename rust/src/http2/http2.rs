@@ -366,6 +366,7 @@ pub enum HTTP2Event {
     InvalidHTTP1Settings,
     FailedDecompression,
     InvalidRange,
+    HeaderIntegerOverflow,
 }
 
 pub struct HTTP2DynTable {
@@ -587,6 +588,10 @@ impl HTTP2State {
                 if blocks[i].sizeupdate > sizeup {
                     sizeup = blocks[i].sizeupdate;
                 }
+            } else if blocks[i].error
+                == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
+            {
+                self.set_event(HTTP2Event::HeaderIntegerOverflow);
             }
         }
         if update {
@@ -1087,8 +1092,7 @@ pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
@@ -1101,8 +1105,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
