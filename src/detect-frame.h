@@ -25,4 +25,6 @@
 /* Prototypes */
 void DetectFrameRegister(void);
 
+int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str);
+
 #endif /* __DETECT_FRAME_H__ */

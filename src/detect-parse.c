@@ -43,6 +43,7 @@
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
 #include "detect-http-method.h"
+#include "detect-frame.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -696,11 +697,20 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     optname = optstr;
 
+    SigTableElmt frame_ste;
     /* Call option parsing */
     st = SigTableGet(optname);
     if (st == NULL || st->Setup == NULL) {
-        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", optname);
-        goto error;
+        /* if string is not a registered keyword, see if we should take a frame as a sticky buffer
+         */
+        if (DetectFrameSetup(de_ctx, s, optname) < 0) {
+            SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", optname);
+            goto error;
+        }
+        /* set up a fake SigTableElmt */
+        memset(&frame_ste, 0, sizeof(frame_ste));
+        frame_ste.flags = (SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER);
+        st = &frame_ste;
     }
 
     if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
@@ -813,7 +823,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, ptr);
-    } else {
+    } else if (st->Setup != NULL) {
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, NULL);
     }

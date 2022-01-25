@@ -47,8 +47,6 @@
 #include "util-spm.h"
 #include "util-print.h"
 
-static int DetectFrameSetup(DetectEngineCtx *, Signature *, const char *);
-
 /**
  * \brief this function setup the sticky buffer used in the rule
  *
@@ -59,7 +57,7 @@ static int DetectFrameSetup(DetectEngineCtx *, Signature *, const char *);
  * \retval 0  On success
  * \retval -1 On failure
  */
-static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     char value[256] = "";
     strlcpy(value, str, sizeof(value));
