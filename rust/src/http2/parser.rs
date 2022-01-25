@@ -365,9 +365,6 @@ fn http2_parse_headers_block_indexed<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x7F)?;
-    if indexreal == 0 && indexed.1 == 0x7F {
-        return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
-    }
     match http2_frame_header_static(indexreal, dyn_headers) {
         Some(h) => Ok((i3, h)),
         _ => Err(Err::Error(make_error(i3, ErrorKind::MapOpt))),
@@ -380,9 +377,6 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     }
     let (i1, huffslen) = parser(input)?;
     let (i2, stringlen) = http2_parse_var_uint(i1, huffslen.1 as u64, 0x7F)?;
-    if stringlen == 0 && huffslen.1 == 0x7F {
-        return Err(Err::Error(make_error(i2, ErrorKind::LengthValue)));
-    }
     let (i3, data) = take(stringlen as usize)(i2)?;
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
@@ -437,9 +431,6 @@ fn http2_parse_headers_block_literal_incindex<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x3F)?;
-    if indexreal == 0 && indexed.1 == 0x3F {
-        return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     match r {
         Ok((r, head)) => {
@@ -491,9 +482,6 @@ fn http2_parse_headers_block_literal_noindex<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    if indexreal == 0 && indexed.1 == 0xF {
-        return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
@@ -509,9 +497,6 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    if indexreal == 0 && indexed.1 == 0xF {
-        return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
@@ -530,12 +515,14 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     for i in 0..varia.len() {
         varval += ((varia[i] & 0x7F) as u64) << (7 * i);
     }
-    if (finalv as u64) << (7 * varia.len()) > u64::MAX - varval {
-        // this would overflow u64
-        return Ok((i3, 0));
+    match varval.checked_add((finalv as u64) << (7 * varia.len())) {
+        None => {
+            return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
+        }
+        Some(x) => {
+            return Ok((i3, x));
+        }
     }
-    varval += (finalv as u64) << (7 * varia.len());
-    return Ok((i3, varval));
 }
 
 fn http2_parse_headers_block_dynamic_size<'a>(
@@ -549,17 +536,6 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     }
     let (i2, maxsize) = parser(input)?;
     let (i3, maxsize2) = http2_parse_var_uint(i2, maxsize.1 as u64, 0x1F)?;
-    if maxsize2 == 0 && maxsize.1 == 0x1F {
-        return Ok((
-            i3,
-            HTTP2FrameHeaderBlock {
-                name: Vec::new(),
-                value: Vec::new(),
-                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
-                sizeupdate: 0,
-            },
-        ));
-    }
     if (maxsize2 as usize) < dyn_headers.max_size {
         //dyn_headers.max_size is updated later with all headers
         //may evict entries
@@ -612,15 +588,11 @@ pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
-pub fn http2_parse_frame_headers<'a>(
-    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
-) -> IResult<&'a [u8], HTTP2FrameHeaders> {
-    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
-    let (mut i3, priority) = cond(
-        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
-        http2_parse_headers_priority,
-    )(i2)?;
+fn http2_parse_headers_blocks<'a>(
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
+) -> IResult<&'a [u8], Vec<HTTP2FrameHeaderBlock>> {
     let mut blocks = Vec::new();
+    let mut i3 = input;
     while i3.len() > 0 {
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
@@ -632,11 +604,35 @@ pub fn http2_parse_frame_headers<'a>(
                 }
                 i3 = rem;
             }
+            Err(Err::Error(ref err)) => {
+                // if we error from http2_parse_var_uint, we keep the first parsed headers
+                if err.code == ErrorKind::LengthValue {
+                    blocks.push(HTTP2FrameHeaderBlock {
+                        name: Vec::new(),
+                        value: Vec::new(),
+                        error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
+                        sizeupdate: 0,
+                    });
+                    break;
+                }
+            }
             Err(x) => {
                 return Err(x);
             }
         }
     }
+    return Ok((i3, blocks));
+}
+
+pub fn http2_parse_frame_headers<'a>(
+    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
+) -> IResult<&'a [u8], HTTP2FrameHeaders> {
+    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
+    let (i3, priority) = cond(
+        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
+        http2_parse_headers_priority,
+    )(i2)?;
+    let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
         HTTP2FrameHeaders {
@@ -659,24 +655,8 @@ pub fn http2_parse_frame_push_promise<'a>(
     input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
     let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
-    let (mut i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
-    let mut blocks = Vec::new();
-    while i3.len() > 0 {
-        match http2_parse_headers_block(i3, dyn_headers) {
-            Ok((rem, b)) => {
-                blocks.push(b);
-                debug_validate_bug_on!(i3.len() == rem.len());
-                if i3.len() == rem.len() {
-                    //infinite loop
-                    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
-                }
-                i3 = rem;
-            }
-            Err(x) => {
-                return Err(x);
-            }
-        }
-    }
+    let (i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
+    let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
         HTTP2FramePushPromise {
@@ -696,24 +676,7 @@ pub struct HTTP2FrameContinuation {
 pub fn http2_parse_frame_continuation<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameContinuation> {
-    let mut i3 = input;
-    let mut blocks = Vec::new();
-    while i3.len() > 0 {
-        match http2_parse_headers_block(i3, dyn_headers) {
-            Ok((rem, b)) => {
-                blocks.push(b);
-                debug_validate_bug_on!(i3.len() == rem.len());
-                if i3.len() == rem.len() {
-                    //infinite loop
-                    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
-                }
-                i3 = rem;
-            }
-            Err(x) => {
-                return Err(x);
-            }
-        }
-    }
+    let (i3, blocks) = http2_parse_headers_blocks(input, dyn_headers)?;
     return Ok((i3, HTTP2FrameContinuation { blocks }));
 }
 
