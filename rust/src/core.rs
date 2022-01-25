@@ -295,6 +295,10 @@ impl Flow {
             let mut secs: u64 = 0;
             let mut usecs: u64 = 0;
             FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
+            if usecs > 999999 {
+                // if microseconds are inconsistent, reset them to 0
+                usecs = 0;
+            }
             std::time::Duration::new(secs, usecs as u32 * 1000)
         }
     }
