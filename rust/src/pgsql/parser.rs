@@ -28,7 +28,7 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{many1, many_m_n, many_till};
 use nom7::number::streaming::{be_i16, be_i32};
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
-use nom7::sequence::{terminated, tuple};
+use nom7::sequence::terminated;
 use nom7::{Err, IResult};
 
 pub const PGSQL_LENGTH_FIELD: u32 = 4;
@@ -1064,11 +1064,12 @@ fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
 }
 
 pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
-    let (i, pseudo_header) = peek(tuple((be_u8, be_u32)))(i)?;
+    let (i, pseudo_header0) = be_u8(i)?;
+    let (i, pseudo_header1) = peek(be_u32)(i)?;
     let (i, message) = map_parser(
-        take(pseudo_header.1 + 1),
+        take(pseudo_header1),
         |b| {
-            match pseudo_header.0 {
+            match pseudo_header0 {
                 b'E' => pgsql_parse_error_response(b),
                 b'K' => parse_backend_key_data_message(b),
                 b'N' => pgsql_parse_notice_response(b),
