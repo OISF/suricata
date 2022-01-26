@@ -333,7 +333,6 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 
         if (SCRConfAddReference(de_ctx, line) != 0) {
             if (is_conf_test_mode) {
-                SCLogNotice("current runmode = runmode_conf_test; returning false\n");
                 return false;
             }
         }
@@ -516,7 +515,7 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 }
 
 /**
- * \brief Gets the refernce config from the corresponding hash table stored
+ * \brief Gets the reference config from the corresponding hash table stored
  *        in the Detection Engine Context's reference conf ht, given the
  *        reference name.
  *
