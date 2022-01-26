@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2058,7 +2058,10 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     (void)SRepInit(de_ctx);
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    SCRConfLoadReferenceConfigFile(de_ctx, NULL);
+    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+            goto error;
+    }
 
     if (ActionInitConfig() < 0) {
         goto error;
