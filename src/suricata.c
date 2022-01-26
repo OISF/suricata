@@ -1212,6 +1212,11 @@ static int ParseCommandLineDpdk(SCInstance *suri, const char *in_arg)
 
 static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 {
+#if defined(OS_WIN32) && !defined(HAVE_LIBWPCAP)
+    /* If running on Windows without Npcap, bail early as live capture is not supported. */
+    FatalError(SC_ERR_FATAL,
+            "Live capture not available. To support live capture compile against Npcap.");
+#endif
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
     if (in_arg != NULL) {
