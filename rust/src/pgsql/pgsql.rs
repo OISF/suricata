@@ -521,7 +521,7 @@ fn probe_tc(input: &[u8]) -> bool {
 pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
-    if input_len >= 1 && input != std::ptr::null_mut() {
+    if input_len >= 1 && !input.is_null() {
         let slice: &[u8];
         slice = build_slice!(input, input_len as usize);
         if probe_ts(slice) {
@@ -536,7 +536,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
 pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
-    if input_len >= 1 && input != std::ptr::null_mut() {
+    if input_len >= 1 && !input.is_null() {
         let slice: &[u8];
         slice = build_slice!(input, input_len as usize);
 
