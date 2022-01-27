@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,6 +70,8 @@ typedef struct DetectBsizeData {
     uint64_t lo;
     uint64_t hi;
 } DetectBsizeData;
+
+static int SigParseGetMaxBsize(DetectBsizeData *bsz);
 
 /** \brief bsize match function
  *
@@ -266,12 +268,27 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     return bsz;
 }
 
+static int SigParseGetMaxBsize(DetectBsizeData *bsz)
+{
+    switch (bsz->mode) {
+        case DETECT_BSIZE_LT:
+        case DETECT_BSIZE_EQ:
+            return bsz->lo;
+        case DETECT_BSIZE_RA:
+            return bsz->hi;
+        case DETECT_BSIZE_GT:
+        default:
+            SCReturnInt(-2);
+    }
+    SCReturnInt(-1);
+}
+
 /**
  * \brief this function is used to parse bsize data into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param bsizestr pointer to the user provided bsize options
+ * \param sizestr pointer to the user provided bsize options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
@@ -291,6 +308,24 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectBsizeData *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
         goto error;
+
+    int bsize = SigParseGetMaxBsize(bsz);
+
+    uint64_t needed;
+    if (bsize >= 0) {
+        int len, offset;
+        SigParseRequiredContentSize(s, list, &len, &offset);
+        SCLogDebug("bsize: %d; len: %d; offset: %d", bsize, len, offset);
+        needed = len;
+        if (len > bsize) {
+            goto value_error;
+        }
+        if ((len + offset) > bsize) {
+            needed += offset;
+            goto value_error;
+        }
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -300,6 +335,19 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatchAppendSMToList(s, sm, list);
 
     SCReturnInt(0);
+
+value_error:
+    if (bsz->mode == DETECT_BSIZE_RA) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "signature can't match as required content length %" PRIu64
+                " exceeds bsize range: %" PRIu64 "-%" PRIu64,
+                needed, bsz->lo, bsz->hi);
+    } else {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "signature can't match as required content length %" PRIu64 " exceeds bsize value: "
+                "%" PRIu64,
+                needed, bsz->lo);
+    }
 
 error:
     DetectBsizeFree(de_ctx, bsz);
