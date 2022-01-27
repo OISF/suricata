@@ -377,6 +377,7 @@ typedef enum {
     SC_WARN_DPDK_CONF,
     SC_ERR_SIGNAL,
     SC_WARN_CHOWN,
+    SC_WARN_CLASSIFICATION_CONFIG,
 
     SC_ERR_MAX
 } SCError;
