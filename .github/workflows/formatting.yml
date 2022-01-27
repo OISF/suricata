@@ -10,13 +10,16 @@ on:
 
 permissions: read-all
 
+env:
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   # Checking for correct formatting of branch for C code changes
   check-formatting:
     name: Formatting Check (clang 9)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
     continue-on-error: true
     steps:
 
@@ -83,6 +86,8 @@ jobs:
       # action to manually fix this up.
       - name: Checkout - might be merge commit!
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
         # Use last commit of branch, not potential merge commit!
         #
         # This works perfectly well on pull requests within forked repos, but
