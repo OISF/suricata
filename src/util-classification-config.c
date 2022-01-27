@@ -252,8 +252,10 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     ret = pcre2_match(regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_match, NULL);
     if (ret < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid Classtype in "
-                   "classification.config file");
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "Invalid Classtype in "
+                "classification.config file %s: \"%s\"",
+                SCClassConfGetConfFilename(de_ctx), rawstr);
         goto error;
     }
 
@@ -344,7 +346,7 @@ static int SCClassConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint16_t i = 1;
@@ -353,7 +355,9 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         if (SCClassConfIsLineBlankOrComment(line))
             continue;
 
-        SCClassConfAddClasstype(de_ctx, line, i);
+        if (SCClassConfAddClasstype(de_ctx, line, i) == -1) {
+            return false;
+        }
         i++;
     }
 
@@ -362,7 +366,7 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
               de_ctx->class_conf_ht->count);
 #endif
 
-    return;
+    return true;
 }
 
 /**
@@ -522,24 +526,31 @@ void SCClassConfClasstypeHashFree(void *ch)
  * \param de_ctx Pointer to the Detection Engine Context that should be updated
  *               with Classtype information.
  */
-void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
+bool SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     fd = SCClassConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
 #ifdef UNITTESTS
-        if (RunmodeIsUnittests() && fd == NULL) {
-            return;
+        if (RunmodeIsUnittests()) {
+            return false;
         }
 #endif
         SCLogError(SC_ERR_OPENING_FILE, "please check the \"classification-file\" "
                 "option in your suricata.yaml file");
-        return;
+        return false;
     }
 
-    SCClassConfParseFile(de_ctx, fd);
+    bool ret = true;
+    if (!SCClassConfParseFile(de_ctx, fd)) {
+        SCLogWarning(SC_WARN_CLASSIFICATION_CONFIG,
+                "Error loading classification configuration from %s",
+                SCClassConfGetConfFilename(de_ctx));
+        ret = false;
+    }
+
     SCClassConfDeInitLocalResources(de_ctx, fd);
 
-    return;
+    return ret;
 }
 
 /**
@@ -696,22 +707,15 @@ static int SCClassConfTest02(void)
 static int SCClassConfTest03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    int result = 0;
 
-    if (de_ctx == NULL)
-        return result;
+    FAIL_IF_NULL(de_ctx);
 
     FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD02();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
-
-    if (de_ctx->class_conf_ht == NULL)
-        return result;
-
-    result = (de_ctx->class_conf_ht->count == 3);
+    FAIL_IF(SCClassConfLoadClassficationConfigFile(de_ctx, fd));
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -780,38 +784,6 @@ static int SCClassConfTest05(void)
 }
 
 /**
- * \test Check if the classtype info from the classification.config file have
- *       been loaded into the hash table.
- */
-static int SCClassConfTest06(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    int result = 1;
-
-    if (de_ctx == NULL)
-        return 0;
-
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD02();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
-
-    if (de_ctx->class_conf_ht == NULL)
-        return 0;
-
-    result = (de_ctx->class_conf_ht->count == 3);
-
-    result &= (SCClassConfGetClasstype("unknown", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("not-suspicious", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("bamboola1", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("bamboola1", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("BAMBOolA1", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("unkNOwn", de_ctx) == NULL);
-
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
  * \brief This function registers unit tests for Classification Config API.
  */
 void SCClassConfRegisterTests(void)
@@ -821,6 +793,5 @@ void SCClassConfRegisterTests(void)
     UtRegisterTest("SCClassConfTest03", SCClassConfTest03);
     UtRegisterTest("SCClassConfTest04", SCClassConfTest04);
     UtRegisterTest("SCClassConfTest05", SCClassConfTest05);
-    UtRegisterTest("SCClassConfTest06", SCClassConfTest06);
 }
 #endif /* UNITTESTS */
