@@ -518,7 +518,7 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 }
 
 /**
- * \brief Gets the refernce config from the corresponding hash table stored
+ * \brief Gets the reference config from the corresponding hash table stored
  *        in the Detection Engine Context's reference conf ht, given the
  *        reference name.
  *
