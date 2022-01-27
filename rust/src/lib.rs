@@ -85,3 +85,4 @@ pub mod ssh;
 pub mod http2;
 pub mod plugin;
 pub mod util;
+pub mod detect;
