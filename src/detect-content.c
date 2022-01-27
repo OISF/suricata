@@ -394,20 +394,31 @@ void SigParseRequiredContentSize(const Signature *s, int list, int *len, int *of
 {
     SigMatch *sm = s->init_data->smlists[list];
     int max_offset = 0, total_len = 0;
+    bool first = true;
     for (; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT || sm->ctx == NULL) {
             continue;
         }
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
-        if (cd->flags & DETECT_CONTENT_NEGATED && cd->content_len == cd->within) {
-            SCLogDebug("negated ... within: %d", cd->within);
-            continue;
+        SCLogDebug("content_len %d; negated: %s; distance: %d, offset: %d, depth: %d",
+                cd->content_len, cd->flags & DETECT_CONTENT_NEGATED ? "yes" : "no", cd->distance,
+                cd->offset, cd->depth);
+
+        /* Only count negated content bound with within/distance */
+        if (!first) {
+            /* only count content with relative modifiers */
+            if (!((cd->flags & DETECT_CONTENT_DISTANCE) || (cd->flags & DETECT_CONTENT_WITHIN)))
+                continue;
+
+            /* ignore negated content if len == within */
+            if (cd->flags & DETECT_CONTENT_NEGATED && cd->within == cd->content_len) {
+                continue;
+            }
         }
-        SCLogDebug("content_len %d; distance: %d, offset: %d, depth: %d", cd->content_len,
-                cd->distance, cd->offset, cd->depth);
         total_len += cd->content_len + cd->distance;
         max_offset = MAX(max_offset, cd->offset);
+        first = false;
     }
 
     *len = total_len;
@@ -415,8 +426,8 @@ void SigParseRequiredContentSize(const Signature *s, int list, int *len, int *of
 }
 
 /**
- *  \retval 1 valid
- *  \retval 0 invalid
+ *  \retval true valid
+ *  \retval false invalid
  */
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
