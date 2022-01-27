@@ -66,7 +66,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
     SCLogDebug("Logging pgsql transaction %" PRIu64 ".", tx_id);
 
     JsonBuilder *jb =
-            CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
+            CreateEveHeader(p, LOG_DIR_FLOW, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
