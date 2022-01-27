@@ -54,17 +54,17 @@ jobs:
           if test "${PR_HREF}"; then
               body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
 
-              libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
-              libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
-              libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
+              libhtp_repo=$(echo "${body}" | awk -F ':' '/^libhtp-repo/ { gsub(/ /, ""); print $2 }')
+              libhtp_branch=$(echo "${body}" | awk -F ':' '/^libhtp-branch/ { gsub(/ /, ""); print $2 }')
+              libhtp_pr=$(echo "${body}" | awk -F ':' '/^libhtp-pr/ { gsub(/ /, ""); print $2 }')
 
-              su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
-              su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
-              su_pr=$(echo "${body}" | awk '/^suricata-update-pr/ { print $2 }')
+              su_repo=$(echo "${body}" | awk -F ':' '/^suricata-update-repo/ { gsub(/ /, ""); print $2 }')
+              su_branch=$(echo "${body}" | awk -F ':' '/^suricata-update-branch/ { gsub(/ /, ""); print $2 }')
+              su_pr=$(echo "${body}" | awk -F ':' '/^suricata-update-pr/ { gsub(/ /, ""); print $2 }')
 
-              sv_repo=$(echo "${body}" | awk '/^suricata-verify-repo/ { print $2 }')
-              sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
-              sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
+              sv_repo=$(echo "${body}" | awk -F ':' '/^suricata-verify-repo/ { gsub(/ /, ""); print $2 }')
+              sv_branch=$(echo "${body}" | awk -F ':' '/^suricata-verify-branch/ { gsub(/ /, ""); print $2 }')
+              sv_pr=$(echo "${body}" | awk -F ':' '/^suricata-verify-pr/ { gsub(/ /, ""); print $2 }')
           fi
           echo "libhtp_repo=${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}" >> $GITHUB_ENV
           echo "libhtp_branch=${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}" >> $GITHUB_ENV
@@ -79,8 +79,10 @@ jobs:
           echo "sv_pr=${sv_pr:-${DEFAULT_SV_PR}}" >> $GITHUB_ENV
       - name: Fetching libhtp
         run: |
+          echo "Using ${libhtp_repo} -b ${libhtp_branch}."
           git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
           if [[ "${libhtp_pr}" != "" ]]; then
+              echo "Switching to pull request ${libhtp_pr}."
               cd libhtp
               git fetch origin pull/${libhtp_pr}/head:prep
               git checkout prep
@@ -89,8 +91,10 @@ jobs:
           tar zcf libhtp.tar.gz libhtp
       - name: Fetching suricata-update
         run: |
+          echo "Using ${su_repo} -b ${su_branch}."
           git clone --depth 1 ${su_repo} -b ${su_branch} suricata-update
           if [[ "${su_pr}" != "" ]]; then
+              echo "Switcing to pull request ${su_pr}."
               cd suricata-update
               git fetch origin pull/${su_pr}/head:prep
               git checkout prep
@@ -99,8 +103,10 @@ jobs:
           tar zcf suricata-update.tar.gz suricata-update
       - name: Fetching suricata-verify
         run: |
-          git clone ${sv_repo} -b ${sv_branch} suricata-verify
+          echo "Using ${sv_repo} -b ${sv_branch}."
+          git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
           if [[ "${sv_pr}" != "" ]]; then
+              echo "Switching to pull request ${sv_pr}."
               cd suricata-verify
               git fetch origin pull/${sv_pr}/head:prep
               git checkout prep

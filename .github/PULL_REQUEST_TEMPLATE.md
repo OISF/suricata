@@ -11,12 +11,16 @@ Describe changes:
 -
 -
 
-#suricata-verify-pr:
-#suricata-verify-repo:
-#suricata-verify-branch:
-#suricata-update-pr:
-#suricata-update-repo:
-#suricata-update-branch:
-#libhtp-pr:
-#libhtp-repo:
-#libhtp-branch:
+To use a custom repo, branch or pull request for suricata-verify,
+suricata-update or libhtp, uncomment the relevant lines below and change the
+value.
+
+#suricata-verify-pr: 100
+#suricata-verify-repo: https://github.com/OISF/suricata-verify
+#suricata-verify-branch: master
+#suricata-update-pr: 100
+#suricata-update-repo: https://github.com/OISF/suricata-update
+#suricata-update-branch: master
+#libhtp-pr: 100
+#libhtp-repo: https://github.com/OISF/libhtp
+#libhtp-branch: 0.5.x
