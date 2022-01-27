@@ -54,9 +54,6 @@
     xbits:set,bitname,track ip_pair,expire 60
  */
 
-#define PARSE_REGEX     "^([a-z]+)" "(?:,\\s*([^,]+))?" "(?:,\\s*(?:track\\s+([^,]+)))" "(?:,\\s*(?:expire\\s+([^,]+)))?"
-static DetectParseRegex parse_regex;
-
 static int DetectXbitMatch (DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectXbitSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
@@ -77,8 +74,6 @@ void DetectXbitsRegister (void)
 #endif
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_XBITS].flags |= SIGMATCH_IPONLY_COMPAT;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int DetectIPPairbitMatchToggle (Packet *p, const DetectXbitsData *fd)
@@ -193,127 +188,122 @@ static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Sig
 static int DetectXbitParse(DetectEngineCtx *de_ctx,
         const char *rawstr, DetectXbitsData **cdout)
 {
-    DetectXbitsData *cd = NULL;
-    uint8_t fb_cmd = 0;
-    uint8_t hb_dir = 0;
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
-    char fb_cmd_str[16] = "", fb_name[256] = "";
-    char hb_dir_str[16] = "";
+    bool cmd_set = false;
+    bool name_set = false;
+    bool track_set = false;
+    bool expire_set = false;
+    uint8_t cmd = 0;
+    uint8_t track = 0;
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
     uint32_t expire = DETECT_XBITS_EXPIRE_DEFAULT;
-
-    ret = DetectParsePcreExec(&parse_regex, rawstr,  0, 0, ov, MAX_SUBSTRINGS);
-    if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for xbits.", rawstr);
-        return -1;
-    }
-    SCLogDebug("ret %d, %s", ret, rawstr);
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, fb_cmd_str, sizeof(fb_cmd_str));
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-        return -1;
-    }
-
-    if (ret >= 3) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, fb_name, sizeof(fb_name));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-            return -1;
+    DetectXbitsData *cd = NULL;
+    char name[256] = "";
+    char copy[strlen(rawstr) + 1];
+    strlcpy(copy, rawstr, sizeof(copy));
+    char *context = NULL;
+    char *token = strtok_r(copy, ",", &context);
+    while (token != NULL) {
+        while (*token != '\0' && isblank(*token)) {
+            token++;
         }
-        if (ret >= 4) {
-            res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, hb_dir_str, sizeof(hb_dir_str));
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        char *val = strchr(token, ' ');
+        if (val != NULL) {
+            *val++ = '\0';
+            while (*val != '\0' && isblank(*val)) {
+                val++;
+            }
+        } else {
+            SCLogDebug("val %s", token);
+        }
+        if (strlen(token) == 0) {
+            goto next;
+        }
+        if (strcmp(token, "noalert") == 0 && !cmd_set) {
+            if (strtok_r(NULL, ",", &context) != NULL) {
                 return -1;
             }
-            SCLogDebug("hb_dir_str %s", hb_dir_str);
-            if (strlen(hb_dir_str) > 0) {
-                if (strcmp(hb_dir_str, "ip_src") == 0) {
-                    hb_dir = DETECT_XBITS_TRACK_IPSRC;
-                    var_type = VAR_TYPE_HOST_BIT;
-                } else if (strcmp(hb_dir_str, "ip_dst") == 0) {
-                    hb_dir = DETECT_XBITS_TRACK_IPDST;
-                    var_type = VAR_TYPE_HOST_BIT;
-                } else if (strcmp(hb_dir_str, "ip_pair") == 0) {
-                    hb_dir = DETECT_XBITS_TRACK_IPPAIR;
-                    var_type = VAR_TYPE_IPPAIR_BIT;
-                } else {
-                    // TODO
-                    return -1;
-                }
-            }
-
-            if (ret >= 5) {
-                char expire_str[16] = "";
-                res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, expire_str, sizeof(expire_str));
-                if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-                    return -1;
-                }
-                SCLogDebug("expire_str %s", expire_str);
-                if (StringParseUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
-                               "expire: \"%s\"", expire_str);
-                    return -1;
-                }
-                if (expire == 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "expire must be bigger than 0");
-                    return -1;
-                }
-                SCLogDebug("expire %d", expire);
-            }
-        }
-    }
-
-    if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_NOALERT;
-    } else if (strcmp(fb_cmd_str,"isset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_ISSET;
-    } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_ISNOTSET;
-    } else if (strcmp(fb_cmd_str,"set") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_SET;
-    } else if (strcmp(fb_cmd_str,"unset") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_XBITS_CMD_TOGGLE;
-    } else {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "xbits action \"%s\" is not supported.", fb_cmd_str);
-        return -1;
-    }
-
-    switch (fb_cmd) {
-        case DETECT_XBITS_CMD_NOALERT: {
-            if (strlen(fb_name) != 0)
+            if (val && strlen(val) != 0) {
                 return -1;
-            /* return ok, cd is NULL. Flag sig. */
+            }
             *cdout = NULL;
             return 0;
         }
-        case DETECT_XBITS_CMD_ISNOTSET:
-        case DETECT_XBITS_CMD_ISSET:
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
-        default:
-            if (strlen(fb_name) == 0)
+        if (!cmd_set) {
+            if (val && strlen(val) != 0) {
                 return -1;
-            break;
+            }
+            if (strcmp(token, "set") == 0) {
+                cmd = DETECT_XBITS_CMD_SET;
+            } else if (strcmp(token, "isset") == 0) {
+                cmd = DETECT_XBITS_CMD_ISSET;
+            } else if (strcmp(token, "unset") == 0) {
+                cmd = DETECT_XBITS_CMD_UNSET;
+            } else if (strcmp(token, "isnotset") == 0) {
+                cmd = DETECT_XBITS_CMD_ISNOTSET;
+            } else if (strcmp(token, "toggle") == 0) {
+                cmd = DETECT_XBITS_CMD_TOGGLE;
+            } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid xbits cmd: %s", token);
+                return -1;
+            }
+            cmd_set = true;
+        } else if (!name_set) {
+            if (val && strlen(val) != 0) {
+                return -1;
+            }
+            strlcpy(name, token, sizeof(name));
+            name_set = true;
+        } else if (!track_set || !expire_set) {
+            if (val == NULL) {
+                return -1;
+            }
+            if (strcmp(token, "track") == 0) {
+                if (track_set) {
+                    return -1;
+                }
+                if (strcmp(val, "ip_src") == 0) {
+                    track = DETECT_XBITS_TRACK_IPSRC;
+                    var_type = VAR_TYPE_HOST_BIT;
+                } else if (strcmp(val, "ip_dst") == 0) {
+                    track = DETECT_XBITS_TRACK_IPDST;
+                    var_type = VAR_TYPE_HOST_BIT;
+                } else if (strcmp(val, "ip_pair") == 0) {
+                    track = DETECT_XBITS_TRACK_IPPAIR;
+                    var_type = VAR_TYPE_IPPAIR_BIT;
+                } else {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hostbit direction: %s", val);
+                    return -1;
+                }
+                track_set = true;
+            } else if (strcmp(token, "expire") == 0) {
+                if (expire_set) {
+                    return -1;
+                }
+                if ((StringParseUint32(&expire, 10, 0, val) < 0) || (expire == 0)) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid expire value: %s", val);
+                    return -1;
+                }
+                expire_set = true;
+            }
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid xbits keyword: %s", token);
+            return -1;
+        }
+    next:
+        token = strtok_r(NULL, ",", &context);
     }
 
     cd = SCMalloc(sizeof(DetectXbitsData));
     if (unlikely(cd == NULL))
         return -1;
 
-    cd->idx = VarNameStoreSetupAdd(fb_name, var_type);
-    cd->cmd = fb_cmd;
-    cd->tracker = hb_dir;
+    cd->idx = VarNameStoreSetupAdd(name, var_type);
+    cd->cmd = cmd;
+    cd->tracker = track;
     cd->type = var_type;
     cd->expire = expire;
 
-    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-        cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
+    SCLogDebug("idx %" PRIu32 ", cmd %d, name %s", cd->idx, cmd, strlen(name) ? name : "(none)");
 
     *cdout = cd;
     return 0;
@@ -538,6 +528,164 @@ static int XBitsTestSig02(void)
     PASS;
 }
 
+/* Test to demonstrate redmine bug 4820 */
+static int XBitsTestSig03(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert http any any -> any any (msg:\"TEST - No Error\")\";\
+            flow:established,to_server; http.method; content:\"GET\"; \
+            xbits:set,ET.2020_8260.1,track ip_src,expire 10; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+/* Test to demonstrate redmine bug 4820 */
+static int XBitsTestSig04(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"TEST - Error\")\"; \
+            flow:established,to_server; http.method; content:\"GET\"; \
+            xbits:set,ET.2020_8260.1,noalert,track ip_src,expire 10; sid:2;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+static int XBitsTestSig05(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"ET EXPLOIT Possible Pulse Secure VPN RCE "
+            "Chain Stage 1 Inbound - Request Config Backup (CVE-2020-8260)\"; "
+            "flow:established,to_server; http.method; content:\"GET\"; http.uri; "
+            "content:\"/dana-admin/cached/config/config.cgi?type=system\"; fast_pattern; "
+            "xbits:set,ET.2020_8260.1,track ip_src,expire 10; xbits:noalert; "
+            "classtype:attempted-admin; sid:2033750; rev:1;");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+static int XBitsTestSig06(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    XBitsTestSetup();
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"ET EXPLOIT Possible Pulse Secure VPN RCE "
+            "Chain Stage 2 Inbound - Upload Malicious Config (CVE-2020-8260)\"; "
+            "flow:established,to_server; http.method; content:\"POST\"; http.uri; "
+            "content:\"/dana-admin/cached/config/import.cgi\"; "
+            "xbits:isset,ET.2020_8260.1,track ip_src,expire 10;"
+            "xbits:set,ET.2020_8260.2,track ip_src,expire 10; "
+            "classtype:attempted-admin; sid:2033751; rev:1;");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    XBitsTestShutdown();
+    PASS;
+}
+
+static int DetectXBitsTestBadRules(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"abc\"; xbits:set,bit1,noalert,track "
+        "ip_src;sid:1;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:noalert,set,bit1,noalert,track "
+        "ip_src;sid:10;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:isset,bit2,track "
+        "ip_dst,asdf;sid:2;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:isnotset,track ip_pair;sid:3;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:toggle,track ip_pair,bit4;sid:4;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:unset,bit5,track ipsrc;sid:5;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:bit6,set,track ip_src,expire "
+        "10;sid:6;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:set,bit7,track "
+        "ip_pair,expire;sid:7;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:set,bit7,trackk ip_pair,expire "
+        "3600, noalert;sid:8;)",
+        NULL,
+    };
+
+    const char **sig = sigs;
+    while (*sig) {
+        SCLogDebug("sig %s", *sig);
+        Signature *s = DetectEngineAppendSig(de_ctx, *sig);
+        FAIL_IF_NOT_NULL(s);
+        sig++;
+    }
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectXBitsTestGoodRules(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"abc\"; xbits:set,bit1,track ip_src;sid:1;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:isset,bit2,track ip_dst;sid:2;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:isnotset, bit3,  track "
+        "ip_pair;sid:3;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:toggle,bit4, track   "
+        "ip_pair;sid:4;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:  unset ,bit5,track ip_src;sid:5;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:set,bit6 ,track ip_src, expire "
+        "10 ;sid:6;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:set, bit7, track ip_pair, expire "
+        "3600;sid:7;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:set, bit7, track ip_pair, expire "
+        "3600; xbits:noalert; sid:8;)",
+        "alert http any any -> any any (content:\"abc\"; xbits:noalert; xbits:set, bit7, track "
+        "ip_pair, expire "
+        "3600;sid:9;)",
+        NULL,
+    };
+
+    const char **sig = sigs;
+    while (*sig) {
+        SCLogDebug("sig %s", *sig);
+        Signature *s = DetectEngineAppendSig(de_ctx, *sig);
+        FAIL_IF_NULL(s);
+        sig++;
+    }
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for XBits
  */
@@ -546,5 +694,11 @@ static void XBitsRegisterTests(void)
     UtRegisterTest("XBitsTestParse01", XBitsTestParse01);
     UtRegisterTest("XBitsTestSig01", XBitsTestSig01);
     UtRegisterTest("XBitsTestSig02", XBitsTestSig02);
+    UtRegisterTest("XBitsTestSig03", XBitsTestSig03);
+    UtRegisterTest("XBitsTestSig04", XBitsTestSig04);
+    UtRegisterTest("XBitsTestSig05", XBitsTestSig05);
+    UtRegisterTest("XBitsTestSig06", XBitsTestSig06);
+    UtRegisterTest("DetectXBitsTestBadRules", DetectXBitsTestBadRules);
+    UtRegisterTest("DetectXBitsTestGoodRules", DetectXBitsTestGoodRules);
 }
 #endif /* UNITTESTS */
