@@ -388,6 +388,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ERR_SIGNAL);
         CASE_CODE(SC_WARN_CHOWN);
         CASE_CODE(SC_ERR_HASH_ADD);
+        CASE_CODE(SC_WARN_CLASSIFICATION_CONFIG);
 
         CASE_CODE (SC_ERR_MAX);
     }
