@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2016-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,9 +53,6 @@
 static int DetectBypassMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectBypassSetup(DetectEngineCtx *, Signature *, const char *);
-#ifdef UNITTESTS
-static void DetectBypassRegisterTests(void);
-#endif
 
 /**
  * \brief Registration function for keyword: bypass
@@ -68,9 +65,6 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_BYPASS].RegisterTests = DetectBypassRegisterTests;
-#endif
     sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT;
 }
 
@@ -103,142 +97,3 @@ static int DetectBypassMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 
     return 1;
 }
-
-#ifdef UNITTESTS
-#include "app-layer-htp.h"
-
-static int callback_var = 0;
-
-static int BypassCallback(Packet *p)
-{
-    callback_var = 1;
-    return 1;
-}
-
-static void ResetCallbackVar(void)
-{
-    callback_var = 0;
-}
-
-static int DetectBypassTestSig01(void)
-{
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This is dummy message body\r\n"
-        "User-Agent: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "message";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    LiveDevice *livedev = SCMalloc(sizeof(LiveDevice));
-    FAIL_IF(livedev == NULL);
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    FAIL_IF(p1 == NULL);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    FAIL_IF(p2 == NULL);
-
-    p1->BypassPacketsFlow = BypassCallback;
-    p2->BypassPacketsFlow = BypassCallback;
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p1->livedev = livedev;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->livedev = livedev;
-    f.alproto = ALPROTO_HTTP1;
-
-    StreamTcpInitConfig(true);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
-
-    de_ctx->flags |= DE_QUIET;
-
-    const char *sigs[3];
-    sigs[0] = "alert tcp any any -> any any (bypass; content:\"GET \"; sid:1;)";
-    sigs[1] = "alert http any any -> any any "
-              "(bypass; content:\"message\"; http_server_body; "
-              "sid:2;)";
-    sigs[2] = "alert http any any -> any any "
-              "(bypass; content:\"message\"; http_host; "
-              "sid:3;)";
-    FAIL_IF(UTHAppendSigs(de_ctx, sigs, 3) == 0);
-
-    SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
-    SCSigSignatureOrderingModuleCleanup(de_ctx);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
-
-    http_state = f.alstate;
-    FAIL_IF(http_state == NULL);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    FAIL_IF(PacketAlertCheck(p1, 1));
-
-    FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    FAIL_IF(!(PacketAlertCheck(p2, 2)));
-    FAIL_IF(!(PacketAlertCheck(p1, 3)));
-
-    FAIL_IF(callback_var == 0);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p1);
-    UTHFreePacket(p2);
-    ResetCallbackVar();
-    SCFree(livedev);
-    PASS;
-}
-
-static void DetectBypassRegisterTests(void)
-{
-    UtRegisterTest("DetectBypassTestSig01", DetectBypassTestSig01);
-}
-#endif /* UNITTESTS */
