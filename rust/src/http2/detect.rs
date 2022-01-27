@@ -334,26 +334,6 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
     return http2_detect_settingsctx_match(ctx, tx, direction);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_parse(
-    str: *const std::os::raw::c_char,
-) -> *mut std::os::raw::c_void {
-    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
-    if let Ok(s) = ft_name.to_str() {
-        if let Ok((_, ctx)) = parser::detect_parse_u64(s) {
-            let boxed = Box::new(ctx);
-            return transmute(boxed); //unsafe
-        }
-    }
-    return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
-    // Just unbox...
-    let _ctx: Box<parser::DetectU64Data> = transmute(ctx);
-}
-
 fn http2_detect_sizeupdate_match(
     blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &parser::DetectU64Data,
 ) -> std::os::raw::c_int {

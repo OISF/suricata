@@ -24,35 +24,35 @@
 #ifndef __DETECT_ENGINE_UINT_H
 #define __DETECT_ENGINE_UINT_H
 
+#include "rust.h"
 #include "detect-engine-prefilter-common.h"
 
-typedef enum {
-    DETECT_UINT_LT,
-    DETECT_UINT_EQ,
-    DETECT_UINT_GT,
-    DETECT_UINT_RA,
-} DetectUintMode;
+// These definitions are kept to minimize the diff
+// We can run a big sed commit next
+#define DETECT_UINT_GT  DetectUintModeGt
+#define DETECT_UINT_GTE DetectUintModeGte
+#define DETECT_UINT_RA  DetectUintModeRange
+#define DETECT_UINT_EQ  DetectUintModeEqual
+#define DETECT_UINT_NE  DetectUintModeNe
+#define DETECT_UINT_LT  DetectUintModeLt
+#define DETECT_UINT_LTE DetectUintModeLte
 
-typedef struct DetectU32Data_ {
-    uint32_t arg1;   /**< first arg value in the signature*/
-    uint32_t arg2;   /**< second arg value in the signature, in case of range
-                          operator*/
-    DetectUintMode mode;    /**< operator used in the signature */
-} DetectU32Data;
+typedef DetectUintData_u64 DetectU64Data;
+typedef DetectUintData_u32 DetectU32Data;
+typedef DetectUintData_u16 DetectU16Data;
+typedef DetectUintData_u8 DetectU8Data;
 
-int DetectU32Match(const uint32_t parg, const DetectU32Data *du32);
-DetectU32Data *DetectU32Parse (const char *u32str);
+int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64);
+DetectUintData_u64 *DetectU64Parse(const char *u64str);
+
+int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32);
+DetectUintData_u32 *DetectU32Parse(const char *u32str);
 void PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx);
 bool PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx);
 
 void DetectUintRegister(void);
+int DetectU8Match(const uint8_t parg, const DetectUintData_u8 *du8);
 
-typedef struct DetectU8Data_ {
-    uint8_t arg1;   /**< first arg value in the signature*/
-    uint8_t arg2;   /**< second arg value in the signature, in case of range
-                          operator*/
-    DetectUintMode mode;    /**< operator used in the signature */
-} DetectU8Data;
 
 int DetectU8Match(const uint8_t parg, const DetectU8Data *du8);
 DetectU8Data *DetectU8Parse (const char *u8str);
