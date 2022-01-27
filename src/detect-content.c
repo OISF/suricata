@@ -421,6 +421,7 @@ void SigParseRequiredContentSize(
 
     SigMatch *sm = s->init_data->smlists[list];
     int max_offset = 0, total_len = 0;
+    bool first = true;
     for (; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT || sm->ctx == NULL) {
             continue;
@@ -447,10 +448,9 @@ void SigParseRequiredContentSize(
                 continue;
             }
         }
-        SCLogDebug("content_len %d; distance: %d, offset: %d, depth: %d", cd->content_len,
-                cd->distance, cd->offset, cd->depth);
         total_len += cd->content_len + cd->distance;
         max_offset = MAX(max_offset, cd->offset);
+        first = false;
     }
 
     *len = total_len;
@@ -458,8 +458,8 @@ void SigParseRequiredContentSize(
 }
 
 /**
- *  \retval 1 valid
- *  \retval 0 invalid
+ *  \retval true valid
+ *  \retval false invalid
  */
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
