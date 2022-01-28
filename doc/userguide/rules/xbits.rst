@@ -7,9 +7,7 @@ Syntax::
 
     xbits:<set|unset|isset|isnotset|toggle>,<name>,track <ip_src|ip_dst|ip_pair>;
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
-        [,expire <seconds>];
-    xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
-        [,expire <seconds>];
+        [,expire <seconds>] [,noalert];
 
 Notes
 ~~~~~
@@ -21,7 +19,7 @@ Notes
    ``track ip_dst``, if you want to match on the server response,
    you check it (``isset``) with ``track ip_src``.
 
--  To not alert, use ``noalert;``
+-  To not alert, use ``noalert`` as a part of ``xbits`` options at the end.
 
 - the ``toggle`` option will flip the value of the xbits.
 
