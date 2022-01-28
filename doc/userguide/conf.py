@@ -16,6 +16,7 @@ import sys
 import os
 import shlex
 import re
+import datetime
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -49,8 +50,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
+# Ensure copyright has current year
 project = u'Suricata'
-copyright = u'2016-2019, OISF'
+copyright = u'2016-{}, OISF'.format(year = datetime.datetime.now().date().year)
 author = u'OISF'
 
 # The version info for the project you're documenting, acts as replacement for
