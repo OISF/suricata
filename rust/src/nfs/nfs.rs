@@ -593,11 +593,7 @@ impl NFSState {
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = if w.stable == 2 { true } else { false };
 
-        let mut fill_bytes = 0;
-        let pad = w.file_len % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
+        let fill_bytes = if w.file_len % 4 == 0 { 0 } else {4 - (w.file_len % 4) };
 
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
@@ -648,8 +644,9 @@ impl NFSState {
         }
         if !self.is_udp {
             self.ts_chunk_xid = r.hdr.xid;
-            let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
-            self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+            // parse_nfs3_request_write does (i, file_data) = take(file_len as usize)(i)?;
+            // so this should always be 0... maybe count rather than file_len was intended
+            self.ts_chunk_left = w.file_len as u32 - w.file_data.len() as u32;
             self.ts_chunk_fh = file_handle;
             SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
         }
