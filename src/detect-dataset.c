@@ -131,13 +131,13 @@ static int DetectDatasetParse(const char *str,
         }
 
         if (!cmd_set) {
-            if (val) {
+            if (val && strlen(val) != 0) {
                 return -1;
             }
             strlcpy(cmd, key, cmd_len);
             cmd_set = true;
         } else if (!name_set) {
-            if (val) {
+            if (val && strlen(val) != 0) {
                 return -1;
             }
             strlcpy(name, key, name_len);
