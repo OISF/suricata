@@ -791,7 +791,7 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
         flag |= STREAM_TOCLIENT;
     }
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
-        flag |= STREAM_DEPTH;
+        flag |= STREAM_DISRUPTED;
     }
     return flag;
 }
@@ -1215,7 +1215,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             last_was_gap = true;
             continue;
 
-        } else if (flags & STREAM_DEPTH) {
+        } else if (flags & STREAM_DISRUPTED) {
             // we're just called once with this flag, so make sure we pass it on
             if (mydata == NULL && mydata_len > 0) {
                 mydata_len = 0;
@@ -1262,7 +1262,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;
-        if (flags & STREAM_DEPTH)
+        if (flags & STREAM_DISRUPTED)
             break;
     }
 

@@ -899,7 +899,7 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
     SCReturnPtr(ptr, "FileContainer *");
 }
 
-#define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
+#define IS_DISRUPTED(flags) ((flags) & (STREAM_DISRUPTED | STREAM_GAP))
 
 extern int g_detect_disabled;
 extern bool g_file_logger_enabled;
@@ -1391,7 +1391,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     }
 
     /* stream truncated, inform app layer */
-    if (flags & STREAM_DEPTH)
+    if (flags & STREAM_DISRUPTED)
         AppLayerParserStreamTruncated(f->proto, alproto, alstate, flags);
 
  end:

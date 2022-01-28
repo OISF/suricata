@@ -1148,8 +1148,8 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
     TcpStream *stream = flags & STREAM_TOSERVER ? &ssn->client : &ssn->server;
 
     if ((stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-        (stream->flags & STREAMTCP_STREAM_FLAG_ERRORED)) {
-        newflags |= STREAM_DEPTH;
+            (stream->flags & STREAMTCP_STREAM_FLAG_ERRORED)) {
+        newflags |= STREAM_DISRUPTED;
     }
     /* todo: handle pass case (also for UDP!) */
 
