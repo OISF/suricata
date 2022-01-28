@@ -412,11 +412,10 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
             }
             comp->file = fopen(pl->filename, "w");
             if (comp->file == NULL) {
-/*              took this out so that it won't print twice, but still would function same
-                SCLogError(SC_ERR_OPENING_FILE,
-                        "Error opening file for compressed output: %s",
-                        strerror(errno));
-*/
+                /*              took this out so that it won't print twice, but still would function
+                   same SCLogError(SC_ERR_OPENING_FILE, "Error opening file for compressed output:
+                   %s", strerror(errno));
+                */
                 return TM_ECODE_FAILED;
             }
             uint64_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
@@ -577,11 +576,10 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             SCLogError(SC_ERR_FSEEK, "fseek failed: %s", strerror(errno));
             return TM_ECODE_FAILED;
         }
-            comp->file = fopen(pl->filename, "w");
+        comp->file = fopen(pl->filename, "w");
         if (comp->file == NULL) {
-            SCLogError(SC_ERR_OPENING_FILE,
-                   "Error opening file for compressed output: %s",
-                   strerror(errno));
+            SCLogError(SC_ERR_OPENING_FILE, "Error opening file for compressed output: %s",
+                    strerror(errno));
             return TM_ECODE_FAILED;
         }
         if (fwrite(comp->buffer, 1, out_size, comp->file) < out_size) {
