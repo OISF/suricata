@@ -136,11 +136,10 @@ static int DecodeNSHTestHeaderTooSmall(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* A packet that is too small to have a complete NSH header */
     DecodeNSH(&tv, &dtv, p, valid_nsh_packet, 7);
@@ -156,11 +155,10 @@ static int DecodeNSHTestUnsupportedVersion(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* Non-zero version field */
     valid_nsh_packet[0] = 0xFF;
@@ -178,11 +176,10 @@ static int DecodeNSHTestPacketTooSmall(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* A packet that has no payload */
     DecodeNSH(&tv, &dtv, p, valid_nsh_packet, 8);
@@ -198,11 +195,10 @@ static int DecodeNSHTestReservedType(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* Reserved type */
     valid_nsh_packet[2] = 0x00;
@@ -220,11 +216,10 @@ static int DecodeNSHTestInvalidType(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* Type length mismatch */
     valid_nsh_packet[2] = 0x01;
@@ -241,11 +236,10 @@ static int DecodeNSHTestUnsupportedType(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* Unsupported type */
     valid_nsh_packet[2] = 0x03;
@@ -263,11 +257,10 @@ static int DecodeNSHTestUnknownPayload(void)
     DecodeThreadVars dtv;
     Packet *p;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
 
     /* Unknown type */
     valid_nsh_packet[3] = 0x99;
