@@ -1149,7 +1149,7 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 
     if ((stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
             (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        newflags |= STREAM_DEPTH;
+        newflags |= STREAM_DISRUPTED;
     }
     /* todo: handle pass case (also for UDP!) */
 
