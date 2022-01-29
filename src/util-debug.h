@@ -573,7 +573,7 @@ int SCLogDebugEnabled(void);
 
 void SCLogRegisterTests(void);
 
-void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid);
+void SCLogLoadConfig(int daemon, int verbose);
 
 SCLogLevel SCLogGetLogLevel(void);
 

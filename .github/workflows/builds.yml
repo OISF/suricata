@@ -4,8 +4,6 @@ on:
   - push
   - pull_request
 
-permissions: read-all
-
 env:
   DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
   DEFAULT_LIBHTP_BRANCH: 0.5.x
@@ -39,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo
           key: cargo
@@ -113,7 +111,7 @@ jobs:
       - name: Cleaning up
         run: rm -rf libhtp suricata-update suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+        uses: actions/upload-artifact@v2
         with:
           name: prep
           path: .
@@ -123,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo
           key: cbindgen
@@ -137,7 +135,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+        uses: actions/upload-artifact@v2
         with:
           name: prep
           path: .
@@ -150,12 +148,12 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/checkout@v2
 
       # Prebuild check for duplicat SIDs
       - name: Check for duplicate SIDs
@@ -168,7 +166,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -249,7 +247,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+      - uses: actions/upload-artifact@v1
         name: Uploading distribution
         with:
           name: dist
@@ -295,7 +293,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@v2
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -312,7 +310,7 @@ jobs:
       - run: make distcheck
       - run: make clean
       - run: make -j2
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -328,7 +326,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -369,8 +367,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -415,7 +413,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -456,8 +454,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -502,7 +500,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -542,8 +540,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -576,7 +574,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -614,8 +612,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -683,8 +681,8 @@ jobs:
                 exuberant-ctags \
                 curl \
                 dpdk-dev
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -709,9 +707,8 @@ jobs:
           cd ../libhtp/htp
           gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+        uses: codecov/codecov-action@v1
         with:
-          fail_ci_if_error: false
           flags: suricata-verify
 
   ubuntu-20-04-cov-ut:
@@ -761,8 +758,8 @@ jobs:
                 exuberant-ctags \
                 curl \
                 dpdk-dev
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -784,9 +781,8 @@ jobs:
           cd ../libhtp/htp
           gcov-9 -p *.[ch]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+        uses: codecov/codecov-action@v1
         with:
-          fail_ci_if_error: false
           flags: unittests
 
   ubuntu-20-04-cov-fuzz:
@@ -842,8 +838,8 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -863,9 +859,8 @@ jobs:
           cd src
           llvm-cov-10 gcov -p *.c
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+        uses: codecov/codecov-action@v1
         with:
-          fail_ci_if_error: false
           flags: fuzzcorpus
 
   ubuntu-20-04-ndebug:
@@ -913,8 +908,8 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags \
                 dpdk-dev
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -989,7 +984,7 @@ jobs:
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@v2
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -1010,7 +1005,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1051,8 +1046,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1081,7 +1076,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1135,8 +1130,8 @@ jobs:
       - name: Install Coccinelle
         run: |
           apt -y install coccinelle
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1175,7 +1170,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1213,8 +1208,8 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1266,7 +1261,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@v2
         with:
           name: dist
       - name: Extract
@@ -1289,7 +1284,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1332,8 +1327,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1393,8 +1388,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1421,7 +1416,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1446,9 +1441,9 @@ jobs:
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/checkout@v2
       - name: Downloading prep archive
-        uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+        uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1461,16 +1456,16 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q
 
-  windows-msys2-mingw64-npcap:
-    name: Windows MSYS2 MINGW64 (NPcap)
+  windows-msys2-mingw64:
+    name: Windows MSYS2 MINGW64
     runs-on: windows-latest
     needs: [prepare-deps]
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
+      - uses: actions/checkout@v2
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
@@ -1479,8 +1474,8 @@ jobs:
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
-      - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
         with:
           name: prep
           path: prep
@@ -1509,40 +1504,3 @@ jobs:
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
-
-  windows-msys2-mingw64-libpcap:
-    name: Windows MSYS2 MINGW64 (libpcap)
-    runs-on: windows-latest
-    needs: [prepare-deps]
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
-      # hack: install our own cbindgen system wide as we can't get the
-      # preinstalled one to be picked up by configure
-      - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.14.1 cbindgen
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: prep
-          path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
-      - run: tar xf prep/suricata-verify.tar.gz
-      - name: Build
-        run: |
-          ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
-          make -j3
-      - name: Run
-        run: |
-          ./src/suricata --build-info
-          ./src/suricata -u -l /tmp/
-          python3 ./suricata-verify/run.py -q

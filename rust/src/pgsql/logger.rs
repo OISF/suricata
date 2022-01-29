@@ -24,7 +24,7 @@ use crate::pgsql::parser::*;
 use crate::pgsql::pgsql::*;
 use std;
 
-pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(0);
+pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(1);
 
 fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.set_uint("tx_id", tx.tx_id)?;

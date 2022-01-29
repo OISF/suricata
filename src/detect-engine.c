@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -463,7 +463,7 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
 {
     /* take the list from the detect engine as the buffers can be registered
      * dynamically. */
-    DetectEngineFrameInspectionEngine *t = de_ctx->frame_inspect_engines;
+    const DetectEngineFrameInspectionEngine *t = de_ctx->frame_inspect_engines;
     while (t) {
         if (t->sm_list == sm_list) {
             DetectEngineFrameInspectionEngine *new_engine =
@@ -479,14 +479,16 @@ static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, i
             new_engine->v1 = t->v1;
             new_engine->v1.transforms = transforms; /* assign transforms */
 
-            /* append to the list */
-            DetectEngineFrameInspectionEngine *list = t;
-            while (list->next != NULL) {
-                list = list->next;
-            }
+            if (de_ctx->frame_inspect_engines == NULL) {
+                de_ctx->frame_inspect_engines = new_engine;
+            } else {
+                DetectEngineFrameInspectionEngine *list = de_ctx->frame_inspect_engines;
+                while (list->next != NULL) {
+                    list = list->next;
+                }
 
-            list->next = new_engine;
-            break;
+                list->next = new_engine;
+            }
         }
         t = t->next;
     }
@@ -2364,10 +2366,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     (void)SRepInit(de_ctx);
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
-        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
-            goto error;
-    }
+    SCRConfLoadReferenceConfigFile(de_ctx, NULL);
 
     if (ActionInitConfig() < 0) {
         goto error;

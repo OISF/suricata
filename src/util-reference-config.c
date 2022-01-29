@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -122,9 +122,8 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
         const char *filename = SCRConfGetConfFilename(de_ctx);
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
-            if (RunmodeIsUnittests()) {
+            if (RunmodeIsUnittests())
                 return NULL; // silently fail
-            }
 #endif
             SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename,
                        strerror(errno));
@@ -320,22 +319,16 @@ static int SCRConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint8_t i = 1;
 
-    int runmode = RunmodeGetCurrent();
-    bool is_conf_test_mode = runmode == RUNMODE_CONF_TEST;
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCRConfIsLineBlankOrComment(line))
             continue;
 
-        if (SCRConfAddReference(de_ctx, line) != 0) {
-            if (is_conf_test_mode) {
-                return false;
-            }
-        }
+        SCRConfAddReference(de_ctx, line);
         i++;
     }
 
@@ -343,7 +336,7 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
     SCLogInfo("Added \"%d\" reference types from the reference.config file",
               de_ctx->reference_conf_ht->count);
 #endif /* UNITTESTS */
-    return true;
+    return;
 }
 
 /**
@@ -499,7 +492,7 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
     fd = SCRConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
 #ifdef UNITTESTS
-        if (RunmodeIsUnittests()) {
+        if (RunmodeIsUnittests() && fd == NULL) {
             return -1;
         }
 #endif
@@ -508,14 +501,14 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
         return -1;
     }
 
-    bool rc = SCRConfParseFile(de_ctx, fd);
+    SCRConfParseFile(de_ctx, fd);
     SCRConfDeInitLocalResources(de_ctx, fd);
 
-    return rc ? 0 : -1;
+    return 0;
 }
 
 /**
- * \brief Gets the reference config from the corresponding hash table stored
+ * \brief Gets the refernce config from the corresponding hash table stored
  *        in the Detection Engine Context's reference conf ht, given the
  *        reference name.
  *
