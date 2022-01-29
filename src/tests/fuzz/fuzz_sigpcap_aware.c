@@ -22,6 +22,7 @@
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"
+#include "flow-util.h"
 
 #include <fuzz_pcap.h>
 
@@ -181,6 +182,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->pcap_cnt = pcap_cnt;
     }
     PacketFree(p);
+    FlowReset();
 
     return 0;
 }
