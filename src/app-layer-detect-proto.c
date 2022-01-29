@@ -2190,18 +2190,6 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 
 const char *AppLayerProtoDetectGetProtoName(AppProto alproto)
 {
-    // Special case for http (any version) :
-    // returns "http" if both versions are enabled
-    // and returns "http1" or "http2" if only one version is enabled
-    if (alproto == ALPROTO_HTTP) {
-        if (alpd_ctx.alproto_names[ALPROTO_HTTP1]) {
-            if (alpd_ctx.alproto_names[ALPROTO_HTTP2]) {
-                return "http";
-            } // else
-            return alpd_ctx.alproto_names[ALPROTO_HTTP1];
-        } // else
-        return alpd_ctx.alproto_names[ALPROTO_HTTP2];
-    }
     return alpd_ctx.alproto_names[alproto];
 }
 

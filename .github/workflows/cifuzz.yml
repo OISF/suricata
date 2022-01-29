@@ -1,6 +1,5 @@
 name: CIFuzz
 on: [pull_request]
-permissions: read-all
 jobs:
  Fuzzing:
    runs-on: ubuntu-latest
