@@ -3,15 +3,20 @@ name: commit-check
 on:
   - pull_request
 
+permissions: read-all
+
+env:
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   check-commits:
     name: Commit Check
     runs-on: ubuntu-latest
-    container: ubuntu:18.04
+    container: ubuntu:20.04
     steps:
       - name: Caching ~/.cargo
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo
           key: commit-check-cargo
@@ -41,7 +46,7 @@ jobs:
                 libhiredis-dev \
                 libjansson-dev \
                 libevent-dev \
-                libevent-pthreads-2.1.6 \
+                libevent-pthreads-2.1-7 \
                 libjansson-dev \
                 libpython2.7 \
                 libssl-dev \
@@ -65,7 +70,9 @@ jobs:
           cd $HOME/.cargo/bin
           curl -OL https://github.com/eqrion/cbindgen/releases/download/v0.15.0/cbindgen
           chmod 755 cbindgen
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
       - run: git fetch
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Building all commits
@@ -84,7 +91,7 @@ jobs:
               make -ik distclean > /dev/null
           done
       - run: sccache -s
-      - uses: actions/upload-artifact@v2-preview
+      - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
         name: Uploading build log
         if: always()
         with:

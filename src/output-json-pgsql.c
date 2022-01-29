@@ -47,7 +47,7 @@
 #include "output-json-pgsql.h"
 #include "rust.h"
 
-#define PGSQL_LOG_PASSWORDS BIT_U32(1)
+#define PGSQL_LOG_PASSWORDS BIT_U32(0)
 
 typedef struct OutputPgsqlCtx_ {
     uint32_t flags;
@@ -66,7 +66,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
     SCLogDebug("Logging pgsql transaction %" PRIu64 ".", tx_id);
 
     JsonBuilder *jb =
-            CreateEveHeader(p, LOG_DIR_PACKET, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
+            CreateEveHeader(p, LOG_DIR_FLOW, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -103,10 +103,10 @@ static void JsonPgsqlLogParseConfig(ConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx
         if (ConfValIsTrue(query)) {
             pgsqllog_ctx->flags |= PGSQL_LOG_PASSWORDS;
         } else {
-            pgsqllog_ctx->flags &= !PGSQL_LOG_PASSWORDS;
+            pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
         }
     } else {
-        pgsqllog_ctx->flags &= !PGSQL_LOG_PASSWORDS;
+        pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
     }
 }
 
