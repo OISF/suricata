@@ -412,10 +412,9 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
             }
             comp->file = fopen(pl->filename, "w");
             if (comp->file == NULL) {
-                /*              took this out so that it won't print twice, but still would function
-                   same SCLogError(SC_ERR_OPENING_FILE, "Error opening file for compressed output:
-                   %s", strerror(errno));
-                */
+                /* Removed error log so that it won't print twice,
+                 * but still would function the same.
+                 */
                 return TM_ECODE_FAILED;
             }
             uint64_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
