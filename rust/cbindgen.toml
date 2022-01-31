@@ -79,7 +79,8 @@ include = [
     "ModbusState",
     "CMark",
     "QuicState",
-    "QuicTransaction"
+    "QuicTransaction",
+    "RSXBitsData",
 ]
 
 # A list of items to not include in the generated bindings

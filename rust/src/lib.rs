@@ -90,6 +90,8 @@ pub mod log;
 #[macro_use]
 pub mod core;
 
+pub mod detect;
+
 #[macro_use]
 pub mod common;
 pub mod conf;
