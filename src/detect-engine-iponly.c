@@ -117,7 +117,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
     int r = 0;
     IPOnlyCIDRItem *dd = *pdd;
 
-    while (*str != '\0' && *str == ' ')
+    while (*str == ' ')
         str++;
 
     SCLogDebug("str %s", str);
