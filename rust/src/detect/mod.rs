@@ -22,3 +22,4 @@ pub mod parser;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
+pub mod xbits;
