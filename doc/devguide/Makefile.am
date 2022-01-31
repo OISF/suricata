@@ -34,7 +34,6 @@ endif
 SPHINX_BUILD = sphinx-build -q
 
 html:
-	$(top_srcdir)/doc/devguide/tools/generate-images.sh
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
@@ -42,7 +41,6 @@ html:
 		$(top_srcdir)/doc/devguide _build/html
 
 _build/latex/Suricata.pdf:
-	$(top_srcdir)/doc/devguide/tools/generate-images.sh
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
