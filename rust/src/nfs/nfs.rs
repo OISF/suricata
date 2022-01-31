@@ -26,6 +26,7 @@ use nom7::{Err, Needed};
 
 use crate::applayer;
 use crate::applayer::*;
+use crate::frames::*;
 use crate::core::*;
 use crate::conf::*;
 use crate::filetracker::*;
@@ -84,6 +85,14 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  * NFSTransaction where they can be looked up per handle as part of the
  * Transaction lookup.
  */
+
+#[derive(AppLayerFrameType)]
+pub enum NFSFrameType {
+    RPCUdpPdu,
+    RPCUdpHdr,
+    RPCUdpData,
+
+}
 
 #[repr(u32)]
 pub enum NFSEvent {
@@ -436,6 +445,12 @@ impl NFSState {
                 //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
             },
         }
+    }
+
+    fn add_rpc_udp_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_udp_len: i64) -> Option<Frame> {
+        let rpc_udp_pdu = Frame::new_ts(flow, stream_slice, input, rpc_udp_len, NFSFrameType::RPCUdpPdu as u8);
+        SCLogNotice!("RPC UDP Frames {:?}", rpc_udp_pdu);
+        rpc_udp_pdu
     }
 
     fn post_gap_housekeeping_for_files(&mut self)
@@ -1289,7 +1304,8 @@ impl NFSState {
         AppLayerResult::ok()
     }
     /// Parsing function
-    pub fn parse_udp_ts<'b>(&mut self, input: &'b[u8]) -> AppLayerResult {
+    pub fn parse_udp_ts<'b>(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
         if input.len() > 0 {
             match parse_rpc_udp_request(input) {
@@ -1301,6 +1317,10 @@ impl NFSState {
                         },
                         2 => {
                             self.process_request_record_v2(rpc_record);
+                            let rpc_pdu_frame = self.add_rpc_udp_ts_frames(flow, stream_slice, input, input.len() as i64);
+                            SCLogNotice!("RPC UDP To Server {:?}", rpc_pdu_frame);
+                            SCLogNotice!("RPC UDP Input: {:?}, input.len: {:?}", input, input.len());
+
                         },
                         _ => { },
                     }
@@ -1449,7 +1469,7 @@ pub unsafe extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
     rs_nfs_setfileflags(Direction::ToServer.into(), state, file_flags);
 
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
-    state.parse_udp_ts(stream_slice.as_slice())
+    state.parse_udp_ts(f, &stream_slice)
 }
 
 #[no_mangle]
@@ -1941,8 +1961,8 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(NFSFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(NFSFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
