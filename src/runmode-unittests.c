@@ -182,7 +182,6 @@ static void RegisterUnittests(void)
 #endif
     DeStateRegisterTests();
     MemcmpRegisterTests();
-    DetectEngineInspectENIPRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
