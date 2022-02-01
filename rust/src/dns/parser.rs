@@ -67,33 +67,21 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b
             pos = &pos[1..];
             break;
         } else if len & 0b1100_0000 == 0 {
-            match length_data(be_u8)(pos) as IResult<&[u8], _> {
-                Ok((rem, label)) => {
-                    if name.len() > 0 {
-                        name.push('.' as u8);
-                    }
-                    name.extend(label);
-                    pos = rem;
-                }
-                _ => {
-                    return Err(Err::Error(error_position!(pos, ErrorKind::OctDigit)));
-                }
+            let (rem, label) = length_data(be_u8)(pos)?;
+            if name.len() > 0 {
+                name.push('.' as u8);
             }
+            name.extend(label);
+            pos = rem;
         } else if len & 0b1100_0000 == 0b1100_0000 {
-            match be_u16(pos) as IResult<&[u8], _> {
-                Ok((rem, leader)) => {
-                    let offset = usize::from(leader) & 0x3fff;
-                    if offset > message.len() {
-                        return Err(Err::Error(error_position!(pos, ErrorKind::OctDigit)));
-                    }
-                    pos = &message[offset..];
-                    if pivot == start {
-                        pivot = rem;
-                    }
-                }
-                _ => {
-                    return Err(Err::Error(error_position!(pos, ErrorKind::OctDigit)));
-                }
+            let (rem, leader) = be_u16(pos)?;
+            let offset = usize::from(leader) & 0x3fff;
+            if offset > message.len() {
+                return Err(Err::Error(error_position!(pos, ErrorKind::OctDigit)));
+            }
+            pos = &message[offset..];
+            if pivot == start {
+                pivot = rem;
             }
         } else {
             return Err(Err::Error(error_position!(pos, ErrorKind::OctDigit)));
