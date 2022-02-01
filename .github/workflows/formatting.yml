@@ -20,7 +20,7 @@ jobs:
     name: Formatting Check (clang 9)
     runs-on: ubuntu-20.04
     container: ubuntu:20.04
-    continue-on-error: true
+    continue-on-error: false
     steps:
 
       # Cache Rust stuff.
