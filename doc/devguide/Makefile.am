@@ -8,6 +8,7 @@ EXTRA_DIST = \
 	extending/app-layer/index.rst \
 	extending/app-layer/parser.rst \
 	extending/app-layer/transactions.rst \
+	extending/app-layer/diagrams \
 	extending/capture/index.rst \
 	extending/output/index.rst \
 	internals/engines/index.rst \
@@ -20,9 +21,11 @@ EXTRA_DIST = \
 	codebase/contributing/code-submission-process.rst \
 	codebase/contributing/index.rst \
 	codebase/fuzz-testing.rst \
+	codebase/img \
 	codebase/testing.rst \
 	codebase/unittests-c.rst \
-	codebase/unittests-rust.rst
+	codebase/unittests-rust.rst \
+	tools
 
 if HAVE_SPHINXBUILD
 if HAVE_MSCGEN
