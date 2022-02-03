@@ -20,7 +20,7 @@
 use std;
 use std::cmp;
 use std::collections::HashMap;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 
 use nom7::{Err, Needed};
 
@@ -85,24 +85,12 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  * Transaction lookup.
  */
 
-#[repr(u32)]
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum NFSEvent {
     MalformedData = 0,
     NonExistingVersion = 1,
     UnsupportedVersion = 2,
 }
-
-impl NFSEvent {
-    fn from_i32(value: i32) -> Option<NFSEvent> {
-        match value {
-            0 => Some(NFSEvent::MalformedData),
-            1 => Some(NFSEvent::NonExistingVersion),
-            2 => Some(NFSEvent::UnsupportedVersion),
-            _ => None,
-        }
-    }
-}
-
 
 #[derive(Debug)]
 pub enum NFSTransactionTypeData {
@@ -1527,51 +1515,6 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
     return &mut tx.tx_data;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: std::os::raw::c_int,
-                                              event_name: *mut *const std::os::raw::c_char,
-                                              event_type: *mut AppLayerEventType)
-                                              -> i8
-{
-    if let Some(e) = NFSEvent::from_i32(event_id as i32) {
-        let estr = match e {
-            NFSEvent::MalformedData => { "malformed_data\0" },
-            NFSEvent::NonExistingVersion => { "non_existing_version\0" },
-            NFSEvent::UnsupportedVersion => { "unsupported_version\0" },
-        };
-        *event_name = estr.as_ptr() as *const std::os::raw::c_char;
-        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        0
-    } else {
-        -1
-    }
-}
-
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_event_info(event_name: *const std::os::raw::c_char,
-                                              event_id: *mut std::os::raw::c_int,
-                                              event_type: *mut AppLayerEventType)
-                                              -> std::os::raw::c_int
-{
-    if event_name.is_null() {
-        return -1;
-    }
-    let c_event_name: &CStr = CStr::from_ptr(event_name);
-    let event = match c_event_name.to_str() {
-        Ok(s) => {
-            match s {
-                "malformed_data" => NFSEvent::MalformedData as i32,
-                _ => -1, // unknown event
-            }
-        },
-        Err(_) => -1, // UTF-8 conversion failed
-    };
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    0
-}
-
 /// return procedure(s) in the tx. At 0 return the main proc,
 /// otherwise get procs from the 'file_additional_procs'.
 /// Keep calling until 0 is returned.
@@ -1853,8 +1796,8 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_eventinfo: Some(rs_nfs_state_get_event_info),
-        get_eventinfo_byid : Some(rs_nfs_state_get_event_info_by_id),
+        get_eventinfo: Some(NFSEvent::get_event_info),
+        get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_nfs_getfiles),
@@ -1931,8 +1874,8 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_nfs_tx_get_alstate_progress,
-        get_eventinfo: Some(rs_nfs_state_get_event_info),
-        get_eventinfo_byid : None,
+        get_eventinfo: Some(NFSEvent::get_event_info),
+        get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: Some(rs_nfs_getfiles),
