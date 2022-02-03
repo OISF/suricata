@@ -647,3 +647,8 @@ uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
 {
     return ts->tv_sec * 1000L + ts->tv_nsec / 1000000L;
 }
+
+uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1)
+{
+    return (uint64_t)(t1.tv_sec - t0.tv_sec) * 1000000 + (t1.tv_usec - t1.tv_usec);
+}
