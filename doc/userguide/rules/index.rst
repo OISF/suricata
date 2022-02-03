@@ -2,10 +2,12 @@ Suricata Rules
 ==============
 
 .. toctree::
+   :maxdepth: 2
 
    intro
    meta
    header-keywords
+   frame-keywords
    payload-keywords
    transforms
    prefilter-keywords
