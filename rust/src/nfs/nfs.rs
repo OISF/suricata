@@ -41,6 +41,8 @@ pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = 
 
 pub const NFS_MIN_FRAME_LEN: u16 = 32;
 
+static mut NFS_MAX_TX: usize = 1024;
+
 static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
 /*
  * Record parsing.
@@ -90,6 +92,7 @@ pub enum NFSEvent {
     MalformedData = 0,
     NonExistingVersion = 1,
     UnsupportedVersion = 2,
+    TooManyTransactions = 3,
 }
 
 #[derive(Debug)]
@@ -344,6 +347,18 @@ impl NFSState {
         let mut tx = NFSTransaction::new();
         self.tx_id += 1;
         tx.id = self.tx_id;
+        if self.transactions.len() > unsafe { NFS_MAX_TX } {
+            // set at least one another transaction to the drop state
+            for tx_old in &mut self.transactions {
+                if !tx_old.request_done || !tx_old.response_done {
+                    tx_old.request_done = true;
+                    tx_old.response_done = true;
+                    tx_old.is_file_closed = true;
+                    tx_old.tx_data.set_event(NFSEvent::TooManyTransactions as u8);
+                    break;
+                }
+            }
+        }
         return tx;
     }
 
@@ -1911,6 +1926,13 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         ) != 0
         {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.nfs.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                NFS_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for nfs.max-tx");
+            }
         }
         SCLogDebug!("Rust nfs parser registered.");
     } else {

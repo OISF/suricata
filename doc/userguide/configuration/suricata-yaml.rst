@@ -1388,20 +1388,12 @@ Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
 `http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
 Its default value is unlimited.
 
-Configure MQTT
-~~~~~~~~~~~~~~
+Maximum transactions
+~~~~~~~~~~~~~~~~~~~~
 
-MQTT has one parameter that can be customized.
-`mqtt.max-tx` refers to the maximum number of live transactions for each flow.
-The app-layer event `mqtt.too_many_transactions` is triggered when this value is reached.
-The point of this parameter is to find a balance between the completeness of analysis
-and the resource consumption.
-
-Configure FTP
-~~~~~~~~~~~~~
-
-FTP has one parameter that can be customized.
-`ftp.max-tx` refers to the maximum number of live transactions for each flow.
+MQTT, FTP, and NFS have each a `max-tx` parameter that can be customized.
+`max-tx` refers to the maximum number of live transactions for each flow.
+An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
 The point of this parameter is to find a balance between the completeness of analysis
 and the resource consumption.
 
