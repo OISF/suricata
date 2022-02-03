@@ -96,6 +96,7 @@ typedef enum LogModeConditionalType_ {
 #define HONOR_PASS_RULES_ENABLED        1
 
 #define PCAP_SNAPLEN                    262144
+#define PCAP_BUFFER_TIMEOUT             1000000 // microseconds
 
 SC_ATOMIC_DECLARE(uint32_t, thread_cnt);
 
@@ -188,6 +189,7 @@ typedef struct PcapLogData_ {
     int threads;                /**< number of threads (only set in the global) */
     char *filename_parts[MAX_TOKS];
     int filename_part_cnt;
+    struct timeval last_pcap_dump;
 
     PcapLogCompressionData compression;
 } PcapLogData;
@@ -514,6 +516,8 @@ static void PcapLogUnlock(PcapLogData *pl)
 static inline int PcapWrite(
         PcapLogData *pl, PcapLogCompressionData *comp, uint8_t *data, size_t len)
 {
+    struct timeval current_dump;
+    gettimeofday(&current_dump, NULL);
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, data);
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
         pl->size_current += len;
@@ -544,6 +548,10 @@ static inline int PcapWrite(
         }
     }
 #endif /* HAVE_LIBLZ4 */
+    if (TimeDifferenceMicros(pl->last_pcap_dump, current_dump) >= PCAP_BUFFER_TIMEOUT) {
+        pcap_dump_flush(pl->pcap_dumper);
+    }
+    pl->last_pcap_dump = current_dump;
     return TM_ECODE_OK;
 }
 
