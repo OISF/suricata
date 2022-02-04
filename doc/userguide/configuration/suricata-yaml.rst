@@ -1070,7 +1070,7 @@ parsers that do file extraction.
 
 Inspection of reassembled data is done in chunks. The size of these
 chunks is set with ``toserver_chunk_size`` and ``toclient_chunk_size``.
-To avoid making the borders predictable, the sizes van be varied by
+To avoid making the borders predictable, the sizes can be varied by
 adding in a random factor.
 
 ::
