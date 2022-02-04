@@ -551,7 +551,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
             Err(Err::Incomplete(_)) => {
                 return ALPROTO_UNKNOWN;
             }
-            Err(_) => {
+            Err(_e) => {
                 return ALPROTO_FAILED;
             }
         }
