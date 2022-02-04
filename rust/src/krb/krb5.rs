@@ -138,6 +138,8 @@ impl KRB5State {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_AS_REP;
                             if self.req_id > 0 {
+                                // set request type only if previous message
+                                // was a request
                                 tx.req_type = Some(MessageType(self.req_id.into()));
                             }
                             tx.cname = Some(kdc_rep.cname);
@@ -170,6 +172,8 @@ impl KRB5State {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_TGS_REP;
                             if self.req_id > 0 {
+                                // set request type only if previous message
+                                // was a request
                                 tx.req_type = Some(MessageType(self.req_id.into()));
                             }
                             tx.cname = Some(kdc_rep.cname);
@@ -194,6 +198,8 @@ impl KRB5State {
                         if let Ok((_,error)) = res {
                             let mut tx = self.new_tx();
                             if self.req_id > 0 {
+                                // set request type only if previous message
+                                // was a request
                                 tx.req_type = Some(MessageType(self.req_id.into()));
                             }
                             tx.msg_type = MessageType::KRB_ERROR;
