@@ -74,6 +74,9 @@ pub struct KRB5Transaction {
     /// Error code, if request has failed
     pub error_code: Option<ErrorCode>,
 
+    /// Message type of request. For using in responses.
+    pub req_type: Option<MessageType>,
+
     /// The internal transaction id
     id: u64,
 
@@ -134,6 +137,9 @@ impl KRB5State {
                         if let Ok((_,kdc_rep)) = res {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_AS_REP;
+                            if self.req_id > 0 {
+                                tx.req_type = Some(MessageType(self.req_id.into()));
+                            }
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
                             tx.sname = Some(kdc_rep.ticket.sname);
@@ -163,6 +169,9 @@ impl KRB5State {
                         if let Ok((_,kdc_rep)) = res {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_TGS_REP;
+                            if self.req_id > 0 {
+                                tx.req_type = Some(MessageType(self.req_id.into()));
+                            }
                             tx.cname = Some(kdc_rep.cname);
                             tx.realm = Some(kdc_rep.crealm);
                             tx.sname = Some(kdc_rep.ticket.sname);
@@ -184,6 +193,9 @@ impl KRB5State {
                         let res = krb5_parser::parse_krb_error(i);
                         if let Ok((_,error)) = res {
                             let mut tx = self.new_tx();
+                            if self.req_id > 0 {
+                                tx.req_type = Some(MessageType(self.req_id.into()));
+                            }
                             tx.msg_type = MessageType::KRB_ERROR;
                             tx.cname = error.cname;
                             tx.realm = error.crealm;
@@ -250,6 +262,7 @@ impl KRB5Transaction {
             sname: None,
             etype: None,
             error_code: None,
+            req_type: None,
             id: id,
             tx_data: applayer::AppLayerTxData::new(),
         }
