@@ -117,6 +117,16 @@ impl KRB5State {
                 if hdr.class != BerClass::Application { return 0; }
                 match hdr.tag.0 {
                     10 => {
+                        let req = krb5_parser::parse_as_req(i);
+                        if let Ok((_,kdc_req)) = req {
+                            let mut tx = self.new_tx();
+                            tx.msg_type = MessageType::KRB_AS_REQ;
+                            tx.cname = kdc_req.req_body.cname;
+                            tx.realm = Some(kdc_req.req_body.realm);
+                            tx.sname = kdc_req.req_body.sname;
+                            tx.etype = None;
+                            self.transactions.push(tx);
+                        };
                         self.req_id = 10;
                     },
                     11 => {
