@@ -1060,16 +1060,14 @@ void AppLayerSetupCounters()
 void AppLayerRegisterThreadCounters(ThreadVars *tv)
 {
     uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    uint8_t ipproto;
-    AppProto alproto;
     AppProto alprotos[ALPROTO_MAX];
-
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
-    for (ipproto = 0; ipproto < IPPROTOS_MAX; ipproto++) {
-        uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
+    for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
+        const uint8_t ipproto = ipprotos[p];
+        const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
 
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
