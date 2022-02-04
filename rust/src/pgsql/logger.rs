@@ -187,6 +187,15 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
         }) => {
             jb.set_string_from_bytes(res.to_str(), payload)?;
         }
+        PgsqlBEMessage::UnknownMessageType(RegularPacket {
+            identifier: _,
+            length,
+            payload,
+        }) => {
+            // jb.set_string_from_bytes("identifier", identifier.to_vec())?;
+            jb.set_uint("length", (*length).into())?;
+            jb.set_string_from_bytes("payload", payload)?;
+        }
         PgsqlBEMessage::AuthenticationOk(_)
         | PgsqlBEMessage::AuthenticationKerb5(_)
         | PgsqlBEMessage::AuthenticationCleartextPassword(_)

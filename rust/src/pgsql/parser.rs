@@ -270,6 +270,7 @@ pub enum PgsqlBEMessage {
     RowDescription(RowDescriptionMessage),
     ConsolidatedDataRow(ConsolidatedDataRowPacket),
     NotificationResponse(NotificationResponse),
+    UnknownMessageType(RegularPacket),
 }
 
 impl PgsqlBEMessage {
@@ -301,6 +302,7 @@ impl PgsqlBEMessage {
             }
             PgsqlBEMessage::ConsolidatedDataRow(_) => "data_row",
             PgsqlBEMessage::NotificationResponse(_) => "notification_response",
+            PgsqlBEMessage::UnknownMessageType(_) => "unknown_message_type"
         }
     }
 
@@ -773,7 +775,7 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
                                 })))
                 },
                 12 => {
-                    let (i, signature) = rest(i)?;
+                    let (i, signature) = take(length - 8)(i)?;
                     Ok((i, PgsqlBEMessage::AuthenticationSASLFinal(
                                 AuthenticationMessage {
                                     identifier,
@@ -1065,24 +1067,30 @@ fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
 
 pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, pseudo_header) = peek(tuple((be_u8, be_u32)))(i)?;
-    let (i, message) = map_parser(
-        take(pseudo_header.1 + 1),
-        |b| {
+    let (i, message) =
             match pseudo_header.0 {
-                b'E' => pgsql_parse_error_response(b),
-                b'K' => parse_backend_key_data_message(b),
-                b'N' => pgsql_parse_notice_response(b),
-                b'R' => pgsql_parse_authentication_message(b),
-                b'S' => parse_parameter_status_message(b),
-                b'C' => parse_command_complete(b),
-                b'Z' => parse_ready_for_query(b),
-                b'T' => parse_row_description(b),
-                b'A' => parse_notification_response(b),
-                b'D' => parse_consolidated_data_row(b),
-                // _ => {} // TODO add an unknown message type here?
-                _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
-            }
-        })(i)?;
+                b'E' => pgsql_parse_error_response(i)?,
+                b'K' => parse_backend_key_data_message(i)?,
+                b'N' => pgsql_parse_notice_response(i)?,
+                b'R' => pgsql_parse_authentication_message(i)?,
+                b'S' => parse_parameter_status_message(i)?,
+                b'C' => parse_command_complete(i)?,
+                b'Z' => parse_ready_for_query(i)?,
+                b'T' => parse_row_description(i)?,
+                b'A' => parse_notification_response(i)?,
+                b'D' => parse_consolidated_data_row(i)?,
+                // _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+                _ => {
+                    let (i, payload) = rest(i)?;
+                    let unknown = PgsqlBEMessage::UnknownMessageType (RegularPacket{
+                        identifier: pseudo_header.0,
+                        length: pseudo_header.1,
+                        payload: payload.to_vec(),
+                    });
+                    (i, unknown)
+                }
+
+            };
     Ok((i, message))
 }
 
@@ -1872,16 +1880,14 @@ mod tests {
             0x2b, 0x4a, 0x36, 0x79, 0x78, 0x72, 0x66, 0x77, 0x2f, 0x7a, 0x7a, 0x70, 0x38, 0x59,
             0x54, 0x39, 0x65, 0x78, 0x56, 0x37, 0x73, 0x38, 0x3d,
         ];
-        let result_err = pgsql_parse_response(bad_buf);
-        match result_err {
-            Err(Err::Error(err)) => {
-                assert_eq!(err.code, ErrorKind::Switch);
-            }
-            Err(Err::Incomplete(_)) => {
-                panic!("Unexpected Incomplete, should be ErrorKind::Switch");
-            }
-            _ => panic!("Unexpected behavior, expected Error"),
-        }
+        let (remainder, result) = pgsql_parse_response(bad_buf).expect("parsing sasl final response failed");
+        let res = PgsqlBEMessage::UnknownMessageType(RegularPacket {
+            identifier: b'`',
+            length: 54,
+            payload: bad_buf.to_vec(),
+        });
+        assert_eq!(result, res);
+        assert!(remainder.is_empty());
     }
 
     #[test]
