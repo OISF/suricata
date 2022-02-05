@@ -747,7 +747,7 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<MQTTState, MQTTTransaction>),
         get_tx_data: rs_mqtt_get_tx_data,
         get_state_data: rs_mqtt_get_state_data,

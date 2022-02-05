@@ -290,6 +290,23 @@ uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
     return FileFlowFlagsToFlags(flow->file_flags, direction);
 }
 
+void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file)
+{
+    SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
+            (file->flags & FILE_STORE) ? "true" : "false",
+            (file->flags & FILE_NOSTORE) ? "true" : "false");
+    uint16_t update_flags = FileFlowFlagsToFlags(txd->file_flags, direction);
+    BUG_ON((file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+    if (file->flags & FILE_STORE)
+        update_flags &= ~FILE_NOSTORE;
+
+    file->flags |= update_flags;
+    SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
+            (file->flags & FILE_STORE) ? "true" : "false",
+            (file->flags & FILE_NOSTORE) ? "true" : "false");
+    BUG_ON((file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+}
+
 static int FileMagicSize(void)
 {
     /** \todo make this size configurable */
@@ -607,27 +624,6 @@ int FileStore(File *ff)
     SCLogDebug("ff %p", ff);
     ff->flags |= FILE_STORE;
     SCReturnInt(0);
-}
-
-/**
- *  \brief Set the TX id for a file
- *
- *  \param ff The file to store
- *  \param txid the tx id
- */
-int FileSetTx(File *ff, uint64_t txid)
-{
-    SCLogDebug("ff %p txid %"PRIu64, ff, txid);
-    if (ff != NULL)
-        ff->txid = txid;
-    SCReturnInt(0);
-}
-
-void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id)
-{
-    if (ffc && ffc->tail) {
-        (void)FileSetTx(ffc->tail, tx_id);
-    }
 }
 
 /**
@@ -1130,74 +1126,13 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
             f->file_flags, set_file_flags, g_file_flow_mask);
 
     if (set_file_flags != 0 && f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
-        uint16_t per_file_flags = 0;
-#ifdef HAVE_MAGIC
-        if (set_file_flags & (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC))
-            per_file_flags |= FILE_NOMAGIC;
-#endif
-        if (set_file_flags & (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC))
-            per_file_flags |= FILE_NOMD5;
-        if (set_file_flags & (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC))
-            per_file_flags |= FILE_NOSHA1;
-        if (set_file_flags & (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC))
-            per_file_flags |= FILE_NOSHA256;
-        if (set_file_flags & (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC))
-            per_file_flags |= FILE_NOTRACK;
-        if (set_file_flags & (FLOWFILE_NO_STORE_TS|FLOWFILE_NO_STORE_TC))
-            per_file_flags |= FILE_NOSTORE;
-
-        FileContainer *ffc = AppLayerParserGetFiles(f, direction);
-        if (ffc != NULL) {
-            for (File *ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-                ptr->flags |= per_file_flags;
-
-                /* destroy any ctx we may have so far */
-                if ((per_file_flags & FILE_NOSHA256) &&
-                        ptr->sha256_ctx != NULL)
-                {
-                    SCSha256Free(ptr->sha256_ctx);
-                    ptr->sha256_ctx = NULL;
-                }
-                if ((per_file_flags & FILE_NOSHA1) &&
-                    ptr->sha1_ctx != NULL)
-                {
-                    SCSha1Free(ptr->sha1_ctx);
-                    ptr->sha1_ctx = NULL;
-                }
-                if ((per_file_flags & FILE_NOMD5) &&
-                        ptr->md5_ctx != NULL)
-                {
-                    SCMd5Free(ptr->md5_ctx);
-                    ptr->md5_ctx = NULL;
-                }
+        AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
+        if (sd != NULL) {
+            if ((sd->file_flags & f->file_flags) != f->file_flags) {
+                SCLogDebug("state data: updating file_flags %04x with flow file_flags %04x",
+                        sd->file_flags, f->file_flags);
+                sd->file_flags |= f->file_flags;
             }
-        }
-    }
-}
-
-
-
-/**
- *  \brief set no store flag, close file if needed
- *
- *  \param ff file
- */
-static void FileDisableStoringForFile(File *ff)
-{
-    SCEnter();
-
-    if (ff == NULL) {
-        SCReturn;
-    }
-
-    SCLogDebug("not storing this file");
-    ff->flags |= FILE_NOSTORE;
-
-    if (ff->state == FILE_STATE_OPENED && FileDataSize(ff) >= (uint64_t)FileMagicSize()) {
-        if (g_file_force_md5 == 0 && g_file_force_sha1 == 0 && g_file_force_sha256 == 0
-                && g_file_force_tracking == 0) {
-            (void)FileCloseFilePtr(ff, NULL, 0,
-                    (FILE_TRUNCATED|FILE_NOSTORE));
         }
     }
 }
@@ -1209,29 +1144,16 @@ static void FileDisableStoringForFile(File *ff)
  *  \param direction flow direction
  *  \param tx_id transaction id
  */
-void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id)
+void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id)
 {
-    File *ptr = NULL;
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    SCEnter();
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->txid == tx_id) {
-                if (ptr->flags & FILE_STORE) {
-                    /* weird, already storing -- let it continue*/
-                    SCLogDebug("file is already being stored");
-                } else {
-                    FileDisableStoringForFile(ptr);
-                }
-            }
+    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    if (txd != NULL) {
+        if (direction & STREAM_TOSERVER) {
+            txd->file_flags |= FLOWFILE_NO_STORE_TS;
+        } else {
+            txd->file_flags |= FLOWFILE_NO_STORE_TC;
         }
     }
-
-    SCReturn;
 }
 
 /**
@@ -1257,17 +1179,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
 
 void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
 {
-    File *ptr = NULL;
-
-    SCEnter();
-
-    if (fc != NULL) {
-        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->txid == tx_id) {
-                FileStore(ptr);
-            }
-        }
-    }
+    abort();
 }
 
 void FileStoreAllFiles(FileContainer *fc)
