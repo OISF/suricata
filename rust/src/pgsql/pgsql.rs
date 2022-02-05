@@ -708,7 +708,7 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: Some(
             crate::applayer::state_get_tx_iterator::<PgsqlState, PgsqlTransaction>,
         ),

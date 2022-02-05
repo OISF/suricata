@@ -87,7 +87,6 @@ impl FileTransferTracker {
     {
         let r = files.file_open(config, &self.track_id, name, flags);
         if r == 0 {
-            files.file_set_txid_on_last_file(self.tx_id);
             self.file_open = true;
         }
         r

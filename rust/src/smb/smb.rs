@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,7 +39,6 @@ use crate::applayer;
 use crate::applayer::*;
 use crate::frames::*;
 use crate::conf::*;
-use crate::filecontainer::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
 
 use crate::smb::nbss_records::*;
@@ -593,6 +592,7 @@ impl SMBTransaction {
     }
 
     pub fn free(&mut self) {
+        SCLogDebug!("SMB TX {:p} free ID {}", &self, self.id);
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
     }
@@ -749,8 +749,6 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    pub files: Files,
-
     skip_ts: u32,
     skip_tc: u32,
 
@@ -816,7 +814,6 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            files: Files::default(),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -896,6 +893,11 @@ impl SMBState {
                 }
                 SCLogDebug!("Found SMB TX: id {} ver:{} cmd:{} progress {}/{} type_data {:?}",
                         tx.id, ver, _smbcmd, tx.request_done, tx.response_done, tx.type_data);
+                /* hack: apply flow file flags to file tx here to make sure its propegated */
+                if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+                    tx.tx_data.update_file_flags(self.state_data.file_flags);
+                    d.update_file_flags(tx.tx_data.file_flags);
+                }
                 return Some(tx);
             }
         }
@@ -1142,7 +1144,7 @@ impl SMBState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = self.files.get(f.direction);
+                        let (files, flags) = f.files.get(f.direction);
                         f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
@@ -2016,8 +2018,6 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
 {
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = FileFlowToFlags(flow, Direction::ToServer as u8);
-    rs_smb_setfileflags(Direction::ToServer as u8, state, file_flags|FILE_USE_DETECT);
 
     if stream_slice.is_gap() {
         return rs_smb_parse_request_tcp_gap(state, stream_slice.gap_size());
@@ -2055,8 +2055,6 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
 {
     let mut state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = FileFlowToFlags(flow, Direction::ToClient as u8);
-    rs_smb_setfileflags(Direction::ToClient as u8, state, file_flags|FILE_USE_DETECT);
 
     if stream_slice.is_gap() {
         return rs_smb_parse_response_tcp_gap(state, stream_slice.gap_size());
@@ -2271,7 +2269,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.id, tx);
         return 1;
     } else {
-        SCLogDebug!("tx {} direction {:?} progress 0", tx.id, direction);
+        SCLogDebug!("tx {} direction {} progress 0 => {:?}", tx.id, direction, tx);
         return 0;
     }
 }
@@ -2408,7 +2406,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: Some(rs_smb_getfiles),
+        get_tx_files: Some(rs_smb_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SMBState, SMBTransaction>),
         get_tx_data: rs_smb_get_tx_data,
         get_state_data: rs_smb_get_state_data,
