@@ -71,10 +71,6 @@
                                              connection is closed */
 #define HTP_FLAG_STATE_CLOSED_TC    0x0004    /**< Flag to indicate that HTTP
                                              connection is closed */
-#define HTP_FLAG_STORE_FILES_TS     0x0040
-#define HTP_FLAG_STORE_FILES_TC     0x0080
-#define HTP_FLAG_STORE_FILES_TX_TS  0x0100
-#define HTP_FLAG_STORE_FILES_TX_TC  0x0200
 
 enum {
     HTP_BODY_REQUEST_NONE = 0,
@@ -241,7 +237,11 @@ typedef struct HtpTxUserData_ {
      */
     uint8_t *boundary;
 
+    HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
+
     AppLayerTxData tx_data;
+    FileContainer files_ts;
+    FileContainer files_tc;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
@@ -252,14 +252,11 @@ typedef struct HtpState_ {
     Flow *f;                /**< Needed to retrieve the original flow when using HTPLib callbacks */
     uint64_t transaction_cnt;
     uint64_t store_tx_id;
-    FileContainer *files_ts;
-    FileContainer *files_tc;
     const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
-    HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
     StreamSlice *slice;

@@ -361,6 +361,12 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
         if (htud->tx_data.de_state != NULL) {
             DetectEngineStateFree(htud->tx_data.de_state);
         }
+        if (htud->file_range) {
+            HTPFileCloseHandleRange(&htud->files_tc, 0, htud->file_range, NULL, 0);
+            HttpRangeFreeBlock(htud->file_range);
+        }
+        FileContainerRecycle(&htud->files_ts);
+        FileContainerRecycle(&htud->files_tc);
         HTPFree(htud, sizeof(HtpTxUserData));
     }
 }
@@ -397,13 +403,6 @@ void HTPStateFree(void *state)
         htp_connp_destroy_all(s->connp);
     }
 
-    if (s->file_range) {
-        HTPFileCloseHandleRange(s->files_tc, 0, s->file_range, NULL, 0);
-        HttpRangeFreeBlock(s->file_range);
-    }
-
-    FileContainerFree(s->files_ts);
-    FileContainerFree(s->files_tc);
     HTPFree(s, sizeof(HtpState));
 
 #ifdef DEBUG
@@ -511,10 +510,11 @@ void AppLayerHtpNeedFileInspection(void)
     SCReturn;
 }
 
-static void AppLayerHtpSetStreamDepthFlag(void *tx, uint8_t flags)
+static void AppLayerHtpSetStreamDepthFlag(void *tx, const uint8_t flags)
 {
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data((htp_tx_t *)tx);
     if (tx_ud) {
+        SCLogDebug("setting HTP_STREAM_DEPTH_SET, flags %02x", flags);
         if (flags & STREAM_TOCLIENT) {
             tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
         } else {
@@ -525,9 +525,12 @@ static void AppLayerHtpSetStreamDepthFlag(void *tx, uint8_t flags)
 
 static bool AppLayerHtpCheckDepth(const HTPCfgDir *cfg, HtpBody *body, uint8_t flags)
 {
+    SCLogDebug("cfg->body_limit %u stream_depth %u body->content_len_so_far %" PRIu64,
+            cfg->body_limit, FileReassemblyDepth(), body->content_len_so_far);
     if (flags & HTP_STREAM_DEPTH_SET) {
         uint32_t stream_depth = FileReassemblyDepth();
         if (body->content_len_so_far < (uint64_t)stream_depth || stream_depth == 0) {
+            SCLogDebug("true");
             return true;
         }
     } else {
@@ -535,6 +538,7 @@ static bool AppLayerHtpCheckDepth(const HTPCfgDir *cfg, HtpBody *body, uint8_t f
             return true;
         }
     }
+    SCLogDebug("false");
     return false;
 }
 
@@ -1414,8 +1418,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             printf("FILEDATA (final chunk) END: \n");
 #endif
             if (!(htud->tsflags & HTP_DONTSTORE)) {
-                if (HTPFileClose(hstate, htud, filedata, filedata_len, flags, STREAM_TOSERVER) ==
-                        -1) {
+                if (HTPFileClose(htud, filedata, filedata_len, flags, STREAM_TOSERVER) == -1) {
                     goto end;
                 }
             }
@@ -1436,8 +1439,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 #endif
 
                 if (!(htud->tsflags & HTP_DONTSTORE)) {
-                    result = HTPFileStoreChunk(hstate, filedata,
-                            filedata_len, STREAM_TOSERVER);
+                    result = HTPFileStoreChunk(htud, filedata, filedata_len, STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1537,7 +1539,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 } else if (result == -2) {
                     htud->tsflags |= HTP_DONTSTORE;
                 } else {
-                    if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
+                    if (HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                         goto end;
                     }
                 }
@@ -1604,7 +1606,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     } else if (result == -2) {
                         htud->tsflags |= HTP_DONTSTORE;
                     } else {
-                        if (HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
+                        if (HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                             goto end;
                         }
                     }
@@ -1692,7 +1694,7 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         /* otherwise, just store the data */
 
         if (!(htud->tsflags & HTP_DONTSTORE)) {
-            result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOSERVER);
+            result = HTPFileStoreChunk(htud, data, data_len, STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1776,7 +1778,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         /* otherwise, just store the data */
 
         if (!(htud->tcflags & HTP_DONTSTORE)) {
-            result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOCLIENT);
+            result = HTPFileStoreChunk(htud, data, data_len, STREAM_TOCLIENT);
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
@@ -1826,6 +1828,8 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
+    tx_ud->tx_data.file_flags |= hstate->state_data.file_flags;
+
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
 
@@ -1890,7 +1894,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     } else {
         if (tx_ud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
+            (void)HTPFileClose(tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
             tx_ud->tsflags &= ~HTP_FILENAME_SET;
         }
     }
@@ -1954,6 +1958,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
+    tx_ud->tx_data.file_flags |= hstate->state_data.file_flags;
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
     }
@@ -1980,7 +1985,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
+            (void)HTPFileClose(tx_ud, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
             tx_ud->tcflags &= ~HTP_FILENAME_SET;
         }
     }
@@ -2201,7 +2206,7 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
     if (htud != NULL) {
         if (htud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOSERVER);
+            (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
             if (abs_right_edge < (uint64_t)UINT32_MAX) {
                 StreamTcpReassemblySetMinInspectDepth(
@@ -2256,7 +2261,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
     if (htud != NULL) {
         if (htud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(hstate, htud, NULL, 0, 0, STREAM_TOCLIENT);
+            (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOCLIENT);
             htud->tcflags &= ~HTP_FILENAME_SET;
         }
     }
@@ -2995,18 +3000,18 @@ void AppLayerHtpPrintStats(void)
  *  \param direction flow direction
  *  \retval files files ptr
  */
-static FileContainer *HTPStateGetFiles(void *state, uint8_t direction)
+static FileContainer *HTPGetTxFiles(void *txv, uint8_t direction)
 {
-    if (state == NULL)
-        return NULL;
-
-    HtpState *http_state = (HtpState *)state;
-
-    if (direction & STREAM_TOCLIENT) {
-        SCReturnPtr(http_state->files_tc, "FileContainer");
-    } else {
-        SCReturnPtr(http_state->files_ts, "FileContainer");
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud) {
+        if (direction & STREAM_TOCLIENT) {
+            SCReturnPtr(&tx_ud->files_tc, "FileContainer");
+        } else {
+            SCReturnPtr(&tx_ud->files_ts, "FileContainer");
+        }
     }
+    SCReturnPtr(NULL, "FileContainer");
 }
 
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
@@ -3085,14 +3090,6 @@ static int HTPStateGetEventInfoById(int event_id, const char **event_name,
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
-}
-
-static void HTPStateTruncate(void *state, uint8_t direction)
-{
-    FileContainer *fc = HTPStateGetFiles(state, direction);
-    if (fc != NULL) {
-        FileTruncateAllOpenFiles(fc);
-    }
 }
 
 static AppLayerTxData *HTPGetTxData(void *vtx)
@@ -3183,7 +3180,7 @@ void RegisterHTPParsers(void)
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateAlloc, HTPStateFree);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTransactionFree);
-        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetFiles);
+        AppLayerParserRegisterGetTxFilesFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxFiles);
         AppLayerParserRegisterGetStateProgressFunc(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTxCnt);
@@ -3195,7 +3192,6 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetEventInfoById(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfoById);
 
-        AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTruncate);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetStateData);
 
@@ -6054,8 +6050,7 @@ static int HTPBodyReassemblyTest01(void)
         goto end;
     }
 
-    if (hstate.files_ts != NULL)
-        goto end;
+    FAIL_IF_NOT_NULL(htud.files_ts.head);
 
     result = 1;
 end:
@@ -6787,7 +6782,7 @@ static int HTPParserTest25(void)
             NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
 
-    AppLayerParserTransactionsCleanup(f);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     uint64_t ret[4];
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
@@ -6799,7 +6794,7 @@ static int HTPParserTest25(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF,
             (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    AppLayerParserTransactionsCleanup(f);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 8); // inspect_id[0] not updated by ..Cleanup() until full tx is done
@@ -6810,7 +6805,7 @@ static int HTPParserTest25(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF,
             (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    AppLayerParserTransactionsCleanup(f);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 9); // inspect_id[0]
@@ -6939,7 +6934,10 @@ libhtp:\n\
     http_state = f.alstate;
     FAIL_IF_NULL(http_state);
 
-    FileContainer *ffc = HTPStateGetFiles(http_state, STREAM_TOCLIENT);
+    void *tx_ptr = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
+    FAIL_IF_NULL(tx_ptr);
+
+    FileContainer *ffc = HTPGetTxFiles(tx_ptr, STREAM_TOCLIENT);
     FAIL_IF_NULL(ffc);
 
     File *ptr = ffc->head;
