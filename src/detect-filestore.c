@@ -281,6 +281,13 @@ static int DetectFilestoreMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
 
     SCEnter();
 
+    if (!RunmodeIsUnittests()) {
+        extern bool g_filedata_logger_enabled;
+        if (!g_filedata_logger_enabled) {
+            SCLogDebug("not storing file match: no filedata logger enabled");
+            SCReturnInt(1);
+        }
+    }
     if (det_ctx->filestore_cnt >= DETECT_FILESTORE_MAX) {
         SCReturnInt(1);
     }
