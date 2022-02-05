@@ -85,10 +85,11 @@ pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
 
+/*
 macro_rules!BIT_U8 {
     ($x:expr) => (1 << $x);
 }
-
+*/
 macro_rules!BIT_U16 {
     ($x:expr) => (1 << $x);
 }
@@ -172,10 +173,6 @@ pub type SCFilePrune = extern "C" fn (
 pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer);
 
-pub type SCFileSetTx = extern "C" fn (
-        file: &FileContainer,
-        tx_id: u64);
-
 // A Suricata context that is passed in from C. This is alternative to
 // using functions from Suricata directly, so they can be wrapped so
 // Rust unit tests will still compile when they are not linked
@@ -201,7 +198,6 @@ pub struct SuricataContext {
     pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
     pub FilePrune: SCFilePrune,
-    pub FileSetTx: SCFileSetTx,
 
     pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
