@@ -202,7 +202,7 @@ fn add_proposals(
                         | IkeTransformEncType::ENCR_DES_IV32
                         | IkeTransformEncType::ENCR_NULL => {
                             SCLogDebug!("Weak Encryption: {:?}", enc);
-                            // XXX send event only if direction == STREAM_TOCLIENT ?
+                            // XXX send event only if direction == Direction::ToClient ?
                             tx.set_event(IkeEvent::WeakCryptoEnc);
                         }
                         _ => (),
