@@ -292,7 +292,8 @@ static int LuaPacketCondition(ThreadVars *tv, void *data, const Packet *p)
  *
  * NOTE p->flow is locked at this point
  */
-static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, uint8_t dir)
+static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff,
+        void *tx, const uint64_t tx_id, uint8_t dir)
 {
     SCEnter();
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
@@ -308,12 +309,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    if (p->flow && p->flow->alstate) {
-        void *txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
-        if (txptr) {
-            LuaStateSetTX(td->lua_ctx->luastate, txptr, ff->txid);
-        }
-    }
+    LuaStateSetTX(td->lua_ctx->luastate, tx, tx_id);
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
     LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
 

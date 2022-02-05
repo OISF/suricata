@@ -887,7 +887,6 @@ TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
         logger = TAILQ_NEXT(logger, entries);
         thread_store_node = TAILQ_NEXT(thread_store_node, entries);
     }
-
     return TM_ECODE_OK;
 }
 
@@ -1029,9 +1028,9 @@ void TmModuleLoggerRegister(void)
 void OutputRegisterRootLoggers(void)
 {
     OutputPacketLoggerRegister();
-    OutputTxLoggerRegister();
     OutputFiledataLoggerRegister();
     OutputFileLoggerRegister();
+    OutputTxLoggerRegister();
     OutputStreamingLoggerRegister();
 }
 
