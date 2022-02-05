@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,6 +53,8 @@
 #include "stream-tcp.h"
 
 #include "detect-filestore.h"
+
+#include "util-validate.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -151,31 +153,24 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
     if (this_file)  {
         FileStoreFileById(fc, file_id);
     } else if (this_tx) {
-        /* flag tx all files will be stored */
-        if (f->alproto == ALPROTO_HTTP1 && f->alstate != NULL) {
-            HtpState *htp_state = f->alstate;
-            if (toserver_dir) {
-                htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TS;
-                FileStoreAllFilesForTx(htp_state->files_ts, tx_id);
+        /* set in AppLayerTxData. Parsers and logger will propegate it to the
+         * individual files, both new and current. */
+        void *txv = AppLayerParserGetTx(p->proto, f->alproto, f->alstate, tx_id);
+        DEBUG_VALIDATE_BUG_ON(txv == NULL);
+        if (txv != NULL) {
+            AppLayerTxData *txd = AppLayerParserGetTxData(p->proto, f->alproto, txv);
+            DEBUG_VALIDATE_BUG_ON(txd == NULL);
+            if (txd != NULL) {
+                txd->file_flags |= FLOWFILE_STORE;
             }
-            if (toclient_dir) {
-                htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TC;
-                FileStoreAllFilesForTx(htp_state->files_tc, tx_id);
-            }
-            htp_state->store_tx_id = tx_id;
         }
     } else if (this_flow) {
-        /* flag flow all files will be stored */
-        if (f->alproto == ALPROTO_HTTP1 && f->alstate != NULL) {
-            HtpState *htp_state = f->alstate;
-            if (toserver_dir) {
-                htp_state->flags |= HTP_FLAG_STORE_FILES_TS;
-                FileStoreAllFiles(htp_state->files_ts);
-            }
-            if (toclient_dir) {
-                htp_state->flags |= HTP_FLAG_STORE_FILES_TC;
-                FileStoreAllFiles(htp_state->files_tc);
-            }
+        /* set in flow and AppLayerStateData */
+        f->file_flags |= FLOWFILE_STORE;
+
+        AppLayerStateData *sd = AppLayerParserGetStateData(p->proto, f->alproto, f->alstate);
+        if (sd != NULL) {
+            sd->file_flags |= FLOWFILE_STORE;
         }
     } else {
         FileStoreFileById(fc, file_id);
@@ -231,16 +226,30 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
                                          flags);
     }
 
-    FileContainer *ffc = AppLayerParserGetFiles(p->flow, flags);
-
     /* filestore for single files only */
     if (s->filestore_ctx == NULL) {
+        SCLogDebug("s->filestore_ctx %p", s->filestore_ctx);
         for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
-            FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
+            void *txv = AppLayerParserGetTx(p->flow->proto, p->flow->alproto,
+                    FlowGetAppState(p->flow), det_ctx->filestore[u].tx_id);
+            // TODO error check
+            FileContainer *ffc_tx = AppLayerParserGetTxFiles(p->flow, txv, flags);
+            // TODO error check
+
+            SCLogDebug("u %u txv %p ffc_tx %p file_id %u", u, txv, ffc_tx,
+                    det_ctx->filestore[u].file_id);
+            FileStoreFileById(ffc_tx, det_ctx->filestore[u].file_id);
         }
     } else {
+        SCLogDebug("s->filestore_ctx %p", s->filestore_ctx);
         for (uint16_t u = 0; u < det_ctx->filestore_cnt; u++) {
-            FilestorePostMatchWithOptions(p, p->flow, s->filestore_ctx, ffc,
+            void *txv = AppLayerParserGetTx(p->flow->proto, p->flow->alproto,
+                    FlowGetAppState(p->flow), det_ctx->filestore[u].tx_id);
+            // TODO error check
+            FileContainer *ffc_tx = AppLayerParserGetTxFiles(p->flow, txv, flags);
+            // TODO error check
+            SCLogDebug("yes, lets work with txv %p ffc_tx %p", txv, ffc_tx);
+            FilestorePostMatchWithOptions(p, p->flow, s->filestore_ctx, ffc_tx,
                     det_ctx->filestore[u].file_id, det_ctx->filestore[u].tx_id);
         }
     }

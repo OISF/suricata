@@ -25,8 +25,8 @@
 #define __DETECT_H__
 
 #include "suricata-common.h"
-
 #include "flow.h"
+#include "app-layer-events.h"
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
@@ -51,7 +51,6 @@
 
 #include "util-var-name.h"
 
-#include "app-layer-events.h"
 
 #define DETECT_MAX_RULE_SIZE 8192
 
