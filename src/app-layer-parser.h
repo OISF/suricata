@@ -38,6 +38,8 @@
 #define APP_LAYER_PARSER_BYPASS_READY          BIT_U16(4)
 #define APP_LAYER_PARSER_EOF_TS                BIT_U16(5)
 #define APP_LAYER_PARSER_EOF_TC                BIT_U16(6)
+#define APP_LAYER_PARSER_TRUNC_TS              BIT_U16(7)
+#define APP_LAYER_PARSER_TRUNC_TC              BIT_U16(8)
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
@@ -288,9 +290,6 @@ void AppLayerParserRegisterProtocolParsers(void);
 
 void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag);
 uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag);
-
-void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alstate,
-                        uint8_t direction);
 
 AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);
