@@ -579,21 +579,26 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
 
 static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id)
 {
-    FileContainer *ffc = AppLayerParserGetFiles(p->flow,
-            p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
+    const uint8_t direction =
+            (p->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT;
+    FileContainer *ffc = NULL;
+    if (p->flow->alstate != NULL) {
+        void *tx = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, tx_id);
+        if (tx) {
+            ffc = AppLayerParserGetTxFiles(p->flow, tx, direction);
+        }
+    }
     if (ffc != NULL) {
         File *file = ffc->head;
         bool isopen = false;
         while (file) {
-            if (tx_id == file->txid) {
-                if (!isopen) {
-                    isopen = true;
-                    jb_open_array(jb, "files");
-                }
-                jb_start_object(jb);
-                EveFileInfo(jb, file, file->flags & FILE_STORED);
-                jb_close(jb);
+            if (!isopen) {
+                isopen = true;
+                jb_open_array(jb, "files");
             }
+            jb_start_object(jb);
+            EveFileInfo(jb, file, tx_id, file->flags & FILE_STORED);
+            jb_close(jb);
             file = file->next;
         }
         if (isopen) {
