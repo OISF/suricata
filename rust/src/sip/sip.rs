@@ -370,7 +370,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_eventinfo_byid: Some(SIPEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SIPState, SIPTransaction>),
         get_tx_data: rs_sip_get_tx_data,
         get_state_data: rs_sip_get_state_data,
