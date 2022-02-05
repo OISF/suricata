@@ -356,18 +356,6 @@ static inline void UpdateCounters(ThreadVars *tv,
     }
 }
 
-static void FlowPruneFiles(Packet *p)
-{
-    if (p->flow && p->flow->alstate) {
-        Flow *f = p->flow;
-        FileContainer *fc = AppLayerParserGetFiles(f,
-                PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
-        if (fc != NULL) {
-            FilePrune(fc);
-        }
-    }
-}
-
 /** \brief update stream engine
  *
  *  We can be called from both the flow timeout path as well as from the
@@ -438,10 +426,8 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
 
-    /* Prune any stored files. */
-    FlowPruneFiles(p);
-
     FramesPrune(p->flow, p);
+
     /*  Release tcp segments. Done here after alerting can use them. */
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
     StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
@@ -568,9 +554,6 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
-
-    /* Prune any stored files. */
-    FlowPruneFiles(p);
 
     /*  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL) {

@@ -1097,14 +1097,20 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
-    uint16_t flags = FileFlowToFlags(f, direction) | FILE_USE_DETECT;
-    int ret = 0;
-    const bool eof = (flags & STREAM_TOSERVER)
+    const bool eof = (direction & STREAM_TOSERVER)
                              ? AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) != 0
                              : AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
 
+    ftpdata_state->tx_data.file_flags |= ftpdata_state->state_data.file_flags;
+    /* we depend on detection engine for file pruning */
+    const uint16_t flags =
+            FileFlowFlagsToFlags(ftpdata_state->tx_data.file_flags, direction) | FILE_USE_DETECT;
+    int ret = 0;
+
     SCLogDebug("FTP-DATA input_len %u flags %04x dir %d/%s EOF %s", input_len, flags, direction,
             (direction & STREAM_TOSERVER) ? "toserver" : "toclient", eof ? "true" : "false");
+
+    SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (input_len && ftpdata_state->files == NULL) {
         struct FtpTransferCmd *data =
                 (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
@@ -1299,9 +1305,9 @@ static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
         return FTPDATA_STATE_FINISHED;
 }
 
-static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
+static FileContainer *FTPDataStateGetTxFiles(void *tx, uint8_t direction)
 {
-    FtpDataState *ftpdata_state = (FtpDataState *)state;
+    FtpDataState *ftpdata_state = (FtpDataState *)tx;
 
     if (direction != ftpdata_state->direction)
         SCReturnPtr(NULL, "FileContainer");
@@ -1428,7 +1434,7 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTPDATA, STREAM_TOSERVER | STREAM_TOCLIENT);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateTransactionFree);
 
-        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetFiles);
+        AppLayerParserRegisterGetTxFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetTxFiles);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTxData);

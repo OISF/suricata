@@ -118,8 +118,9 @@ impl NFSState {
             SCLogDebug!("COMMIT, closing shop");
             if let Ok((_, rd)) = parse_nfs3_request_commit(r.prog_data) {
                 let file_handle = rd.handle.value.to_vec();
-                if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
+                if let Some(tx) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
                     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         tdf.chunk_count += 1;
                         tdf.file_additional_procs.push(NFSPROC3_COMMIT);
                         tdf.file_tracker.close(files, flags);
@@ -166,11 +167,11 @@ impl NFSState {
         } else if r.procedure == NFSPROC3_READ {
 
             let found = match self.get_file_tx_by_handle(&xidmap.file_handle, Direction::ToClient) {
-                Some((_, _, _)) => true,
+                Some(_) => true,
                 None => false,
             };
             if !found {
-                let (tx, _, _) = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, Direction::ToClient);
+                let tx = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, Direction::ToClient);
                 tx.procedure = NFSPROC3_READ;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;

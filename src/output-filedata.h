@@ -32,9 +32,25 @@
 #define OUTPUT_FILEDATA_FLAG_OPEN  0x01
 #define OUTPUT_FILEDATA_FLAG_CLOSE 0x02
 
+/** per thread data for this module, contains a list of per thread
+ *  data for the packet loggers. */
+typedef struct OutputFiledataLoggerThreadData_ {
+    OutputLoggerThreadStore *store;
+#ifdef HAVE_MAGIC
+    magic_t magic_ctx;
+#endif
+} OutputFiledataLoggerThreadData;
+
+TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadData **data);
+TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, OutputFiledataLoggerThreadData *thread_data);
+
+void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Packet *p,
+        FileContainer *ffc, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
+        const uint8_t call_flags, const bool file_close, const bool file_trunc, const uint8_t dir);
+
 /** filedata logger function pointer type */
-typedef int (*FiledataLogger)(ThreadVars *, void *thread_data, const Packet *,
-        File *, const uint8_t *, uint32_t, uint8_t, uint8_t dir);
+typedef int (*FiledataLogger)(ThreadVars *, void *thread_data, const Packet *, File *, void *tx,
+        const uint64_t tx_id, const uint8_t *, uint32_t, uint8_t, uint8_t dir);
 
 int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     FiledataLogger LogFunc, OutputCtx *, ThreadInitFunc ThreadInit,
