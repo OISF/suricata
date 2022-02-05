@@ -1336,6 +1336,10 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_STATS);
         CASE_CODE (LOGGER_PCAP);
         CASE_CODE (LOGGER_JSON_METADATA);
+
+        CASE_CODE(LOGGER_FILE);
+        CASE_CODE(LOGGER_FILEDATA);
+
         case LOGGER_SIZE:
             return "UNKNOWN";
     }

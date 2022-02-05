@@ -27,11 +27,28 @@
 #define __OUTPUT_FILE_H__
 
 #include "decode.h"
+#include "rust.h"
 #include "util-file.h"
 
+/** per thread data for this module, contains a list of per thread
+ *  data for the packet loggers. */
+typedef struct OutputFileLoggerThreadData_ {
+    OutputLoggerThreadStore *store;
+#ifdef HAVE_MAGIC
+    magic_t magic_ctx;
+#endif
+} OutputFileLoggerThreadData;
+
+TmEcode OutputFileLogThreadInit(ThreadVars *tv, OutputFileLoggerThreadData **data);
+TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, OutputFileLoggerThreadData *thread_data);
+
+void OutputFileLogFfc(ThreadVars *tv, OutputFileLoggerThreadData *op_thread_data, Packet *p,
+        FileContainer *ffc, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
+        const bool file_close, const bool file_trunc, uint8_t dir);
+
 /** file logger function pointer type */
-typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *,
-                          const File *, uint8_t direction);
+typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *, const File *, void *tx,
+        const uint64_t tx_id, uint8_t direction);
 
 int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
     OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
