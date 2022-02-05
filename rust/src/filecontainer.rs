@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,7 +22,7 @@ use crate::core::*;
 
 // Defined in util-file.h
 extern {
-    pub fn FileFlowToFlags(flow: *const Flow, flags: u8) -> u16;
+    pub fn FileFlowFlagsToFlags(flow_file_flags: u16, flags: u8) -> u16;
 }
 pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
 
@@ -74,11 +74,8 @@ impl FileContainer {
     }
     pub fn free(&mut self) {
         SCLogDebug!("freeing self");
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FileContainerRecycle)(self);
-            },
+        if let Some(c) = unsafe {SC} {
+            (c.FileContainerRecycle)(self);
         }
     }
 
@@ -142,15 +139,6 @@ impl FileContainer {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 (c.FilePrune)(self);
-            }
-        }
-    }
-
-    pub fn file_set_txid_on_last_file(&mut self, tx_id: u64) {
-        match unsafe {SC} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.FileSetTx)(self, tx_id);
             }
         }
     }

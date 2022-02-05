@@ -422,7 +422,7 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         get_eventinfo_byid: Some(IkeEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
         get_tx_data: rs_ike_get_tx_data,
         get_state_data: rs_ike_get_state_data,

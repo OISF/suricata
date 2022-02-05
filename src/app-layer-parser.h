@@ -174,12 +174,11 @@ void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
         void *(*StateAlloc)(void *, AppProto), void (*StateFree)(void *));
 void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto proto,
-                                 void *(*LocalStorageAlloc)(void),
-                                 void (*LocalStorageFree)(void *));
-void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
-                             FileContainer *(*StateGetFiles)(void *, uint8_t));
+        void *(*LocalStorageAlloc)(void), void (*LocalStorageFree)(void *));
 // void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
 //     AppLayerDecoderEvents *(*StateGetEvents)(void *) __attribute__((nonnull)));
+void AppLayerParserRegisterGetTxFilesFunc(
+        uint8_t ipproto, AppProto alproto, FileContainer *(*GetTxFiles)(void *, uint8_t));
 void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
                          LoggerId (*StateGetTxLogged)(void *, void *),
                          void (*StateSetTxLogged)(void *, void *, LoggerId));
@@ -242,7 +241,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);
 void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto, void *tx);
-FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction);
+FileContainer *AppLayerParserGetTxFiles(const Flow *f, void *tx, const uint8_t direction);
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction);
 uint64_t AppLayerParserGetTxCnt(const Flow *, void *alstate);
@@ -313,5 +312,6 @@ void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_
 #endif
 
 void AppLayerFramesFreeContainer(Flow *f);
+void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file);
 
 #endif /* __APP_LAYER_PARSER_H__ */
