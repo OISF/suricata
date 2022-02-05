@@ -37,15 +37,6 @@
 
 bool g_filedata_logger_enabled = false;
 
-/** per thread data for this module, contains a list of per thread
- *  data for the packet loggers. */
-typedef struct OutputFiledataLoggerThreadData_ {
-    OutputLoggerThreadStore *store;
-#ifdef HAVE_MAGIC
-    magic_t magic_ctx;
-#endif
-} OutputFiledataLoggerThreadData;
-
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
@@ -96,9 +87,9 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
 
 SC_ATOMIC_DECLARE(unsigned int, g_file_store_id);
 
-static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
-        Packet *p, File *ff,
-        const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t dir)
+static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list, Packet *p, File *ff,
+        void *tx, const uint64_t tx_id, const uint8_t *data, uint32_t data_len, uint8_t flags,
+        uint8_t dir)
 {
     OutputFiledataLogger *logger = list;
     OutputLoggerThreadStore *store = store_list;
@@ -109,7 +100,8 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
         SCLogDebug("logger %p", logger);
         PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
-        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, data, data_len, flags, dir);
+        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, tx, tx_id, data, data_len,
+                flags, dir);
         PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
         file_logged = 1;
@@ -123,146 +115,105 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     return file_logged;
 }
 
-static void CloseFile(const Packet *p, Flow *f, File *file)
+static void CloseFile(const Packet *p, Flow *f, File *file, void *txv)
 {
-    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, file->txid);
-    if (txv) {
-        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-        if (txd)
-            txd->files_stored++;
+    DEBUG_VALIDATE_BUG_ON((file->flags & FILE_STORED) != 0);
+
+    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
+    if (txd) {
+        BUG_ON(f->alproto == ALPROTO_SMB && txd->files_logged != 0);
+        txd->files_stored++;
     }
     file->flags |= FILE_STORED;
 }
 
-static void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Packet *p,
-        FileContainer *ffc, const uint8_t call_flags, const bool file_close, const bool file_trunc,
-        const uint8_t dir)
+void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Packet *p,
+        FileContainer *ffc, void *txv, const uint64_t tx_id, AppLayerTxData *txd,
+        const uint8_t call_flags, const bool file_close, const bool file_trunc, const uint8_t dir)
 {
-    if (ffc != NULL) {
-        OutputLoggerThreadStore *store = td->store;
-        File *ff;
-        for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            uint8_t file_flags = call_flags;
+    SCLogDebug("ffc %p", ffc);
+
+    OutputLoggerThreadStore *store = td->store;
+    File *ff;
+    for (ff = ffc->head; ff != NULL; ff = ff->next) {
+
+        FileApplyTxFlags(txd, dir, ff);
+
+        uint8_t file_flags = call_flags;
 #ifdef HAVE_MAGIC
-            if (FileForceMagic() && ff->magic == NULL) {
-                FilemagicThreadLookup(&td->magic_ctx, ff);
-            }
+        if (FileForceMagic() && ff->magic == NULL) {
+            FilemagicThreadLookup(&td->magic_ctx, ff);
+        }
 #endif
-            SCLogDebug("ff %p", ff);
-            if (ff->flags & FILE_STORED) {
-                SCLogDebug("stored flag set");
-                continue;
-            }
+        if (ff->flags & FILE_STORED) {
+            continue;
+        }
 
-            if (!(ff->flags & FILE_STORE)) {
-                SCLogDebug("ff FILE_STORE not set");
-                continue;
-            }
+        if (!(ff->flags & FILE_STORE)) {
+            continue;
+        }
 
-            /* if we have no data chunks left to log, we should still
-             * close the logger(s) */
-            if (FileDataSize(ff) == ff->content_stored &&
-                (file_trunc || file_close)) {
-                if (ff->state < FILE_STATE_CLOSED) {
-                    FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
-                }
-                CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE, dir);
-                CloseFile(p, p->flow, ff);
-                continue;
-            }
-
-            /* store */
-
-            /* if file_store_id == 0, this is the first store of this file */
-            if (ff->file_store_id == 0) {
-                /* new file */
-                ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
-                file_flags |= OUTPUT_FILEDATA_FLAG_OPEN;
-            } else {
-                /* existing file */
-            }
-
-            /* if file needs to be closed or truncated, inform
-             * loggers */
-            if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
+        /* if we have no data chunks left to log, we should still
+         * close the logger(s) */
+        if (FileDataSize(ff) == ff->content_stored && (file_trunc || file_close)) {
+            if (ff->state < FILE_STATE_CLOSED) {
                 FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
             }
+            CallLoggers(tv, store, p, ff, txv, tx_id, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE, dir);
+            CloseFile(p, p->flow, ff, txv);
+            continue;
+        }
 
-            /* tell the logger we're closing up */
-            if (ff->state >= FILE_STATE_CLOSED)
-                file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
+        /* store */
 
-            /* do the actual logging */
-            const uint8_t *data = NULL;
-            uint32_t data_len = 0;
+        /* if file_store_id == 0, this is the first store of this file */
+        if (ff->file_store_id == 0) {
+            /* new file */
+            ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
+            file_flags |= OUTPUT_FILEDATA_FLAG_OPEN;
+        } else {
+            /* existing file */
+        }
 
-            StreamingBufferGetDataAtOffset(ff->sb,
-                    &data, &data_len,
-                    ff->content_stored);
+        /* if file needs to be closed or truncated, inform
+         * loggers */
+        if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
+            FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
+        }
 
-            const int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags, dir);
-            if (file_logged) {
-                ff->content_stored += data_len;
+        /* tell the logger we're closing up */
+        if (ff->state >= FILE_STATE_CLOSED)
+            file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
 
-                /* all done */
-                if (file_flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-                    CloseFile(p, p->flow, ff);
-                }
+        /* do the actual logging */
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
+
+        StreamingBufferGetDataAtOffset(ff->sb, &data, &data_len, ff->content_stored);
+
+        const int file_logged =
+                CallLoggers(tv, store, p, ff, txv, tx_id, data, data_len, file_flags, dir);
+        if (file_logged) {
+            ff->content_stored += data_len;
+
+            /* all done */
+            if (file_flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+                CloseFile(p, p->flow, ff, txv);
             }
         }
     }
 }
 
-static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
-{
-    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
-
-    if (list == NULL) {
-        /* No child loggers. */
-        return TM_ECODE_OK;
-    }
-
-    OutputFiledataLoggerThreadData *op_thread_data = (OutputFiledataLoggerThreadData *)thread_data;
-
-    /* no flow, no files */
-    Flow * const f = p->flow;
-    if (f == NULL || f->alstate == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-    /* do not log for ICMP packets related to a TCP/UDP flow */
-    if (p->proto != IPPROTO_TCP && p->proto != IPPROTO_UDP) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    const bool file_trunc = StreamTcpReassembleDepthReached(p);
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
-        const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END));
-        FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
-        SCLogDebug("ffc_ts %p", ffc_ts);
-        OutputFiledataLogFfc(tv, op_thread_data, p, ffc_ts, STREAM_TOSERVER, file_close_ts,
-                file_trunc, STREAM_TOSERVER);
-    } else {
-        const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END));
-        FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
-        SCLogDebug("ffc_tc %p", ffc_tc);
-        OutputFiledataLogFfc(tv, op_thread_data, p, ffc_tc, STREAM_TOCLIENT, file_close_tc,
-                file_trunc, STREAM_TOCLIENT);
-    }
-
-    return TM_ECODE_OK;
-}
-
-/** \brief thread init for the tx logger
+/** \brief thread init for the filedata logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
+TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadData **data)
 {
     OutputFiledataLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
-
-    *data = (void *)td;
+    *data = td;
 
 #ifdef HAVE_MAGIC
     td->magic_ctx = MagicInitContext();
@@ -280,7 +231,7 @@ static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, const void *initdata,
             void *retptr = NULL;
             if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
-/* todo */      BUG_ON(ts == NULL);
+                /* todo */ BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
 
                 /* store thread handle */
@@ -304,9 +255,9 @@ static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, const void *initdata,
     return TM_ECODE_OK;
 }
 
-static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
+TmEcode OutputFiledataLogThreadDeinit(
+        ThreadVars *tv, OutputFiledataLoggerThreadData *op_thread_data)
 {
-    OutputFiledataLoggerThreadData *op_thread_data = (OutputFiledataLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFiledataLogger *logger = list;
 
@@ -329,36 +280,8 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputFiledataLoggerThreadData *op_thread_data = (OutputFiledataLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputFiledataLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
-static uint32_t OutputFiledataLoggerGetActiveCount(void)
-{
-    uint32_t cnt = 0;
-    for (OutputFiledataLogger *p = list; p != NULL; p = p->next) {
-        cnt++;
-    }
-    return cnt;
-}
-
 void OutputFiledataLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputFiledataLogThreadInit,
-        OutputFiledataLogThreadDeinit, OutputFiledataLogExitPrintStats,
-        OutputFiledataLog, OutputFiledataLoggerGetActiveCount);
     SC_ATOMIC_INIT(g_file_store_id);
     SC_ATOMIC_SET(g_file_store_id, 1);
 }

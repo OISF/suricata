@@ -27,6 +27,11 @@
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
 
+typedef struct OutputLoggerThreadStore_ {
+    void *thread_data;
+    struct OutputLoggerThreadStore_ *next;
+} OutputLoggerThreadStore;
+
 #include "output-packet.h"
 #include "output-tx.h"
 #include "output-file.h"
@@ -34,12 +39,6 @@
 #include "output-flow.h"
 #include "output-streaming.h"
 #include "output-stats.h"
-
-
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
 
 typedef struct OutputInitResult_ {
     OutputCtx *ctx;
