@@ -21,7 +21,7 @@
  * \author Victor Julien <victor@inliniac.net>
  *
  * This file provides HTTP protocol file handling support for the engine
- * using HTP library.
+ * using the HTP library.
  */
 
 #include "suricata.h"
@@ -87,55 +87,16 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 
     SCLogDebug("data %p data_len %"PRIu32, data, data_len);
 
-    if (s == NULL) {
-        SCReturnInt(-1);
-    }
-
     if (direction & STREAM_TOCLIENT) {
-        if (s->files_tc == NULL) {
-            s->files_tc = FileContainerAlloc();
-            if (s->files_tc == NULL) {
-                retval = -1;
-                goto end;
-            }
-        }
-
-        files = s->files_tc;
-
-        flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
-
-        if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
-                ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
-            flags |= FILE_STORE;
-            flags &= ~FILE_NOSTORE;
-        } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
-            flags |= FILE_NOSTORE;
-        }
-
+        files = &tx->files_tc;
+        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOCLIENT);
         sbcfg = &s->cfg->response.sbcfg;
 
         // we shall not open a new file if there is a current one
-        DEBUG_VALIDATE_BUG_ON(s->file_range != NULL);
+        DEBUG_VALIDATE_BUG_ON(tx->file_range != NULL);
     } else {
-        if (s->files_ts == NULL) {
-            s->files_ts = FileContainerAlloc();
-            if (s->files_ts == NULL) {
-                retval = -1;
-                goto end;
-            }
-        }
-
-        files = s->files_ts;
-
-        flags = FileFlowToFlags(s->f, STREAM_TOSERVER);
-        if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
-                ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
-            flags |= FILE_STORE;
-            flags &= ~FILE_NOSTORE;
-        } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TS)) {
-            flags |= FILE_NOSTORE;
-        }
-
+        files = &tx->files_ts;
+        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
         sbcfg = &s->cfg->request.sbcfg;
     }
 
@@ -146,10 +107,8 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
         retval = -1;
     }
 
-    FileSetTx(files->tail, txid);
     tx->tx_data.files_opened++;
 
-end:
     SCReturnInt(retval);
 }
 
@@ -230,30 +189,13 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
     flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
-    if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
-            ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
-        flags |= FILE_STORE;
-        flags &= ~FILE_NOSTORE;
-    } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
-        flags |= FILE_NOSTORE;
-    }
-
-    FileContainer * files = s->files_tc;
-    if (files == NULL) {
-        s->files_tc = FileContainerAlloc();
-        if (s->files_tc == NULL) {
-            // no need to fall back to classic open if we cannot allocate the file container
-            SCReturnInt(-1);
-        }
-        files = s->files_tc;
-    }
+    FileContainer *files = &txud->files_tc;
 
     // we open a file for this specific range
     if (FileOpenFileWithId(files, &s->cfg->response.sbcfg, s->file_track_id++, filename,
                 filename_len, data, data_len, flags) != 0) {
         SCReturnInt(-1);
     }
-    FileSetTx(files->tail, txid);
     txud->tx_data.files_opened++;
 
     if (FileSetRange(files, crparsed.start, crparsed.end) < 0) {
@@ -279,11 +221,11 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         // do not reassemble file without host info
         SCReturnInt(0);
     }
-    DEBUG_VALIDATE_BUG_ON(s->file_range);
-    s->file_range = HttpRangeContainerOpenFile(keyurl, keylen, s->f, &crparsed,
+    DEBUG_VALIDATE_BUG_ON(htud->file_range);
+    htud->file_range = HttpRangeContainerOpenFile(keyurl, keylen, s->f, &crparsed,
             &s->cfg->response.sbcfg, filename, filename_len, flags, data, data_len);
     SCFree(keyurl);
-    if (s->file_range == NULL) {
+    if (htud->file_range == NULL) {
         SCReturnInt(-1);
     }
     SCReturnInt(0);
@@ -292,7 +234,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
 /**
  *  \brief Store a chunk of data in the flow
  *
- *  \param s http state
+ *  \param tx HtpTxUserData
  *  \param data data chunk (if any)
  *  \param data_len length of the data portion
  *  \param direction flow direction
@@ -301,8 +243,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
-        uint8_t direction)
+int HTPFileStoreChunk(HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t direction)
 {
     SCEnter();
 
@@ -310,15 +251,12 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     int result = 0;
     FileContainer *files = NULL;
 
-    if (s == NULL) {
-        SCReturnInt(-1);
-    }
-
     if (direction & STREAM_TOCLIENT) {
-        files = s->files_tc;
+        files = &tx->files_tc;
     } else {
-        files = s->files_ts;
+        files = &tx->files_ts;
     }
+    SCLogDebug("files %p data %p data_len %" PRIu32, files, data, data_len);
 
     if (files == NULL) {
         SCLogDebug("no files in state");
@@ -326,8 +264,8 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         goto end;
     }
 
-    if (s->file_range != NULL) {
-        if (HttpRangeAppendData(s->file_range, data, data_len) < 0) {
+    if (tx->file_range != NULL) {
+        if (HttpRangeAppendData(tx->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
@@ -339,6 +277,7 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
     } else if (result == -2) {
         retval = -2;
     }
+    SCLogDebug("result %u", result);
 
 end:
     SCReturnInt(retval);
@@ -377,7 +316,7 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
 /**
  *  \brief Close the file in the flow
  *
- *  \param s http state
+ *  \param tx HtpTxUserData
  *  \param data data chunk if any
  *  \param data_len length of the data portion
  *  \param flags flags to indicate events
@@ -390,24 +329,23 @@ bool HTPFileCloseHandleRange(FileContainer *files, const uint16_t flags, HttpRan
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t data_len,
-        uint8_t flags, uint8_t direction)
+int HTPFileClose(
+        HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t direction)
 {
     SCEnter();
+
+    SCLogDebug("flags %04x FILE_TRUNCATED %s", flags, (flags & FILE_TRUNCATED) ? "true" : "false");
 
     int retval = 0;
     int result = 0;
     FileContainer *files = NULL;
 
-    if (s == NULL) {
-        SCReturnInt(-1);
-    }
-
     if (direction & STREAM_TOCLIENT) {
-        files = s->files_tc;
+        files = &tx->files_tc;
     } else {
-        files = s->files_ts;
+        files = &tx->files_ts;
     }
+    SCLogDebug("files %p data %p data_len %" PRIu32, files, data, data_len);
 
     if (files == NULL) {
         retval = -1;
@@ -420,14 +358,15 @@ int HTPFileClose(HtpState *s, HtpTxUserData *htud, const uint8_t *data, uint32_t
     } else if (result == -2) {
         retval = -2;
     }
+    SCLogDebug("result %u", result);
 
-    if (s->file_range != NULL) {
-        bool added = HTPFileCloseHandleRange(files, flags, s->file_range, data, data_len);
+    if (tx->file_range != NULL) {
+        bool added = HTPFileCloseHandleRange(files, flags, tx->file_range, data, data_len);
         if (added) {
-            htud->tx_data.files_opened++;
+            tx->tx_data.files_opened++;
         }
-        HttpRangeFreeBlock(s->file_range);
-        s->file_range = NULL;
+        HttpRangeFreeBlock(tx->file_range);
+        tx->file_range = NULL;
     }
 
 end:
@@ -556,9 +495,10 @@ static int HTPFileParserTest02(void)
     FAIL_IF_NULL(tx);
     FAIL_IF_NULL(tx->request_method);
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -649,11 +589,12 @@ static int HTPFileParserTest03(void)
 
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->head);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
-    FAIL_IF(FileDataSize(http_state->files_ts->head) != 11);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
+    FAIL_IF(FileDataSize(tx_ud->files_ts.head) != 11);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -744,10 +685,11 @@ static int HTPFileParserTest04(void)
 
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->head);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -809,19 +751,20 @@ static int HTPFileParserTest05(void)
 
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->head);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
-    FAIL_IF(http_state->files_ts->head == http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->head->next != http_state->files_ts->tail);
+    FAIL_IF(tx_ud->files_ts.head == tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.head->next != tx_ud->files_ts.tail);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->head->sb,
-                (uint8_t *)"filecontent", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.head->sb, (uint8_t *)"filecontent", 11) !=
+            1);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
-                (uint8_t *)"FILECONTENT", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.tail->sb, (uint8_t *)"FILECONTENT", 11) !=
+            1);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
@@ -883,19 +826,20 @@ static int HTPFileParserTest06(void)
 
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->head);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
-    FAIL_IF(http_state->files_ts->head == http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->head->next != http_state->files_ts->tail);
+    FAIL_IF(tx_ud->files_ts.head == tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.head->next != tx_ud->files_ts.tail);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->head->sb,
-                (uint8_t *)"filecontent", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.head->sb, (uint8_t *)"filecontent", 11) !=
+            1);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
-                (uint8_t *)"FILECONTENT", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.tail->sb, (uint8_t *)"FILECONTENT", 11) !=
+            1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -946,12 +890,14 @@ static int HTPFileParserTest07(void)
     FAIL_IF_NULL(tx->request_method);
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
-                (uint8_t *)"FILECONTENT", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.tail->sb, (uint8_t *)"FILECONTENT", 11) !=
+            1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -1267,12 +1213,14 @@ static int HTPFileParserTest11(void)
 
     FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
 
-    FAIL_IF_NULL(http_state->files_ts);
-    FAIL_IF_NULL(http_state->files_ts->tail);
-    FAIL_IF(http_state->files_ts->tail->state != FILE_STATE_CLOSED);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->files_ts.head);
+    FAIL_IF_NULL(tx_ud->files_ts.tail);
+    FAIL_IF(tx_ud->files_ts.tail->state != FILE_STATE_CLOSED);
 
-    FAIL_IF(StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
-                (uint8_t *)"FILECONTENT", 11) != 1);
+    FAIL_IF(StreamingBufferCompareRawData(tx_ud->files_ts.tail->sb, (uint8_t *)"FILECONTENT", 11) !=
+            1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
