@@ -139,6 +139,9 @@ pub struct NFSTransactionFile {
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
     pub file_tracker: FileTransferTracker,
+
+    /// storage for the actual file
+    pub files: Files,
 }
 
 impl NFSTransactionFile {
@@ -147,6 +150,21 @@ impl NFSTransactionFile {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
         }
+    }
+    pub fn update_file_flags(&mut self, flow_file_flags: u16) {
+        self.files.flags_ts = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) | FILE_USE_DETECT };
+        self.files.flags_tc = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) | FILE_USE_DETECT };
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_nfs_gettxfiles(tx_ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
+    let tx = cast_pointer!(tx_ptr, NFSTransaction);
+    if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+        let (files, _flags) = tdf.files.get(direction.into());
+        files
+    } else {
+        std::ptr::null_mut()
     }
 }
 
@@ -292,8 +310,6 @@ pub struct NFSState {
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
 
-    pub files: Files,
-
     /// partial record tracking
     pub ts_chunk_xid: u32,
     pub tc_chunk_xid: u32,
@@ -340,7 +356,6 @@ impl NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
-            files:Files::default(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
             ts_chunk_left:0,
@@ -561,7 +576,7 @@ impl NFSState {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
-                        let (files, flags) = self.files.get(tx.file_tx_direction);
+                        let (files, flags) = f.files.get(tx.file_tx_direction);
                         f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
@@ -667,7 +682,7 @@ impl NFSState {
     }
 
     pub fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: Direction)
-        -> (&mut NFSTransaction, &mut FileContainer, u16)
+        -> &mut NFSTransaction
     {
         let mut tx = self.new_tx();
         tx.file_name = file_name.to_vec();
@@ -678,28 +693,32 @@ impl NFSState {
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
             d.file_tracker.tx_id = tx.id - 1;
+            tx.tx_data.update_file_flags(self.state_data.file_flags);
+            d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
         SCLogDebug!("new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
-        let (files, flags) = self.files.get(direction);
-        return (tx_ref.unwrap(), files, flags)
+        return tx_ref.unwrap();
     }
 
     pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: Direction)
-        -> Option<(&mut NFSTransaction, &mut FileContainer, u16)>
+        -> Option<&mut NFSTransaction>
     {
         let fh = file_handle.to_vec();
         for tx in &mut self.transactions {
-            if tx.is_file_tx && !tx.is_file_closed &&
-                direction == tx.file_tx_direction &&
-                tx.file_handle == fh
-            {
-                SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
-                let (files, flags) = self.files.get(direction);
-                return Some((tx, files, flags));
+            if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
+                if tx.is_file_tx && !tx.is_file_closed &&
+                    direction == tx.file_tx_direction &&
+                        tx.file_handle == fh
+                {
+                    tx.tx_data.update_file_flags(self.state_data.file_flags);
+                    d.update_file_flags(tx.tx_data.file_flags);
+                    SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
+                    return Some(tx);
+                }
             }
         }
         SCLogDebug!("Failed to find NFS TX with handle {:?}", file_handle);
@@ -730,8 +749,9 @@ impl NFSState {
         };
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
-            Some((tx, files, flags)) => {
+            Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    let (files, flags) = tdf.files.get(Direction::ToServer);
                     filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                             &file_name, w.file_data, w.offset,
                             w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
@@ -750,8 +770,9 @@ impl NFSState {
             None => { false },
         };
         if !found {
-            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                let (files, flags) = tdf.files.get(Direction::ToServer);
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, w.file_data, w.offset,
                         w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
@@ -903,8 +924,9 @@ impl NFSState {
         let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // get the tx and update it
         let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
-            Some((tx, files, flags)) => {
+            Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    let (files, flags) = tdf.files.get(direction);
                     if ssn_gap {
                         let queued_data = tdf.file_tracker.get_queued_size();
                         if queued_data > 2000000 { // TODO should probably be configurable
@@ -1005,9 +1027,10 @@ impl NFSState {
         SCLogDebug!("partial data? {}", is_partial);
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
-            Some((tx, files, flags)) => {
+            Some(tx) => {
                 SCLogDebug!("updated TX {:?}", tx);
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    let (files, flags) = tdf.files.get(Direction::ToClient);
                     filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                             &file_name, reply.data, chunk_offset,
                             reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
@@ -1034,8 +1057,9 @@ impl NFSState {
             None => { false },
         };
         if !found {
-            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, Direction::ToClient);
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToClient);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                let (files, flags) = tdf.files.get(Direction::ToClient);
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, reply.data, chunk_offset,
                         reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
@@ -1493,23 +1517,6 @@ impl NFSState {
         }
         AppLayerResult::ok()
     }
-
-    fn getfiles(&mut self, direction: Direction) -> * mut FileContainer {
-        //SCLogDebug!("direction: {:?}", direction);
-        if direction == Direction::ToClient {
-            &mut self.files.files_tc as *mut FileContainer
-        } else {
-            &mut self.files.files_ts as *mut FileContainer
-        }
-    }
-    fn setfileflags(&mut self, direction: Direction, flags: u16) {
-        SCLogDebug!("direction: {:?}, flags: {}", direction, flags);
-        if direction == Direction::ToClient {
-            self.files.flags_tc = flags;
-        } else {
-            self.files.flags_ts = flags;
-        }
-    }
 }
 
 /// Returns *mut NFSState
@@ -1541,8 +1548,6 @@ pub unsafe extern "C" fn rs_nfs_parse_request(flow: *const Flow,
 {
     let state = cast_pointer!(state, NFSState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = FileFlowToFlags(flow, Direction::ToServer.into());
-    rs_nfs_setfileflags(Direction::ToServer.into(), state, file_flags);
 
     if stream_slice.is_gap() {
         return rs_nfs_parse_request_tcp_gap(state, stream_slice.gap_size());
@@ -1572,8 +1577,6 @@ pub unsafe extern "C" fn rs_nfs_parse_response(flow: *const Flow,
 {
     let state = cast_pointer!(state, NFSState);
     let flow = cast_pointer!(flow, Flow);
-    let file_flags = FileFlowToFlags(flow, Direction::ToClient.into());
-    rs_nfs_setfileflags(Direction::ToClient.into(), state, file_flags);
 
     if stream_slice.is_gap() {
         return rs_nfs_parse_response_tcp_gap(state, stream_slice.gap_size());
@@ -1603,8 +1606,6 @@ pub unsafe extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
                                        ) -> AppLayerResult
 {
     let state = cast_pointer!(state, NFSState);
-    let file_flags = FileFlowToFlags(f, Direction::ToServer.into());
-    rs_nfs_setfileflags(Direction::ToServer.into(), state, file_flags);
 
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
     state.parse_udp_ts(f, &stream_slice)
@@ -1619,8 +1620,6 @@ pub unsafe extern "C" fn rs_nfs_parse_response_udp(f: *const Flow,
                                         ) -> AppLayerResult
 {
     let state = cast_pointer!(state, NFSState);
-    let file_flags = FileFlowToFlags(f, Direction::ToClient.into());
-    rs_nfs_setfileflags(Direction::ToClient.into(), state, file_flags);
     SCLogDebug!("parsing {} bytes of response data", stream_slice.len());
     state.parse_udp_tc(f, &stream_slice)
 }
@@ -1930,20 +1929,6 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_getfiles(ptr: *mut std::ffi::c_void, direction: u8) -> * mut FileContainer {
-    if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = cast_pointer!(ptr, NFSState);
-    parser.getfiles(direction.into())
-}
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, flags: u16) {
-    if ptr.is_null() { panic!("NULL ptr"); };
-    let parser = &mut *ptr;
-    SCLogDebug!("direction {} flags {}", direction, flags);
-    parser.setfileflags(direction.into(), flags)
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"nfs\0";
 
@@ -1972,7 +1957,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: Some(rs_nfs_getfiles),
+        get_tx_files: Some(rs_nfs_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
         get_state_data: rs_nfs_get_state_data,
@@ -2051,7 +2036,7 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: Some(rs_nfs_getfiles),
+        get_tx_files: Some(rs_nfs_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
         get_tx_data: rs_nfs_get_tx_data,
         get_state_data: rs_nfs_get_state_data,
@@ -2102,4 +2087,3 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         SCLogDebug!("Protocol detector and parser disabled for nfs.");
     }
 }
-
