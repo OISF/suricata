@@ -57,6 +57,7 @@ static int IkeParserTest(void)
     Flow f;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -166,16 +167,14 @@ static int IkeParserTest(void)
             sizeof(encrypted));
     FAIL_IF_NOT(r == 0);
 
-    AppLayerParserTransactionsCleanup(&f);
+    AppLayerParserTransactionsCleanup(&f, STREAM_TOCLIENT);
     UTHAppLayerParserStateGetIds(f.alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 5); // inspect_id[0]
     FAIL_IF_NOT(ret[1] == 5); // inspect_id[1]
     FAIL_IF_NOT(ret[2] == 5); // log_id
     FAIL_IF_NOT(ret[3] == 5); // min_id
 
-    if (alp_tctx != NULL) {
-        AppLayerParserThreadCtxFree(alp_tctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     PASS;
