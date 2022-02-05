@@ -231,52 +231,80 @@ void FileForceHashParseCfg(ConfNode *conf)
     }
 }
 
-uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
+uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
 
     if (direction == STREAM_TOSERVER) {
-        if (flow->file_flags & FLOWFILE_NO_STORE_TS) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MAGIC_TS) {
+        if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MD5_TS) {
+        if (flow_file_flags & FLOWFILE_NO_MD5_TS) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA1_TS) {
+        if (flow_file_flags & FLOWFILE_NO_SHA1_TS) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA256_TS) {
+        if (flow_file_flags & FLOWFILE_NO_SHA256_TS) {
             flags |= FILE_NOSHA256;
         }
     } else {
-        if (flow->file_flags & FLOWFILE_NO_STORE_TC) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MAGIC_TC) {
+        if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_MD5_TC) {
+        if (flow_file_flags & FLOWFILE_NO_MD5_TC) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA1_TC) {
+        if (flow_file_flags & FLOWFILE_NO_SHA1_TC) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->file_flags & FLOWFILE_NO_SHA256_TC) {
+        if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
             flags |= FILE_NOSHA256;
         }
     }
+    if (flow_file_flags & FLOWFILE_STORE) {
+        flags |= FILE_STORE;
+    }
+    BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+
+    SCLogDebug("direction %02x flags %02x", direction, flags);
     return flags;
+}
+
+uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
+{
+    return FileFlowFlagsToFlags(flow->file_flags, direction);
+}
+
+void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file)
+{
+    SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
+            (file->flags & FILE_STORE) ? "true" : "false",
+            (file->flags & FILE_NOSTORE) ? "true" : "false");
+    uint16_t update_flags = FileFlowFlagsToFlags(txd->file_flags, direction);
+    BUG_ON((file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+    if (file->flags & FILE_STORE)
+        update_flags &= ~FILE_NOSTORE;
+
+    file->flags |= update_flags;
+    SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
+            (file->flags & FILE_STORE) ? "true" : "false",
+            (file->flags & FILE_NOSTORE) ? "true" : "false");
+    BUG_ON((file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
 }
 
 static int FileMagicSize(void)
@@ -419,6 +447,8 @@ void FilePrintFlags(const File *file)
 
 void FilePrune(FileContainer *ffc)
 {
+    SCEnter();
+    SCLogDebug("ffc %p", ffc);
     File *file = ffc->head;
     File *prev = NULL;
 
@@ -447,6 +477,7 @@ void FilePrune(FileContainer *ffc)
         FileFree(file);
         file = file_next;
     }
+    SCReturn;
 }
 
 /**
@@ -474,6 +505,7 @@ FileContainer *FileContainerAlloc(void)
  */
 void FileContainerRecycle(FileContainer *ffc)
 {
+    SCLogDebug("ffc %p", ffc);
     if (ffc == NULL)
         return;
 
@@ -493,6 +525,7 @@ void FileContainerRecycle(FileContainer *ffc)
  */
 void FileContainerFree(FileContainer *ffc)
 {
+    SCLogDebug("ffc %p", ffc);
     if (ffc == NULL)
         return;
 
@@ -544,6 +577,7 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 
 static void FileFree(File *ff)
 {
+    SCLogDebug("ff %p", ff);
     if (ff == NULL)
         return;
 
@@ -571,6 +605,7 @@ static void FileFree(File *ff)
 
 void FileContainerAdd(FileContainer *ffc, File *ff)
 {
+    SCLogDebug("ffc %p ff %p", ffc, ff);
     if (ffc->head == NULL || ffc->tail == NULL) {
         ffc->head = ffc->tail = ff;
     } else {
@@ -586,29 +621,9 @@ void FileContainerAdd(FileContainer *ffc, File *ff)
  */
 int FileStore(File *ff)
 {
+    SCLogDebug("ff %p", ff);
     ff->flags |= FILE_STORE;
     SCReturnInt(0);
-}
-
-/**
- *  \brief Set the TX id for a file
- *
- *  \param ff The file to store
- *  \param txid the tx id
- */
-int FileSetTx(File *ff, uint64_t txid)
-{
-    SCLogDebug("ff %p txid %"PRIu64, ff, txid);
-    if (ff != NULL)
-        ff->txid = txid;
-    SCReturnInt(0);
-}
-
-void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id)
-{
-    if (ffc && ffc->tail) {
-        (void)FileSetTx(ffc->tail, tx_id);
-    }
 }
 
 /**
@@ -640,7 +655,9 @@ static int FileStoreNoStoreCheck(File *ff)
 
 static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 {
+    SCLogDebug("file %p data_len %u", file, data_len);
     if (StreamingBufferAppendNoTrack(file->sb, data, data_len) != 0) {
+        SCLogDebug("file %p StreamingBufferAppendNoTrack failed", file);
         SCReturnInt(-1);
     }
 
@@ -651,7 +668,10 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
         SCSha1Update(file->sha1_ctx, data, data_len);
     }
     if (file->sha256_ctx) {
+        SCLogDebug("SHA256 file %p data %p data_len %u", file, data, data_len);
         SCSha256Update(file->sha256_ctx, data, data_len);
+    } else {
+        SCLogDebug("NO SHA256 file %p data %p data_len %u", file, data, data_len);
     }
     SCReturnInt(0);
 }
@@ -711,6 +731,7 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
+            SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
             SCSha256Update(ff->sha256_ctx, data, data_len);
             hash_done = 1;
         }
@@ -923,6 +944,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
     }
     if (!(ff->flags & FILE_NOSHA256) || g_file_force_sha256) {
         ff->sha256_ctx = SCSha256New();
+        SCLogDebug("ff %p ff->sha256_ctx %p", ff, ff->sha256_ctx);
     }
 
     ff->state = FILE_STATE_OPENED;
@@ -953,6 +975,7 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
+    SCLogDebug("ffc %p track_id %u", ffc, track_id);
     File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
     if (ff == NULL)
         return -1;
@@ -982,8 +1005,10 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
                 SCMd5Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
                 SCSha1Update(ff->sha1_ctx, data, data_len);
-            if (ff->sha256_ctx)
+            if (ff->sha256_ctx) {
+                SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
                 SCSha256Update(ff->sha256_ctx, data, data_len);
+            }
         } else {
             if (AppendData(ff, data, data_len) != 0) {
                 ff->state = FILE_STATE_ERROR;
@@ -993,6 +1018,9 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
     }
 
     if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
+        SCLogDebug("flags FILE_TRUNCATED %s", (flags & FILE_TRUNCATED) ? "true" : "false");
+        SCLogDebug("ff->flags FILE_HAS_GAPS %s", (ff->flags & FILE_HAS_GAPS) ? "true" : "false");
+
         ff->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
 
@@ -1001,6 +1029,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_NOSTORE;
         } else {
             if (g_file_force_sha256 && ff->sha256_ctx) {
+                SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
                 FileEndSha256(ff);
             }
         }
@@ -1019,6 +1048,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
+            SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
             FileEndSha256(ff);
         }
     }
@@ -1096,74 +1126,13 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
             f->file_flags, set_file_flags, g_file_flow_mask);
 
     if (set_file_flags != 0 && f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
-        uint16_t per_file_flags = 0;
-#ifdef HAVE_MAGIC
-        if (set_file_flags & (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC))
-            per_file_flags |= FILE_NOMAGIC;
-#endif
-        if (set_file_flags & (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC))
-            per_file_flags |= FILE_NOMD5;
-        if (set_file_flags & (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC))
-            per_file_flags |= FILE_NOSHA1;
-        if (set_file_flags & (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC))
-            per_file_flags |= FILE_NOSHA256;
-        if (set_file_flags & (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC))
-            per_file_flags |= FILE_NOTRACK;
-        if (set_file_flags & (FLOWFILE_NO_STORE_TS|FLOWFILE_NO_STORE_TC))
-            per_file_flags |= FILE_NOSTORE;
-
-        FileContainer *ffc = AppLayerParserGetFiles(f, direction);
-        if (ffc != NULL) {
-            for (File *ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-                ptr->flags |= per_file_flags;
-
-                /* destroy any ctx we may have so far */
-                if ((per_file_flags & FILE_NOSHA256) &&
-                        ptr->sha256_ctx != NULL)
-                {
-                    SCSha256Free(ptr->sha256_ctx);
-                    ptr->sha256_ctx = NULL;
-                }
-                if ((per_file_flags & FILE_NOSHA1) &&
-                    ptr->sha1_ctx != NULL)
-                {
-                    SCSha1Free(ptr->sha1_ctx);
-                    ptr->sha1_ctx = NULL;
-                }
-                if ((per_file_flags & FILE_NOMD5) &&
-                        ptr->md5_ctx != NULL)
-                {
-                    SCMd5Free(ptr->md5_ctx);
-                    ptr->md5_ctx = NULL;
-                }
+        AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
+        if (sd != NULL) {
+            if ((sd->file_flags & f->file_flags) != f->file_flags) {
+                SCLogDebug("state data: updating file_flags %04x with flow file_flags %04x",
+                        sd->file_flags, f->file_flags);
+                sd->file_flags |= f->file_flags;
             }
-        }
-    }
-}
-
-
-
-/**
- *  \brief set no store flag, close file if needed
- *
- *  \param ff file
- */
-static void FileDisableStoringForFile(File *ff)
-{
-    SCEnter();
-
-    if (ff == NULL) {
-        SCReturn;
-    }
-
-    SCLogDebug("not storing this file");
-    ff->flags |= FILE_NOSTORE;
-
-    if (ff->state == FILE_STATE_OPENED && FileDataSize(ff) >= (uint64_t)FileMagicSize()) {
-        if (g_file_force_md5 == 0 && g_file_force_sha1 == 0 && g_file_force_sha256 == 0
-                && g_file_force_tracking == 0) {
-            (void)FileCloseFilePtr(ff, NULL, 0,
-                    (FILE_TRUNCATED|FILE_NOSTORE));
         }
     }
 }
@@ -1175,29 +1144,16 @@ static void FileDisableStoringForFile(File *ff)
  *  \param direction flow direction
  *  \param tx_id transaction id
  */
-void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id)
+void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id)
 {
-    File *ptr = NULL;
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    SCEnter();
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->txid == tx_id) {
-                if (ptr->flags & FILE_STORE) {
-                    /* weird, already storing -- let it continue*/
-                    SCLogDebug("file is already being stored");
-                } else {
-                    FileDisableStoringForFile(ptr);
-                }
-            }
+    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    if (txd != NULL) {
+        if (direction & STREAM_TOSERVER) {
+            txd->file_flags |= FLOWFILE_NO_STORE_TS;
+        } else {
+            txd->file_flags |= FLOWFILE_NO_STORE_TC;
         }
     }
-
-    SCReturn;
 }
 
 /**
@@ -1223,17 +1179,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
 
 void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
 {
-    File *ptr = NULL;
-
-    SCEnter();
-
-    if (fc != NULL) {
-        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->txid == tx_id) {
-                FileStore(ptr);
-            }
-        }
-    }
+    abort();
 }
 
 void FileStoreAllFiles(FileContainer *fc)
@@ -1269,6 +1215,7 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
  */
 static void FileEndSha256(File *ff)
 {
+    SCLogDebug("ff %p ff->size %" PRIu64, ff, ff->size);
     if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
         SCSha256Finalize(ff->sha256_ctx, ff->sha256, sizeof(ff->sha256));
         ff->sha256_ctx = NULL;
