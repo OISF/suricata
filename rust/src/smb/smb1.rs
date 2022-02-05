@@ -146,11 +146,12 @@ pub fn smb1_check_tx(cmd: u8) -> bool {
 
 fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>, direction: Direction)
 {
-    if let Some((tx, files, flags)) = state.get_file_tx_by_fuid(fid, direction) {
+    if let Some(tx) = state.get_file_tx_by_fuid(fid, direction) {
         SCLogDebug!("found tx {}", tx.id);
         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
             if !tx.request_done {
                 SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
+                let (files, flags) = tdf.files.get(direction);
                 tdf.file_tracker.close(files, flags);
                 tx.request_done = true;
                 tx.response_done = true;
@@ -961,16 +962,17 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
             };
             let mut set_event_fileoverlap = false;
             let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToServer) {
-                Some((tx, files, flags)) => {
+                Some(tx) => {
                     let file_id : u32 = tx.id as u32;
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         if rd.offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
                                 rd.len, false, &file_id);
-                        SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
+                        SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
                     }
                     true
                 },
@@ -988,19 +990,22 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     let vercmd = SMBVerCmdStat::new1_with_ntstatus(command, r.nt_status);
                     smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
                 } else {
-                    let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, Direction::ToServer);
+                    let tx = state.new_file_tx(&file_fid, &file_name, Direction::ToServer);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
-                        SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                         if rd.offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, rd.offset,
                                 rd.len, false, &file_id);
                         tdf.share_name = share_name;
+                        SCLogDebug!("files {:?}", files);
+                        SCLogDebug!("tdf {:?}", tdf);
                     }
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
+                    SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
                 }
             }
             if set_event_fileoverlap {
@@ -1054,13 +1059,14 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                     };
                     let mut set_event_fileoverlap = false;
                     let found = match state.get_file_tx_by_fuid(&file_fid, Direction::ToClient) {
-                        Some((tx, files, flags)) => {
+                        Some(tx) => {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                                 let file_id : u32 = tx.id as u32;
                                 SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                                 if offset < tdf.file_tracker.tracked {
                                     set_event_fileoverlap = true;
                                 }
+                                let (files, flags) = tdf.files.get(Direction::ToClient);
                                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                         &file_name, rd.data, offset,
                                         rd.len, false, &file_id);
@@ -1070,13 +1076,14 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, an
                         None => { false },
                     };
                     if !found {
-                        let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, Direction::ToClient);
+                        let tx = state.new_file_tx(&file_fid, &file_name, Direction::ToClient);
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                             let file_id : u32 = tx.id as u32;
                             SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                             if offset < tdf.file_tracker.tracked {
                                 set_event_fileoverlap = true;
                             }
+                            let (files, flags) = tdf.files.get(Direction::ToClient);
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, rd.data, offset,
                                     rd.len, false, &file_id);

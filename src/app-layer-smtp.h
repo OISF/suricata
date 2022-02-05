@@ -85,6 +85,8 @@ typedef struct SMTPTransaction_ {
 
     TAILQ_HEAD(, SMTPString_) rcpt_to_list;  /**< rcpt to string list */
 
+    FileContainer files_ts;
+
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
 
@@ -139,7 +141,6 @@ typedef struct SMTPState_ {
 
     /* SMTP Mime decoding and file extraction */
     /** the list of files sent to the server */
-    FileContainer *files_ts;
     uint32_t file_track_id;
 } SMTPState;
 

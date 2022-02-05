@@ -113,9 +113,10 @@ static void OutputFilestoreUpdateFileTime(const char *src_filename,
     }
 }
 
-static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
-        const OutputFilestoreLogThread *oft, const OutputFilestoreCtx *ctx,
-        const Packet *p, File *ff, uint8_t dir) {
+static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLogThread *oft,
+        const OutputFilestoreCtx *ctx, const Packet *p, File *ff, void *tx, const uint64_t tx_id,
+        uint8_t dir)
+{
     /* Stringify the SHA256 which will be used in the final
      * filename. */
     char sha256string[(SC_SHA256_LEN * 2) + 1];
@@ -160,7 +161,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
                 "Failed to write file info record. Output filename truncated.");
         } else {
             JsonBuilder *js_fileinfo =
-                    JsonBuildFileInfoRecord(p, ff, true, dir, ctx->xff_cfg, NULL);
+                    JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
             if (likely(js_fileinfo != NULL)) {
                 jb_close(js_fileinfo);
                 FILE *out = fopen(js_metadata_filename, "w");
@@ -175,9 +176,9 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
     }
 }
 
-static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
-        const Packet *p, File *ff, const uint8_t *data, uint32_t data_len,
-        uint8_t flags, uint8_t dir)
+static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, File *ff,
+        void *tx, const uint64_t tx_id, const uint8_t *data, uint32_t data_len, uint8_t flags,
+        uint8_t dir)
 {
     SCEnter();
     OutputFilestoreLogThread *aft = (OutputFilestoreLogThread *)thread_data;
@@ -260,7 +261,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             ff->fd = -1;
             SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
         }
-        OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff, dir);
+        OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff, tx, tx_id, dir);
     }
 
     return 0;
