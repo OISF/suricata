@@ -552,7 +552,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_eventinfo_byid : Some(KRB5Event::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
-        get_files          : None,
+        get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
         get_tx_data        : rs_krb5_get_tx_data,
         get_state_data     : rs_krb5_get_state_data,
