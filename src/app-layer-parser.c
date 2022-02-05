@@ -112,7 +112,10 @@ typedef struct AppLayerParserProtoCtx_
     void (*LocalStorageFree)(void *);
 
     void (*Truncate)(void *, uint8_t);
-    FileContainer *(*StateGetFiles)(void *, uint8_t);
+
+    /** get FileContainer reference from the TX. MUST return a non-NULL reference if the TX
+     *  has or may have files in the requested direction at some point. */
+    FileContainer *(*GetTxFiles)(void *, uint8_t);
 
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -225,6 +228,9 @@ FramesContainer *AppLayerFramesSetupContainer(Flow *f)
     }
     return f->alparser->frames;
 }
+
+static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
+        const AppProto alproto, void *alstate, const uint8_t direction);
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -469,13 +475,12 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
-                             FileContainer *(*StateGetFiles)(void *, uint8_t))
+void AppLayerParserRegisterGetTxFilesFunc(
+        uint8_t ipproto, AppProto alproto, FileContainer *(*GetTxFiles)(void *, uint8_t))
 {
     SCEnter();
 
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles =
-        StateGetFiles;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxFiles = GetTxFiles;
 
     SCReturn;
 }
@@ -902,19 +907,31 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
     SCReturnPtr(ptr, "AppLayerDecoderEvents *");
 }
 
-FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
+FileContainer *AppLayerParserGetTxFiles(const Flow *f, void *tx, const uint8_t direction)
 {
     SCEnter();
 
     FileContainer *ptr = NULL;
 
-    if (alp_ctx.ctxs[f->protomap][f->alproto].StateGetFiles != NULL)
-    {
-        ptr = alp_ctx.ctxs[f->protomap][f->alproto].
-            StateGetFiles(f->alstate, direction);
+    if (alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles != NULL) {
+        ptr = alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles(tx, direction);
     }
 
     SCReturnPtr(ptr, "FileContainer *");
+}
+
+static void AppLayerParserFileTxHousekeeping(const Flow *f, void *tx, const uint8_t pkt_dir)
+{
+    FileContainer *fc = AppLayerParserGetTxFiles(f, tx, pkt_dir);
+    if (fc) {
+        if (AppLayerParserStateIssetFlag(f->alparser, (pkt_dir == STREAM_TOSERVER)
+                                                              ? APP_LAYER_PARSER_TRUNC_TS
+                                                              : APP_LAYER_PARSER_TRUNC_TC) != 0) {
+            FileTruncateAllOpenFiles(fc);
+        }
+
+        FilePrune(fc);
+    }
 }
 
 #define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
@@ -926,7 +943,7 @@ extern bool g_filedata_logger_enabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-void AppLayerParserTransactionsCleanup(Flow *f)
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
 {
     SCEnter();
     DEBUG_ASSERT_FLOW_LOCKED(f);
@@ -972,6 +989,8 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
+
+        AppLayerParserFileTxHousekeeping(f, tx, pkt_dir);
 
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
@@ -1043,14 +1062,19 @@ void AppLayerParserTransactionsCleanup(Flow *f)
 
         /* if file logging is enabled, we keep a tx active while some of the files aren't
          * logged yet. */
-        if (txd && txd->files_opened) {
-            if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
-                skipped = true;
-                goto next;
-            }
-            if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
-                skipped = true;
-                goto next;
+        if (txd) {
+            SCLogDebug("files_opened %u files_logged %u files_stored %u", txd->files_opened,
+                    txd->files_logged, txd->files_stored);
+
+            if (txd->files_opened) {
+                if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
+                    skipped = true;
+                    goto next;
+                }
+                if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
+                    skipped = true;
+                    goto next;
+                }
             }
         }
 
@@ -1198,7 +1222,7 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
         return AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP1) ||
                AppLayerParserSupportsFiles(ipproto, ALPROTO_HTTP2);
     }
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles != NULL)
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxFiles != NULL)
         return TRUE;
     return FALSE;
 }
@@ -1290,8 +1314,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
             if (f->alstate != NULL && !FlowChangeProto(f)) {
-                AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
-                        flags);
+                AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
             }
             AppLayerIncGapErrorCounter(tv, f);
             goto error;
@@ -1318,6 +1341,18 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
         SCLogDebug("alloced new app layer state %p (name %s)",
                    alstate, AppLayerGetProtoName(f->alproto));
+
+        /* set flow flags to state */
+        if (f->file_flags != 0) {
+            AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
+            if (sd != NULL) {
+                if ((sd->file_flags & f->file_flags) != f->file_flags) {
+                    SCLogDebug("state data: updating file_flags %04x with flow file_flags %04x",
+                            sd->file_flags, f->file_flags);
+                    sd->file_flags |= f->file_flags;
+                }
+            }
+        }
     } else {
         SCLogDebug("using existing app layer state %p (name %s))",
                    alstate, AppLayerGetProtoName(f->alproto));
@@ -1437,7 +1472,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
     /* stream truncated, inform app layer */
     if (flags & STREAM_DEPTH)
-        AppLayerParserStreamTruncated(f->proto, alproto, alstate, flags);
+        AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
 
  end:
     /* update app progress */
@@ -1755,14 +1790,20 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
     SCReturnUInt(pstate->flags & flag);
 }
 
-
-void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alstate,
-                                   uint8_t direction)
+static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
+        const AppProto alproto, void *alstate, const uint8_t direction)
 {
     SCEnter();
 
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate != NULL)
+    if (direction & STREAM_TOSERVER) {
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TS);
+    } else {
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TC);
+    }
+
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate != NULL) {
         alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate(alstate, direction);
+    }
 
     SCReturn;
 }
