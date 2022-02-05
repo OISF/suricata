@@ -80,8 +80,9 @@ typedef struct JsonFileLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonFileLogThread;
 
-JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool stored,
-        uint8_t dir, HttpXFFCfg *xff_cfg, OutputJsonCtx *eve_ctx)
+JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
+        const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
+        OutputJsonCtx *eve_ctx)
 {
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
@@ -105,7 +106,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
     char xff_buffer[XFF_MAXLEN];
     if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
-            have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, xff_buffer, XFF_MAXLEN);
+            have_xff_ip = HttpXFFGetIPFromTx(p->flow, tx_id, xff_cfg, xff_buffer, XFF_MAXLEN);
         }
         if (have_xff_ip && xff_cfg->flags & XFF_OVERWRITE) {
             if (p->flowflags & FLOW_PKT_TOCLIENT) {
@@ -125,20 +126,20 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
     switch (p->flow->alproto) {
         case ALPROTO_HTTP1:
             jb_open_object(js, "http");
-            EveHttpAddMetadata(p->flow, ff->txid, js);
+            EveHttpAddMetadata(p->flow, tx_id, js);
             jb_close(js);
             break;
         case ALPROTO_SMTP:
             jb_get_mark(js, &mark);
             jb_open_object(js, "smtp");
-            if (EveSMTPAddMetadata(p->flow, ff->txid, js)) {
+            if (EveSMTPAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
             }
             jb_get_mark(js, &mark);
             jb_open_object(js, "email");
-            if (EveEmailAddMetadata(p->flow, ff->txid, js)) {
+            if (EveEmailAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
@@ -148,7 +149,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
             /* rpc */
             jb_get_mark(js, &mark);
             jb_open_object(js, "rpc");
-            if (EveNFSAddMetadataRPC(p->flow, ff->txid, js)) {
+            if (EveNFSAddMetadataRPC(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
@@ -156,7 +157,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
             /* nfs */
             jb_get_mark(js, &mark);
             jb_open_object(js, "nfs");
-            if (EveNFSAddMetadata(p->flow, ff->txid, js)) {
+            if (EveNFSAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
@@ -165,7 +166,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
         case ALPROTO_SMB:
             jb_get_mark(js, &mark);
             jb_open_object(js, "smb");
-            if (EveSMBAddMetadata(p->flow, ff->txid, js)) {
+            if (EveSMBAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
@@ -174,7 +175,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
         case ALPROTO_HTTP2:
             jb_get_mark(js, &mark);
             jb_open_object(js, "http2");
-            if (EveHTTP2AddMetadata(p->flow, ff->txid, js)) {
+            if (EveHTTP2AddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
@@ -185,7 +186,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
     jb_set_string(js, "app_proto", AppProtoToString(p->flow->alproto));
 
     jb_open_object(js, "fileinfo");
-    EveFileInfo(js, ff, stored);
+    EveFileInfo(js, ff, tx_id, stored);
     jb_close(js);
 
     /* xff header */
@@ -200,13 +201,13 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff,
-        uint8_t dir, OutputJsonCtx *eve_ctx)
+static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff, void *tx,
+        const uint64_t tx_id, uint8_t dir, OutputJsonCtx *eve_ctx)
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
     JsonBuilder *js = JsonBuildFileInfoRecord(
-            p, ff, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, eve_ctx);
+            p, ff, tx, tx_id, ff->flags & FILE_STORED ? true : false, dir, xff_cfg, eve_ctx);
     if (unlikely(js == NULL)) {
         return;
     }
@@ -215,8 +216,8 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     jb_free(js);
 }
 
-static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                          const File *ff, uint8_t dir)
+static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff,
+        void *tx, const uint64_t tx_id, uint8_t dir)
 {
     SCEnter();
     JsonFileLogThread *aft = (JsonFileLogThread *)thread_data;
@@ -225,7 +226,7 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     SCLogDebug("ff %p", ff);
 
-    FileWriteJsonRecord(aft, p, ff, dir, aft->filelog_ctx->eve_ctx);
+    FileWriteJsonRecord(aft, p, ff, tx, tx_id, dir, aft->filelog_ctx->eve_ctx);
     return 0;
 }
 

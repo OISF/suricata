@@ -127,7 +127,7 @@ json_t *SCJsonString(const char *val)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
+void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const bool stored)
 {
     jb_set_string_from_bytes(jb, "filename", ff->name, ff->name_len);
 
@@ -181,7 +181,7 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
         jb_set_uint(jb, "start", ff->start);
         jb_set_uint(jb, "end", ff->end);
     }
-    jb_set_uint(jb, "tx_id", ff->txid);
+    jb_set_uint(jb, "tx_id", tx_id);
 }
 
 static void EveAddPacketVars(const Packet *p, JsonBuilder *js_vars)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,7 +26,6 @@
 #define __UTIL_FILE_H__
 
 #include "conf.h"
-
 #include "util-streaming-buffer.h"
 
 /* Hack: Pulling rust.h to get the SCSha256 causes all sorts of problems with
@@ -77,7 +76,6 @@ typedef struct File_ {
     uint16_t name_len;
     FileState state;
     StreamingBuffer *sb;
-    uint64_t txid;                  /**< tx this file is part of */
     uint32_t file_track_id;         /**< id used by protocol parser */
     uint32_t file_store_id;         /**< id used in store file name file.<id> */
     int fd;                         /**< file descriptor for filestore, not
@@ -200,21 +198,14 @@ int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
 int FileStore(File *);
 
 /**
- *  \brief Set the TX id for a file
- *
- *  \param ff The file to store
- *  \param txid the tx id
- */
-int FileSetTx(File *, uint64_t txid);
-void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id);
-
-/**
  *  \brief disable file storing for a transaction
  *
  *  \param f flow
+ *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ *  \param tx transaction pointer
  *  \param tx_id transaction id
  */
-void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id);
+void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id);
 
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint64_t tx_id);
 void FilePrune(FileContainer *ffc);
