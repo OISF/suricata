@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -146,12 +146,13 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             let mut set_event_fileoverlap = false;
             // look up existing tracker and if we have it update it
             let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToClient) {
-                Some((tx, files, flags)) => {
+                Some(tx) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToClient);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &tdf.file_name, rd.data, offset,
                                 rd.len, 0, false, &file_id);
@@ -206,12 +207,13 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         Some(n) => { n.to_vec() },
                         None => { b"<unknown>".to_vec() },
                     };
-                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, Direction::ToClient);
+                    let tx = state.new_file_tx(&file_guid, &file_name, Direction::ToClient);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToClient);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, rd.data, offset,
                                 rd.len, 0, false, &file_id);
@@ -257,12 +259,13 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
             let mut set_event_fileoverlap = false;
             let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToServer) {
-                Some((tx, files, flags)) => {
+                Some(tx) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
                                 wr.wr_len, 0, false, &file_id);
@@ -313,12 +316,13 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
                     state.set_skip(Direction::ToServer, wr.wr_len, wr.data.len() as u32);
                 } else {
-                    let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
+                    let tx = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if wr.wr_offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
+                        let (files, flags) = tdf.files.get(Direction::ToServer);
                         filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                 &file_name, wr.data, wr.wr_offset,
                                 wr.wr_len, 0, false, &file_id);
@@ -522,9 +526,10 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             match parse_smb2_request_close(r.data) {
                 Ok((_, cd)) => {
                     let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToServer) {
-                        Some((tx, files, flags)) => {
+                        Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                                    let (files, flags) = tdf.files.get(Direction::ToServer);
                                     tdf.file_tracker.close(files, flags);
                                 }
                             }
@@ -536,9 +541,10 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         None => { false },
                     };
                     let found_tc = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), Direction::ToClient) {
-                        Some((tx, files, flags)) => {
+                        Some(tx) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                                    let (files, flags) = tdf.files.get(Direction::ToClient);
                                     tdf.file_tracker.close(files, flags);
                                 }
                             }
@@ -636,9 +642,10 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     },
                 };
                 let found = match state.get_file_tx_by_fuid(&file_guid, Direction::ToClient) {
-                    Some((tx, files, flags)) => {
+                    Some(tx) => {
                         if !tx.request_done {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                                let (files, flags) = tdf.files.get(Direction::ToClient);
                                 tdf.file_tracker.close(files, flags);
                             }
                         }
