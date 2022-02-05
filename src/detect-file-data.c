@@ -603,17 +603,14 @@ static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngine
         transforms = engine->v2.transforms;
     }
 
-    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
+    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
     if (ffc == NULL) {
-        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
     int local_file_id = 0;
     File *file = ffc->head;
     for (; file != NULL; file = file->next) {
-        if (file->txid != tx_id)
-            continue;
-
         InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
                 engine->sm_list, engine->sm_list_base, local_file_id, false);
         if (buffer == NULL)
@@ -667,13 +664,10 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
+    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
     if (ffc != NULL) {
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
-            if (file->txid != idx)
-                continue;
-
             InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
                     file, list_id, ctx->base_list_id, local_file_id, true);
             if (buffer == NULL)
