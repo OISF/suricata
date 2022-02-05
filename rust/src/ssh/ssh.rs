@@ -463,7 +463,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: None,
         get_tx_data: rs_ssh_get_tx_data,
         get_state_data: rs_ssh_get_state_data,

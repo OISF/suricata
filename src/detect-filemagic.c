@@ -484,17 +484,14 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
         transforms = engine->v2.transforms;
     }
 
-    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
+    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
     if (ffc == NULL) {
-        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
     uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     int local_file_id = 0;
     for (File *file = ffc->head; file != NULL; file = file->next) {
-        if (file->txid != tx_id)
-            continue;
-
         InspectionBuffer *buffer = FilemagicGetDataCallback(det_ctx,
             transforms, f, flags, file, engine->sm_list, local_file_id, false);
         if (buffer == NULL)
@@ -544,13 +541,10 @@ static void PrefilterTxFilemagic(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
+    FileContainer *ffc = AppLayerParserGetTxFiles(f, txv, flags);
     if (ffc != NULL) {
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
-            if (file->txid != idx)
-                continue;
-
             InspectionBuffer *buffer = FilemagicGetDataCallback(det_ctx,
                     ctx->transforms, f, flags, file, list_id, local_file_id, true);
             if (buffer == NULL)

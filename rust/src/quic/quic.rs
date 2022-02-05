@@ -473,7 +473,7 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         get_eventinfo_byid: Some(QuicEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: Some(rs_quic_state_get_tx_iterator),
         get_tx_data: rs_quic_get_tx_data,
         get_state_data: rs_quic_get_state_data,
