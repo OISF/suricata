@@ -142,6 +142,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_NO_SIZE_TS             BIT_U16(10)
 #define FLOWFILE_NO_SIZE_TC             BIT_U16(11)
 
+/** store all files in the flow */
+#define FLOWFILE_STORE BIT_U16(12)
+
 #define FLOWFILE_NONE_TS (FLOWFILE_NO_MAGIC_TS | \
                           FLOWFILE_NO_STORE_TS | \
                           FLOWFILE_NO_MD5_TS   | \
