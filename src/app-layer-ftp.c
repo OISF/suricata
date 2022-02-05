@@ -1056,11 +1056,14 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
-    uint16_t flags = FileFlowToFlags(f, direction);
+
+    ftpdata_state->tx_data.file_flags |= ftpdata_state->state_data.file_flags;
+    /* we depend on detection engine for file pruning */
+    const uint16_t flags =
+            FileFlowFlagsToFlags(ftpdata_state->tx_data.file_flags, direction) | FILE_USE_DETECT;
     int ret = 0;
 
-    /* we depend on detection engine for file pruning */
-    flags |= FILE_USE_DETECT;
+    SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (ftpdata_state->files == NULL) {
         struct FtpTransferCmd *data =
                 (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
@@ -1230,9 +1233,9 @@ static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
     return ftpdata_state->state;
 }
 
-static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
+static FileContainer *FTPDataStateGetTxFiles(void *tx, uint8_t direction)
 {
-    FtpDataState *ftpdata_state = (FtpDataState *)state;
+    FtpDataState *ftpdata_state = (FtpDataState *)tx;
 
     if (direction != ftpdata_state->direction)
         SCReturnPtr(NULL, "FileContainer");
@@ -1320,7 +1323,7 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTPDATA, STREAM_TOSERVER | STREAM_TOCLIENT);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateTransactionFree);
 
-        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetFiles);
+        AppLayerParserRegisterGetTxFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetTxFiles);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTx);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataGetTxData);
