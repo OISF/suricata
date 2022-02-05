@@ -349,7 +349,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_tx_files: None,
         get_tx_iterator: None,
         get_tx_data: rs_dcerpc_udp_get_tx_data,
         get_state_data: rs_dcerpc_udp_get_state_data,
