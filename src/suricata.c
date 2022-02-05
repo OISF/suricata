@@ -2803,7 +2803,6 @@ int InitGlobal(void) {
     suricata_context.FileAppendGAPById = FileAppendGAPById;
     suricata_context.FileContainerRecycle = FileContainerRecycle;
     suricata_context.FilePrune = FilePrune;
-    suricata_context.FileSetTx = FileContainerSetTx;
 
     suricata_context.AppLayerRegisterParser = AppLayerRegisterParser;
 

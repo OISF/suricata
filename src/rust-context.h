@@ -54,7 +54,6 @@ typedef struct SuricataContext_ {
             const uint8_t *data, uint32_t data_len);
     void (*FileContainerRecycle)(FileContainer *ffc);
     void (*FilePrune)(FileContainer *ffc);
-    void (*FileSetTx)(FileContainer *, uint64_t);
 
     int (*AppLayerRegisterParser)(const struct AppLayerParser *p, AppProto alproto);
 
