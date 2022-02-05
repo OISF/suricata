@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -73,118 +73,86 @@ static uint8_t DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const 
 
     SCLogDebug("file inspection... %p", ffc);
 
-    if (ffc != NULL) {
-        File *file = ffc->head;
-        for (; file != NULL; file = file->next) {
-            SCLogDebug("file");
+    for (File *file = ffc->head; file != NULL; file = file->next) {
+        SCLogDebug("file");
 
-            if (file->state == FILE_STATE_NONE) {
-                SCLogDebug("file state FILE_STATE_NONE");
-                continue;
-            }
-
-            if (file->txid < det_ctx->tx_id) {
-                SCLogDebug("file->txid < det_ctx->tx_id == %"PRIu64" < %"PRIu64, file->txid, det_ctx->tx_id);
-                continue;
-            }
-
-            if (file->txid > det_ctx->tx_id) {
-                SCLogDebug("file->txid > det_ctx->tx_id == %"PRIu64" > %"PRIu64, file->txid, det_ctx->tx_id);
-                break;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_FILENAME) && file->name == NULL) {
-                SCLogDebug("sig needs filename, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            uint64_t file_size = FileDataSize(file);
-            if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file_size == 0) {
-                SCLogDebug("sig needs file content, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file_size == 0) {
-                SCLogDebug("sig needs file content, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_MD5) && (!(file->flags & FILE_MD5))) {
-                SCLogDebug("sig needs file md5, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_SHA1) && (!(file->flags & FILE_SHA1))) {
-                SCLogDebug("sig needs file sha1, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_SHA256) && (!(file->flags & FILE_SHA256))) {
-                SCLogDebug("sig needs file sha256, but we don't have any");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
-                SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
-                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                continue;
-            }
-
-            /* run the file match functions. */
-            while (1) {
-                SCLogDebug("smd %p", smd);
-
-                if (sigmatch_table[smd->type].FileMatch != NULL) {
-                    KEYWORD_PROFILING_START;
-                    match = sigmatch_table[smd->type].
-                        FileMatch(det_ctx, f, flags, file, s, smd->ctx);
-                    KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
-                    if (match == 0) {
-                        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
-                        break;
-                    } else if (smd->is_last) {
-                        r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-                        break;
-                    }
-                }
-                if (smd->is_last)
-                    break;
-                smd++;
-            }
-
-            /* continue inspection for other files as we may want to store
-             * those as well. We'll return 1 (match) regardless of their
-             * results though */
-            if (r == DETECT_ENGINE_INSPECT_SIG_MATCH)
-                store_r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-
-            /* continue, this file may (or may not) be unable to match
-             * maybe we have more that can :) */
+        if (file->state == FILE_STATE_NONE) {
+            SCLogDebug("file state FILE_STATE_NONE");
+            continue;
         }
-    } else {
-        /* if we have a filestore sm with a scope > file (so tx, ssn) we
-         * run it here */
-        if (smd != NULL && smd->is_last && smd->type == DETECT_FILESTORE &&
-                smd->ctx != NULL)
-        {
-            DetectFilestoreData *fd = (DetectFilestoreData *)smd->ctx;
-            if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
+
+        if ((s->file_flags & FILE_SIG_NEED_FILENAME) && file->name == NULL) {
+            SCLogDebug("sig needs filename, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        uint64_t file_size = FileDataSize(file);
+        if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file_size == 0) {
+            SCLogDebug("sig needs file content, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file_size == 0) {
+            SCLogDebug("sig needs file content, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        if ((s->file_flags & FILE_SIG_NEED_MD5) && (!(file->flags & FILE_MD5))) {
+            SCLogDebug("sig needs file md5, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        if ((s->file_flags & FILE_SIG_NEED_SHA1) && (!(file->flags & FILE_SHA1))) {
+            SCLogDebug("sig needs file sha1, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        if ((s->file_flags & FILE_SIG_NEED_SHA256) && (!(file->flags & FILE_SHA256))) {
+            SCLogDebug("sig needs file sha256, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
+            SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
+        /* run the file match functions. */
+        while (1) {
+            SCLogDebug("smd %p", smd);
+
+            if (sigmatch_table[smd->type].FileMatch != NULL) {
                 KEYWORD_PROFILING_START;
-                match = sigmatch_table[smd->type].
-                    FileMatch(det_ctx, f, flags, /* no file */NULL, s, smd->ctx);
+                match = sigmatch_table[smd->type].FileMatch(det_ctx, f, flags, file, s, smd->ctx);
                 KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
-
-                if (match == 1) {
+                if (match == 0) {
+                    r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
+                    break;
+                } else if (smd->is_last) {
                     r = DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    break;
                 }
             }
+            if (smd->is_last)
+                break;
+            smd++;
         }
+
+        /* continue inspection for other files as we may want to store
+         * those as well. We'll return 1 (match) regardless of their
+         * results though */
+        if (r == DETECT_ENGINE_INSPECT_SIG_MATCH)
+            store_r = DETECT_ENGINE_INSPECT_SIG_MATCH;
+
+        /* continue, this file may (or may not) be unable to match
+         * maybe we have more that can :) */
     }
 
     if (r == DETECT_ENGINE_INSPECT_SIG_NO_MATCH && store_r == DETECT_ENGINE_INSPECT_SIG_MATCH) {
@@ -221,8 +189,12 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
     DEBUG_VALIDATE_BUG_ON(f->alstate != _alstate);
 
     const uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-    FileContainer *ffc = AppLayerParserGetFiles(f, direction);
-    if (ffc == NULL || ffc->head == NULL) {
+    FileContainer *ffc = AppLayerParserGetTxFiles(f, tx, direction);
+    SCLogDebug("tx %p tx_id %" PRIu64 " ffc %p ffc->head %p sid %u", tx, tx_id, ffc,
+            ffc ? ffc->head : NULL, s->id);
+    if (ffc == NULL) {
+        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES);
+    } else if (ffc->head == NULL) {
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
 

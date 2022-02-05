@@ -109,6 +109,8 @@ pub struct AppLayerTxData {
     pub files_logged: u32,
     pub files_stored: u32,
 
+    pub file_flags: u16,
+
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
     detect_flags_tc: u64,
@@ -142,6 +144,7 @@ impl AppLayerTxData {
             files_opened: 0,
             files_logged: 0,
             files_stored: 0,
+            file_flags: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
@@ -157,6 +160,13 @@ impl AppLayerTxData {
 
     pub fn set_event(&mut self, event: u8) {
         core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event as u8);
+    }
+
+    pub fn update_file_flags(&mut self, state_flags: u16) {
+        if (self.file_flags & state_flags) != state_flags {
+            SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
+            self.file_flags |= state_flags;
+        }
     }
 }
 
@@ -322,7 +332,7 @@ pub struct RustParser {
     pub localstorage_free:  Option<LocalStorageFreeFn>,
 
     /// Function to get files
-    pub get_files:          Option<GetFilesFn>,
+    pub get_tx_files:       Option<GetTxFilesFn>,
 
     /// Function to get the TX iterator
     pub get_tx_iterator:    Option<GetTxIteratorFn>,
@@ -378,8 +388,7 @@ pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
-pub type GetFilesFn         = unsafe
-extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
+pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
 pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
                                              min_tx_id: u64,
