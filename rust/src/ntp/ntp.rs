@@ -295,7 +295,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_eventinfo_byid : Some(NTPEvent::get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
-        get_files          : None,
+        get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<NTPState, NTPTransaction>),
         get_tx_data        : rs_ntp_get_tx_data,
         get_state_data     : rs_ntp_get_state_data,
