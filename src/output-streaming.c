@@ -38,11 +38,6 @@
 #include "stream-tcp-reassemble.h"
 #include "util-validate.h"
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
 typedef struct OutputLoggerThreadData_ {
