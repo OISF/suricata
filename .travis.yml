@@ -1,0 +1,221 @@
+dist: trusty
+sudo: false
+language: c
+
+addons:
+  apt:
+    # Define the required packages without nss/nspr so we can do a
+    # build without nss/nspr
+    packages-without-nssnspr: &packages-without-nssnspr
+      - libpcre3
+      - libpcre3-dbg
+      - libpcre3-dev
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - libnet1-dev
+      - libyaml-0-2
+      - libyaml-dev
+      - zlib1g
+      - zlib1g-dev
+      - libcap-ng-dev
+      - libcap-ng0
+      - make
+      - libmagic-dev
+      - libnetfilter-queue-dev
+      - libnetfilter-queue1
+      - libnfnetlink-dev
+      - libnfnetlink0
+      - libhiredis-dev
+      - libjansson-dev
+      - libevent-dev
+      - libevent-pthreads-2.0-5
+    # Define the required packages without libjansson so we can do a
+    # build without libjansson.
+    packages-without-jansson: &packages-without-jansson
+      - libpcre3
+      - libpcre3-dbg
+      - libpcre3-dev
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - libnet1-dev
+      - libyaml-0-2
+      - libyaml-dev
+      - zlib1g
+      - zlib1g-dev
+      - libcap-ng-dev
+      - libcap-ng0
+      - make
+      - libmagic-dev
+      - libnetfilter-queue-dev
+      - libnetfilter-queue1
+      - libnfnetlink-dev
+      - libnfnetlink0
+      - libhiredis-dev
+      - libevent-dev
+      - libevent-pthreads-2.0-5
+    # Now define the default set of packages which is those above, and
+    # libjansson.
+    packages: &packages
+      - *packages-without-jansson
+      - libjansson-dev
+
+cache:
+  directories:
+    - /home/travis/.rustup
+    - /home/travis/.cargo
+    - /home/travis/.multirust
+
+# Define the default CFLAGS used by all builds as a YAML anchor.
+default-cflags: &default-cflags
+  CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
+
+env:
+  global:
+    # The version of Rust that will be used if not otherwise set.
+    - RUST_VERSION="stable"
+    # The minimum version of Rust supported.
+    - RUST_VERSION_MIN="1.34.2"
+    # A known recent working version of stable Rust
+    - RUST_VERSION_KNOWN="1.37.0"
+
+matrix:
+  allow_failures:
+    # Allow the rust-stable build to fail. These entries must match
+    # the env entry in the build matrix exactly.
+    - env:
+        - NAME="linux,gcc,rust-stable"
+        - *default-cflags
+        - RUST_VERSION="stable"
+        - ARGS="--enable-rust-strict"
+        - DO_CHECK_SETUP_SCRIPTS="yes"
+        - DO_DISTCHECK="yes"
+  include:
+    # Linux, gcc, Rust (latest stable).
+    # This is allowed to fail, update allow_failures if the env changes.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-stable"
+        - *default-cflags
+        - RUST_VERSION="stable"
+        - ARGS="--enable-rust-strict"
+        - DO_CHECK_SETUP_SCRIPTS="yes"
+        - DO_DISTCHECK="yes"
+    # Linux, gcc, Rust (auto detect).
+    # - Use latest known working version of Rust.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-${RUST_VERSION_KNOWN}"
+        - *default-cflags
+        - RUST_VERSION="${RUST_VERSION_KNOWN}"
+        - ARGS="--enable-rust-strict"
+        - DO_DISTCHECK="yes"
+    # Linux, gcc, Rust (oldest supported)
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-${RUST_VERSION_MIN}"
+        - *default-cflags
+        - RUST_VERSION="${RUST_VERSION_MIN}"
+        - ARGS="--enable-rust-strict"
+        - DO_DISTCHECK="yes"
+    # Linux, gcc, -DNDEBUG.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,ndebug"
+        - *default-cflags
+        - EXTRA_CFLAGS="-DNDEBUG"
+    # Linux, clang. For this build we'll also enable -Wshadow.
+    - os: linux
+      compiler: clang
+      env:
+        - NAME="linux,clang"
+        - *default-cflags
+        - EXTRA_CFLAGS="-Wshadow"
+    # Linux, gcc, profiling.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,profiling"
+        - *default-cflags
+        - ARGS="--enable-profiling"
+    # Linux, gcc, debug.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,debug"
+        - *default-cflags
+        - ARGS="--enable-debug"
+        - ENABLE_DEBUG="yes"
+    # Linux, gcc, debug-validate.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,debug-validate"
+        - *default-cflags
+        - ARGS="--enable-debug-validation"
+        - NO_UNITTESTS="yes"
+    # Linux, gcc, no jansson.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,no-jansson"
+        - *default-cflags
+        - CONFIGURE_SHOULD_FAIL="yes"
+      addons:
+        apt:
+          packages:
+            - *packages-without-jansson
+    # Too old version of Rust.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="Unsupported Rust version"
+        - RUST_VERSION="1.32.0"
+        - CONFIGURE_SHOULD_FAIL="yes"
+    # Linux, gcc, no nss/nspr.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,no-nssnspr"
+        - *default-cflags
+        - ARGS="--disable-nss --disable-nspr"
+      addons:
+        apt:
+          packages:
+            - *packages-without-nssnspr
+    - os: windows
+      compiler: gcc
+      env:
+      - NAME="win,gcc,no-nssnspr"
+        - *default-cflags
+        - ARGS="--disable-nss --disable-nspr"
+      addons:
+        apt:
+          packages:
+            - *packages-without-nssnspr
+      
+
+script: ./qa/travis.sh
+
+before_install:
+  - export PATH=$HOME/.cargo/bin:$PATH
+  - |
+    # Install the desired Rust toolchain with rustup.
+    curl https://sh.rustup.rs -sSf | \
+        sh -s -- -y --default-toolchain "${RUST_VERSION}"
+    # Set the default, in case a cached version was used that doesn't
+    # match the requested version.
+    rustup default "${RUST_VERSION}"
+    rustc --version
+
+    cargo install --force --debug --version 0.14.1 cbindgen
+  - ./qa/travis-libhtp.sh
