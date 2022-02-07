@@ -39,7 +39,7 @@
 
     case "$compiler" in
         clang)
-            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument -g"
+            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
             AC_SUBST(CLANG_CFLAGS)
             ;;
         gcc)
@@ -53,9 +53,9 @@
 
             if test "$gccvernum" -ge "400"; then
                 dnl gcc 4.0 or later
-                GCC_CFLAGS="-Wextra -g -Werror-implicit-function-declaration"
+                GCC_CFLAGS="-Wextra -Werror-implicit-function-declaration"
             else
-                GCC_CFLAGS="-W -g"
+                GCC_CFLAGS="-W"
             fi
             AC_SUBST(GCC_CFLAGS)
             ;;
