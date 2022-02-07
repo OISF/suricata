@@ -52,7 +52,8 @@ master_doc = 'index'
 # General information about the project.
 # Ensure copyright has current year
 project = u'Suricata'
-copyright = u'2016-{}, OISF'.format(year = datetime.datetime.now().date().year)
+end_year = datetime.datetime.now().date().year
+copyright = u'2016-{}, OISF'.format(end_year)
 author = u'OISF'
 
 # The version info for the project you're documenting, acts as replacement for
