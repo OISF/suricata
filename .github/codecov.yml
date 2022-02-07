@@ -1,7 +1,14 @@
 codecov:
-  require_ci_to_pass: yes
+  require_ci_to_pass: false
   notify:
     after_n_builds: 3
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
 
 coverage:
   precision: 2
