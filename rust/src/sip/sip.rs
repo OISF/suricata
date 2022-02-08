@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,6 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
+use crate::frames::*;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN};
@@ -24,6 +25,17 @@ use crate::sip::parser::*;
 use nom7::Err;
 use std;
 use std::ffi::CString;
+
+#[derive(AppLayerFrameType)]
+pub enum SIPFrameType {
+    Pdu,
+    RequestLine,
+    ResponseLine,
+    RequestHeaders,
+    ResponseHeaders,
+    RequestBody,
+    ResponseBody,
+}
 
 #[derive(AppLayerEvent)]
 pub enum SIPEvent {
@@ -95,9 +107,14 @@ impl SIPState {
         }
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> bool {
+    fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new_ts(flow, &stream_slice, input, input.len() as i64, SIPFrameType::Pdu as u8);
+        SCLogDebug!("ts: pdu {:?}", _pdu);
+
         match sip_parse_request(input) {
             Ok((_, request)) => {
+                sip_frames_ts(flow, &stream_slice, &request);
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
                 if let Ok((_, req_line)) = sip_take_line(input) {
@@ -117,9 +134,14 @@ impl SIPState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> bool {
+    fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+        let input = stream_slice.as_slice();
+        let _pdu = Frame::new_tc(flow, &stream_slice, input, input.len() as i64, SIPFrameType::Pdu as u8);
+        SCLogDebug!("tc: pdu {:?}", _pdu);
+
         match sip_parse_response(input) {
             Ok((_, response)) => {
+                sip_frames_tc(flow, &stream_slice, &response);
                 let mut tx = self.new_tx();
                 tx.response = Some(response);
                 if let Ok((_, resp_line)) = sip_take_line(input) {
@@ -150,6 +172,35 @@ impl SIPTransaction {
             response_line: None,
             tx_data: applayer::AppLayerTxData::new(),
         }
+    }
+}
+
+
+fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request) {
+    let oi = stream_slice.as_slice();
+    let _f = Frame::new_ts(flow, stream_slice, oi, r.request_line_len as i64, SIPFrameType::RequestLine as u8);
+    SCLogDebug!("ts: request_line {:?}", _f);
+    let hi = &oi[r.request_line_len as usize ..];
+    let _f = Frame::new_ts(flow, stream_slice, hi, r.headers_len as i64, SIPFrameType::RequestHeaders as u8);
+    SCLogDebug!("ts: request_headers {:?}", _f);
+    if r.body_len > 0 {
+        let bi = &oi[r.body_offset as usize ..];
+        let _f = Frame::new_ts(flow, stream_slice, bi, r.body_len as i64, SIPFrameType::RequestBody as u8);
+        SCLogDebug!("ts: request_body {:?}", _f);
+    }
+}
+
+fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response) {
+    let oi = stream_slice.as_slice();
+    let _f = Frame::new_tc(flow, stream_slice, oi, r.response_line_len as i64, SIPFrameType::ResponseLine as u8);
+    let hi = &oi[r.response_line_len as usize ..];
+    SCLogDebug!("tc: response_line {:?}", _f);
+    let _f = Frame::new_tc(flow, stream_slice, hi, r.headers_len as i64, SIPFrameType::ResponseHeaders as u8);
+    SCLogDebug!("tc: response_headers {:?}", _f);
+    if r.body_len > 0 {
+        let bi = &oi[r.body_offset as usize ..];
+        let _f = Frame::new_tc(flow, stream_slice, bi, r.body_len as i64, SIPFrameType::ResponseBody as u8);
+        SCLogDebug!("tc: response_body {:?}", _f);
     }
 }
 
@@ -232,26 +283,26 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(
-    _flow: *const core::Flow,
+    flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_request(stream_slice.as_slice()).into()
+    state.parse_request(flow, stream_slice).into()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_response(
-    _flow: *const core::Flow,
+    flow: *const core::Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_response(stream_slice.as_slice()).into()
+    state.parse_response(flow, stream_slice).into()
 }
 
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
@@ -289,8 +340,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(SIPFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(SIPFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
