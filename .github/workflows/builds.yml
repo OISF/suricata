@@ -1459,7 +1459,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -v
 
   windows-msys2-mingw64-npcap:
     name: Windows MSYS2 MINGW64 (NPcap)
