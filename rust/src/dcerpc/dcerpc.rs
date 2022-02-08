@@ -342,8 +342,6 @@ pub struct DCERPCState {
     pub query_completed: bool,
     pub data_needed_for_dir: u8,
     pub prev_dir: u8,
-    pub prev_tx_call_id: u32,
-    pub clear_bind_cache: bool,
     pub ts_gap: bool,
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
@@ -369,8 +367,6 @@ impl DCERPCState {
             query_completed: false,
             data_needed_for_dir: core::STREAM_TOSERVER,
             prev_dir: core::STREAM_TOSERVER,
-            prev_tx_call_id: 0,
-            clear_bind_cache: false,
             ts_gap: false,
             tc_gap: false,
             ts_ssn_gap: false,
@@ -579,19 +575,6 @@ impl DCERPCState {
             }
         }
         None
-    }
-
-    pub fn handle_bind_cache(&mut self, call_id: u32, is_response: bool) {
-        if self.clear_bind_cache == true {
-            self.bind = None;
-            self.bindack = None;
-        }
-        if self.prev_tx_call_id == call_id && is_response == true {
-            self.clear_bind_cache = true;
-        } else {
-            self.clear_bind_cache = false;
-        }
-        self.prev_tx_call_id = call_id;
     }
 
     pub fn parse_data_gap(&mut self, direction: u8) -> AppLayerResult {
@@ -1068,7 +1051,6 @@ impl DCERPCState {
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
-                    self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
                     retval = self.process_bindack_pdu(&buffer[parsed as usize..]);
@@ -1089,7 +1071,6 @@ impl DCERPCState {
                     if let Some(flow) = self.flow {
                         sc_app_layer_parser_trigger_raw_stream_reassembly(flow, core::STREAM_TOCLIENT.into());
                     }
-                    self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_REQUEST => {
                     retval = self.process_request_pdu(&buffer[parsed as usize..]);
@@ -1098,7 +1079,6 @@ impl DCERPCState {
                     }
                     // In case the response came first, the transaction would complete later when
                     // the corresponding request also comes through
-                    self.handle_bind_cache(current_call_id, false);
                 }
                 DCERPC_TYPE_RESPONSE => {
                     let transaction = self.get_tx_by_call_id(current_call_id, core::STREAM_TOCLIENT);
@@ -1120,7 +1100,6 @@ impl DCERPCState {
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
-                    self.handle_bind_cache(current_call_id, true);
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type: {:?}", x);
