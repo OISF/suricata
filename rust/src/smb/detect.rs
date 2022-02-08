@@ -19,6 +19,7 @@ use std::ptr;
 use crate::core::*;
 use crate::smb::smb::*;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
+use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
