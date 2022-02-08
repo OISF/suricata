@@ -39,6 +39,17 @@ pub struct StreamSlice {
 }
 
 impl StreamSlice {
+
+    /// Create a StreamSlice from a Rust slice. Useful in unit tests.
+    pub fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
+        Self {
+            input: slice.as_ptr() as *const u8,
+            input_len: slice.len() as u32,
+            flags,
+            offset
+        }
+    }
+
     pub fn is_gap(&self) -> bool {
         self.input.is_null() && self.input_len > 0
     }
