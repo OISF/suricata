@@ -978,27 +978,25 @@ void AppLayerRegisterGlobalCounters(void)
 void AppLayerSetupCounters()
 {
     uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    uint8_t ipproto;
-    AppProto alproto;
     AppProto alprotos[ALPROTO_MAX];
     const char *str = "app_layer.flow.";
     const char *estr = "app_layer.error.";
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
-    for (ipproto = 0; ipproto < IPPROTOS_MAX; ipproto++) {
-        uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
-        uint8_t other_ipproto = (ipprotos[ipproto] == IPPROTO_TCP) ? IPPROTO_UDP : IPPROTO_TCP;
-        const char *ipproto_suffix = (ipprotos[ipproto] == IPPROTO_TCP) ? "_tcp" : "_udp";
+    for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
+        const uint8_t ipproto = ipprotos[p];
+        const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
+        const uint8_t other_ipproto = ipproto == IPPROTO_TCP ? IPPROTO_UDP : IPPROTO_TCP;
+        const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
 
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
 
-                if (AppLayerParserProtoIsRegistered(ipprotos[ipproto], alproto) &&
-                    AppLayerParserProtoIsRegistered(other_ipproto, alproto))
-                {
+                if (AppLayerParserProtoIsRegistered(ipproto, alproto) &&
+                        AppLayerParserProtoIsRegistered(other_ipproto, alproto)) {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s%s", str, alproto_str, ipproto_suffix);
