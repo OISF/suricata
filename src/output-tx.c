@@ -423,8 +423,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 op_thread_data->filedata);
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (txd && AppLayerParserSupportsFiles(p->proto, alproto) &&
-                (op_thread_data->file || op_thread_data->filedata)) {
+        if (txd && (op_thread_data->file || op_thread_data->filedata) &&
+                AppLayerParserSupportsFiles(p->proto, alproto))
+        {
             OutputTxLogFiles(tv,
                     op_thread_data->file, op_thread_data->filedata,
                     p, f, tx, tx_id, txd, tx_progress_ts, tx_progress_tc, tx_complete,
