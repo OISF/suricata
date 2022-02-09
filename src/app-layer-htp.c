@@ -171,6 +171,7 @@ SCEnumCharMap http_decoder_event_table[] = {
     { NULL, -1 },
 };
 
+/* app-layer-frame-documentation tag start: HttpFrameTypes */
 enum HttpFrameTypes {
     HTTP_FRAME_REQUEST,
     HTTP_FRAME_RESPONSE,
@@ -187,6 +188,7 @@ SCEnumCharMap http_frame_table[] = {
     },
     { NULL, -1 },
 };
+/* app-layer-frame-documentation tag end: HttpFrameTypes */
 
 static int HTTPGetFrameIdByName(const char *frame_name)
 {
@@ -2088,6 +2090,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
     SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
             (uint64_t)hstate->conn->in_data_counter);
 
+    /* app-layer-frame-documentation tag start: frame registration http request */
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 0, HTTP_FRAME_REQUEST);
     if (frame) {
@@ -2095,6 +2098,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         hstate->request_frame_id = frame->id;
         AppLayerFrameSetTxId(frame, HtpGetActiveRequestTxID(hstate));
     }
+    /* app-layer-frame-documentation tag end: frame registration http request */
 
     if (hstate->cfg)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
@@ -2172,6 +2176,7 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
     const uint64_t abs_right_edge =
             hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
 
+    /* app-layer-frame-documentation tag start: updating frame->len */
     if (hstate->request_frame_id > 0) {
         Frame *frame = AppLayerFrameGetById(hstate->f, 0, hstate->request_frame_id);
         if (frame) {
@@ -2182,6 +2187,7 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
             SCLogDebug("frame %p/%" PRIi64 " setting len to  %" PRIu64, frame, frame->id,
                     request_size);
             frame->len = (int64_t)request_size;
+            /* app-layer-frame-documentation tag end: updating frame->len */
         }
         hstate->request_frame_id = 0;
     }
@@ -3210,8 +3216,10 @@ void RegisterHTPParsers(void)
                 IPPROTO_TCP, ALPROTO_HTTP1, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
         AppLayerParserRegisterParserAcceptableDataDirection(
                 IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_TOCLIENT);
+        /* app-layer-frame-documentation tag start: registering relevant callbacks */
         AppLayerParserRegisterGetFrameFuncs(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTTPGetFrameIdByName, HTTPGetFrameNameById);
+        /* app-layer-frame-documentation tag end: registering relevant callbacks */
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
