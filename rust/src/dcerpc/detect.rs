@@ -159,35 +159,17 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
         }
     };
 
-    match split_args.len() {
-        1 => {}
-        2 => match split_args[1] {
-            "any_frag" => {
-                any_frag = 1;
-            }
-            _ => {
-                op_version = match extract_op_version(split_args[1]) {
-                    Ok((op, ver)) => (op, ver),
-                    _ => {
-                        return Err(());
-                    }
-                };
-            }
-        },
-        3 => {
-            op_version = match extract_op_version(split_args[1]) {
+    for i in 1..split_args.len() {
+        let arg = split_args[i];
+        if arg == "any_frag" {
+            any_frag = 1
+        } else {
+            op_version = match extract_op_version(arg) {
                 Ok((op, ver)) => (op, ver),
                 _ => {
                     return Err(());
                 }
             };
-            if split_args[2] != "any_frag" {
-                return Err(());
-            }
-            any_frag = 1;
-        }
-        _ => {
-            return Err(());
         }
     }
 
