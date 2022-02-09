@@ -879,6 +879,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     needs: alma-8
+    steps:
       - name: Install dependencies
         run: |
           apt update
