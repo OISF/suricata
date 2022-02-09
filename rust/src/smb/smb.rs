@@ -54,6 +54,7 @@ use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
+// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum SMBFrameType {
     NBSSPdu,
@@ -69,6 +70,7 @@ pub enum SMBFrameType {
     SMB3Hdr,
     SMB3Data,
 }
+// app-layer-frame-documentation tag end: FrameType enum
 
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
@@ -1235,6 +1237,7 @@ impl SMBState {
         return consumed;
     }
 
+    // app-layer-frame-documentation tag start: add_frames functions
     fn add_nbss_ts_frames(
         &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
     ) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
@@ -1278,6 +1281,7 @@ impl SMBState {
         SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
         smb_pdu
     }
+    // app-layer-frame-documentation tag end: add_frames functions
 
     fn add_smb1_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb1_hdr = Frame::new_ts(flow, stream_slice, input, 32 as i64, SMBFrameType::SMB1Hdr as u8);
@@ -1408,6 +1412,7 @@ impl SMBState {
         return 0;
     }
 
+    // app-layer-frame-documentation tag start: parse_tcp_data_ts
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(
         &mut self, flow: *const Flow, stream_slice: &StreamSlice,
@@ -1496,6 +1501,7 @@ impl SMBState {
                                                 nbss_hdr.data,
                                                 nbss_hdr.length as i64,
                                             );
+                                    // app-layer-frame-documentation tag end: parse_tcp_data_ts
                                             self.add_smb1_ts_hdr_data_frames(
                                                 flow,
                                                 stream_slice,
