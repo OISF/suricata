@@ -27,8 +27,8 @@
 #ifndef __OUTPUT_JSON_FRAME_H__
 #define __OUTPUT_JSON_FRAME_H__
 
-void FrameJsonLogOneFrame(const Frame *frame, const Flow *f, const TcpStream *stream,
-        const Packet *p, JsonBuilder *jb);
+void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
+        const TcpStream *stream, const Packet *p, JsonBuilder *jb);
 void JsonFrameLogRegister(void);
 
 #endif /* __OUTPUT_JSON_FRAME_H__ */
