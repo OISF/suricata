@@ -37,6 +37,7 @@ pub struct DCEIfaceData {
     pub op: u8,
     pub version: u16,
     pub any_frag: u8,
+    pub preack: bool,
 }
 
 #[derive(Debug)]
@@ -152,6 +153,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     let split_args: Vec<&str> = arg.split(',').collect();
     let mut op_version = (0, 0);
     let mut any_frag: u8 = 0;
+    let mut preack = false;
     let if_uuid = match Uuid::parse_str(split_args[0]) {
         Ok(res) => res.as_bytes().to_vec(),
         _ => {
@@ -178,6 +180,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
         op: op_version.0,
         version: op_version.1,
         any_frag: any_frag,
+        preack
     })
 }
 
@@ -370,6 +373,7 @@ mod test {
             op: 3,
             version: 10,
             any_frag: 0,
+            preack: false,
         };
         let version = 10;
         assert_eq!(true, match_iface_version(version, &iface_data));
@@ -451,6 +455,19 @@ mod test {
         let arg = "12345678-1234-1234-1234-123456789ABC,>65535,any_frag";
         let iface_data = parse_iface_data(arg);
         assert_eq!(iface_data.is_err(), true);
+    }
+
+    #[test]
+    fn test_parse_iface_data_preack() {
+        let expected_uuid = String::from("12345678-1234-1234-1234-123456789ABC").to_lowercase();
+        let arg = "12345678-1234-1234-1234-123456789ABC, preack";
+        let iface_data = parse_iface_data(arg).unwrap();
+
+        let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
+        let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+        assert_eq!(expected_uuid, uuid);
+        assert_eq!(iface_data.preack, true);
+
     }
 
     #[test]
