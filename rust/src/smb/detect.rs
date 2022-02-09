@@ -193,8 +193,8 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
     for i in ifaces {
         SCLogDebug!("stored UUID {:?} acked {} ack_result {}", i, i.acked, i.ack_result);
 
-        if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
-            if match_version(if_op as u8, if_version as u16, i.ver) {
+        if (dce_data.preack && !i.acked) || (i.acked && i.ack_result == 0) {
+             if i.uuid == if_uuid && match_version(if_op as u8, if_version as u16, i.ver) {
                 return 1;
             }
         }
