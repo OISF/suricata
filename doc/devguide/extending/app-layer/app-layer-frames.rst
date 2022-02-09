@@ -74,7 +74,8 @@ Rust
 .. literalinclude:: ../../../../rust/src/smb/smb.rs
     :caption: rust/src/smb/smb.rs
     :language: rust
-    :start-at: #[derive(AppLayerFrameType)]
+    :start-after: // app-layer-frame-documentation tag start: FrameType enum
+    :end-before: // app-layer-frame-documentation tag end: FrameType enum
     :lines: 1-15
 
 How some frames are registered in the `SMB <https://github.com/OISF/suricata/blob/master/rust/src/smb/smb.rs>`_ parser:
@@ -82,9 +83,9 @@ How some frames are registered in the `SMB <https://github.com/OISF/suricata/blo
 .. literalinclude:: ../../../../rust/src/smb/smb.rs
     :caption: rust/src/smb/smb.rs
     :language: rust
-    :start-at: pub fn parse_tcp_data_ts<'b>
-    :end-before: self.add_smb1_ts_hdr_data_frames
-    :lines: 1-4, 58-87
+    :start-after: // app-layer-frame-documentation tag start: parse_tcp_data_ts
+    :end-before: // app-layer-frame-documentation tag end: parse_tcp_data_ts
+    :lines: 2-5, 59-
     :dedent: 4
 
 These are the frame registration functions highlighted above:
@@ -92,8 +93,8 @@ These are the frame registration functions highlighted above:
 .. literalinclude:: ../../../../rust/src/smb/smb.rs
     :caption: rust/src/smb/smb.rs
     :language: rust
-    :start-at: fn add_nbss_ts_frames(
-    :end-before: fn add_smb1_ts_hdr_data
+    :start-after: // app-layer-frame-documentation tag start: add_frames functions
+    :end-before: // app-layer-frame-documentation tag end: add_frames functions
     :dedent: 4
 
 The parameters represent:
@@ -130,8 +131,8 @@ Frame registering with the `telnet <https://github.com/OISF/suricata/blob/master
 .. literalinclude:: ../../../../rust/src/telnet/telnet.rs
     :caption: rust/src/telnet/telnet.rs
     :language: rust
-    :start-at: fn parse_request
-    :end-at: TelnetFrameType::Data as u8,
+    :start-after: // app-layer-frame-documentation tag start: parse_request
+    :end-before: // app-layer-frame-documentation tag end: parse_request
     :lines: 1-3, 22-49
     :dedent: 4
 
@@ -140,8 +141,8 @@ We then update length later on (note especially lines 3 and 10):
 .. literalinclude:: ../../../../rust/src/telnet/telnet.rs
     :caption: rust/src/telnet/telnet.rs
     :language: rust
-    :start-at: match parser::parse_message(start)
-    :end-at: frame.set_len(flow, 0, consumed as i64);
+    :start-after: // app-layer-frame-documentation tag start: update frame_len
+    :end-before: // app-layer-frame-documentation tag end: update frame_len
     :linenos:
     :dedent: 12
 
@@ -154,25 +155,24 @@ Defining the frame types with the enum means:
 
 .. literalinclude:: ../../../../src/app-layer-htp.c
     :caption: src/app-layer-htp.c
-    :start-at: enum HttpFrameTypes
-    :end-before: static int HTTPGetFrameId
+    :start-after: /* app-layer-frame-documentation tag start: HttpFrameTypes
+    :end-before: /* app-layer-frame-documentation tag end: HttpFrameTypes 
     :lines: 1-16
 
 The HTTP parser uses the Frame registration functions from the C API (``app-layer-frames.c``) directly for registering request Frames. Here we also don't know the length yet. The ``0`` indicates flow direction: ``toserver``, and ``1`` would be used for ``toclient``:
 
 .. literalinclude:: ../../../../src/app-layer-htp.c
     :caption: src/app-layer-htp.c
-    :start-after: (uint64_t)hstate->conn->in_data_counter);
-    :end-before: if (hstate->cfg)
-    :lines: 2-8
+    :start-after: /* app-layer-frame-documentation tag start: frame registration http request 
+    :end-before: /* app-layer-frame-documentation tag end: frame registration http request
     :dedent: 4
 
 Updating ``frame->len`` later:
 
 .. literalinclude:: ../../../../src/app-layer-htp.c
     :caption: src/app-layer-htp.c
-    :start-at: if (hstate->request_frame_id > 0) {
-    :end-before: hstate->request_frame_id = 0;
+    :start-after: /* app-layer-frame-documentation tag start: updating frame->len
+    :end-before: /* app-layer-frame-documentation tag end: updating frame->len
     :dedent: 4
 
 Register relevant callbacks (not that these will have to be written, for C):
@@ -180,8 +180,8 @@ Register relevant callbacks (not that these will have to be written, for C):
 .. literalinclude:: ../../../../src/app-layer-htp.c
     :caption: src/app-layer-htp.c
     :language: c
-    :start-at: AppLayerParserRegisterGetFrameFuncs
-    :end-at: FrameNameById);
+    :start-after: /* app-layer-frame-documentation tag start: registering relevant callbacks
+    :end-before: /* app-layer-frame-documentation tag end: registering relevant callbacks
     :dedent: 8
 
 Visual context
