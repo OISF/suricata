@@ -141,6 +141,7 @@ impl TelnetState {
         None
     }
 
+    // app-layer-frame-documentation tag start: parse_request
     fn parse_request(
         &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
     ) -> AppLayerResult {
@@ -191,10 +192,12 @@ impl TelnetState {
                             -1 as i64,
                             TelnetFrameType::Data as u8,
                         )
+                    // app-layer-frame-documentation tag end: parse_request
                     };
                     self.request_specific_frame = f;
                 }
             }
+            // app-layer-frame-documentation tag start: update frame_len
             match parser::parse_message(start) {
                 Ok((rem, request)) => {
                     let consumed = start.len() - rem.len();
@@ -205,6 +208,7 @@ impl TelnetState {
 
                     if let Some(frame) = &self.request_frame {
                         frame.set_len(flow, 0, consumed as i64);
+                        // app-layer-frame-documentation tag end: update frame_len
                         self.request_frame = None;
                     }
                     if let Some(frame) = &self.request_specific_frame {

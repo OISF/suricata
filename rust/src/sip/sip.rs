@@ -26,6 +26,7 @@ use nom7::Err;
 use std;
 use std::ffi::CString;
 
+// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum SIPFrameType {
     Pdu,
@@ -36,6 +37,7 @@ pub enum SIPFrameType {
     RequestBody,
     ResponseBody,
 }
+// app-layer-frame-documentation tag end: FrameType enum
 
 #[derive(AppLayerEvent)]
 pub enum SIPEvent {
@@ -107,6 +109,7 @@ impl SIPState {
         }
     }
 
+    // app-layer-frame-documentation tag start: parse_request
     fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new_ts(
@@ -129,6 +132,7 @@ impl SIPState {
                 self.transactions.push(tx);
                 return true;
             }
+            // app-layer-frame-documentation tag end: parse_request
             Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
                 return false;
@@ -181,7 +185,7 @@ impl SIPTransaction {
     }
 }
 
-
+// app-layer-frame-documentation tag start: function to add frames
 fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new_ts(
@@ -213,6 +217,7 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
         SCLogDebug!("ts: request_body {:?}", _f);
     }
 }
+// app-layer-frame-documentation tag end: function to add frames
 
 fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response) {
     let oi = stream_slice.as_slice();
