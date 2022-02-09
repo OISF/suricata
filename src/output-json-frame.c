@@ -212,20 +212,26 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
 }
 
 // TODO separate between stream_offset and frame_offset
-void FrameJsonLogOneFrame(const Frame *frame, const Flow *f, const TcpStream *stream,
-        const Packet *p, JsonBuilder *jb)
+/** \brief log a single frame
+ *  \note ipproto argument is passed to assist static code analyzers
+ */
+void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
+        const TcpStream *stream, const Packet *p, JsonBuilder *jb)
 {
+    DEBUG_VALIDATE_BUG_ON(ipproto != p->proto);
+    DEBUG_VALIDATE_BUG_ON(ipproto != f->proto);
+
     jb_open_object(jb, "frame");
-    jb_set_string(jb, "type", AppLayerParserGetFrameNameById(f->proto, f->alproto, frame->type));
+    jb_set_string(jb, "type", AppLayerParserGetFrameNameById(ipproto, f->alproto, frame->type));
     jb_set_uint(jb, "id", frame->id);
     jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
 
-    if (f->proto == IPPROTO_TCP) {
+    if (ipproto == IPPROTO_TCP) {
         DEBUG_VALIDATE_BUG_ON(stream == NULL);
         int64_t abs_offset = frame->rel_offset + (int64_t)STREAM_BASE_OFFSET(stream);
         jb_set_uint(jb, "stream_offset", (uint64_t)abs_offset);
 
-        if (f->proto == IPPROTO_TCP && frame->len < 0) {
+        if (frame->len < 0) {
             uint64_t usable = StreamTcpGetUsable(stream, true);
             uint64_t len = usable - abs_offset;
             jb_set_uint(jb, "length", len);
@@ -270,7 +276,7 @@ static int FrameJsonUdp(
             return TM_ECODE_OK;
 
         jb_set_string(jb, "app_proto", AppProtoToString(f->alproto));
-        FrameJsonLogOneFrame(frame, p->flow, NULL, p, jb);
+        FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb);
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
         frame->flags |= FRAME_FLAG_LOGGED;
@@ -345,7 +351,7 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
                 return TM_ECODE_OK;
 
             jb_set_string(jb, "app_proto", AppProtoToString(p->flow->alproto));
-            FrameJsonLogOneFrame(frame, p->flow, stream, p, jb);
+            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb);
             OutputJsonBuilderBuffer(jb, aft->ctx);
             jb_free(jb);
             frame->flags |= FRAME_FLAG_LOGGED;
