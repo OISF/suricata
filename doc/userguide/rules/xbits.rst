@@ -8,8 +8,6 @@ Syntax::
     xbits:<set|unset|isset|isnotset|toggle>,<name>,track <ip_src|ip_dst|ip_pair>;
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
         [,expire <seconds>];
-    xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
-        [,expire <seconds>];
 
 Notes
 ~~~~~
@@ -21,9 +19,13 @@ Notes
    ``track ip_dst``, if you want to match on the server response,
    you check it (``isset``) with ``track ip_src``.
 
--  To not alert, use ``noalert;``
+-  To not alert, use ``xbits:noalert;``, it can only be used as a standalone
+   option like ``flowbits``.
 
-- the ``toggle`` option will flip the value of the xbits.
+-  the ``toggle`` option will flip the value of the xbits.
+
+-  the order of options is strict, therefore, using ``expire`` option before
+   ``track`` for example shall be considered invalid
 
 -  See also:
 
