@@ -500,18 +500,11 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
 static void SigNumArrayPrint(void *tmp)
 {
     SigNumArray *sna = (SigNumArray *)tmp;
-    uint32_t u;
-
-    for (u = 0; u < sna->size; u++) {
+    for (uint32_t u = 0; u < sna->size; u++) {
         uint8_t bitarray = sna->array[u];
-        uint8_t i = 0;
-
-        for (; i < 8; i++) {
+        for (uint8_t i = 0; i < 8; i++) {
             if (bitarray & 0x01)
-                printf(", %"PRIu32"", u * 8 + i);
-            else
-                printf(", ");
-
+                printf("%" PRIu32 " ", u * 8 + i);
             bitarray = bitarray >> 1;
         }
     }
