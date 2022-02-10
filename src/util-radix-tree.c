@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1587,27 +1587,23 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
     if (node->prefix != NULL) {
         for (i = 0; i * 8 < node->prefix->bitlen; i++)
             printf("%s%d", (0 == i ? "" : "."), node->prefix->stream[i]);
-        printf(")\n");
+        printf(") user_data %p\n", node->prefix->user_data);
 
-        SCRadixUserData *ud = NULL;
-        if (PrintData != NULL) {
-            do {
-                ud = node->prefix->user_data;
-                printf(" [%d], ", ud->netmask);
+        SCRadixUserData *ud = node->prefix->user_data;
+        do {
+            for (int x = 0; x <= level; x++)
+                printf("   ");
+            printf("[%d] (%p): ", ud->netmask, ud->user);
+            if (PrintData != NULL) {
                 PrintData(ud->user);
-                ud = ud->next;
-            } while (ud != NULL);
-        } else {
-            //ud = node->prefix->user_data;
-            //while (ud != NULL) {
-            //    printf(" [nm %d with data], ", ud->netmask);
-            //    ud = ud->next;
-            //}
-            printf("No print function provided");
-        }
-        printf("\n");
+            } else {
+                printf("NULL");
+            }
+            printf("\n");
+            ud = ud->next;
+        } while (ud != NULL);
     } else {
-        printf("NULL)\n");
+        printf("inter_node)\n");
     }
 
     return;
