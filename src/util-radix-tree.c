@@ -2391,7 +2391,6 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
     SCRadixTree *tree = NULL;
     SCRadixNode *node[2];
     struct sockaddr_in servaddr;
-    int result = 1;
 
     tree = SCRadixCreateRadixTree(free, NULL);
 
@@ -2434,8 +2433,7 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.0", &servaddr.sin_addr) <= 0)
         return 0;
-    node[0] = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL,
-                                        24);
+    node[0] = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 24);
 
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.45", &servaddr.sin_addr) <= 0)
@@ -2451,26 +2449,34 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
         return 0;
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, NULL, 16);
 
+    SCRadixPrintTree(tree);
+
     /* test for the existance of a key */
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.53", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == node[0]);
+    SCRadixNode *found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT(found == node[0]);
 
+    SCLogDebug("search \"exact\" match for 192.171.128.45");
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.45", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4ExactMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == node[1]);
+    found = SCRadixFindKeyIPV4ExactMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT(found == node[1]);
 
+    SCLogDebug("search \"best\" match for 192.171.128.45");
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.45", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == node[1]);
+    found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT(found == node[1]);
 
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.78", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == node[0]);
+    found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT(found == node[0]);
 
     /* let us remove a netblock */
     memset(&servaddr, 0, sizeof(servaddr));
@@ -2481,16 +2487,16 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.128.78", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == NULL);
+    found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT_NULL(found);
 
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.171.127.78", &servaddr.sin_addr) <= 0)
         return 0;
-    result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL) == NULL);
+    found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
+    FAIL_IF_NOT_NULL(found);
 
-    SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 static int SCRadixTestIPV4NetblockInsertion11(void)
