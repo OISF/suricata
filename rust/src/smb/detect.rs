@@ -297,6 +297,7 @@ fn parse_cmd_data(arg: &str) -> Result<SmbCmdData, ()> {
     let mut cmd_codes2 = HashSet::new();
 
     for cmd in split_args.iter() {
+        let cmd = cmd.trim();
 
         match str_to_u16(cmd) {
             Ok(cmd_code) =>  {
@@ -437,7 +438,7 @@ mod tests {
 
     #[test]
     fn test_parse_cmd_data() {
-        let option = "5,negotiate,0x8";
+        let option = "5,negotiate, 0x8";
 
         let cmd_names1 = gen_smb1_command_names();
         let cmd_names2 = gen_smb2_command_names();
