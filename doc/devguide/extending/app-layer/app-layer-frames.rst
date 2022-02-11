@@ -41,11 +41,14 @@ It is also important to keep follow naming conventions when defining Frame Types
 - ``request``: a message from a client to a server
 - ``response``: a message from a server to a client
 
-Once that is settled, the basic steps are:
+Basic steps
+~~~~~~~~~~~
+
+Once the frame types that make sense for a given protocol are defined, the basic steps for adding them are:
 
 - create an enum with the frame types;
 - identify the parsing function(s) where application layer records are parsed;
-- identify the correct moment to register the frames (when the input stream is being parsed into records);
+- identify the correct moment to register the frames;
 - use the Frame API calls directly or build upon them and use your functions to register the frames;
 - register the relevant frame callbacks when registering the parser.
 
@@ -61,8 +64,8 @@ With frame support, one is able to do::
 
     alert smb ... flow:to_server; frame:smb1.data; content:"some smb 1 issue";
 
-Implementation & API Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Implementation Examples & API Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Though the steps are the same, there are a few differences when implementing frame support in Rust or in C. The following sections elaborate on that, as well as on the process itself. (Note that the code snippets have omitted portions of code that weren't so relevant to this document).
 
@@ -78,7 +81,7 @@ Rust
     :end-before: // app-layer-frame-documentation tag end: FrameType enum
     :lines: 1-15
 
-How some frames are registered in the `SMB <https://github.com/OISF/suricata/blob/master/rust/src/smb/smb.rs>`_ parser:
+**Frame registering**. Some understanding of the parser will be needed in order to find where the frames should be registered. It makes sense that it will happen when the input stream is being parsed into records. See how some of the SMB frames are registered in the `SMB parser <https://github.com/OISF/suricata/blob/master/rust/src/smb/smb.rs>`_:
 
 .. literalinclude:: ../../../../rust/src/smb/smb.rs
     :caption: rust/src/smb/smb.rs
@@ -88,7 +91,7 @@ How some frames are registered in the `SMB <https://github.com/OISF/suricata/blo
     :lines: 2-5, 59-
     :dedent: 4
 
-These are the frame registration functions highlighted above:
+**Use the Frame API or build upon them as needed**. These are the frame registration functions highlighted above:
 
 .. literalinclude:: ../../../../rust/src/smb/smb.rs
     :caption: rust/src/smb/smb.rs
@@ -96,26 +99,6 @@ These are the frame registration functions highlighted above:
     :start-after: // app-layer-frame-documentation tag start: add_frames functions
     :end-before: // app-layer-frame-documentation tag end: add_frames functions
     :dedent: 4
-
-The parameters represent:
-
-- ``flow``: dedicated data type, carries specific flow-related data
-- ``stream_slice``: dedicated data type, carries stream data, shown further bellow
-- ``frame_start``: a pointer to the start of the frame buffer in the stream (``cur_i`` in the SMB code snippet)
-- ``frame_len``: what we expect the frame length to be (the engine may need to wait until it has enough data. See what is done in the telnet snippet request frames registering)
-- ``frame_type``: type of frame it's being registering (defined in an enum, as shown further above)
-
-.. note:: on frame_len
-        
-    For protocols which search for an end of frame char, like telnet, indicate unknown length by passing ``-1``. Once the length is known, it must be updated. For those where length is a field in the record (e.g. *SMB*), the frame is set to match said length, even if that is bigger than the current input
-
-``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition  is found in *applayer.rs*:
-
-.. literalinclude:: ../../../../rust/src/applayer.rs
-    :caption: rust/src/applayer.rs
-    :language: rust
-    :start-at: pub struct StreamSlice
-    :end-before: impl StreamSlice
 
 **Register relevant frame callbacks.** As these are inferred from the ``#[derive(AppLayerFrameType)]`` statement, all that is needed is: 
 
@@ -126,7 +109,11 @@ The parameters represent:
    :end-at: ffi_name_from_id),
    :dedent: 8
 
-Frame registering with the `telnet <https://github.com/OISF/suricata/blob/master/rust/src/telnet/telnet.rs>`_ parser, when length is not known yet:
+.. note:: on frame_len
+        
+    For protocols which search for an end of frame char, like telnet, indicate unknown length by passing ``-1``. Once the length is known, it must be updated. For those where length is a field in the record (e.g. *SMB*), the frame is set to match said length, even if that is bigger than the current input
+
+The `telnet parser <https://github.com/OISF/suricata/blob/master/rust/src/telnet/telnet.rs>`_ has examples of using the Frame API directly for registering telnet frames, and also illustrates how that is done when length is not known yet:
 
 .. literalinclude:: ../../../../rust/src/telnet/telnet.rs
     :caption: rust/src/telnet/telnet.rs
@@ -145,6 +132,23 @@ We then update length later on (note especially lines 3 and 10):
     :end-before: // app-layer-frame-documentation tag end: update frame_len
     :linenos:
     :dedent: 12
+
+The Frame API calls parameters represent:
+
+- ``flow``: dedicated data type, carries specific flow-related data
+- ``stream_slice``: dedicated data type, carries stream data, shown further bellow
+- ``frame_start``: a pointer to the start of the frame buffer in the stream (``cur_i`` in the SMB code snippet)
+- ``frame_len``: what we expect the frame length to be (the engine may need to wait until it has enough data. See what is done in the telnet snippet request frames registering)
+- ``frame_type``: type of frame it's being registering (defined in an enum, as shown further above)
+
+``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition  is found in *applayer.rs*:
+
+.. literalinclude:: ../../../../rust/src/applayer.rs
+    :caption: rust/src/applayer.rs
+    :language: rust
+    :start-at: pub struct StreamSlice
+    :end-before: impl StreamSlice
+
 
 C code
 ------
@@ -175,7 +179,7 @@ Updating ``frame->len`` later:
     :end-before: /* app-layer-frame-documentation tag end: updating frame->len
     :dedent: 4
 
-Register relevant callbacks (not that these will have to be written, for C):
+Register relevant callbacks (note that the actual functions will also have to be written, for C):
 
 .. literalinclude:: ../../../../src/app-layer-htp.c
     :caption: src/app-layer-htp.c
