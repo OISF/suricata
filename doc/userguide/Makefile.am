@@ -47,6 +47,7 @@ SPHINX_BUILD = sphinx-build -q
 html:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
+	abs_top_srcdir=$(abs_top_srcdir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b html -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/html
@@ -54,6 +55,7 @@ html:
 _build/latex/Suricata.pdf:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
+	abs_top_srcdir=$(abs_top_srcdir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b latex -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/latex
@@ -74,6 +76,7 @@ pdf: userguide.pdf
 _build/man: manpages/suricata.rst manpages/suricatasc.rst manpages/suricatactl.rst manpages/suricatactl-filestore.rst
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
+	abs_top_srcdir=$(abs_top_srcdir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b man -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/man

@@ -148,7 +148,13 @@ else:
 
 def setup(app):
     # Generate images.
-    subprocess.check_call("./devguide/tools/generate-images.sh")
+    abs_top_srcdir = os.environ.get("abs_top_srcdir")
+    if abs_top_srcdir:
+        # We're running from automake, perhaps even an out of tree build.
+        generate_images = os.path.join(abs_top_srcdir, "doc/userguide/devguide/tools/generate-images.sh")
+    else:
+        generate_images = "./devguide/tools/generate-images.sh"
+    subprocess.check_call(generate_images)
     if not on_rtd:
         if hasattr(app, 'add_css_file'):
             app.add_css_file('css/suricata.css')
