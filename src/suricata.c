@@ -300,6 +300,9 @@ static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
 {
     char msg[SC_LOG_MAX_LOG_MSG_LEN];
     unw_cursor_t cursor;
+    /* Restore defaults for signals to avoid loops */
+    signal(SIGABRT, SIG_DFL);
+    signal(SIGSEGV, SIG_DFL);
     int r;
     if ((r = unw_init_local(&cursor, (unw_context_t *)(context)) != 0)) {
         fprintf(stderr, "unable to obtain stack trace: unw_init_local: %s\n", unw_strerror(r));
@@ -332,9 +335,8 @@ static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
     SCLogError(SC_ERR_SIGNAL, "%s", msg);
 
 terminate:
-    // Terminate with SIGABRT ... but first, restore that signal's default handling
-    signal(SIGABRT, SIG_DFL);
-    abort();
+    // Propagate signal to watchers, if any
+    kill(0, sig_num);
 }
 #undef UNW_LOCAL_ONLY
 #endif /* HAVE_LIBUNWIND */
