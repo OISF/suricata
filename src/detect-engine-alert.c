@@ -189,8 +189,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCLogDebug("sid %"PRIu32"", s->id);
 
     /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
-                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
+    if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num < s->num) {
         /* We just add it */
         p->alerts.alerts[p->alerts.cnt].num = s->num;
         p->alerts.alerts[p->alerts.cnt].action = s->action;
@@ -209,6 +208,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         const uint16_t target_pos = i + 1;
         const uint16_t space_post_target = packet_alert_max - 1 - i;
         const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
+        BUG_ON(to_move == 0);
         memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i,
                 (to_move * sizeof(PacketAlert)));
 
