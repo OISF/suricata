@@ -256,6 +256,7 @@ pub unsafe extern "C" fn rs_smb_cmd_free(ptr: *mut c_void) {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SmbCmdData (HashMap<u8, HashSet<u16>>);
 
 impl SmbCmdData {
@@ -428,4 +429,32 @@ fn gen_smb1_command_names() -> HashMap<&'static str, u16> {
     cmd_names1.insert("no_andx_command", 0xFFu16);
 
     return cmd_names1;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cmd_data() {
+        let option = "5,negotiate,0x8";
+
+        let cmd_names1 = gen_smb1_command_names();
+        let cmd_names2 = gen_smb2_command_names();
+
+        let mut cmd_codes1 = HashSet::new();
+        cmd_codes1.insert(5);
+        cmd_codes1.insert(*cmd_names1.get("negotiate").unwrap());
+        cmd_codes1.insert(0x8);
+
+        let mut cmd_codes2 = HashSet::new();
+        cmd_codes2.insert(5);
+        cmd_codes2.insert(*cmd_names2.get("negotiate").unwrap());
+        cmd_codes2.insert(0x8);
+
+        assert_eq!(
+            SmbCmdData::new(cmd_codes1, cmd_codes2),
+            parse_cmd_data(option).unwrap(),
+        );
+    }
 }
