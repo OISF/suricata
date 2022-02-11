@@ -765,6 +765,16 @@ waited for a detection thread. The remaining detection thread can
 become active.
 
 
+You can alter the per-thread stack-size if the default provided by
+your build system is too small. The default value is provided by
+your build system; we suggest setting the value to 8MB if the default
+value is too small.
+
+::
+
+  stack-size: 8MB
+
+
 In the option 'cpu affinity' you can set which CPU's/cores work on which
 thread. In this option there are several sets of threads. The management-,
 receive-, worker- and verdict-set. These are fixed names and can not be
