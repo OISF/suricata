@@ -233,24 +233,59 @@ static void PacketAlertInsertPos(DetectEngineThreadCtx *det_ctx, const Signature
 int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         Packet *p, uint64_t tx_id, uint8_t flags)
 {
+    SCLogDebug("sid %" PRIu32 "", s->id);
 
-    if (p->alerts.cnt == packet_alert_max)
-        return 0;
+    /* highly unlikely, but seems better to check */
+    BUG_ON(p->alerts.cnt > packet_alert_max);
 
-    SCLogDebug("sid %"PRIu32"", s->id);
+    if (p->alerts.cnt < packet_alert_max) {
+        /* It should be usually the last, so check it before iterating */
+        /* Same signatures can generate more than one alert, if it's a diff tx */
+        if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num <= s->num) {
+            /* We just add it */
+            PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, p->alerts.cnt);
+            SCLogDebug("Added signature %" PRIu32 " internal id %" PRIu32 " to packet %" PRIu64 "",
+                    s->id, s->num, p->pcap_cnt);
+        } else {
+            /* find position to insert */
+            uint16_t i = MemMovePacketAlertQueuePos(p, s);
+            PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
+            SCLogDebug("Added signature %" PRIu32 " to packet %" PRIu64 "", s->id, p->pcap_cnt);
+        }
 
-    /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
-                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
-        /* We just add it */
-        PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, p->alerts.cnt);
+        /* Update the count */
+        p->alerts.cnt++;
     } else {
-        uint16_t i = MemMovePacketAlertQueuePos(p, s);
-        PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
-    }
+        SCLogDebug("Reached packet_alert_max.");
+        /* If we reach packet_alert_max, remove lower priority
+         * rules and keep newer, higher priority ones.
+         * If Suri wants to append a signature whose priority is lower than the
+         * ones already queued and we are at packet_alert_max, it isn't queued. */
 
-    /* Update the count */
-    p->alerts.cnt++;
+        int16_t num_diff = s->num - p->alerts.alerts[p->alerts.cnt - 1].num;
+        if (num_diff == 0 || num_diff == -1) {
+            /* Replace last position in queue */
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
+                       ")  with higher priority signature %" PRIu32 " (%" PRIu32
+                       ") in packet %" PRIu64 "",
+                    p->alerts.alerts[p->alerts.cnt - 1].s->id,
+                    p->alerts.alerts[p->alerts.cnt - 1].num, s->id, s->num, p->pcap_cnt);
+            // TODO log to stats signature id that was discarded/replaced
+            PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, (p->alerts.cnt - 1));
+        } else if (num_diff < -1) {
+            /* If the new signature's internal id isn't equal/adjacent to the last one from the
+             * queue, find the correct position, to keep queue sorted by rule priority */
+            uint16_t i = MemMovePacketAlertQueuePos(p, s);
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " (%" PRIu32
+                       ") with higher priority signature %" PRIu32 " (%" PRIu32
+                       ") in packet %" PRIu64 "",
+                    p->alerts.alerts[i].s->id, p->alerts.alerts[i].num, s->id, s->num, p->pcap_cnt);
+            PacketAlertInsertPos(det_ctx, s, p, tx_id, flags, i);
+            // TODO log to stats signature id that was discarded/replaced
+        }
+        /* Don't update p->alerts.cnt here, already at max */
+        // TODO how do we take care of alerts that have drop action, in this case?
+    }
 
     return 0;
 }
@@ -383,7 +418,4 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     if (p->flow != NULL && p->alerts.cnt > 0) {
         FlowSetHasAlertsFlag(p->flow);
     }
-
 }
-
-
