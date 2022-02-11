@@ -2221,6 +2221,63 @@ static int SCRadixTestIPV6Removal08(void)
     return result;
 }
 
+/** Bug #5066
+ *
+ *  insert:
+ *      - 100.117.241.0/25:  100.117.241.0  - 100.117.241.127
+ *      - 100.117.241.0/26:  100.117.241.0  - 100.117.241.63
+ *
+ *  check:
+ *      - 100.117.241.64/26: 100.117.241.64 - 100.117.241.127
+ */
+
+static int SCRadixTestIPV4NetblockInsertion09a(void)
+{
+    struct sockaddr_in servaddr;
+    SCRadixNode *node = NULL;
+
+    SCLogDebug("setup tree");
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    FAIL_IF(inet_pton(AF_INET, "100.117.241.0", &servaddr.sin_addr) <= 0);
+    SCLogDebug("add 100.117.241.0/25");
+    SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, strdup("1"), 25);
+    SCRadixPrintTree(tree);
+    SCLogDebug("find 100.117.241.0/25");
+    char *r = NULL;
+    node = SCRadixFindKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, 25, (void **)&r);
+    FAIL_IF_NULL(node);
+    SCRadixPrintNodeInfo(node, 0, NULL);
+
+    SCLogDebug("add 100.117.241.0/26");
+    FAIL_IF(inet_pton(AF_INET, "100.117.241.0", &servaddr.sin_addr) <= 0);
+    SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, strdup("2"), 26);
+    SCRadixPrintTree(tree);
+    SCLogDebug("find 100.117.241.0/26");
+    node = SCRadixFindKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, 26, NULL);
+    FAIL_IF_NULL(node);
+    SCRadixPrintNodeInfo(node, 0, NULL);
+
+    SCLogDebug("find 100.117.241.64/26 (should fail)");
+    FAIL_IF(inet_pton(AF_INET, "100.117.241.64", &servaddr.sin_addr) <= 0);
+    node = SCRadixFindKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, 26, NULL);
+    FAIL_IF_NOT_NULL(node);
+    SCRadixPrintNodeInfo(node, 0, NULL);
+
+    SCLogDebug("add 100.117.241.64/26");
+    SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, strdup("3"), 26);
+    SCLogDebug("find 100.117.241.64/26 (should succeed)");
+    node = SCRadixFindKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, 26, NULL);
+    FAIL_IF_NULL(node);
+    SCRadixPrintNodeInfo(node, 0, NULL);
+
+    SCRadixPrintTree(tree);
+
+    SCRadixReleaseRadixTree(tree);
+    PASS;
+}
+
 static int SCRadixTestIPV4NetblockInsertion09(void)
 {
     SCRadixTree *tree = NULL;
@@ -4036,6 +4093,7 @@ void SCRadixRegisterTests(void)
     UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion09",
                    SCRadixTestIPV4NetblockInsertion09);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion09a", SCRadixTestIPV4NetblockInsertion09a);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion10",
                    SCRadixTestIPV4NetblockInsertion10);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion11",
