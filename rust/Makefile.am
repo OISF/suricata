@@ -1,11 +1,8 @@
 EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
-		dist/rust-bindings.h
-
-if HAVE_CARGO_VENDOR
-EXTRA_DIST +=	vendor
-endif
+		dist/rust-bindings.h \
+		vendor
 
 if !DEBUG
 RELEASE = --release
@@ -79,12 +76,8 @@ check:
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
-if HAVE_CARGO_VENDOR
 vendor:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ $(CARGO) vendor > /dev/null
-else
-vendor:
-endif
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
