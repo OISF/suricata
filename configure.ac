@@ -2305,21 +2305,6 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
-    # With Rust/Cargo 1.37 and greater, cargo-vendor is built-in.
-    AC_MSG_CHECKING(for cargo vendor support)
-    AS_VERSION_COMPARE([$cargo_version], [1.37.0],
-        [have_cargo_vendor="no"],
-        [have_cargo_vendor="yes"],
-        [have_cargo_vendor="yes"])
-    AC_MSG_RESULT($have_cargo_vendor)
-
-    # If Rust is older than 1.37, check for cargo-vendor as an
-    # external sub-command.
-    if test "x$have_cargo_vendor" != "xyes"; then
-        AC_CHECK_PROG(have_cargo_vendor_bin, cargo-vendor, yes, no)
-        have_cargo_vendor=$have_cargo_vendor_bin
-    fi
-
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
     if test -f "$srcdir/rust/dist/rust-bindings.h"; then
@@ -2368,7 +2353,6 @@ fi
 
     AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
     AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
-    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
            AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])
@@ -2589,7 +2573,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler version:                   ${rust_compiler_version}
   Cargo path:                              ${CARGO}
   Cargo version:                           ${cargo_version_output}
-  Cargo vendor:                            ${have_cargo_vendor}
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
