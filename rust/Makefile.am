@@ -71,7 +71,7 @@ endif
 distclean-local:
 	rm -f Cargo.lock
 
-maintainerclean-local:
+maintainer-clean-local:
 	rm -rf vendor gen
 
 check:
