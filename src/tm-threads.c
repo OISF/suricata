@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1734,6 +1734,26 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
     if (rc) {
         printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
         return TM_ECODE_FAILED;
+    }
+
+    if (threading_set_stack_size) {
+        /* Adjust thread stack size if configured */
+        SCLogDebug("Setting per-thread stack size to %ld", threading_set_stack_size);
+        rc = pthread_attr_setstacksize(&attr, threading_set_stack_size);
+        if (rc) {
+            printf("WARNING; unable to increase stack size to %" PRIu64 "\n",
+                    threading_set_stack_size);
+            return TM_ECODE_FAILED;
+        }
+#if DEBUG
+        {
+            size_t stack_size = 0;
+            if (pthread_attr_getstacksize(&attr, &stack_size)) {
+                printf("ERROR; return code from pthread_attr_getstacksize() is %" PRId32 "\n", rc);
+            }
+            SCLogNotice("stack size to %ld", stack_size);
+        }
+#endif
     }
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
