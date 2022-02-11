@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -113,6 +113,7 @@ int RunModeNeedsBypassManager(void);
 
 extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
+extern uint64_t threading_set_stack_size;
 
 extern int debuglog_enabled;
 
