@@ -28,6 +28,7 @@
 #include "flow-private.h"
 
 #include "util-profiling.h"
+#include "util-validate.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -182,47 +183,100 @@ static void PacketAlertRemove(Packet *p, uint16_t pos)
 int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         Packet *p, uint64_t tx_id, uint8_t flags)
 {
-    int i = 0;
+    SCLogDebug("sid %" PRIu32 "", s->id);
 
-    if (p->alerts.cnt == packet_alert_max)
-        return 0;
+    /* highly unlikely, but seems better to check */
+    BUG_ON(p->alerts.cnt > packet_alert_max);
 
-    SCLogDebug("sid %"PRIu32"", s->id);
+    if (p->alerts.cnt < packet_alert_max) {
+        /* It should be usually the last, so check it before iterating */
+        /* Same signatures can generate more than one alert, if it's a diff tx */
+        if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num <= s->num) {
+            /* We just add it */
+            p->alerts.alerts[p->alerts.cnt].num = s->num;
+            p->alerts.alerts[p->alerts.cnt].action = s->action;
+            p->alerts.alerts[p->alerts.cnt].flags = flags;
+            p->alerts.alerts[p->alerts.cnt].s = s;
+            p->alerts.alerts[p->alerts.cnt].tx_id = tx_id;
+            p->alerts.alerts[p->alerts.cnt].frame_id =
+                    (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+            SCLogDebug("Added signature %" PRIu32 " to packet %" PRIu64 "", s->id, p->pcap_cnt);
+        } else {
+            /* find position to insert */
+            int16_t i = 0; /* signed, because we're decrementing */
+            for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--)
+                ;
 
-    /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
-                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
-        /* We just add it */
-        p->alerts.alerts[p->alerts.cnt].num = s->num;
-        p->alerts.alerts[p->alerts.cnt].action = s->action;
-        p->alerts.alerts[p->alerts.cnt].flags = flags;
-        p->alerts.alerts[p->alerts.cnt].s = s;
-        p->alerts.alerts[p->alerts.cnt].tx_id = tx_id;
-        p->alerts.alerts[p->alerts.cnt].frame_id =
-                (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+            i++; /* The right place to store the alert */
+
+            const uint16_t target_pos = i + 1;
+            const uint16_t space_post_target = packet_alert_max - 1 - i;
+            const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
+            DEBUG_VALIDATE_BUG_ON(to_move == 0);
+            memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i,
+                    (to_move * sizeof(PacketAlert)));
+            p->alerts.alerts[p->alerts.cnt].num = s->num;
+            p->alerts.alerts[i].action = s->action;
+            p->alerts.alerts[i].flags = flags;
+            p->alerts.alerts[i].s = s;
+            p->alerts.alerts[i].tx_id = tx_id;
+            p->alerts.alerts[i].frame_id =
+                    (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+            SCLogDebug("Added signature %" PRIu32 " to packet %" PRIu64 "", s->id, p->pcap_cnt);
+        }
+
+        /* Update the count */
+        p->alerts.cnt++;
     } else {
-        /* find position to insert */
-        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--)
-            ;
+        SCLogDebug("Reached packet_alert_max.");
+        /* If we reach packet_alert_max, remove lower priority
+         * rules and keep newer, higher priority ones.
+         * If Suri wants to append a signature whose priority is lower than the
+         * ones already queued and we are at packet_alert_max, it isn't queued. */
 
-        i++; /* The right place to store the alert */
+        int16_t num_diff = s->num - p->alerts.alerts[p->alerts.cnt - 1].num;
+        if (num_diff == 0 || num_diff == -1) {
+            /* Replace last position in queue */
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " with sid %" PRIu32
+                       " in packet %" PRIu64 "",
+                    p->alerts.alerts[p->alerts.cnt - 1].s->id, s->id, p->pcap_cnt);
+            p->alerts.alerts[p->alerts.cnt - 1].num = s->num;
+            p->alerts.alerts[p->alerts.cnt - 1].action = s->action;
+            p->alerts.alerts[p->alerts.cnt - 1].flags = flags;
+            p->alerts.alerts[p->alerts.cnt - 1].s = s;
+            p->alerts.alerts[p->alerts.cnt - 1].tx_id = tx_id;
+            p->alerts.alerts[p->alerts.cnt - 1].frame_id =
+                    (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+        } else if (num_diff < -1) {
+            /* If the new signature's internal id isn't equal/adjacent to the last one from the
+             * queue, find the correct position, to keep queue sorted by rule priority */
+            int16_t i = 0; /* signed, because we're decrementing */
+            for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--)
+                ;
 
-        const uint16_t target_pos = i + 1;
-        const uint16_t space_post_target = packet_alert_max - 1 - i;
-        const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
-        memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i,
-                (to_move * sizeof(PacketAlert)));
+            i++; /* The right place to store the alert */
 
-        p->alerts.alerts[i].num = s->num;
-        p->alerts.alerts[i].action = s->action;
-        p->alerts.alerts[i].flags = flags;
-        p->alerts.alerts[i].s = s;
-        p->alerts.alerts[i].tx_id = tx_id;
-        p->alerts.alerts[i].frame_id = (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+            const uint16_t target_pos = i + 1;
+            const uint16_t space_post_target = packet_alert_max - 1 - i;
+            const uint16_t to_move = MIN(space_post_target, (p->alerts.cnt - i));
+            DEBUG_VALIDATE_BUG_ON(to_move == 0);
+            memmove(p->alerts.alerts + target_pos, p->alerts.alerts + i,
+                    (to_move * sizeof(PacketAlert)));
+            p->alerts.alerts[p->alerts.cnt].num = s->num;
+            p->alerts.alerts[i].action = s->action;
+            p->alerts.alerts[i].flags = flags;
+            p->alerts.alerts[i].s = s;
+            p->alerts.alerts[i].tx_id = tx_id;
+            p->alerts.alerts[i].frame_id =
+                    (flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+            SCLogDebug("Replacing lower priority signature %" PRIu32 " with sid %" PRIu32
+                       " in packet %" PRIu64 "",
+                    p->alerts.alerts[i].s->id, s->id, p->pcap_cnt);
+        }
+        /* Don't update p->alerts.cnt here, already at max */
+        // TODO log to stats alerts that are discarded
+        // TODO how do we take care of alerts that have drop action, in this case?
     }
-
-    /* Update the count */
-    p->alerts.cnt++;
 
     return 0;
 }
@@ -355,7 +409,4 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     if (p->flow != NULL && p->alerts.cnt > 0) {
         FlowSetHasAlertsFlag(p->flow);
     }
-
 }
-
-
