@@ -1493,6 +1493,14 @@ threading:
   # thread will always be created.
   #
   detect-thread-ratio: 1.0
+  #
+  # By default, the per-thread stack size is left to its default setting. If
+  # the default thread stack size is too small, use the following configuration
+  # setting to change the size. Note that if any thread's stack size cannot be
+  # set to this value, a fatal error occurs.
+  #
+  # Generally, the per-thread stack-size should not exceed 8MB.
+  #stack-size: 8mb
 
 # Luajit has a strange memory requirement, it's 'states' need to be in the
 # first 2G of the process' memory.
