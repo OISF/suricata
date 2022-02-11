@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1721,7 +1721,7 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 {
     pthread_attr_t attr;
     if (tv->tm_func == NULL) {
-        printf("ERROR: no thread function set\n");
+        FatalError(SC_ERR_TM_THREADS_ERROR, "ERROR: no thread function set\n");
         return TM_ECODE_FAILED;
     }
 
@@ -1730,11 +1730,36 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+    /* Adjust thread stack size if configured */
+    if (threading_set_stack_size) {
+        SCLogDebug("Setting per-thread stack size to %" PRIu64, threading_set_stack_size);
+        if (pthread_attr_setstacksize(&attr, (size_t)threading_set_stack_size)) {
+            FatalError(SC_ERR_TM_THREADS_ERROR,
+                    "Unable to increase stack size to %" PRIu64 " in thread attributes",
+                    threading_set_stack_size);
+        }
+    }
+
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
     if (rc) {
-        printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
-        return TM_ECODE_FAILED;
+        FatalError(SC_ERR_THREAD_CREATE,
+                "Unable to create thread with pthread_create() is %" PRId32 "\n", rc);
     }
+
+#if DEBUG && HAVE_PTHREAD_GETATTR_NP
+    if (threading_set_stack_size) {
+        if (pthread_getattr_np(tv->t, &attr) == 0) {
+            size_t stack_size;
+            void *stack_addr;
+            pthread_attr_getstack(&attr, &stack_addr, &stack_size);
+            SCLogDebug("stack: %p;  size %" PRIu64, stack_addr, (uintmax_t)stack_size);
+        } else {
+            SCLogDebug("Unable to retrieve current stack-size for display; return code from "
+                       "pthread_getattr_np() is %" PRId32,
+                    rc);
+        }
+    }
+#endif
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
