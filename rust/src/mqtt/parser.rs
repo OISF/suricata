@@ -92,7 +92,7 @@ pub fn parse_mqtt_string_pair(i: &[u8]) -> IResult<&[u8], (String, String)> {
 // MESSAGE COMPONENTS
 
 #[inline]
-pub fn parse_property(i: &[u8]) -> IResult<&[u8], MQTTProperty> {
+fn parse_property(i: &[u8]) -> IResult<&[u8], MQTTProperty> {
     let (i, identifier) = parse_mqtt_variable_integer(i)?;
     let (i, value) = parse_qualified_property(i, identifier)?;
     Ok((i, value))
@@ -187,7 +187,7 @@ fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8,
 }
 
 #[inline]
-pub fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
+fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
     let (i, protocol_string) = parse_mqtt_string(i)?;
     let (i, protocol_version) = be_u8(i)?;
     let (i, flags) = parse_connect_variable_flags(i)?;
@@ -222,7 +222,8 @@ pub fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
     ))
 }
 
-pub fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTConnackData>
+#[inline]
+fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTConnackData>
 where
 {
     move |i: &[u8]| {
@@ -240,10 +241,10 @@ where
     }
 }
 
-pub fn parse_publish(
-    protocol_version: u8, has_id: bool,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData>
-where {
+#[inline]
+fn parse_publish(protocol_version: u8, has_id: bool) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData>
+where
+{
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
         let (i, message_id) = cond(has_id, be_u16)(i)?;
@@ -261,7 +262,8 @@ where {
 }
 
 #[inline]
-fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTMessageIdOnly> where
+fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTMessageIdOnly>
+where
 {
     move |input: &[u8]| {
         if protocol_version < 5 {
@@ -324,7 +326,7 @@ fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
 }
 
 #[inline]
-pub fn parse_msgidonly_v3(i: &[u8]) -> IResult<&[u8], MQTTMessageIdOnly> {
+fn parse_msgidonly_v3(i: &[u8]) -> IResult<&[u8], MQTTMessageIdOnly> {
     let (i, message_id) = be_u16(i)?;
     Ok((
         i,
@@ -337,16 +339,16 @@ pub fn parse_msgidonly_v3(i: &[u8]) -> IResult<&[u8], MQTTMessageIdOnly> {
 }
 
 #[inline]
-pub fn parse_subscribe_topic(i: &[u8]) -> IResult<&[u8], MQTTSubscribeTopicData> {
+fn parse_subscribe_topic(i: &[u8]) -> IResult<&[u8], MQTTSubscribeTopicData> {
     let (i, topic_name) = parse_mqtt_string(i)?;
     let (i, qos) = be_u8(i)?;
     Ok((i, MQTTSubscribeTopicData { topic_name, qos }))
 }
 
-pub fn parse_subscribe(
-    protocol_version: u8,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData>
-where {
+#[inline]
+fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData>
+where
+{
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -362,8 +364,10 @@ where {
     }
 }
 
-pub fn parse_suback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubackData>
-where {
+#[inline]
+fn parse_suback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubackData>
+where
+{
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (qoss, properties) = parse_properties(i, protocol_version == 5)?;
@@ -378,10 +382,10 @@ where {
     }
 }
 
-pub fn parse_unsubscribe(
-    protocol_version: u8,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData>
-where {
+#[inline]
+fn parse_unsubscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData>
+where
+{
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -397,8 +401,10 @@ where {
     }
 }
 
-pub fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData>
-where {
+#[inline]
+fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData>
+where
+{
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
@@ -415,10 +421,9 @@ where {
 }
 
 #[inline]
-fn parse_disconnect(
-    remaining_len: usize, protocol_version: u8,
-) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData>
-where {
+fn parse_disconnect(remaining_len: usize, protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData>
+where
+{
     move |input: &[u8]| {
         if protocol_version < 5 {
             return Ok((
@@ -474,7 +479,7 @@ where {
 }
 
 #[inline]
-pub fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
+fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
     let (i, reason_code) = be_u8(i)?;
     let (i, properties) = parse_properties(i, true)?;
     Ok((
