@@ -670,20 +670,20 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     if (ftd == NULL)
         return TM_ECODE_FAILED;
 
-    ftd->instance = SC_ATOMIC_ADD(flowmgr_cnt, 1);
+    /* Ensure instance is the value prior to the add */
+    ftd->instance = SC_ATOMIC_FETCH_AND_ADD(flowmgr_cnt, 1);
     SCLogDebug("flow manager instance %u", ftd->instance);
 
     /* set the min and max value used for hash row walking
      * each thread has it's own section of the flow hash */
     uint32_t range = flow_config.hash_size / flowmgr_number;
-    if (ftd->instance == 1)
-        ftd->max = range;
-    else if (ftd->instance == flowmgr_number) {
-        ftd->min = (range * (ftd->instance - 1));
+
+    ftd->min = ftd->instance * range;
+    ftd->max = (ftd->instance + 1) * range;
+
+    /* last flow-manager takes on hash_size % flowmgr_number extra rows */
+    if ((ftd->instance + 1) == flowmgr_number) {
         ftd->max = flow_config.hash_size;
-    } else {
-        ftd->min = (range * (ftd->instance - 1));
-        ftd->max = (range * ftd->instance);
     }
     BUG_ON(ftd->min > flow_config.hash_size || ftd->max > flow_config.hash_size);
 
