@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,6 +38,7 @@
 #include "detect-engine-address.h"
 
 #include "util-byte.h"
+#include "util-proto-name.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -121,13 +122,12 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
 
     /* Protocol name/number */
     if (!isdigit((unsigned char)*(args[1]))) {
-        struct protoent *pent = getprotobyname(args[1]);
-        if (pent == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol name: %s",
-                       str_ptr);
+        uint8_t proto;
+        if (!SCGetProtoByName(args[1], &proto)) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Unknown protocol name: \"%s\"", str_ptr);
             goto error;
         }
-        data->proto = (uint8_t)pent->p_proto;
+        data->proto = proto;
     }
     else {
         if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
