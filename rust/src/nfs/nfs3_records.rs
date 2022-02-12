@@ -437,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nfs2_response_lookup() {
+    fn test_nfs3_response_lookup() {
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, /*Status: NFS3_OK (0)*/
