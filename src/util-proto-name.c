@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -195,4 +195,23 @@ const char *known_proto[256] = {
 bool SCProtoNameValid(uint16_t proto)
 {
     return (proto <= 255 && known_proto[proto] != NULL);
+}
+
+/**
+ * \brief   Function to return the protocol number for a named protocol.
+ *
+ * \param proto Protocol name.
+ * \retval ret On success returns the protocol number; else -1
+ */
+int SCGetProtoByName(char *protoname)
+{
+    if (protoname) {
+        for (int i = 0; i <= 255; i++) {
+            if (known_proto[i] &&
+                    0 == strncasecmp(known_proto[i], protoname, strlen(known_proto[i]))) {
+                return i;
+            }
+        }
+    }
+    return -1;
 }
