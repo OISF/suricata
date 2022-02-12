@@ -2254,7 +2254,6 @@ fi
     fi
     RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
@@ -2300,19 +2299,14 @@ fi
 
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
-    if test -f "$srcdir/rust/dist/rust-bindings.h"; then
+    if test -f "$srcdir/rust/include/rust-bindings.h"; then
        AC_MSG_RESULT(yes)
        have_rust_headers="yes"
     else
        AC_MSG_RESULT(no)
-       AC_MSG_CHECKING(for $srcdir/rust/gen/rust-bindings.h)
-       if test -f "$srcdir/rust/gen/rust-bindings.h"; then
-           AC_MSG_RESULT(yes)
-           have_rust_headers="yes"
-       else
-           AC_MSG_RESULT(no)
-       fi
     fi
+
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/target/include -I\${srcdir}/../rust/include"
 
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
