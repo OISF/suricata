@@ -488,11 +488,9 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
 }
 #endif
 
-/**
- * SigNumArray is a bit array representing signatures
- * it can be used linked to src/dst address to indicate
- * which signatures apply to this addres
- * at IP Only we store SigNumArrays at the radix trees
+/** \brief user data for storing signature id's in the radix tree
+ *
+ *  Bit array representing signature internal id's (Signature::num).
  */
 typedef struct SigNumArray_ {
     uint8_t *array; /* bit array of sig nums */
