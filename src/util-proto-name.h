@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,13 @@
 extern const char *known_proto[256];
 
 bool SCProtoNameValid(uint16_t);
+bool SCGetProtoByName(const char *protoname, uint8_t *proto_number);
+void SCProtoNameInit(void);
+void SCProtoNameRelease(void);
+
+#ifdef UNITTESTS
+void SCProtoNameRegisterTests(void);
+#endif
 
 #endif	/* __UTIL_PROTO_NAME_H__ */
 
