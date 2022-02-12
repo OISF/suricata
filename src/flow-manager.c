@@ -667,14 +667,13 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     /* set the min and max value used for hash row walking
      * each thread has it's own section of the flow hash */
     uint32_t range = flow_config.hash_size / flowmgr_number;
-    if (ftd->instance == 0)
-        ftd->max = range;
-    else if ((ftd->instance + 1) == flowmgr_number) {
-        ftd->min = (range * ftd->instance) + 1;
+
+    ftd->min = ftd->instance * range;
+    ftd->max = (ftd->instance + 1) * range;
+
+    /* last flow-manager takes on hash_size % flowmgr_number extra rows */
+    if ((ftd->instance + 1) == flowmgr_number) {
         ftd->max = flow_config.hash_size;
-    } else {
-        ftd->min = (range * ftd->instance) + 1;
-        ftd->max = (range * (ftd->instance + 1));
     }
     BUG_ON(ftd->min > flow_config.hash_size || ftd->max > flow_config.hash_size);
 
