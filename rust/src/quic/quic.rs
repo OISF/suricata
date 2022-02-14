@@ -17,8 +17,8 @@
 
 use super::{
     cyu::Cyu,
-    parser::{QuicType, QuicData, QuicHeader},
     frames::{Frame, StreamTag},
+    parser::{QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -86,7 +86,9 @@ impl QuicState {
         self.transactions.iter().find(|&tx| tx.tx_id == tx_id + 1)
     }
 
-    fn new_tx(&mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>) -> QuicTransaction {
+    fn new_tx(
+        &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
+    ) -> QuicTransaction {
         let mut tx = QuicTransaction::new(header, data, sni, ua);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
@@ -118,8 +120,8 @@ impl QuicState {
                 Ok(data) => {
                     // no tx for the short header (data) frames
                     if header.ty != QuicType::Short {
-                        let mut sni : Option<Vec<u8>> = None;
-                        let mut ua : Option<Vec<u8>> = None;
+                        let mut sni: Option<Vec<u8>> = None;
+                        let mut ua: Option<Vec<u8>> = None;
                         for frame in &data.frames {
                             if let Frame::Stream(s) = frame {
                                 if let Some(tags) = &s.tags {
@@ -190,8 +192,7 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_parse(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
@@ -293,7 +294,6 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
-
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
