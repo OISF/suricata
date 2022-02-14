@@ -53,6 +53,8 @@ md-5 = "~0.9.1"
 regex = "~1.4.2"
 lazy_static = "~1.4.0"
 base64 = "~0.13.0"
+# the feature quic is needed by rustls::quic::Keys to "decrypt" the first quic packets
+rustls = { version="~0.20.3", features=["quic"] }
 
 suricata-derive = { path = "./derive" }
 
