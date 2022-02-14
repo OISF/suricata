@@ -135,6 +135,11 @@ if not on_rtd:
         html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     except:
         html_theme = 'default'
+    def setup(app):
+        if hasattr(app, 'add_css_file'):
+            app.add_css_file('css/suricata.css')
+        else:
+            app.add_stylesheet('css/suricata.css')
 else:
     html_context = {
         'css_files': [
@@ -143,15 +148,6 @@ else:
             '_static/css/suricata.css',
         ],
     }
-
-def setup(app):
-    # Generate images.
-    subprocess.check_call("./devguide/tools/generate-images.sh")
-    if not on_rtd:
-        if hasattr(app, 'add_css_file'):
-            app.add_css_file('css/suricata.css')
-        else:
-            app.add_stylesheet('css/suricata.css')
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

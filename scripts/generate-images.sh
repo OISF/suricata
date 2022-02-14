@@ -8,7 +8,7 @@ parent_path=$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)
 set -e
 
 cd "$parent_path"
-cd ../extending/app-layer/diagrams
+cd ../doc/userguide/devguide/extending/app-layer/diagrams
 
 for FILE in *.msc ; do
     # call mscgen and convert each file in images dir
