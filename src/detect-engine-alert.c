@@ -189,8 +189,10 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCLogDebug("sid %"PRIu32"", s->id);
 
     /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num < s->num) {
+    /* Same signatures can generate more than one alert, if it's a diff tx */
+    if (p->alerts.cnt == 0 || p->alerts.alerts[p->alerts.cnt - 1].num <= s->num) {
         /* We just add it */
+
         p->alerts.alerts[p->alerts.cnt].num = s->num;
         p->alerts.alerts[p->alerts.cnt].action = s->action;
         p->alerts.alerts[p->alerts.cnt].flags = flags;
