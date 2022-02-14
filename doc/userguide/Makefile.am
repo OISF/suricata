@@ -89,6 +89,5 @@ clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
 	rm -f $(top_builddir)/doc/userguide/suricata*.1
 	rm -f $(top_builddir)/doc/userguide/userguide.pdf
-	rm -f $(top_builddir)/doc/userguide/devguide/extending/app-layer/diagrams/*.png
 
 endif # HAVE_SPHINXBUILD
