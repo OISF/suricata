@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::quic::quic::{QuicTransaction};
+use crate::quic::quic::QuicTransaction;
 use std::ptr;
 
 #[no_mangle]
