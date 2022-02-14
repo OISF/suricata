@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+mod crypto;
 mod cyu;
 pub mod detect;
 mod error;
