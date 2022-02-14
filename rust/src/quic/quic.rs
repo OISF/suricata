@@ -18,7 +18,7 @@
 use super::{
     cyu::Cyu,
     frames::{Frame, StreamTag},
-    parser::{QuicData, QuicHeader, QuicType},
+    parser::{quic_pkt_num, quic_rustls_version, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -54,6 +54,7 @@ impl QuicTransaction {
 
 pub struct QuicState {
     max_tx_id: u64,
+    keys: Option<rustls::quic::Keys>,
     transactions: Vec<QuicTransaction>,
 }
 
@@ -61,6 +62,7 @@ impl Default for QuicState {
     fn default() -> Self {
         Self {
             max_tx_id: 0,
+            keys: None,
             transactions: Vec::new(),
         }
     }
@@ -114,44 +116,107 @@ impl QuicState {
         return None;
     }
 
-    fn parse(&mut self, input: &[u8]) -> bool {
-        match QuicHeader::from_bytes(input, DEFAULT_DCID_LEN) {
-            Ok((rest, header)) => match QuicData::from_bytes(rest) {
-                Ok(data) => {
-                    // no tx for the short header (data) frames
-                    if header.ty != QuicType::Short {
-                        let mut sni: Option<Vec<u8>> = None;
-                        let mut ua: Option<Vec<u8>> = None;
-                        for frame in &data.frames {
-                            if let Frame::Stream(s) = frame {
-                                if let Some(tags) = &s.tags {
-                                    for (tag, value) in tags {
-                                        if tag == &StreamTag::Sni {
-                                            sni = Some(value.to_vec());
-                                        } else if tag == &StreamTag::Uaid {
-                                            ua = Some(value.to_vec());
-                                        }
-                                        if sni.is_some() && ua.is_some() {
-                                            break;
+    fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
+        // so as to loop over multiple quic headers in one packet
+        let mut buf = input;
+        while buf.len() > 0 {
+            match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
+                Ok((rest, header)) => {
+                    // unprotect
+                    if self.keys.is_none() && header.ty == QuicType::Initial {
+                        if let Some(version) = quic_rustls_version(u32::from(header.version)) {
+                            let keys = rustls::quic::Keys::initial(version, &header.dcid, false);
+                            self.keys = Some(keys)
+                        }
+                    }
+                    if header.length > rest.len() {
+                        //TODO event whenever an error condition is met
+                        return false;
+                    }
+                    let (mut framebuf, next_buf) = rest.split_at(header.length);
+                    let mut rest2;
+                    if let Some(keys) = &self.keys {
+                        let hkey = if to_server {
+                            &keys.remote.header
+                        } else {
+                            &keys.local.header
+                        };
+                        if framebuf.len() < 4 + hkey.sample_len() {
+                            return false;
+                        }
+                        let hlen = buf.len() - rest.len();
+                        let mut h2 = Vec::with_capacity(hlen + header.length);
+                        h2.extend_from_slice(&buf[..hlen + header.length]);
+                        let mut h20 = h2[0];
+                        let mut pktnum_buf = Vec::with_capacity(4);
+                        pktnum_buf.extend_from_slice(&h2[hlen..hlen + 4]);
+                        let r1 = hkey.decrypt_in_place(
+                            &h2[hlen + 4..hlen + 4 + hkey.sample_len()],
+                            &mut h20,
+                            &mut pktnum_buf,
+                        );
+                        if !r1.is_ok() {
+                            return false;
+                        }
+                        // mutate one at a time
+                        h2[0] = h20;
+                        let _ = &h2[hlen..hlen + 4].copy_from_slice(&pktnum_buf);
+                        let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
+                        rest2 = Vec::with_capacity(framebuf.len() - (1 + ((h20 & 3) as usize)));
+                        if framebuf.len() < 1 + ((h20 & 3) as usize) {
+                            return false;
+                        }
+                        rest2.extend_from_slice(&framebuf[1 + ((h20 & 3) as usize)..]);
+                        let pkey = if to_server {
+                            &keys.remote.packet
+                        } else {
+                            &keys.local.packet
+                        };
+                        let r = pkey.decrypt_in_place(pkt_num, &h2[..hlen + 4], &mut rest2);
+                        if !r.is_ok() {
+                            return false;
+                        }
+                        framebuf = &rest2;
+                    }
+                    buf = next_buf;
+                    match QuicData::from_bytes(framebuf) {
+                        Ok(data) => {
+                            // no tx for the short header (data) frames
+                            if header.ty != QuicType::Short {
+                                let mut sni: Option<Vec<u8>> = None;
+                                let mut ua: Option<Vec<u8>> = None;
+                                for frame in &data.frames {
+                                    if let Frame::Stream(s) = frame {
+                                        if let Some(tags) = &s.tags {
+                                            for (tag, value) in tags {
+                                                if tag == &StreamTag::Sni {
+                                                    sni = Some(value.to_vec());
+                                                } else if tag == &StreamTag::Uaid {
+                                                    ua = Some(value.to_vec());
+                                                }
+                                                if sni.is_some() && ua.is_some() {
+                                                    break;
+                                                }
+                                            }
                                         }
                                     }
                                 }
+
+                                let transaction = self.new_tx(header, data, sni, ua);
+                                self.transactions.push(transaction);
                             }
                         }
-
-                        let transaction = self.new_tx(header, data, sni, ua);
-                        self.transactions.push(transaction);
+                        Err(_e) => {
+                            return false;
+                        }
                     }
-                    return true;
                 }
                 Err(_e) => {
                     return false;
                 }
-            },
-            Err(_e) => {
-                return false;
             }
         }
+        return true;
     }
 }
 
@@ -190,14 +255,28 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_parse(
+pub unsafe extern "C" fn rs_quic_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
 
-    if state.parse(buf) {
+    if state.parse(buf, false) {
+        return AppLayerResult::ok();
+    }
+    return AppLayerResult::err();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_quic_parse_ts(
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, QuicState);
+    let buf = stream_slice.as_slice();
+
+    if state.parse(buf, true) {
         return AppLayerResult::ok();
     }
     return AppLayerResult::err();
@@ -275,8 +354,8 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         state_new: rs_quic_state_new,
         state_free: rs_quic_state_free,
         tx_free: rs_quic_state_tx_free,
-        parse_ts: rs_quic_parse,
-        parse_tc: rs_quic_parse,
+        parse_ts: rs_quic_parse_ts,
+        parse_tc: rs_quic_parse_tc,
         get_tx_count: rs_quic_state_get_tx_count,
         get_tx: rs_quic_state_get_tx,
         tx_comp_st_ts: 1,
