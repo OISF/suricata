@@ -18,8 +18,9 @@ use super::error::QuicError;
 use super::frames::Frame;
 use nom::bytes::complete::take;
 use nom::combinator::{all_consuming, map};
-use nom::number::complete::{be_u32, be_u8};
+use nom::number::complete::{be_u24, be_u32, be_u8};
 use nom::IResult;
+use std::convert::TryFrom;
 
 /*
    gQUIC is the Google version of QUIC.
@@ -98,6 +99,58 @@ impl PublicFlags {
     }
 }
 
+pub fn quic_pkt_num(input: &[u8]) -> u64 {
+    // There must be a more idiomatic way sigh...
+    match input.len() {
+        1 => {
+            return input[0] as u64;
+        }
+        2 => {
+            return ((input[0] as u64) << 8) | (input[1] as u64);
+        }
+        3 => {
+            return ((input[0] as u64) << 16) | ((input[1] as u64) << 8) | (input[2] as u64);
+        }
+        4 => {
+            return ((input[0] as u64) << 24)
+                | ((input[1] as u64) << 16)
+                | ((input[2] as u64) << 8)
+                | (input[3] as u64);
+        }
+        _ => {
+            // should not be reachable
+            debug_validate_fail!("Unexpected length for quic pkt num");
+            return 0;
+        }
+    }
+}
+
+pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
+    let (rest, first) = be_u8(input)?;
+    let msb = first >> 6;
+    let lsb = (first & 0x3F) as u64;
+    match msb {
+        3 => {
+            // nom does not have be_u56
+            let (rest, second) = be_u24(rest)?;
+            let (rest, third) = be_u32(rest)?;
+            return Ok((rest, (lsb << 56) | ((second as u64) << 32) | (third as u64)));
+        }
+        2 => {
+            let (rest, second) = be_u24(rest)?;
+            return Ok((rest, (lsb << 24) | (second as u64)));
+        }
+        1 => {
+            let (rest, second) = be_u8(rest)?;
+            return Ok((rest, (lsb << 8) | (second as u64)));
+        }
+        _ => {
+            // only remaining case is msb==0
+            return Ok((rest, lsb));
+        }
+    }
+}
+
 /// A QUIC packet's header.
 #[derive(Debug, PartialEq)]
 pub struct QuicHeader {
@@ -107,6 +160,7 @@ pub struct QuicHeader {
     pub version_buf: Vec<u8>,
     pub dcid: Vec<u8>,
     pub scid: Vec<u8>,
+    pub length: u16,
 }
 
 #[derive(Debug, PartialEq)]
@@ -126,6 +180,7 @@ impl QuicHeader {
             version_buf: Vec::new(),
             dcid,
             scid,
+            length: 0,
         }
     }
 
@@ -148,6 +203,7 @@ impl QuicHeader {
                     version_buf: Vec::new(),
                     dcid: dcid.to_vec(),
                     scid: Vec::new(),
+                    length: 0,
                 },
             ));
         } else {
@@ -212,14 +268,39 @@ impl QuicHeader {
                 (rest, dcid.to_vec(), scid.to_vec())
             };
 
+            let mut has_length = false;
             let rest = match ty {
                 QuicType::Initial => {
-                    let (rest, _pkt_num) = be_u32(rest)?;
-                    let (rest, _msg_auth_hash) = take(12usize)(rest)?;
+                    if version.is_gquic() {
+                        let (rest, _pkt_num) = be_u32(rest)?;
+                        let (rest, _msg_auth_hash) = take(12usize)(rest)?;
 
-                    rest
+                        rest
+                    } else {
+                        let (rest, token_length) = quic_var_uint(rest)?;
+                        let (rest, _token) = take(token_length as usize)(rest)?;
+                        has_length = true;
+                        rest
+                    }
                 }
                 _ => rest,
+            };
+            let (rest, length) = if has_length {
+                let (rest2, plength) = quic_var_uint(rest)?;
+                if plength > rest2.len() as u64 {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
+                if let Ok(length) = u16::try_from(plength) {
+                    (rest2, length)
+                } else {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
+            } else {
+                if let Ok(length) = u16::try_from(rest.len()) {
+                    (rest, length)
+                } else {
+                    return Err(nom::Err::Error(QuicError::InvalidPacket));
+                }
             };
 
             Ok((
@@ -231,6 +312,7 @@ impl QuicHeader {
                     version_buf: version_buf.to_vec(),
                     dcid,
                     scid,
+                    length,
                 },
             ))
         }
@@ -275,7 +357,8 @@ mod tests {
                     .to_vec(),
                 scid: hex::decode("09b15e86dd0990aaf906c5de620c4538398ffa58")
                     .unwrap()
-                    .to_vec()
+                    .to_vec(),
+                length: 1154,
             },
             value
         );
@@ -295,6 +378,7 @@ mod tests {
                 version_buf: vec![0x51, 0x30, 0x34, 0x34],
                 dcid: hex::decode("05cad2cc06c4d0e4").unwrap().to_vec(),
                 scid: Vec::new(),
+                length: 1042,
             },
             header
         );
