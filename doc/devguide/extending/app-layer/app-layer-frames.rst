@@ -33,7 +33,7 @@ The application layer parser exposes frames it supports to the detect engine, by
 
 In order to allow the engine to identify frames for records of a given application layer parser, thought must be given as to which frames make sense for the specific protocol you are handling. Some parsers may have clear ``header`` and ``data`` fields that form its *protocol data unit* (pdu). For others, the distinction might be between ``request`` and ``response``, only. Whereas for others it may make sense to have specific types of data. This is better understood by seeing the different types of frame keywords, which vary on a per-protocol basis. 
 
-It is also important to keep follow naming conventions when defining Frame Types. While a protocol may strong naming standards for certain structures, do compare those with what Suricata already has registered:
+It is also important to keep follow naming conventions when defining Frame Types. While a protocol may have strong naming standards for certain structures, do compare those with what Suricata already has registered:
 
 - ``hdr``: used for the record header portion
 - ``data``: is used for the record data portion
@@ -90,6 +90,11 @@ Rust
     :end-before: // app-layer-frame-documentation tag end: parse_tcp_data_ts
     :lines: 2-5, 59-
     :dedent: 4
+
+.. note:: when to create PDU frames
+
+    The standard approach we follow for frame registration is that a frame ``pdu`` will always be created, regardless of parser status (in practice, before the parser is called). The other frames are then created when and if only the parser succeeds.
+
 
 **Use the Frame API or build upon them as needed**. These are the frame registration functions highlighted above:
 
