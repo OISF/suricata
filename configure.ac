@@ -296,7 +296,7 @@
             LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_DARWIN"
             CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
-            LDFLAGS="${LDFLAGS} -L/opt/local/lib"
+            LDFLAGS="${LDFLAGS} -L/opt/local/lib -framework Security"
             ;;
         *-*-linux*)
             # Always compile with -fPIC on Linux for shared library support.
