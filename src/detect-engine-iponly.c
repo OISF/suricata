@@ -55,6 +55,7 @@
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-cidr.h"
 
 #ifdef OS_WIN32
 #include <winsock.h>
@@ -175,6 +176,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                     goto error;
 
                 dd->netmask = cidr;
+                netmask = CIDRGet(cidr);
             } else {
                 /* 1.2.3.4/255.255.255.0 format */
                 r = inet_pton(AF_INET, mask, &in);
@@ -182,12 +184,12 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                     goto error;
 
                 netmask = in.s_addr;
-
                 if (netmask != 0) {
+                    uint32_t m = netmask;
                     /* Extract cidr netmask */
-                    while ((0x01 & netmask) == 0) {
+                    while ((0x01 & m) == 0) {
                         dd->netmask++;
-                        netmask = netmask >> 1;
+                        m = m >> 1;
                     }
                     dd->netmask = 32 - dd->netmask;
                 }
@@ -197,7 +199,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
             if (r <= 0)
                 goto error;
 
-            dd->ip[0] = in.s_addr;
+            dd->ip[0] = in.s_addr & netmask;
 
         } else if ((ip2 = strchr(ip, '-')) != NULL)  {
             /* 1.2.3.4-1.2.3.6 range format */
@@ -266,8 +268,8 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
         }
     } else {
         /* IPv6 Address */
-        struct in6_addr in6;
-        uint32_t ip6addr[4];
+        struct in6_addr in6, mask6;
+        uint32_t ip6addr[4], netmask[4];
 
         dd->family = AF_INET6;
 
@@ -282,7 +284,14 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
             /* Format is cidr val */
             dd->netmask = atoi(mask);
 
-            memcpy(dd->ip, &in6.s6_addr, sizeof(ip6addr));
+            memcpy(&ip6addr, &in6.s6_addr, sizeof(ip6addr));
+            CIDRGetIPv6(dd->netmask, &mask6);
+            memcpy(&netmask, &mask6.s6_addr, sizeof(netmask));
+
+            dd->ip[0] = ip6addr[0] & netmask[0];
+            dd->ip[1] = ip6addr[1] & netmask[1];
+            dd->ip[2] = ip6addr[2] & netmask[2];
+            dd->ip[3] = ip6addr[3] & netmask[3];
         } else {
             r = inet_pton(AF_INET6, ip, &in6);
             if (r <= 0)
@@ -2308,6 +2317,97 @@ static int IPOnlyTestSig18(void)
     PASS;
 }
 
+/** \test build IP-only tree */
+static int IPOnlyTestBug5066v1(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert ip [1.2.3.4/24,1.2.3.64/27] any -> any any (sid:1;)");
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert ip [1.2.3.4/24] any -> any any (sid:2;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int IPOnlyTestBug5066v2(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "1.2.3.4/24") != 0);
+
+    char ip[16];
+    PrintInet(AF_INET, (const void *)&x->ip[0], ip, sizeof(ip));
+    SCLogDebug("ip %s netmask %d", ip, x->netmask);
+
+    FAIL_IF_NOT(strcmp(ip, "1.2.3.0") == 0);
+    FAIL_IF_NOT(x->netmask == 24);
+
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
+static int IPOnlyTestBug5066v3(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "1.2.3.64/26") != 0);
+
+    char ip[16];
+    PrintInet(AF_INET, (const void *)&x->ip[0], ip, sizeof(ip));
+    SCLogDebug("ip %s netmask %d", ip, x->netmask);
+
+    FAIL_IF_NOT(strcmp(ip, "1.2.3.64") == 0);
+    FAIL_IF_NOT(x->netmask == 26);
+
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
+static int IPOnlyTestBug5066v4(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "2000::1:1/122") != 0);
+
+    char ip[64];
+    PrintInet(AF_INET6, (const void *)&x->ip, ip, sizeof(ip));
+    SCLogDebug("ip %s netmask %d", ip, x->netmask);
+
+    FAIL_IF_NOT(strcmp(ip, "2000:0000:0000:0000:0000:0000:0001:0000") == 0);
+    FAIL_IF_NOT(x->netmask == 122);
+
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
+static int IPOnlyTestBug5066v5(void)
+{
+    IPOnlyCIDRItem *x = IPOnlyCIDRItemNew();
+    FAIL_IF_NULL(x);
+
+    FAIL_IF(IPOnlyCIDRItemParseSingle(&x, "2000::1:40/122") != 0);
+
+    char ip[64];
+    PrintInet(AF_INET6, (const void *)&x->ip, ip, sizeof(ip));
+    SCLogDebug("ip %s netmask %d", ip, x->netmask);
+
+    FAIL_IF_NOT(strcmp(ip, "2000:0000:0000:0000:0000:0000:0001:0040") == 0);
+    FAIL_IF_NOT(x->netmask == 122);
+
+    IPOnlyCIDRListFree(x);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void)
@@ -2344,6 +2444,12 @@ void IPOnlyRegisterTests(void)
 
     UtRegisterTest("IPOnlyTestSig17", IPOnlyTestSig17);
     UtRegisterTest("IPOnlyTestSig18", IPOnlyTestSig18);
+
+    UtRegisterTest("IPOnlyTestBug5066v1", IPOnlyTestBug5066v1);
+    UtRegisterTest("IPOnlyTestBug5066v2", IPOnlyTestBug5066v2);
+    UtRegisterTest("IPOnlyTestBug5066v3", IPOnlyTestBug5066v3);
+    UtRegisterTest("IPOnlyTestBug5066v4", IPOnlyTestBug5066v4);
+    UtRegisterTest("IPOnlyTestBug5066v5", IPOnlyTestBug5066v5);
 #endif
 
     return;
