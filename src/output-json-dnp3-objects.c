@@ -1322,23 +1322,15 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "file_function_code", data->file_function_code);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
             jb_set_uint(js, "data_size", data->data_size);
             if (data->data_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->data_size + 1];
-                memcpy(tmpbuf, data->data, data->data_size);
-                tmpbuf[data->data_size] = '\0';
-                jb_set_string(js, "data", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "data", (const uint8_t *)data->data, data->data_size);
             } else {
                 jb_set_string(js, "data", "");
             }
@@ -1352,22 +1344,14 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "password_size", data->password_size);
             jb_set_uint(js, "authentication_key", data->authentication_key);
             if (data->username_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_size + 1];
-                memcpy(tmpbuf, data->username, data->username_size);
-                tmpbuf[data->username_size] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_size);
             } else {
                 jb_set_string(js, "username", "");
             }
             if (data->password_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->password_size + 1];
-                memcpy(tmpbuf, data->password, data->password_size);
-                tmpbuf[data->password_size] = '\0';
-                jb_set_string(js, "password", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "password", (const uint8_t *)data->password, data->password_size);
             } else {
                 jb_set_string(js, "password", "");
             }
@@ -1385,12 +1369,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
             jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
@@ -1404,12 +1384,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "request_id", data->request_id);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->optional_text_len + 1];
-                memcpy(tmpbuf, data->optional_text, data->optional_text_len);
-                tmpbuf[data->optional_text_len] = '\0';
-                jb_set_string(js, "optional_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
                 jb_set_string(js, "optional_text", "");
             }
@@ -1420,12 +1396,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "file_handle", data->file_handle);
             jb_set_uint(js, "block_number", data->block_number);
             if (data->file_data_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->file_data_len + 1];
-                memcpy(tmpbuf, data->file_data, data->file_data_len);
-                tmpbuf[data->file_data_len] = '\0';
-                jb_set_string(js, "file_data", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "file_data", (const uint8_t *)data->file_data, data->file_data_len);
             } else {
                 jb_set_string(js, "file_data", "");
             }
@@ -1437,12 +1409,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "block_number", data->block_number);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->optional_text_len + 1];
-                memcpy(tmpbuf, data->optional_text, data->optional_text_len);
-                tmpbuf[data->optional_text_len] = '\0';
-                jb_set_string(js, "optional_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
                 jb_set_string(js, "optional_text", "");
             }
@@ -1458,12 +1426,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "permissions", data->permissions);
             jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
@@ -1472,12 +1436,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
         case DNP3_OBJECT_CODE(70, 8): {
             DNP3ObjectG70V8 *data = point->data;
             if (data->file_specification_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->file_specification_len + 1];
-                memcpy(tmpbuf, data->file_specification, data->file_specification_len);
-                tmpbuf[data->file_specification_len] = '\0';
-                jb_set_string(js, "file_specification", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "file_specification", (const uint8_t *)data->file_specification, data->file_specification_len);
             } else {
                 jb_set_string(js, "file_specification", "");
             }
@@ -1575,12 +1535,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "error_code", data->error_code);
             jb_set_uint(js, "time_of_error", data->time_of_error);
             if (data->error_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->error_text_len + 1];
-                memcpy(tmpbuf, data->error_text, data->error_text_len);
-                tmpbuf[data->error_text_len] = '\0';
-                jb_set_string(js, "error_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "error_text", (const uint8_t *)data->error_text, data->error_text_len);
             } else {
                 jb_set_string(js, "error_text", "");
             }
@@ -1609,12 +1565,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "user_public_key_len", data->user_public_key_len);
             jb_set_uint(js, "certification_data_len", data->certification_data_len);
             if (data->username_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_len + 1];
-                memcpy(tmpbuf, data->username, data->username_len);
-                tmpbuf[data->username_len] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
                 jb_set_string(js, "username", "");
             }
@@ -1628,12 +1580,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "username_len", data->username_len);
             jb_set_uint(js, "master_challenge_data_len", data->master_challenge_data_len);
             if (data->username_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_len + 1];
-                memcpy(tmpbuf, data->username, data->username_len);
-                tmpbuf[data->username_len] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
                 jb_set_string(js, "username", "");
             }
