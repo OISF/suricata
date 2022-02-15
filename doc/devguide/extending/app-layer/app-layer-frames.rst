@@ -8,12 +8,11 @@ Baseline
 ========
 
 - `Suricata rules format <https://suricata.readthedocs.io/en/latest/rules/intro.html>`_
-- It helps to understand the basics of the `Multi-pattern rule matching <https://suricata.readthedocs.io/en/latest/configuration/suricata-yaml.html?highlight=multi%20pattern%20matcher#detection-engine>`_ algorithm, used for rule filtering and to address engine performance
 
 General Concepts
 ================
 
-Frame support was introduced with Suricata-7.0. Up until 6.0x, Suricata's architecture and state of parsers meant that the network traffic available to the detection engine was just a stream of data, without detail about higher level parsers. 
+Frame support was introduced with Suricata 7.0. Up until 6.0.x, Suricata's architecture and state of parsers meant that the network traffic available to the detection engine was just a stream of data, without detail about higher level parsers.
 
 .. note:: For Suricata, *Frame* is a generic term that can represent any unit of network data we are interested in, which could be comprised of one or several records of other, lower level protocol(s). Frames work as "stream annotations", allowing Suricata to tell the detection engine what type of record exists at a specific offset in the stream.
 
@@ -24,7 +23,7 @@ The normal pipeline of detection in Suricata implied that:
 
 What the Frame support offers is the ability to "point" to a specific portion of stream and identify what type of traffic Suricata is looking at. Then, as the engine reassembles the stream, one can have "read access" to that portion of the stream, aggregating concepts like what type of application layer protocol that is, and differentiating between ``header``, ``data`` or even protocol versions (*SMB1*, *SMB2*...).
 
-The goal of the stream *Frame* is to expose application layer protocol `PDUs <https://en.wikipedia.org/wiki/Protocol_data_unit>`_ and other such arbitrary elements to the detection engine directly, instead of relying on Transactions. The main purpose is to bring *TCP.data* processing times down by specialising/ filtering down traffic detection.
+The goal of the stream *Frame* is to expose application layer protocol `PDUs <https://en.wikipedia.org/wiki/Protocol_data_unit>`_ and other such arbitrary elements to the detection engine directly, instead of relying on Transactions. The main purpose is to bring *TCP data* processing times down by specialising/ filtering down traffic detection.
 
 Adding Frame Support to a Parser
 ================================
@@ -72,43 +71,41 @@ Though the steps are the same, there are a few differences when implementing fra
 Rust
 ----
 
+This section shows how Frame support is added in Rust, using examples from the `SIP parser <https://github.com/OISF/suricata/blob/master/rust/src/sip/sip.rs>`_, and the `telnet parser <https://github.com/OISF/suricata/blob/master/rust/src/telnet/telnet.rs>`_.
+
 **Define the frame types**. The frame types are defined as an enum. In Rust, make sure to derive from the ``AppLayerFrameType``:
 
-.. literalinclude:: ../../../../rust/src/smb/smb.rs
-    :caption: rust/src/smb/smb.rs
+.. literalinclude:: ../../../../rust/src/sip/sip.rs
+    :caption: rust/src/sip/sip.rs
     :language: rust
     :start-after: // app-layer-frame-documentation tag start: FrameType enum
     :end-before: // app-layer-frame-documentation tag end: FrameType enum
-    :lines: 1-15
 
-**Frame registering**. Some understanding of the parser will be needed in order to find where the frames should be registered. It makes sense that it will happen when the input stream is being parsed into records. See how some of the SMB frames are registered in the `SMB parser <https://github.com/OISF/suricata/blob/master/rust/src/smb/smb.rs>`_:
+**Frame registering**. Some understanding of the parser will be needed in order to find where the frames should be registered. It makes sense that it will happen when the input stream is being parsed into records. See when some pdu and request frames are created for SIP:
 
-.. literalinclude:: ../../../../rust/src/smb/smb.rs
-    :caption: rust/src/smb/smb.rs
+.. literalinclude:: ../../../../rust/src/sip/sip.rs
+    :caption: rust/src/sip/sip.rs
     :language: rust
-    :start-after: // app-layer-frame-documentation tag start: parse_tcp_data_ts
-    :end-before: // app-layer-frame-documentation tag end: parse_tcp_data_ts
-    :lines: 2-5, 59-
+    :start-after: // app-layer-frame-documentation tag start: parse_request
+    :end-before: // app-layer-frame-documentation tag end: parse_request
     :dedent: 4
 
 .. note:: when to create PDU frames
 
     The standard approach we follow for frame registration is that a frame ``pdu`` will always be created, regardless of parser status (in practice, before the parser is called). The other frames are then created when and if only the parser succeeds.
 
-
 **Use the Frame API or build upon them as needed**. These are the frame registration functions highlighted above:
 
-.. literalinclude:: ../../../../rust/src/smb/smb.rs
-    :caption: rust/src/smb/smb.rs
+.. literalinclude:: ../../../../rust/src/sip/sip.rs
+    :caption: rust/src/sip/sip.rs
     :language: rust
-    :start-after: // app-layer-frame-documentation tag start: add_frames functions
-    :end-before: // app-layer-frame-documentation tag end: add_frames functions
-    :dedent: 4
+    :start-after: // app-layer-frame-documentation tag start: function to add frames
+    :end-before: // app-layer-frame-documentation tag end: function to add frames
 
 **Register relevant frame callbacks.** As these are inferred from the ``#[derive(AppLayerFrameType)]`` statement, all that is needed is: 
 
-.. literalinclude:: ../../../../rust/src/smb/smb.rs
-   :caption: rust/src/smb/smb.rs
+.. literalinclude:: ../../../../rust/src/sip/sip.rs
+   :caption: rust/src/sip/sip.rs
    :language: rust
    :start-at: get_frame_id_by_name
    :end-at: ffi_name_from_id),
@@ -116,9 +113,9 @@ Rust
 
 .. note:: on frame_len
         
-    For protocols which search for an end of frame char, like telnet, indicate unknown length by passing ``-1``. Once the length is known, it must be updated. For those where length is a field in the record (e.g. *SMB*), the frame is set to match said length, even if that is bigger than the current input
+    For protocols which search for an end of frame char, like telnet, indicate unknown length by passing ``-1``. Once the length is known, it must be updated. For those where length is a field in the record (e.g. *SIP*), the frame is set to match said length, even if that is bigger than the current input
 
-The `telnet parser <https://github.com/OISF/suricata/blob/master/rust/src/telnet/telnet.rs>`_ has examples of using the Frame API directly for registering telnet frames, and also illustrates how that is done when length is not known yet:
+The telnet parser has examples of using the Frame API directly for registering telnet frames, and also illustrates how that is done when length is not yet known:
 
 .. literalinclude:: ../../../../rust/src/telnet/telnet.rs
     :caption: rust/src/telnet/telnet.rs
