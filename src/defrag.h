@@ -45,7 +45,7 @@ typedef struct Frag_ {
     uint16_t offset;            /**< The offset of this fragment, already
                                  *   multiplied by 8. */
 
-    uint16_t len;               /**< The length of this fragment. */
+    uint32_t len; /**< The length of this fragment. */
 
     uint8_t hlen;               /**< The length of this fragments IP header. */
 
