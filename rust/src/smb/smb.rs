@@ -1375,7 +1375,7 @@ impl SMBState {
             0 => i,
             _ => {
                 v = self.tcp_buffer_ts.split_off(0);
-                if self.tcp_buffer_ts.len() + i.len() > 100000 {
+                if v.len() + i.len() > 100000 {
                     self.set_event(SMBEvent::RecordOverflow);
                     return 1;
                 };
