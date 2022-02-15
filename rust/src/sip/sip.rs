@@ -109,7 +109,13 @@ impl SIPState {
 
     fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new_ts(flow, &stream_slice, input, input.len() as i64, SIPFrameType::Pdu as u8);
+        let _pdu = Frame::new_ts(
+            flow,
+            &stream_slice,
+            input,
+            input.len() as i64,
+            SIPFrameType::Pdu as u8,
+        );
         SCLogDebug!("ts: pdu {:?}", _pdu);
 
         match sip_parse_request(input) {
@@ -178,14 +184,32 @@ impl SIPTransaction {
 
 fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request) {
     let oi = stream_slice.as_slice();
-    let _f = Frame::new_ts(flow, stream_slice, oi, r.request_line_len as i64, SIPFrameType::RequestLine as u8);
+    let _f = Frame::new_ts(
+        flow,
+        stream_slice,
+        oi,
+        r.request_line_len as i64,
+        SIPFrameType::RequestLine as u8,
+    );
     SCLogDebug!("ts: request_line {:?}", _f);
-    let hi = &oi[r.request_line_len as usize ..];
-    let _f = Frame::new_ts(flow, stream_slice, hi, r.headers_len as i64, SIPFrameType::RequestHeaders as u8);
+    let hi = &oi[r.request_line_len as usize..];
+    let _f = Frame::new_ts(
+        flow,
+        stream_slice,
+        hi,
+        r.headers_len as i64,
+        SIPFrameType::RequestHeaders as u8,
+    );
     SCLogDebug!("ts: request_headers {:?}", _f);
     if r.body_len > 0 {
-        let bi = &oi[r.body_offset as usize ..];
-        let _f = Frame::new_ts(flow, stream_slice, bi, r.body_len as i64, SIPFrameType::RequestBody as u8);
+        let bi = &oi[r.body_offset as usize..];
+        let _f = Frame::new_ts(
+            flow,
+            stream_slice,
+            bi,
+            r.body_len as i64,
+            SIPFrameType::RequestBody as u8,
+        );
         SCLogDebug!("ts: request_body {:?}", _f);
     }
 }
