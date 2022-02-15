@@ -53,5 +53,6 @@ const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
 #ifdef DEBUG
 void DetectAddressPrintList(DetectAddress *);
 #endif
+void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6);
 
 #endif /* __DETECT_ADDRESS_H__ */

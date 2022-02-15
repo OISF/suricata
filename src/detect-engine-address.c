@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -388,7 +388,6 @@ bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2)
 }
 
 /**
- * \internal
  * \brief Creates a cidr ipv6 netblock, based on the cidr netblock value.
  *
  *        For example if we send a cidr of 7 as argument, an ipv6 address
@@ -404,7 +403,7 @@ bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2)
  * \param in6  Pointer to an ipv6 address structure(struct in6_addr) which will
  *             hold the cidr netblock result.
  */
-static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
+void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
 {
     int i = 0;
 
@@ -2006,20 +2005,36 @@ static int AddressTestParse03(void)
 
 static int AddressTestParse04(void)
 {
-    int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/255.255.255.0");
+    FAIL_IF_NULL(dd);
 
-    if (dd) {
-        if (dd->ip.addr_data32[0] != SCNtohl(16909056)||
-            dd->ip2.addr_data32[0] != SCNtohl(16909311)) {
-            result = 0;
-        }
+    char left[16], right[16];
+    PrintInet(AF_INET, (const void *)&dd->ip.addr_data32[0], left, sizeof(left));
+    PrintInet(AF_INET, (const void *)&dd->ip2.addr_data32[0], right, sizeof(right));
+    SCLogDebug("left %s right %s", left, right);
+    FAIL_IF_NOT(dd->ip.addr_data32[0] == SCNtohl(16909056));
+    FAIL_IF_NOT(dd->ip2.addr_data32[0] == SCNtohl(16909311));
+    FAIL_IF_NOT(strcmp(left, "1.2.3.0") == 0);
+    FAIL_IF_NOT(strcmp(right, "1.2.3.255") == 0);
 
-        DetectAddressFree(dd);
-        return result;
-    }
+    DetectAddressFree(dd);
+    PASS;
+}
 
-    return 0;
+static int AddressTestParse04a(void)
+{
+    DetectAddress *dd = DetectAddressParseSingle("1.2.3.64/26");
+    FAIL_IF_NULL(dd);
+
+    char left[16], right[16];
+    PrintInet(AF_INET, (const void *)&dd->ip.addr_data32[0], left, sizeof(left));
+    PrintInet(AF_INET, (const void *)&dd->ip2.addr_data32[0], right, sizeof(right));
+    SCLogDebug("left %s right %s", left, right);
+    FAIL_IF_NOT(strcmp(left, "1.2.3.64") == 0);
+    FAIL_IF_NOT(strcmp(right, "1.2.3.127") == 0);
+
+    DetectAddressFree(dd);
+    PASS;
 }
 
 static int AddressTestParse05(void)
@@ -5040,6 +5055,7 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressTestParse02", AddressTestParse02);
     UtRegisterTest("AddressTestParse03", AddressTestParse03);
     UtRegisterTest("AddressTestParse04", AddressTestParse04);
+    UtRegisterTest("AddressTestParse04a", AddressTestParse04a);
     UtRegisterTest("AddressTestParse05", AddressTestParse05);
     UtRegisterTest("AddressTestParse06", AddressTestParse06);
     UtRegisterTest("AddressTestParse07", AddressTestParse07);
