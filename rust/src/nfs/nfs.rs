@@ -293,8 +293,6 @@ pub struct NFSState {
 
     pub nfs_version: u16,
 
-    pub events: u16,
-
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -330,7 +328,6 @@ impl NFSState {
             check_post_gap_file_txs:false,
             post_gap_files_checked:false,
             nfs_version:0,
-            events:0,
             tx_id:0,
             ts: 0,
         }
@@ -402,7 +399,6 @@ impl NFSState {
 
         let tx = &mut self.transactions[len - 1];
         tx.tx_data.set_event(event as u8);
-        self.events += 1;
     }
 
     // TODO maybe not enough users to justify a func
