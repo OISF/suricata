@@ -2630,6 +2630,7 @@ static int SCRadixTestIPV4NetblockInsertion10(void)
     found = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, NULL);
     FAIL_IF_NOT_NULL(found);
 
+    SCRadixReleaseRadixTree(tree);
     PASS;
 }
 
