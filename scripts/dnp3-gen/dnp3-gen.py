@@ -175,12 +175,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_string(js, "data->{{field.name}}", data->{{field.name}});
 {% elif field.type == "chararray" %}
             if (data->{{field.len_field}} > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->{{field.len_field}} + 1];
-                memcpy(tmpbuf, data->{{field.name}}, data->{{field.len_field}});
-                tmpbuf[data->{{field.len_field}}] = '\\0';
-                jb_set_string(js, "{{field.name}}", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "{{field.name}}", (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
             } else {
                 jb_set_string(js, "{{field.name}}", "");
             }
