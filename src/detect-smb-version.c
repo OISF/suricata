@@ -21,7 +21,6 @@
  * Keyword to match SMB version, which can be 1 or 2.
  */
 
-
 #include "suricata-common.h"
 
 #include "detect.h"
@@ -36,7 +35,8 @@
 #include "detect-smb-version.h"
 #include "rust.h"
 
-#define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 static DetectParseRegex parse_regex;
 
 static int g_smb_version_list_id = 0;
@@ -53,10 +53,7 @@ static void DetectSmbVersionFree(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
-static int DetectSmbVersionSetup(
-    DetectEngineCtx *de_ctx,
-    Signature *s,
-    const char *arg)
+static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     SCLogDebug("smb_version: DetectSmbVersionSetup");
 
@@ -65,14 +62,14 @@ static int DetectSmbVersionSetup(
 
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_version option in "
-                   "signature, it needs a value");
+                                             "signature, it needs a value");
         return -1;
     }
 
     void *dod = rs_smb_version_parse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_version option in "
-                   "signature");
+                                             "signature");
         return -1;
     }
 
@@ -89,9 +86,8 @@ static int DetectSmbVersionSetup(
     return 0;
 }
 
-static int DetectSmbVersionMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectSmbVersionMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -120,17 +116,16 @@ void DetectSmbVersionRegister(void)
     sigmatch_table[DETECT_SMB_VERSION].Setup = DetectSmbVersionSetup;
     sigmatch_table[DETECT_SMB_VERSION].Match = NULL;
     sigmatch_table[DETECT_SMB_VERSION].AppLayerTxMatch = DetectSmbVersionMatchRust;
-    sigmatch_table[DETECT_SMB_VERSION].Free  = DetectSmbVersionFree;
+    sigmatch_table[DETECT_SMB_VERSION].Free = DetectSmbVersionFree;
 
-    DetectAppLayerInspectEngineRegister2("smb_version", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSmbVersion, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "smb_version", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectEngineInspectSmbVersion, NULL);
 
-    DetectAppLayerInspectEngineRegister2("smb_version", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectSmbVersion, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "smb_version", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectSmbVersion, NULL);
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_smb_version_list_id = DetectBufferTypeRegister("smb_version");
-
 }
