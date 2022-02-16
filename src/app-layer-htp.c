@@ -365,6 +365,9 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
             HTPFileCloseHandleRange(&htud->files_tc, 0, htud->file_range, NULL, 0);
             HttpRangeFreeBlock(htud->file_range);
         }
+        // fails 'geoip SV' test, needs investigation
+        //BUG_ON(htud->files_ts.head);
+        //BUG_ON(htud->files_tc.head);
         FileContainerRecycle(&htud->files_ts);
         FileContainerRecycle(&htud->files_tc);
         HTPFree(htud, sizeof(HtpTxUserData));
