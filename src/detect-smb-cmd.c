@@ -29,7 +29,8 @@
 #include "detect-smb-cmd.h"
 #include "rust.h"
 
-#define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 static DetectParseRegex parse_regex;
 
 static int g_smb_cmd_list_id = 0;
@@ -46,10 +47,7 @@ static void DetectSmbCmdFree(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
-static int DetectSmbCmdSetup(
-    DetectEngineCtx *de_ctx,
-    Signature *s,
-    const char *arg)
+static int DetectSmbCmdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     SCLogDebug("smb_cmd: DetectSmbCmdSetup");
 
@@ -58,14 +56,14 @@ static int DetectSmbCmdSetup(
 
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_cmd option in "
-                   "signature, it needs a value");
+                                             "signature, it needs a value");
         return -1;
     }
 
     void *dod = rs_smb_cmd_parse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_cmd option in "
-                   "signature");
+                                             "signature");
         return -1;
     }
 
@@ -82,9 +80,8 @@ static int DetectSmbCmdSetup(
     return 0;
 }
 
-static int DetectSmbCmdMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectSmbCmdMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -112,17 +109,16 @@ void DetectSmbCmdRegister(void)
     sigmatch_table[DETECT_SMB_CMD].Setup = DetectSmbCmdSetup;
     sigmatch_table[DETECT_SMB_CMD].Match = NULL;
     sigmatch_table[DETECT_SMB_CMD].AppLayerTxMatch = DetectSmbCmdMatchRust;
-    sigmatch_table[DETECT_SMB_CMD].Free  = DetectSmbCmdFree;
+    sigmatch_table[DETECT_SMB_CMD].Free = DetectSmbCmdFree;
 
-    DetectAppLayerInspectEngineRegister2("smb_cmd", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSmbCmd, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "smb_cmd", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectEngineInspectSmbCmd, NULL);
 
-    DetectAppLayerInspectEngineRegister2("smb_cmd", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectSmbCmd, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "smb_cmd", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectSmbCmd, NULL);
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_smb_cmd_list_id = DetectBufferTypeRegister("smb_cmd");
-
 }

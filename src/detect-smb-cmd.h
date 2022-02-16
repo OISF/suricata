@@ -21,5 +21,3 @@
 void DetectSmbCmdRegister(void);
 
 #endif /* __DETECT_SMB_CMD_H__ */
-
-
