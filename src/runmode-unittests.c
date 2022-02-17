@@ -237,8 +237,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    CIDRInit();
-
     TagInitCtx();
     SCReferenceConfInit();
     SCClassConfInit();

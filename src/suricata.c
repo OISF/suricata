@@ -2664,8 +2664,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
 
-    CIDRInit();
-
     TagInitCtx();
     PacketAlertTagInit();
     ThresholdInit();
