@@ -4,7 +4,7 @@ HTTP Keywords
 
 Using the HTTP specific sticky buffers provides a way to efficiently
 inspect specific fields of the HTTP protocol. After specifying a
-sticky buffer in a rule it should be followed by one or more doc:`payload-keywords`.
+sticky buffer in a rule it should be followed by one or more :doc:`payload-keywords`.
 
 Many of the sticky buffers have legacy variants in the older "content modifier"
 notation. See :ref:`rules-modifiers` for more information. As a
