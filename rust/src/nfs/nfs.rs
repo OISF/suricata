@@ -662,6 +662,10 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
+        if fill_bytes > w.file_len {
+            fill_bytes = 0;
+        }
+
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
