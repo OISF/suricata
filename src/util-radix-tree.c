@@ -30,6 +30,9 @@
 #include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-byte.h"
+#include "util-cidr.h"
+#include "util-print.h"
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -883,6 +886,49 @@ SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
     return node;
 }
 
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+static void SCRadixValidateIPv4Key(uint8_t *key, const uint8_t netmask)
+{
+    uint32_t address;
+    memcpy(&address, key, sizeof(address));
+    uint32_t mask = CIDRGet(netmask);
+    if (address != (address & mask)) {
+        uint32_t masked = address & mask;
+        char ostr[16], nstr[16];
+        PrintInet(AF_INET, (void *)&address, ostr, sizeof(ostr));
+        PrintInet(AF_INET, (void *)&masked, nstr, sizeof(nstr));
+        SCLogNotice("input %s/%u != expected %s/%u", ostr, netmask, nstr, netmask);
+        abort();
+    }
+}
+
+static void SCRadixValidateIPv6Key(uint8_t *key, const uint8_t netmask)
+{
+    uint32_t address[4];
+    memcpy(&address, key, sizeof(address));
+
+    uint32_t mask[4];
+    memset(&mask, 0, sizeof(mask));
+    struct in6_addr mask6;
+    CIDRGetIPv6(netmask, &mask6);
+    memcpy(&mask, &mask6.s6_addr, sizeof(mask));
+
+    uint32_t masked[4];
+    masked[0] = address[0] & mask[0];
+    masked[1] = address[1] & mask[1];
+    masked[2] = address[2] & mask[2];
+    masked[3] = address[3] & mask[3];
+
+    if (memcmp(masked, address, sizeof(masked)) != 0) {
+        char ostr[64], nstr[64];
+        PrintInet(AF_INET6, (void *)&address, ostr, sizeof(ostr));
+        PrintInet(AF_INET6, (void *)&masked, nstr, sizeof(nstr));
+        SCLogNotice("input %s/%u != expected %s/%u", ostr, netmask, nstr, netmask);
+        abort();
+    }
+}
+#endif
+
 /**
  * \brief Adds a new IPV4 netblock to the Radix tree
  *
@@ -898,6 +944,9 @@ SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
 SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                        void *user, uint8_t netmask)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv4Key(key_stream, netmask);
+#endif
     SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user, netmask);
 
     return node;
@@ -918,6 +967,9 @@ SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
 SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                        void *user, uint8_t netmask)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv6Key(key_stream, netmask);
+#endif
     SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, netmask);
 
     return node;
@@ -968,7 +1020,19 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         return NULL;
     }
     ip = addr.s_addr;
-
+    if (netmask != 32) {
+        uint32_t mask = CIDRGet(netmask);
+        uint32_t masked = ip & mask;
+        if (masked != ip) {
+            char nstr[16];
+            PrintInet(AF_INET, (void *)&masked, nstr, sizeof(nstr));
+            SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+            ip = masked;
+        }
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+        SCRadixValidateIPv4Key((uint8_t *)&ip, netmask);
+#endif
+    }
     return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask);
 }
 
@@ -1014,6 +1078,20 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
     /* Validate the IP */
     if (inet_pton(AF_INET6, ip_str, &addr) <= 0) {
         return NULL;
+    }
+
+    if (netmask != 128) {
+        struct in6_addr mask6;
+        CIDRGetIPv6(netmask, &mask6);
+        for (int i = 0; i < 16; i++) {
+            addr.s6_addr[i] &= mask6.s6_addr[i];
+        }
+        char nstr[64];
+        PrintInet(AF_INET6, (void *)&addr.s6_addr, nstr, sizeof(nstr));
+        SCLogWarning(SC_ERR_INVALID_IP_NETBLOCK, "adding '%s' as '%s/%u'", str, nstr, netmask);
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+        SCRadixValidateIPv6Key((uint8_t *)&addr.s6_addr, netmask);
+#endif
     }
 
     return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask);
@@ -1273,6 +1351,9 @@ void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
 void SCRadixRemoveKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                   uint8_t netmask)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv4Key(key_stream, netmask);
+#endif
     SCRadixRemoveKey(key_stream, 32, tree, netmask);
     return;
 }
@@ -1304,6 +1385,9 @@ void SCRadixRemoveKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
 void SCRadixRemoveKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                   uint8_t netmask)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv6Key(key_stream, netmask);
+#endif
     SCRadixRemoveKey(key_stream, 128, tree, netmask);
     return;
 }
@@ -1504,6 +1588,9 @@ SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *key_stream, SCRadixTree *tree,
 SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                         uint8_t netmask, void **user_data_result)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv4Key(key_stream, netmask);
+#endif
     SCRadixNode *node = SCRadixFindKey(key_stream, 32, netmask, tree, 1, user_data_result);
     return node;
 }
@@ -1518,6 +1605,9 @@ SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
 SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                         uint8_t netmask, void **user_data_result)
 {
+#if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
+    SCRadixValidateIPv6Key(key_stream, netmask);
+#endif
     SCRadixNode *node = SCRadixFindKey(key_stream, 128, netmask, tree, 1, user_data_result);
     return node;
 }
