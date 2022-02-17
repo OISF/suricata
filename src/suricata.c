@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -349,6 +349,7 @@ void GlobalsInitPreConfig(void)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
     SCThresholdConfGlobalInit();
+    SCProtoNameInit();
 }
 
 static void GlobalsDestroy(SCInstance *suri)
@@ -381,6 +382,7 @@ static void GlobalsDestroy(SCInstance *suri)
 
     LiveDeviceListClean();
     OutputDeregisterAll();
+    SCProtoNameRelease();
     TimeDeinit();
     if (!suri->disabled_detect) {
         SCReferenceConfDeinit();
