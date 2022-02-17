@@ -47,3 +47,21 @@ uint32_t CIDRGet(int cidr)
     return cidrs[cidr];
 }
 
+void CIDRGetIPv6(int cidr, struct in6_addr *in6)
+{
+    int i = 0;
+
+    memset(in6, 0, sizeof(struct in6_addr));
+
+    while (cidr > 8) {
+        in6->s6_addr[i] = 0xff;
+        cidr -= 8;
+        i++;
+    }
+
+    while (cidr > 0) {
+        in6->s6_addr[i] |= 0x80;
+        if (--cidr > 0)
+            in6->s6_addr[i] = in6->s6_addr[i] >> 1;
+    }
+}

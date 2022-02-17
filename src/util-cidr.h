@@ -26,6 +26,7 @@
 
 void CIDRInit(void);
 uint32_t CIDRGet(int);
+void CIDRGetIPv6(int cidr, struct in6_addr *in6);
 
 #endif /* __UTIL_NETMASK_H__ */
 
