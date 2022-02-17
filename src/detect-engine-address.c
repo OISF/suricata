@@ -389,44 +389,6 @@ bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2)
 
 /**
  * \internal
- * \brief Creates a cidr ipv6 netblock, based on the cidr netblock value.
- *
- *        For example if we send a cidr of 7 as argument, an ipv6 address
- *        mask of the value FE:00:00:00:00:00:00:00 is created and updated
- *        in the argument struct in6_addr *in6.
- *
- * \todo I think for the final section: while (cidr > 0), we can simply
- *       replace it with a
- *       if (cidr > 0) {
- *           in6->s6_addr[i] = -1 << (8 - cidr);
- *
- * \param cidr The value of the cidr.
- * \param in6  Pointer to an ipv6 address structure(struct in6_addr) which will
- *             hold the cidr netblock result.
- */
-static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
-{
-    int i = 0;
-
-    memset(in6, 0, sizeof(struct in6_addr));
-
-    while (cidr > 8) {
-        in6->s6_addr[i] = 0xff;
-        cidr -= 8;
-        i++;
-    }
-
-    while (cidr > 0) {
-        in6->s6_addr[i] |= 0x80;
-        if (--cidr > 0)
-             in6->s6_addr[i] = in6->s6_addr[i] >> 1;
-    }
-
-    return;
-}
-
-/**
- * \internal
  * \brief Parses an ipv4/ipv6 address string and updates the result into the
  *        DetectAddress instance sent as the argument.
  *
@@ -551,7 +513,7 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                 goto error;
             memcpy(&ip6addr, &in6.s6_addr, sizeof(ip6addr));
 
-            DetectAddressParseIPv6CIDR(cidr, &mask6);
+            CIDRGetIPv6(cidr, &mask6);
             memcpy(&netmask, &mask6.s6_addr, sizeof(netmask));
 
             dd->ip2.addr_data32[0] = dd->ip.addr_data32[0] = ip6addr[0] & netmask[0];
