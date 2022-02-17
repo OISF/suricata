@@ -264,7 +264,7 @@ different YAML file.
   ...
 
 If the same section, say outputs is later redefined after the include
-statement it will overwrite the included file. Therefor any include
+statement it will overwrite the included file. Therefore any include
 statement at the end of the document will overwrite the already
 configured sections.
 
