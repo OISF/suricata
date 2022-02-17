@@ -2575,8 +2575,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 #endif
 
-    CIDRInit();
-
     /* load the pattern matchers */
     MpmTableSetup();
     SpmTableSetup();
