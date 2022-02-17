@@ -243,11 +243,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    CIDRInit();
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
-#endif
     SCProtoNameInit();
 
     TagInitCtx();
