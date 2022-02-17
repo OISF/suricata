@@ -2575,6 +2575,8 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 #endif
 
+    CIDRInit();
+
     /* load the pattern matchers */
     MpmTableSetup();
     SpmTableSetup();
@@ -2663,8 +2665,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     SigTableSetup(); /* load the rule keywords */
     SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
-
-    CIDRInit();
 
     TagInitCtx();
     PacketAlertTagInit();
