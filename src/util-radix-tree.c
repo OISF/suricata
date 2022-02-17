@@ -2484,15 +2484,15 @@ static int SCRadixTestIPV6Bug5066(void)
     FAIL_IF_NULL(node);
     SCRadixPrintNodeInfo(node, 0, NULL);
 
-    SCLogDebug("find 2000::1:64/122 (should fail)");
-    FAIL_IF(inet_pton(AF_INET6, "2000::1:64", &servaddr.sin6_addr) <= 0);
+    SCLogDebug("find 2000::1:40/122 (should fail)");
+    FAIL_IF(inet_pton(AF_INET6, "2000::1:40", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, 122, NULL);
     FAIL_IF_NOT_NULL(node);
     SCRadixPrintNodeInfo(node, 0, NULL);
 
-    SCLogDebug("add 2000::1:64/122");
+    SCLogDebug("add 2000::1:40/122");
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, strdup("3"), 122);
-    SCLogDebug("find 2000::1:64/122 (should succeed)");
+    SCLogDebug("find 2000::1:40/122 (should succeed)");
     node = SCRadixFindKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, 122, NULL);
     FAIL_IF_NULL(node);
     SCRadixPrintNodeInfo(node, 0, NULL);
@@ -3257,58 +3257,32 @@ static int SCRadixTestIPV6NetblockInsertion14(void)
  */
 static int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
 {
-    SCRadixTree *tree = NULL;
+
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.0.1", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "192.168.0.1", &servaddr.sin_addr) <= 0);
 
-    for (; i <= 32; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 32; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
+        char str[32];
+        snprintf(str, sizeof(str), "192.168.0.1/%u", i);
+        SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3317,58 +3291,32 @@ end:
  */
 static int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
 {
-    SCRadixTree *tree = NULL;
+
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "192.168.1.1", &servaddr.sin_addr) <= 0);
 
-    for (; i <= 32; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 32; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
+        char str[32];
+        snprintf(str, sizeof(str), "192.168.1.1/%u", i);
+        SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3377,58 +3325,31 @@ end:
  */
 static int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "10.0.0.1", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "10.0.0.1", &servaddr.sin_addr) <= 0);
 
-    for (; i <= 32; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 32; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
+        char str[32];
+        snprintf(str, sizeof(str), "10.0.0.1/%u", i);
+        SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3437,58 +3358,31 @@ end:
  */
 static int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "172.26.0.1", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "172.26.0.1", &servaddr.sin_addr) <= 0);
 
-    for (; i <= 32; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 32; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, i);
+        char str[32];
+        snprintf(str, sizeof(str), "172.26.0.1/%u", i);
+        SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3497,244 +3391,99 @@ end:
  */
 static int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in servaddr;
-    int result = 1;
-    void *user_data = NULL;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0);
 
-    user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    uint32_t *user = SCMalloc(sizeof(uint32_t));
+    FAIL_IF_NULL(user);
     *user = 100;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 0);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "192.168.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET, "192.168.1.15", &servaddr.sin_addr) <= 0);
+    void *user_data = NULL;
     SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 100) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
 
     user_data = NULL;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.0.0.0", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET, "177.0.0.0", &servaddr.sin_addr) <= 0);
     user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(user);
     *user = 200;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 8);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.168.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "177.168.1.15", &servaddr.sin_addr) <= 0);
 
     node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 200) {
-        result = 0;
-        goto end;
-    }
-
-    user_data = NULL;
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "178.168.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
-    node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t*)user_data) != 100) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 200);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.168.0.0", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "178.168.1.15", &servaddr.sin_addr) <= 0);
 
+    node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
+
+    user_data = NULL;
+    memset(&servaddr, 0, sizeof(servaddr));
+    FAIL_IF(inet_pton(AF_INET, "177.160.0.0", &servaddr.sin_addr) <= 0);
     user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(user);
     *user = 300;
 
     SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, user, 12);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.168.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "177.168.1.15", &servaddr.sin_addr) <= 0);
 
     node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t*)user_data) != 300) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 300);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.167.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "177.167.1.15", &servaddr.sin_addr) <= 0);
 
     node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 300) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 300);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "177.178.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "177.178.1.15", &servaddr.sin_addr) <= 0);
 
     node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 200) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 200);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "197.178.1.15", &servaddr.sin_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "197.178.1.15", &servaddr.sin_addr) <= 0);
 
     node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
 
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 100) {
-        result = 0;
-        goto end;
-    }
-
-
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3743,58 +3492,32 @@ end:
  */
 static int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in6 servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABAB:CDCD:ABAB:CDCD:1234:4321:1234:4321", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET6, "ABAB:CDCD:ABAB:CDCD:1234:4321:1234:4321", &servaddr.sin6_addr) <=
+            0);
 
-    for (; i <= 128; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 128; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
+        char str[64];
+        snprintf(str, sizeof(str), "ABAB:CDCD:ABAB:CDCD:1234:4321:1234:4321/%u", i);
+        SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3803,58 +3526,31 @@ end:
  */
 static int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in6 servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ff00::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET6, "ff00::1", &servaddr.sin6_addr) <= 0);
 
-    for (; i <= 128; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 128; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
+        char str[64];
+        snprintf(str, sizeof(str), "ff00::1/%u", i);
+        SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3863,58 +3559,31 @@ end:
  */
 static int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in6 servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ff00::192:168:1:1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET6, "ff00::192:168:1:1", &servaddr.sin6_addr) <= 0);
 
-    for (; i <= 128; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 128; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
+        char str[64];
+        snprintf(str, sizeof(str), "ff00::192:168:1:1/%u", i);
+        SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3923,58 +3592,31 @@ end:
  */
 static int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
 {
-    SCRadixTree *tree = NULL;
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
     struct sockaddr_in6 servaddr;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    uint32_t i = 0;
-
-    uint32_t *user;
-
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "FF00:ABCD:BCDA::ABCD", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET6, "FF00:ABCD:BCDA::ABCD", &servaddr.sin6_addr) <= 0);
 
-    for (; i <= 128; i++) {
-        user = SCMalloc(sizeof(uint32_t));
-        if (unlikely(user == NULL)) {
-            result = 0;
-            goto end;
-        }
-
+    for (uint32_t i = 0; i <= 128; i++) {
+        uint32_t *user = SCMalloc(sizeof(uint32_t));
+        FAIL_IF_NULL(user);
         *user = i;
 
-        SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, i);
+        char str[64];
+        snprintf(str, sizeof(str), "FF00:ABCD:BCDA::ABCD/%u", i);
+        SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
         SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-        if (node == NULL) {
-            printf("node == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if (user_data == NULL) {
-            printf("User data == NULL: ");
-            result = 0;
-            goto end;
-        }
-
-        if ( *( (uint32_t *)user_data) != i) {
-            printf("User data == %"PRIu32"; i == %"PRIu32": ", *( (uint32_t *)user_data), i);
-            result = 0;
-            goto end;
-        }
+        FAIL_IF_NULL(node);
+        FAIL_IF_NULL(user_data);
+        FAIL_IF(*((uint32_t *)user_data) != i);
     }
 
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -3983,244 +3625,85 @@ end:
  */
 static int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
 {
-    SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
-    int result = 1;
     void *user_data = NULL;
 
-    tree = SCRadixCreateRadixTree(free, NULL);
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
 
-    uint32_t *user;
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "::", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
-    user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    uint32_t *user = SCMalloc(sizeof(uint32_t));
+    FAIL_IF_NULL(user);
     *user = 100;
-
-    SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 0);
+    SCRadixAddKeyIPV6String("::/0", tree, user);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "ABCD::1", &servaddr.sin6_addr) <= 0);
     SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t*)user_data) != 100) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
 
     user_data = NULL;
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD::0", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
     user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(user);
     *user = 200;
-
-    SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 8);
+    SCRadixAddKeyIPV6String("ABCD::0/8", tree, user);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "ABCD::1", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 200) {
-        printf("User data == %"PRIu32"; i != 200 ", *( (uint32_t *)user_data));
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 200);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DCBA::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(inet_pton(AF_INET6, "DCBA::1", &servaddr.sin6_addr) <= 0);
 
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 100) {
-        printf("User data == %"PRIu32"; != 100 ", *( (uint32_t *)user_data));
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
 
     user_data = NULL;
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD:ABCD::0", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
     user = SCMalloc(sizeof(uint32_t));
-    if (unlikely(user == NULL)) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(user);
     *user = 300;
-
-    SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, user, 12);
+    SCRadixAddKeyIPV6String("ABCD:ABCD::0/12", tree, user);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD:ABCD::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "ABCD:ABCD::1", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 300) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 300);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABCD:AAAA::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "ABCD:AAAA::1", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 300) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 300);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "ABAB::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "ABAB::1", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 200) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 200);
 
     user_data = NULL;
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "CABD::1", &servaddr.sin6_addr) <= 0) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(inet_pton(AF_INET6, "CABD::1", &servaddr.sin6_addr) <= 0);
     node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
-    if (node == NULL) {
-        printf("node == NULL: ");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF_NULL(user_data);
+    FAIL_IF(*((uint32_t *)user_data) != 100);
 
-    if (user_data == NULL) {
-        printf("User data == NULL: ");
-        result = 0;
-        goto end;
-    }
-
-    if ( *( (uint32_t *)user_data) != 100) {
-        result = 0;
-        goto end;
-    }
-
-
-end:
     SCRadixReleaseRadixTree(tree);
-
-    return result;
+    PASS;
 }
 
 
@@ -4261,56 +3744,43 @@ static int SCRadixTestIPV4NetblockInsertion25(void)
  */
 static int SCRadixTestIPV4NetblockInsertion26(void)
 {
-    SCRadixNode *tmp = NULL;
-    SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
-    int result = 1;
+
+    SCRadixTree *tree = SCRadixCreateRadixTree(free, NULL);
+    FAIL_IF_NULL(tree);
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    FAIL_IF(inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0);
+
     char *str = SCStrdup("Hello1");
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0)
-        return 0;
-    tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 0);
-    if (!tmp) {
-        printf("Not inserted correctly 1:");
-        result = 0;
-        goto this_end;
-    }
-    str = SCStrdup("Hello1");
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "176.0.0.1", &servaddr.sin_addr) <= 0)
-        return 0;
-    tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 5);
-    if (!tmp) {
-        printf("Not inserted correctly 2:");
-        result = 0;
-        goto this_end;
-    }
+    FAIL_IF_NULL(str);
+    SCRadixNode *node = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 0);
+    FAIL_IF_NULL(node);
 
     str = SCStrdup("Hello1");
+    FAIL_IF_NULL(str);
+
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0) {
-        SCFree(str);
-        return 0;
-    }
-    tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 7);
-    if (!tmp) {
-        printf("Not inserted correctly 3:");
-        result = 0;
-        goto this_end;
-    }
+    FAIL_IF(inet_pton(AF_INET, "176.0.0.0", &servaddr.sin_addr) <= 0);
+
+    node = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 5);
+    FAIL_IF_NULL(node);
+
+    str = SCStrdup("Hello1");
+    FAIL_IF_NULL(str);
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    FAIL_IF(inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0);
+
+    node = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 7);
+    FAIL_IF_NULL(node);
 
     /* test for the existance of a key */
     //result &= (SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree) != NULL);
 
-this_end:
     SCRadixReleaseRadixTree(tree);
 
-    //SCFree(str);
-    return result;
+    PASS;
 }
 
 #endif
