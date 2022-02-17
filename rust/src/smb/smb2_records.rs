@@ -15,17 +15,17 @@
  * 02110-1301, USA.
  */
 
-use crate::common::nom7::bits;
 use crate::smb::smb::*;
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
-use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{cond, map_parser, rest};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::count;
 use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
-use nom7::sequence::tuple;
 use nom7::{Err, IResult, Needed};
+
+const SMB2_FLAGS_SERVER_TO_REDIR: u32 = 0x0000_0001;
+const SMB2_FLAGS_ASYNC_COMMAND: u32 = 0x0000_0002;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
@@ -71,17 +71,20 @@ impl<'a> Smb2Record<'a> {
     }
 }
 
-fn parse_smb2_request_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u8,u32,u8,u8,u8,u8)> {
-    bits(tuple((
-        take_bits(2u8),      // reserved / unused
-        take_bits(1u8),      // replay op
-        take_bits(1u8),      // dfs op
-        take_bits(24u32),    // reserved / unused
-        take_bits(1u8),      // signing
-        take_bits(1u8),      // chained
-        take_bits(1u8),      // async
-        take_bits(1u8)       // response
-    )))(i)
+#[derive(Debug)]
+struct SmbFlags {
+    direction: u8,
+    async_command: u8,
+}
+
+fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
+    let (i, val) = le_u32(i)?;
+    let direction = if val & SMB2_FLAGS_SERVER_TO_REDIR != 0 { 1 } else { 0 };
+    let async_command = if val & SMB2_FLAGS_ASYNC_COMMAND != 0 { 1 } else { 0 };
+    Ok((i, SmbFlags {
+        direction,
+        async_command,
+    }))
 }
 
 pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
@@ -92,7 +95,7 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     let (i, _reserved) = take(2_usize)(i)?;
     let (i, command) = le_u16(i)?;
     let (i, _credits_requested) = le_u16(i)?;
-    let (i, flags) = parse_smb2_request_flags(i)?;
+    let (i, flags) = parse_smb2_flags(i)?;
     let (i, chain_offset) = le_u32(i)?;
     let (i, message_id) = le_u64(i)?;
     let (i, _process_id) = le_u32(i)?;
@@ -105,7 +108,7 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
         rest(i)?
     };
     let record = Smb2Record {
-        direction: flags.7,
+        direction: flags.direction,
         header_len: hlen,
         nt_status: 0,
         command,
@@ -546,12 +549,12 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     let (i, nt_status) = le_u32(i)?;
     let (i, command) = le_u16(i)?;
     let (i, _credit_granted) = le_u16(i)?;
-    let (i, flags) = parse_smb2_request_flags(i)?;
+    let (i, flags) = parse_smb2_flags(i)?;
     let (i, chain_offset) = le_u32(i)?;
     let (i, message_id) = le_u64(i)?;
-    let (i, _process_id) = cond(flags.6 == 0, le_u32)(i)?;
-    let (i, tree_id) = cond(flags.6 == 0, le_u32)(i)?;
-    let (i, async_id) = cond(flags.6 == 1, le_u64)(i)?;
+    let (i, _process_id) = cond(flags.async_command == 0, le_u32)(i)?;
+    let (i, tree_id) = cond(flags.async_command == 0, le_u32)(i)?;
+    let (i, async_id) = cond(flags.async_command == 1, le_u64)(i)?;
     let (i, session_id) = le_u64(i)?;
     let (i, _signature) = take(16_usize)(i)?;
     let (i, data) = if chain_offset > hlen as u32 {
@@ -560,7 +563,7 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
         rest(i)?
     };
     let record = Smb2Record {
-        direction: flags.7,
+        direction: flags.direction,
         header_len: hlen,
         nt_status,
         message_id,
