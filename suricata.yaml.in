@@ -1961,7 +1961,7 @@ rule-files:
 ## Auxiliary configuration files.
 ##
 
-classification-file: @e_sysconfdir@classification.config
+classification-file: @e_defaultruledir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
 # threshold-file: @e_sysconfdir@threshold.config
 
