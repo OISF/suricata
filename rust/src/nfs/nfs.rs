@@ -653,6 +653,10 @@ impl NFSState {
     }
 
     pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+        if w.count == 0 || w.count < w.file_len || (w.count as  usize) < w.file_data.len() || (w.file_len as usize) < w.file_data.len() {
+            return 0;
+        }
+
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = if w.stable == 2 { true } else { false };
 
@@ -890,6 +894,10 @@ impl NFSState {
         let file_handle;
         let chunk_offset;
         let nfs_version;
+
+        if reply.count == 0 || reply.count < reply.data_len || (reply.count as  usize) < reply.data.len() || (reply.data_len as usize) < reply.data.len() {
+            return 0;
+        }
 
         match xidmapr {
             Some(xidmap) => {
