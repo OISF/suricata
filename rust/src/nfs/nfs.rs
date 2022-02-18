@@ -662,7 +662,8 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
-        if fill_bytes > w.file_len {
+        // Cases where the server wrote file data of < 4B
+        if fill_bytes > w.file_data.len() as u32 {
             fill_bytes = 0;
         }
 
