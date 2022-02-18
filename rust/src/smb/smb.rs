@@ -1475,7 +1475,11 @@ impl SMBState {
                                                 self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_data, record_len);
                                                 self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
-                                                smb2_request_record(self, smb_record);
+                                                if smb_record.direction == 0 {
+                                                    smb2_request_record(self, smb_record);
+                                                } else {
+                                                    self.set_event(SMBEvent::ResponseToServer);
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
@@ -1782,7 +1786,11 @@ impl SMBState {
                                                 let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
                                                 self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
                                                 self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
-                                                smb2_response_record(self, smb_record);
+                                                if smb_record.direction == 1 {
+                                                    smb2_response_record(self, smb_record);
+                                                } else {
+                                                    self.set_event(SMBEvent::RequestToClient);
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
