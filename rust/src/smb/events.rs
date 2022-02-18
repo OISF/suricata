@@ -28,6 +28,8 @@ pub enum SMBEvent {
     DuplicateNegotiate = 5,
     NegotiateMalformedDialects = 6,
     FileOverlap = 7,
+    RequestToClient = 8,
+    ResponseToServer = 9,
 }
 
 impl SMBEvent {
@@ -41,6 +43,8 @@ impl SMBEvent {
             5 => Some(SMBEvent::DuplicateNegotiate),
             6 => Some(SMBEvent::NegotiateMalformedDialects),
             7 => Some(SMBEvent::FileOverlap),
+            8 => Some(SMBEvent::RequestToClient),
+            9 => Some(SMBEvent::ResponseToServer),
             _ => None,
         }
     }
@@ -57,6 +61,8 @@ pub fn smb_str_to_event(instr: &str) -> i32 {
         "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
         "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
         "file_overlap"                  => SMBEvent::FileOverlap as i32,
+        "request_to_client"             => SMBEvent::RequestToClient as i32,
+        "response_to_server"            => SMBEvent::ResponseToServer as i32,
         _ => -1,
     }
 }
