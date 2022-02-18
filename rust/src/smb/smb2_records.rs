@@ -67,6 +67,14 @@ impl<'a> Smb2Record<'a> {
     pub fn is_async(&self) -> bool {
         self.async_id != 0
     }
+
+    pub fn is_request(&self) -> bool {
+        self.direction == 0
+    }
+
+    pub fn is_response(&self) -> bool {
+        self.direction == 1
+    }
 }
 
 #[derive(Debug)]
