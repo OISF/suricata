@@ -22,6 +22,9 @@ use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 
+// SMB_FLAGS_REPLY in Microsoft docs.
+const SMB1_FLAGS_RESPONSE: u8 = 0x80;
+
 fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
 {
     do_parse!(i,
@@ -778,6 +781,16 @@ impl<'a> SmbRecord<'a> {
     }
     pub fn is_dos_error(&self) -> bool {
         self.flags2 & 0x4000_u16 != 0
+    }
+
+    /// Return true if record is a request.
+    pub fn is_request(&self) -> bool {
+        self.flags & SMB1_FLAGS_RESPONSE == 0
+    }
+
+    /// Return true if record is a reply.
+    pub fn is_response(&self) -> bool {
+        self.flags & SMB1_FLAGS_RESPONSE != 0
     }
 }
 
