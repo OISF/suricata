@@ -12,4 +12,7 @@ msc {
     b =>> a [ label = "Response ('3:Bye')" ];
     |||;
     --- [ label = "Transaction Completed" ];
+
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
 }
