@@ -1001,7 +1001,9 @@ impl NFSState {
 
         if !self.is_udp {
             self.tc_chunk_xid = r.hdr.xid;
-            self.tc_chunk_left = (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
+            // Case where there is trailing data post the parsable reply
+            let left_over_bytes = (reply.count as i64 + fill_bytes - reply.data.len() as i64).abs();
+            self.tc_chunk_left = left_over_bytes as u32;
         }
 
         SCLogDebug!("REPLY {} to procedure {} blob size {} / {}: chunk_left {} chunk_xid {:04X}",
