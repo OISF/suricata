@@ -190,6 +190,8 @@ Register relevant callbacks (note that the actual functions will also have to be
     :end-before: /* app-layer-frame-documentation tag end: registering relevant callbacks
     :dedent: 8
 
+.. note:: The ``GetFrameIdByName`` functions can be "probed", so they should not generate any output or that could be misleading (for instance, Suricata generating a log message stating that a valid frame type is unknown).
+
 Visual context
 ==============
 
