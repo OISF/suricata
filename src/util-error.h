@@ -358,6 +358,7 @@ typedef enum {
     SC_ERR_PCRE_COPY_SUBSTRING,
     SC_ERR_SIGNAL,
     SC_WARN_CHOWN,
+    SC_ERR_HASH_ADD,
 
     SC_ERR_MAX
 } SCError;
