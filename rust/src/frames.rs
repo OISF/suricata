@@ -17,6 +17,7 @@
 
 use crate::applayer::StreamSlice;
 use crate::core::Flow;
+use crate::core::STREAM_TOSERVER;
 
 #[repr(C)]
 struct CFrame {
@@ -37,19 +38,22 @@ extern {
 
 pub struct Frame {
     pub id: i64,
+    direction: i32,
 }
 
 impl std::fmt::Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "frame: {}", self.id)
+        write!(f, "frame: {}, direction: {}", self.id, self.direction)
     }
 }
 
 impl Frame {
     pub fn new(
         flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i64,
-        dir: i32, frame_type: u8,
+        frame_type: u8,
     ) -> Option<Self> {
+        // Derive the direction from the stream slice, 0 for to server, 1 for to client.
+        let direction = if stream_slice.flags() & STREAM_TOSERVER != 0 { 0 } else { 1 };
         let offset = frame_start.as_ptr() as usize - stream_slice.as_slice().as_ptr() as usize;
         SCLogDebug!("offset {} stream_slice.len() {} frame_start.len() {}", offset, stream_slice.len(), frame_start.len());
         // If running Rust unit tests this won't be compiled and None will be returned, as we don't
@@ -61,13 +65,13 @@ impl Frame {
                     stream_slice,
                     offset as u32,
                     frame_len,
-                    dir,
+                    direction,
                     frame_type,
                 )
             };
             let id = unsafe { AppLayerFrameGetId(frame) };
             if id > 0 {
-                Some(Self { id })
+                Some(Self { id, direction })
             } else {
                 None
             }
@@ -76,35 +80,21 @@ impl Frame {
         }
     }
 
-    pub fn new_ts(
-        flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i64,
-        frame_type: u8,
-    ) -> Option<Self> {
-        Self::new(flow, stream_slice, frame_start, frame_len, 0, frame_type)
-    }
-
-    pub fn new_tc(
-        flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i64,
-        frame_type: u8,
-    ) -> Option<Self> {
-        Self::new(flow, stream_slice, frame_start, frame_len, 1, frame_type)
-    }
-
-    pub fn set_len(&self, flow: *const Flow, dir: i32, len: i64) {
+    pub fn set_len(&self, flow: *const Flow, len: i64) {
         unsafe {
-            AppLayerFrameSetLengthById(flow, dir, self.id, len);
+            AppLayerFrameSetLengthById(flow, self.direction, self.id, len);
         };
     }
 
-    pub fn set_tx(&self, flow: *const Flow, dir: i32, tx_id: u64) {
+    pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {
         unsafe {
-            AppLayerFrameSetTxIdById(flow, dir, self.id, tx_id);
+            AppLayerFrameSetTxIdById(flow, self.direction, self.id, tx_id);
         };
     }
 
-    pub fn add_event(&self, flow: *const Flow, dir: i32, event: u8) {
+    pub fn add_event(&self, flow: *const Flow, event: u8) {
         unsafe {
-            AppLayerFrameAddEventById(flow, dir, self.id, event);
+            AppLayerFrameAddEventById(flow, self.direction, self.id, event);
         };
     }
 }

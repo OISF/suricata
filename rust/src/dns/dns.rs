@@ -434,13 +434,13 @@ impl DNSState {
 
     fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new_ts(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
         self.parse_request(input)
     }
 
     fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new_tc(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
+        let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, DnsFrameType::Pdu as u8);
         self.parse_response(input)
     }
 
@@ -517,7 +517,7 @@ impl DNSState {
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new_ts(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                let _pdu = Frame::new(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
                 if self.parse_request(msg) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size  + 2;
@@ -566,7 +566,7 @@ impl DNSState {
                         cur_i.len(), size + 2);
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new_tc(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
+                let _pdu = Frame::new(flow, &stream_slice, msg, msg.len() as i64, DnsFrameType::Pdu as u8);
                 if self.parse_response(msg) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
