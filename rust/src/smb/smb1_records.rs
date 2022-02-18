@@ -27,6 +27,8 @@ use nom7::IResult;
 
 pub const SMB1_HEADER_SIZE: usize = 32;
 
+pub const SMB1_FLAGS_REPLY: u8 = 0x80;
+
 fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
 {
     let (i, _) = cond(offset % 2 == 1, take(1_usize))(i)?;
@@ -814,6 +816,16 @@ impl<'a> SmbRecord<'a> {
     }
     pub fn is_dos_error(&self) -> bool {
         self.flags2 & 0x4000_u16 != 0
+    }
+
+    /// Return true if record is a request.
+    pub fn is_request(&self) -> bool {
+        self.flags & SMB1_FLAGS_REPLY == 0
+    }
+
+    /// Return true if record is a reply.
+    pub fn is_reply(&self) -> bool {
+        self.flags & SMB1_FLAGS_REPLY != 0
     }
 }
 
