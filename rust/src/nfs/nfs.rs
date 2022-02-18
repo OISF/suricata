@@ -653,15 +653,21 @@ impl NFSState {
     }
 
     pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
-        // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
-
         let mut fill_bytes = 0;
-        let pad = w.file_len % 4;
+        let pad = w.count % 4;
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
 
+        if w.count == 0 || w.count < w.file_len ||
+            ((fill_bytes + w.count) as usize) < w.file_data.len() ||
+                ((fill_bytes + w.file_len) as usize) < w.file_data.len() {
+            SCLogDebug!("w {:?}", w);
+            return 0;
+        }
+
+        // for now assume that stable FILE_SYNC flags means a single chunk
+        let is_last = if w.stable == 2 { true } else { false };
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -711,8 +717,7 @@ impl NFSState {
         }
         if !self.is_udp {
             self.ts_chunk_xid = r.hdr.xid;
-            let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
-            self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+            self.ts_chunk_left = (w.count as u32 + fill_bytes) - w.file_data.len() as u32;
             self.ts_chunk_fh = file_handle;
             SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
         }
@@ -891,6 +896,18 @@ impl NFSState {
         let chunk_offset;
         let nfs_version;
 
+        let mut fill_bytes = 0;
+        let pad = reply.count % 4;
+        if pad != 0 {
+            fill_bytes = 4 - pad;
+        }
+        if reply.count == 0 || reply.count < reply.data_len ||
+            ((fill_bytes + reply.count) as usize) < reply.data.len() ||
+                ((fill_bytes + reply.data_len) as usize) < reply.data.len() {
+                    SCLogDebug!("fill_bytes {} reply {:?}", fill_bytes, reply);
+                    return 0;
+                }
+
         match xidmapr {
             Some(xidmap) => {
                 file_name = xidmap.file_name.to_vec();
@@ -912,11 +929,6 @@ impl NFSState {
         SCLogDebug!("chunk_offset {}", chunk_offset);
 
         let mut is_last = reply.eof;
-        let mut fill_bytes = 0;
-        let pad = reply.count % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
         SCLogDebug!("XID {} is_last {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}",
                 r.hdr.xid, is_last, fill_bytes, reply.count, reply.data_len, reply.data.len());
 
