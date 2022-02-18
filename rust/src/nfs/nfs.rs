@@ -717,7 +717,9 @@ impl NFSState {
         if !self.is_udp {
             self.ts_chunk_xid = r.hdr.xid;
             let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
-            self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+            // Cases where there is trailing data after file data
+            let left_over_bytes = (w.file_len as i64 - file_data_len as i64).abs();
+            self.ts_chunk_left = left_over_bytes as u32;
             self.ts_chunk_fh = file_handle;
             SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
         }
