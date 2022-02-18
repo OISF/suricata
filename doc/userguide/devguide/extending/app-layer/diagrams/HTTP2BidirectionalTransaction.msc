@@ -13,6 +13,8 @@ msc {
     b =>> a [ label = "Response" ];
     |||;
     --- [ label = "Transaction Completed" ];
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
 }
 
 # Reference: https://tools.ietf.org/html/rfc7540#section-8.1
