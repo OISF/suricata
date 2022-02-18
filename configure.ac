@@ -2592,6 +2592,8 @@ Development settings:
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
+  Fuzz targets enabled:                    ${enable_fuzztargets}
+
 
 Generic build parameters:
   Installation prefix:                     ${prefix}
