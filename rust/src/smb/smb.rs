@@ -1426,7 +1426,13 @@ impl SMBState {
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(&nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            smb1_request_record(self, smb_record);
+                                            if smb_record.is_request() {
+                                                smb1_request_record(self, smb_record);
+                                            } else {
+                                                // If we recevied a response when expecting a request, set an event.
+                                                SCLogDebug!("SMB1 reply seen from client to server");
+                                                self.set_event(SMBEvent::ResponseToServer);
+                                            }
                                         },
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
@@ -1440,8 +1446,13 @@ impl SMBState {
                                         match parse_smb2_request_record(&nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
-
-                                                smb2_request_record(self, smb_record);
+                                                if smb_record.is_request() {
+                                                    smb2_request_record(self, smb_record);
+                                                } else {
+                                                    // If we recevied a response when expecting a request, set an event.
+                                                    SCLogDebug!("SMB2 reply seen from client to server");
+                                                    self.set_event(SMBEvent::ResponseToServer);
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
@@ -1665,7 +1676,12 @@ impl SMBState {
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(&nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            smb1_response_record(self, smb_record);
+                                            if smb_record.is_response() {
+                                                smb1_response_record(self, smb_record);
+                                            } else {
+                                                SCLogDebug!("SMB1 request seen from server to client");
+                                                self.set_event(SMBEvent::RequestToClient);
+                                            }
                                         },
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
@@ -1678,7 +1694,12 @@ impl SMBState {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(&nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
-                                                smb2_response_record(self, smb_record);
+                                                if smb_record.is_response() {
+                                                    smb2_response_record(self, smb_record);
+                                                } else {
+                                                    SCLogDebug!("SMB2 request seen from server to client");
+                                                    self.set_event(SMBEvent::RequestToClient);
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
@@ -2163,6 +2184,8 @@ pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_in
             SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
             SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
             SMBEvent::FileOverlap => { "file_overlap\0" },
+            SMBEvent::RequestToClient => { "request_to_client\0" },
+            SMBEvent::ResponseToServer => { "response_to_server\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
