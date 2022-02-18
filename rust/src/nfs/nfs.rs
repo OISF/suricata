@@ -462,68 +462,68 @@ impl NFSState {
     }
 
     fn add_rpc_udp_ts_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_udp_ts_pdu = Frame::new_ts(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        let rpc_udp_ts_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
         SCLogDebug!("rpc_udp_pdu ts frame {:?}", rpc_udp_ts_pdu);
         rpc_udp_ts_pdu
     }
 
     fn add_rpc_udp_ts_creds(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64) {
-        let _rpc_udp_ts_creds = Frame::new_ts(flow, stream_slice, input, creds_len, NFSFrameType::RPCCreds as u8);
+        let _rpc_udp_ts_creds = Frame::new(flow, stream_slice, input, creds_len, NFSFrameType::RPCCreds as u8);
         SCLogDebug!("rpc_creds ts frame {:?}", _rpc_udp_ts_creds);
     }
 
     fn add_rpc_tcp_ts_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_tcp_ts_pdu = Frame::new_ts(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        let rpc_tcp_ts_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
         SCLogDebug!("rpc_tcp_pdu ts frame {:?}", rpc_tcp_ts_pdu);
         rpc_tcp_ts_pdu
     }
 
     fn add_rpc_tcp_ts_creds(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64) {
-        let _rpc_tcp_ts_creds = Frame::new_ts(flow, stream_slice, input, creds_len, NFSFrameType::RPCCreds as u8);
+        let _rpc_tcp_ts_creds = Frame::new(flow, stream_slice, input, creds_len, NFSFrameType::RPCCreds as u8);
         SCLogDebug!("rpc_tcp_ts_creds {:?}", _rpc_tcp_ts_creds);
     }
 
     fn add_nfs_ts_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64) {
-        let _nfs_req_pdu = Frame::new_ts(flow, stream_slice, input, nfs_len, NFSFrameType::NFSPdu as u8);
+        let _nfs_req_pdu = Frame::new(flow, stream_slice, input, nfs_len, NFSFrameType::NFSPdu as u8);
         SCLogDebug!("nfs_ts_pdu Frame {:?}", _nfs_req_pdu);
     }
 
     fn add_nfs4_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64) {
-        let _nfs4_ts_pdu = Frame::new_ts(flow, stream_slice, input, nfs4_len, NFSFrameType::NFS4Pdu as u8);
+        let _nfs4_ts_pdu = Frame::new(flow, stream_slice, input, nfs4_len, NFSFrameType::NFS4Pdu as u8);
         SCLogDebug!("nfs4_ts_pdu Frame: {:?}", _nfs4_ts_pdu);
         if nfs4_len > 8 {
-            let _nfs4_ts_hdr = Frame::new_ts(flow, stream_slice, input, 8, NFSFrameType::NFS4Hdr as u8);
+            let _nfs4_ts_hdr = Frame::new(flow, stream_slice, input, 8, NFSFrameType::NFS4Hdr as u8);
             SCLogDebug!("nfs4_ts_hdr Frame {:?}", _nfs4_ts_hdr);
-            let _nfs4_ts_ops = Frame::new_ts(flow, stream_slice, &input[8..], nfs4_len - 8, NFSFrameType::NFS4Ops as u8);
+            let _nfs4_ts_ops = Frame::new(flow, stream_slice, &input[8..], nfs4_len - 8, NFSFrameType::NFS4Ops as u8);
             SCLogDebug!("nfs4_ts_ops Frame {:?}", _nfs4_ts_ops);
         }
     }
 
     fn add_rpc_udp_tc_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) -> Option<Frame> {
-        let rpc_udp_tc_pdu = Frame::new_ts(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
+        let rpc_udp_tc_pdu = Frame::new(flow, stream_slice, input, rpc_len, NFSFrameType::RPCPdu as u8);
         SCLogDebug!("rpc_tc_pdu frame {:?}", rpc_udp_tc_pdu);
         rpc_udp_tc_pdu
     }
 
     fn add_rpc_udp_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64) {
         if rpc_len > 8 {
-            let _rpc_udp_tc_hdr = Frame::new_ts(flow, stream_slice, input, 8, NFSFrameType::RPCHdr as u8);
-            let _rpc_udp_tc_data = Frame::new_ts(flow, stream_slice, &input[8..], rpc_len - 8, NFSFrameType::RPCData as u8);
+            let _rpc_udp_tc_hdr = Frame::new(flow, stream_slice, input, 8, NFSFrameType::RPCHdr as u8);
+            let _rpc_udp_tc_data = Frame::new(flow, stream_slice, &input[8..], rpc_len - 8, NFSFrameType::RPCData as u8);
             SCLogDebug!("rpc_udp_tc_hdr frame {:?}", _rpc_udp_tc_hdr);
             SCLogDebug!("rpc_udp_tc_data frame {:?}", _rpc_udp_tc_data);
         }
     }
 
     fn add_rpc_tcp_tc_pdu(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64) -> Option<Frame> {
-        let rpc_tcp_tc_pdu = Frame::new_tc(flow, stream_slice, input, rpc_tcp_len, NFSFrameType::RPCPdu as u8);
+        let rpc_tcp_tc_pdu = Frame::new(flow, stream_slice, input, rpc_tcp_len, NFSFrameType::RPCPdu as u8);
         SCLogDebug!("rpc_tcp_pdu tc frame {:?}", rpc_tcp_tc_pdu);
         rpc_tcp_tc_pdu
     }
 
     fn add_rpc_tcp_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64) {
         if rpc_tcp_len > 12 {
-            let _rpc_tcp_tc_hdr = Frame::new_tc(flow, stream_slice, input, 12, NFSFrameType::RPCHdr as u8);
-            let _rpc_tcp_tc_data = Frame::new_tc(flow, stream_slice, &input[12..], rpc_tcp_len - 12, NFSFrameType::RPCData as u8);
+            let _rpc_tcp_tc_hdr = Frame::new(flow, stream_slice, input, 12, NFSFrameType::RPCHdr as u8);
+            let _rpc_tcp_tc_data = Frame::new(flow, stream_slice, &input[12..], rpc_tcp_len - 12, NFSFrameType::RPCData as u8);
             SCLogDebug!("rpc_tcp_tc_hdr frame {:?}", _rpc_tcp_tc_hdr);
             SCLogDebug!("rpc_tcp_tc_data frame {:?}", _rpc_tcp_tc_data);
         }
@@ -531,24 +531,24 @@ impl NFSState {
 
     fn add_nfs_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64) {
         if nfs_len > 0 {
-            let _nfs_tc_pdu = Frame::new_tc(flow, stream_slice, input, nfs_len, NFSFrameType::NFSPdu as u8);
+            let _nfs_tc_pdu = Frame::new(flow, stream_slice, input, nfs_len, NFSFrameType::NFSPdu as u8);
             SCLogDebug!("nfs_tc_pdu frame {:?}", _nfs_tc_pdu);
-            let _nfs_res_status = Frame::new_tc(flow, stream_slice, input, 4, NFSFrameType::NFSStatus as u8);
+            let _nfs_res_status = Frame::new(flow, stream_slice, input, 4, NFSFrameType::NFSStatus as u8);
             SCLogDebug!("nfs_tc_status frame {:?}", _nfs_res_status);
         }
     }
 
     fn add_nfs4_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64) {
         if nfs4_len > 0 {
-            let _nfs4_tc_pdu = Frame::new_tc(flow, stream_slice, input, nfs4_len, NFSFrameType::NFS4Pdu as u8);
+            let _nfs4_tc_pdu = Frame::new(flow, stream_slice, input, nfs4_len, NFSFrameType::NFS4Pdu as u8);
             SCLogDebug!("nfs4_tc_pdu frame {:?}", _nfs4_tc_pdu);
-            let _nfs4_tc_status = Frame::new_tc(flow, stream_slice, input, 4, NFSFrameType::NFS4Status as u8);
+            let _nfs4_tc_status = Frame::new(flow, stream_slice, input, 4, NFSFrameType::NFS4Status as u8);
             SCLogDebug!("nfs4_tc_status frame {:?}", _nfs4_tc_status);
         }
         if nfs4_len > 8 {
-            let _nfs4_tc_hdr = Frame::new_tc(flow, stream_slice, input, 8, NFSFrameType::NFS4Hdr as u8);
+            let _nfs4_tc_hdr = Frame::new(flow, stream_slice, input, 8, NFSFrameType::NFS4Hdr as u8);
             SCLogDebug!("nfs4_tc_hdr frame {:?}", _nfs4_tc_hdr);
-            let _nfs4_tc_ops = Frame::new_tc(flow, stream_slice, &input[8..], nfs4_len - 8, NFSFrameType::NFS4Ops as u8);
+            let _nfs4_tc_ops = Frame::new(flow, stream_slice, &input[8..], nfs4_len - 8, NFSFrameType::NFS4Ops as u8);
             SCLogDebug!("nfs4_tc_ops frame {:?}", _nfs4_tc_ops);
         }
     }
