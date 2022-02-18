@@ -27,6 +27,10 @@ pub enum SMBEvent {
     DuplicateNegotiate,
     NegotiateMalformedDialects,
     FileOverlap,
+    /// A request was seen in the to client direction.
+    RequestToClient,
+    /// A response was seen in the to server direction,
+    ResponseToServer,
 }
 
 impl SMBTransaction {

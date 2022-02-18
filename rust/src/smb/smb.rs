@@ -1453,9 +1453,18 @@ impl SMBState {
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
+                                            let pdu_frame = self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             self.add_smb1_ts_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
-                                            smb1_request_record(self, smb_record);
+
+                                            if smb_record.direction() == 0 {
+                                                smb1_request_record(self, smb_record);
+                                            } else {
+                                                // If we recevied a response when expecting a request, set an event
+                                                // on the PDU frame instead of handling the response.
+                                                if let Some(frame) = pdu_frame {
+                                                    frame.add_event(flow, 0, SMBEvent::ResponseToServer as u8);
+                                                }
+                                            }
                                         },
                                         _ => {
                                             if let Some(frame) = nbss_data_frame {
@@ -1472,10 +1481,18 @@ impl SMBState {
                                         match parse_smb2_request_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_data, record_len);
+                                                let pdu_frame = self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_data, record_len);
                                                 self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
-                                                smb2_request_record(self, smb_record);
+                                                if smb_record.direction == 0 {
+                                                    smb2_request_record(self, smb_record);
+                                                } else {
+                                                    // If we recevied a response when expecting a request, set an event
+                                                    // on the PDU frame instead of handling the response.
+                                                    if let Some(frame) = pdu_frame {
+                                                        frame.add_event(flow, 0, SMBEvent::ResponseToServer as u8);
+                                                    }
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
@@ -1571,9 +1588,10 @@ impl SMBState {
         (nbss_pdu, nbss_hdr_frame, nbss_data_frame)
     }
 
-    fn add_smb1_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb_pdu = Frame::new_tc(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8);
-        SCLogDebug!("SMB PDU frame {:?}", _smb_pdu);
+    fn add_smb1_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+        let smb_pdu = Frame::new_tc(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8);
+        SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
+        smb_pdu
     }
     fn add_smb1_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb1_hdr = Frame::new_tc(flow, stream_slice, input, SMB1_HEADER_SIZE as i64, SMBFrameType::SMB1Hdr as u8);
@@ -1585,9 +1603,10 @@ impl SMBState {
         }
     }
 
-    fn add_smb2_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb_pdu = Frame::new_tc(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8);
-        SCLogDebug!("SMBv2 PDU frame {:?}", _smb_pdu);
+    fn add_smb2_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+        let smb_pdu = Frame::new_tc(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8);
+        SCLogDebug!("SMBv2 PDU frame {:?}", smb_pdu);
+        smb_pdu
     }
     fn add_smb2_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
         let _smb2_hdr = Frame::new_tc(flow, stream_slice, input, hdr_len, SMBFrameType::SMB2Hdr as u8);
@@ -1764,9 +1783,15 @@ impl SMBState {
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
+                                            let pdu_frame = self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             self.add_smb1_tc_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
-                                            smb1_response_record(self, smb_record);
+                                            if smb_record.direction() == 1 {
+                                                smb1_response_record(self, smb_record);
+                                            } else {
+                                                if let Some(frame) = pdu_frame {
+                                                    frame.add_event(flow, 1, SMBEvent::RequestToClient as u8);
+                                                }
+                                            }
                                         },
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
@@ -1780,9 +1805,15 @@ impl SMBState {
                                         match parse_smb2_response_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
+                                                let pdu_frame = self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
                                                 self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
-                                                smb2_response_record(self, smb_record);
+                                                if smb_record.direction == 1 {
+                                                    smb2_response_record(self, smb_record);
+                                                } else {
+                                                    if let Some(frame) = pdu_frame {
+                                                        frame.add_event(flow, 1, SMBEvent::RequestToClient as u8);
+                                                    }
+                                                }
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
