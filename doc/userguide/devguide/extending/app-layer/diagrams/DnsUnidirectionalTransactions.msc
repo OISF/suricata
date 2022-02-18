@@ -13,4 +13,7 @@ msc {
     |||;
     b =>> a [ label = "DNS Response" ];
     --- [ label = "Transaction 2 Completed" ];
+
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
 }

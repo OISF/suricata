@@ -28,4 +28,7 @@ msc {
     # TLS_STATE_FINISHED = 3
     a abox b [ label = "TLS_STATE_FINISHED" ];
     --- [ label = "Transaction Completed" ];
+
+    |||;
+    ||| [label="[ generated with Mscgen ]", textcolor="gray"];
 }
