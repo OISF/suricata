@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,11 +20,15 @@
 use crate::common::nom7::bits;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
-use nom7::combinator::cond;
+use nom7::combinator::{cond, verify};
 use nom7::multi::length_data;
-use nom7::number::streaming::be_u32;
+use nom7::number::streaming::{be_u32};
 use nom7::sequence::tuple;
 use nom7::IResult;
+
+pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
+pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
+pub const RPC_MAX_VERIFIER_SIZE: u32 = 4096; // Linux kernel defines 400.
 
 #[derive(Debug, PartialEq)]
 pub enum RpcRequestCreds<'a> {
@@ -50,7 +54,7 @@ pub struct RpcRequestCredsUnix<'a> {
 
 fn parse_rpc_request_creds_unix(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
     let (i, stamp) = be_u32(i)?;
-    let (i, machine_name_len) = be_u32(i)?;
+    let (i, machine_name_len) = verify(be_u32, |&size| size < RPC_MAX_MACHINE_SIZE)(i)?;
     let (i, machine_name_buf) = take(machine_name_len as usize)(i)?;
     let (i, uid) = be_u32(i)?;
     let (i, gid) = be_u32(i)?;
@@ -105,7 +109,7 @@ pub struct RpcGssApiIntegrity<'a> {
 // Parse the GSSAPI Integrity envelope to get to the
 // data we care about.
 pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity> {
-    let (i, len) = be_u32(i)?;
+    let (i, len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, seq_num) = be_u32(i)?;
     let (i, data) = take(len as usize)(i)?;
     let res = RpcGssApiIntegrity { seq_num, data };
@@ -209,7 +213,7 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, procedure) = be_u32(i)?;
 
     let (i, creds_flavor) = be_u32(i)?;
-    let (i, creds_len) = be_u32(i)?;
+    let (i, creds_len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, creds_buf) = take(creds_len as usize)(i)?;
     let (_, creds) = match creds_flavor {
         1 => parse_rpc_request_creds_unix(creds_buf)?,
@@ -218,7 +222,7 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     };
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
     let (i, prog_data) = (&[], i);
@@ -249,7 +253,7 @@ pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, reply_state) = be_u32(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
     let (i, accept_state) = be_u32(i)?;
@@ -291,7 +295,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, procedure) = be_u32(i)?;
 
     let (i, creds_flavor) = be_u32(i)?;
-    let (i, creds_len) = be_u32(i)?;
+    let (i, creds_len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, creds_buf) = take(creds_len as usize)(i)?;
     let (_, creds) = match creds_flavor {
         1 => parse_rpc_request_creds_unix(creds_buf)?,
@@ -300,7 +304,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     };
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
     let (i, prog_data) = (&[], i);
@@ -328,7 +332,7 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, hdr) = parse_rpc_udp_packet_header(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
     let (i, reply_state) = be_u32(i)?;
