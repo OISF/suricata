@@ -335,3 +335,7 @@ rst_epilog = """
     "sysconfdir": os.getenv("sysconfdir", "/etc"),
     "localstatedir": os.getenv("localstatedir", "/var"),
 }
+
+
+# for using reference numbers
+numfig = True

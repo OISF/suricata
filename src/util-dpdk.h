@@ -28,16 +28,25 @@
 
 #include <rte_eal.h>
 #include <rte_ethdev.h>
+#include <rte_ip.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 #include <rte_flow.h>
+#include <rte_hash.h>
+#include <rte_tcp.h>
+
+#include "suricata.h"
+#include "util-device.h"
+
+#define RSS_HKEY_LEN 40
+
+extern int dpdk_last_spawned_lcore;
 
 #endif /* HAVE_DPDK */
-
-#include "util-device.h"
 
 void DPDKCleanupEAL(void);
 void DPDKCloseDevice(LiveDevice *ldev);

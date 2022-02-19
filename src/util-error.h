@@ -24,7 +24,6 @@
 #ifndef __ERROR_H__
 #define __ERROR_H__
 
-
 /* different error types */
 typedef enum {
     SC_OK,
@@ -375,6 +374,8 @@ typedef enum {
     SC_ERR_DPDK_EAL_DEINIT,
     SC_ERR_DPDK_CONF,
     SC_WARN_DPDK_CONF,
+    SC_ERR_DPDK_BYPASS,
+    SC_WARN_DPDK_BYPASS,
     SC_ERR_SIGNAL,
     SC_WARN_CHOWN,
 
@@ -382,6 +383,5 @@ typedef enum {
 } SCError;
 
 const char *SCErrorToString(SCError);
-
 
 #endif /* __ERROR_H__ */
