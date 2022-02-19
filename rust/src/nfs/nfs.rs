@@ -659,7 +659,7 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
-        if w.count == 0 || w.count < w.file_len ||
+        if w.count == 0 || w.count < w.file_len || w.count >= 16777216 ||
             ((fill_bytes + w.count) as usize) < w.file_data.len() ||
                 ((fill_bytes + w.file_len) as usize) < w.file_data.len() {
             SCLogDebug!("w {:?}", w);
@@ -901,7 +901,7 @@ impl NFSState {
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
-        if reply.count == 0 || reply.count < reply.data_len ||
+        if reply.count == 0 || reply.count >= 16777216 || reply.count < reply.data_len ||
             ((fill_bytes + reply.count) as usize) < reply.data.len() ||
                 ((fill_bytes + reply.data_len) as usize) < reply.data.len() {
                     SCLogDebug!("fill_bytes {} reply {:?}", fill_bytes, reply);
