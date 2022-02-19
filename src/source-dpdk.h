@@ -31,12 +31,22 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 
 #define DPDK_BURST_TX_WAIT_US 1
 
+typedef enum {
+    DPDK_ETHDEV_MODE,
+    DPDK_RING_MODE,
+} DpdkOperationMode;
+
 /* DPDK Flags */
 // General flags
 #define DPDK_PROMISC   (1 << 0) /**< Promiscuous mode */
 #define DPDK_MULTICAST (1 << 1) /**< Enable multicast packets */
 // Offloads
 #define DPDK_RX_CHECKSUM_OFFLOAD (1 << 4) /**< Enable chsum offload */
+#define DPDK_PREFILTER           (1 << 8)
+
+typedef struct {
+    struct rte_ring **rings;
+} DPDKPrefilterRingConfig;
 
 typedef struct DPDKIfaceConfig_ {
 #ifdef HAVE_DPDK
@@ -45,6 +55,10 @@ typedef struct DPDKIfaceConfig_ {
     uint16_t socket_id;
     /* number of threads - zero means all available */
     int threads;
+    /* Prefilter settings */
+    struct rte_ring **rx_rings;
+    struct rte_ring **tx_rings;
+    /* End of prefilter settings */
     /* IPS mode */
     DpdkCopyModeEnum copy_mode;
     const char *out_iface;
@@ -80,6 +94,7 @@ typedef struct DPDKPacketVars_ {
     uint16_t out_port_id;
     uint16_t out_queue_id;
     uint8_t copy_mode;
+    struct rte_ring *tx_ring;
 } DPDKPacketVars;
 
 void TmModuleReceiveDPDKRegister(void);
