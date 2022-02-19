@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,6 +20,10 @@
 use nom::IResult;
 use nom::combinator::rest;
 use nom::number::streaming::be_u32;
+
+pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
+pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
+pub const RPC_MAX_VERIFIER_SIZE: u32 = 4096; // Linux kernel defines 400.
 
 #[derive(Debug,PartialEq)]
 pub enum RpcRequestCreds<'a> {
@@ -46,7 +50,7 @@ pub struct RpcRequestCredsUnix<'a> {
 named!(parse_rpc_request_creds_unix<RpcRequestCreds>,
     do_parse!(
         stamp: be_u32
-    >>  machine_name_len: be_u32
+    >>  machine_name_len: verify!(be_u32, |&size| size < RPC_MAX_MACHINE_SIZE)
     >>  machine_name_buf: take!(machine_name_len)
     >>  uid: be_u32
     >>  gid: be_u32
@@ -104,7 +108,7 @@ pub struct RpcGssApiIntegrity<'a> {
 // data we care about.
 named!(pub parse_rpc_gssapi_integrity<RpcGssApiIntegrity>,
     do_parse!(
-        len: be_u32
+        len: verify!(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)
     >>  seq_num: be_u32
     >>  data: take!(len)
     >> (RpcGssApiIntegrity {
@@ -215,14 +219,14 @@ named!(pub parse_rpc<RpcPacket>,
        >> procedure: be_u32
 
        >> creds_flavor: be_u32
-       >> creds_len: be_u32
+       >> creds_len: verify!(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)
        >> creds: flat_map!(take!(creds_len), switch!(value!(creds_flavor),
             1 => call!(parse_rpc_request_creds_unix)    |
             6 => call!(parse_rpc_request_creds_gssapi)  |
             _ => call!(parse_rpc_request_creds_unknown) ))
 
        >> verifier_flavor: be_u32
-       >> verifier_len: be_u32
+       >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: take!(verifier_len as usize)
 
        >> pl: rest
@@ -256,7 +260,7 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
        >> reply_state: be_u32
 
        >> verifier_flavor: be_u32
-       >> verifier_len: be_u32
+       >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
        >> accept_state: be_u32
@@ -287,7 +291,6 @@ named!(pub parse_rpc_udp_packet_header<RpcPacketHeader>,
             RpcPacketHeader {
                 frag_is_last:false,
                 frag_len:0,
-
                 xid:xid,
                 msgtype:msgtype,
             }
@@ -304,14 +307,14 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
        >> procedure: be_u32
 
        >> creds_flavor: be_u32
-       >> creds_len: be_u32
+       >> creds_len: verify!(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)
        >> creds: flat_map!(take!(creds_len), switch!(value!(creds_flavor),
             1 => call!(parse_rpc_request_creds_unix)    |
             6 => call!(parse_rpc_request_creds_gssapi)  |
             _ => call!(parse_rpc_request_creds_unknown) ))
 
        >> verifier_flavor: be_u32
-       >> verifier_len: be_u32
+       >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: take!(verifier_len as usize)
 
        >> pl: rest
@@ -342,7 +345,7 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
        hdr: parse_rpc_udp_packet_header
 
        >> verifier_flavor: be_u32
-       >> verifier_len: be_u32
+       >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
        >> reply_state: be_u32
