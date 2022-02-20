@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFSv4 records
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{complete, cond, map, peek, verify};
+use nom7::combinator::{complete, cond, map, peek, verify, rest};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
 use nom7::number::streaming::{be_u32, be_u64};
@@ -60,6 +60,7 @@ pub enum Nfs4RequestContent<'a> {
     SetClientIdConfirm,
     ExchangeId(Nfs4RequestExchangeId<'a>),
     Sequence(Nfs4RequestSequence<'a>),
+    CreateSession(Nfs4RequestCreateSession<'a>),
 }
 
 #[derive(Debug,PartialEq)]
@@ -127,6 +128,34 @@ fn nfs4_parse_nfsstring(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let (i, data) = take(len as usize)(i)?;
     let (i, _fill_bytes) = cond(len % 4 != 0, take(4 - (len % 4)))(i)?;
     Ok((i, data))
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4RequestCreateSession<'a> {
+    pub client_id: &'a[u8],
+    pub seqid: u32,
+    pub machine_name: &'a[u8],
+}
+
+fn nfs4_req_create_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    let (i, client_id) = take(8_usize)(i)?;
+    let (i, seqid) = be_u32(i)?;
+    let (i, _flags) = be_u32(i)?;
+    let (i, _fore_chan_attrs) = take(28_usize)(i)?;
+    let (i, _back_chan_attrs) = take(28_usize)(i)?;
+    let (i, _cb_program) = be_u32(i)?;
+    let (i, _) = be_u32(i)?;
+    let (i, _flavor) = be_u32(i)?;
+    let (i, _stamp) = be_u32(i)?;
+    let (i, machine_name) = nfs4_parse_nfsstring(i)?;
+    let (i, _) = rest(i)?;
+
+    let req = Nfs4RequestContent::CreateSession(Nfs4RequestCreateSession {
+        client_id,
+        seqid,
+        machine_name,
+    });
+    Ok((i, req))
 }
 
 fn nfs4_req_putfh(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -458,6 +487,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_SETCLIENTID_CONFIRM => nfs4_req_setclientid_confirm(i)?,
         NFSPROC4_SEQUENCE => nfs4_req_sequence(i)?,
         NFSPROC4_EXCHANGE_ID => nfs4_req_exchangeid(i)?,
+        NFSPROC4_CREATE_SESSION => nfs4_req_create_session(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -506,6 +536,31 @@ pub enum Nfs4ResponseContent<'a> {
     Commit(u32),
     ExchangeId(u32, Option<Nfs4ResponseExchangeId<'a>>),
     Sequence(u32, Option<Nfs4ResponseSequence<'a>>),
+    CreateSession(u32, Option<Nfs4ResponseCreateSession<'a>>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4ResponseCreateSession<'a> {
+    pub ssn_id: &'a[u8],
+    pub seq_id: u32,
+}
+
+fn nfs4_parse_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseCreateSession> {
+    let (i, ssn_id) = take(16_usize)(i)?;
+    let (i, seq_id) = be_u32(i)?;
+    let (i, _flags) = be_u32(i)?;
+    let (i, _fore_chan_attrs) = take(28_usize)(i)?;
+    let (i, _back_chan_attrs) = take(28_usize)(i)?;
+    Ok((i, Nfs4ResponseCreateSession {
+        ssn_id,
+        seq_id
+    }))
+}
+
+fn nfs4_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    let (i, status) = be_u32(i)?;
+    let (i, create_ssn_data) = cond(status == 0, nfs4_parse_res_create_session)(i)?;
+    Ok((i, Nfs4ResponseContent::CreateSession( status, create_ssn_data )))
 }
 
 #[derive(Debug, PartialEq)]
@@ -890,6 +945,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_EXCHANGE_ID => nfs4_res_exchangeid(i)?,
         NFSPROC4_SEQUENCE => nfs4_res_sequence(i)?,
         NFSPROC4_RENEW => nfs4_res_renew(i)?,
+        NFSPROC4_CREATE_SESSION => nfs4_res_create_session(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -1196,6 +1252,38 @@ mod tests {
                 assert_eq!(putfh_handle.len, handle_buf.len);
             }
             _ => { panic!("Failure, {:?}", result); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_create_session() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2b, /*opcode*/
+            0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2, // create_session
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x04, 0x14,
+            0x00, 0x10, 0x03, 0x88, 0x00, 0x00, 0x0d, 0x64,
+            0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x40,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x01, 0x0c, 0x09, 0x5e, 0x92,
+            0x00, 0x00, 0x00, 0x09, 0x6e, 0x65, 0x74, 0x61,
+            0x70, 0x70, 0x2d, 0x32, 0x36, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, request) = nfs4_req_create_session(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::CreateSession( create_ssn ) => {
+                assert_eq!(create_ssn.client_id, &buf[4..12]);
+                assert_eq!(create_ssn.seqid, 1);
+                assert_eq!(create_ssn.machine_name, b"netapp-26");
+            }
+            _ => { panic!("Failure"); }
         }
     }
 
@@ -1537,5 +1625,34 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_nfs4_response_create_session() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2b, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*status*/
+        // create_session
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x18, 0x00,
+            0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x02, 0x80,
+            0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x40,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, create_ssn) = nfs4_parse_res_create_session(&buf[8..]).unwrap();
+
+        let (_, response) = nfs4_res_create_session(&buf[4..]).unwrap();
+        match response {
+            Nfs4ResponseContent::CreateSession( status, create_ssn_data) => {
+                assert_eq!(status, 0);
+                assert_eq!(create_ssn_data, Some(create_ssn));
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
 
 }
