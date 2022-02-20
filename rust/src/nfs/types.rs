@@ -275,6 +275,7 @@ pub const NFSPROC4_WRITE:               u32 = 38;
 pub const NFSPROC4_RELEASE_LOCKOWNER:   u32 = 39;
 pub const NFSPROC4_EXCHANGE_ID:         u32 = 42;
 pub const NFSPROC4_CREATE_SESSION:      u32 = 43;
+pub const NFSPROC4_SECINFO_NO_NAME:     u32 = 52;
 pub const NFSPROC4_SEQUENCE:            u32 = 53;
 pub const NFSPROC4_RECLAIM_COMPLETE:    u32 = 58;
 

@@ -30,6 +30,8 @@ const OPEN_DELEGATE_NONE:    u32 = 0;
 const OPEN_DELEGATE_READ:    u32 = 1;
 const OPEN_DELEGATE_WRITE:   u32 = 2;
 
+const RPCSEC_GSS: u32 = 6;
+
 // Maximum number of operations per compound
 // Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
 const NFSD_MAX_OPS_PER_COMPOUND: usize = 64;
@@ -62,6 +64,7 @@ pub enum Nfs4RequestContent<'a> {
     Sequence(Nfs4RequestSequence<'a>),
     CreateSession(Nfs4RequestCreateSession<'a>),
     ReclaimComplete(u32),
+    SecInfoNoName(u32),
 }
 
 #[derive(Debug,PartialEq)]
@@ -230,7 +233,6 @@ fn nfs4_req_open_exclusive4(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent> 
     map(take(8_usize), Nfs4OpenRequestContent::Exclusive4)(i)
 }
 
-
 fn nfs4_req_open_type(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent> {
     let (i, mode) = be_u32(i)?;
     let (i, data) = match mode {
@@ -306,6 +308,10 @@ fn nfs4_req_lookup(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
 
 fn nfs4_req_remove(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_nfsstring, Nfs4RequestContent::Remove)(i)
+}
+
+fn nfs4_req_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    map(be_u32, Nfs4RequestContent::SecInfoNoName) (i)
 }
 
 #[derive(Debug,PartialEq)]
@@ -494,6 +500,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_EXCHANGE_ID => nfs4_req_exchangeid(i)?,
         NFSPROC4_CREATE_SESSION => nfs4_req_create_session(i)?,
         NFSPROC4_RECLAIM_COMPLETE => nfs4_req_reclaim_complete(i)?,
+        NFSPROC4_SECINFO_NO_NAME => nfs4_req_secinfo_no_name(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -544,6 +551,7 @@ pub enum Nfs4ResponseContent<'a> {
     Sequence(u32, Option<Nfs4ResponseSequence<'a>>),
     CreateSession(u32, Option<Nfs4ResponseCreateSession<'a>>),
     ReclaimComplete(u32),
+    SecInfoNoName(u32),
 }
 
 #[derive(Debug, PartialEq)]
@@ -737,6 +745,34 @@ fn nfs4_res_open(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, open_data) = cond(status == 0, nfs4_res_open_ok)(i)?;
     Ok((i, Nfs4ResponseContent::Open(status, open_data)))
+}
+
+
+// #[derive(Debug, PartialEq)]
+// pub struct Nfs4FlavorRpcSecGss<'a> {
+//     pub oid: &'a[u8],
+//     pub qop: u32,
+//     pub service: u32,
+// }
+
+fn nfs4_parse_rpcsec_gss(i: &[u8]) -> IResult<&[u8], u32> {
+    let (i, _oid) = nfs4_parse_nfsstring(i)?;
+    let (i, _qop) = be_u32(i)?;
+    let (i, _service) = be_u32(i)?;
+    Ok((i, RPCSEC_GSS))
+}
+
+fn nfs4_parse_flavors(i: &[u8]) -> IResult<&[u8], u32> {
+    let (i, flavor_type) = be_u32(i)?;
+    let (i, _flavor) = cond(flavor_type == RPCSEC_GSS, nfs4_parse_rpcsec_gss)(i)?;
+    Ok((i, flavor_type))
+}
+
+fn nfs4_res_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    let (i, status) = be_u32(i)?;
+    let (i, flavors_cnt) = be_u32(i)?;
+    let (i, _flavors) = count(nfs4_parse_flavors, flavors_cnt as usize)(i)?;
+    Ok((i, Nfs4ResponseContent::SecInfoNoName(status)))
 }
 
 #[derive(Debug,PartialEq)]
@@ -958,6 +994,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_RENEW => nfs4_res_renew(i)?,
         NFSPROC4_CREATE_SESSION => nfs4_res_create_session(i)?,
         NFSPROC4_RECLAIM_COMPLETE => nfs4_res_reclaim_complete(i)?,
+        NFSPROC4_SECINFO_NO_NAME => nfs4_res_secinfo_no_name(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
