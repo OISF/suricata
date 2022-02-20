@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,7 @@
 
 use crate::nfs::nfs_records::*;
 use nom7::bytes::streaming::take;
-use nom7::combinator::{complete, cond, rest};
+use nom7::combinator::{complete, cond, rest, verify};
 use nom7::multi::{length_data, many0};
 use nom7::number::streaming::{be_u32, be_u64};
 use nom7::IResult;
@@ -45,7 +45,7 @@ pub struct Nfs3ReplyCreate<'a> {
 
 pub fn parse_nfs3_response_create(i: &[u8]) -> IResult<&[u8], Nfs3ReplyCreate> {
     let (i, status) = be_u32(i)?;
-    let (i, handle_has_value) = be_u32(i)?;
+    let (i, handle_has_value) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, handle) = cond(handle_has_value == 1, parse_nfs3_handle)(i)?;
     let reply = Nfs3ReplyCreate { status, handle };
     Ok((i, reply))
@@ -256,9 +256,9 @@ pub fn parse_nfs3_response_readdirplus_entry(
     let (i, name_contents) = take(name_len as usize)(i)?;
     let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
     let (i, _cookie) = take(8_usize)(i)?;
-    let (i, attr_value_follows) = be_u32(i)?;
+    let (i, attr_value_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, _attr) = cond(attr_value_follows == 1, take(84_usize))(i)?;
-    let (i, handle_value_follows) = be_u32(i)?;
+    let (i, handle_value_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, handle) = cond(handle_value_follows == 1, parse_nfs3_handle)(i)?;
     let resp = Nfs3ResponseReaddirplusEntryC {
         name_vec: name_contents.to_vec(),
@@ -275,7 +275,7 @@ pub struct Nfs3ResponseReaddirplusEntry<'a> {
 pub fn parse_nfs3_response_readdirplus_entry_cond(
     i: &[u8],
 ) -> IResult<&[u8], Nfs3ResponseReaddirplusEntry> {
-    let (i, value_follows) = be_u32(i)?;
+    let (i, value_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, entry) = cond(value_follows == 1, parse_nfs3_response_readdirplus_entry)(i)?;
     Ok((i, Nfs3ResponseReaddirplusEntry { entry }))
 }
@@ -288,7 +288,7 @@ pub struct Nfs3ResponseReaddirplus<'a> {
 
 pub fn parse_nfs3_response_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddirplus> {
     let (i, status) = be_u32(i)?;
-    let (i, dir_attr_follows) = be_u32(i)?;
+    let (i, dir_attr_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, _dir_attr) = cond(dir_attr_follows == 1, take(84_usize))(i)?;
     let (i, _verifier) = be_u64(i)?;
     let (i, data) = rest(i)?;
@@ -342,8 +342,8 @@ pub fn parse_nfs3_request_write(i: &[u8]) -> IResult<&[u8], Nfs3RequestWrite> {
     let (i, handle) = parse_nfs3_handle(i)?;
     let (i, offset) = be_u64(i)?;
     let (i, count) = be_u32(i)?;
-    let (i, stable) = be_u32(i)?;
-    let (i, file_len) = be_u32(i)?;
+    let (i, stable) = verify(be_u32, |&v| v <= 2)(i)?;
+    let (i, file_len) = verify(be_u32, |&v| v <= count)(i)?;
     let (i, file_data) = take(file_len as usize)(i)?;
     let (i, _file_padding) = cond(file_len % 4 !=0, take(4 - (file_len % 4)))(i)?;
     let req = Nfs3RequestWrite {
@@ -370,10 +370,10 @@ pub struct Nfs3ReplyRead<'a> {
 */
 pub fn parse_nfs3_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
     let (i, status) = be_u32(i)?;
-    let (i, attr_follows) = be_u32(i)?;
+    let (i, attr_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, attr_blob) = take(84_usize)(i)?; // fixed size?
     let (i, count) = be_u32(i)?;
-    let (i, eof) = be_u32(i)?;
+    let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, data_len) = be_u32(i)?;
     let (i, data) = take(data_len as usize)(i)?;
     let (i, _data_padding) = cond(data_len % 4 !=0, take(4 - (data_len % 4)))(i)?;
