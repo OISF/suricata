@@ -25,6 +25,11 @@ use nom7::{Err, IResult};
 
 use crate::nfs::types::*;
 
+/*https://datatracker.ietf.org/doc/html/rfc7530 - section 16.16 File Delegation Types */
+const OPEN_DELEGATE_NONE:    u32 = 0;
+const OPEN_DELEGATE_READ:    u32 = 1;
+const OPEN_DELEGATE_WRITE:   u32 = 2;
+
 // Maximum number of operations per compound
 // Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
 const NFSD_MAX_OPS_PER_COMPOUND: usize = 64;
@@ -550,8 +555,35 @@ fn nfs4_res_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
 pub struct Nfs4ResponseOpen<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub result_flags: u32,
-    pub delegation_type: u32,
-    pub delegate_read: Option<Nfs4ResponseOpenDelegateRead<'a>>,
+    pub delegate: Nfs4ResponseFileDelegation<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Nfs4ResponseFileDelegation<'a> {
+    DelegateRead(Nfs4ResponseOpenDelegateRead<'a>),
+    DelegateWrite(Nfs4ResponseOpenDelegateWrite<'a>),
+    DelegateNone(u32),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4ResponseOpenDelegateWrite<'a> {
+    pub stateid: Nfs4StateId<'a>,
+    pub who: &'a[u8],
+}
+
+fn nfs4_res_open_ok_delegate_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelegation> {
+    let (i, stateid) = nfs4_parse_stateid(i)?;
+    let (i, _recall) = be_u32(i)?;
+    let (i, _space_limit) = be_u32(i)?;
+    let (i, _filesize) = be_u32(i)?;
+    let (i, _access_type) = be_u32(i)?;
+    let (i, _ace_flags) = be_u32(i)?;
+    let (i, _ace_mask) = be_u32(i)?;
+    let (i, who) = nfs4_parse_nfsstring(i)?;
+    Ok((i, Nfs4ResponseFileDelegation::DelegateWrite(Nfs4ResponseOpenDelegateWrite {
+        stateid,
+        who,
+    })))
 }
 
 #[derive(Debug,PartialEq)]
@@ -559,7 +591,7 @@ pub struct Nfs4ResponseOpenDelegateRead<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
 
-fn nfs4_res_open_ok_delegate_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseOpenDelegateRead> {
+fn nfs4_res_open_ok_delegate_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelegation> {
     let (i, stateid) = nfs4_parse_stateid(i)?;
     let (i, _recall) = be_u32(i)?;
     let (i, _ace_type) = be_u32(i)?;
@@ -567,7 +599,20 @@ fn nfs4_res_open_ok_delegate_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseOpenDe
     let (i, _ace_mask) = be_u32(i)?;
     let (i, who_len) = be_u32(i)?;
     let (i, _who) = take(who_len as usize)(i)?;
-    Ok((i, Nfs4ResponseOpenDelegateRead { stateid }))
+    Ok((i, Nfs4ResponseFileDelegation::DelegateRead(Nfs4ResponseOpenDelegateRead {
+        stateid,
+    })))
+}
+
+fn nfs4_parse_file_delegation(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelegation> {
+    let (i, delegation_type) = be_u32(i)?;
+    let (i, file_delegation) = match delegation_type {
+        OPEN_DELEGATE_READ => nfs4_res_open_ok_delegate_read(i)?,
+        OPEN_DELEGATE_WRITE => nfs4_res_open_ok_delegate_write(i)?,
+        OPEN_DELEGATE_NONE => (i, Nfs4ResponseFileDelegation::DelegateNone(OPEN_DELEGATE_NONE)),
+        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+    };
+    Ok((i, file_delegation))
 }
 
 fn nfs4_res_open_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseOpen> {
@@ -575,13 +620,11 @@ fn nfs4_res_open_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseOpen> {
     let (i, _change_info) = take(20_usize)(i)?;
     let (i, result_flags) = be_u32(i)?;
     let (i, _attrs) = nfs4_parse_attrbits(i)?;
-    let (i, delegation_type) = be_u32(i)?;
-    let (i, delegate_read) = cond(delegation_type == 1, nfs4_res_open_ok_delegate_read)(i)?;
+    let (i, delegate) = nfs4_parse_file_delegation(i)?;
     let resp = Nfs4ResponseOpen {
         stateid,
         result_flags,
-        delegation_type,
-        delegate_read
+        delegate,
     };
     Ok((i, resp))
 }
@@ -1185,29 +1228,31 @@ mod tests {
             0x5b, 0x00, 0x88, 0xd9, 0x04, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x01, 0x16, 0xf8, 0x2f, 0xd5, /*_change_info*/
             0xdb, 0xb7, 0xfe, 0x38, 0x16, 0xf8, 0x2f, 0xdf,
-            0x21, 0xa8, 0x2a, 0x48,
-            0x00, 0x00, 0x00, 0x04, /*result_flags*/
-            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x10, /*_attrs*/
+            0x21, 0xa8, 0x2a, 0x48, 0x00, 0x00, 0x00, 0x04,
+            0x00, 0x00, 0x00, 0x03,
+            0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x02, /*_attrs*/
+            0x00, 0x00, 0x00, 0x00,
+        // delegate_write
             0x00, 0x00, 0x00, 0x02, /*delegation_type*/
-        // delegate_read
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
             0x00, 0x00, 0x00, 0x01, 0x02, 0x82, 0x14, 0xe0,
             0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let stateid_buf = &buf[8..24];
         let (_, res_stateid) = nfs4_parse_stateid(stateid_buf).unwrap();
 
+        let delegate_buf = &buf[64..];
+        let (_, delegate) = nfs4_parse_file_delegation(delegate_buf).unwrap();
+
         let open_data_buf = &buf[8..];
         let (_, res_open_data) = nfs4_res_open_ok(open_data_buf).unwrap();
         assert_eq!(res_open_data.stateid, res_stateid);
         assert_eq!(res_open_data.result_flags, 4);
-        assert_eq!(res_open_data.delegation_type, 2);
-        assert_eq!(res_open_data.delegate_read, None);
+        assert_eq!(res_open_data.delegate, delegate);
 
         let (_, response) = nfs4_res_open(&buf[4..]).unwrap();
         match response {
