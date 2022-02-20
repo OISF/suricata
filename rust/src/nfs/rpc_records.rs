@@ -20,7 +20,7 @@
 use crate::common::nom7::bits;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
-use nom7::combinator::{cond, verify};
+use nom7::combinator::{cond, verify, rest};
 use nom7::multi::length_data;
 use nom7::number::streaming::{be_u32};
 use nom7::sequence::tuple;
@@ -155,6 +155,7 @@ pub struct RpcReplyPacket<'a> {
     pub reply_state: u32,
     pub accept_state: u32,
 
+    pub prog_data_size: u32,
     pub prog_data: &'a [u8],
 }
 
@@ -201,11 +202,24 @@ pub struct RpcPacket<'a> {
     pub verifier_len: u32,
     pub verifier: &'a [u8],
 
+    pub prog_data_size: u32,
     pub prog_data: &'a [u8],
 }
 
-pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
-    let (i, hdr) = parse_rpc_packet_header(i)?;
+/// Parse request RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len as usize + 4;
 
     let (i, rpcver) = be_u32(i)?;
     let (i, program) = be_u32(i)?;
@@ -225,7 +239,14 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
-    let (i, prog_data) = (&[], i);
+    let consumed = start_i.len() - i.len();
+    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take(data_size)(i)?
+    };
+
     let packet = RpcPacket {
         hdr,
 
@@ -241,14 +262,26 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
         verifier_len,
         verifier,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
 }
 
-// to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
-pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
-    let (i, hdr) = parse_rpc_packet_header(i)?;
+/// Parse reply RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len + 4;
 
     let (i, reply_state) = be_u32(i)?;
 
@@ -257,7 +290,14 @@ pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
     let (i, accept_state) = be_u32(i)?;
-    let (i, prog_data) = (&[], i);
+
+    let consumed = start_i.len() - i.len();
+    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take(data_size)(i)?
+    };
     let packet = RpcReplyPacket {
         hdr,
 
@@ -268,6 +308,7 @@ pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         reply_state,
         accept_state,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
@@ -307,7 +348,8 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
-    let (i, prog_data) = (&[], i);
+    let data_size : u32 = i.len() as u32;
+    let (i, prog_data) = rest(i)?;
     let packet = RpcPacket {
         hdr,
 
@@ -323,6 +365,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
         verifier_len,
         verifier,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
@@ -337,7 +380,9 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
 
     let (i, reply_state) = be_u32(i)?;
     let (i, accept_state) = be_u32(i)?;
-    let (i, prog_data) = (&[], i);
+
+    let data_size : u32 = i.len() as u32;
+    let (i, prog_data) = rest(i)?;
     let packet = RpcReplyPacket {
         hdr,
 
@@ -348,6 +393,7 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         reply_state,
         accept_state,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
