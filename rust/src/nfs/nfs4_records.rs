@@ -66,6 +66,7 @@ pub enum Nfs4RequestContent<'a> {
     ReclaimComplete(u32),
     SecInfoNoName(u32),
     LayoutGet(Nfs4RequestLayoutGet<'a>),
+    GetDevInfo(Nfs4RequestGetDevInfo<'a>),
 }
 
 #[derive(Debug,PartialEq)]
@@ -133,6 +134,29 @@ fn nfs4_parse_nfsstring(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let (i, data) = take(len as usize)(i)?;
     let (i, _fill_bytes) = cond(len % 4 != 0, take(4 - (len % 4)))(i)?;
     Ok((i, data))
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4RequestGetDevInfo<'a> {
+    pub device_id: &'a[u8],
+    pub layout_type: u32,
+    pub maxcount: u32,
+    pub notify_mask: u32,
+}
+
+fn nfs4_req_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    let (i, device_id) = take(16_usize)(i)?;
+    let (i, layout_type) = be_u32(i)?;
+    let (i, maxcount) = be_u32(i)?;
+    let (i, _) = be_u32(i)?;
+    let (i, notify_mask) = be_u32(i)?;
+    let req = Nfs4RequestContent::GetDevInfo(Nfs4RequestGetDevInfo {
+        device_id,
+        layout_type,
+        maxcount,
+        notify_mask,
+    });
+    Ok((i, req))
 }
 
 #[derive(Debug, PartialEq)]
@@ -529,6 +553,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_RECLAIM_COMPLETE => nfs4_req_reclaim_complete(i)?,
         NFSPROC4_SECINFO_NO_NAME => nfs4_req_secinfo_no_name(i)?,
         NFSPROC4_LAYOUTGET => nfs4_req_layoutget(i)?,
+        NFSPROC4_GETDEVINFO => nfs4_req_getdevinfo(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -581,6 +606,7 @@ pub enum Nfs4ResponseContent<'a> {
     ReclaimComplete(u32),
     SecInfoNoName(u32),
     LayoutGet(u32, Option<Nfs4ResponseLayoutGet<'a>>),
+    GetDevInfo(u32, Option<Nfs4ResponseGetDevInfo<'a>>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -774,6 +800,36 @@ fn nfs4_res_open(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, open_data) = cond(status == 0, nfs4_res_open_ok)(i)?;
     Ok((i, Nfs4ResponseContent::Open(status, open_data)))
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4ResponseGetDevInfo<'a> {
+    pub layout_type: u32,
+    pub r_netid: &'a[u8],
+    pub r_addr: &'a[u8],
+    pub notify_mask: u32,
+}
+
+fn nfs4_parse_res_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4ResponseGetDevInfo> {
+    let (i, layout_type) = be_u32(i)?;
+    let (i, _) = be_u64(i)?;
+    let (i, _device_index) = be_u32(i)?;
+    let (i, _) = be_u64(i)?;
+    let (i, r_netid) = nfs4_parse_nfsstring(i)?;
+    let (i, r_addr) = nfs4_parse_nfsstring(i)?;
+    let (i, notify_mask) = be_u32(i)?;
+    Ok((i, Nfs4ResponseGetDevInfo {
+        layout_type,
+        r_netid,
+        r_addr,
+        notify_mask,
+    }))
+}
+
+fn nfs4_res_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    let (i, status) = be_u32(i)?;
+    let (i, getdevinfo) = cond(status == 0, nfs4_parse_res_getdevinfo)(i)?;
+    Ok((i, Nfs4ResponseContent::GetDevInfo( status, getdevinfo )))
 }
 
 /*https://datatracker.ietf.org/doc/html/rfc5661#section-13.1*/
@@ -1065,6 +1121,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_RECLAIM_COMPLETE => nfs4_res_reclaim_complete(i)?,
         NFSPROC4_SECINFO_NO_NAME => nfs4_res_secinfo_no_name(i)?,
         NFSPROC4_LAYOUTGET => nfs4_res_layoutget(i)?,
+        NFSPROC4_GETDEVINFO => nfs4_res_getdevinfo(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -1428,6 +1485,28 @@ mod tests {
                 assert_eq!(lyg_data.layout_type, 1);
                 assert_eq!(lyg_data.min_length, 4096);
                 assert_eq!(lyg_data.stateid, stateid_buf);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_getdevinfo() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2f, /*opcode*/
+            0x01, 0x01, 0x00, 0x00, 0x00, 0xf2, 0xfa, 0x80, // getdevinfo
+            0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x3e, 0x20,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06,
+        ];
+
+        let (_, request) = nfs4_req_getdevinfo(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::GetDevInfo( getdevifo ) => {
+                assert_eq!(getdevifo.device_id, &buf[4..20]);
+                assert_eq!(getdevifo.layout_type, 1);
+                assert_eq!(getdevifo.maxcount, 81440);
+                assert_eq!(getdevifo.notify_mask, 6);
             }
             _ => { panic!("Failure"); }
         }
@@ -1842,5 +1921,36 @@ mod tests {
             }
             _ => { panic!("Failure"); }
         }
+    }
+
+    #[test]
+    fn test_nfs4_response_getdevinfo() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2f, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*status*/
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2c, // getdevinfo
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x03, 0x74, 0x63, 0x70, 0x00,
+            0x00, 0x00, 0x00, 0x10, 0x31, 0x39, 0x32, 0x2e,
+            0x31, 0x36, 0x38, 0x2e, 0x30, 0x2e, 0x36, 0x31,
+            0x2e, 0x38, 0x2e, 0x31, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, getdevinfo) = nfs4_parse_res_getdevinfo(&buf[8..]).unwrap();
+        assert_eq!(getdevinfo.layout_type, 1);
+        assert_eq!(getdevinfo.r_netid, b"tcp");
+        assert_eq!(getdevinfo.r_addr, b"192.168.0.61.8.1");
+
+        let (_, response) = nfs4_res_getdevinfo(&buf[4..]).unwrap();
+        match response {
+            Nfs4ResponseContent::GetDevInfo(status, getdevinfo_data) => {
+                assert_eq!(status, 0);
+                assert_eq!(getdevinfo_data, Some(getdevinfo))
+            }
+            _ => { panic!("Failure"); }
+        }
+
+
     }
 }
