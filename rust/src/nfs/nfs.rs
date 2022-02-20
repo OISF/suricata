@@ -1047,6 +1047,57 @@ impl NFSState {
         return AppLayerResult::ok();
     }
 
+    /// Handle partial records
+    fn parse_tcp_partial_data_ts<'b>(&mut self, base_input: &'b[u8], start_input: &'b[u8],
+            phdr: &RpcRequestPacketPartial, rec_size: usize) -> AppLayerResult {
+        let mut cur_i = start_input;
+        // special case: avoid buffering file write blobs
+        // as these can be large.
+        if rec_size >= 512 && cur_i.len() >= 44 {
+            // large record, likely file xfer
+            SCLogDebug!("large record {}, likely file xfer", rec_size);
+
+            // quick peek, are we in WRITE mode?
+            if phdr.procedure == NFSPROC3_WRITE {
+                SCLogDebug!("CONFIRMED WRITE: large record {}, file chunk xfer", rec_size);
+
+                // lets try to parse the RPC record. Might fail with Incomplete.
+                match parse_rpc(cur_i) {
+                    Ok((remaining, ref hdr)) => {
+                        match parse_nfs3_request_write(hdr.prog_data) {
+                            Ok((_, ref w)) => {
+                                // deal with the partial nfs write data
+                                self.process_partial_write_request_record(hdr, w);
+                                cur_i = remaining; // progress input past parsed record
+                            }
+                            _ => {
+                                self.set_event(NFSEvent::MalformedData);
+                            }
+                        }
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        // we just size checked for the minimal record size above,
+                        // so if options are used (creds/verifier), we can still
+                        // have Incomplete data. Fall through to the buffer code
+                        // and try again on our next iteration.
+                        SCLogDebug!("TS data incomplete");
+                        // fall through to the incomplete below
+                    }
+                    Err(nom::Err::Error(_e)) | Err(nom::Err::Failure(_e)) => {
+                        self.set_event(NFSEvent::MalformedData);
+                        SCLogDebug!("Parsing failed: {:?}", _e);
+                        return AppLayerResult::err();
+                    }
+                }
+            }
+        }
+        // make sure we pass a value higher than current input
+        // but lower than the record size
+        let n1 = cmp::max(cur_i.len(), 1024);
+        let n2 = cmp::min(n1, rec_size);
+        return AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32);
+    }
+
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
         let mut cur_i = i;
@@ -1097,56 +1148,10 @@ impl NFSState {
             match parse_rpc_request_partial(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
                     let rec_size = (rpc_phdr.hdr.frag_len + 4) as usize;
-                    //SCLogDebug!("rec_size {}/{}", rec_size, cur_i.len());
-                    //SCLogDebug!("cur_i {:?}", cur_i);
 
+                    // Handle partial records
                     if rec_size > cur_i.len() {
-                        // special case: avoid buffering file write blobs
-                        // as these can be large.
-                        if rec_size >= 512 && cur_i.len() >= 44 {
-                            // large record, likely file xfer
-                            SCLogDebug!("large record {}, likely file xfer", rec_size);
-
-                            // quick peek, are in WRITE mode?
-                            if rpc_phdr.procedure == NFSPROC3_WRITE {
-                                SCLogDebug!("CONFIRMED WRITE: large record {}, file chunk xfer", rec_size);
-
-                                // lets try to parse the RPC record. Might fail with Incomplete.
-                                match parse_rpc(cur_i) {
-                                    Ok((remaining, ref rpc_record)) => {
-                                        match parse_nfs3_request_write(rpc_record.prog_data) {
-                                            Ok((_, ref nfs_request_write)) => {
-                                                // deal with the partial nfs write data
-                                                self.process_partial_write_request_record(rpc_record, nfs_request_write);
-                                                cur_i = remaining; // progress input past parsed record
-                                            },
-                                            _ => {
-                                                self.set_event(NFSEvent::MalformedData);
-                                            },
-                                        }
-                                    },
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        // we just size checked for the minimal record size above,
-                                        // so if options are used (creds/verifier), we can still
-                                        // have Incomplete data. Fall through to the buffer code
-                                        // and try again on our next iteration.
-                                        SCLogDebug!("TS data incomplete");
-                                        // fall through to the incomplete below
-                                    },
-                                    Err(nom::Err::Error(_e)) |
-                                    Err(nom::Err::Failure(_e)) => {
-                                        self.set_event(NFSEvent::MalformedData);
-                                        SCLogDebug!("Parsing failed: {:?}", _e);
-                                        return AppLayerResult::err();
-                                    },
-                                }
-                            }
-                        }
-                        // make sure we pass a value higher than current input
-                        // but lower than the record size
-                        let n1 = cmp::max(cur_i.len(), 1024);
-                        let n2 = cmp::min(n1, rec_size);
-                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, n2 as u32);
+                        return self.parse_tcp_partial_data_ts(i, cur_i, rpc_phdr, rec_size);
                     }
 
                     // we have the full records size worth of data,
@@ -1200,6 +1205,58 @@ impl NFSState {
         AppLayerResult::ok()
     }
 
+    /// Handle partial records
+    fn parse_tcp_partial_data_tc<'b>(&mut self, base_input: &'b[u8], start_input: &'b[u8],
+            phdr: &RpcPacketHeader, rec_size: usize) -> AppLayerResult {
+        let mut cur_i = start_input;
+        // special case: avoid buffering file read blobs
+        // as these can be large.
+        if rec_size >= 512 && cur_i.len() >= 128 {//36 {
+            // large record, likely file xfer
+            SCLogDebug!("large record {}, likely file xfer", rec_size);
+
+            // quick peek, are in READ mode?
+            if self.peek_reply_record(phdr) == NFSPROC3_READ {
+                SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
+
+                // we should have enough data to parse the RPC record
+                match parse_rpc_reply(cur_i) {
+                    Ok((remaining, ref hdr)) => {
+                        match parse_nfs3_reply_read(hdr.prog_data) {
+                            Ok((_, ref r)) => {
+                                // deal with the partial nfs read data
+                                self.process_partial_read_reply_record(hdr, r);
+                                cur_i = remaining; // progress input past parsed record
+                            }
+                            Err(nom::Err::Incomplete(_)) => {
+                            }
+                            Err(nom::Err::Error(_e)) | Err(nom::Err::Failure(_e)) => {
+                                self.set_event(NFSEvent::MalformedData);
+                                SCLogDebug!("Parsing failed: {:?}", _e);
+                                return AppLayerResult::err();
+                            }
+                        }
+                    }
+                    Err(nom::Err::Incomplete(_)) => {
+                        // size check was done for MINIMAL record size,
+                        // so Incomplete is normal.
+                        SCLogDebug!("TC data incomplete");
+                    }
+                    Err(nom::Err::Error(_e)) | Err(nom::Err::Failure(_e)) => {
+                        self.set_event(NFSEvent::MalformedData);
+                        SCLogDebug!("Parsing failed: {:?}", _e);
+                        return AppLayerResult::err();
+                    }
+                }
+            }
+        }
+        // make sure we pass a value higher than current input
+        // but lower than the record size
+        let n1 = cmp::max(cur_i.len(), 1024);
+        let n2 = cmp::min(n1, rec_size);
+        return AppLayerResult::incomplete((base_input.len() - cur_i.len()) as u32, n2 as u32);
+    }
+
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
         let mut cur_i = i;
@@ -1248,58 +1305,11 @@ impl NFSState {
 
         while cur_i.len() > 0 {
             match parse_rpc_packet_header(cur_i) {
-                Ok((_, ref rpc_hdr)) => {
-                    let rec_size = (rpc_hdr.frag_len + 4) as usize;
+                Ok((_, ref rpc_phdr)) => {
+                    let rec_size = (rpc_phdr.frag_len + 4) as usize;
                     // see if we have all data available
                     if rec_size > cur_i.len() {
-                        // special case: avoid buffering file read blobs
-                        // as these can be large.
-                        if rec_size >= 512 && cur_i.len() >= 128 {//36 {
-                            // large record, likely file xfer
-                            SCLogDebug!("large record {}, likely file xfer", rec_size);
-
-                            // quick peek, are in READ mode?
-                            if self.peek_reply_record(&rpc_hdr) == NFSPROC3_READ {
-                                SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
-
-                                // we should have enough data to parse the RPC record
-                                match parse_rpc_reply(cur_i) {
-                                    Ok((remaining, ref rpc_record)) => {
-                                        match parse_nfs3_reply_read(rpc_record.prog_data) {
-                                            Ok((_, ref nfs_reply_read)) => {
-                                                // deal with the partial nfs read data
-                                                self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
-                                                cur_i = remaining; // progress input past parsed record
-                                            },
-                                            Err(nom::Err::Incomplete(_)) => {
-                                            },
-                                            Err(nom::Err::Error(_e)) |
-                                            Err(nom::Err::Failure(_e)) => {
-                                                self.set_event(NFSEvent::MalformedData);
-                                                SCLogDebug!("Parsing failed: {:?}", _e);
-                                                return AppLayerResult::err();
-                                            }
-                                        }
-                                    },
-                                    Err(nom::Err::Incomplete(_)) => {
-                                        // size check was done for MINIMAL record size,
-                                        // so Incomplete is normal.
-                                        SCLogDebug!("TC data incomplete");
-                                    },
-                                    Err(nom::Err::Error(_e)) |
-                                    Err(nom::Err::Failure(_e)) => {
-                                        self.set_event(NFSEvent::MalformedData);
-                                        SCLogDebug!("Parsing failed: {:?}", _e);
-                                        return AppLayerResult::err();
-                                    }
-                                }
-                            }
-                        }
-                        // make sure we pass a value higher than current input
-                        // but lower than the record size
-                        let n1 = cmp::max(cur_i.len(), 1024);
-                        let n2 = cmp::min(n1, rec_size);
-                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, n2 as u32);
+                        return self.parse_tcp_partial_data_tc(i, cur_i, rpc_phdr, rec_size);
                     }
 
                     // we have the full data of the record, lets parse
