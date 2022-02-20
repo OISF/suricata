@@ -68,6 +68,7 @@ pub enum Nfs4RequestContent<'a> {
     LayoutGet(Nfs4RequestLayoutGet<'a>),
     GetDevInfo(Nfs4RequestGetDevInfo<'a>),
     LayoutReturn(Nfs4RequestLayoutReturn<'a>),
+    DestroySession(&'a[u8]),
 }
 
 #[derive(Debug,PartialEq)]
@@ -354,6 +355,11 @@ pub struct Nfs4RequestLookup<'a> {
     pub filename: &'a[u8],
 }
 
+fn nfs4_req_destroy_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    let (i, ssn_id) = take(16_usize)(i)?;
+    Ok((i, Nfs4RequestContent::DestroySession(ssn_id)))
+}
+
 fn nfs4_req_lookup(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_nfsstring, |filename| {
         Nfs4RequestContent::Lookup(Nfs4RequestLookup { filename })
@@ -584,6 +590,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_LAYOUTGET => nfs4_req_layoutget(i)?,
         NFSPROC4_GETDEVINFO => nfs4_req_getdevinfo(i)?,
         NFSPROC4_LAYOUTRETURN => nfs4_req_layoutreturn(i)?,
+        NFSPROC4_DESTROY_SESSION => nfs4_req_destroy_session(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -638,6 +645,7 @@ pub enum Nfs4ResponseContent<'a> {
     LayoutGet(u32, Option<Nfs4ResponseLayoutGet<'a>>),
     GetDevInfo(u32, Option<Nfs4ResponseGetDevInfo<'a>>),
     LayoutReturn(u32),
+    DestroySession(u32),
 }
 
 // might need improvment with a stateid_present = yes case
@@ -1128,6 +1136,10 @@ fn nfs4_res_sequence(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Sequence(status, seq)))
 }
 
+fn nfs4_res_destroy_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    map(be_u32, Nfs4ResponseContent::DestroySession) (i)
+}
+
 fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, cmd) = be_u32(i)?;
     let (i, cmd_data) = match cmd {
@@ -1161,6 +1173,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_LAYOUTGET => nfs4_res_layoutget(i)?,
         NFSPROC4_GETDEVINFO => nfs4_res_getdevinfo(i)?,
         NFSPROC4_LAYOUTRETURN => nfs4_res_layoutreturn(i)?,
+        NFSPROC4_DESTROY_SESSION => nfs4_res_destroy_session(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -1573,6 +1586,23 @@ mod tests {
                 assert_eq!(layoutreturn.layout_type, 1);
                 assert_eq!(layoutreturn.return_type, 1);
                 assert_eq!(layoutreturn.stateid, stateid_buf);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_destroy_session() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2c, /*opcode*/
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00, /*ssn_id*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
+        ];
+
+        let (_, request) = nfs4_req_destroy_session(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::DestroySession( ssn_id ) => {
+                assert_eq!(ssn_id, &buf[4..]);
             }
             _ => { panic!("Failure"); }
         }
