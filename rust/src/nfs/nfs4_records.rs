@@ -69,6 +69,7 @@ pub enum Nfs4RequestContent<'a> {
     GetDevInfo(Nfs4RequestGetDevInfo<'a>),
     LayoutReturn(Nfs4RequestLayoutReturn<'a>),
     DestroySession(&'a[u8]),
+    DestroyClientID(&'a[u8]),
 }
 
 #[derive(Debug,PartialEq)]
@@ -489,6 +490,11 @@ fn nfs4_req_reclaim_complete(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(verify(be_u32, |&v| v <= 1), Nfs4RequestContent::ReclaimComplete) (i)
 }
 
+fn nfs4_req_destroy_clientid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    let (i, client_id) = take(8_usize)(i)?;
+    Ok((i, Nfs4RequestContent::DestroyClientID(client_id)))
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Nfs4RequestLayoutGet<'a> {
     pub layout_type: u32,
@@ -591,6 +597,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_GETDEVINFO => nfs4_req_getdevinfo(i)?,
         NFSPROC4_LAYOUTRETURN => nfs4_req_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_req_destroy_session(i)?,
+        NFSPROC4_DESTROY_CLIENTID => nfs4_req_destroy_clientid(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -646,6 +653,7 @@ pub enum Nfs4ResponseContent<'a> {
     GetDevInfo(u32, Option<Nfs4ResponseGetDevInfo<'a>>),
     LayoutReturn(u32),
     DestroySession(u32),
+    DestroyClientID(u32),
 }
 
 // might need improvment with a stateid_present = yes case
@@ -1140,6 +1148,10 @@ fn nfs4_res_destroy_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     map(be_u32, Nfs4ResponseContent::DestroySession) (i)
 }
 
+fn nfs4_res_destroy_clientid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    map(be_u32, Nfs4ResponseContent::DestroyClientID) (i)
+}
+
 fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, cmd) = be_u32(i)?;
     let (i, cmd_data) = match cmd {
@@ -1174,6 +1186,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_GETDEVINFO => nfs4_res_getdevinfo(i)?,
         NFSPROC4_LAYOUTRETURN => nfs4_res_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_res_destroy_session(i)?,
+        NFSPROC4_DESTROY_CLIENTID => nfs4_res_destroy_clientid(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -2046,7 +2059,5 @@ mod tests {
             }
             _ => { panic!("Failure"); }
         }
-
-
     }
 }
