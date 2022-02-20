@@ -275,6 +275,7 @@ pub const NFSPROC4_WRITE:               u32 = 38;
 pub const NFSPROC4_RELEASE_LOCKOWNER:   u32 = 39;
 pub const NFSPROC4_EXCHANGE_ID:         u32 = 42;
 pub const NFSPROC4_CREATE_SESSION:      u32 = 43;
+pub const NFSPROC4_DESTROY_SESSION:     u32 = 44;
 pub const NFSPROC4_GETDEVINFO:          u32 = 47;
 pub const NFSPROC4_LAYOUTGET:           u32 = 50;
 pub const NFSPROC4_LAYOUTRETURN:        u32 = 51;
