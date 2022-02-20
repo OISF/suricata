@@ -61,6 +61,7 @@ pub enum Nfs4RequestContent<'a> {
     ExchangeId(Nfs4RequestExchangeId<'a>),
     Sequence(Nfs4RequestSequence<'a>),
     CreateSession(Nfs4RequestCreateSession<'a>),
+    ReclaimComplete(u32),
 }
 
 #[derive(Debug,PartialEq)]
@@ -418,6 +419,10 @@ fn nfs4_req_commit(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::Commit))
 }
 
+fn nfs4_req_reclaim_complete(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    map(be_u32, Nfs4RequestContent::ReclaimComplete) (i)
+}
+
 #[derive(Debug,PartialEq)]
 pub struct Nfs4RequestExchangeId<'a> {
     pub client_string: &'a[u8],
@@ -488,6 +493,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_SEQUENCE => nfs4_req_sequence(i)?,
         NFSPROC4_EXCHANGE_ID => nfs4_req_exchangeid(i)?,
         NFSPROC4_CREATE_SESSION => nfs4_req_create_session(i)?,
+        NFSPROC4_RECLAIM_COMPLETE => nfs4_req_reclaim_complete(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -537,6 +543,7 @@ pub enum Nfs4ResponseContent<'a> {
     ExchangeId(u32, Option<Nfs4ResponseExchangeId<'a>>),
     Sequence(u32, Option<Nfs4ResponseSequence<'a>>),
     CreateSession(u32, Option<Nfs4ResponseCreateSession<'a>>),
+    ReclaimComplete(u32),
 }
 
 #[derive(Debug, PartialEq)]
@@ -592,6 +599,10 @@ fn nfs4_parse_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseExchangeId>
         nii_domain,
         nii_name,
     }))
+}
+
+fn nfs4_res_reclaim_complete(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    map(be_u32, Nfs4ResponseContent::ReclaimComplete) (i)
 }
 
 fn nfs4_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
@@ -946,6 +957,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_SEQUENCE => nfs4_res_sequence(i)?,
         NFSPROC4_RENEW => nfs4_res_renew(i)?,
         NFSPROC4_CREATE_SESSION => nfs4_res_create_session(i)?,
+        NFSPROC4_RECLAIM_COMPLETE => nfs4_res_reclaim_complete(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
