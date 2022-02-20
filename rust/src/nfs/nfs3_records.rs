@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,7 +49,7 @@ pub struct Nfs3ReplyCreate<'a> {
 named!(pub parse_nfs3_response_create<Nfs3ReplyCreate>,
     do_parse!(
         status: be_u32
-        >> handle_has_value: be_u32
+        >> handle_has_value: verify!(be_u32, |&v| v <= 1)
         >> handle: cond!(handle_has_value == 1, parse_nfs3_handle)
         >> (
             Nfs3ReplyCreate {
@@ -299,9 +299,9 @@ named!(pub parse_nfs3_response_readdirplus_entry<Nfs3ResponseReaddirplusEntryC>,
         >> name_content: take!(name_len)
         >> _fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
         >> _cookie: take!(8)
-        >> attr_value_follows: be_u32
+        >> attr_value_follows: verify!(be_u32, |&v| v <= 1)
         >> _attr: cond!(attr_value_follows==1, take!(84))
-        >> handle_value_follows: be_u32
+        >> handle_value_follows: verify!(be_u32, |&v| v <= 1)
         >> handle: cond!(handle_value_follows==1, parse_nfs3_handle)
         >> (
                 Nfs3ResponseReaddirplusEntryC {
@@ -319,7 +319,7 @@ pub struct Nfs3ResponseReaddirplusEntry<'a> {
 
 named!(pub parse_nfs3_response_readdirplus_entry_cond<Nfs3ResponseReaddirplusEntry>,
     do_parse!(
-           value_follows: be_u32
+           value_follows: verify!(be_u32, |&v| v <= 1)
         >> entry: cond!(value_follows==1, parse_nfs3_response_readdirplus_entry)
         >> (
             Nfs3ResponseReaddirplusEntry {
@@ -337,7 +337,7 @@ pub struct Nfs3ResponseReaddirplus<'a> {
 named!(pub parse_nfs3_response_readdirplus<Nfs3ResponseReaddirplus>,
     do_parse!(
         status: be_u32
-        >> dir_attr_follows: be_u32
+        >> dir_attr_follows: verify!(be_u32, |&v| v <= 1)
         >> _dir_attr: cond!(dir_attr_follows == 1, take!(84))
         >> _verifier: take!(8)
         >> data: rest
@@ -396,8 +396,8 @@ named!(pub parse_nfs3_request_write<Nfs3RequestWrite>,
             handle: parse_nfs3_handle
         >>  offset: be_u64
         >>  count: be_u32
-        >>  stable: be_u32
-        >>  file_len: be_u32
+        >>  stable: verify!(be_u32, |&v| v <= 2)
+        >>  file_len: verify!(be_u32, |&v| v <= count)
         >>  file_data: rest // likely partial
         >> (
             Nfs3RequestWrite {
@@ -425,10 +425,10 @@ pub struct Nfs3ReplyRead<'a> {
 named!(pub parse_nfs3_reply_read<NfsReplyRead>,
     do_parse!(
             status: be_u32
-        >>  attr_follows: be_u32
+        >>  attr_follows: verify!(be_u32, |&v| v <= 1)
         >>  attr_blob: take!(84) // fixed size?
         >>  count: be_u32
-        >>  eof: be_u32
+        >>  eof: verify!(be_u32, |&v| v <= 1)
         >>  data_len: be_u32
         >>  data_contents: rest
         >> (
