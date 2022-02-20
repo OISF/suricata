@@ -18,7 +18,7 @@
 //! Nom parsers for RPCv2
 
 use nom::IResult;
-use nom::combinator::rest;
+use nom::combinator::{rest, rest_len};
 use nom::number::streaming::be_u32;
 
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
@@ -158,7 +158,8 @@ pub struct RpcReplyPacket<'a> {
     pub reply_state: u32,
     pub accept_state: u32,
 
-    pub prog_data: &'a[u8],
+    pub prog_data_size: u32,
+    pub prog_data: &'a [u8],
 }
 
 // top of request packet, just to get to procedure
@@ -206,13 +207,24 @@ pub struct RpcPacket<'a> {
     pub verifier_len: u32,
     pub verifier: &'a[u8],
 
+    pub prog_data_size: u32,
     pub prog_data: &'a[u8],
 }
 
-named!(pub parse_rpc<RpcPacket>,
+// Parse request RPC record.
+//
+// Can be called from 2 paths:
+//  1. we have all data -> do full parsing
+//  2. we have partial data (large records) -> allow partial prog_data parsing
+//
+// Arguments:
+// * `complete`:
+//           type: bool
+//    description: do full parsing, including of `prog_data`
+//
+named_args!(pub parse_rpc(start_i: usize, complete: bool) <RpcPacket>,
    do_parse!(
        hdr: parse_rpc_packet_header
-
        >> rpcver: be_u32
        >> program: be_u32
        >> progver: be_u32
@@ -228,9 +240,10 @@ named!(pub parse_rpc<RpcPacket>,
        >> verifier_flavor: be_u32
        >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: take!(verifier_len as usize)
-
-       >> pl: rest
-
+       >> rem_len: rest_len
+       >> prog_data_size: value!(hdr.frag_len + 4 - (start_i - rem_len) as u32)
+       >> prog_data_f: cond!(complete, take!(prog_data_size))
+       >> prog_data_t: cond!(!complete, rest)
        >> (
            RpcPacket {
                 hdr:hdr,
@@ -247,13 +260,24 @@ named!(pub parse_rpc<RpcPacket>,
                 verifier_len:verifier_len,
                 verifier:verifier,
 
-                prog_data:pl,
+                prog_data_size:prog_data_size as u32,
+                prog_data: if complete { prog_data_f.unwrap() } else { prog_data_t.unwrap() },
            }
    ))
 );
 
-// to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
-named!(pub parse_rpc_reply<RpcReplyPacket>,
+// Parse reply RPC record.
+//
+// Can be called from 2 paths:
+//  1. we have all data -> do full parsing
+//  2. we have partial data (large records) -> allow partial prog_data parsing
+//
+// Arguments:
+// * `complete`:
+//           type: bool
+//    description: do full parsing, including of `prog_data`
+//
+named_args!(pub parse_rpc_reply(start_i: usize, complete: bool) <RpcReplyPacket>,
    do_parse!(
        hdr: parse_rpc_packet_header
 
@@ -264,8 +288,10 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
        >> accept_state: be_u32
-
-       >> pl: rest
+       >> rem_len: rest_len
+       >> prog_data_size: value!(hdr.frag_len + 4 - (start_i - rem_len) as u32)
+       >> prog_data_f: cond!(complete, take!(prog_data_size))
+       >> prog_data_t: cond!(!complete, rest)
 
        >> (
            RpcReplyPacket {
@@ -278,7 +304,8 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
                 reply_state:reply_state,
                 accept_state:accept_state,
 
-                prog_data:pl,
+                prog_data_size:prog_data_size as u32,
+                prog_data: if complete { prog_data_f.unwrap() } else { prog_data_t.unwrap() },
            }
    ))
 );
@@ -334,7 +361,7 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
                 verifier_flavor:verifier_flavor,
                 verifier_len:verifier_len,
                 verifier:verifier,
-
+                prog_data_size:pl.len() as u32,
                 prog_data:pl,
            }
    ))
@@ -363,8 +390,8 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
 
                 reply_state:reply_state,
                 accept_state:accept_state,
-
-                prog_data:pl,
+                prog_data_size:pl.len() as u32,
+                prog_data:pl
            }
    ))
 );
