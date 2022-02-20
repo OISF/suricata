@@ -504,7 +504,45 @@ pub enum Nfs4ResponseContent<'a> {
     SetClientIdConfirm(u32),
     Create(u32),
     Commit(u32),
+    ExchangeId(u32, Option<Nfs4ResponseExchangeId<'a>>),
     Sequence(u32, Option<Nfs4ResponseSequence<'a>>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4ResponseExchangeId<'a> {
+    pub client_id: &'a[u8],
+    pub eir_minorid: u64,
+    pub eir_majorid: &'a[u8],
+    pub nii_domain: &'a[u8],
+    pub nii_name: &'a[u8],
+}
+
+fn nfs4_parse_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseExchangeId> {
+    let (i, client_id) = take(8_usize)(i)?;
+    let (i, _seqid) = be_u32(i)?;
+    let (i, _flags) = be_u32(i)?;
+    let (i, _eia_state_protect) = be_u32(i)?;
+    let (i, eir_minorid) = be_u64(i)?;
+    let (i, eir_majorid) = nfs4_parse_nfsstring(i)?;
+    let (i, _server_scope) = nfs4_parse_nfsstring(i)?;
+    let (i, _eir_impl_id) = be_u32(i)?;
+    let (i, nii_domain) = nfs4_parse_nfsstring(i)?;
+    let (i, nii_name) = nfs4_parse_nfsstring(i)?;
+    let (i, _nii_date_sec) = be_u64(i)?;
+    let (i, _nii_date_nsec) = be_u32(i)?;
+    Ok((i, Nfs4ResponseExchangeId {
+        client_id,
+        eir_minorid,
+        eir_majorid,
+        nii_domain,
+        nii_name,
+    }))
+}
+
+fn nfs4_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    let (i, status) = be_u32(i)?;
+    let (i, xchngid_data) = cond(status == 0, nfs4_parse_res_exchangeid)(i)?;
+    Ok((i, Nfs4ResponseContent::ExchangeId( status, xchngid_data)))
 }
 
 #[derive(Debug,PartialEq)]
@@ -849,6 +887,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_SETCLIENTID => nfs4_res_setclientid(i)?,
         NFSPROC4_SETCLIENTID_CONFIRM => nfs4_res_setclientid_confirm(i)?,
         NFSPROC4_PUTROOTFH => nfs4_res_putrootfh(i)?,
+        NFSPROC4_EXCHANGE_ID => nfs4_res_exchangeid(i)?,
         NFSPROC4_SEQUENCE => nfs4_res_sequence(i)?,
         NFSPROC4_RENEW => nfs4_res_renew(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
@@ -1459,4 +1498,44 @@ mod tests {
             _ => { panic!("Failure"); }
         }
     }
+
+    #[test]
+    fn test_nfs4_response_exchangeid() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x2a, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*status*/
+        // exchange_id
+            0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x98, 0x3b, 0xa3, 0x1e,
+            0xd7, 0xa9, 0x11, 0xe8, 0x00, 0x00, 0x00, 0x10,
+            0x98, 0x3b, 0xa3, 0x1e, 0xd7, 0xa9, 0x11, 0xe8,
+            0xbc, 0x0c, 0x00, 0x0c, 0x29, 0xe9, 0x13, 0x93,
+            0x00, 0x00, 0x00, 0x10, 0x84, 0x8b, 0x93, 0x12,
+            0xd7, 0xa9, 0x11, 0xe8, 0xbc, 0x0c, 0x00, 0x0c,
+            0x29, 0xe9, 0x13, 0x93, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x0c, 0x6e, 0x65, 0x74, 0x61,
+            0x70, 0x70, 0x2e, 0x63, 0x6f, 0x6d, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x24, 0x4e, 0x65, 0x74, 0x41,
+            0x70, 0x70, 0x20, 0x52, 0x65, 0x6c, 0x65, 0x61,
+            0x73, 0x65, 0x20, 0x56, 0x6f, 0x6f, 0x64, 0x6f,
+            0x6f, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x72, 0x5f,
+            0x5f, 0x39, 0x2e, 0x36, 0x2e, 0x30, 0x00, 0x00,
+            0x26, 0x0d, 0xcf, 0x5b, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, xchangeid) = nfs4_parse_res_exchangeid(&buf[8..]).unwrap();
+
+        let (_, response) = nfs4_res_exchangeid(&buf[4..]).unwrap();
+        match response {
+            Nfs4ResponseContent::ExchangeId(status, xchngid_data) => {
+                assert_eq!(status, 0);
+                assert_eq!(xchngid_data, Some(xchangeid));
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+
 }
