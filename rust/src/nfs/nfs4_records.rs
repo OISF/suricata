@@ -67,6 +67,7 @@ pub enum Nfs4RequestContent<'a> {
     SecInfoNoName(u32),
     LayoutGet(Nfs4RequestLayoutGet<'a>),
     GetDevInfo(Nfs4RequestGetDevInfo<'a>),
+    LayoutReturn(Nfs4RequestLayoutReturn<'a>),
 }
 
 #[derive(Debug,PartialEq)]
@@ -134,6 +135,34 @@ fn nfs4_parse_nfsstring(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let (i, data) = take(len as usize)(i)?;
     let (i, _fill_bytes) = cond(len % 4 != 0, take(4 - (len % 4)))(i)?;
     Ok((i, data))
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Nfs4RequestLayoutReturn<'a> {
+    pub layout_type: u32,
+    pub return_type: u32,
+    pub length: u64,
+    pub stateid: Nfs4StateId<'a>,
+    pub lrf_data: &'a[u8],
+}
+
+fn nfs4_req_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
+    let (i, _reclaim) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, layout_type) = be_u32(i)?;
+    let (i, _iq_mode) = be_u32(i)?;
+    let (i, return_type) = be_u32(i)?;
+    let (i, _offset) = be_u64(i)?;
+    let (i, length) = be_u64(i)?;
+    let (i, stateid) = nfs4_parse_stateid(i)?;
+    let (i, lrf_data) = nfs4_parse_nfsstring(i)?;
+    let req = Nfs4RequestContent::LayoutReturn(Nfs4RequestLayoutReturn {
+        layout_type,
+        return_type,
+        length,
+        stateid,
+        lrf_data,
+    });
+    Ok((i, req))
 }
 
 #[derive(Debug, PartialEq)]
@@ -554,6 +583,7 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_SECINFO_NO_NAME => nfs4_req_secinfo_no_name(i)?,
         NFSPROC4_LAYOUTGET => nfs4_req_layoutget(i)?,
         NFSPROC4_GETDEVINFO => nfs4_req_getdevinfo(i)?,
+        NFSPROC4_LAYOUTRETURN => nfs4_req_layoutreturn(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -607,6 +637,14 @@ pub enum Nfs4ResponseContent<'a> {
     SecInfoNoName(u32),
     LayoutGet(u32, Option<Nfs4ResponseLayoutGet<'a>>),
     GetDevInfo(u32, Option<Nfs4ResponseGetDevInfo<'a>>),
+    LayoutReturn(u32),
+}
+
+// might need improvment with a stateid_present = yes case
+fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+    let (i, status) = be_u32(i)?;
+    let (i, _stateid_present) = verify(be_u32, |&v| v <= 1)(i)?;
+    Ok((i, Nfs4ResponseContent::LayoutReturn(status)))
 }
 
 #[derive(Debug, PartialEq)]
@@ -1122,6 +1160,7 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_SECINFO_NO_NAME => nfs4_res_secinfo_no_name(i)?,
         NFSPROC4_LAYOUTGET => nfs4_res_layoutget(i)?,
         NFSPROC4_GETDEVINFO => nfs4_res_getdevinfo(i)?,
+        NFSPROC4_LAYOUTRETURN => nfs4_res_layoutreturn(i)?,
         _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
     };
     Ok((i, cmd_data))
@@ -1507,6 +1546,33 @@ mod tests {
                 assert_eq!(getdevifo.layout_type, 1);
                 assert_eq!(getdevifo.maxcount, 81440);
                 assert_eq!(getdevifo.notify_mask, 6);
+            }
+            _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_layoutreturn() {
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x33, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, // layoutreturn
+            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x01, 0x03, 0x82, 0x14, 0xe0,
+            0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let (_, stateid_buf) = nfs4_parse_stateid(&buf[36..52]).unwrap();
+        assert_eq!(stateid_buf.seqid, 1);
+
+        let (_, request) = nfs4_req_layoutreturn(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::LayoutReturn( layoutreturn ) => {
+                assert_eq!(layoutreturn.layout_type, 1);
+                assert_eq!(layoutreturn.return_type, 1);
+                assert_eq!(layoutreturn.stateid, stateid_buf);
             }
             _ => { panic!("Failure"); }
         }
