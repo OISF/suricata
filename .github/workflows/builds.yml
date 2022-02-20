@@ -131,10 +131,10 @@ jobs:
           name: prep
           path: .
 
-  centos-8:
-    name: CentOS 8
+  alma-8:
+    name: AlmaLinux 8
     runs-on: ubuntu-latest
-    container: centos:8
+    container: almalinux:8.4
     needs: prep
     steps:
       # Cache Rust stuff.
@@ -241,7 +241,7 @@ jobs:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: centos-8
+    needs: alma-8
     steps:
       - name: Install system dependencies
         run: |
@@ -638,13 +638,13 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py --quiet
 
-  # An Ubuntu 20.04 build using the tarball generated in the CentOS 8
+  # An Ubuntu 20.04 build using the tarball generated in the AlmaLinux 8
   # build above also testing the minimum supported Rust version.
   ubuntu-20-04-msrv:
     name: Ubuntu 20.04 (MSRV)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: centos-8
+    needs: alma-8
     steps:
       - name: Install dependencies
         run: |
