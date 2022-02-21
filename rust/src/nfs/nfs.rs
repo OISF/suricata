@@ -653,15 +653,19 @@ impl NFSState {
     }
 
     pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
-        // for now assume that stable FILE_SYNC flags means a single chunk
-        let is_last = if w.stable == 2 { true } else { false };
-
         let mut fill_bytes = 0;
-        let pad = w.file_len % 4;
+        let pad = w.count % 4;
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
 
+        // linux defines a max of 1mb. Allow several multiples.
+        if w.count == 0 || w.count > 16777216 {
+            return 0;
+        }
+
+        // for now assume that stable FILE_SYNC flags means a single chunk
+        let is_last = if w.stable == 2 { true } else { false };
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -711,8 +715,8 @@ impl NFSState {
         }
         if !self.is_udp {
             self.ts_chunk_xid = r.hdr.xid;
-            let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
-            self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+            debug_validate_bug_on!(w.file_data.len() as u32 > w.count);
+            self.ts_chunk_left = w.count - w.file_data.len() as u32;
             self.ts_chunk_fh = file_handle;
             SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
         }
@@ -1064,7 +1068,7 @@ impl NFSState {
                 // lets try to parse the RPC record. Might fail with Incomplete.
                 match parse_rpc(cur_i, cur_i.len(), false) {
                     Ok((remaining, ref hdr)) => {
-                        match parse_nfs3_request_write(hdr.prog_data) {
+                        match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
                                 // deal with the partial nfs write data
                                 self.process_partial_write_request_record(hdr, w);

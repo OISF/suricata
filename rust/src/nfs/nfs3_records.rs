@@ -17,8 +17,10 @@
 
 //! Nom parsers for RPC & NFSv3
 
+use std::cmp;
 use nom::IResult;
-use nom::combinator::rest;
+use nom::combinator::{rest, verify, cond};
+use nom::bytes::complete::take;
 use nom::number::streaming::{be_u32, be_u64};
 use crate::nfs::nfs_records::*;
 
@@ -391,25 +393,51 @@ pub struct Nfs3RequestWrite<'a> {
     pub file_data: &'a[u8],
 }
 
-named!(pub parse_nfs3_request_write<Nfs3RequestWrite>,
-    do_parse!(
-            handle: parse_nfs3_handle
-        >>  offset: be_u64
-        >>  count: be_u32
-        >>  stable: verify!(be_u32, |&v| v <= 2)
-        >>  file_len: verify!(be_u32, |&v| v <= count)
-        >>  file_data: rest // likely partial
-        >> (
-            Nfs3RequestWrite {
-                handle:handle,
-                offset:offset,
-                count:count,
-                stable:stable,
-                file_len:file_len,
-                file_data:file_data,
-            }
-        ))
-);
+/// Complete data expected
+fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take(file_len as usize)(i)?;
+    let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
+    Ok((i, file_data))
+}
+
+/// Partial data. We have all file_len, but need to consider fill_bytes
+fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take(file_len as usize)(i)?;
+    let fill_bytes = cmp::min(fill_bytes as usize, i.len());
+    let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
+    Ok((i, file_data))
+}
+
+/// Parse WRITE record. Consider 3 cases:
+/// 1. we have the complete RPC data
+/// 2. we have incomplete data but enough for all file data (partial fill bytes)
+/// 3. we have incomplete file data
+pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3RequestWrite> {
+    let (i, handle) = parse_nfs3_handle(i)?;
+    let (i, offset) = be_u64(i)?;
+    let (i, count) = be_u32(i)?;
+    let (i, stable) = verify(be_u32, |&v| v <= 2)(i)?;
+    let (i, file_len) = verify(be_u32, |&v| v <= count)(i)?;
+    let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
+    // Handle the various file data parsing logics
+    let (i, file_data) = if complete {
+        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+    } else if i.len() >= file_len as usize {
+        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
+    let req = Nfs3RequestWrite {
+        handle,
+        offset,
+        count,
+        stable,
+        file_len,
+        file_data,
+    };
+    Ok((i, req))
+}
+
 /*
 #[derive(Debug,PartialEq)]
 pub struct Nfs3ReplyRead<'a> {
@@ -443,3 +471,46 @@ named!(pub parse_nfs3_reply_read<NfsReplyRead>,
             }
         ))
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nfs3_request_write() {
+
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+        // [handle]
+            0x00, 0x00, 0x00, 0x20, /*handle_len: (32)*/
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7, /*handle*/
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xa6, 0x54,
+            0x00, 0x00, 0x00, 0x1b, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /*offset: (0)*/
+            0x00, 0x00, 0x00, 0x11, /*count: (17)*/
+            0x00, 0x00, 0x00, 0x01, /*stable: <DATA_SYNC> (1)*/
+        // [data]
+            0x00, 0x00, 0x00, 0x11, /*file_len: (17)*/
+            0x68, 0x61, 0x6c, 0x6c, 0x6f, 0x0a, 0x74, 0x68, /*file_data: ("hallo\nthe b file\n")*/
+            0x65, 0x20, 0x62, 0x20, 0x66, 0x69, 0x6c, 0x65,
+            0x0a,
+            0x00, 0x00, 0x00, /*_data_padding*/
+        ];
+
+        let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
+
+        let result = parse_nfs3_request_write(buf, true).unwrap();
+        match result {
+            (r, request) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(request.handle, expected_handle);
+                assert_eq!(request.offset, 0);
+                assert_eq!(request.count, 17);
+                assert_eq!(request.stable, 1);
+                assert_eq!(request.file_len, 17);
+                assert_eq!(request.file_data, "hallo\nthe b file\n".as_bytes());
+            }
+        }
+    }
+}
