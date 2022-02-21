@@ -134,7 +134,7 @@ fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
 pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
     let (i, fraghdr) = verify(parse_bits, |v: &(u8,u32)| v.1 >= 24)(i)?;
     let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = be_u32(i)?;
+    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
         frag_is_last: fraghdr.0 == 1,
         frag_len: fraghdr.1,
