@@ -127,10 +127,10 @@ named!(pub parse_rpc_packet_header<RpcPacketHeader>,
     do_parse!(
         fraghdr: bits!(tuple!(
                 take_bits!(u8, 1),       // is_last
-                take_bits!(u32, 31)))    // len
+                verify!(take_bits!(u32, 31), |v| v >= 24)))    // len
 
         >> xid: be_u32
-        >> msgtype: be_u32
+        >> msgtype: verify!(be_u32, |v| v <= 1)
         >> (
             RpcPacketHeader {
                 frag_is_last:fraghdr.0 == 1,
@@ -251,7 +251,7 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
    do_parse!(
        hdr: parse_rpc_packet_header
 
-       >> reply_state: be_u32
+       >> reply_state: verify!(be_u32, |v| v <= 1)
 
        >> verifier_flavor: be_u32
        >> verifier_len: verify!(be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)
@@ -280,7 +280,7 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
 named!(pub parse_rpc_udp_packet_header<RpcPacketHeader>,
     do_parse!(
         xid: be_u32
-        >> msgtype: be_u32
+        >> msgtype: verify!(be_u32, |v| v <= 1)
         >> (
             RpcPacketHeader {
                 frag_is_last:false,
@@ -342,7 +342,7 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
        >> verifier_len: verify!(be_u32, |size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
-       >> reply_state: be_u32
+       >> reply_state: verify!(be_u32, |v| v <= 1)
        >> accept_state: be_u32
 
        >> pl: rest
