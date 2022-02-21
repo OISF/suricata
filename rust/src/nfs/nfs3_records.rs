@@ -340,14 +340,14 @@ pub struct Nfs3RequestWrite<'a> {
 }
 
 /// Complete data expected
-fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take(file_len as usize)(i)?;
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
     Ok((i, file_data))
 }
 
 /// Partial data. We have all file_len, but need to consider fill_bytes
-fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take(file_len as usize)(i)?;
     let fill_bytes = cmp::min(fill_bytes as usize, i.len());
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
@@ -367,9 +367,9 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
     // Handle the various file data parsing logics
     let (i, file_data) = if complete {
-        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_complete(i, file_len as usize, fill_bytes as usize)?
     } else if i.len() >= file_len as usize {
-        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_partial(i, file_len as usize, fill_bytes as usize)?
     } else {
         rest(i)?
     };
@@ -384,27 +384,22 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     Ok((i, req))
 }
 
-/*
-#[derive(Debug,PartialEq)]
-pub struct Nfs3ReplyRead<'a> {
-    pub status: u32,
-    pub attr_follows: u32,
-    pub attr_blob: &'a[u8],
-    pub count: u32,
-    pub eof: bool,
-    pub data_len: u32,
-    pub data: &'a[u8], // likely partial
-}
-*/
-pub fn parse_nfs3_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
+pub fn parse_nfs3_reply_read(i: &[u8], complete: bool) -> IResult<&[u8], NfsReplyRead> {
     let (i, status) = be_u32(i)?;
     let (i, attr_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, attr_blob) = take(84_usize)(i)?; // fixed size?
     let (i, count) = be_u32(i)?;
     let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
-    let (i, data_len) = be_u32(i)?;
-    let (i, data) = take(data_len as usize)(i)?;
-    let (i, _data_padding) = cond(data_len % 4 !=0, take(4 - (data_len % 4)))(i)?;
+    let (i, data_len) = verify(be_u32, |&v| v <= count)(i)?;
+    let fill_bytes = if data_len % 4 != 0 { 4 - data_len % 4 } else { 0 };
+    // Handle the various file data parsing logics
+    let (i, data) = if complete {
+        parse_nfs3_data_complete(i, data_len as usize, fill_bytes as usize)?
+    } else if i.len() >= data_len as usize {
+        parse_nfs3_data_partial(i, data_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
     let reply = NfsReplyRead {
         status,
         attr_follows,
@@ -988,7 +983,7 @@ mod tests {
             0x00, /*_data_padding*/
         ];
 
-        let result = parse_nfs3_reply_read(buf).unwrap();
+        let result = parse_nfs3_reply_read(buf, true).unwrap();
         match result {
             (r, reply) => {
                 assert_eq!(r.len(), 0);
