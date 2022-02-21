@@ -240,7 +240,13 @@ named_args!(pub parse_rpc(start_i: usize, complete: bool) <RpcPacket>,
        >> verifier_flavor: be_u32
        >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: take!(verifier_len as usize)
-       >> rem_len: rest_len
+       // Gets the value out of the header that we can move into a closure for
+       // verification.
+       >> frag_len: value!(hdr.frag_len)
+       >> rem_len: verify!(rest_len, move |&rem_len| {
+           let consumed = start_i - rem_len;
+           consumed <= frag_len as usize + 4
+       })
        >> prog_data_size: value!(hdr.frag_len + 4 - (start_i - rem_len) as u32)
        >> prog_data_f: cond!(complete, take!(prog_data_size))
        >> prog_data_t: cond!(!complete, rest)
