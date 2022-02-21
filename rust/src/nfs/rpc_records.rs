@@ -134,9 +134,9 @@ fn parse_bits(i:&[u8]) -> IResult<&[u8],(u8,u32)> {
 
 named!(pub parse_rpc_packet_header<RpcPacketHeader>,
     do_parse!(
-        fraghdr: parse_bits
+        fraghdr: verify!(parse_bits, |v: &(u8,u32)| v.1 >= 24)
         >> xid: be_u32
-        >> msgtype: be_u32
+        >> msgtype: verify!(be_u32, |&v| v <= 1)
         >> (
             RpcPacketHeader {
                 frag_is_last:fraghdr.0 == 1,
@@ -281,7 +281,7 @@ named_args!(pub parse_rpc_reply(start_i: usize, complete: bool) <RpcReplyPacket>
    do_parse!(
        hdr: parse_rpc_packet_header
 
-       >> reply_state: be_u32
+       >> reply_state: verify!(be_u32, |&v| v <= 1)
 
        >> verifier_flavor: be_u32
        >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
@@ -313,7 +313,7 @@ named_args!(pub parse_rpc_reply(start_i: usize, complete: bool) <RpcReplyPacket>
 named!(pub parse_rpc_udp_packet_header<RpcPacketHeader>,
     do_parse!(
         xid: be_u32
-        >> msgtype: be_u32
+        >> msgtype: verify!(be_u32, |&v| v <= 1)
         >> (
             RpcPacketHeader {
                 frag_is_last:false,
@@ -375,7 +375,7 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
        >> verifier_len: verify!(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
-       >> reply_state: be_u32
+       >> reply_state: verify!(be_u32, |&v| v <= 1)
        >> accept_state: be_u32
 
        >> pl: rest
