@@ -208,14 +208,10 @@ pub unsafe extern "C" fn rs_smb_tx_get_filename(tx: &mut SMBTransaction,
                                                 buffer_len: *mut u32)
                                                 -> u8
 {
-    match tx.type_data {
-        Some(SMBTransactionTypeData::CREATE(ref x)) => {
-            *buffer = x.filename.as_ptr();
-            *buffer_len = x.filename.len() as u32;
-            return 1;
-        }
-        _ => {
-        }
+    if let Some(SMBTransactionTypeData::CREATE(ref x)) = tx.type_data {
+        *buffer = x.filename.as_ptr();
+        *buffer_len = x.filename.len() as u32;
+        return 1;
     }
 
     *buffer = ptr::null();
