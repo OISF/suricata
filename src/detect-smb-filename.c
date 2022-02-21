@@ -72,7 +72,7 @@ void DetectSmbFilenameRegister(void)
     sigmatch_table[DETECT_SMB_FILENAME].Setup = DetectSmbFilenameSetup;
     sigmatch_table[DETECT_SMB_FILENAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_SMB_FILENAME].desc =
-            "sticky buffer to match on SMB filenamenames in create request";
+            "Sticky buffer to match on SMB filenames in create request";
 
     DetectAppLayerMpmRegister2("smb_filename", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetFilenameData, ALPROTO_SMB, 1);
