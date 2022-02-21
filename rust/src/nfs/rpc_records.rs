@@ -24,7 +24,8 @@ use nom7::combinator::{cond, verify, rest};
 use nom7::multi::length_data;
 use nom7::number::streaming::{be_u32};
 use nom7::sequence::tuple;
-use nom7::IResult;
+use nom7::error::{make_error, ErrorKind};
+use nom7::{IResult, Err};
 
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
 pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
@@ -240,6 +241,10 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
     let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+
     let data_size : u32 = (rec_size as usize - consumed) as u32;
     let (i, prog_data) = if !complete {
         rest(i)?
