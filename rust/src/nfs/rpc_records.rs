@@ -294,7 +294,11 @@ named_args!(pub parse_rpc_reply(start_i: usize, complete: bool) <RpcReplyPacket>
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
        >> accept_state: be_u32
-       >> rem_len: rest_len
+       >> frag_len: value!(hdr.frag_len)
+       >> rem_len: verify!(rest_len, move |&rem_len| {
+           let consumed = start_i - rem_len;
+           consumed <= frag_len as usize + 4
+       })
        >> prog_data_size: value!(hdr.frag_len + 4 - (start_i - rem_len) as u32)
        >> prog_data_f: cond!(complete, take!(prog_data_size))
        >> prog_data_t: cond!(!complete, rest)
