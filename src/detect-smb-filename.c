@@ -69,7 +69,6 @@ static InspectionBuffer *GetFilenameData(DetectEngineThreadCtx *det_ctx,
 void DetectSmbFilenameRegister(void)
 {
     sigmatch_table[DETECT_SMB_FILENAME].name = "smb.filename";
-    sigmatch_table[DETECT_SMB_FILENAME].alias = "smb_filename";
     sigmatch_table[DETECT_SMB_FILENAME].Setup = DetectSmbFilenameSetup;
     sigmatch_table[DETECT_SMB_FILENAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_SMB_FILENAME].desc =
