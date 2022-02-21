@@ -573,7 +573,7 @@ pub struct Nfs4ResponseRead<'a> {
 
 named!(nfs4_res_read_ok<Nfs4ResponseRead>,
     do_parse!(
-            eof: be_u32
+            eof: verify!(be_u32, |v| v <= 1)
         >>  read_len: be_u32
         >>  read_data: take!(read_len)
         >> (Nfs4ResponseRead {
@@ -663,7 +663,7 @@ named!(nfs4_res_readdir_entry_do<Nfs4ResponseReaddirEntry>,
 
 named!(nfs4_res_readdir_entry<Option<Nfs4ResponseReaddirEntry>>,
     do_parse!(
-            value_follows: be_u32
+            value_follows: verify!(be_u32, |v| v <= 1)
         >>  entry: cond!(value_follows == 1, nfs4_res_readdir_entry_do)
         >> (entry)
 ));
@@ -674,8 +674,8 @@ named!(nfs4_res_readdir_ok<Nfs4ResponseReaddir>,
         // run parser until we find a 'value follows == 0'
         >>  listing: many_till!(complete!(call!(nfs4_res_readdir_entry)), peek!(tag!(b"\x00\x00\x00\x00")))
         // value follows == 0 checked by line above
-        >>  _value_follows: be_u32
-        >>  eof: be_u32
+        >>  _value_follows: tag!(b"\x00\x00\x00\x00")
+        >>  eof: verify!(be_u32, |v| v <= 1)
         >> ( Nfs4ResponseReaddir { eof: eof==1, listing: listing.0 })
 ));
 
