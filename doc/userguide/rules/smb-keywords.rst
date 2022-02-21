@@ -3,10 +3,10 @@ SMB Keywords
 
 SMB keywords used in both SMB1 and SMB2 protocols.
 
-smb_filename
+smb.filename
 --------------
 
-SMB filename is an sticky buffer to match the filename in SMB Create requests.
+SMB filename is a sticky buffer to match the filename in SMB Create requests.
 
 .. note:: Remember that SMB2 filenames are Unicode encoded.
 
