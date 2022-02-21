@@ -394,14 +394,14 @@ pub struct Nfs3RequestWrite<'a> {
 }
 
 /// Complete data expected
-fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take(file_len as usize)(i)?;
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
     Ok((i, file_data))
 }
 
 /// Partial data. We have all file_len, but need to consider fill_bytes
-fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+fn parse_nfs3_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
     let (i, file_data) = take(file_len as usize)(i)?;
     let fill_bytes = cmp::min(fill_bytes as usize, i.len());
     let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
@@ -421,9 +421,9 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
     // Handle the various file data parsing logics
     let (i, file_data) = if complete {
-        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_complete(i, file_len as usize, fill_bytes as usize)?
     } else if i.len() >= file_len as usize {
-        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+        parse_nfs3_data_partial(i, file_len as usize, fill_bytes as usize)?
     } else {
         rest(i)?
     };
@@ -438,39 +438,33 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
     Ok((i, req))
 }
 
-/*
-#[derive(Debug,PartialEq)]
-pub struct Nfs3ReplyRead<'a> {
-    pub status: u32,
-    pub attr_follows: u32,
-    pub attr_blob: &'a[u8],
-    pub count: u32,
-    pub eof: bool,
-    pub data_len: u32,
-    pub data: &'a[u8], // likely partial
+pub fn parse_nfs3_reply_read(i: &[u8], complete: bool) -> IResult<&[u8], NfsReplyRead> {
+    let (i, status) = be_u32(i)?;
+    let (i, attr_follows) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, attr_blob) = take(84_usize)(i)?; // fixed size?
+    let (i, count) = be_u32(i)?;
+    let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, data_len) = verify(be_u32, |&v| v <= count)(i)?;
+    let fill_bytes = if data_len % 4 != 0 { 4 - data_len % 4 } else { 0 };
+    // Handle the various file data parsing logics
+    let (i, data) = if complete {
+        parse_nfs3_data_complete(i, data_len as usize, fill_bytes as usize)?
+    } else if i.len() >= data_len as usize {
+        parse_nfs3_data_partial(i, data_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
+    let reply = NfsReplyRead {
+        status,
+        attr_follows,
+        attr_blob,
+        count,
+        eof: eof != 0,
+        data_len,
+        data,
+    };
+    Ok((i, reply))
 }
-*/
-named!(pub parse_nfs3_reply_read<NfsReplyRead>,
-    do_parse!(
-            status: be_u32
-        >>  attr_follows: verify!(be_u32, |&v| v <= 1)
-        >>  attr_blob: take!(84) // fixed size?
-        >>  count: be_u32
-        >>  eof: verify!(be_u32, |&v| v <= 1)
-        >>  data_len: be_u32
-        >>  data_contents: rest
-        >> (
-            NfsReplyRead {
-                status:status,
-                attr_follows:attr_follows,
-                attr_blob:attr_blob,
-                count:count,
-                eof:eof != 0,
-                data_len:data_len,
-                data:data_contents,
-            }
-        ))
-);
 
 #[cfg(test)]
 mod tests {
@@ -510,6 +504,48 @@ mod tests {
                 assert_eq!(request.stable, 1);
                 assert_eq!(request.file_len, 17);
                 assert_eq!(request.file_data, "hallo\nthe b file\n".as_bytes());
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs3_reply_read() {
+
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*Status: NFS3_OK (0)*/
+            0x00, 0x00, 0x00, 0x01, /*attributes_follows: (1)*/
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x81, 0xa4, /*attr_blob*/
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5d, 0x38, 0x47, 0x76, 0x25,
+            0x23, 0xc3, 0x46, 0x00, 0x38, 0x47, 0x71, 0xc4,
+            0x21, 0xf9, 0x82, 0x80, 0x38, 0x47, 0x76, 0x25,
+            0x1e, 0x65, 0xfb, 0x81,
+            0x00, 0x00, 0x00, 0x0b, /*count: (11)*/
+            0x00, 0x00, 0x00, 0x01, /*EOF: (true)*/
+        // [data]
+            0x00, 0x00, 0x00, 0x0b, /*data_len: (11)*/
+            0x74, 0x68, 0x65, 0x20, 0x62, 0x20, 0x66, 0x69,
+            0x6c, 0x65, 0x0a, /*data: ("the b file\n")*/
+            0x00, /*_data_padding*/
+        ];
+
+        let result = parse_nfs3_reply_read(buf, true).unwrap();
+        match result {
+            (r, reply) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(reply.status, 0);
+                assert_eq!(reply.attr_follows, 1);
+                assert_eq!(reply.attr_blob.len(), 84);
+                assert_eq!(reply.count, 11);
+                assert_eq!(reply.eof, true);
+                assert_eq!(reply.data_len, 11);
+                assert_eq!(reply.data, "the b file\n".as_bytes());
             }
         }
     }
