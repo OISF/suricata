@@ -132,9 +132,9 @@ fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
 }
 
 pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, fraghdr) = parse_bits(i)?;
+    let (i, fraghdr) = verify(parse_bits, |v: &(u8,u32)| v.1 >= 24)(i)?;
     let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = be_u32(i)?;
+    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
         frag_is_last: fraghdr.0 == 1,
         frag_len: fraghdr.1,
@@ -283,7 +283,7 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
     let rec_size = hdr.frag_len + 4;
 
-    let (i, reply_state) = be_u32(i)?;
+    let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
@@ -316,7 +316,7 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
 
 pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
     let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = be_u32(i)?;
+    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
         frag_is_last: false,
         frag_len: 0,
@@ -378,7 +378,7 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
-    let (i, reply_state) = be_u32(i)?;
+    let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, accept_state) = be_u32(i)?;
 
     let data_size : u32 = i.len() as u32;
