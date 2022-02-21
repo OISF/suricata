@@ -297,6 +297,10 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     let (i, accept_state) = be_u32(i)?;
 
     let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+
     let data_size : u32 = (rec_size as usize - consumed) as u32;
     let (i, prog_data) = if !complete {
         rest(i)?
