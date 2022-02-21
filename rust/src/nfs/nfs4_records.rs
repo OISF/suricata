@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFSv4 records
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{complete, cond, map, peek};
+use nom7::combinator::{complete, cond, map, peek, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
 use nom7::number::streaming::{be_u32, be_u64};
@@ -529,7 +529,7 @@ pub struct Nfs4ResponseRead<'a> {
 }
 
 fn nfs4_res_read_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseRead> {
-    let (i, eof) = be_u32(i)?;
+    let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, read_len) = be_u32(i)?;
     let (i, read_data) = take(read_len as usize)(i)?;
     let resp = Nfs4ResponseRead {
@@ -611,7 +611,7 @@ fn nfs4_res_readdir_entry_do(i: &[u8]) -> IResult<&[u8], Nfs4ResponseReaddirEntr
 }
 
 fn nfs4_res_readdir_entry(i: &[u8]) -> IResult<&[u8], Option<Nfs4ResponseReaddirEntry>> {
-    let (i, value_follows) = be_u32(i)?;
+    let (i, value_follows) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, entry) = cond(value_follows == 1, nfs4_res_readdir_entry_do)(i)?;
     Ok((i, entry))
 }
@@ -624,8 +624,8 @@ fn nfs4_res_readdir_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseReaddir> {
         peek(tag(b"\x00\x00\x00\x00")),
     )(i)?;
     // value follows == 0 checked by line above
-    let (i, _value_follows) = be_u32(i)?;
-    let (i, eof) = be_u32(i)?;
+    let (i, _value_follows) = tag(b"\x00\x00\x00\x00")(i)?;
+    let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
     Ok((
         i,
         Nfs4ResponseReaddir {
