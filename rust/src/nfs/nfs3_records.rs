@@ -17,6 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
+use std::cmp;
 use crate::nfs::nfs_records::*;
 use nom7::bytes::streaming::take;
 use nom7::combinator::{complete, cond, rest, verify};
@@ -338,14 +339,40 @@ pub struct Nfs3RequestWrite<'a> {
     pub file_data: &'a [u8],
 }
 
-pub fn parse_nfs3_request_write(i: &[u8]) -> IResult<&[u8], Nfs3RequestWrite> {
+/// Complete data expected
+fn parse_nfs3_request_write_data_complete(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take(file_len as usize)(i)?;
+    let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
+    Ok((i, file_data))
+}
+
+/// Partial data. We have all file_len, but need to consider fill_bytes
+fn parse_nfs3_request_write_data_partial(i: &[u8], file_len: usize, fill_bytes: usize) -> IResult<&[u8], &[u8]> {
+    let (i, file_data) = take(file_len as usize)(i)?;
+    let fill_bytes = cmp::min(fill_bytes as usize, i.len());
+    let (i, _) = cond(fill_bytes > 0, take(fill_bytes))(i)?;
+    Ok((i, file_data))
+}
+
+/// Parse WRITE record. Consider 3 cases:
+/// 1. we have the complete RPC data
+/// 2. we have incomplete data but enough for all file data (partial fill bytes)
+/// 3. we have incomplete file data
+pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3RequestWrite> {
     let (i, handle) = parse_nfs3_handle(i)?;
     let (i, offset) = be_u64(i)?;
     let (i, count) = be_u32(i)?;
     let (i, stable) = verify(be_u32, |&v| v <= 2)(i)?;
     let (i, file_len) = verify(be_u32, |&v| v <= count)(i)?;
-    let (i, file_data) = take(file_len as usize)(i)?;
-    let (i, _file_padding) = cond(file_len % 4 !=0, take(4 - (file_len % 4)))(i)?;
+    let fill_bytes = if file_len % 4 != 0 { 4 - file_len % 4 } else { 0 };
+    // Handle the various file data parsing logics
+    let (i, file_data) = if complete {
+        parse_nfs3_request_write_data_complete(i, file_len as usize, fill_bytes as usize)?
+    } else if i.len() >= file_len as usize {
+        parse_nfs3_request_write_data_partial(i, file_len as usize, fill_bytes as usize)?
+    } else {
+        rest(i)?
+    };
     let req = Nfs3RequestWrite {
         handle,
         offset,
@@ -356,6 +383,7 @@ pub fn parse_nfs3_request_write(i: &[u8]) -> IResult<&[u8], Nfs3RequestWrite> {
     };
     Ok((i, req))
 }
+
 /*
 #[derive(Debug,PartialEq)]
 pub struct Nfs3ReplyRead<'a> {
@@ -919,7 +947,7 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_write(buf).unwrap();
+        let result = parse_nfs3_request_write(buf, true).unwrap();
         match result {
             (r, request) => {
                 assert_eq!(r.len(), 0);
