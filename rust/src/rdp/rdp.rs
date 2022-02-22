@@ -26,6 +26,7 @@ use nom;
 use std;
 use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
+use tls_parser::nom::Err;
 
 static mut ALPROTO_RDP: AppProto = ALPROTO_UNKNOWN;
 
@@ -184,7 +185,7 @@ impl RdpState {
                         available = remainder;
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -192,7 +193,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }
@@ -296,7 +297,7 @@ impl RdpState {
                         }
                     }
 
-                    Err(nom::Err::Incomplete(_)) => {
+                    Err(Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -304,7 +305,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(nom::Err::Failure(_)) | Err(nom::Err::Error(_)) => {
+                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }
