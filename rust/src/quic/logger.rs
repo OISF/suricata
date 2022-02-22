@@ -17,6 +17,7 @@
 
 use super::quic::QuicTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::fmt::Write;
 
 fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("quic")?;
@@ -30,14 +31,40 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
             js.set_string("ua", &String::from_utf8_lossy(&ua))?;
         }
     }
-    js.open_array("cyu")?;
-    for cyu in &tx.cyu {
-        js.start_object()?;
-        js.set_string("hash", &cyu.hash)?;
-        js.set_string("string", &cyu.string)?;
+    if tx.cyu.len() > 0 {
+        js.open_array("cyu")?;
+        for cyu in &tx.cyu {
+            js.start_object()?;
+            js.set_string("hash", &cyu.hash)?;
+            js.set_string("string", &cyu.string)?;
+            js.close()?;
+        }
         js.close()?;
     }
-    js.close()?;
+
+    if tx.extv.len() > 0 {
+        js.open_array("extensions")?;
+        for e in &tx.extv {
+            let mut etypes = String::with_capacity(32);
+            match write!(&mut etypes, "{}", e.etype) {
+                _ => {}
+            }
+            js.start_object()?;
+            js.set_string("type", &etypes)?;
+
+            if e.indices.len() > 0 {
+                js.open_array("values")?;
+                let mut start = 0;
+                for i in 0..e.indices.len() {
+                    js.append_string(&String::from_utf8_lossy(&e.values[start..e.indices[i]]))?;
+                    start = e.indices[i];
+                }
+                js.close()?;
+            }
+            js.close()?;
+        }
+        js.close()?;
+    }
 
     js.close()?;
     Ok(())

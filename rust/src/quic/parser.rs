@@ -134,7 +134,7 @@ pub fn quic_pkt_num(input: &[u8]) -> u64 {
     }
 }
 
-fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
+pub fn quic_var_uint(input: &[u8]) -> IResult<&[u8], u64, QuicError> {
     let (rest, first) = be_u8(input)?;
     let msb = first >> 6;
     let lsb = (first & 0x3F) as u64;
