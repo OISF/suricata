@@ -1045,7 +1045,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             AppLayerRequestProtocolTLSUpgrade(f);
-            SMTPTransactionComplete(state);
+            if (state->curr_tx) {
+                SMTPTransactionComplete(state);
+            }
         } else {
             /* decoder event */
             SMTPSetEvent(state, SMTP_DECODER_EVENT_TLS_REJECTED);
