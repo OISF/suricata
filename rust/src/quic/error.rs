@@ -24,6 +24,7 @@ pub enum QuicError {
     StreamTagNoMatch(u32),
     InvalidPacket,
     Incomplete,
+    NotSupported,
     NomError(ErrorKind),
 }
 
@@ -45,6 +46,7 @@ impl fmt::Display for QuicError {
             }
             QuicError::Incomplete => write!(f, "Incomplete data"),
             QuicError::InvalidPacket => write!(f, "Invalid packet"),
+            QuicError::NotSupported => write!(f, "Not supported case yet"),
             QuicError::NomError(e) => write!(f, "Internal parser error {:?}", e),
         }
     }
