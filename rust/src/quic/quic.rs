@@ -17,7 +17,7 @@
 
 use super::{
     cyu::Cyu,
-    frames::{Frame, StreamTag},
+    frames::{Frame, QuicTlsExtension, StreamTag},
     parser::{quic_pkt_num, quic_rustls_version, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
@@ -35,11 +35,15 @@ pub struct QuicTransaction {
     pub cyu: Vec<Cyu>,
     pub sni: Option<Vec<u8>>,
     pub ua: Option<Vec<u8>>,
+    pub extv: Vec<QuicTlsExtension>,
     tx_data: AppLayerTxData,
 }
 
 impl QuicTransaction {
-    fn new(header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>) -> Self {
+    fn new(
+        header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
+        extv: Vec<QuicTlsExtension>,
+    ) -> Self {
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
@@ -47,6 +51,7 @@ impl QuicTransaction {
             cyu,
             sni,
             ua,
+            extv,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -90,11 +95,12 @@ impl QuicState {
 
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-    ) -> QuicTransaction {
-        let mut tx = QuicTransaction::new(header, data, sni, ua);
+        extb: Vec<QuicTlsExtension>,
+    ) {
+        let mut tx = QuicTransaction::new(header, data, sni, ua, extb);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
-        return tx;
+        self.transactions.push(tx);
     }
 
     fn tx_iterator(
@@ -185,25 +191,29 @@ impl QuicState {
                             if header.ty != QuicType::Short {
                                 let mut sni: Option<Vec<u8>> = None;
                                 let mut ua: Option<Vec<u8>> = None;
+                                let mut extv: Vec<QuicTlsExtension> = Vec::new();
                                 for frame in &data.frames {
-                                    if let Frame::Stream(s) = frame {
-                                        if let Some(tags) = &s.tags {
-                                            for (tag, value) in tags {
-                                                if tag == &StreamTag::Sni {
-                                                    sni = Some(value.to_vec());
-                                                } else if tag == &StreamTag::Uaid {
-                                                    ua = Some(value.to_vec());
-                                                }
-                                                if sni.is_some() && ua.is_some() {
-                                                    break;
+                                    match frame {
+                                        Frame::Stream(s) => {
+                                            if let Some(tags) = &s.tags {
+                                                for (tag, value) in tags {
+                                                    if tag == &StreamTag::Sni {
+                                                        sni = Some(value.to_vec());
+                                                    } else if tag == &StreamTag::Uaid {
+                                                        ua = Some(value.to_vec());
+                                                    }
+                                                    if sni.is_some() && ua.is_some() {
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }
+                                        Frame::Crypto(c) => extv.extend_from_slice(&c.extv),
+                                        _ => {}
                                     }
                                 }
 
-                                let transaction = self.new_tx(header, data, sni, ua);
-                                self.transactions.push(transaction);
+                                self.new_tx(header, data, sni, ua, extv);
                             }
                         }
                         Err(_e) => {
