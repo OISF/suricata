@@ -46,6 +46,7 @@ Logging changes
 - IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
   ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
 - FTP DATA metadata for alerts are now logged in ``ftp_data`` instead of root.
+- HTTP xff header is now logged as ``http.xff_header`` instead of ``http.xff`` while the root object ``.xff`` remains the same
 
 Other changes
 ~~~~~~~~~~~~~

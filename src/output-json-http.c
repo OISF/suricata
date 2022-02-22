@@ -229,7 +229,7 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
         /* x-forwarded-for */
         htp_header_t *h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
-            jb_set_string_from_bytes(js, "xff", bstr_ptr(h_x_forwarded_for->value),
+            jb_set_string_from_bytes(js, "xff_header", bstr_ptr(h_x_forwarded_for->value),
                     bstr_len(h_x_forwarded_for->value));
         }
     }
