@@ -37,6 +37,7 @@
 #include "conf.h"
 #include "detect.h"
 #include "reputation.h"
+#include "util-validate.h"
 
 /** effective reputation version, atomic as the host
  *  time out code will use it to check if a host's
@@ -175,6 +176,14 @@ void SRepReloadComplete(void)
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
 
+void SRepFreeHostData(Host *h)
+{
+    SCFree(h->iprep);
+    h->iprep = NULL;
+    DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) != 1);
+    HostDecrUsecnt(h);
+}
+
 /** \brief Set effective reputation version after
  *         reputation initialization is complete. */
 static void SRepInitComplete(void)
@@ -205,11 +214,7 @@ int SRepHostTimedOut(Host *h)
     if (r->version < eversion) {
         SCLogDebug("host %p has reputation version %u, "
                 "effective version is %u", h, r->version, eversion);
-
-        SCFree(h->iprep);
-        h->iprep = NULL;
-
-        HostDecrUsecnt(h);
+        SRepFreeHostData(h);
         return 1;
     }
 
