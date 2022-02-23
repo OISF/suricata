@@ -109,6 +109,7 @@ static int DecodeVNTagtest01(void)
     FAIL_IF(TM_ECODE_OK == DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
 
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, VNTAG_HEADER_TOO_SMALL));
+    PacketFree(p);
     PASS;
 }
 
@@ -136,6 +137,7 @@ static int DecodeVNTagtest02(void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FAIL_IF_NOT(TM_ECODE_OK != DecodeVNTag(&tv, &dtv, p, raw_vntag, sizeof(raw_vntag)));
+    PacketFree(p);
     PASS;
 }
 
@@ -166,8 +168,7 @@ static int DecodeVNTagtest03(void)
 
     PACKET_RECYCLE(p);
     FlowShutdown();
-    SCFree(p);
-
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */
