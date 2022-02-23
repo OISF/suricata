@@ -555,7 +555,7 @@ static int HostBitsTestSig01(void)
                     "Host: one.example.org\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
     ThreadVars th_v;
@@ -587,9 +587,8 @@ static int HostBitsTestSig01(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    PacketFree(p);
     HostBitsTestShutdown();
-
-    SCFree(p);
     PASS;
 }
 
