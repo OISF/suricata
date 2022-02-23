@@ -838,16 +838,17 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
-#define PACKET_DESTRUCTOR(p) do {                  \
-        if ((p)->pktvar != NULL) {              \
-            PktVarFree((p)->pktvar);            \
-        }                                       \
-        PACKET_FREE_EXTDATA((p));               \
-        SCMutexDestroy(&(p)->tunnel_mutex);     \
-        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
-        PACKET_PROFILING_RESET((p));            \
+#define PACKET_DESTRUCTOR(p)                                                                       \
+    do {                                                                                           \
+        PACKET_RELEASE_REFS((p));                                                                  \
+        if ((p)->pktvar != NULL) {                                                                 \
+            PktVarFree((p)->pktvar);                                                               \
+        }                                                                                          \
+        PACKET_FREE_EXTDATA((p));                                                                  \
+        SCMutexDestroy(&(p)->tunnel_mutex);                                                        \
+        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events);                                   \
+        PACKET_PROFILING_RESET((p));                                                               \
     } while (0)
-
 
 /* macro's for setting the action
  * handle the case of a root packet
