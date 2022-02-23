@@ -156,12 +156,13 @@ error:
 void HostClearMemory(Host *h)
 {
     if (h->iprep != NULL) {
-        SCFree(h->iprep);
-        h->iprep = NULL;
+        SRepFreeHostData(h);
     }
 
     if (HostStorageSize() > 0)
         HostFreeStorage(h);
+
+    BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -311,7 +312,6 @@ void HostShutdown(void)
 
     /* free spare queue */
     while((h = HostDequeue(&host_spare_q))) {
-        BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
         HostFree(h);
     }
 
