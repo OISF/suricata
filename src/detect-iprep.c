@@ -45,6 +45,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-fmemopen.h"
+#include "util-validate.h"
 
 #include "reputation.h"
 #include "host.h"
@@ -77,83 +78,68 @@ void DetectIPRepRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+static inline uint8_t GetRep(const SReputation *r, const uint8_t cat, const uint32_t version)
+{
+    /* allow higher versions as this happens during
+     * rule reload */
+    if (r != NULL && r->version >= version) {
+        return r->rep[cat];
+    }
+    return 0;
+}
+
 static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
 {
-    uint8_t val = 0;
-    Host *h = NULL;
-
     if (p->flags & PKT_HOST_SRC_LOOKED_UP && p->host_src == NULL) {
         return 0;
     } else if (p->host_src != NULL) {
-        h = (Host *)p->host_src;
+        Host *h = (Host *)p->host_src;
         HostLock(h);
+        /* use_cnt: 1 for having iprep, 1 for packet ref */
+        DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 2);
+        uint8_t val = GetRep(h->iprep, cat, version);
+        HostUnlock(h);
+        return val;
     } else {
-        h = HostLookupHostFromHash(&(p->src));
-
+        Host *h = HostLookupHostFromHash(&(p->src));
         p->flags |= PKT_HOST_SRC_LOOKED_UP;
-
         if (h == NULL)
             return 0;
-
         HostReference(&p->host_src, h);
+        /* use_cnt: 1 for having iprep, 1 for HostLookupHostFromHash,
+         * 1 for HostReference to packet */
+        DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 3);
+        uint8_t val = GetRep(h->iprep, cat, version);
+        HostRelease(h); /* use_cnt >= 2: 1 for iprep, 1 for packet ref */
+        return val;
     }
-
-    if (h->iprep == NULL) {
-        HostRelease(h);
-        return 0;
-    }
-
-    SReputation *r = (SReputation *)h->iprep;
-
-    /* allow higher versions as this happens during
-     * rule reload */
-    if (r->version >= version)
-        val = r->rep[cat];
-    else
-        SCLogDebug("version mismatch %u != %u", r->version, version);
-
-    HostRelease(h);
-    return val;
 }
 
 static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
 {
-    uint8_t val = 0;
-    Host *h = NULL;
-
     if (p->flags & PKT_HOST_DST_LOOKED_UP && p->host_dst == NULL) {
         return 0;
     } else if (p->host_dst != NULL) {
-        h = (Host *)p->host_dst;
+        Host *h = (Host *)p->host_dst;
         HostLock(h);
+        /* use_cnt: 1 for having iprep, 1 for packet ref */
+        DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 2);
+        uint8_t val = GetRep(h->iprep, cat, version);
+        HostUnlock(h);
+        return val;
     } else {
-        h = HostLookupHostFromHash(&(p->dst));
-
+        Host *h = HostLookupHostFromHash(&(p->dst));
         p->flags |= PKT_HOST_DST_LOOKED_UP;
-
-        if (h == NULL) {
+        if (h == NULL)
             return 0;
-        }
-
         HostReference(&p->host_dst, h);
+        /* use_cnt: 1 for having iprep, 1 for HostLookupHostFromHash,
+         * 1 for HostReference to packet */
+        DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 3);
+        uint8_t val = GetRep(h->iprep, cat, version);
+        HostRelease(h); /* use_cnt >= 2: 1 for iprep, 1 for packet ref */
+        return val;
     }
-
-    if (h->iprep == NULL) {
-        HostRelease(h);
-        return 0;
-    }
-
-    SReputation *r = (SReputation *)h->iprep;
-
-    /* allow higher versions as this happens during
-     * rule reload */
-    if (r->version >= version)
-        val = r->rep[cat];
-    else
-        SCLogDebug("version mismatch %u != %u", r->version, version);
-
-    HostRelease(h);
-    return val;
 }
 
 static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2)
