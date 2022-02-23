@@ -225,14 +225,14 @@ Packet *PacketPoolGetPacket(void)
 void PacketPoolReturnPacket(Packet *p)
 {
     PktPool *my_pool = GetThreadPacketPool();
-
-    PACKET_RELEASE_REFS(p);
-
     PktPool *pool = p->pool;
     if (pool == NULL) {
         PacketFree(p);
         return;
     }
+
+    PACKET_RELEASE_REFS(p);
+
 #ifdef DEBUG_VALIDATION
     BUG_ON(pool->initialized == 0);
     BUG_ON(pool->destroyed == 1);
