@@ -27,7 +27,7 @@
 typedef struct AppLayerParser {
     const char *name;
     const char *default_port;
-    int ip_proto;
+    uint8_t ip_proto;
 
     ProbingParserFPtr ProbeTS;
     ProbingParserFPtr ProbeTC;
@@ -69,6 +69,9 @@ typedef struct AppLayerParser {
     uint32_t flags;
 
     void (*Truncate)(void *state, uint8_t direction);
+
+    AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
+    AppLayerParserGetFrameNameByIdFn GetFrameNameById;
 
 } AppLayerParser;
 

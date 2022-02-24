@@ -30,6 +30,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "detect-icode.h"
 
@@ -41,9 +42,6 @@
 /**
  *\brief Regex for parsing our icode options
  */
-#define PARSE_REGEX "^\\s*(<|>)?\\s*([0-9]+)\\s*(?:<>\\s*([0-9]+))?\\s*$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectICodeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -72,48 +70,16 @@ void DetectICodeRegister (void)
 #endif
     sigmatch_table[DETECT_ICODE].SupportsPrefilter = PrefilterICodeIsPrefilterable;
     sigmatch_table[DETECT_ICODE].SetupPrefilter = PrefilterSetupICode;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-}
-
-#define DETECT_ICODE_EQ   PREFILTER_U8HASH_MODE_EQ   /**< "equal" operator */
-#define DETECT_ICODE_LT   PREFILTER_U8HASH_MODE_LT   /**< "less than" operator */
-#define DETECT_ICODE_GT   PREFILTER_U8HASH_MODE_GT   /**< "greater than" operator */
-#define DETECT_ICODE_RN   PREFILTER_U8HASH_MODE_RA   /**< "range" operator */
-
-typedef struct DetectICodeData_ {
-    uint8_t code1;
-    uint8_t code2;
-
-    uint8_t mode;
-} DetectICodeData;
-
-static inline int ICodeMatch(const uint8_t pcode, const uint8_t mode,
-                             const uint8_t dcode1, const uint8_t dcode2)
-{
-    switch (mode) {
-        case DETECT_ICODE_EQ:
-            return (pcode == dcode1) ? 1 : 0;
-
-        case DETECT_ICODE_LT:
-            return (pcode < dcode1) ? 1 : 0;
-
-        case DETECT_ICODE_GT:
-            return (pcode > dcode1) ? 1 : 0;
-
-        case DETECT_ICODE_RN:
-            return (pcode > dcode1 && pcode < dcode2) ? 1 : 0;
-    }
-    return 0;
 }
 
 /**
- * \brief This function is used to match icode rule option set on a packet with those passed via icode:
+ * \brief This function is used to match icode rule option set on a packet with those passed via
+ * icode:
  *
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectICodeData
+ * \param ctx pointer to the sigmatch that we will cast into DetectU8Data
  *
  * \retval 0 no match
  * \retval 1 match
@@ -134,127 +100,8 @@ static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    const DetectICodeData *icd = (const DetectICodeData *)ctx;
-    return ICodeMatch(picode, icd->mode, icd->code1, icd->code2);
-}
-
-/**
- * \brief This function is used to parse icode options passed via icode: keyword
- *
- * \param de_ctx Pointer to the detection engine context
- * \param icodestr Pointer to the user provided icode options
- *
- * \retval icd pointer to DetectICodeData on success
- * \retval NULL on failure
- */
-static DetectICodeData *DetectICodeParse(DetectEngineCtx *de_ctx, const char *icodestr)
-{
-    DetectICodeData *icd = NULL;
-    char *args[3] = {NULL, NULL, NULL};
-    int ret = 0, res = 0;
-    size_t pcre2_len;
-
-    ret = DetectParsePcreExec(&parse_regex, icodestr, 0, 0);
-    if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, icodestr);
-        goto error;
-    }
-
-    int i;
-    const char *str_ptr;
-    for (i = 1; i < ret; i++) {
-        res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre2_substring_get_bynumber failed");
-            goto error;
-        }
-        args[i-1] = (char *)str_ptr;
-    }
-
-    icd = SCMalloc(sizeof(DetectICodeData));
-    if (unlikely(icd == NULL))
-        goto error;
-    icd->code1 = 0;
-    icd->code2 = 0;
-    icd->mode = 0;
-
-    /* we have either "<" or ">" */
-    if (args[0] != NULL && strlen(args[0]) != 0) {
-        /* we have a third part ("<> y"), therefore it's invalid */
-        if (args[2] != NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "icode: invalid value");
-            goto error;
-        }
-        /* we have only a comparison ("<", ">") */
-        if (StringParseUint8(&icd->code1, 10, 0, args[1]) < 0) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
-                                        "valid", args[1]);
-            goto error;
-        }
-        if ((strcmp(args[0], ">")) == 0) {
-            if (icd->code1 == 255) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "specified icmp code >%s is not "
-                        "valid",
-                        args[1]);
-                goto error;
-            }
-            icd->mode = DETECT_ICODE_GT;
-        } else {
-            if (icd->code1 == 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "specified icmp code <%s is not "
-                        "valid",
-                        args[1]);
-                goto error;
-            }
-            icd->mode = DETECT_ICODE_LT;
-        }
-    } else { /* no "<", ">" */
-        /* we have a range ("<>") */
-        if (args[2] != NULL) {
-            icd->mode = (uint8_t) DETECT_ICODE_RN;
-            if (StringParseUint8(&icd->code1, 10, 0, args[1]) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
-                                            "valid", args[1]);
-                goto error;
-            }
-            if (StringParseUint8(&icd->code2, 10, 0, args[2]) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
-                                            "valid", args[2]);
-                goto error;
-            }
-            /* we check that the first given value in the range is less than
-               the second, otherwise we swap them */
-            if (icd->code1 > icd->code2) {
-                uint8_t temp = icd->code1;
-                icd->code1 = icd->code2;
-                icd->code2 = temp;
-            }
-        } else { /* we have an equality */
-            icd->mode = DETECT_ICODE_EQ;
-            if (StringParseUint8(&icd->code1, 10, 0, args[1]) < 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
-                                                    "valid", args[1]);
-                goto error;
-            }
-        }
-    }
-
-    for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL)
-            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
-    }
-    return icd;
-
-error:
-    for (i = 0; i < (ret-1) && i < 3; i++) {
-        if (args[i] != NULL)
-            pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
-    }
-    if (icd != NULL)
-        DetectICodeFree(de_ctx, icd);
-    return NULL;
+    const DetectU8Data *icd = (const DetectU8Data *)ctx;
+    return DetectU8Match(picode, icd);
 }
 
 /**
@@ -270,10 +117,10 @@ error:
 static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icodestr)
 {
 
-    DetectICodeData *icd = NULL;
+    DetectU8Data *icd = NULL;
     SigMatch *sm = NULL;
 
-    icd = DetectICodeParse(NULL, icodestr);
+    icd = DetectU8Parse(icodestr);
     if (icd == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -288,20 +135,20 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     return 0;
 
 error:
-    if (icd != NULL) DetectICodeFree(de_ctx, icd);
+    if (icd != NULL)
+        SCFree(icd);
     if (sm != NULL) SCFree(sm);
     return -1;
 }
 
 /**
- * \brief this function will free memory associated with DetectICodeData
+ * \brief this function will free memory associated with DetectU8Data
  *
- * \param ptr pointer to DetectICodeData
+ * \param ptr pointer to DetectU8Data
  */
 void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectICodeData *icd = (DetectICodeData *)ptr;
-    SCFree(icd);
+    SCFree(ptr);
 }
 
 /* prefilter code */
@@ -333,19 +180,17 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
 static void
 PrefilterPacketICodeSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
-    const DetectICodeData *a = smctx;
+    const DetectU8Data *a = smctx;
     v->u8[0] = a->mode;
-    v->u8[1] = a->code1;
-    v->u8[2] = a->code2;
+    v->u8[1] = a->arg1;
+    v->u8[2] = a->arg2;
 }
 
 static bool
 PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
-    const DetectICodeData *a = smctx;
-    if (v.u8[0] == a->mode &&
-        v.u8[1] == a->code1 &&
-        v.u8[2] == a->code2)
+    const DetectU8Data *a = smctx;
+    if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
         return true;
     return false;
 }
@@ -379,10 +224,10 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s)
  */
 static int DetectICodeParseTest01(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "8");
+    DetectU8Data *icd = DetectU8Parse("8");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_EQ);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_EQ);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -394,10 +239,10 @@ static int DetectICodeParseTest01(void)
  */
 static int DetectICodeParseTest02(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, ">8");
+    DetectU8Data *icd = DetectU8Parse(">8");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_GT);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_GT);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -409,10 +254,10 @@ static int DetectICodeParseTest02(void)
  */
 static int DetectICodeParseTest03(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "<8");
+    DetectU8Data *icd = DetectU8Parse("<8");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_LT);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_LT);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -424,11 +269,11 @@ static int DetectICodeParseTest03(void)
  */
 static int DetectICodeParseTest04(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "8<>20");
+    DetectU8Data *icd = DetectU8Parse("8<>20");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->code2 == 20);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_RN);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->arg2 == 20);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_RA);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -440,10 +285,10 @@ static int DetectICodeParseTest04(void)
  */
 static int DetectICodeParseTest05(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "  8 ");
+    DetectU8Data *icd = DetectU8Parse("  8 ");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_EQ);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_EQ);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -455,10 +300,10 @@ static int DetectICodeParseTest05(void)
  */
 static int DetectICodeParseTest06(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "  >  8 ");
+    DetectU8Data *icd = DetectU8Parse("  >  8 ");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_GT);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_GT);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -470,11 +315,11 @@ static int DetectICodeParseTest06(void)
  */
 static int DetectICodeParseTest07(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "  8  <>  20 ");
+    DetectU8Data *icd = DetectU8Parse("  8  <>  20 ");
     FAIL_IF_NULL(icd);
-    FAIL_IF_NOT(icd->code1 == 8);
-    FAIL_IF_NOT(icd->code2 == 20);
-    FAIL_IF_NOT(icd->mode == DETECT_ICODE_RN);
+    FAIL_IF_NOT(icd->arg1 == 8);
+    FAIL_IF_NOT(icd->arg2 == 20);
+    FAIL_IF_NOT(icd->mode == DETECT_UINT_RA);
     DetectICodeFree(NULL, icd);
 
     PASS;
@@ -485,7 +330,20 @@ static int DetectICodeParseTest07(void)
  */
 static int DetectICodeParseTest08(void)
 {
-    DetectICodeData *icd = DetectICodeParse(NULL, "> 8 <> 20");
+    DetectU8Data *icd = DetectU8Parse("> 8 <> 20");
+    FAIL_IF_NOT_NULL(icd);
+
+    DetectICodeFree(NULL, icd);
+    PASS;
+}
+
+/**
+ * \test DetectICodeParseTest09 is a test for setting an invalid icode value
+ *       with "<<" operator
+ */
+static int DetectICodeParseTest09(void)
+{
+    DetectU8Data *icd = DetectU8Parse("8<<20");
     FAIL_IF_NOT_NULL(icd);
 
     DetectICodeFree(NULL, icd);
@@ -529,7 +387,7 @@ static int DetectICodeMatchTest01(void)
     FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any (icode:20<>8; sid:5;)");
-    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -540,7 +398,6 @@ static int DetectICodeMatchTest01(void)
     FAIL_IF(PacketAlertCheck(p, 2) == 0);
     FAIL_IF(PacketAlertCheck(p, 3));
     FAIL_IF(PacketAlertCheck(p, 4) == 0);
-    FAIL_IF(PacketAlertCheck(p, 5) == 0);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -563,6 +420,7 @@ void DetectICodeRegisterTests(void)
     UtRegisterTest("DetectICodeParseTest06", DetectICodeParseTest06);
     UtRegisterTest("DetectICodeParseTest07", DetectICodeParseTest07);
     UtRegisterTest("DetectICodeParseTest08", DetectICodeParseTest08);
+    UtRegisterTest("DetectICodeParseTest09", DetectICodeParseTest09);
     UtRegisterTest("DetectICodeMatchTest01", DetectICodeMatchTest01);
 }
 #endif /* UNITTESTS */

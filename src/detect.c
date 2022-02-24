@@ -84,6 +84,8 @@ static inline void DetectRulePacketRules(ThreadVars * const tv,
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
+static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectRunScratchpad *scratch);
 static inline void DetectRunPostRules(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow,
         DetectRunScratchpad *scratch);
@@ -136,6 +138,17 @@ static void DetectRun(ThreadVars *th_v,
 
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
+        if (p->proto == IPPROTO_TCP) {
+            const TcpSession *ssn = p->flow->protoctx;
+            if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
+                // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
+                DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+                // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
+            }
+        } else if (p->proto == IPPROTO_UDP) {
+            DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+        }
+
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
         DetectRunTx(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
@@ -748,6 +761,9 @@ static inline void DetectRulePacketRules(
 
         if (s->app_inspect != NULL) {
             goto next; // handle sig in DetectRunTx
+        }
+        if (s->frame_inspect != NULL) {
+            goto next; // handle sig in DetectRunFrame
         }
 
         /* don't run mask check for stateful rules.
@@ -1514,6 +1530,114 @@ next:
 
         if (!ires.has_next)
             break;
+    }
+}
+
+static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectRunScratchpad *scratch)
+{
+    const SigGroupHead *const sgh = scratch->sgh;
+    const AppProto alproto = f->alproto;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    if (frames_container == NULL) {
+        return;
+    }
+    Frames *frames;
+    if (PKT_IS_TOSERVER(p)) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+
+    for (uint32_t idx = 0; idx < frames->cnt; idx++) {
+        SCLogDebug("frame %u", idx);
+        const Frame *frame = FrameGetByIndex(frames, idx);
+        if (frame == NULL) {
+            continue;
+        }
+
+        uint32_t array_idx = 0;
+        uint32_t total_rules = det_ctx->match_array_cnt;
+
+        /* run prefilter engines and merge results into a candidates array */
+        if (sgh->frame_engines) {
+            //            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
+            DetectRunPrefilterFrame(det_ctx, sgh, p, frames, frame, alproto, idx);
+            //            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
+            SCLogDebug("%p/%" PRIi64 " rules added from prefilter: %u candidates", frame, frame->id,
+                    det_ctx->pmq.rule_id_array_cnt);
+
+            total_rules += det_ctx->pmq.rule_id_array_cnt;
+
+            if (!(RuleMatchCandidateTxArrayHasSpace(
+                        det_ctx, total_rules))) { // TODO is it safe to overload?
+                RuleMatchCandidateTxArrayExpand(det_ctx, total_rules);
+            }
+
+            for (uint32_t i = 0; i < det_ctx->pmq.rule_id_array_cnt; i++) {
+                const Signature *s = de_ctx->sig_array[det_ctx->pmq.rule_id_array[i]];
+                const SigIntId id = s->num;
+                det_ctx->tx_candidates[array_idx].s = s;
+                det_ctx->tx_candidates[array_idx].id = id;
+                det_ctx->tx_candidates[array_idx].flags = NULL;
+                det_ctx->tx_candidates[array_idx].stream_reset = 0;
+                array_idx++;
+            }
+            PMQ_RESET(&det_ctx->pmq);
+        }
+        /* merge 'state' rules from the regular prefilter */
+        uint32_t x = array_idx;
+        for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
+            const Signature *s = det_ctx->match_array[i];
+            if (s->frame_inspect != NULL) {
+                const SigIntId id = s->num;
+                det_ctx->tx_candidates[array_idx].s = s;
+                det_ctx->tx_candidates[array_idx].id = id;
+                det_ctx->tx_candidates[array_idx].flags = NULL;
+                det_ctx->tx_candidates[array_idx].stream_reset = 0;
+                array_idx++;
+
+                SCLogDebug("%p/%" PRIi64 " rule %u (%u) added from 'match' list", frame, frame->id,
+                        s->id, id);
+            }
+        }
+        SCLogDebug("%p/%" PRIi64 " rules added from 'match' list: %u", frame, frame->id,
+                array_idx - x);
+        (void)x;
+
+        /* run rules: inspect the match candidates */
+        for (uint32_t i = 0; i < array_idx; i++) {
+            const Signature *s = det_ctx->tx_candidates[i].s;
+
+            SCLogDebug("%p/%" PRIi64 " inspecting: sid %u (%u)", frame, frame->id, s->id, s->num);
+
+            /* start new inspection */
+            SCLogDebug("%p/%" PRIi64 " Start sid %u", frame, frame->id, s->id);
+
+            /* call individual rule inspection */
+            RULE_PROFILING_START(p);
+            int r = DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags);
+            if (r == 1) {
+                r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame, idx);
+                if (r == 1) {
+                    /* match */
+                    DetectRunPostMatch(tv, det_ctx, p, s);
+
+                    const uint8_t alert_flags =
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
+                    // TODO set tx id if the frame has it
+                    det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
+                    det_ctx->frame_id = frame->id;
+                    SCLogDebug(
+                            "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
+                    PacketAlertAppend(det_ctx, s, p, 0, alert_flags); // TODO tx id frame field
+                }
+            }
+            DetectVarProcessList(det_ctx, p->flow, p);
+            RULE_PROFILING_END(det_ctx, s, r, p);
+        }
+        InspectionBufferClean(det_ctx);
     }
 }
 

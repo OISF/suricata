@@ -896,6 +896,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_KRB5\n");
                     else if (pp_pe->alproto == ALPROTO_DHCP)
                         printf("            alproto: ALPROTO_DHCP\n");
+                    else if (pp_pe->alproto == ALPROTO_QUIC)
+                        printf("            alproto: ALPROTO_QUIC\n");
                     else if (pp_pe->alproto == ALPROTO_SNMP)
                         printf("            alproto: ALPROTO_SNMP\n");
                     else if (pp_pe->alproto == ALPROTO_SIP)
@@ -906,6 +908,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_RFB\n");
                     else if (pp_pe->alproto == ALPROTO_MQTT)
                         printf("            alproto: ALPROTO_MQTT\n");
+                    else if (pp_pe->alproto == ALPROTO_PGSQL)
+                        printf("            alproto: ALPROTO_PGSQL\n");
+                    else if (pp_pe->alproto == ALPROTO_TELNET)
+                        printf("            alproto: ALPROTO_TELNET\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -971,6 +977,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_IKE\n");
                 else if (pp_pe->alproto == ALPROTO_KRB5)
                     printf("            alproto: ALPROTO_KRB5\n");
+                else if (pp_pe->alproto == ALPROTO_QUIC)
+                    printf("            alproto: ALPROTO_QUIC\n");
                 else if (pp_pe->alproto == ALPROTO_DHCP)
                     printf("            alproto: ALPROTO_DHCP\n");
                 else if (pp_pe->alproto == ALPROTO_SNMP)
@@ -983,6 +991,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_RFB\n");
                 else if (pp_pe->alproto == ALPROTO_MQTT)
                     printf("            alproto: ALPROTO_MQTT\n");
+                else if (pp_pe->alproto == ALPROTO_PGSQL)
+                    printf("            alproto: ALPROTO_PGSQL\n");
+                else if (pp_pe->alproto == ALPROTO_TELNET)
+                    printf("            alproto: ALPROTO_TELNET\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -2178,6 +2190,18 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 
 const char *AppLayerProtoDetectGetProtoName(AppProto alproto)
 {
+    // Special case for http (any version) :
+    // returns "http" if both versions are enabled
+    // and returns "http1" or "http2" if only one version is enabled
+    if (alproto == ALPROTO_HTTP) {
+        if (alpd_ctx.alproto_names[ALPROTO_HTTP1]) {
+            if (alpd_ctx.alproto_names[ALPROTO_HTTP2]) {
+                return "http";
+            } // else
+            return alpd_ctx.alproto_names[ALPROTO_HTTP1];
+        } // else
+        return alpd_ctx.alproto_names[ALPROTO_HTTP2];
+    }
     return alpd_ctx.alproto_names[alproto];
 }
 

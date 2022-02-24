@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,16 +32,11 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputLoggerThreadData_ {
+typedef struct OutputTxLoggerThreadData_ {
     OutputLoggerThreadStore *store[ALPROTO_MAX];
-} OutputLoggerThreadData;
+} OutputTxLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
@@ -130,9 +125,8 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     return 0;
 }
 
-static void OutputTxLogList0(ThreadVars *tv,
-        OutputLoggerThreadData *op_thread_data,
-        Packet *p, Flow *f, void *tx, const uint64_t tx_id)
+static void OutputTxLogList0(ThreadVars *tv, OutputTxLoggerThreadData *op_thread_data, Packet *p,
+        Flow *f, void *tx, const uint64_t tx_id)
 {
     const OutputTxLogger *logger = list[ALPROTO_UNKNOWN];
     const OutputLoggerThreadStore *store = op_thread_data->store[ALPROTO_UNKNOWN];
@@ -166,7 +160,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     if (p->flow == NULL)
         return TM_ECODE_OK;
 
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
     Flow * const f = p->flow;
     const uint8_t ipproto = f->proto;
@@ -348,7 +342,7 @@ end:
  *  loggers */
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
-    OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputTxLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
@@ -390,7 +384,7 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *initdata, void 
 
 static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
     for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
         OutputLoggerThreadStore *store = op_thread_data->store[alproto];
@@ -414,7 +408,7 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
 static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
     for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
         OutputLoggerThreadStore *store = op_thread_data->store[alproto];

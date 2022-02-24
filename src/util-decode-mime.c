@@ -1,5 +1,5 @@
 /* Copyright (C) 2012 BAE Systems
- * Copyright (C) 2020 Open Information Security Foundation
+ * Copyright (C) 2020-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,7 +70,6 @@
 #define QP_STR            "quoted-printable"
 #define TXT_STR           "text/plain"
 #define HTML_STR          "text/html"
-#define URL_STR           "http://"
 
 /* Memory Usage Constants */
 #define STACK_FREE_NODES  10
@@ -80,7 +79,7 @@
 #define MAX_IP6_CHARS  39
 
 /* Globally hold configuration data */
-static MimeDecConfig mime_dec_config = { 1, 1, 1, 0, MAX_HEADER_VALUE };
+static MimeDecConfig mime_dec_config = { true, true, true, NULL, false, false, MAX_HEADER_VALUE };
 
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
@@ -1003,12 +1002,11 @@ static MimeDecUrl *FindExistingUrl(MimeDecEntity *entity, uint8_t *url, uint32_t
 /**
  * \brief This function searches a text or html line for a URL string
  *
- * URLS are generally truncated to the 'host.domain' format because
- * some email messages contain dozens or even hundreds of URLs with
- * the same host, but with only small variations in path.
+ * The URL strings are searched for using the URL schemes defined in the global
+ * MIME config e.g. "http", "https".
  *
- * The exception is that URLs with executable file extensions are stored
- * with the full path. They are stored in lowercase.
+ * The found URL strings are stored in lowercase and with their schemes
+ * stripped unless the MIME config flag for log_url_scheme is set.
  *
  * Numeric IPs, malformed numeric IPs, and URLs pointing to executables are
  * also flagged as URLs of interest.
@@ -1024,88 +1022,101 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
 {
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
-    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
-    uint32_t tokLen = 0, i, tempUrlLen;
-    uint8_t urlStrLen = 0, flags = 0;
+    MimeDecConfig *mdcfg = MimeDecGetConfig();
+    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl, *urlHost;
+    uint32_t tokLen = 0, i, tempUrlLen, urlHostLen;
+    uint8_t schemeStrLen = 0, flags = 0;
+    ConfNode *scheme = NULL;
+    char *schemeStr = NULL;
 
-    remptr = (uint8_t *)line;
-    do {
-        SCLogDebug("Looking for URL String starting with: %s", URL_STR);
+    if (mdcfg != NULL && mdcfg->extract_urls_schemes == NULL) {
+        SCLogDebug("Error: MIME config extract_urls_schemes was NULL.");
+        return MIME_DEC_ERR_DATA;
+    }
 
-        /* Check for token definition */
-        fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)URL_STR, strlen(URL_STR));
-        if (fptr != NULL) {
+    TAILQ_FOREACH (scheme, &mdcfg->extract_urls_schemes->head, next) {
+        schemeStr = scheme->val;
+        schemeStrLen = strlen(schemeStr);
 
-            urlStrLen = strlen(URL_STR);
-            fptr += urlStrLen; /* Start at end of start string */
-            tok = GetToken(fptr, len - (fptr - line), " \"\'<>]\t", &remptr,
-                    &tokLen);
-            if (tok == fptr) {
-                SCLogDebug("Found url string");
+        remptr = (uint8_t *)line;
+        do {
+            SCLogDebug("Looking for URL String starting with: %s", schemeStr);
 
-                /* First copy to temp URL string */
-                tempUrl = SCMalloc(urlStrLen + tokLen);
-                if (unlikely(tempUrl == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
-                    return MIME_DEC_ERR_MEM;
+            /* Check for token definition */
+            fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)schemeStr, schemeStrLen);
+            if (fptr != NULL) {
+                if (!mdcfg->log_url_scheme) {
+                    fptr += schemeStrLen; /* Strip scheme from stored URL */
                 }
+                tok = GetToken(fptr, len - (fptr - line), " \"\'<>]\t", &remptr, &tokLen);
+                if (tok == fptr) {
+                    SCLogDebug("Found url string");
 
-                PrintChars(SC_LOG_DEBUG, "RAW URL", tok, tokLen);
-
-                /* Copy over to temp URL while decoding */
-                tempUrlLen = 0;
-                for (i = 0; i < tokLen && tok[i] != 0; i++) {
-
-                    // URL decoding would probably go here
-
-                    /* url is all lowercase */
-                    tempUrl[tempUrlLen] = tolower(tok[i]);
-                    tempUrlLen++;
-                }
-
-                /* Determine if URL points to an EXE */
-                if (IsExeUrl(tempUrl, tempUrlLen)) {
-                    flags |= URL_IS_EXE;
-
-                    PrintChars(SC_LOG_DEBUG, "EXE URL", tempUrl, tempUrlLen);
-                } else {
-                    /* Not an EXE URL */
-                    /* Cut off length at first '/' */
-                    /* If seems that BAESystems had done the following
-                       in support of PEScan.  We don't want it for logging.
-                       Therefore its been removed.
-                    tok = FindString(tempUrl, tempUrlLen, "/");
-                    if (tok != NULL) {
-                        tempUrlLen = tok - tempUrl;
+                    /* First copy to temp URL string */
+                    tempUrl = SCMalloc(tokLen);
+                    if (unlikely(tempUrl == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
+                        return MIME_DEC_ERR_MEM;
                     }
-                    */
-                }
 
-                /* Make sure remaining URL exists */
-                if (tempUrlLen > 0) {
-                    if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
-                        /* Now look for numeric IP */
-                        if (IsIpv4Host(tempUrl, tempUrlLen)) {
-                            flags |= URL_IS_IP4;
+                    PrintChars(SC_LOG_DEBUG, "RAW URL", tok, tokLen);
 
-                            PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
-                        } else if (IsIpv6Host(tempUrl, tempUrlLen)) {
-                            flags |= URL_IS_IP6;
+                    /* Copy over to temp URL while decoding */
+                    tempUrlLen = 0;
+                    for (i = 0; i < tokLen && tok[i] != 0; i++) {
+                        /* url is all lowercase */
+                        tempUrl[tempUrlLen] = tolower(tok[i]);
+                        tempUrlLen++;
+                    }
 
-                            PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
+                    urlHost = tempUrl;
+                    urlHostLen = tempUrlLen;
+                    if (mdcfg->log_url_scheme) {
+                        /* tempUrl contains the scheme in the string but
+                         * IsIpv4Host & IsPv6Host methods below require
+                         * an input URL string with scheme stripped. Get a
+                         * reference sub-string urlHost which starts with
+                         * the host instead of the scheme. */
+                        urlHost += schemeStrLen;
+                        urlHostLen -= schemeStrLen;
+                    }
+
+                    /* Determine if URL points to an EXE */
+                    if (IsExeUrl(tempUrl, tempUrlLen)) {
+                        flags |= URL_IS_EXE;
+
+                        PrintChars(SC_LOG_DEBUG, "EXE URL", tempUrl, tempUrlLen);
+                    }
+
+                    /* Make sure remaining URL exists */
+                    if (tempUrlLen > 0) {
+                        if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
+                            /* Now look for numeric IP */
+                            if (IsIpv4Host(urlHost, urlHostLen)) {
+                                flags |= URL_IS_IP4;
+
+                                PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
+                            } else if (IsIpv6Host(urlHost, urlHostLen)) {
+                                flags |= URL_IS_IP6;
+
+                                PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
+                            }
+
+                            /* Add URL list item */
+                            MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
+                        } else {
+                            SCFree(tempUrl);
                         }
-
-                        /* Add URL list item */
-                        MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
                     } else {
                         SCFree(tempUrl);
                     }
-                } else {
-                    SCFree(tempUrl);
+
+                    /* Reset flags for next URL */
+                    flags = 0;
                 }
             }
-        }
-    } while (fptr != NULL);
+        } while (fptr != NULL);
+    }
 
     return ret;
 }
@@ -2737,9 +2748,20 @@ static int MimeDecParseLineTest02(void)
     uint32_t expected_count = 2;
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -2785,6 +2807,9 @@ static int MimeDecParseLineTest02(void)
     /* De Init parser */
     MimeDecDeInitParser(state);
 
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
     SCLogInfo("LINE COUNT FINISHED: %d", line_count);
 
     if (expected_count != line_count) {
@@ -2794,6 +2819,272 @@ static int MimeDecParseLineTest02(void)
     }
 
     return 1;
+}
+
+/* Test error case where no url schemes set in config */
+static int MimeFindUrlStringsTest01(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "test";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    /* Expected error since extract_url_schemes is NULL */
+    FAIL_IF_NOT(ret == MIME_DEC_ERR_DATA);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+/* Test simple case of URL extraction */
+static int MimeFindUrlStringsTest02(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    FAIL_IF_NOT(msg->url_list->url_flags & URL_IS_EXE);
+    FAIL_IF_NOT(
+            memcmp("www.test.com/malware.exe?", msg->url_list->url, msg->url_list->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction with multiple schemes and URLs */
+static int MimeFindUrlStringsTest03(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme1 = ConfNodeNew();
+    ConfNode *scheme2 = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme1);
+    FAIL_IF_NULL(scheme2);
+
+    url_schemes->is_seq = 1;
+    scheme1->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme1->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme1, next);
+    scheme2->val = SCStrdup("https://");
+    FAIL_IF_NULL(scheme2->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = false;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link, or "
+                      "you can go to http://www.test.com/test/01.html and "
+                      "https://www.test.com/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(memcmp("www.test.com/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("www.test.com/test/01.html", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("www.test.com/malware.exe?", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction with multiple schemes and URLs with
+ * log_url_scheme enabled in the MIME config */
+static int MimeFindUrlStringsTest04(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme1 = ConfNodeNew();
+    ConfNode *scheme2 = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme1);
+    FAIL_IF_NULL(scheme2);
+
+    url_schemes->is_seq = 1;
+    scheme1->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme1->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme1, next);
+    scheme2->val = SCStrdup("https://");
+    FAIL_IF_NULL(scheme2->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme2, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://www.test.com/malware.exe? "
+                      "hahah hopefully you click this link, or "
+                      "you can go to http://www.test.com/test/01.html and "
+                      "https://www.test.com/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(memcmp("https://www.test.com/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("http://www.test.com/test/01.html", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(memcmp("http://www.test.com/malware.exe?", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
+}
+
+/* Test URL extraction of IPV4 and IPV6 URLs with log_url_scheme
+ * enabled in the MIME config */
+static int MimeFindUrlStringsTest05(void)
+{
+    int ret = MIME_DEC_OK;
+    uint32_t line_count = 0;
+    ConfNode *url_schemes = ConfNodeNew();
+    ConfNode *scheme = ConfNodeNew();
+    FAIL_IF_NULL(url_schemes);
+    FAIL_IF_NULL(scheme);
+
+    url_schemes->is_seq = 1;
+    scheme->val = SCStrdup("http://");
+    FAIL_IF_NULL(scheme->val);
+    TAILQ_INSERT_TAIL(&url_schemes->head, scheme, next);
+
+    MimeDecGetConfig()->extract_urls = true;
+    MimeDecGetConfig()->extract_urls_schemes = url_schemes;
+    MimeDecGetConfig()->log_url_scheme = true;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count, TestDataChunkCallback);
+
+    const char *str = "A simple message click on "
+                      "http://192.168.1.1/test/01.html "
+                      "hahah hopefully you click this link or this one "
+                      "http://0:0:0:0:0:0:0:0/test/02.php";
+    ret = FindUrlStrings((uint8_t *)str, strlen(str), state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    /* Completed */
+    ret = MimeDecParseComplete(state);
+    FAIL_IF_NOT(ret == MIME_DEC_OK);
+
+    MimeDecEntity *msg = state->msg;
+
+    FAIL_IF(msg->url_list == NULL);
+
+    MimeDecUrl *url = msg->url_list;
+    FAIL_IF_NOT(url->url_flags & URL_IS_IP6);
+    FAIL_IF_NOT(memcmp("http://0:0:0:0:0:0:0:0/test/02.php", url->url, url->url_len) == 0);
+
+    url = url->next;
+    FAIL_IF_NOT(url->url_flags & URL_IS_IP4);
+    FAIL_IF_NOT(memcmp("http://192.168.1.1/test/01.html", url->url, url->url_len) == 0);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    ConfNodeFree(url_schemes);
+    MimeDecGetConfig()->extract_urls_schemes = NULL;
+
+    PASS;
 }
 
 /* Test full message with linebreaks */
@@ -2979,9 +3270,9 @@ static int MimeDecParseLongFilename01(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -3043,9 +3334,9 @@ static int MimeDecParseLongFilename02(void)
 
     uint32_t line_count = 0;
 
-    MimeDecGetConfig()->decode_base64 = 1;
-    MimeDecGetConfig()->decode_quoted_printable = 1;
-    MimeDecGetConfig()->extract_urls = 1;
+    MimeDecGetConfig()->decode_base64 = true;
+    MimeDecGetConfig()->decode_quoted_printable = true;
+    MimeDecGetConfig()->extract_urls = true;
 
     /* Init parser */
     MimeDecParseState *state = MimeDecInitParser(&line_count,
@@ -3093,6 +3384,11 @@ void MimeDecRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01);
     UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02);
+    UtRegisterTest("MimeFindUrlStringsTest01", MimeFindUrlStringsTest01);
+    UtRegisterTest("MimeFindUrlStringsTest02", MimeFindUrlStringsTest02);
+    UtRegisterTest("MimeFindUrlStringsTest03", MimeFindUrlStringsTest03);
+    UtRegisterTest("MimeFindUrlStringsTest04", MimeFindUrlStringsTest04);
+    UtRegisterTest("MimeFindUrlStringsTest05", MimeFindUrlStringsTest05);
     UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01);
     UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02);
     UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01);

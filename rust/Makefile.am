@@ -1,11 +1,8 @@
 EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
-		dist/rust-bindings.h
-
-if HAVE_CARGO_VENDOR
-EXTRA_DIST +=	vendor
-endif
+		dist/rust-bindings.h \
+		vendor
 
 if !DEBUG
 RELEASE = --release
@@ -45,8 +42,12 @@ else
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
-	if test -e $(RUST_SURICATA_LIBDIR)/suricata_rust.lib; then \
-		cp $(RUST_SURICATA_LIBDIR)/suricata_rust.lib \
+	if test -e $(RUST_SURICATA_LIBDIR)/suricata.lib; then \
+		cp -a $(RUST_SURICATA_LIBDIR)/suricata.lib \
+			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
+	fi
+	if test -e $(RUST_SURICATA_LIBDIR)/libsuricata.a; then \
+		cp -a $(RUST_SURICATA_LIBDIR)/libsuricata.a \
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
@@ -67,7 +68,7 @@ endif
 distclean-local:
 	rm -f Cargo.lock
 
-maintainerclean-local:
+maintainer-clean-local:
 	rm -rf vendor gen
 
 check:
@@ -75,12 +76,8 @@ check:
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
-if HAVE_CARGO_VENDOR
 vendor:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ $(CARGO) vendor > /dev/null
-else
-vendor:
-endif
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)

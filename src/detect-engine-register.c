@@ -217,6 +217,11 @@
 #include "detect-mqtt-publish-message.h"
 #include "detect-mqtt-subscribe-topic.h"
 #include "detect-mqtt-unsubscribe-topic.h"
+#include "detect-quic-sni.h"
+#include "detect-quic-ua.h"
+#include "detect-quic-version.h"
+#include "detect-quic-cyu-hash.h"
+#include "detect-quic-cyu-string.h"
 
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
@@ -231,6 +236,7 @@
 #include "detect-transform-dotprefix.h"
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-urldecode.h"
+#include "detect-transform-xor.h"
 
 #include "util-rule-vars.h"
 
@@ -239,6 +245,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
 #include "app-layer-template.h"
+#include "detect-frame.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
@@ -518,6 +525,8 @@ void SigTableSetup(void)
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
 
+    DetectFrameRegister();
+
     DetectPcreRegister();
     DetectDepthRegister();
     DetectNocaseRegister();
@@ -643,6 +652,11 @@ void SigTableSetup(void)
     DetectMQTTPublishMessageRegister();
     DetectMQTTSubscribeTopicRegister();
     DetectMQTTUnsubscribeTopicRegister();
+    DetectQuicSniRegister();
+    DetectQuicUaRegister();
+    DetectQuicVersionRegister();
+    DetectQuicCyuHashRegister();
+    DetectQuicCyuStringRegister();
 
     DetectTemplateBufferRegister();
     DetectBypassRegister();
@@ -656,6 +670,7 @@ void SigTableSetup(void)
     DetectTransformDotPrefixRegister();
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
+    DetectTransformXorRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

@@ -84,7 +84,6 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
 // This macro has been borrowed from https://github.com/popzxc/stdext-rs, which
 // is released under the MIT license as there is currently no macro in Rust
 // to provide the function name.
-#[cfg(feature = "function-macro")]
 #[macro_export(local_inner_macros)]
 macro_rules!function {
     () => {{
@@ -96,14 +95,6 @@ macro_rules!function {
          let name = type_name_of(__f);
          &name[..name.len() - 5]
     }}
-}
-
-// Rust versions less than 1.38 can not use the above macro, so keep the old
-// macro around for a while.
-#[cfg(not(feature = "function-macro"))]
-#[macro_export(local_inner_macros)]
-macro_rules!function {
-    () => {{ "<rust>" }}
 }
 
 #[macro_export]

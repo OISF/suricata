@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * AppLayer Filedata Logger Output registration functions
+ * Streaming Logger Output registration functions
  */
 
 #ifndef __OUTPUT_STREAMING_H__
@@ -40,7 +40,7 @@ enum OutputStreamingType {
     STREAMING_HTTP_BODIES,
 };
 
-/** filedata logger function pointer type */
+/** streaming logger function pointer type */
 typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
         const Flow *f, const uint8_t *data, uint32_t data_len,
         uint64_t tx_id, uint8_t flags);

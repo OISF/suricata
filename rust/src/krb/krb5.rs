@@ -373,11 +373,10 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
 pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
+    let buf = stream_slice.as_slice();
     let state = cast_pointer!(state,KRB5State);
     if state.parse(buf, Direction::ToServer) < 0 {
         return AppLayerResult::err();
@@ -389,11 +388,10 @@ pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
+    let buf = stream_slice.as_slice();
     let state = cast_pointer!(state,KRB5State);
     if state.parse(buf, Direction::ToClient) < 0 {
         return AppLayerResult::err();
@@ -405,12 +403,11 @@ pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,KRB5State);
+    let buf = stream_slice.as_slice();
 
     let mut v : Vec<u8>;
     let tcp_buffer = match state.record_ts {
@@ -464,12 +461,11 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,KRB5State);
+    let buf = stream_slice.as_slice();
 
     let mut v : Vec<u8>;
     let tcp_buffer = match state.record_tc {
@@ -554,6 +550,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();

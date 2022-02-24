@@ -18,8 +18,11 @@
 // Author: Frank Honza <frank.honza@dcso.de>
 
 use std::fmt;
-use nom::*;
-use nom::number::streaming::*;
+use std::str;
+use nom7::bytes::streaming::take;
+use nom7::combinator::map_res;
+use nom7::number::streaming::*;
+use nom7::*;
 
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
@@ -110,155 +113,109 @@ pub struct ServerInit {
     pub name: Vec<u8>
 }
 
-named!(pub parse_protocol_version<ProtocolVersion>,
-    do_parse!(
-        _rfb_string: take_str!(3)
-        >> be_u8
-        >> major: take_str!(3)
-        >> be_u8
-        >> minor: take_str!(3)
-        >> be_u8
-        >> (
-            ProtocolVersion{
-                major: major.to_string(),
-                minor: minor.to_string(),
-            }
-        )
-    )
-);
+pub fn parse_protocol_version(i: &[u8]) -> IResult<&[u8], ProtocolVersion> {
+    let (i, _rfb_string) = map_res(take(3_usize), str::from_utf8)(i)?;
+    let (i, _) = be_u8(i)?;
+    let (i, major) = map_res(take(3_usize), str::from_utf8)(i)?;
+    let (i, _) = be_u8(i)?;
+    let (i, minor) = map_res(take(3_usize), str::from_utf8)(i)?;
+    let (i, _) = be_u8(i)?;
+    Ok((i, ProtocolVersion{ major: major.to_string(), minor: minor.to_string(), }))
+}
 
-named!(pub parse_supported_security_types<SupportedSecurityTypes>,
-    do_parse!(
-        number_of_types: be_u8
-        >> types: take!(number_of_types)
-        >> (
+pub fn parse_supported_security_types(i: &[u8]) -> IResult<&[u8], SupportedSecurityTypes> {
+    let (i, number_of_types) = be_u8(i)?;
+    let (i, types) = take(number_of_types as usize)(i)?;
+    Ok((
+            i,
             SupportedSecurityTypes{
-                number_of_types: number_of_types,
+                number_of_types,
                 types: types.to_vec()
             }
-        )
-    )
-);
+        ))
+}
 
-named!(pub parse_server_security_type<ServerSecurityType>,
-    do_parse!(
-        security_type: be_u32
-        >> (
-            ServerSecurityType{
-                security_type: security_type,
-            }
-        )
-    )
-);
+pub fn parse_server_security_type(i: &[u8]) -> IResult<&[u8], ServerSecurityType> {
+    let (i, security_type) = be_u32(i)?;
+    Ok((i, ServerSecurityType{ security_type, }))
+}
 
-named!(pub parse_vnc_auth<VncAuth>,
-    do_parse!(
-        secret: take!(16)
-        >> (
-            VncAuth {
-                secret: secret.to_vec()
-            }
-        )
-    )
-);
+pub fn parse_vnc_auth(i: &[u8]) -> IResult<&[u8], VncAuth> {
+    let (i, secret) = take(16_usize)(i)?;
+    Ok((i, VncAuth { secret: secret.to_vec() }))
+}
 
-named!(pub parse_security_type_selection<SecurityTypeSelection>,
-    do_parse!(
-        security_type: be_u8
-        >> (
-            SecurityTypeSelection {
-                security_type: security_type
-            }
-        )
-    )
-);
+pub fn parse_security_type_selection(i: &[u8]) -> IResult<&[u8], SecurityTypeSelection> {
+    let (i, security_type) = be_u8(i)?;
+    Ok((i, SecurityTypeSelection { security_type }))
+}
 
-named!(pub parse_security_result<SecurityResult>,
-    do_parse!(
-        status: be_u32
-        >> (
-            SecurityResult {
-                status: status
-            }
-        )
-    )
-);
+pub fn parse_security_result(i: &[u8]) -> IResult<&[u8], SecurityResult> {
+    let (i, status) = be_u32(i)?;
+    Ok((i, SecurityResult { status }))
+}
 
-named!(pub parse_failure_reason<FailureReason>,
-    do_parse!(
-        reason_length: be_u32
-        >> reason_string: take_str!(reason_length)
-        >> (
+pub fn parse_failure_reason(i: &[u8]) -> IResult<&[u8], FailureReason> {
+    let (i, reason_length) = be_u32(i)?;
+    let (i, reason_string) = map_res(take(reason_length as usize), str::from_utf8)(i)?;
+    Ok((
+            i,
             FailureReason {
                 reason_string: reason_string.to_string()
             }
-        )
-    )
-);
+        ))
+}
 
-named!(pub parse_client_init<ClientInit>,
-    do_parse!(
-        shared: be_u8
-        >> (
-            ClientInit {
-                shared: shared
-            }
-        )
-    )
-);
+pub fn parse_client_init(i: &[u8]) -> IResult<&[u8], ClientInit> {
+    let (i, shared) = be_u8(i)?;
+    Ok((i, ClientInit { shared }))
+}
 
-named!(pub parse_pixel_format<PixelFormat>,
-    do_parse!(
-        bits_per_pixel: be_u8
-        >> depth: be_u8
-        >> big_endian_flag: be_u8
-        >> true_colour_flag: be_u8
-        >> red_max: be_u16
-        >> green_max: be_u16
-        >> blue_max: be_u16
-        >> red_shift: be_u8
-        >> green_shift: be_u8
-        >> blue_shift: be_u8
-        >> take!(3)
-        >> (
-            PixelFormat {
-                bits_per_pixel: bits_per_pixel,
-                depth: depth,
-                big_endian_flag: big_endian_flag,
-                true_colour_flag: true_colour_flag,
-                red_max: red_max,
-                green_max: green_max,
-                blue_max: blue_max,
-                red_shift: red_shift,
-                green_shift: green_shift,
-                blue_shift: blue_shift,
-            }
-        )
-    )
-);
+pub fn parse_pixel_format(i: &[u8]) -> IResult<&[u8], PixelFormat> {
+    let (i, bits_per_pixel) = be_u8(i)?;
+    let (i, depth) = be_u8(i)?;
+    let (i, big_endian_flag) = be_u8(i)?;
+    let (i, true_colour_flag) = be_u8(i)?;
+    let (i, red_max) = be_u16(i)?;
+    let (i, green_max) = be_u16(i)?;
+    let (i, blue_max) = be_u16(i)?;
+    let (i, red_shift) = be_u8(i)?;
+    let (i, green_shift) = be_u8(i)?;
+    let (i, blue_shift) = be_u8(i)?;
+    let (i, _) = take(3_usize)(i)?;
+    let format = PixelFormat {
+        bits_per_pixel,
+        depth,
+        big_endian_flag,
+        true_colour_flag,
+        red_max,
+        green_max,
+        blue_max,
+        red_shift,
+        green_shift,
+        blue_shift,
+    };
+    Ok((i, format))
+}
 
-named!(pub parse_server_init<ServerInit>,
-    do_parse!(
-        width: be_u16
-        >> height: be_u16
-        >> pixel_format: parse_pixel_format
-        >> name_length: be_u32
-        >> name: take!(name_length)
-        >> (
-            ServerInit {
-                width: width,
-                height: height,
-                pixel_format: pixel_format,
-                name_length: name_length,
-                name: name.to_vec()
-            }
-        )
-    )
-);
+pub fn parse_server_init(i: &[u8]) -> IResult<&[u8], ServerInit> {
+    let (i, width) = be_u16(i)?;
+    let (i, height) = be_u16(i)?;
+    let (i, pixel_format) = parse_pixel_format(i)?;
+    let (i, name_length) = be_u32(i)?;
+    let (i, name) = take(name_length as usize)(i)?;
+    let init = ServerInit {
+        width,
+        height,
+        pixel_format,
+        name_length,
+        name: name.to_vec()
+    };
+    Ok((i, init))
+}
 
 #[cfg(test)]
 mod tests {
-    use nom::*;
     use super::*;
 
     /// Simple test of some valid data.

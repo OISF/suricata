@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2020 Open Information Security Foundation
+/* Copyright (C) 2014-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -435,31 +435,16 @@ typedef struct LogLuaScriptOptions_ {
  *  \retval errcode 0 ok, -1 error
  */
 static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
-    int status;
-
     lua_State *luastate = LuaGetState();
     if (luastate == NULL)
         goto error;
     luaL_openlibs(luastate);
 
-    /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
-#if 0//def UNITTESTS
-    if (ut_script != NULL) {
-        status = luaL_loadbuffer(luastate, ut_script, strlen(ut_script), "unittest");
-        if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
-            goto error;
-        }
-    } else {
-#endif
-        status = luaL_loadfile(luastate, filename);
-        if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
-            goto error;
-        }
-#if 0//def UNITTESTS
+    int status = luaL_loadfile(luastate, filename);
+    if (status) {
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+        goto error;
     }
-#endif
 
     /* prime the script (or something) */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
@@ -587,25 +572,11 @@ static lua_State *LuaScriptSetup(const char *filename)
 
     luaL_openlibs(luastate);
 
-    int status;
-    /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
-#if 0//def UNITTESTS
-    if (ut_script != NULL) {
-        status = luaL_loadbuffer(t->luastate, ut_script, strlen(ut_script), "unittest");
-        if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
-            goto error;
-        }
-    } else {
-#endif
-        status = luaL_loadfile(luastate, filename);
-        if (status) {
-            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
-            goto error;
-        }
-#if 0//def UNITTESTS
+    int status = luaL_loadfile(luastate, filename);
+    if (status) {
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+        goto error;
     }
-#endif
 
     /* prime the script */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
@@ -942,10 +913,10 @@ void LuaLogRegister(void) {
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
 
-#else
+#else /* HAVE_LUA */
 
 void LuaLogRegister (void) {
     /* no-op */
 }
 
-#endif
+#endif /* HAVE_LUA */

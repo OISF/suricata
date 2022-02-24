@@ -22,10 +22,12 @@ use crate::core::{
 use crate::filecontainer::FileContainer;
 use crate::http2::http2::HTTP2Transaction;
 
-use nom::character::complete::digit1;
-use nom::error::ErrorKind;
-use nom::Err;
-use nom::IResult;
+use nom7::branch::alt;
+use nom7::bytes::streaming::{take_till, take_while};
+use nom7::character::complete::{char, digit1};
+use nom7::combinator::{map_res, value};
+use nom7::error::{make_error, ErrorKind};
+use nom7::{Err, IResult};
 use std::os::raw::c_uchar;
 use std::str::FromStr;
 
@@ -38,52 +40,45 @@ pub struct HTTPContentRange {
 }
 
 pub fn http2_parse_content_range_star<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
-    let (i2, _) = char!(input, '*')?;
-    let (i2, _) = char!(i2, '/')?;
-    let (i2, size) = map_res!(i2, map_res!(digit1, std::str::from_utf8), i64::from_str)?;
+    let (i2, _) = char('*')(input)?;
+    let (i2, _) = char('/')(i2)?;
+    let (i2, size) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
     return Ok((
         i2,
         HTTPContentRange {
             start: -1,
             end: -1,
-            size: size,
+            size,
         },
     ));
 }
 
 pub fn http2_parse_content_range_def<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
-    let (i2, start) = map_res!(input, map_res!(digit1, std::str::from_utf8), i64::from_str)?;
-    let (i2, _) = char!(i2, '-')?;
-    let (i2, end) = map_res!(i2, map_res!(digit1, std::str::from_utf8), i64::from_str)?;
-    let (i2, _) = char!(i2, '/')?;
-    let (i2, size) = alt!(
-        i2,
-        value!(-1, char!('*')) | map_res!(map_res!(digit1, std::str::from_utf8), i64::from_str)
-    )?;
-    return Ok((
-        i2,
-        HTTPContentRange {
-            start: start,
-            end: end,
-            size: size,
-        },
-    ));
+    let (i2, start) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(input)?;
+    let (i2, _) = char('-')(i2)?;
+    let (i2, end) = map_res(map_res(digit1, std::str::from_utf8), i64::from_str)(i2)?;
+    let (i2, _) = char('/')(i2)?;
+    let (i2, size) = alt((
+        value(-1, char('*')),
+        map_res(map_res(digit1, std::str::from_utf8), i64::from_str),
+    ))(i2)?;
+    return Ok((i2, HTTPContentRange { start, end, size }));
 }
 
 fn http2_parse_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
-    let (i2, _) = take_while!(input, |c| c == b' ')?;
-    let (i2, _) = take_till!(i2, |c| c == b' ')?;
-    let (i2, _) = take_while!(i2, |c| c == b' ')?;
-    return alt!(
-        i2,
-        http2_parse_content_range_star | http2_parse_content_range_def
-    );
+    let (i2, _) = take_while(|c| c == b' ')(input)?;
+    let (i2, _) = take_till(|c| c == b' ')(i2)?;
+    let (i2, _) = take_while(|c| c == b' ')(i2)?;
+    return alt((
+        http2_parse_content_range_star,
+        http2_parse_content_range_def,
+    ))(i2);
 }
 
 pub fn http2_parse_check_content_range<'a>(input: &'a [u8]) -> IResult<&'a [u8], HTTPContentRange> {
     let (rem, v) = http2_parse_content_range(input)?;
     if v.start > v.end {
-        return Err(Err::Error((rem, ErrorKind::Verify)));
+        return Err(Err::Error(make_error(rem, ErrorKind::Verify)));
     }
     return Ok((rem, v));
 }

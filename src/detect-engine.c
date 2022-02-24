@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -100,6 +100,7 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
+static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
 
 SCEnumCharMap det_ctx_event_table[] = {
 #ifdef UNITTESTS
@@ -161,6 +162,54 @@ void DetectPktInspectEngineRegister(const char *name,
         g_pkt_inspect_engines = new_engine;
     } else {
         DetectEnginePktInspectionEngine *t = g_pkt_inspect_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = new_engine;
+    }
+}
+
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
+void DetectFrameInspectEngineRegister(const char *name, int dir,
+        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type)
+{
+    DetectBufferTypeRegister(name);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s", name);
+    }
+
+    if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        BUG_ON(1);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEngineFrameInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
+    if (unlikely(new_engine == NULL)) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
+                strerror(errno));
+    }
+    new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
+    new_engine->dir = direction;
+    new_engine->v1.Callback = Callback;
+    new_engine->alproto = alproto;
+    new_engine->type = type;
+
+    if (g_frame_inspect_engines == NULL) {
+        g_frame_inspect_engines = new_engine;
+    } else {
+        DetectEngineFrameInspectionEngine *t = g_frame_inspect_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -361,6 +410,121 @@ static void DetectPktInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
     }
 }
 
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
+void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char *name, int dir,
+        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type)
+{
+    const int sm_list = DetectEngineBufferTypeRegister(de_ctx, name);
+    if (sm_list < 0) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s", name);
+    }
+
+    if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        BUG_ON(1);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEngineFrameInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
+    if (unlikely(new_engine == NULL)) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
+                strerror(errno));
+    }
+    new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
+    new_engine->dir = direction;
+    new_engine->v1.Callback = Callback;
+    new_engine->alproto = alproto;
+    new_engine->type = type;
+
+    if (de_ctx->frame_inspect_engines == NULL) {
+        de_ctx->frame_inspect_engines = new_engine;
+    } else {
+        DetectEngineFrameInspectionEngine *list = de_ctx->frame_inspect_engines;
+        while (list->next != NULL) {
+            list = list->next;
+        }
+
+        list->next = new_engine;
+    }
+}
+
+/* copy an inspect engine with transforms to a new list id. */
+static void DetectFrameInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, int new_list,
+        const DetectEngineTransforms *transforms)
+{
+    /* take the list from the detect engine as the buffers can be registered
+     * dynamically. */
+    DetectEngineFrameInspectionEngine *t = de_ctx->frame_inspect_engines;
+    while (t) {
+        if (t->sm_list == sm_list) {
+            DetectEngineFrameInspectionEngine *new_engine =
+                    SCCalloc(1, sizeof(DetectEngineFrameInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            new_engine->sm_list = new_list; /* use new list id */
+            new_engine->sm_list_base = sm_list;
+            new_engine->dir = t->dir;
+            new_engine->alproto = t->alproto;
+            new_engine->type = t->type;
+            new_engine->v1 = t->v1;
+            new_engine->v1.transforms = transforms; /* assign transforms */
+
+            /* append to the list */
+            DetectEngineFrameInspectionEngine *list = t;
+            while (list->next != NULL) {
+                list = list->next;
+            }
+
+            list->next = new_engine;
+            break;
+        }
+        t = t->next;
+    }
+}
+
+/* copy inspect engines from global registrations to de_ctx list */
+static void DetectFrameInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
+{
+    const DetectEngineFrameInspectionEngine *t = g_frame_inspect_engines;
+    while (t) {
+        SCLogDebug("engine %p", t);
+        DetectEngineFrameInspectionEngine *new_engine =
+                SCCalloc(1, sizeof(DetectEngineFrameInspectionEngine));
+        if (unlikely(new_engine == NULL)) {
+            exit(EXIT_FAILURE);
+        }
+        new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
+        new_engine->dir = t->dir;
+        new_engine->alproto = t->alproto;
+        new_engine->type = t->type;
+        new_engine->v1 = t->v1;
+
+        if (de_ctx->frame_inspect_engines == NULL) {
+            de_ctx->frame_inspect_engines = new_engine;
+        } else {
+            DetectEngineFrameInspectionEngine *list = de_ctx->frame_inspect_engines;
+            while (list->next != NULL) {
+                list = list->next;
+            }
+
+            list->next = new_engine;
+        }
+
+        t = t->next;
+    }
+}
+
 /** \internal
  *  \brief append the stream inspection
  *
@@ -433,6 +597,63 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
         SCLogDebug("ptrs[%d] is set", i);
+    }
+
+    /* set up inspect engines */
+    const DetectEngineFrameInspectionEngine *u = de_ctx->frame_inspect_engines;
+    while (u != NULL) {
+        SCLogDebug("u %p sm_list %u nlists %u ptrs[] %p", u, u->sm_list, nlists,
+                u->sm_list < nlists ? ptrs[u->sm_list] : NULL);
+        if (u->sm_list < nlists && ptrs[u->sm_list] != NULL) {
+            bool prepend = false;
+
+            if (u->alproto == ALPROTO_UNKNOWN) {
+                /* special case, inspect engine applies to all protocols */
+            } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, u->alproto))
+                goto next_engine;
+
+            if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+                if (u->dir == 1)
+                    goto next_engine;
+            } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+                if (u->dir == 0)
+                    goto next_engine;
+            }
+            DetectEngineFrameInspectionEngine *new_engine =
+                    SCCalloc(1, sizeof(DetectEngineFrameInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            if (mpm_list == u->sm_list) {
+                SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
+                prepend = true;
+                new_engine->mpm = true;
+            }
+
+            new_engine->type = u->type;
+            new_engine->sm_list = u->sm_list;
+            new_engine->sm_list_base = u->sm_list_base;
+            new_engine->smd = ptrs[new_engine->sm_list];
+            new_engine->v1 = u->v1;
+            SCLogDebug("sm_list %d new_engine->v1 %p/%p", new_engine->sm_list,
+                    new_engine->v1.Callback, new_engine->v1.transforms);
+
+            if (s->frame_inspect == NULL) {
+                s->frame_inspect = new_engine;
+            } else if (prepend) {
+                new_engine->next = s->frame_inspect;
+                s->frame_inspect = new_engine;
+            } else {
+                DetectEngineFrameInspectionEngine *a = s->frame_inspect;
+                while (a->next != NULL) {
+                    a = a->next;
+                }
+                new_engine->next = a->next;
+                a->next = new_engine;
+            }
+        }
+    next_engine:
+        u = u->next;
     }
 
     /* set up pkt inspect engines */
@@ -628,8 +849,14 @@ void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signa
         nlists = MAX(e->sm_list + 1, nlists);
         e = e->next;
     }
+    DetectEngineFrameInspectionEngine *u = s->frame_inspect;
+    while (u) {
+        nlists = MAX(u->sm_list + 1, nlists);
+        u = u->next;
+    }
     if (nlists == 0) {
         BUG_ON(s->pkt_inspect);
+        BUG_ON(s->frame_inspect);
         return;
     }
 
@@ -651,6 +878,13 @@ void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signa
         ptrs[e->sm_list] = e->smd;
         SCFree(e);
         e = next;
+    }
+    u = s->frame_inspect;
+    while (u) {
+        DetectEngineFrameInspectionEngine *next = u->next;
+        ptrs[u->sm_list] = u->smd;
+        SCFree(u);
+        u = next;
     }
 
     /* free the smds */
@@ -804,6 +1038,16 @@ int DetectBufferTypeRegister(const char *name)
     }
 }
 
+void DetectBufferTypeSupportsFrames(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->frame = true;
+    SCLogDebug("%p %s -- %d supports frame inspection", exists, name, exists->id);
+}
+
 void DetectBufferTypeSupportsPacket(const char *name)
 {
     BUG_ON(g_buffer_type_reg_closed);
@@ -887,6 +1131,40 @@ static int DetectEngineBufferTypeAdd(DetectEngineCtx *de_ctx, const char *string
     return map->id;
 }
 
+int DetectEngineBufferTypeRegisterWithFrameEngines(DetectEngineCtx *de_ctx, const char *name,
+        const int direction, const AppProto alproto, const uint8_t frame_type)
+{
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    if (exists) {
+        return exists->id;
+    }
+
+    const int buffer_id = DetectEngineBufferTypeAdd(de_ctx, name);
+    if (buffer_id < 0) {
+        return -1;
+    }
+
+    /* TODO hack we need the map to get the name. Should we return the map at reg? */
+    const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, buffer_id);
+    BUG_ON(!map);
+
+    /* register MPM/inspect engines */
+    if (direction & SIG_FLAG_TOSERVER) {
+        DetectEngineFrameMpmRegister(de_ctx, map->name, SIG_FLAG_TOSERVER, 2,
+                PrefilterGenericMpmFrameRegister, alproto, frame_type);
+        DetectEngineFrameInspectEngineRegister(de_ctx, map->name, SIG_FLAG_TOSERVER,
+                DetectEngineInspectFrameBufferGeneric, alproto, frame_type);
+    }
+    if (direction & SIG_FLAG_TOCLIENT) {
+        DetectEngineFrameMpmRegister(de_ctx, map->name, SIG_FLAG_TOCLIENT, 2,
+                PrefilterGenericMpmFrameRegister, alproto, frame_type);
+        DetectEngineFrameInspectEngineRegister(de_ctx, map->name, SIG_FLAG_TOCLIENT,
+                DetectEngineInspectFrameBufferGeneric, alproto, frame_type);
+    }
+
+    return buffer_id;
+}
+
 int DetectEngineBufferTypeRegister(DetectEngineCtx *de_ctx, const char *name)
 {
     DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
@@ -924,6 +1202,14 @@ const char *DetectBufferTypeGetDescriptionByName(const char *name)
         return NULL;
     }
     return exists->description;
+}
+
+void DetectEngineBufferTypeSupportsFrames(DetectEngineCtx *de_ctx, const char *name)
+{
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    BUG_ON(!exists);
+    exists->frame = true;
+    SCLogDebug("%p %s -- %d supports frame inspection", exists, name, exists->id);
 }
 
 void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name)
@@ -1310,6 +1596,8 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     PrefilterInit(de_ctx);
     DetectMpmInitializeAppMpms(de_ctx);
     DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
+    DetectMpmInitializeFrameMpms(de_ctx);
+    DetectFrameInspectEngineCopyListToDetectCtx(de_ctx);
     DetectMpmInitializePktMpms(de_ctx);
     DetectPktInspectEngineCopyListToDetectCtx(de_ctx);
 }
@@ -1345,6 +1633,18 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             DetectBufferMpmRegistery *next = pmlist->next;
             SCFree(pmlist);
             pmlist = next;
+        }
+        DetectEngineFrameInspectionEngine *framelist = de_ctx->frame_inspect_engines;
+        while (framelist) {
+            DetectEngineFrameInspectionEngine *next = framelist->next;
+            SCFree(framelist);
+            framelist = next;
+        }
+        DetectBufferMpmRegistery *framemlist = de_ctx->frame_mpms_list;
+        while (framemlist) {
+            DetectBufferMpmRegistery *next = framemlist->next;
+            SCFree(framemlist);
+            framemlist = next;
         }
         PrefilterDeinit(de_ctx);
     }
@@ -1400,9 +1700,12 @@ int DetectEngineBufferTypeGetByIdTransforms(
     map->transforms = t;
     map->mpm = base_map->mpm;
     map->packet = base_map->packet;
+    map->frame = base_map->frame;
     map->SetupCallback = base_map->SetupCallback;
     map->ValidateCallback = base_map->ValidateCallback;
-    if (map->packet) {
+    if (map->frame) {
+        DetectFrameMpmRegisterByParentId(de_ctx, map->id, map->parent_id, &map->transforms);
+    } else if (map->packet) {
         DetectPktMpmRegisterByParentId(de_ctx,
                 map->id, map->parent_id, &map->transforms);
     } else {
@@ -1415,7 +1718,9 @@ int DetectEngineBufferTypeGetByIdTransforms(
     SCLogDebug("buffer %s registered with id %d, parent %d", map->name, map->id, map->parent_id);
     de_ctx->buffer_type_id++;
 
-    if (map->packet) {
+    if (map->frame) {
+        DetectFrameInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
+    } else if (map->packet) {
         DetectPktInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
     } else {
         DetectAppLayerInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
@@ -2059,7 +2364,10 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     (void)SRepInit(de_ctx);
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    SCRConfLoadReferenceConfigFile(de_ctx, NULL);
+    if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+            goto error;
+    }
 
     if (ActionInitConfig() < 0) {
         goto error;

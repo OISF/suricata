@@ -283,6 +283,7 @@ typedef struct PacketAlert_ {
     uint8_t flags;
     const struct Signature_ *s;
     uint64_t tx_id;
+    int64_t frame_id;
 } PacketAlert;
 
 /* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
@@ -295,6 +296,8 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_TX            0x08
 /** action was changed by rate_filter */
 #define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
+/** alert is in a frame, frame_id set */
+#define PACKET_ALERT_FLAG_FRAME 0x20
 
 #define PACKET_ALERT_MAX 15
 

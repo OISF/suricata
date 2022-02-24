@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,22 +31,15 @@
 /** flow logger function pointer type */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
 
-/** packet logger condition function pointer type,
- *  must return true for packets that should be logged
- */
-//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
-
 int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
     OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputFlowShutdown(void);
 
-
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f);
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);
 void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data);
-
 
 #endif /* __OUTPUT_FLOW_H__ */

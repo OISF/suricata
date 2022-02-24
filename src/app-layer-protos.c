@@ -93,6 +93,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_KRB5:
             proto_name = "krb5";
             break;
+        case ALPROTO_QUIC:
+            proto_name = "quic";
+            break;
         case ALPROTO_DHCP:
             proto_name = "dhcp";
             break;
@@ -107,6 +110,12 @@ const char *AppProtoToString(AppProto alproto)
 	    break;
         case ALPROTO_MQTT:
             proto_name = "mqtt";
+            break;
+        case ALPROTO_PGSQL:
+            proto_name = "pgsql";
+            break;
+        case ALPROTO_TELNET:
+            proto_name = "telnet";
             break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
@@ -167,11 +176,17 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name, "ike") == 0)
         return ALPROTO_IKE;
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
+    if (strcmp(proto_name, "quic") == 0)
+        return ALPROTO_QUIC;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
     if (strcmp(proto_name,"sip")==0) return ALPROTO_SIP;
     if (strcmp(proto_name,"rfb")==0) return ALPROTO_RFB;
     if (strcmp(proto_name,"mqtt")==0) return ALPROTO_MQTT;
+    if (strcmp(proto_name, "pgsql") == 0)
+        return ALPROTO_PGSQL;
+    if (strcmp(proto_name, "telnet") == 0)
+        return ALPROTO_TELNET;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;

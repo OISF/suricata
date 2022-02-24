@@ -165,6 +165,10 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
+        # app layer frames
+        - frame:
+            # disabled by default as this is very verbose.
+            enabled: no
         - anomaly:
             # Anomaly log records describe unexpected conditions such
             # as truncated packets, packets with invalid IP/UDP/TCP
@@ -276,6 +280,7 @@ outputs:
         - snmp
         - rfb
         - sip
+        - quic
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
@@ -287,6 +292,9 @@ outputs:
         - mqtt:
             # passwords: yes           # enable output of passwords
         - http2
+        - pgsql:
+            enabled: no
+            # passwords: yes           # enable output of passwords. Disabled by default
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -544,6 +552,11 @@ logging:
   # This value is overridden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
+  # Requires libunwind to be available when Suricata is configured and built.
+  # If a signal unexpectedly terminates Suricata, displays a brief diagnostic
+  # message with the offending stacktrace if enabled.
+  #stacktrace-on-signal: on
+
   # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default: console output.
   outputs:
@@ -764,6 +777,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    telnet:
+      enabled: yes
     rfb:
       enabled: yes
       detection-ports:
@@ -773,6 +788,8 @@ app-layer:
       # max-msg-length: 1mb
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
+      # Maximum number of live MQTT transactions per flow
+      # max-tx: 4096
     krb5:
       enabled: yes
     snmp:
@@ -802,6 +819,10 @@ app-layer:
       #
       #encryption-handling: default
 
+    pgsql:
+      enabled: no
+      # Stream reassembly size for PostgreSQL. By default, track it completely.
+      stream-depth: 0
     dcerpc:
       enabled: yes
     ftp:
@@ -814,6 +835,10 @@ app-layer:
       #hassh: yes
     http2:
       enabled: yes
+      # Maximum number of live HTTP2 streams in a flow
+      #max-streams: 4096
+      # Maximum headers table size
+      #max-table-size: 65536
     smtp:
       enabled: yes
       raw-extraction: no
@@ -835,6 +860,12 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
+        # Scheme of URLs to extract
+        # (default is [http])
+        #extract-urls-schemes: [http, https, ftp, mailto]
+        # Log the scheme of URLs that are extracted
+        # (default is no)
+        #log-url-scheme: yes
         # Set to yes to compute the md5 of the mail body. You will then
         # be able to journalize it.
         body-md5: no
@@ -855,6 +886,7 @@ app-layer:
 
     nfs:
       enabled: yes
+      # max-tx: 1024
     tftp:
       enabled: yes
     dns:
@@ -1016,6 +1048,9 @@ app-layer:
         sp: 44818
 
     ntp:
+      enabled: yes
+
+    quic:
       enabled: yes
 
     dhcp:
@@ -1553,6 +1588,14 @@ threading:
   # thread will always be created.
   #
   detect-thread-ratio: 1.0
+  #
+  # By default, the per-thread stack size is left to its default setting. If
+  # the default thread stack size is too small, use the following configuration
+  # setting to change the size. Note that if any thread's stack size cannot be
+  # set to this value, a fatal error occurs.
+  #
+  # Generally, the per-thread stack-size should not exceed 8MB.
+  #stack-size: 8mb
 
 # Luajit has a strange memory requirement, its 'states' need to be in the
 # first 2G of the process' memory.

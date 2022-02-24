@@ -149,9 +149,9 @@ Splitting configuration in multiple files
 -----------------------------------------
 
 Some users might have a need or a wish to split their suricata.yaml
-file in to separate files, this is available vis the 'include' and
+file in to separate files, this is available via the 'include' and
 '!include' keyword. The first example is of taking the contents of the
-outputs section and storing them in outputs.yaml
+outputs section and storing them in outputs.yaml.
 
 ::
 
@@ -625,7 +625,7 @@ Pattern matcher settings
 
 The multi-pattern-matcher (MPM) is a part of the detection engine
 within Suricata that searches for multiple patterns at
-once. Often, signatures have one ore more patterns. Of each
+once. Often, signatures have one or more patterns. Of each
 signature, one pattern is used by the multi-pattern-matcher. That way
 Suricata can exclude many signatures from being examined, because a
 signature can only match when all its patterns match.
@@ -728,6 +728,16 @@ threads then CPU's/ CPU cores. Meaning you are oversubscribing the
 amount of cores. This may be convenient at times when there have to be
 waited for a detection thread. The remaining detection thread can
 become active.
+
+
+You can alter the per-thread stack-size if the default provided by
+your build system is too small. The default value is provided by
+your build system; we suggest setting the value to 8MB if the default
+value is too small.
+
+::
+
+  stack-size: 8MB
 
 
 In the option 'cpu affinity' you can set which CPU's/cores work on which
@@ -1070,7 +1080,7 @@ parsers that do file extraction.
 
 Inspection of reassembled data is done in chunks. The size of these
 chunks is set with ``toserver_chunk_size`` and ``toclient_chunk_size``.
-To avoid making the borders predictable, the sizes van be varied by
+To avoid making the borders predictable, the sizes can be varied by
 adding in a random factor.
 
 ::
@@ -1375,6 +1385,28 @@ independent. The ``probing parsers`` will only run on the ``detection-ports``.
 SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
 this parser.
 
+Configure HTTP2
+~~~~~~~~~~~~~~~
+
+HTTP2 has 2 parameters that can be customized.
+The point of these 2 parameters is to find a balance between the completeness
+of analysis and the resource consumption.
+
+`http2.max-table-size` refers to `SETTINGS_HEADER_TABLE_SIZE` from rfc 7540 section 6.5.2.
+Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
+
+`http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
+Its default value is unlimited.
+
+Maximum transactions
+~~~~~~~~~~~~~~~~~~~~
+
+MQTT, FTP, and NFS have each a `max-tx` parameter that can be customized.
+`max-tx` refers to the maximum number of live transactions for each flow.
+An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
+The point of this parameter is to find a balance between the completeness of analysis
+and the resource consumption.
+
 Engine Logging
 --------------
 
@@ -1466,7 +1498,7 @@ configuration (console, file, syslog) if not otherwise set.
           line option <cmdline-option-v>`.
 
 The ``default-log-level`` set in the configuration value can be
-overriden by the ``SC_LOG_LEVEL`` environment variable.
+overridden by the ``SC_LOG_LEVEL`` environment variable.
 
 Default Log Format
 ~~~~~~~~~~~~~~~~~~
@@ -1806,37 +1838,40 @@ firewall at rule number 5500:
 Rules
 -----
 
-Rule-files
+Rule Files
 ~~~~~~~~~~
 
-For different categories of risk there are different rule-files
-available containing one or more rules. There is a possibility to
-instruct Suricata where to find these rules and which rules you want
-to be load for use. You can set the directory where the files can be
-found.
+Suricata by default is setup for rules to be managed by Suricata-Update with
+the following rule file configuration:
 
-::
+.. code-block:: yaml
 
-  default-rule-path: /etc/suricata/rules/
-  rule-files:
-    - backdoor.rules
-    - bad-traffic.rules
-    - chat.rules
-    - ddos.rules
-    - ....
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
 
-The above mentioned is an example of rule-files of which can be chosen
-from. There are much more rule-files available.
+A default installation of Suricata-Update will write out the rules to
+/var/lib/suricata/rules/suricata.rules.
 
-If wanted, you can set a full path for a specific rule or
-rule-file. In that case, the above directory (/etc/suricata/rules/)
-will be ignored for that specific file. This is convenient in case you
-write your own rules and want to store them separate from other rules
-like that of VRT, ET or ET pro.
+You may want to edit this section if you are not using Suricata-Update or want
+to add rule files that are not managed by Suricata-Update, for example:
 
-If you set a file-name that appears to be not existing, Suricata will
-ignore that entry and display a error-message during the engine
-startup. It will continue with the startup as usual.
+.. code-block:: yaml
+
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
+      - /etc/suricata/rules/custom.rules
+
+File names can be specific with an absolute path, or just the base name. If
+just the base name is provided it will be looked for in the
+``default-rule-path``.
+
+If a rule file cannot be found, Suricata will log a warning message and
+continue to load, unless ``--init-errors-fatal`` has been specified on the
+command line, in which case Suricata will exit with an error code.
+
+For more information on rule management see :doc:`../rule-management/index`.
 
 Threshold-file
 ~~~~~~~~~~~~~~
@@ -2330,6 +2365,21 @@ inspected for possible presence of Teredo.
 Advanced Options
 ----------------
 
+stacktrace
+~~~~~~~~~~
+Display diagnostic stacktraces when a signal unexpectedly terminates Suricata, e.g., such as
+SIGSEGV or SIGABRT. Requires the ``libunwind`` library to be available. The default value is
+to display the diagnostic message if a signal unexpectedly terminates Suricata -- e.g.,
+``SIGABRT`` or ``SIGSEGV`` occurs while Suricata is running.
+
+::
+
+    logging:
+        # Requires libunwind to be available when Suricata is configured and built.
+        # If a signal unexpectedly terminates Suricata, displays a brief diagnostic
+        # message with the offending stacktrace if enabled.
+        #stacktrace-on-signal: on
+
 luajit
 ~~~~~~
 
@@ -2349,4 +2399,4 @@ States are allocated as follows: for each detect script a state is used per
 detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
-.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+.. _deprecation policy: https://suricata.io/about/deprecation-policy/

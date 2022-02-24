@@ -109,6 +109,7 @@ enum {
     HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING,
     HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG,
     HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG,
+    HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG,
     HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH,
     HTTP_DECODER_EVENT_URI_HOST_INVALID,
     HTTP_DECODER_EVENT_HEADER_HOST_INVALID,
@@ -218,6 +219,13 @@ typedef struct HtpTxUserData_ {
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
 
+    uint8_t boundary_len;
+
+    uint8_t tsflags;
+    uint8_t tcflags;
+
+    uint8_t request_body_type;
+
     HtpBody request_body;
     HtpBody response_body;
 
@@ -232,12 +240,6 @@ typedef struct HtpTxUserData_ {
      *  multipart/form-data only)
      */
     uint8_t *boundary;
-    uint8_t boundary_len;
-
-    uint8_t tsflags;
-    uint8_t tcflags;
-
-    uint8_t request_body_type;
 
     AppLayerTxData tx_data;
     struct timeval request_start_timestamp;
@@ -263,6 +265,9 @@ typedef struct HtpState_ {
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
+    StreamSlice *slice;
+    FrameId request_frame_id;
+    FrameId response_frame_id;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

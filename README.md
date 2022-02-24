@@ -7,21 +7,17 @@ Suricata
 Introduction
 ------------
 
-Suricata is a network IDS, IPS and NSM engine.
-
+[Suricata](https://suricata.io) is a network IDS, IPS and NSM engine developed by the [OISF](https://oisf.net) and the Suricata community.
 
 Installation
 ------------
 
-https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
+https://suricata.readthedocs.io/en/latest/install.html
 
 User Guide
 ----------
 
 You can follow the [Suricata user guide](https://suricata.readthedocs.io/en/latest/) to get started.
-
-Our deprecated (but still useful) user guide is also [available](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_User_Guide).
-
 
 Contributing
 ------------
@@ -40,28 +36,27 @@ For this reason, we have developed a QA process that is quite extensive. A conse
 
 On a high level, the steps are:
 
-1. Travis-CI based build & unit testing. This runs automatically when a pull request is made.
+1. Github-CI based checks. This runs automatically when a pull request is made.
 
 2. Review by devs from the team and community
 
-3. QA runs
-
-
+3. QA runs from private QA setups. These are private due to the nature of the test traffic.
 
 
 ### Overview of Suricata's QA steps
 
-Trusted devs and core team members are able to submit builds to our (semi) public Buildbot instance. It will run a series of build tests and a regression suite to confirm no existing features break.
+OISF team members are able to submit builds to our private QA setup. It will run a series of build tests and a regression suite to confirm no existing features break.
 
-The final QA run takes a few hours minimally, and is started by Victor. It currently runs:
+The final QA runs takes a few hours minimally, and generally runs overnight. It currently runs:
 
 - extensive build tests on different OS', compilers, optimization levels, configure features
 - static code analysis using cppcheck, scan-build
-- runtime code analysis using valgrind, DrMemory, AddressSanitizer, LeakSanitizer
+- runtime code analysis using valgrind, AddressSanitizer, LeakSanitizer
 - regression tests for past bugs
 - output validation of logging
 - unix socket testing
 - pcap based fuzz testing using ASAN and LSAN
+- traffic replay based IDS and IPS tests
 
 Next to these tests, based on the type of code change further tests can be run manually:
 
@@ -100,7 +95,7 @@ A: As documented in the Suricata Github workflow here https://redmine.openinfose
 
 Normally, the team (or community) will give feedback on a pull request after which it is expected to be replaced by an improved PR. So look at the comments. If you disagree with the comments we can still discuss them in the closed PR.
 
-If the PR was closed without comments it's likely due to QA failure. If the Travis-CI check failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
+If the PR was closed without comments it's likely due to QA failure. If the Github-CI checks failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
 
 
 __Q: the compiler/code analyser/tool is wrong, what now?__
@@ -115,4 +110,4 @@ A: If you really think it is, we can discuss how to improve it. But don't come t
 
 __Q: do you require signing of a contributor license agreement?__
 
-A: Yes, we do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See http://suricata-ids.org/about/open-source/ and http://suricata-ids.org/about/contribution-agreement/
+A: Yes, we do this to keep the ownership of Suricata in one hand: the Open Information Security Foundation. See http://suricata.io/about/open-source/ and http://suricata.io/about/contribution-agreement/

@@ -50,6 +50,7 @@ Logging changes
 Other changes
 ~~~~~~~~~~~~~
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
+- If installing Suricata without the bundled Suricata-Update, the ``default-rule-path`` has been changed from ``/etc/suricata/rules`` to ``/var/lib/suricata/rules`` to be consistent with Suricata when installed with Suricata-Update.
 
 Logging changes
 ~~~~~~~~~~~~~~~
@@ -104,4 +105,4 @@ Removals
 - ``file-log``, the non-EVE JSON file log. Use EVE.files instead.
 - ``drop-log``, the non-EVE JSON drop log.
 
-See https://suricata-ids.org/about/deprecation-policy/
+See https://suricata.io/about/deprecation-policy/

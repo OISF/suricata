@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2016-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,8 +47,10 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-frame.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -107,10 +109,10 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     do {
         if (engine->alproto != alproto)
             goto next;
-        if (engine->tx_min_progress > tx->tx_progress)
+        if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
-        if (tx->tx_progress > engine->tx_min_progress) {
-            if (tx->prefilter_flags & BIT_U64(engine->tx_min_progress)) {
+        if (tx->tx_progress > engine->ctx.tx_min_progress) {
+            if (tx->prefilter_flags & BIT_U64(engine->ctx.tx_min_progress)) {
                 goto next;
             }
         }
@@ -120,8 +122,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                 p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
-        if (tx->tx_progress > engine->tx_min_progress && engine->is_last_for_progress) {
-            tx->prefilter_flags |= BIT_U64(engine->tx_min_progress);
+        if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
+            tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
         }
     next:
         if (engine->is_last)
@@ -142,7 +144,16 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         Packet *p, const uint8_t flags)
 {
     SCEnter();
-
+#if 0
+    /* TODO review this check */
+    SCLogDebug("sgh %p frame_engines %p", sgh, sgh->frame_engines);
+    if (p->proto == IPPROTO_TCP && sgh->frame_engines && p->flow &&
+            p->flow->alproto != ALPROTO_UNKNOWN && p->flow->alparser != NULL) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_RECORD);
+        PrefilterFrames(det_ctx, sgh, p, flags, p->flow->alproto);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_RECORD);
+    }
+#endif
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
         /* run packet engines */
@@ -295,6 +306,41 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return 0;
 }
 
+int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        PrefilterFrameFn PrefilterFrameFunc, AppProto alproto, uint8_t frame_type, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name)
+{
+    if (sgh == NULL || PrefilterFrameFunc == NULL || pectx == NULL)
+        return -1;
+
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
+    if (e == NULL)
+        return -1;
+    memset(e, 0x00, sizeof(*e));
+
+    e->frame_type = frame_type;
+    e->alproto = alproto;
+    e->PrefilterFrame = PrefilterFrameFunc;
+    e->pectx = pectx;
+    e->Free = FreeFunc;
+
+    if (sgh->init->frame_engines == NULL) {
+        sgh->init->frame_engines = e;
+    } else {
+        PrefilterEngineList *t = sgh->init->frame_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
+    }
+
+    e->name = name;
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    return 0;
+}
+
 static void PrefilterFreeEngineList(PrefilterEngineList *e)
 {
     if (e->Free && e->pectx) {
@@ -345,20 +391,24 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterFreeEngines(de_ctx, sgh->tx_engines);
         sgh->tx_engines = NULL;
     }
+    if (sgh->frame_engines) {
+        PrefilterFreeEngines(de_ctx, sgh->frame_engines);
+        sgh->frame_engines = NULL;
+    }
 }
 
 static int PrefilterSetupRuleGroupSortHelper(const void *a, const void *b)
 {
     const PrefilterEngine *s0 = a;
     const PrefilterEngine *s1 = b;
-    if (s1->tx_min_progress == s0->tx_min_progress) {
+    if (s1->ctx.tx_min_progress == s0->ctx.tx_min_progress) {
         if (s1->alproto == s0->alproto) {
             return s0->local_id > s1->local_id ? 1 : -1;
         } else {
             return s0->alproto > s1->alproto ? 1 : -1;
         }
     } else {
-        return s0->tx_min_progress > s1->tx_min_progress ? 1 : -1;
+        return s0->ctx.tx_min_progress > s1->ctx.tx_min_progress ? 1 : -1;
     }
 }
 
@@ -453,7 +503,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
             e->local_id = local_id++;
             e->alproto = el->alproto;
-            e->tx_min_progress = el->tx_min_progress;
+            e->ctx.tx_min_progress = el->tx_min_progress;
             e->cb.PrefilterTx = el->PrefilterTx;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -477,9 +527,9 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterEngine *prev_engine = NULL;
             engine = sgh->tx_engines;
             do {
-                BUG_ON(engine->tx_min_progress < last_tx_progress);
+                BUG_ON(engine->ctx.tx_min_progress < last_tx_progress);
                 if (engine->alproto == a) {
-                    if (last_tx_progress_set && engine->tx_min_progress > last_tx_progress) {
+                    if (last_tx_progress_set && engine->ctx.tx_min_progress > last_tx_progress) {
                         if (prev_engine) {
                             prev_engine->is_last_for_progress = true;
                         }
@@ -492,7 +542,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         prev_engine->is_last_for_progress = true;
                     }
                 }
-                last_tx_progress = engine->tx_min_progress;
+                last_tx_progress = engine->ctx.tx_min_progress;
                 if (engine->is_last)
                     break;
                 engine++;
@@ -504,7 +554,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         do {
             SCLogDebug("engine: gid %u alproto %s tx_min_progress %d is_last %s "
                        "is_last_for_progress %s",
-                    engine->gid, AppProtoToString(engine->alproto), engine->tx_min_progress,
+                    engine->gid, AppProtoToString(engine->alproto), engine->ctx.tx_min_progress,
                     engine->is_last ? "true" : "false",
                     engine->is_last_for_progress ? "true" : "false");
             if (engine->is_last)
@@ -512,6 +562,33 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             engine++;
         } while (1);
 #endif
+    }
+    if (sgh->init->frame_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->frame_engines; el != NULL; el = el->next) {
+            cnt++;
+            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
+        }
+        sgh->frame_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->frame_engines == NULL) {
+            return;
+        }
+        memset(sgh->frame_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        PrefilterEngine *e = sgh->frame_engines;
+        for (el = sgh->init->frame_engines; el != NULL; el = el->next) {
+            e->local_id = el->id;
+            e->ctx.frame_type = el->frame_type;
+            e->cb.PrefilterFrame = el->PrefilterFrame;
+            e->alproto = el->alproto;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            if (el->next == NULL) {
+                e->is_last = TRUE;
+            }
+            e++;
+        }
     }
 }
 

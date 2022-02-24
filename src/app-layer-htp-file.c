@@ -227,8 +227,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     HTTPContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
-        return HTPFileOpen(
-                s, txud, filename, (uint32_t)filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);
     }
     flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
     if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||

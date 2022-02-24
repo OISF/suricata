@@ -555,6 +555,7 @@ void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
 void FlowPrintQueueInfo (void);
+void FlowReset(void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
 void FlowSetHasAlertsFlag(Flow *);

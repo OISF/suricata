@@ -23,6 +23,7 @@
 
 #include "util-print.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
@@ -1131,13 +1132,15 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->request_buffer;
     int processed = 0;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input_len == 0) {
         SCReturnStruct(APP_LAYER_OK);
@@ -1271,14 +1274,16 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
 
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->response_buffer;
     int processed;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {

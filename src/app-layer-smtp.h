@@ -90,13 +90,13 @@ typedef struct SMTPTransaction_ {
 
 typedef struct SMTPConfig {
 
-    int decode_mime;
+    bool decode_mime;
     MimeDecConfig mime_config;
     uint32_t content_limit;
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
 
-    int raw_extraction;
+    bool raw_extraction;
 
     StreamingBufferConfig sbcfg;
 } SMTPConfig;
@@ -119,22 +119,8 @@ typedef struct SMTPState_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
     uint8_t current_line_delimiter_len;
-
-    /** used to indicate if the current_line buffer is a malloced buffer.  We
-     * use a malloced buffer, if a line is fragmented */
-    uint8_t *tc_db;
-    int32_t tc_db_len;
-    uint8_t tc_current_line_db;
-    /** we have see LF for the currently parsed line */
-    uint8_t tc_current_line_lf_seen;
-
-    /** used to indicate if the current_line buffer is a malloced buffer.  We
-     * use a malloced buffer, if a line is fragmented */
-    uint8_t *ts_db;
-    int32_t ts_db_len;
-    uint8_t ts_current_line_db;
-    /** we have see LF for the currently parsed line */
-    uint8_t ts_current_line_lf_seen;
+    /* Consumed bytes till current line */
+    int32_t consumed;
 
     /** var to indicate parser state */
     uint8_t parser_state;

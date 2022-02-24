@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,9 +29,10 @@
  *  we're inspecting
  */
 enum {
-    DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD = 0,  /* enables 'replace' logic */
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD = 0, /* enables 'replace' logic */
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM,
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_FRAME,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
 };
 

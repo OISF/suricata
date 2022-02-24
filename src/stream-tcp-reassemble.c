@@ -61,6 +61,7 @@
 #include "app-layer.h"
 #include "app-layer-events.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 
 #include "detect-engine-state.h"
 
@@ -329,6 +330,20 @@ static inline uint64_t GetAbsLastAck(const TcpStream *stream)
     } else {
         return STREAM_BASE_OFFSET(stream);
     }
+}
+
+uint64_t StreamTcpGetAcked(const TcpStream *stream)
+{
+    return GetAbsLastAck(stream);
+}
+
+uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof)
+{
+    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+    if (!eof && StreamTcpInlineMode() == FALSE) {
+        right_edge = MIN(GetAbsLastAck(stream), right_edge);
+    }
+    return right_edge;
 }
 
 #ifdef UNITTESTS
@@ -847,9 +862,41 @@ static uint64_t GetStreamSize(TcpStream *stream)
     if (stream) {
         uint64_t size = 0;
         uint32_t cnt = 0;
+        uint64_t last_ack_abs = GetAbsLastAck(stream);
+        uint64_t last_re = 0;
+
+        SCLogDebug("stream_offset %" PRIu64, stream->sb.stream_offset);
 
         TcpSegment *seg;
         RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
+            const uint64_t seg_abs =
+                    STREAM_BASE_OFFSET(stream) + (uint64_t)(seg->seq - stream->base_seq);
+            if (last_re != 0 && last_re < seg_abs) {
+                const char *gacked = NULL;
+                if (last_ack_abs >= seg_abs) {
+                    gacked = "fully ack'd";
+                } else if (last_ack_abs > last_re) {
+                    gacked = "partly ack'd";
+                } else {
+                    gacked = "not yet ack'd";
+                }
+                SCLogDebug(" -> gap of size %" PRIu64 ", ack:%s", seg_abs - last_re, gacked);
+            }
+
+            const char *acked = NULL;
+            if (last_ack_abs >= seg_abs + (uint64_t)TCP_SEG_LEN(seg)) {
+                acked = "fully ack'd";
+            } else if (last_ack_abs > seg_abs) {
+                acked = "partly ack'd";
+            } else {
+                acked = "not yet ack'd";
+            }
+
+            SCLogDebug("%u -> seg %p seq %u abs %" PRIu64 " size %u abs %" PRIu64 " (%" PRIu64
+                       ") ack:%s",
+                    cnt, seg, seg->seq, seg_abs, TCP_SEG_LEN(seg),
+                    seg_abs + (uint64_t)TCP_SEG_LEN(seg), STREAM_BASE_OFFSET(stream), acked);
+            last_re = seg_abs + (uint64_t)TCP_SEG_LEN(seg);
             cnt++;
             size += (uint64_t)TCP_SEG_LEN(seg);
         }
@@ -930,6 +977,7 @@ static bool GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
             *data_len = 0;
             return false;
         }
+        SCLogDebug("blk %p blk->offset %" PRIu64 ", blk->len %u", blk, blk->offset, blk->len);
 
         /* block at expected offset */
         if (blk->offset == offset) {
@@ -1152,6 +1200,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                 (uint8_t *)mydata, mydata_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
+        AppLayerFrameDump(p->flow);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
@@ -1339,6 +1388,14 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream = &ssn->client;
     } else {
         stream = &ssn->server;
+    }
+
+    /* Record updates */
+    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+        if (progress > STREAM_APP_PROGRESS(stream)) {
+            AppLayerFramesUpdateProgress(p->flow, stream, progress,
+                    PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        }
     }
 
     if (progress > STREAM_RAW_PROGRESS(stream)) {
@@ -1796,7 +1853,11 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     } else if (p->tcph->th_flags & TH_RST) { // accepted rst
         dir = UPDATE_DIR_PACKET;
     } else if ((p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
-        dir = UPDATE_DIR_PACKET;
+        if (p->tcph->th_flags & TH_ACK) {
+            dir = UPDATE_DIR_BOTH;
+        } else {
+            dir = UPDATE_DIR_PACKET;
+        }
     } else if (ssn->state == TCP_CLOSED) {
         dir = UPDATE_DIR_BOTH;
     }

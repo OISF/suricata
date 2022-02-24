@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2021 Open Information Security Foundation
+/* Copyright (C) 2013-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,6 +50,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-ftp.h"
+#include "app-layer-frames.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
@@ -73,6 +74,8 @@
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
+#include "output-json-frame.h"
+#include "output-json-quic.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -80,7 +83,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
-#include "util-crypt.h"
 #include "util-validate.h"
 
 #define MODULE_NAME "JsonAlertLog"
@@ -135,7 +137,6 @@ static void AlertJsonTls(const Flow *f, JsonBuilder *js)
     if (ssl_state) {
         jb_open_object(js, "tls");
 
-        JsonTlsLogJSONBasic(js, ssl_state);
         JsonTlsLogJSONExtended(js, ssl_state);
 
         jb_close(js);
@@ -423,11 +424,7 @@ static void AlertJsonTunnel(const Packet *p, JsonBuilder *js)
 static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js, const Packet *p)
 {
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-        unsigned long len = BASE64_BUFFER_SIZE(p->payload_len);
-        uint8_t encoded[len];
-        if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
-            jb_set_string(js, "payload", (char *)encoded);
-        }
+        jb_set_base64(js, "payload", p->payload, p->payload_len);
     }
 
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
@@ -545,6 +542,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
+        case ALPROTO_QUIC:
+            jb_get_mark(jb, &mark);
+            if (!JsonQuicAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
+            break;
         case ALPROTO_SNMP:
             AlertJsonSNMP(p->flow, tx_id, jb);
             break;
@@ -583,6 +586,43 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
         }
         if (isopen) {
             jb_close(jb);
+        }
+    }
+}
+
+static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_id)
+{
+    if (p->flow == NULL || (p->proto == IPPROTO_TCP && p->flow->protoctx == NULL))
+        return;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
+    if (frames_container == NULL)
+        return;
+
+    Frames *frames = NULL;
+    TcpStream *stream = NULL;
+    if (p->proto == IPPROTO_TCP) {
+        TcpSession *ssn = p->flow->protoctx;
+        if (PKT_IS_TOSERVER(p)) {
+            stream = &ssn->client;
+            frames = &frames_container->toserver;
+        } else {
+            stream = &ssn->server;
+            frames = &frames_container->toclient;
+        }
+        Frame *frame = FrameGetById(frames, frame_id);
+        if (frame != NULL) {
+            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb);
+        }
+    } else if (p->proto == IPPROTO_UDP) {
+        if (PKT_IS_TOSERVER(p)) {
+            frames = &frames_container->toserver;
+        } else {
+            frames = &frames_container->toclient;
+        }
+        Frame *frame = FrameGetById(frames, frame_id);
+        if (frame != NULL) {
+            FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb);
         }
     }
 }
@@ -687,10 +727,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                     (void *)payload);
                 if (payload->offset) {
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = BASE64_BUFFER_SIZE(json_output_ctx->payload_buffer_size);
-                        uint8_t encoded[len];
-                        Base64Encode(payload->buffer, payload->offset, encoded, &len);
-                        jb_set_string(jb, "payload", (char *)encoded);
+                        jb_set_base64(jb, "payload", payload->buffer, payload->offset);
                     }
 
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
@@ -711,6 +748,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
 
             jb_set_uint(jb, "stream", stream);
+        }
+
+        if (pa->flags & PACKET_ALERT_FLAG_FRAME) {
+            AlertAddFrame(p, jb, pa->frame_id);
         }
 
         /* base64-encoded full packet */

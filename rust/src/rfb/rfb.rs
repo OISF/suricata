@@ -22,7 +22,7 @@ use std::ffi::CString;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::applayer;
 use crate::applayer::*;
-use nom;
+use nom7::Err;
 use super::parser;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
@@ -174,7 +174,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -202,7 +202,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -224,7 +224,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -246,7 +246,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -300,7 +300,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -330,7 +330,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -364,7 +364,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -386,7 +386,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -414,7 +414,7 @@ impl RFBState {
                                 // TODO: Event: unknown security result value
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -432,7 +432,7 @@ impl RFBState {
                             }
                             return AppLayerResult::err();
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -456,7 +456,7 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(_)) => {
+                        Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
@@ -506,14 +506,11 @@ pub unsafe extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf);
+    return state.parse_request(stream_slice.as_slice());
 }
 
 #[no_mangle]
@@ -521,14 +518,11 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RFBState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf);
+    return state.parse_response(stream_slice.as_slice());
 }
 
 #[no_mangle]
@@ -602,6 +596,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         apply_tx_config: None,
         flags: 0,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

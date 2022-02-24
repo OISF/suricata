@@ -15,12 +15,13 @@
  * 02110-1301, USA.
  */
 
+use crate::common::nom7::bits;
 use crate::smb::smb::*;
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{cond, map_parser, rest};
-use nom7::error::{make_error, Error, ErrorKind};
+use nom7::error::{make_error, ErrorKind};
 use nom7::multi::count;
 use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use nom7::sequence::tuple;
@@ -54,6 +55,7 @@ pub fn parse_smb2_record_direction(i: &[u8]) -> IResult<&[u8], Smb2RecordDir> {
 #[derive(Debug,PartialEq)]
 pub struct Smb2Record<'a> {
     pub direction: u8,    // 0 req, 1 res
+    pub header_len: u16,
     pub nt_status: u32,
     pub command: u16,
     pub message_id: u64,
@@ -70,7 +72,7 @@ impl<'a> Smb2Record<'a> {
 }
 
 fn parse_smb2_request_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u8,u32,u8,u8,u8,u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(2u8),      // reserved / unused
         take_bits(1u8),      // replay op
         take_bits(1u8),      // dfs op
@@ -104,6 +106,7 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     };
     let record = Smb2Record {
         direction: flags.7,
+        header_len: hlen,
         nt_status: 0,
         command,
         message_id,
@@ -558,6 +561,7 @@ pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     };
     let record = Smb2Record {
         direction: flags.7,
+        header_len: hlen,
         nt_status,
         message_id,
         tree_id: tree_id.unwrap_or(0),

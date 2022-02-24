@@ -53,6 +53,13 @@ will be generated.
 It is possible to use flowbits several times in a rule and combine the
 different functions.
 
+It is also possible to perform an `OR` operation with flowbits with `|` op.
+
+Example::
+  alert http any any -> any any (msg: "User1 or User2 logged in"; content:"login"; flowbits:isset,user1|user2; sid:1;)
+
+This can be used with either `isset` or `isnotset` action.
+
 flow
 ----
 

@@ -503,6 +503,9 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
     if header.flags & 0x0080 != 0 {
         js.set_bool("ra", true)?;
     }
+    if header.flags & 0x0040 != 0 {
+        js.set_bool("z", true)?;
+    }
 
     for query in &response.queries {
         js.set_string_from_bytes("rrname", &query.name)?;
@@ -626,6 +629,9 @@ fn dns_log_query(tx: &mut DNSTransaction,
                 jb.set_string_from_bytes("rrname", &query.name)?;
                 jb.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
                 jb.set_uint("tx_id", tx.id - 1)?;
+                if request.header.flags & 0x0040 != 0 {
+                    jb.set_bool("z", true)?;
+                }
                 return Ok(true);
             }
         }
@@ -704,6 +710,9 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
     }
     if header.flags & 0x0080 != 0 {
         js.set_bool("ra", true)?;
+    }
+    if header.flags & 0x0040 != 0 {
+        js.set_bool("z", true)?;
     }
     js.set_string("rcode", &dns_rcode_string(header.flags))?;
     js.set_string_from_bytes("rrname", &answer.name)?;

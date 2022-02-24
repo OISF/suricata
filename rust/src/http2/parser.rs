@@ -16,13 +16,18 @@
  */
 
 use super::huffman;
+use crate::common::nom7::bits;
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
-use nom::character::complete::digit1;
-use nom::combinator::rest;
-use nom::error::ErrorKind;
-use nom::number::streaming::{be_u16, be_u32, be_u8};
-use nom::Err;
-use nom::IResult;
+use nom7::bits::streaming::take as take_bits;
+use nom7::branch::alt;
+use nom7::bytes::streaming::{is_a, is_not, tag, take, take_while};
+use nom7::character::complete::digit1;
+use nom7::combinator::{complete, cond, map_opt, opt, rest, verify};
+use nom7::error::{make_error, ErrorKind};
+use nom7::multi::many0;
+use nom7::number::streaming::{be_u16, be_u24, be_u32, be_u8};
+use nom7::sequence::tuple;
+use nom7::{Err, IResult};
 use std::fmt;
 use std::str::FromStr;
 
@@ -79,18 +84,23 @@ pub struct HTTP2FrameHeader {
     pub stream_id: u32,
 }
 
-named!(pub http2_parse_frame_header<HTTP2FrameHeader>,
-    do_parse!(
-        length: bits!( take_bits!(24u32) ) >>
-        ftype: be_u8 >>
-        flags: be_u8 >>
-        stream_id: bits!( tuple!( take_bits!(1u8),
-                                  take_bits!(31u32) ) ) >>
-        (HTTP2FrameHeader{length, ftype, flags,
-                          reserved:stream_id.0,
-                          stream_id:stream_id.1})
-    )
-);
+pub fn http2_parse_frame_header(i: &[u8]) -> IResult<&[u8], HTTP2FrameHeader> {
+    let (i, length) = be_u24(i)?;
+    let (i, ftype) = be_u8(i)?;
+    let (i, flags) = be_u8(i)?;
+    let (i, b) = be_u32(i)?;
+    let (reserved, stream_id) = ((b >> 31) as u8, b & 0x7fff_ffff);
+    Ok((
+        i,
+        HTTP2FrameHeader {
+            length,
+            ftype,
+            flags,
+            reserved,
+            stream_id,
+        },
+    ))
+}
 
 #[repr(u32)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
@@ -147,24 +157,20 @@ pub struct HTTP2FrameGoAway {
     pub errorcode: u32, //HTTP2ErrorCode
 }
 
-named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
-    do_parse!(
-        errorcode: be_u32 >>
-        (HTTP2FrameGoAway{errorcode})
-    )
-);
+pub fn http2_parse_frame_goaway(i: &[u8]) -> IResult<&[u8], HTTP2FrameGoAway> {
+    let (i, errorcode) = be_u32(i)?;
+    Ok((i, HTTP2FrameGoAway { errorcode }))
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct HTTP2FrameRstStream {
     pub errorcode: u32, ////HTTP2ErrorCode
 }
 
-named!(pub http2_parse_frame_rststream<HTTP2FrameRstStream>,
-    do_parse!(
-        errorcode: be_u32 >>
-        (HTTP2FrameRstStream{errorcode})
-    )
-);
+pub fn http2_parse_frame_rststream(i: &[u8]) -> IResult<&[u8], HTTP2FrameRstStream> {
+    let (i, errorcode) = be_u32(i)?;
+    Ok((i, HTTP2FrameRstStream { errorcode }))
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct HTTP2FramePriority {
@@ -173,14 +179,19 @@ pub struct HTTP2FramePriority {
     pub weight: u8,
 }
 
-named!(pub http2_parse_frame_priority<HTTP2FramePriority>,
-    do_parse!(
-        sid: bits!( tuple!( take_bits!(1u8),
-                            take_bits!(31u32) ) ) >>
-        weight: be_u8 >>
-        (HTTP2FramePriority{exclusive:sid.0, dependency:sid.1, weight})
-    )
-);
+pub fn http2_parse_frame_priority(i: &[u8]) -> IResult<&[u8], HTTP2FramePriority> {
+    let (i, b) = be_u32(i)?;
+    let (exclusive, dependency) = ((b >> 31) as u8, b & 0x7fff_ffff);
+    let (i, weight) = be_u8(i)?;
+    Ok((
+        i,
+        HTTP2FramePriority {
+            exclusive,
+            dependency,
+            weight,
+        },
+    ))
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct HTTP2FrameWindowUpdate {
@@ -188,13 +199,11 @@ pub struct HTTP2FrameWindowUpdate {
     pub sizeinc: u32,
 }
 
-named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
-    do_parse!(
-        sizeinc: bits!( tuple!( take_bits!(1u8),
-                                take_bits!(31u32) ) ) >>
-        (HTTP2FrameWindowUpdate{reserved:sizeinc.0, sizeinc:sizeinc.1})
-    )
-);
+pub fn http2_parse_frame_windowupdate(i: &[u8]) -> IResult<&[u8], HTTP2FrameWindowUpdate> {
+    let (i, b) = be_u32(i)?;
+    let (reserved, sizeinc) = ((b >> 31) as u8, b & 0x7fff_ffff);
+    Ok((i, HTTP2FrameWindowUpdate { reserved, sizeinc }))
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct HTTP2FrameHeadersPriority {
@@ -203,14 +212,19 @@ pub struct HTTP2FrameHeadersPriority {
     pub weight: u8,
 }
 
-named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
-    do_parse!(
-        sid: bits!( tuple!( take_bits!(1u8),
-                                take_bits!(31u32) ) ) >>
-        weight: be_u8 >>
-        (HTTP2FrameHeadersPriority{exclusive:sid.0, dependency:sid.1, weight})
-    )
-);
+pub fn http2_parse_headers_priority(i: &[u8]) -> IResult<&[u8], HTTP2FrameHeadersPriority> {
+    let (i, b) = be_u32(i)?;
+    let (exclusive, dependency) = ((b >> 31) as u8, b & 0x7fff_ffff);
+    let (i, weight) = be_u8(i)?;
+    Ok((
+        i,
+        HTTP2FrameHeadersPriority {
+            exclusive,
+            dependency,
+            weight,
+        },
+    ))
+}
 
 pub const HTTP2_STATIC_HEADERS_NUMBER: usize = 61;
 
@@ -344,39 +358,30 @@ fn http2_parse_headers_block_indexed<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(
-            input,
-            complete!(tuple!(
-                verify!(take_bits!(1u8), |&x| x == 1),
-                take_bits!(7u8)
-            ))
-        )
+        bits(complete(tuple((
+            verify(take_bits(1u8), |&x| x == 1),
+            take_bits(7u8),
+        ))))(input)
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x7F)?;
-    if indexreal == 0 && indexed.1 == 0x7F {
-        return Err(Err::Error((i3, ErrorKind::LengthValue)));
-    }
     match http2_frame_header_static(indexreal, dyn_headers) {
         Some(h) => Ok((i3, h)),
-        _ => Err(Err::Error((i3, ErrorKind::MapOpt))),
+        _ => Err(Err::Error(make_error(i3, ErrorKind::MapOpt))),
     }
 }
 
 fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(input, tuple!(take_bits!(1u8), take_bits!(7u8)))
+        bits(tuple((take_bits(1u8), take_bits(7u8))))(input)
     }
     let (i1, huffslen) = parser(input)?;
     let (i2, stringlen) = http2_parse_var_uint(i1, huffslen.1 as u64, 0x7F)?;
-    if stringlen == 0 && huffslen.1 == 0x7F {
-        return Err(Err::Error((i2, ErrorKind::LengthValue)));
-    }
-    let (i3, data) = take!(i2, stringlen as usize)?;
+    let (i3, data) = take(stringlen as usize)(i2)?;
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
     } else {
-        let (_, val) = bits!(data, many0!(huffman::http2_decode_huffman))?;
+        let (_, val) = bits(many0(huffman::http2_decode_huffman))(data)?;
         return Ok((i3, val));
     }
 }
@@ -419,19 +424,13 @@ fn http2_parse_headers_block_literal_incindex<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(
-            input,
-            complete!(tuple!(
-                verify!(take_bits!(2u8), |&x| x == 1),
-                take_bits!(6u8)
-            ))
-        )
+        bits(complete(tuple((
+            verify(take_bits(2u8), |&x| x == 1),
+            take_bits(6u8),
+        ))))(input)
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0x3F)?;
-    if indexreal == 0 && indexed.1 == 0x3F {
-        return Err(Err::Error((i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     match r {
         Ok((r, head)) => {
@@ -446,7 +445,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 //in case of overflow, best effort is to keep first headers
                 if dyn_headers.overflow > 0 {
                     if dyn_headers.overflow == 1 {
-                        if dyn_headers.current_size <= (HTTP2_MAX_TABLESIZE as usize) {
+                        if dyn_headers.current_size <= (unsafe { HTTP2_MAX_TABLESIZE } as usize) {
                             //overflow had not yet happened
                             dyn_headers.table.push(headcopy);
                         } else if dyn_headers.current_size > dyn_headers.max_size {
@@ -476,19 +475,13 @@ fn http2_parse_headers_block_literal_noindex<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(
-            input,
-            complete!(tuple!(
-                verify!(take_bits!(4u8), |&x| x == 0),
-                take_bits!(4u8)
-            ))
-        )
+        bits(complete(tuple((
+            verify(take_bits(4u8), |&x| x == 0),
+            take_bits(4u8),
+        ))))(input)
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    if indexreal == 0 && indexed.1 == 0xF {
-        return Err(Err::Error((i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
@@ -497,19 +490,13 @@ fn http2_parse_headers_block_literal_neverindex<'a>(
     input: &'a [u8], dyn_headers: &HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(
-            input,
-            complete!(tuple!(
-                verify!(take_bits!(4u8), |&x| x == 1),
-                take_bits!(4u8)
-            ))
-        )
+        bits(complete(tuple((
+            verify(take_bits(4u8), |&x| x == 1),
+            take_bits(4u8),
+        ))))(input)
     }
     let (i2, indexed) = parser(input)?;
     let (i3, indexreal) = http2_parse_var_uint(i2, indexed.1 as u64, 0xF)?;
-    if indexreal == 0 && indexed.1 == 0xF {
-        return Err(Err::Error((i3, ErrorKind::LengthValue)));
-    }
     let r = http2_parse_headers_block_literal_common(i3, indexreal, dyn_headers);
     return r;
 }
@@ -518,7 +505,7 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     if value < max {
         return Ok((input, value));
     }
-    let (i2, varia) = take_while!(input, |ch| (ch & 0x80) != 0)?;
+    let (i2, varia) = take_while(|ch| (ch & 0x80) != 0)(input)?;
     let (i3, finalv) = be_u8(i2)?;
     if varia.len() > 9 || (varia.len() == 9 && finalv > 1) {
         // this will overflow u64
@@ -528,39 +515,27 @@ fn http2_parse_var_uint(input: &[u8], value: u64, max: u64) -> IResult<&[u8], u6
     for i in 0..varia.len() {
         varval += ((varia[i] & 0x7F) as u64) << (7 * i);
     }
-    varval += (finalv as u64) << (7 * varia.len());
-    if varval < max {
-        // this has overflown u64
-        return Ok((i3, 0));
+    match varval.checked_add((finalv as u64) << (7 * varia.len())) {
+        None => {
+            return Err(Err::Error(make_error(i3, ErrorKind::LengthValue)));
+        }
+        Some(x) => {
+            return Ok((i3, x));
+        }
     }
-    return Ok((i3, varval));
 }
 
 fn http2_parse_headers_block_dynamic_size<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
-        bits!(
-            input,
-            complete!(tuple!(
-                verify!(take_bits!(3u8), |&x| x == 1),
-                take_bits!(5u8)
-            ))
-        )
+        bits(complete(tuple((
+            verify(take_bits(3u8), |&x| x == 1),
+            take_bits(5u8),
+        ))))(input)
     }
     let (i2, maxsize) = parser(input)?;
     let (i3, maxsize2) = http2_parse_var_uint(i2, maxsize.1 as u64, 0x1F)?;
-    if maxsize2 == 0 && maxsize.1 == 0x1F {
-        return Ok((
-            i3,
-            HTTP2FrameHeaderBlock {
-                name: Vec::new(),
-                value: Vec::new(),
-                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
-                sizeupdate: 0,
-            },
-        ));
-    }
     if (maxsize2 as usize) < dyn_headers.max_size {
         //dyn_headers.max_size is updated later with all headers
         //may evict entries
@@ -613,16 +588,11 @@ pub const HTTP2_FLAG_HEADER_END_HEADERS: u8 = 0x4;
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
-pub fn http2_parse_frame_headers<'a>(
-    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
-) -> IResult<&'a [u8], HTTP2FrameHeaders> {
-    let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
-    let (mut i3, priority) = cond!(
-        i2,
-        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
-        http2_parse_headers_priority
-    )?;
+fn http2_parse_headers_blocks<'a>(
+    input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
+) -> IResult<&'a [u8], Vec<HTTP2FrameHeaderBlock>> {
     let mut blocks = Vec::new();
+    let mut i3 = input;
     while i3.len() > 0 {
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
@@ -630,15 +600,39 @@ pub fn http2_parse_frame_headers<'a>(
                 debug_validate_bug_on!(i3.len() == rem.len());
                 if i3.len() == rem.len() {
                     //infinite loop
-                    return Err(Err::Error((input, ErrorKind::Eof)));
+                    return Err(Err::Error(make_error(input, ErrorKind::Eof)));
                 }
                 i3 = rem;
+            }
+            Err(Err::Error(ref err)) => {
+                // if we error from http2_parse_var_uint, we keep the first parsed headers
+                if err.code == ErrorKind::LengthValue {
+                    blocks.push(HTTP2FrameHeaderBlock {
+                        name: Vec::new(),
+                        value: Vec::new(),
+                        error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
+                        sizeupdate: 0,
+                    });
+                    break;
+                }
             }
             Err(x) => {
                 return Err(x);
             }
         }
     }
+    return Ok((i3, blocks));
+}
+
+pub fn http2_parse_frame_headers<'a>(
+    input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
+) -> IResult<&'a [u8], HTTP2FrameHeaders> {
+    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
+    let (i3, priority) = cond(
+        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
+        http2_parse_headers_priority,
+    )(i2)?;
+    let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
         HTTP2FrameHeaders {
@@ -660,25 +654,9 @@ pub struct HTTP2FramePushPromise {
 pub fn http2_parse_frame_push_promise<'a>(
     input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
-    let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
-    let (mut i3, stream_id) = bits!(i2, tuple!(take_bits!(1u8), take_bits!(31u32)))?;
-    let mut blocks = Vec::new();
-    while i3.len() > 0 {
-        match http2_parse_headers_block(i3, dyn_headers) {
-            Ok((rem, b)) => {
-                blocks.push(b);
-                debug_validate_bug_on!(i3.len() == rem.len());
-                if i3.len() == rem.len() {
-                    //infinite loop
-                    return Err(Err::Error((input, ErrorKind::Eof)));
-                }
-                i3 = rem;
-            }
-            Err(x) => {
-                return Err(x);
-            }
-        }
-    }
+    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
+    let (i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
+    let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
         HTTP2FramePushPromise {
@@ -698,24 +676,7 @@ pub struct HTTP2FrameContinuation {
 pub fn http2_parse_frame_continuation<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameContinuation> {
-    let mut i3 = input;
-    let mut blocks = Vec::new();
-    while i3.len() > 0 {
-        match http2_parse_headers_block(i3, dyn_headers) {
-            Ok((rem, b)) => {
-                blocks.push(b);
-                debug_validate_bug_on!(i3.len() == rem.len());
-                if i3.len() == rem.len() {
-                    //infinite loop
-                    return Err(Err::Error((input, ErrorKind::Eof)));
-                }
-                i3 = rem;
-            }
-            Err(x) => {
-                return Err(x);
-            }
-        }
-    }
+    let (i3, blocks) = http2_parse_headers_blocks(input, dyn_headers)?;
     return Ok((i3, HTTP2FrameContinuation { blocks }));
 }
 
@@ -774,69 +735,86 @@ pub struct DetectHTTP2settingsSigCtx {
     pub value: Option<DetectU32Data>, //optional value
 }
 
-named!(detect_parse_u32_start_equal<&str,DetectU32Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        opt! (tag!("=") ) >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeEqual})
-    )
-);
+fn detect_parse_u32_start_equal(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("="))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    Ok((
+        i,
+        DetectU32Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
 
-named!(detect_parse_u32_start_interval<&str,DetectU32Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        opt!( is_a!( " " ) ) >>
-        tag!("-") >>
-        opt!( is_a!( " " ) ) >>
-        valrange : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        (DetectU32Data{value, valrange, mode:DetectUintMode::DetectUintModeRange})
-    )
-);
+fn detect_parse_u32_start_interval(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("-")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, valrange) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    Ok((
+        i,
+        DetectU32Data {
+            value,
+            valrange,
+            mode: DetectUintMode::DetectUintModeRange,
+        },
+    ))
+}
 
-named!(detect_parse_u32_start_lesser<&str,DetectU32Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        tag!("<") >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeLt})
-    )
-);
+fn detect_parse_u32_start_lesser(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("<")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    Ok((
+        i,
+        DetectU32Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeLt,
+        },
+    ))
+}
 
-named!(detect_parse_u32_start_greater<&str,DetectU32Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        tag!(">") >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeGt})
-    )
-);
+fn detect_parse_u32_start_greater(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag(">")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+    Ok((
+        i,
+        DetectU32Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeGt,
+        },
+    ))
+}
 
-named!(detect_parse_u32<&str,DetectU32Data>,
-    do_parse!(
-        u32 : alt! (
-            detect_parse_u32_start_lesser |
-            detect_parse_u32_start_greater |
-            complete!( detect_parse_u32_start_interval ) |
-            detect_parse_u32_start_equal
-        ) >>
-        (u32)
-    )
-);
+fn detect_parse_u32(i: &str) -> IResult<&str, DetectU32Data> {
+    let (i, u32) = alt((
+        detect_parse_u32_start_lesser,
+        detect_parse_u32_start_greater,
+        complete(detect_parse_u32_start_interval),
+        detect_parse_u32_start_equal,
+    ))(i)?;
+    Ok((i, u32))
+}
 
-named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        id: map_opt!( alt! ( complete!( is_not!( " <>=" ) ) | rest ),
-            |s: &str| HTTP2SettingsId::from_str(s).ok() ) >>
-        value: opt!( complete!( detect_parse_u32 ) ) >>
-        (DetectHTTP2settingsSigCtx{id, value})
-    )
-);
+pub fn http2_parse_settingsctx(i: &str) -> IResult<&str, DetectHTTP2settingsSigCtx> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, id) = map_opt(alt((complete(is_not(" <>=")), rest)), |s: &str| {
+        HTTP2SettingsId::from_str(s).ok()
+    })(i)?;
+    let (i, value) = opt(complete(detect_parse_u32))(i)?;
+    Ok((i, DetectHTTP2settingsSigCtx { id, value }))
+}
 
 pub struct DetectU64Data {
     pub value: u64,
@@ -844,59 +822,77 @@ pub struct DetectU64Data {
     pub mode: DetectUintMode,
 }
 
-named!(detect_parse_u64_start_equal<&str,DetectU64Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        opt! (tag!("=") ) >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
-        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeEqual})
-    )
-);
+fn detect_parse_u64_start_equal(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("="))(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    Ok((
+        i,
+        DetectU64Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeEqual,
+        },
+    ))
+}
 
-named!(detect_parse_u64_start_interval<&str,DetectU64Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
-        opt!( is_a!( " " ) ) >>
-        tag!("-") >>
-        opt!( is_a!( " " ) ) >>
-        valrange : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
-        (DetectU64Data{value, valrange, mode:DetectUintMode::DetectUintModeRange})
-    )
-);
+fn detect_parse_u64_start_interval(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("-")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, valrange) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    Ok((
+        i,
+        DetectU64Data {
+            value,
+            valrange,
+            mode: DetectUintMode::DetectUintModeRange,
+        },
+    ))
+}
 
-named!(detect_parse_u64_start_lesser<&str,DetectU64Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        tag!("<") >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
-        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeLt})
-    )
-);
+fn detect_parse_u64_start_lesser(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("<")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    Ok((
+        i,
+        DetectU64Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeLt,
+        },
+    ))
+}
 
-named!(detect_parse_u64_start_greater<&str,DetectU64Data>,
-    do_parse!(
-        opt!( is_a!( " " ) ) >>
-        tag!(">") >>
-        opt!( is_a!( " " ) ) >>
-        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
-        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeGt})
-    )
-);
+fn detect_parse_u64_start_greater(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag(">")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, value) = map_opt(digit1, |s: &str| s.parse::<u64>().ok())(i)?;
+    Ok((
+        i,
+        DetectU64Data {
+            value,
+            valrange: 0,
+            mode: DetectUintMode::DetectUintModeGt,
+        },
+    ))
+}
 
-named!(pub detect_parse_u64<&str,DetectU64Data>,
-    do_parse!(
-        u64 : alt! (
-            detect_parse_u64_start_lesser |
-            detect_parse_u64_start_greater |
-            complete!( detect_parse_u64_start_interval ) |
-            detect_parse_u64_start_equal
-        ) >>
-        (u64)
-    )
-);
+pub fn detect_parse_u64(i: &str) -> IResult<&str, DetectU64Data> {
+    let (i, u64) = alt((
+        detect_parse_u64_start_lesser,
+        detect_parse_u64_start_greater,
+        complete(detect_parse_u64_start_interval),
+        detect_parse_u64_start_equal,
+    ))(i)?;
+    Ok((i, u64))
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct HTTP2FrameSettings {
@@ -904,18 +900,15 @@ pub struct HTTP2FrameSettings {
     pub value: u32,
 }
 
-named!(
-    http2_parse_frame_setting<HTTP2FrameSettings>,
-    do_parse!(
-        id: map_opt!(be_u16, num::FromPrimitive::from_u16)
-            >> value: be_u32
-            >> (HTTP2FrameSettings { id, value })
-    )
-);
+fn http2_parse_frame_setting(i: &[u8]) -> IResult<&[u8], HTTP2FrameSettings> {
+    let (i, id) = map_opt(be_u16, num::FromPrimitive::from_u16)(i)?;
+    let (i, value) = be_u32(i)?;
+    Ok((i, HTTP2FrameSettings { id, value }))
+}
 
-named!(pub http2_parse_frame_settings<Vec<HTTP2FrameSettings>>,
-    many0!( complete!(http2_parse_frame_setting) )
-);
+pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSettings>> {
+    many0(complete(http2_parse_frame_setting))(i)
+}
 
 #[cfg(test)]
 mod tests {

@@ -73,7 +73,7 @@ impl NFSState {
                 self.set_event(NFSEvent::MalformedData);
             };
         } else if r.procedure == NFSPROC3_WRITE {
-            if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data) {
+            if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
                 self.process_write_record(r, &rd);
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -220,7 +220,7 @@ impl NFSState {
                 self.set_event(NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_READ {
-            if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data) {
+            if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
                 self.process_read_record(r, &rd, Some(xidmap));
                 nfs_status = rd.status;
             } else {

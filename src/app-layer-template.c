@@ -36,6 +36,7 @@
 #include "suricata-common.h"
 #include "stream.h"
 #include "conf.h"
+#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-template.h"
@@ -232,11 +233,13 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
-    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-    void *local_data, const uint8_t flags)
+static AppLayerResult TemplateParseRequest(Flow *f, void *statev, AppLayerParserState *pstate,
+        StreamSlice stream_slice, void *local_data)
 {
     TemplateState *state = statev;
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+    const uint8_t flags = StreamSliceGetFlags(&stream_slice);
 
     SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
 
@@ -306,11 +309,12 @@ end:
 }
 
 static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
-    const uint8_t *input, uint32_t input_len, void *local_data,
-    const uint8_t flags)
+        StreamSlice stream_slice, void *local_data)
 {
     TemplateState *state = statev;
     TemplateTransaction *tx = NULL, *ttx;
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     SCLogNotice("Parsing Template response.");
 

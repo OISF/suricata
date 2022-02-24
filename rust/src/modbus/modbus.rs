@@ -306,9 +306,11 @@ pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_voi
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    if input_len == 0 {
+    let buf = stream_slice.as_slice();
+    if buf.len() == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             return AppLayerResult::ok();
         } else {
@@ -317,17 +319,17 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-
     state.parse(buf, Direction::ToServer)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    if input_len == 0 {
+    let buf = stream_slice.as_slice();
+    if buf.len() == 0 {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             return AppLayerResult::ok();
         } else {
@@ -336,8 +338,6 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-
     state.parse(buf, Direction::ToClient)
 }
 
@@ -405,6 +405,8 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         apply_tx_config: None,
         flags: 0,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

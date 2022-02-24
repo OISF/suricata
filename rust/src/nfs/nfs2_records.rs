@@ -19,7 +19,7 @@
 
 use crate::nfs::nfs_records::*;
 use nom7::bytes::streaming::take;
-use nom7::combinator::rest;
+use nom7::combinator::{rest, cond};
 use nom7::number::streaming::be_u32;
 use nom7::IResult;
 
@@ -69,7 +69,9 @@ pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
     let (i, status) = be_u32(i)?;
     let (i, attr_blob) = take(68_usize)(i)?;
     let (i, data_len) = be_u32(i)?;
-    let (i, data_contents) = rest(i)?;
+    let (i, data_contents) = take(data_len)(i)?;
+    let fill_bytes = 4 - (data_len % 4);
+    let (i, _) = cond(fill_bytes != 0, take(fill_bytes))(i)?;
     let reply = NfsReplyRead {
         status,
         attr_follows: 1,
@@ -95,4 +97,139 @@ pub fn parse_nfs2_attribs(i: &[u8]) -> IResult<&[u8], Nfs2Attributes> {
     let (i, _blob2) = take(44_usize)(i)?;
     let attrs = Nfs2Attributes { atype, asize };
     Ok((i, attrs))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nfs::nfs2_records::*;
+
+    #[test]
+    fn test_nfs2_handle() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7, /*file_handle*/
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5a,
+            0x00, 0x00, 0x00, 0x29, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29
+        ];
+
+        let result = parse_nfs2_handle(buf).unwrap();
+        match result {
+            (r, res) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(res.value, buf);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_request_lookup() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7, /*file_handle*/
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5a,
+            0x00, 0x00, 0x00, 0x29, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29,
+            0x00, 0x00, 0x00, 0x02, 0x61, 0x6d, 0x00, 0x00, /*name*/
+        ];
+
+        let (_, handle) = parse_nfs2_handle(buf).unwrap();
+        assert_eq!(handle.value, &buf[..32]);
+
+        let result = parse_nfs2_request_lookup(buf).unwrap();
+        match result {
+            (r, request) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(request.handle, handle);
+                assert_eq!(request.name_vec, b"am".to_vec());
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_request_read() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x10, 0x10, 0x85, 0x00, 0x00, 0x03, 0xe7, /*file_handle*/
+            0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0xb2, 0x5d,
+            0x00, 0x00, 0x00, 0x2a, 0x00, 0x0a, 0x00, 0x00,
+            0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29,
+            0x00, 0x00, 0x00, 0x00, /*offset*/
+            0x00, 0x00, 0x20, 0x00, /*count*/
+            0x00, 0x00, 0x20, 0x00, /*_total_count*/
+        ];
+
+        let (_, handle) = parse_nfs2_handle(buf).unwrap();
+        assert_eq!(handle.value, &buf[..32]);
+
+        let result = parse_nfs2_request_read(buf).unwrap();
+        match result {
+            (r, request) => {
+                assert_eq!(r.len(), 4);
+                assert_eq!(request.handle, handle);
+                assert_eq!(request.offset, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_reply_read() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*Status: NFS_OK - (0)*/
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x81, 0xa4, /*attr_blob*/
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0b,
+            0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x10, 0x85,
+            0x00, 0x00, 0xb2, 0x5d, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x0b, 0x71, 0xb0, 0x38, 0x47, 0x71, 0xc4,
+            0x00, 0x08, 0xb2, 0x90, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x09, 0x00, 0xb0,
+            0x00, 0x00, 0x00, 0x0b, /*data_len*/
+            0x74, 0x68, 0x65, 0x20, 0x62, 0x20, 0x66, 0x69, /*data_contents: ("the b file")*/
+            0x6c, 0x65, 0x0a,
+            0x00, /*_data_padding*/
+        ];
+
+        let result = parse_nfs2_reply_read(buf).unwrap();
+        match result {
+            (r, response) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(response.status, 0);
+                assert_eq!(response.attr_follows, 1);
+                assert_eq!(response.attr_blob.len(), 68);
+                assert_eq!(response.count, response.data_len);
+                assert_eq!(response.eof, false);
+                assert_eq!(response.data_len, 11);
+                assert_eq!(response.data, &buf[76..87]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs2_attributes() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, /*Type: Regular File (1)*/
+            0x00, 0x00, 0x81, 0xa4, 0x00, 0x00, 0x00, 0x01, /*attr: _blob1*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, /*size: 0*/
+            0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, /*attr: _blob2*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x10, 0x85,
+            0x00, 0x00, 0xa3, 0xe7, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x16, 0x50, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x16, 0x50, 0x38, 0x47, 0x75, 0xea,
+            0x00, 0x08, 0x16, 0x50
+        ];
+
+        let result = parse_nfs2_attribs(buf).unwrap();
+        match result {
+            (r, res) => {
+                assert_eq!(r.len(), 0);
+                assert_eq!(res.atype, 1);
+                assert_eq!(res.asize, 0);
+            }
+        }
+    }
 }

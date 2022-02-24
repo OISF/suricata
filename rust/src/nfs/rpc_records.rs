@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,14 +17,19 @@
 
 //! Nom parsers for RPCv2
 
-use nom7::bits::{bits, streaming::take as take_bits};
+use crate::common::nom7::bits;
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
-use nom7::combinator::cond;
-use nom7::error::Error;
+use nom7::combinator::{cond, verify, rest};
 use nom7::multi::length_data;
-use nom7::number::streaming::be_u32;
+use nom7::number::streaming::{be_u32};
 use nom7::sequence::tuple;
-use nom7::IResult;
+use nom7::error::{make_error, ErrorKind};
+use nom7::{IResult, Err};
+
+pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
+pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
+pub const RPC_MAX_VERIFIER_SIZE: u32 = 4096; // Linux kernel defines 400.
 
 #[derive(Debug, PartialEq)]
 pub enum RpcRequestCreds<'a> {
@@ -50,7 +55,7 @@ pub struct RpcRequestCredsUnix<'a> {
 
 fn parse_rpc_request_creds_unix(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
     let (i, stamp) = be_u32(i)?;
-    let (i, machine_name_len) = be_u32(i)?;
+    let (i, machine_name_len) = verify(be_u32, |&size| size < RPC_MAX_MACHINE_SIZE)(i)?;
     let (i, machine_name_buf) = take(machine_name_len as usize)(i)?;
     let (i, uid) = be_u32(i)?;
     let (i, gid) = be_u32(i)?;
@@ -105,7 +110,7 @@ pub struct RpcGssApiIntegrity<'a> {
 // Parse the GSSAPI Integrity envelope to get to the
 // data we care about.
 pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity> {
-    let (i, len) = be_u32(i)?;
+    let (i, len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, seq_num) = be_u32(i)?;
     let (i, data) = take(len as usize)(i)?;
     let res = RpcGssApiIntegrity { seq_num, data };
@@ -121,16 +126,16 @@ pub struct RpcPacketHeader {
 }
 
 fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(1u8),   // is_last
         take_bits(31u32), // len
     )))(i)
 }
 
 pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, fraghdr) = parse_bits(i)?;
+    let (i, fraghdr) = verify(parse_bits, |v: &(u8,u32)| v.1 >= 24)(i)?;
     let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = be_u32(i)?;
+    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
         frag_is_last: fraghdr.0 == 1,
         frag_len: fraghdr.1,
@@ -151,6 +156,7 @@ pub struct RpcReplyPacket<'a> {
     pub reply_state: u32,
     pub accept_state: u32,
 
+    pub prog_data_size: u32,
     pub prog_data: &'a [u8],
 }
 
@@ -197,11 +203,24 @@ pub struct RpcPacket<'a> {
     pub verifier_len: u32,
     pub verifier: &'a [u8],
 
+    pub prog_data_size: u32,
     pub prog_data: &'a [u8],
 }
 
-pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
-    let (i, hdr) = parse_rpc_packet_header(i)?;
+/// Parse request RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len as usize + 4;
 
     let (i, rpcver) = be_u32(i)?;
     let (i, program) = be_u32(i)?;
@@ -209,7 +228,7 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, procedure) = be_u32(i)?;
 
     let (i, creds_flavor) = be_u32(i)?;
-    let (i, creds_len) = be_u32(i)?;
+    let (i, creds_len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, creds_buf) = take(creds_len as usize)(i)?;
     let (_, creds) = match creds_flavor {
         1 => parse_rpc_request_creds_unix(creds_buf)?,
@@ -218,10 +237,21 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     };
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
-    let (i, prog_data) = (&[], i);
+    let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+
+    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take(data_size)(i)?
+    };
+
     let packet = RpcPacket {
         hdr,
 
@@ -237,23 +267,46 @@ pub fn parse_rpc(i: &[u8]) -> IResult<&[u8], RpcPacket> {
         verifier_len,
         verifier,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
 }
 
-// to be called with data <= hdr.frag_len + 4. Sending more data is undefined.
-pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
-    let (i, hdr) = parse_rpc_packet_header(i)?;
+/// Parse reply RPC record.
+///
+/// Can be called from 2 paths:
+///  1. we have all data -> do full parsing
+///  2. we have partial data (large records) -> allow partial prog_data parsing
+///
+/// Arguments:
+/// * `complete`:
+///           type: bool
+///    description: do full parsing, including of `prog_data`
+///
+pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket> {
+    let (i, hdr) = parse_rpc_packet_header(start_i)?;
+    let rec_size = hdr.frag_len + 4;
 
-    let (i, reply_state) = be_u32(i)?;
+    let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
     let (i, accept_state) = be_u32(i)?;
-    let (i, prog_data) = (&[], i);
+
+    let consumed = start_i.len() - i.len();
+    if consumed > rec_size as usize {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
+
+    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let (i, prog_data) = if !complete {
+        rest(i)?
+    } else {
+        take(data_size)(i)?
+    };
     let packet = RpcReplyPacket {
         hdr,
 
@@ -264,6 +317,7 @@ pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         reply_state,
         accept_state,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
@@ -271,7 +325,7 @@ pub fn parse_rpc_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
 
 pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
     let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = be_u32(i)?;
+    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
         frag_is_last: false,
         frag_len: 0,
@@ -291,7 +345,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, procedure) = be_u32(i)?;
 
     let (i, creds_flavor) = be_u32(i)?;
-    let (i, creds_len) = be_u32(i)?;
+    let (i, creds_len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, creds_buf) = take(creds_len as usize)(i)?;
     let (_, creds) = match creds_flavor {
         1 => parse_rpc_request_creds_unix(creds_buf)?,
@@ -300,10 +354,11 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     };
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
-    let (i, prog_data) = (&[], i);
+    let data_size : u32 = i.len() as u32;
+    let (i, prog_data) = rest(i)?;
     let packet = RpcPacket {
         hdr,
 
@@ -319,6 +374,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
         verifier_len,
         verifier,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))
@@ -328,12 +384,14 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, hdr) = parse_rpc_udp_packet_header(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
 
-    let (i, reply_state) = be_u32(i)?;
+    let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, accept_state) = be_u32(i)?;
-    let (i, prog_data) = (&[], i);
+
+    let data_size : u32 = i.len() as u32;
+    let (i, prog_data) = rest(i)?;
     let packet = RpcReplyPacket {
         hdr,
 
@@ -344,6 +402,7 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
         reply_state,
         accept_state,
 
+        prog_data_size: data_size,
         prog_data,
     };
     Ok((i, packet))

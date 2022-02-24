@@ -71,11 +71,13 @@
 #include "output-json-smb.h"
 #include "output-json-ike.h"
 #include "output-json-krb5.h"
+#include "output-json-quic.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
+#include "output-json-pgsql.h"
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
@@ -84,6 +86,7 @@
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
+#include "output-json-frame.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1100,6 +1103,8 @@ void OutputRegisterLoggers(void)
     JsonIKELogRegister();
     /* KRB5 JSON logger. */
     JsonKRB5LogRegister();
+    /* QUIC JSON logger. */
+    JsonQuicLogRegister();
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
     /* SNMP JSON logger. */
@@ -1110,6 +1115,8 @@ void OutputRegisterLoggers(void)
     JsonRFBLogRegister();
     /* MQTT JSON logger. */
     JsonMQTTLogRegister();
+    /* Pgsql JSON logger. */
+    JsonPgsqlLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* Template Rust JSON logger. */
@@ -1118,4 +1125,6 @@ void OutputRegisterLoggers(void)
     JsonRdpLogRegister();
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
+    /* app layer frames */
+    JsonFrameLogRegister();
 }

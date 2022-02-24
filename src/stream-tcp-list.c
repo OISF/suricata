@@ -31,6 +31,7 @@
 #include "util-streaming-buffer.h"
 #include "util-print.h"
 #include "util-validate.h"
+#include "app-layer-frames.h"
 
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg);
 
@@ -676,7 +677,24 @@ static inline bool StreamTcpReturnSegmentCheck(const TcpStream *stream, const Tc
     SCReturnInt(true);
 }
 
-static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
+static inline uint64_t GetLeftEdgeForApp(Flow *f, TcpSession *ssn, TcpStream *stream)
+{
+    const FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    if (frames_container == NULL)
+        return STREAM_APP_PROGRESS(stream);
+
+    const Frames *frames =
+            stream == &ssn->client ? &frames_container->toserver : &frames_container->toclient;
+    //    const uint64_t x = FramesLeftEdge(stream, frames);
+    //  BUG_ON(x != (frames->left_edge_rel + STREAM_BASE_OFFSET(stream)));
+    //    return x;
+    const uint64_t o = (uint64_t)frames->left_edge_rel + STREAM_BASE_OFFSET(stream);
+    SCLogDebug(
+            "%s: frames left edge: %" PRIu64, &ssn->client == stream ? "toserver" : "toclient", o);
+    return o;
+}
+
+static inline uint64_t GetLeftEdge(Flow *f, TcpSession *ssn, TcpStream *stream)
 {
     bool use_app = true;
     bool use_raw = true;
@@ -693,6 +711,8 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     if (!stream_config.streaming_log_api) {
         use_log = false;
     }
+
+    SCLogDebug("use_app %d use_raw %d use_log %d", use_app, use_raw, use_log);
 
     if (use_raw) {
         uint64_t raw_progress = STREAM_RAW_PROGRESS(stream);
@@ -721,18 +741,19 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         }
 
         if (use_app) {
-            left_edge = MIN(STREAM_APP_PROGRESS(stream), raw_progress);
-            SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
-                    left_edge, STREAM_APP_PROGRESS(stream), raw_progress);
+            const uint64_t app_le = GetLeftEdgeForApp(f, ssn, stream);
+            left_edge = MIN(app_le, raw_progress);
+            SCLogDebug("left_edge %" PRIu64 ", using both app:%" PRIu64 ", raw:%" PRIu64, left_edge,
+                    app_le, raw_progress);
         } else {
             left_edge = raw_progress;
             SCLogDebug("left_edge %"PRIu64", using only raw:%"PRIu64,
                     left_edge, raw_progress);
         }
     } else if (use_app) {
-        left_edge = STREAM_APP_PROGRESS(stream);
-        SCLogDebug("left_edge %"PRIu64", using only app:%"PRIu64,
-                left_edge, STREAM_APP_PROGRESS(stream));
+        const uint64_t app_le = GetLeftEdgeForApp(f, ssn, stream);
+        left_edge = app_le;
+        SCLogDebug("left_edge %" PRIu64 ", using only app:%" PRIu64, left_edge, app_le);
     } else {
         left_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
         SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
@@ -847,10 +868,14 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         return;
     }
 
-    const uint64_t left_edge = GetLeftEdge(ssn, stream);
+    const uint64_t left_edge = GetLeftEdge(f, ssn, stream);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
+
+        if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+            AppLayerFramesSlide(f, slide, flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+        }
         StreamingBufferSlideToOffset(&stream->sb, left_edge);
         stream->base_seq += slide;
 

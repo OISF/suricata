@@ -85,6 +85,7 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
 {
     int ret = 1;
     z_stream infstream;
+    memset(&infstream, 0, sizeof(infstream));
     infstream.zalloc = Z_NULL;
     infstream.zfree = Z_NULL;
     infstream.opaque = Z_NULL;
@@ -94,8 +95,13 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
     infstream.avail_out = (uInt)decompressed_data_len;
     infstream.next_out = (Bytef *)decompressed_data;
 
-    inflateInit(&infstream);
-    int result = inflate(&infstream, Z_NO_FLUSH);
+    int result = inflateInit(&infstream);
+    if (result != Z_OK) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_Z_UNKNOWN_ERROR);
+        return 0;
+    }
+
+    result = inflate(&infstream, Z_NO_FLUSH);
     switch(result) {
         case Z_STREAM_END:
             break;
