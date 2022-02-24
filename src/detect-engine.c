@@ -1411,7 +1411,7 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
 
     fb->max = MAX(fb->max, local_id);
     InspectionBuffer *buffer = &fb->inspection_buffers[local_id];
-    SCLogDebug("using file_data buffer %p", buffer);
+    SCLogDebug("using buffer %p", buffer);
 #ifdef DEBUG_VALIDATION
     buffer->multi = true;
 #endif
