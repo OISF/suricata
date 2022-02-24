@@ -194,7 +194,6 @@ static int HTTPGetFrameIdByName(const char *frame_name)
 {
     int id = SCMapEnumNameToValue(frame_name, http_frame_table);
     if (id < 0) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "unknown frame type \"%s\"", frame_name);
         return -1;
     }
     return id;
