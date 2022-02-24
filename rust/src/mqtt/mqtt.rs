@@ -21,6 +21,7 @@ use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::applayer::*;
+use crate::conf::conf_get;
 use crate::core::*;
 use nom7::Err;
 use std;
@@ -35,6 +36,8 @@ const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
+static mut MQTT_MAX_TX: usize = 1024;
+
 static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
@@ -48,6 +51,7 @@ pub enum MQTTEvent {
     InvalidQosLevel,
     MissingMsgId,
     UnassignedMsgType,
+    TooManyTransactions,
 }
 
 #[derive(Debug)]
@@ -162,6 +166,15 @@ impl MQTTState {
             tx.toclient = true;
         } else {
             tx.toserver = true;
+        }
+        if self.transactions.len() > unsafe { MQTT_MAX_TX } {
+            for tx_old in &mut self.transactions {
+                if !tx_old.complete {
+                    tx_old.complete = true;
+                    MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
+                    break;
+                }
+            }
         }
         return tx;
     }
@@ -565,14 +578,11 @@ pub unsafe extern "C" fn rs_mqtt_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_request(buf);
+    return state.parse_request(stream_slice.as_slice());
 }
 
 #[no_mangle]
@@ -580,14 +590,11 @@ pub unsafe extern "C" fn rs_mqtt_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
+    stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
-    _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.parse_response(buf);
+    return state.parse_response(stream_slice.as_slice());
 }
 
 #[no_mangle]
@@ -699,6 +706,8 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -708,6 +717,13 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
         ALPROTO_MQTT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.mqtt.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                MQTT_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for mqtt.max-tx");
+            }
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for MQTT.");

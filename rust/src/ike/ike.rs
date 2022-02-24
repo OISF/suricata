@@ -26,7 +26,7 @@ use crate::core::{self, *};
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
-use nom;
+use nom7::Err;
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -215,7 +215,7 @@ impl IKEState {
                 }
                 return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKE");
                 return AppLayerResult::err();
             }
@@ -316,22 +316,21 @@ pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    let buf = build_slice!(input, input_len as usize);
-
-    return state.handle_input(buf, Direction::ToServer);
+    return state.handle_input(stream_slice.as_slice(), Direction::ToServer);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    let buf = build_slice!(input, input_len as usize);
-    return state.handle_input(buf, Direction::ToClient);
+    return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
 }
 
 #[no_mangle]
@@ -423,6 +422,8 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

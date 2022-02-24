@@ -49,7 +49,6 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-#include "util-crypt.h"
 #include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-http.h"
@@ -430,11 +429,7 @@ static void BodyBase64Buffer(JsonBuilder *js, HtpBody *body, const char *key)
             return;
         }
 
-        unsigned long len = BASE64_BUFFER_SIZE(body_data_len);
-        uint8_t encoded[len];
-        if (Base64Encode(body_data, body_data_len, encoded, &len) == SC_BASE64_OK) {
-            jb_set_string(js, key, (char *)encoded);
-        }
+        jb_set_base64(js, key, body_data, body_data_len);
     }
 }
 

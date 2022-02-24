@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,6 +38,11 @@ pub struct Request {
     pub path: String,
     pub version: String,
     pub headers: HashMap<String, String>,
+
+    pub request_line_len: u16,
+    pub headers_len: u16,
+    pub body_offset: u16,
+    pub body_len: u16,
 }
 
 #[derive(Debug)]
@@ -45,6 +50,11 @@ pub struct Response {
     pub version: String,
     pub code: String,
     pub reason: String,
+
+    pub response_line_len: u16,
+    pub headers_len: u16,
+    pub body_offset: u16,
+    pub body_len: u16,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -86,39 +96,57 @@ fn is_header_value(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
 }
 
-pub fn sip_parse_request(i: &[u8]) -> IResult<&[u8], Request> {
-    let (i, method) = parse_method(i)?;
+pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
+    let (i, method) = parse_method(oi)?;
     let (i, _) = char(' ')(i)?;
     let (i, path) = parse_request_uri(i)?;
     let (i, _) = char(' ')(i)?;
     let (i, version) = parse_version(i)?;
-    let (i, _) = crlf(i)?;
-    let (i, headers) = parse_headers(i)?;
-    let (i, _) = crlf(i)?;
+    let (hi, _) = crlf(i)?;
+    let request_line_len = oi.len() - hi.len();
+    let (phi, headers) = parse_headers(hi)?;
+    let headers_len = hi.len() - phi.len();
+    let (bi, _) = crlf(phi)?;
+    let body_offset = oi.len() - bi.len();
     Ok((
-        i,
+        bi,
         Request {
             method: method.into(),
             path: path.into(),
             version: version.into(),
             headers,
+
+            request_line_len: request_line_len as u16,
+            headers_len: headers_len as u16,
+            body_offset: body_offset as u16,
+            body_len: bi.len() as u16,
         },
     ))
 }
 
-pub fn sip_parse_response(i: &[u8]) -> IResult<&[u8], Response> {
-    let (i, version) = parse_version(i)?;
+pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
+    let (i, version) = parse_version(oi)?;
     let (i, _) = char(' ')(i)?;
     let (i, code) = parse_code(i)?;
     let (i, _) = char(' ')(i)?;
     let (i, reason) = parse_reason(i)?;
-    let (i, _) = crlf(i)?;
+    let (hi, _) = crlf(i)?;
+    let response_line_len = oi.len() - hi.len();
+    let (phi, _headers) = parse_headers(hi)?;
+    let headers_len = hi.len() - phi.len();
+    let (bi, _) = crlf(phi)?;
+    let body_offset = oi.len() - bi.len();
     Ok((
-        i,
+        bi,
         Response {
             version: version.into(),
             code: code.into(),
             reason: reason.into(),
+
+            response_line_len: response_line_len as u16,
+            headers_len: headers_len as u16,
+            body_offset: body_offset as u16,
+            body_len: bi.len() as u16,
         },
     ))
 }
@@ -271,15 +299,16 @@ mod tests {
         let buf: &[u8] = "REGISTER sip:sip.cybercity.dk SIP/2.0\r\n\
                           From: <sip:voi18063@sip.cybercity.dk>;tag=903df0a\r\n\
                           To: <sip:voi18063@sip.cybercity.dk>\r\n\
-                          Content-Length: 0  \r\n\
-                          \r\n"
+                          Content-Length: 4  \r\n\
+                          \r\nABCD"
             .as_bytes();
 
-        let (_, req) = sip_parse_request(buf).expect("parsing failed");
+        let (body, req) = sip_parse_request(buf).expect("parsing failed");
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
-        assert_eq!(req.headers["Content-Length"], "0");
+        assert_eq!(req.headers["Content-Length"], "4");
+        assert_eq!(body, "ABCD".as_bytes());
     }
 
     #[test]

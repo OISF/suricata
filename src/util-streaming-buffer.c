@@ -412,7 +412,7 @@ static void SBBPrune(StreamingBuffer *sb)
     StreamingBufferBlock *sbb = NULL, *safe = NULL;
     RB_FOREACH_SAFE(sbb, SBB, &sb->sbb_tree, safe) {
         /* completely beyond window, we're done */
-        if (sbb->offset > sb->stream_offset) {
+        if (sbb->offset >= sb->stream_offset) {
             sb->head = sbb;
             break;
         }

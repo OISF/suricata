@@ -163,7 +163,8 @@ void HttpRangeContainersInit(void)
         }
     }
     if (ConfGetValue("app-layer.protocols.http.byterange.timeout", &str) == 1) {
-        if (StringParseUint32(&timeout, 10, strlen(str), str) <= 0) {
+        size_t slen = strlen(str);
+        if (slen > UINT16_MAX || StringParseUint32(&timeout, 10, (uint16_t)slen, str) <= 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                     "timeout value cannot be deduced: %s,"
                     " resetting to default",

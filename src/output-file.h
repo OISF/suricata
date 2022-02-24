@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,14 +29,9 @@
 #include "decode.h"
 #include "util-file.h"
 
-/** packet logger function pointer type */
+/** file logger function pointer type */
 typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *,
                           const File *, uint8_t direction);
-
-/** packet logger condition function pointer type,
- *  must return true for packets that should be logged
- */
-//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
 
 int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
     OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,

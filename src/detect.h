@@ -279,6 +279,7 @@ typedef struct DetectPort_ {
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
 
+#define DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET         0x0001
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
 #define FILE_SIG_NEED_FILE          0x01
@@ -423,6 +424,7 @@ typedef struct DetectBufferType_ {
     int parent_id;
     bool mpm;
     bool packet; /**< compat to packet matches */
+    bool frame;  /**< is about Frame inspection */
     bool supports_transforms;
     void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
     bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
@@ -459,6 +461,33 @@ typedef struct DetectEnginePktInspectionEngine {
     } v1;
     struct DetectEnginePktInspectionEngine *next;
 } DetectEnginePktInspectionEngine;
+
+struct Frame;
+struct Frames;
+struct DetectEngineFrameInspectionEngine;
+
+/**
+ *  \param alert_flags[out] for setting PACKET_ALERT_FLAG_*
+ */
+typedef int (*InspectionBufferFrameInspectFunc)(struct DetectEngineThreadCtx_ *,
+        const struct DetectEngineFrameInspectionEngine *engine, const struct Signature_ *s,
+        Packet *p, const struct Frames *frames, const struct Frame *frame, const uint32_t idx);
+
+typedef struct DetectEngineFrameInspectionEngine {
+    AppProto alproto;
+    uint8_t dir;
+    uint8_t type;
+    bool mpm;
+    uint16_t sm_list;
+    uint16_t sm_list_base;
+    struct {
+        InspectionBufferFrameInspectFunc Callback;
+        /** pointer to the transforms in the 'DetectBuffer entry for this list */
+        const DetectEngineTransforms *transforms;
+    } v1;
+    SigMatchData *smd;
+    struct DetectEngineFrameInspectionEngine *next;
+} DetectEngineFrameInspectionEngine;
 
 #ifdef UNITTESTS
 #define sm_lists init_data->smlists
@@ -565,6 +594,7 @@ typedef struct Signature_ {
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;
+    DetectEngineFrameInspectionEngine *frame_inspect;
 
     /* Matching structures for the built-ins. The others are in
      * their inspect engines. */
@@ -593,6 +623,7 @@ typedef struct Signature_ {
 enum DetectBufferMpmType {
     DETECT_BUFFER_MPM_TYPE_PKT,
     DETECT_BUFFER_MPM_TYPE_APP,
+    DETECT_BUFFER_MPM_TYPE_FRAME,
     /* must be last */
     DETECT_BUFFER_MPM_TYPE_SIZE,
 };
@@ -629,6 +660,12 @@ typedef struct DetectBufferMpmRegistery_ {
                     const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
             InspectionBufferGetPktDataPtr GetData;
         } pkt_v1;
+
+        /* frame matching: use if type == DETECT_BUFFER_MPM_TYPE_FRAME */
+        struct {
+            AppProto alproto;
+            uint8_t type;
+        } frame_v1;
     };
 
     struct DetectBufferMpmRegistery_ *next;
@@ -933,6 +970,9 @@ typedef struct DetectEngineCtx_ {
     DetectEnginePktInspectionEngine *pkt_inspect_engines;
     DetectBufferMpmRegistery *pkt_mpms_list;
     uint32_t pkt_mpms_list_cnt;
+    DetectEngineFrameInspectionEngine *frame_inspect_engines;
+    DetectBufferMpmRegistery *frame_mpms_list;
+    uint32_t frame_mpms_list_cnt;
 
     uint32_t prefilter_id;
     HashListTable *prefilter_hash_table;
@@ -1071,12 +1111,13 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
-    uint16_t flags;
+    uint16_t flags; /**< DETECT_ENGINE_THREAD_CTX_* flags */
 
     /* true if tx_id is set */
     bool tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
+    int64_t frame_id;
     Packet *p;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
@@ -1268,6 +1309,9 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef void (*PrefilterFrameFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        const struct Frames *frames, const struct Frame *frame, const uint32_t idx);
+
 typedef struct PrefilterEngineList_ {
     uint16_t id;
 
@@ -1277,6 +1321,8 @@ typedef struct PrefilterEngineList_ {
      *  with Tx Engine */
     uint8_t tx_min_progress;
 
+    uint8_t frame_type;
+
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
     void *pectx;
@@ -1285,6 +1331,7 @@ typedef struct PrefilterEngineList_ {
     void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags);
+    PrefilterFrameFn PrefilterFrame;
 
     struct PrefilterEngineList_ *next;
 
@@ -1301,9 +1348,13 @@ typedef struct PrefilterEngine_ {
 
     /** App Proto this engine applies to: only used with Tx Engines */
     AppProto alproto;
-    /** Minimal Tx progress we need before running the engine. Only used
-     *  with Tx Engine */
-    uint8_t tx_min_progress;
+
+    union {
+        /** Minimal Tx progress we need before running the engine. Only used
+         *  with Tx Engine */
+        uint8_t tx_min_progress;
+        uint8_t frame_type;
+    } ctx;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1314,6 +1365,7 @@ typedef struct PrefilterEngine_ {
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
                 Packet *p, Flow *f, void *tx,
                 const uint64_t idx, const uint8_t flags);
+        PrefilterFrameFn PrefilterFrame;
     } cb;
 
     /* global id for this prefilter */
@@ -1334,10 +1386,12 @@ typedef struct SigGroupHeadInitData_ {
 
     MpmCtx **app_mpms;
     MpmCtx **pkt_mpms;
+    MpmCtx **frame_mpms;
 
     PrefilterEngineList *pkt_engines;
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
+    PrefilterEngineList *frame_engines;
 
     /** number of sigs in this group */
     SigIntId sig_cnt;
@@ -1370,6 +1424,7 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
+    PrefilterEngine *frame_engines;
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

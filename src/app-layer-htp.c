@@ -56,6 +56,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer.h"
+#include "app-layer-frames.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
@@ -131,6 +132,7 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "INVALID_RESPONSE_FIELD_FOLDING", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING },
     { "REQUEST_FIELD_TOO_LONG", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG },
     { "RESPONSE_FIELD_TOO_LONG", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG },
+    { "FILE_NAME_TOO_LONG", HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG },
     { "REQUEST_LINE_INVALID", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID },
     { "REQUEST_BODY_UNEXPECTED", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED },
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
@@ -168,6 +170,41 @@ SCEnumCharMap http_decoder_event_table[] = {
 
     { NULL, -1 },
 };
+
+/* app-layer-frame-documentation tag start: HttpFrameTypes */
+enum HttpFrameTypes {
+    HTTP_FRAME_REQUEST,
+    HTTP_FRAME_RESPONSE,
+};
+
+SCEnumCharMap http_frame_table[] = {
+    {
+            "request",
+            HTTP_FRAME_REQUEST,
+    },
+    {
+            "response",
+            HTTP_FRAME_RESPONSE,
+    },
+    { NULL, -1 },
+};
+/* app-layer-frame-documentation tag end: HttpFrameTypes */
+
+static int HTTPGetFrameIdByName(const char *frame_name)
+{
+    int id = SCMapEnumNameToValue(frame_name, http_frame_table);
+    if (id < 0) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "unknown frame type \"%s\"", frame_name);
+        return -1;
+    }
+    return id;
+}
+
+static const char *HTTPGetFrameNameById(const uint8_t frame_id)
+{
+    const char *name = SCMapEnumValueToName(frame_id, http_frame_table);
+    return name;
+}
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
@@ -524,7 +561,7 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
 /* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
 struct {
     const char *msg;
-    int  de;
+    uint8_t de;
 } htp_errors[] = {
     { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
     { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
@@ -547,7 +584,7 @@ struct {
 
 struct {
     const char *msg;
-    int  de;
+    uint8_t de;
 } htp_warnings[] = {
     { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
     { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
@@ -594,7 +631,7 @@ struct {
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleWarningGetId(const char *msg)
+static uint8_t HTPHandleWarningGetId(const char *msg)
 {
     SCLogDebug("received warning \"%s\"", msg);
     size_t idx;
@@ -618,7 +655,7 @@ static int HTPHandleWarningGetId(const char *msg)
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleErrorGetId(const char *msg)
+static uint8_t HTPHandleErrorGetId(const char *msg)
 {
     SCLogDebug("received error \"%s\"", msg);
 
@@ -675,7 +712,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
 
         SCLogDebug("message %s", log->msg);
 
-        int id = HTPHandleErrorGetId(log->msg);
+        uint8_t id = HTPHandleErrorGetId(log->msg);
         if (id == 0) {
             id = HTPHandleWarningGetId(log->msg);
             if (id == 0)
@@ -808,16 +845,11 @@ error:
  *  \param  flow        Pointer to the flow the data belong to
  *  \param  htp_state   Pointer the state in which the parsed value to be stored
  *  \param  pstate      Application layer parser state for this session
- *  \param  input       Pointer the received HTTP client data
- *  \param  input_len   Length in bytes of the received data
- *  \param  output      Pointer to the output (not used in this function)
  *
  *  \retval On success returns 1 or on failure returns -1.
  */
-static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
-                                AppLayerParserState *pstate,
-                                const uint8_t *input, uint32_t input_len,
-                                void *local_data, const uint8_t flags)
+static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     int ret = 0;
@@ -833,6 +865,10 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
         }
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
+    hstate->slice = &stream_slice;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
@@ -858,6 +894,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);
+    hstate->slice = NULL;
 
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -878,14 +915,15 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
  *
  *  \retval On success returns 1 or on failure returns -1
  */
-static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
-                                 AppLayerParserState *pstate,
-                                 const uint8_t *input, uint32_t input_len,
-                                 void *local_data, const uint8_t flags)
+static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerParserState *pstate,
+        StreamSlice stream_slice, void *local_data)
 {
     SCEnter();
     int ret = 0;
     HtpState *hstate = (HtpState *)htp_state;
+
+    const uint8_t *input = StreamSliceGetData(&stream_slice);
+    uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
@@ -897,6 +935,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
         }
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
+    hstate->slice = &stream_slice;
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     htp_tx_t *tx = NULL;
@@ -924,6 +963,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
                         dp = (uint16_t)tx->request_port_number;
                     }
                     consumed = htp_connp_res_data_consumed(hstate->connp);
+                    hstate->slice = NULL;
                     AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2);
                     // During HTTP2 upgrade, we may consume the HTTP1 part of the data
                     // and we need to parser the remaining part with HTTP2
@@ -948,6 +988,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);
+    hstate->slice = NULL;
 
     if (ret < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -1255,9 +1296,9 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         ft_len = USHRT_MAX;
 
     *filename = fn;
-    *filename_len = fn_len;
+    *filename_len = (uint16_t)fn_len;
     *filetype = ft;
-    *filetype_len = ft_len;
+    *filetype_len = (uint16_t)ft_len;
 }
 
 /**
@@ -1304,8 +1345,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 {
     int result = 0;
     uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
-    uint32_t expected_boundary_len = htud->boundary_len + 2;
-    uint32_t expected_boundary_end_len = htud->boundary_len + 4;
+    uint16_t expected_boundary_len = htud->boundary_len + 2;
+    uint16_t expected_boundary_end_len = htud->boundary_len + 4;
     int tx_progress = 0;
 
 #ifdef PRINT
@@ -1434,7 +1475,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
         /* skip empty records */
         if (expected_boundary_len == header_len) {
             goto next;
-        } else if ((expected_boundary_len + 2) <= header_len) {
+        } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
             header_len -= (expected_boundary_len + 2);
             header = (uint8_t *)header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
@@ -1536,7 +1577,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
 
-                    if (filedata_len >= (expected_boundary_len + 2)) {
+                    if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
                         filedata_len -= (expected_boundary_len + 2 - 1);
                         SCLogDebug("opening file with partial data");
                     } else {
@@ -1630,7 +1671,12 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+            if (filename_len > SC_FILENAME_MAX) {
+                // explicitly truncate the file name if too long
+                filename_len = SC_FILENAME_MAX;
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
+            }
+            result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                     HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
@@ -1703,11 +1749,16 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         if (filename != NULL) {
             // set range if present
             htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+            if (filename_len > SC_FILENAME_MAX) {
+                // explicitly truncate the file name if too long
+                filename_len = SC_FILENAME_MAX;
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
+            }
             if (h_content_range != NULL) {
-                result = HTPFileOpenWithRange(hstate, htud, filename, (uint32_t)filename_len, data,
+                result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
                         data_len, HtpGetActiveResponseTxID(hstate), h_content_range->value, htud);
             } else {
-                result = HTPFileOpen(hstate, htud, filename, (uint32_t)filename_len, data, data_len,
+                result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                         HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
             }
             SCLogDebug("result %d", result);
@@ -2035,6 +2086,20 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
+    uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+    SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
+            (uint64_t)hstate->conn->in_data_counter);
+
+    /* app-layer-frame-documentation tag start: frame registration http request */
+    Frame *frame = AppLayerFrameNewByAbsoluteOffset(
+            hstate->f, hstate->slice, consumed, -1, 0, HTTP_FRAME_REQUEST);
+    if (frame) {
+        SCLogDebug("frame %p/%" PRIi64, frame, frame->id);
+        hstate->request_frame_id = frame->id;
+        AppLayerFrameSetTxId(frame, HtpGetActiveRequestTxID(hstate));
+    }
+    /* app-layer-frame-documentation tag end: frame registration http request */
+
     if (hstate->cfg)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                 hstate->cfg->request.inspect_min_size);
@@ -2060,6 +2125,18 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
+    }
+
+    uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+    SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
+            (uint64_t)hstate->conn->out_data_counter);
+
+    Frame *frame = AppLayerFrameNewByAbsoluteOffset(
+            hstate->f, hstate->slice, consumed, -1, 1, HTTP_FRAME_RESPONSE);
+    if (frame) {
+        SCLogDebug("frame %p/%" PRIi64, frame, frame->id);
+        hstate->response_frame_id = frame->id;
+        AppLayerFrameSetTxId(frame, HtpGetActiveResponseTxID(hstate));
     }
 
     if (hstate->cfg)
@@ -2097,6 +2174,25 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
         SCReturnInt(HTP_ERROR);
     }
 
+    const uint64_t abs_right_edge =
+            hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+
+    /* app-layer-frame-documentation tag start: updating frame->len */
+    if (hstate->request_frame_id > 0) {
+        Frame *frame = AppLayerFrameGetById(hstate->f, 0, hstate->request_frame_id);
+        if (frame) {
+            const uint64_t request_size = abs_right_edge - hstate->last_request_data_stamp;
+
+            SCLogDebug("HTTP request complete: data offset %" PRIu64 ", request_size %" PRIu64,
+                    hstate->last_request_data_stamp, request_size);
+            SCLogDebug("frame %p/%" PRIi64 " setting len to  %" PRIu64, frame, frame->id,
+                    request_size);
+            frame->len = (int64_t)request_size;
+            /* app-layer-frame-documentation tag end: updating frame->len */
+        }
+        hstate->request_frame_id = 0;
+    }
+
     SCLogDebug("transaction_cnt %"PRIu64", list_size %"PRIu64,
                hstate->transaction_cnt, HTPStateGetTxCnt(hstate));
 
@@ -2110,12 +2206,14 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
-            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
-                    (uint32_t)hstate->conn->in_data_counter);
+            if (abs_right_edge < (uint64_t)UINT32_MAX) {
+                StreamTcpReassemblySetMinInspectDepth(
+                        hstate->f->protoctx, STREAM_TOSERVER, (uint32_t)abs_right_edge);
+            }
         }
     }
 
-    hstate->last_request_data_stamp = (uint64_t)hstate->conn->in_data_counter;
+    hstate->last_request_data_stamp = abs_right_edge;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
@@ -2139,6 +2237,23 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
 
     /* we have one whole transaction now */
     hstate->transaction_cnt++;
+
+    const uint64_t abs_right_edge =
+            hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+
+    if (hstate->response_frame_id > 0) {
+        Frame *frame = AppLayerFrameGetById(hstate->f, 1, hstate->response_frame_id);
+        if (frame) {
+            const uint64_t response_size = abs_right_edge - hstate->last_response_data_stamp;
+
+            SCLogDebug("HTTP response complete: data offset %" PRIu64 ", response_size %" PRIu64,
+                    hstate->last_response_data_stamp, response_size);
+            SCLogDebug("frame %p/%" PRIi64 " setting len to  %" PRIu64, frame, frame->id,
+                    response_size);
+            frame->len = (int64_t)response_size;
+        }
+        hstate->response_frame_id = 0;
+    }
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (htud != NULL) {
@@ -2172,7 +2287,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
         }
     }
 
-    hstate->last_response_data_stamp = (uint64_t)hstate->conn->out_data_counter;
+    hstate->last_response_data_stamp = abs_right_edge;
     SCReturnInt(HTP_OK);
 }
 
@@ -3036,7 +3151,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
              * but the pattern matching should only be one char
             */
             register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
-                    method_buffer, strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
+                    method_buffer, (uint16_t)strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
                 return -1;
             }
@@ -3046,7 +3161,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     /* Loop through all the http verions patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
         register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
-                versions[versions_pos], strlen(versions[versions_pos]), 0, STREAM_TOCLIENT);
+                versions[versions_pos], (uint16_t)strlen(versions[versions_pos]), 0,
+                STREAM_TOCLIENT);
         if (register_result < 0) {
             return -1;
         }
@@ -3107,6 +3223,10 @@ void RegisterHTPParsers(void)
                 IPPROTO_TCP, ALPROTO_HTTP1, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
         AppLayerParserRegisterParserAcceptableDataDirection(
                 IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_TOCLIENT);
+        /* app-layer-frame-documentation tag start: registering relevant callbacks */
+        AppLayerParserRegisterGetFrameFuncs(
+                IPPROTO_TCP, ALPROTO_HTTP1, HTTPGetFrameIdByName, HTTPGetFrameNameById);
+        /* app-layer-frame-documentation tag end: registering relevant callbacks */
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -4891,6 +5011,97 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(true);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+static int HTPParserDecodingTest01a(void)
+{
+    uint8_t httpbuf1[] = "GET /abc%2fdef HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
+                         "GET /abc/def?ghi%2fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n"
+                         "GET /abc/def?ghi%252fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: Apache_2\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    const char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP1;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
+            (STREAM_TOSERVER | STREAM_START | STREAM_EOF), httpbuf1, httplen1);
+    FAIL_IF(r != 0);
+
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
+
+    uint8_t ref1[] = "/abc%2fdef";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    FAIL_IF_NULL(tx);
+
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    uint8_t ref2[] = "/abc/def?ghi/jkl";
+    reflen = sizeof(ref2) - 1;
+
+    tx = HTPStateGetTx(htp_state, 1);
+    FAIL_IF_NULL(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+
+    uint8_t ref3[] = "/abc/def?ghi%2fjkl";
+    reflen = sizeof(ref3) - 1;
+    tx = HTPStateGetTx(htp_state, 2);
+    FAIL_IF_NULL(tx);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
     FAIL_IF_NULL(tx_ud->request_uri_normalized);
     FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
@@ -6899,6 +7110,7 @@ static void HTPParserRegisterTests(void)
 #endif
 
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01);
+    UtRegisterTest("HTPParserDecodingTest01a", HTPParserDecodingTest01a);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02);
     UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03);
     UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04);

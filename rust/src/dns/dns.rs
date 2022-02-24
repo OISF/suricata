@@ -393,15 +393,17 @@ impl DNSState {
                     return false;
                 }
 
-                if request.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = request.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 tx.request = Some(request);
                 self.transactions.push(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
             Err(Err::Incomplete(_)) => {
@@ -430,11 +432,7 @@ impl DNSState {
                     self.set_event(DNSEvent::NotResponse);
                 }
 
-                if response.header.flags & 0x0040 != 0 {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                    return false;
-                }
+                let z_flag = response.header.flags & 0x0040 != 0;
 
                 let mut tx = self.new_tx();
                 if let Some(ref mut config) = &mut self.config {
@@ -444,6 +442,12 @@ impl DNSState {
                 }
                 tx.response = Some(response);
                 self.transactions.push(tx);
+
+                if z_flag {
+                    SCLogDebug!("Z-flag set on DNS response");
+                    self.set_event(DNSEvent::ZFlagSet);
+                }
+
                 return true;
             }
             Err(Err::Incomplete(_)) => {
@@ -664,14 +668,12 @@ pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void,
 pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8)
+                                       )
                                        -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_request(buf) {
+    if state.parse_request(stream_slice.as_slice()) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -682,14 +684,12 @@ pub unsafe extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
-                                        input: *const u8,
-                                        input_len: u32,
+                                        stream_slice: StreamSlice,
                                         _data: *const std::os::raw::c_void,
-                                        _flags: u8)
+                                        )
                                         -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    let buf = std::slice::from_raw_parts(input, input_len as usize);
-    if state.parse_response(buf) {
+    if state.parse_response(stream_slice.as_slice()) {
         AppLayerResult::ok()
     } else {
         AppLayerResult::err()
@@ -701,18 +701,15 @@ pub unsafe extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            state: *mut std::os::raw::c_void,
                                            _pstate: *mut std::os::raw::c_void,
-                                           input: *const u8,
-                                           input_len: u32,
+                                           stream_slice: StreamSlice,
                                            _data: *const std::os::raw::c_void,
-                                           _flags: u8)
+                                           )
                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if !input.is_null() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_request_tcp(buf);
-        }
-        state.request_gap(input_len);
+    if stream_slice.is_gap() {
+        state.request_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_request_tcp(stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -721,18 +718,15 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
 pub unsafe extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             state: *mut std::os::raw::c_void,
                                             _pstate: *mut std::os::raw::c_void,
-                                            input: *const u8,
-                                            input_len: u32,
+                                            stream_slice: StreamSlice,
                                             _data: *const std::os::raw::c_void,
-                                            _flags: u8)
+                                            )
                                             -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
-    if input_len > 0 {
-        if !input.is_null() {
-            let buf = std::slice::from_raw_parts(input, input_len as usize);
-            return state.parse_response_tcp(buf);
-        }
-        state.response_gap(input_len);
+    if stream_slice.is_gap() {
+        state.response_gap(stream_slice.gap_size());
+    } else if stream_slice.len() > 0 {
+        return state.parse_response_tcp(stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -949,6 +943,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -992,6 +988,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         apply_tx_config: Some(rs_dns_apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS | APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

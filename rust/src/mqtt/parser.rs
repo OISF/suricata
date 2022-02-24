@@ -17,12 +17,13 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
+use crate::common::nom7::bits;
 use crate::mqtt::mqtt_message::*;
 use crate::mqtt::mqtt_property::*;
-use nom7::bits::{bits, streaming::take as take_bits};
+use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take_while_m_n;
+use nom7::bytes::complete::take;
 use nom7::combinator::{complete, cond, verify};
-use nom7::error::Error;
 use nom7::multi::{length_data, many0, many1};
 use nom7::number::streaming::*;
 use nom7::sequence::tuple;
@@ -105,26 +106,24 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
     }
     // parse properties length
     match parse_mqtt_variable_integer(input) {
-        Ok((rem, mut proplen)) => {
+        Ok((rem, proplen)) => {
             if proplen == 0 {
                 // no properties
                 return Ok((rem, None));
             }
             // parse properties
             let mut props = Vec::<MQTTProperty>::new();
-            let mut newrem = rem;
-            while proplen > 0 {
+            let (rem, mut newrem) = take(proplen as usize)(rem)?;
+            while newrem.len() > 0 {
                 match parse_property(newrem) {
-                    Ok((rem, val)) => {
+                    Ok((rem2, val)) => {
                         props.push(val);
-                        let curparselen = (newrem.len() - rem.len()) as u32;
-                        proplen -= curparselen;
-                        newrem = rem;
+                        newrem = rem2;
                     }
                     Err(e) => return Err(e),
                 }
             }
-            return Ok((newrem, Some(props)));
+            return Ok((rem, Some(props)));
         }
         Err(e) => return Err(e),
     }
@@ -132,7 +131,7 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
 
 #[inline]
 fn parse_fixed_header_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(4u8),
         take_bits(1u8),
         take_bits(2u8),
@@ -176,7 +175,7 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 
 #[inline]
 fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8, u8, u8)> {
-    bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
+    bits(tuple((
         take_bits(1u8),
         take_bits(1u8),
         take_bits(1u8),

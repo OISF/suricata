@@ -278,7 +278,6 @@
 
     e_magic_file=""
     e_magic_file_comment="#"
-    PCAP_LIB_NAME="pcap"
     case "$host" in
         *-*-*freebsd*)
             LUA_LIB_NAME="lua-5.1"
@@ -308,14 +307,14 @@
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
             WINDOWS_PATH="yes"
-            PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
             RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh -lbcrypt"
+            TRY_WPCAP="yes"
             ;;
         *-*-cygwin)
             LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
-            PCAP_LIB_NAME="wpcap"
+            TRY_WPCAP="yes"
             ;;
         *-*-solaris*)
             AC_MSG_WARN([support for Solaris/Illumos/SunOS is experimental])
@@ -739,6 +738,11 @@
     fi
 
     AC_CHECK_FUNCS([pthread_spin_unlock])
+
+    AS_IF([test "x$enable_debug" = "xyes"], [
+        # Debug only function used for diagnostic display
+        AC_CHECK_FUNCS([pthread_getattr_np])
+    ])
 
   # libjansson
     AC_ARG_WITH(libjansson_includes,
@@ -1176,38 +1180,36 @@
                 #define _DEFAULT_SOURCE 1
             ]])
 
-    LIBPCAP=""
-    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_open_live,, LIBPCAP="no")
-    if test "$LIBPCAP" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library not found, go get it"
-        echo "   from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
+    have_wpcap=""
+    if test "$TRY_WPCAP" = "yes"; then
+        AC_CHECK_LIB(wpcap, pcap_activate, [], have_wpcap="no")
+        if test "$have_wpcap" = "no"; then
+            echo ""
+            echo "    Warning: NPCap was not found. Live capture will not be available."
+            echo ""
+        else
+            PCAP_LIB_NAME="wpcap"
+            have_wpcap="yes"
+        fi
     fi
 
-    # pcap_activate and pcap_create only exists in libpcap >= 1.0
-    LIBPCAPVTEST=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(${PCAP_LIB_NAME}, pcap_activate,, LPCAPVTEST="no")
-    if test "$LPCAPVTEST" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library too old, need at least 1+, "
-        echo "   go get it from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: dnf install libpcap-devel"
-        echo "   CentOS/RHEL: yum install libpcap-devel"
-        echo
-        exit 1
+    if test "$have_wpcap" != "yes"; then
+        AC_CHECK_LIB(pcap, pcap_open_dead, [], [
+            echo
+            echo "   ERROR!  libpcap library not found, go get it"
+            echo "   from http://www.tcpdump.org or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libpcap-dev"
+            echo "   Fedora: dnf install libpcap-devel"
+            echo "   CentOS/RHEL: yum install libpcap-devel"
+            echo
+            exit 1
+        ])
+        PCAP_LIB_NAME="pcap"
     fi
+
+    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
+
     AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
     if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
         AC_MSG_RESULT(no pcap-config is use)
@@ -1215,7 +1217,6 @@
         PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
         AC_SUBST(PCAP_CFLAGS)
     fi
-    LIBS="${TMPLIBS}"
 
     #Appears as if pcap_set_buffer_size is linux only?
     LIBPCAPSBUFF=""
@@ -1431,7 +1432,6 @@
 
     # Assume suircata-update will not be installed.
     have_suricata_update="no"
-    ruledirprefix="$sysconfdir"
 
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
@@ -1453,7 +1453,6 @@
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
-            ruledirprefix="$localstatedir/lib"
 	fi
     fi
 
@@ -1626,6 +1625,13 @@
     ;;
     esac
 
+    AC_CHECK_LIB(unwind,unw_backtrace,,LIBUNW="no")
+    if test "$LIBUNW" = "no"; then
+        echo
+        echo "   libunwind library and development headers not found"
+        echo "   stacktrace on unexpected termination due to signal not possible"
+        echo
+    fi;
 
     AC_ARG_ENABLE(ebpf,
 	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
@@ -2223,7 +2229,7 @@ fi
     cargo_version_output=$($CARGO --version)
     cargo_version=$(echo "$cargo_version_output" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
 
-    MIN_RUSTC_VERSION="1.34.2"
+    MIN_RUSTC_VERSION="1.41.1"
     AC_MSG_CHECKING(for Rust version $MIN_RUSTC_VERSION or newer)
     AS_VERSION_COMPARE([$rustc_version], [$MIN_RUSTC_VERSION],
         [
@@ -2239,10 +2245,6 @@ fi
     AC_MSG_RESULT(yes)
 
     RUST_FEATURES=""
-    AS_VERSION_COMPARE([$rustc_version], [1.38.0],
-        [],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"],
-	[RUST_FEATURES="$RUST_FEATURES function-macro"])
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
@@ -2308,21 +2310,6 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
-    # With Rust/Cargo 1.37 and greater, cargo-vendor is built-in.
-    AC_MSG_CHECKING(for cargo vendor support)
-    AS_VERSION_COMPARE([$cargo_version], [1.37.0],
-        [have_cargo_vendor="no"],
-        [have_cargo_vendor="yes"],
-        [have_cargo_vendor="yes"])
-    AC_MSG_RESULT($have_cargo_vendor)
-
-    # If Rust is older than 1.37, check for cargo-vendor as an
-    # external sub-command.
-    if test "x$have_cargo_vendor" != "xyes"; then
-        AC_CHECK_PROG(have_cargo_vendor_bin, cargo-vendor, yes, no)
-        have_cargo_vendor=$have_cargo_vendor_bin
-    fi
-
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
     if test -f "$srcdir/rust/dist/rust-bindings.h"; then
@@ -2371,7 +2358,6 @@ fi
 
     AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
     AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
-    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
            AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])
@@ -2510,7 +2496,7 @@ else
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
-    EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
+    EXPAND_VARIABLE(localstatedir, e_defaultruledir, "/lib/suricata/rules")
 
     e_abs_srcdir=$(cd $srcdir && pwd)
     EXPAND_VARIABLE(e_abs_srcdir, e_rustdir, "/rust")
@@ -2592,7 +2578,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler version:                   ${rust_compiler_version}
   Cargo path:                              ${CARGO}
   Cargo version:                           ${cargo_version_output}
-  Cargo vendor:                            ${have_cargo_vendor}
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
@@ -2612,6 +2597,7 @@ Development settings:
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
+  Fuzz targets enabled:                    ${enable_fuzztargets}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}

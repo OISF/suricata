@@ -182,7 +182,6 @@ static void RegisterUnittests(void)
 #endif
     DeStateRegisterTests();
     MemcmpRegisterTests();
-    DetectEngineInspectENIPRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
@@ -237,8 +236,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
-
-    CIDRInit();
 
     TagInitCtx();
     SCReferenceConfInit();

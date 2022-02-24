@@ -427,10 +427,11 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
     return state.parse_ts(buf);
 }
@@ -438,10 +439,11 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
-    let buf = build_slice!(input, input_len as usize);
+    let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
     return state.parse_tc(buf);
 }
@@ -485,6 +487,8 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();

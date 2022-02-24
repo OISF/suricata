@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,16 +30,11 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputLoggerThreadData_ {
+typedef struct OutputPacketLoggerThreadData_ {
     OutputLoggerThreadStore *store;
-} OutputLoggerThreadData;
+} OutputPacketLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
@@ -100,7 +95,7 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
     }
 
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
     OutputPacketLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
@@ -132,7 +127,7 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
  *  loggers */
 static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
-    OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputPacketLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
@@ -174,7 +169,7 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, v
 
 static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputPacketLogger *logger = list;
 
@@ -196,7 +191,7 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
 static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputPacketLogger *logger = list;
 

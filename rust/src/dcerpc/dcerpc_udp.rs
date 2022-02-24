@@ -21,6 +21,7 @@ use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use nom7::Err;
 use std;
 use std::ffi::CString;
 use crate::dcerpc::parser;
@@ -189,7 +190,7 @@ impl DCERPCUDPState {
                     return AppLayerResult::err();
                 }
             }
-            Err(nom::Err::Incomplete(_)) => {
+            Err(Err::Incomplete(_)) => {
                 // Insufficient data.
                 SCLogDebug!("Insufficient data while parsing DCERPC request");
                 return AppLayerResult::err();
@@ -207,12 +208,12 @@ impl DCERPCUDPState {
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
+    stream_slice: StreamSlice,
+    _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
-    if input_len > 0 && !input.is_null() {
-        let buf = build_slice!(input, input_len as usize);
-        return state.handle_input_data(buf);
+    if !stream_slice.is_gap() {
+        return state.handle_input_data(stream_slice.as_slice());
     }
     AppLayerResult::err()
 }
@@ -351,6 +352,8 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate: None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

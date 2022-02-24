@@ -22,6 +22,7 @@
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"
+#include "flow-util.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -122,6 +123,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (DetectEngineReload(&surifuzz) < 0) {
         return 0;
     }
+    DetectEngineThreadCtx *old_det_ctx = FlowWorkerGetDetectCtxPtr(fwd);
+
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    de_ctx->ref_cnt--;
+    DetectEngineThreadCtx *new_det_ctx = DetectEngineThreadCtxInitForReload(&tv, de_ctx, 1);
+    FlowWorkerReplaceDetectCtx(fwd, new_det_ctx);
+
+    DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
+
     if (pos < size) {
         //skip zero
         pos++;
@@ -176,6 +186,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     //close structure
     pcap_close(pkts);
     PacketFree(p);
+    FlowReset();
 
     return 0;
 }

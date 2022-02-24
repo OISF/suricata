@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,20 +25,16 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-flow.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 
-typedef struct OutputLoggerThreadStore_ {
-    void *thread_data;
-    struct OutputLoggerThreadStore_ *next;
-} OutputLoggerThreadStore;
-
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputLoggerThreadData_ {
+typedef struct OutputFlowLoggerThreadData_ {
     OutputLoggerThreadStore *store;
-} OutputLoggerThreadData;
+} OutputFlowLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
@@ -97,7 +93,7 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 
     FlowSetEndFlags(f);
 
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     OutputFlowLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
@@ -130,7 +126,7 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
  *  loggers */
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputFlowLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
@@ -172,7 +168,7 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     if (op_thread_data == NULL)
         return TM_ECODE_OK;
 
@@ -196,7 +192,7 @@ TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
 void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFlowLogger *logger = list;
 

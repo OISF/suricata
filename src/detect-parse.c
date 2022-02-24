@@ -1507,6 +1507,11 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         }
     }
 
+    if (AppLayerProtoDetectGetProtoName(alproto) == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "disabled alproto %s, rule can never match",
+                AppProtoToString(alproto));
+        return -1;
+    }
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
@@ -1672,7 +1677,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     /* check for sticky buffers that were set w/o matches
      * e.g. alert ... (file_data; sid:1;) */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->smlists[s->init_data->list] == NULL) {
+        if (s->init_data->list >= (int)s->init_data->smlists_array_size ||
+                s->init_data->smlists[s->init_data->list] == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "rule %u setup buffer %s but didn't add matches to it", s->id,
                     DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->list));
@@ -1775,6 +1781,37 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
                    "support keywords in one direction within a rule.");
+        SCReturnInt(0);
+    }
+
+    bool has_pmatch = false;
+    bool has_frame = false;
+    bool has_app = false;
+    bool has_pkt = false;
+
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        has_pmatch |= (i == DETECT_SM_LIST_PMATCH);
+
+        const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, i);
+        if (b == NULL)
+            continue;
+
+        has_frame |= b->frame;
+        has_app |= (b->frame == false && b->packet == false);
+        has_pkt |= b->packet;
+    }
+    if (has_pmatch && has_frame) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pure content and frame inspection");
+        SCReturnInt(0);
+    }
+    if (has_app && has_frame) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix app-layer buffer and frame inspection");
+        SCReturnInt(0);
+    }
+    if (has_pkt && has_frame) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix pkt buffer and frame inspection");
         SCReturnInt(0);
     }
 

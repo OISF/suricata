@@ -265,26 +265,22 @@ pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
 pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, Direction::ToServer).into()
+    state.parse(stream_slice.as_slice(), Direction::ToServer).into()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *const u8,
-                                       input_len: u32,
+                                       stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> AppLayerResult {
-    let buf = build_slice!(input,input_len as usize);
+                                       ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, Direction::ToClient).into()
+    state.parse(stream_slice.as_slice(), Direction::ToClient).into()
 }
 
 #[no_mangle]
@@ -402,6 +398,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         apply_tx_config    : None,
         flags              : APP_LAYER_PARSER_OPT_UNIDIR_TXS,
         truncate           : None,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

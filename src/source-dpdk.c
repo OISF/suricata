@@ -267,27 +267,28 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
     int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
     if (unlikely(retval != 0)) {
         SCLogError(SC_ERR_STAT, "Failed to get stats for port id %d: %s", ptv->port_id,
-                strerror(-retval));
+                rte_strerror(-retval));
         return;
     }
-
-    uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_dpdk_packets);
-    StatsAddUI64(ptv->tv, ptv->capture_dpdk_packets, ptv->pkts - th_pkts);
-    SC_ATOMIC_ADD(ptv->livedev->pkts, ptv->pkts - th_pkts);
 
     /* Some NICs (e.g. Intel) do not support queue statistics and the drops can be fetched only on
      * the port level. Therefore setting it to the first worker to have at least continuous update
      * on the dropped packets. */
     if (ptv->queue_id == 0) {
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets,
+                ptv->pkts + eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
+        SC_ATOMIC_SET(ptv->livedev->pkts,
+                eth_stats.ipackets + eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_errs,
-                eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf + ptv->pkts);
+                eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_imissed, eth_stats.imissed);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_no_mbufs, eth_stats.rx_nombuf);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_ierrors, eth_stats.ierrors);
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_tx_errs, eth_stats.oerrors);
-        SC_ATOMIC_SET(ptv->livedev->drop, eth_stats.imissed + eth_stats.ierrors +
-                                                  eth_stats.rx_nombuf + eth_stats.oerrors +
-                                                  ptv->pkts);
+        SC_ATOMIC_SET(
+                ptv->livedev->drop, eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
+    } else {
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets, ptv->pkts);
     }
 }
 

@@ -59,7 +59,6 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
-#include "util-crypt.h"
 #include "util-plugin.h"
 
 #include "flow-var.h"
@@ -451,11 +450,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
 {
     unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
-    unsigned long len = BASE64_BUFFER_SIZE(max_len);
-    uint8_t encoded_packet[len];
-    if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
-        jb_set_string(js, "packet", (char *)encoded_packet);
-    }
+    jb_set_base64(js, "packet", GET_PKT_DATA(p), max_len);
 
     if (!jb_open_object(js, "packet_info")) {
         return;
@@ -1104,8 +1099,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     json_ctx->file_ctx = LogFileNewCtx();
     if (unlikely(json_ctx->file_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
-        SCFree(json_ctx);
-        return result;
+        goto error_exit;
     }
 
     if (sensor_name) {
@@ -1243,11 +1237,16 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
 error_exit:
     if (json_ctx->file_ctx) {
+        if (json_ctx->file_ctx->prefix) {
+            SCFree(json_ctx->file_ctx->prefix);
+        }
+        if (json_ctx->file_ctx->sensor_name) {
+            SCFree(json_ctx->file_ctx->sensor_name);
+        }
         LogFileFreeCtx(json_ctx->file_ctx);
     }
-    if (json_ctx) {
-        SCFree(json_ctx);
-    }
+    SCFree(json_ctx);
+
     if (output_ctx) {
         SCFree(output_ctx);
     }

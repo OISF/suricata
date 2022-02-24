@@ -56,7 +56,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "detect-dns-query.h"
-#include "detect-engine-dns.h"
 
 #include "util-unittest-helper.h"
 #include "rust.h"
@@ -199,6 +198,23 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
             pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
 }
 
+#ifdef HAVE_LUA
+static int DetectEngineInspectDnsRequest(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+}
+
+static int DetectEngineInspectDnsResponse(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
+        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(
+            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
+}
+#endif
 
 /**
  * \brief Registration function for keyword: dns_query
@@ -229,6 +245,7 @@ void DetectDnsQueryRegister (void)
 
     g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
 
+#ifdef HAVE_LUA
     /* register these generic engines from here for now */
     DetectAppLayerInspectEngineRegister2(
             "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsRequest, NULL);
@@ -239,6 +256,7 @@ void DetectDnsQueryRegister (void)
             "dns requests");
     DetectBufferTypeSetDescriptionByName("dns_response",
             "dns responses");
+#endif
 }
 
 
@@ -829,8 +847,8 @@ static int DetectDnsQueryTest05(void)
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
                             buf2, sizeof(buf2));
-    if (r != -1) {
-        printf("toserver client 1 returned %" PRId32 ", expected -1\n", r);
+    if (r != 0) {
+        printf("toserver client 1 returned %" PRId32 ", expected 0\n", r);
         FLOWLOCK_UNLOCK(&f);
         FAIL;
     }

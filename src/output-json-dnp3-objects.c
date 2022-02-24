@@ -24,13 +24,12 @@
 
 #include "suricata-common.h"
 
-#include "util-crypt.h"
-
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 #include "output-json-dnp3-objects.h"
 #include "output-json.h"
 
+// clang-format off
 void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
@@ -1323,23 +1322,15 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "file_function_code", data->file_function_code);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
             jb_set_uint(js, "data_size", data->data_size);
             if (data->data_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->data_size + 1];
-                memcpy(tmpbuf, data->data, data->data_size);
-                tmpbuf[data->data_size] = '\0';
-                jb_set_string(js, "data", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "data", (const uint8_t *)data->data, data->data_size);
             } else {
                 jb_set_string(js, "data", "");
             }
@@ -1353,22 +1344,14 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "password_size", data->password_size);
             jb_set_uint(js, "authentication_key", data->authentication_key);
             if (data->username_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_size + 1];
-                memcpy(tmpbuf, data->username, data->username_size);
-                tmpbuf[data->username_size] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_size);
             } else {
                 jb_set_string(js, "username", "");
             }
             if (data->password_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->password_size + 1];
-                memcpy(tmpbuf, data->password, data->password_size);
-                tmpbuf[data->password_size] = '\0';
-                jb_set_string(js, "password", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "password", (const uint8_t *)data->password, data->password_size);
             } else {
                 jb_set_string(js, "password", "");
             }
@@ -1386,12 +1369,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
             jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
@@ -1405,12 +1384,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "request_id", data->request_id);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->optional_text_len + 1];
-                memcpy(tmpbuf, data->optional_text, data->optional_text_len);
-                tmpbuf[data->optional_text_len] = '\0';
-                jb_set_string(js, "optional_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
                 jb_set_string(js, "optional_text", "");
             }
@@ -1421,12 +1396,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "file_handle", data->file_handle);
             jb_set_uint(js, "block_number", data->block_number);
             if (data->file_data_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->file_data_len + 1];
-                memcpy(tmpbuf, data->file_data, data->file_data_len);
-                tmpbuf[data->file_data_len] = '\0';
-                jb_set_string(js, "file_data", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "file_data", (const uint8_t *)data->file_data, data->file_data_len);
             } else {
                 jb_set_string(js, "file_data", "");
             }
@@ -1438,12 +1409,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "block_number", data->block_number);
             jb_set_uint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->optional_text_len + 1];
-                memcpy(tmpbuf, data->optional_text, data->optional_text_len);
-                tmpbuf[data->optional_text_len] = '\0';
-                jb_set_string(js, "optional_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
                 jb_set_string(js, "optional_text", "");
             }
@@ -1459,12 +1426,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "permissions", data->permissions);
             jb_set_uint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->filename_size + 1];
-                memcpy(tmpbuf, data->filename, data->filename_size);
-                tmpbuf[data->filename_size] = '\0';
-                jb_set_string(js, "filename", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
                 jb_set_string(js, "filename", "");
             }
@@ -1473,12 +1436,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
         case DNP3_OBJECT_CODE(70, 8): {
             DNP3ObjectG70V8 *data = point->data;
             if (data->file_specification_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->file_specification_len + 1];
-                memcpy(tmpbuf, data->file_specification, data->file_specification_len);
-                tmpbuf[data->file_specification_len] = '\0';
-                jb_set_string(js, "file_specification", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "file_specification", (const uint8_t *)data->file_specification, data->file_specification_len);
             } else {
                 jb_set_string(js, "file_specification", "");
             }
@@ -1502,11 +1461,7 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_string(js, "data->vendor_code", data->vendor_code);
             jb_set_uint(js, "object_id", data->object_id);
             jb_set_uint(js, "length", data->length);
-            unsigned long data_objects_b64_len = BASE64_BUFFER_SIZE(data->length);
-            uint8_t data_objects_b64[data_objects_b64_len];
-            Base64Encode(data->data_objects, data->length,
-                data_objects_b64, &data_objects_b64_len);
-            jb_set_string(js, "data->data_objects", (char *)data_objects_b64);
+            jb_set_base64(js, "data->data_objects", data->data_objects, data->length);
             break;
         }
         case DNP3_OBJECT_CODE(86, 2): {
@@ -1532,22 +1487,14 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "usr", data->usr);
             jb_set_uint(js, "mal", data->mal);
             jb_set_uint(js, "reason", data->reason);
-            unsigned long challenge_data_b64_len = BASE64_BUFFER_SIZE(data->challenge_data_len);
-            uint8_t challenge_data_b64[challenge_data_b64_len];
-            Base64Encode(data->challenge_data, data->challenge_data_len,
-                challenge_data_b64, &challenge_data_b64_len);
-            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
+            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
             DNP3ObjectG120V2 *data = point->data;
             jb_set_uint(js, "csq", data->csq);
             jb_set_uint(js, "usr", data->usr);
-            unsigned long mac_value_b64_len = BASE64_BUFFER_SIZE(data->mac_value_len);
-            uint8_t mac_value_b64[mac_value_b64_len];
-            Base64Encode(data->mac_value, data->mac_value_len,
-                mac_value_b64, &mac_value_b64_len);
-            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
+            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 3): {
@@ -1569,27 +1516,15 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "key_status", data->key_status);
             jb_set_uint(js, "mal", data->mal);
             jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
-            unsigned long challenge_data_b64_len = BASE64_BUFFER_SIZE(data->challenge_data_len);
-            uint8_t challenge_data_b64[challenge_data_b64_len];
-            Base64Encode(data->challenge_data, data->challenge_data_len,
-                challenge_data_b64, &challenge_data_b64_len);
-            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
-            unsigned long mac_value_b64_len = BASE64_BUFFER_SIZE(data->mac_value_len);
-            uint8_t mac_value_b64[mac_value_b64_len];
-            Base64Encode(data->mac_value, data->mac_value_len,
-                mac_value_b64, &mac_value_b64_len);
-            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
+            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
             DNP3ObjectG120V6 *data = point->data;
             jb_set_uint(js, "ksq", data->ksq);
             jb_set_uint(js, "usr", data->usr);
-            unsigned long wrapped_key_data_b64_len = BASE64_BUFFER_SIZE(data->wrapped_key_data_len);
-            uint8_t wrapped_key_data_b64[wrapped_key_data_b64_len];
-            Base64Encode(data->wrapped_key_data, data->wrapped_key_data_len,
-                wrapped_key_data_b64, &wrapped_key_data_b64_len);
-            jb_set_string(js, "data->wrapped_key_data", (char *)wrapped_key_data_b64);
+            jb_set_base64(js, "data->wrapped_key_data", data->wrapped_key_data, data->wrapped_key_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 7): {
@@ -1600,12 +1535,8 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "error_code", data->error_code);
             jb_set_uint(js, "time_of_error", data->time_of_error);
             if (data->error_text_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->error_text_len + 1];
-                memcpy(tmpbuf, data->error_text, data->error_text_len);
-                tmpbuf[data->error_text_len] = '\0';
-                jb_set_string(js, "error_text", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "error_text", (const uint8_t *)data->error_text, data->error_text_len);
             } else {
                 jb_set_string(js, "error_text", "");
             }
@@ -1615,20 +1546,12 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             DNP3ObjectG120V8 *data = point->data;
             jb_set_uint(js, "key_change_method", data->key_change_method);
             jb_set_uint(js, "certificate_type", data->certificate_type);
-            unsigned long certificate_b64_len = BASE64_BUFFER_SIZE(data->certificate_len);
-            uint8_t certificate_b64[certificate_b64_len];
-            Base64Encode(data->certificate, data->certificate_len,
-                certificate_b64, &certificate_b64_len);
-            jb_set_string(js, "data->certificate", (char *)certificate_b64);
+            jb_set_base64(js, "data->certificate", data->certificate, data->certificate_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
             DNP3ObjectG120V9 *data = point->data;
-            unsigned long mac_value_b64_len = BASE64_BUFFER_SIZE(data->mac_value_len);
-            uint8_t mac_value_b64[mac_value_b64_len];
-            Base64Encode(data->mac_value, data->mac_value_len,
-                mac_value_b64, &mac_value_b64_len);
-            jb_set_string(js, "data->mac_value", (char *)mac_value_b64);
+            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
@@ -1642,25 +1565,13 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "user_public_key_len", data->user_public_key_len);
             jb_set_uint(js, "certification_data_len", data->certification_data_len);
             if (data->username_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_len + 1];
-                memcpy(tmpbuf, data->username, data->username_len);
-                tmpbuf[data->username_len] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
                 jb_set_string(js, "username", "");
             }
-            unsigned long user_public_key_b64_len = BASE64_BUFFER_SIZE(data->user_public_key_len);
-            uint8_t user_public_key_b64[user_public_key_b64_len];
-            Base64Encode(data->user_public_key, data->user_public_key_len,
-                user_public_key_b64, &user_public_key_b64_len);
-            jb_set_string(js, "data->user_public_key", (char *)user_public_key_b64);
-            unsigned long certification_data_b64_len = BASE64_BUFFER_SIZE(data->certification_data_len);
-            uint8_t certification_data_b64[certification_data_b64_len];
-            Base64Encode(data->certification_data, data->certification_data_len,
-                certification_data_b64, &certification_data_b64_len);
-            jb_set_string(js, "data->certification_data", (char *)certification_data_b64);
+            jb_set_base64(js, "data->user_public_key", data->user_public_key, data->user_public_key_len);
+            jb_set_base64(js, "data->certification_data", data->certification_data, data->certification_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
@@ -1669,20 +1580,12 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "username_len", data->username_len);
             jb_set_uint(js, "master_challenge_data_len", data->master_challenge_data_len);
             if (data->username_len > 0) {
-                /* First create a null terminated string as not all versions
-                 * of jansson have json_stringn. */
-                char tmpbuf[data->username_len + 1];
-                memcpy(tmpbuf, data->username, data->username_len);
-                tmpbuf[data->username_len] = '\0';
-                jb_set_string(js, "username", tmpbuf);
+                jb_set_string_from_bytes(
+                        js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
                 jb_set_string(js, "username", "");
             }
-            unsigned long master_challenge_data_b64_len = BASE64_BUFFER_SIZE(data->master_challenge_data_len);
-            uint8_t master_challenge_data_b64[master_challenge_data_b64_len];
-            Base64Encode(data->master_challenge_data, data->master_challenge_data_len,
-                master_challenge_data_b64, &master_challenge_data_b64_len);
-            jb_set_string(js, "data->master_challenge_data", (char *)master_challenge_data_b64);
+            jb_set_base64(js, "data->master_challenge_data", data->master_challenge_data, data->master_challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
@@ -1690,11 +1593,7 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "ksq", data->ksq);
             jb_set_uint(js, "user_number", data->user_number);
             jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
-            unsigned long challenge_data_b64_len = BASE64_BUFFER_SIZE(data->challenge_data_len);
-            uint8_t challenge_data_b64[challenge_data_b64_len];
-            Base64Encode(data->challenge_data, data->challenge_data_len,
-                challenge_data_b64, &challenge_data_b64_len);
-            jb_set_string(js, "data->challenge_data", (char *)challenge_data_b64);
+            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
@@ -1702,29 +1601,17 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             jb_set_uint(js, "ksq", data->ksq);
             jb_set_uint(js, "user_number", data->user_number);
             jb_set_uint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
-            unsigned long encrypted_update_key_data_b64_len = BASE64_BUFFER_SIZE(data->encrypted_update_key_len);
-            uint8_t encrypted_update_key_data_b64[encrypted_update_key_data_b64_len];
-            Base64Encode(data->encrypted_update_key_data, data->encrypted_update_key_len,
-                encrypted_update_key_data_b64, &encrypted_update_key_data_b64_len);
-            jb_set_string(js, "data->encrypted_update_key_data", (char *)encrypted_update_key_data_b64);
+            jb_set_base64(js, "data->encrypted_update_key_data", data->encrypted_update_key_data, data->encrypted_update_key_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
             DNP3ObjectG120V14 *data = point->data;
-            unsigned long digital_signature_b64_len = BASE64_BUFFER_SIZE(data->digital_signature_len);
-            uint8_t digital_signature_b64[digital_signature_b64_len];
-            Base64Encode(data->digital_signature, data->digital_signature_len,
-                digital_signature_b64, &digital_signature_b64_len);
-            jb_set_string(js, "data->digital_signature", (char *)digital_signature_b64);
+            jb_set_base64(js, "data->digital_signature", data->digital_signature, data->digital_signature_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
             DNP3ObjectG120V15 *data = point->data;
-            unsigned long mac_b64_len = BASE64_BUFFER_SIZE(data->mac_len);
-            uint8_t mac_b64[mac_b64_len];
-            Base64Encode(data->mac, data->mac_len,
-                mac_b64, &mac_b64_len);
-            jb_set_string(js, "data->mac", (char *)mac_b64);
+            jb_set_base64(js, "data->mac", data->mac, data->mac_len);
             break;
         }
         case DNP3_OBJECT_CODE(121, 1): {
@@ -1777,3 +1664,4 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     }
 
 }
+// clang-format on

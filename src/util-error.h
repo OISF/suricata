@@ -375,6 +375,8 @@ typedef enum {
     SC_ERR_DPDK_EAL_DEINIT,
     SC_ERR_DPDK_CONF,
     SC_WARN_DPDK_CONF,
+    SC_ERR_SIGNAL,
+    SC_WARN_CHOWN,
 
     SC_ERR_MAX
 } SCError;

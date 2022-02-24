@@ -8,19 +8,24 @@ on:
       - 'master-*'
   pull_request:
 
+permissions: read-all
+
+env:
+  DEBIAN_FRONTEND: "noninteractive"
+
 jobs:
 
   # Checking for correct formatting of branch for C code changes
   check-formatting:
     name: Formatting Check (clang 9)
-    runs-on: ubuntu-18.04
-    container: ubuntu:18.04
-    continue-on-error: true
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+    continue-on-error: false
     steps:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -80,7 +85,9 @@ jobs:
       # My patience simply ran too short to keep on looking. See follow-on
       # action to manually fix this up.
       - name: Checkout - might be merge commit!
-        uses: actions/checkout@v1
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
         # Use last commit of branch, not potential merge commit!
         #
         # This works perfectly well on pull requests within forked repos, but

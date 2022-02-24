@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,7 +53,6 @@
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-dns.h"
 
 #include "stream.h"
 
@@ -79,8 +78,8 @@ const char *builtin_mpms[] = {
  * Keywords are registered at engine start up
  */
 
-static DetectBufferMpmRegistery *g_mpm_list[DETECT_BUFFER_MPM_TYPE_SIZE] = { NULL, NULL };
-static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0 };
+static DetectBufferMpmRegistery *g_mpm_list[DETECT_BUFFER_MPM_TYPE_SIZE] = { NULL, NULL, NULL };
+static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
 
 /** \brief register a MPM engine
  *
@@ -279,6 +278,237 @@ int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
                     r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                }
+            }
+        }
+        am = am->next;
+    }
+    return r;
+}
+
+/** \brief register a MPM engine
+ *
+ *  \note to be used at start up / registration only. Errors are fatal.
+ */
+void DetectFrameMpmRegister(const char *name, int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type)
+{
+    SCLogDebug("registering %s/%d/%p/%s/%u", name, priority, PrefilterRegister,
+            AppProtoToString(alproto), type);
+
+    DetectBufferTypeSupportsMpm(name);
+    DetectBufferTypeSupportsFrames(name);
+    DetectBufferTypeSupportsTransformations(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
+    }
+
+    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    BUG_ON(am == NULL);
+    am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
+    am->sm_list = sm_list;
+    am->direction = direction;
+    am->priority = priority;
+    am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
+
+    am->PrefilterRegisterWithListId = PrefilterRegister;
+    am->frame_v1.alproto = alproto;
+    am->frame_v1.type = type;
+    SCLogDebug("type %u", type);
+    SCLogDebug("am type %u", am->frame_v1.type);
+
+    if (g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME] == NULL) {
+        g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME] = am;
+    } else {
+        DetectBufferMpmRegistery *t = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
+        while (t->next != NULL) {
+            t = t->next;
+        }
+        t->next = am;
+        am->id = t->id + 1;
+    }
+    g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_FRAME]++;
+
+    SupportFastPatternForSigMatchList(sm_list, priority);
+    SCLogDebug("%s/%d done", name, sm_list);
+}
+
+/** \brief copy a mpm engine from parent_id, add in transforms */
+void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
+        DetectEngineTransforms *transforms)
+{
+    SCLogDebug("registering %d/%d", id, parent_id);
+
+    DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+    while (t) {
+        if (t->sm_list == parent_id) {
+            DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+            BUG_ON(am == NULL);
+            am->name = t->name;
+            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
+            am->sm_list = id; // use new id
+            am->sm_list_base = t->sm_list;
+            am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
+            am->PrefilterRegisterWithListId = t->PrefilterRegisterWithListId;
+            am->frame_v1 = t->frame_v1;
+            SCLogDebug("am type %u", am->frame_v1.type);
+            am->priority = t->priority;
+            am->direction = t->direction;
+            am->sgh_mpm_context = t->sgh_mpm_context;
+            am->next = t->next;
+            if (transforms) {
+                memcpy(&am->transforms, transforms, sizeof(*transforms));
+            }
+            am->id = de_ctx->frame_mpms_list_cnt++;
+
+            DetectEngineRegisterFastPatternForId(de_ctx, am->sm_list, am->priority);
+            t->next = am;
+            SCLogDebug("copied mpm registration for %s id %u "
+                       "with parent %u",
+                    t->name, id, parent_id);
+            t = am;
+        }
+        t = t->next;
+    }
+}
+
+void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int direction,
+        int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+                const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        AppProto alproto, uint8_t type)
+{
+    SCLogDebug("registering %s/%d/%p/%s/%u", name, priority, PrefilterRegister,
+            AppProtoToString(alproto), type);
+
+    const int sm_list = DetectEngineBufferTypeRegister(de_ctx, name);
+    if (sm_list < 0) {
+        FatalError(SC_ERR_INITIALIZATION, "MPM engine registration for %s failed", name);
+    }
+
+    DetectEngineBufferTypeSupportsMpm(de_ctx, name);
+    DetectEngineBufferTypeSupportsFrames(de_ctx, name);
+    DetectEngineBufferTypeSupportsTransformations(de_ctx, name);
+
+    DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
+    BUG_ON(am == NULL);
+    am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
+    am->sm_list = sm_list;
+    am->direction = direction;
+    am->priority = priority;
+    am->type = DETECT_BUFFER_MPM_TYPE_FRAME;
+
+    am->PrefilterRegisterWithListId = PrefilterRegister;
+    am->frame_v1.alproto = alproto;
+    am->frame_v1.type = type;
+
+    // TODO is it ok to do this here?
+
+    /* default to whatever the global setting is */
+    int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+    /* see if we use a unique or shared mpm ctx for this type */
+    int confshared = 0;
+    if (ConfGetBool("detect.mpm.frame.shared", &confshared) == 1)
+        shared = confshared;
+
+    if (shared == 0) {
+        am->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+    } else {
+        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name, am->sm_list);
+    }
+
+    if (de_ctx->frame_mpms_list == NULL) {
+        de_ctx->frame_mpms_list = am;
+    } else {
+        DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = am;
+    }
+    de_ctx->frame_mpms_list_cnt++;
+
+    DetectEngineRegisterFastPatternForId(de_ctx, sm_list, priority);
+    SCLogDebug("%s/%d done", name, sm_list);
+}
+
+void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
+{
+    const DetectBufferMpmRegistery *list = g_mpm_list[DETECT_BUFFER_MPM_TYPE_FRAME];
+    while (list != NULL) {
+        DetectBufferMpmRegistery *n = SCCalloc(1, sizeof(*n));
+        BUG_ON(n == NULL);
+
+        *n = *list;
+        n->next = NULL;
+
+        if (de_ctx->frame_mpms_list == NULL) {
+            de_ctx->frame_mpms_list = n;
+        } else {
+            DetectBufferMpmRegistery *t = de_ctx->frame_mpms_list;
+            while (t->next != NULL) {
+                t = t->next;
+            }
+
+            t->next = n;
+        }
+
+        /* default to whatever the global setting is */
+        int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+
+        /* see if we use a unique or shared mpm ctx for this type */
+        int confshared = 0;
+        char confstring[256] = "detect.mpm.";
+        strlcat(confstring, n->name, sizeof(confstring));
+        strlcat(confstring, ".shared", sizeof(confstring));
+        if (ConfGetBool(confstring, &confshared) == 1)
+            shared = confshared;
+
+        if (shared == 0) {
+            if (!(de_ctx->flags & DE_QUIET)) {
+                SCLogPerf("using unique mpm ctx' for %s", n->name);
+            }
+            n->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        } else {
+            if (!(de_ctx->flags & DE_QUIET)) {
+                SCLogPerf("using shared mpm ctx' for %s", n->name);
+            }
+            n->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, n->name, n->sm_list);
+        }
+
+        list = list->next;
+    }
+    de_ctx->frame_mpms_list_cnt = g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_FRAME];
+    SCLogDebug("mpm: de_ctx frame_mpms_list %p %u", de_ctx->frame_mpms_list,
+            de_ctx->frame_mpms_list_cnt);
+}
+
+/**
+ *  \brief initialize mpm contexts for applayer buffers that are in
+ *         "single or "shared" mode.
+ */
+int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx)
+{
+    SCLogDebug("preparing frame mpm");
+    int r = 0;
+    const DetectBufferMpmRegistery *am = de_ctx->frame_mpms_list;
+    while (am != NULL) {
+        SCLogDebug("am %p %s sgh_mpm_context %d", am, am->name, am->sgh_mpm_context);
+        SCLogDebug("%s", am->name);
+        if (am->sgh_mpm_context != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+            int dir = (am->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
+            MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
+            SCLogDebug("%s: %d mpm_Ctx %p", am->name, r, mpm_ctx);
+            if (mpm_ctx != NULL) {
+                if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    SCLogDebug("%s: %d", am->name, r);
                 }
             }
         }
@@ -1119,6 +1349,9 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
     int pkt_mpms_cnt = de_ctx->buffer_type_id;
     uint32_t pktstats[pkt_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&pktstats, 0x00, sizeof(pktstats));
+    int frame_mpms_cnt = de_ctx->buffer_type_id;
+    uint32_t framestats[frame_mpms_cnt + 1]; // +1 to silence scan-build
+    memset(&framestats, 0x00, sizeof(framestats));
 
     for (htb = HashListTableGetListHead(de_ctx->mpm_hash_table);
             htb != NULL;
@@ -1151,6 +1384,12 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
                                 ms->mpm_ctx);
                         appstats[am->sm_list]++;
                         break;
+                    case DETECT_BUFFER_MPM_TYPE_FRAME:
+                        SCLogDebug("%s: %u patterns. Min %u, Max %u. Ctx %p", am->name,
+                                ms->mpm_ctx->pattern_cnt, ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
+                                ms->mpm_ctx);
+                        framestats[am->sm_list]++;
+                        break;
                     case DETECT_BUFFER_MPM_TYPE_SIZE:
                         break;
                 }
@@ -1179,6 +1418,14 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
                 SCLogPerf("Pkt MPM \"%s\": %u", name, pktstats[pm->sm_list]);
             }
             pm = pm->next;
+        }
+        const DetectBufferMpmRegistery *um = de_ctx->frame_mpms_list;
+        while (um != NULL) {
+            if (framestats[um->sm_list] > 0) {
+                const char *name = um->name;
+                SCLogPerf("Frame MPM \"%s\": %u", name, framestats[um->sm_list]);
+            }
+            um = um->next;
         }
     }
 }
@@ -1235,8 +1482,9 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     }
 
     ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, ms->sgh_mpm_context, dir);
-    if (ms->mpm_ctx == NULL)
+    if (ms->mpm_ctx == NULL) {
         return;
+    }
 
     MpmInitCtx(ms->mpm_ctx, de_ctx->mpm_matcher);
 
@@ -1246,8 +1494,10 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             s = de_ctx->sig_array[sig];
             if (s == NULL)
                 continue;
-            if ((s->flags & ms->direction) == 0)
+            if ((s->flags & ms->direction) == 0) {
+                SCLogDebug("s->flags %x ms->direction %x", s->flags, ms->direction);
                 continue;
+            }
             if (s->init_data->mpm_sm == NULL)
                 continue;
             int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
@@ -1578,6 +1828,77 @@ static MpmStore *MpmStorePrepareBufferPkt(DetectEngineCtx *de_ctx,
     return NULL;
 }
 
+static MpmStore *MpmStorePrepareBufferFrame(
+        DetectEngineCtx *de_ctx, SigGroupHead *sgh, const DetectBufferMpmRegistery *am)
+{
+    const Signature *s = NULL;
+    uint32_t sig;
+    uint32_t cnt = 0;
+    uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
+    uint8_t sids_array[max_sid];
+    memset(sids_array, 0x00, max_sid);
+
+    SCLogDebug("handling %s for list %d", am->name, am->sm_list);
+
+    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        s = sgh->init->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->init_data->mpm_sm == NULL)
+            continue;
+
+        if ((s->flags & am->direction) == 0)
+            continue;
+
+        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
+        if (list < 0)
+            continue;
+
+        if (list != am->sm_list)
+            continue;
+
+        sids_array[s->num / 8] |= 1 << (s->num % 8);
+        cnt++;
+    }
+
+    if (cnt == 0)
+        return NULL;
+
+    MpmStore lookup = { sids_array, max_sid, am->direction, MPMB_MAX, am->sm_list, 0, NULL };
+    SCLogDebug("am->sm_list %d", am->sm_list);
+
+    MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
+    if (result == NULL) {
+        SCLogDebug("new unique mpm for %s: %u patterns", am->name, cnt);
+
+        MpmStore *copy = SCCalloc(1, sizeof(MpmStore));
+        if (copy == NULL)
+            return NULL;
+        uint8_t *sids = SCCalloc(1, max_sid);
+        if (sids == NULL) {
+            SCFree(copy);
+            return NULL;
+        }
+
+        memcpy(sids, sids_array, max_sid);
+        copy->sid_array = sids;
+        copy->sid_array_size = max_sid;
+        copy->buffer = MPMB_MAX;
+        copy->direction = am->direction;
+        copy->sm_list = am->sm_list;
+        copy->sgh_mpm_context = am->sgh_mpm_context;
+
+        MpmStoreSetup(de_ctx, copy);
+        MpmStoreAdd(de_ctx, copy);
+        return copy;
+    } else {
+        SCLogDebug("using existing mpm %p", result);
+        return result;
+    }
+    return NULL;
+}
+
 static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     const Signature *s = NULL;
@@ -1663,6 +1984,39 @@ static void PreparePktMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     }
 }
 
+static void PrepareFrameMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
+{
+    if (de_ctx->frame_mpms_list_cnt == 0)
+        return;
+
+    sh->init->frame_mpms = SCCalloc(de_ctx->frame_mpms_list_cnt, sizeof(MpmCtx *));
+    BUG_ON(sh->init->frame_mpms == NULL);
+
+    DetectBufferMpmRegistery *a = de_ctx->frame_mpms_list;
+    while (a != NULL) {
+        SCLogDebug("a %s direction %d PrefilterRegisterWithListId %p", a->name, a->direction,
+                a->PrefilterRegisterWithListId);
+        MpmStore *mpm_store = MpmStorePrepareBufferFrame(de_ctx, sh, a);
+        if (mpm_store != NULL) {
+            sh->init->frame_mpms[a->id] = mpm_store->mpm_ctx;
+
+            SCLogDebug("a %p a->name %s a->reg->PrefilterRegisterWithListId %p "
+                       "mpm_store->mpm_ctx %p",
+                    a, a->name, a->PrefilterRegisterWithListId, mpm_store->mpm_ctx);
+
+            /* if we have just certain types of negated patterns,
+             * mpm_ctx can be NULL */
+            SCLogDebug("mpm_store %p mpm_ctx %p", mpm_store, mpm_store->mpm_ctx);
+            if (a->PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
+                BUG_ON(a->PrefilterRegisterWithListId(
+                               de_ctx, sh, mpm_store->mpm_ctx, a, a->sm_list) != 0);
+                SCLogDebug("mpm %s %d set up", a->name, a->sm_list);
+            }
+        }
+        a = a->next;
+    }
+}
+
 /** \brief Prepare the pattern matcher ctx in a sig group head.
  *
  */
@@ -1718,6 +2072,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     PrepareAppMpms(de_ctx, sh);
     PreparePktMpms(de_ctx, sh);
+    PrepareFrameMpms(de_ctx, sh);
     return 0;
 }
 

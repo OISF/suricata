@@ -233,6 +233,9 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         data->bytes = BASE64_DECODE_MAX;
     }
     if (data->bytes > de_ctx->base64_decode_max_len) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        data->bytes = BASE64_DECODE_MAX;
+#endif
         de_ctx->base64_decode_max_len = data->bytes;
     }
 

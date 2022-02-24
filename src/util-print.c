@@ -54,7 +54,7 @@ void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t 
  *  Prints in the format "00 AA BB"
  *
  *  \param retbuf pointer to the buffer which will have the result
- *  \param rebuflen lenght of the buffer
+ *  \param rebuflen length of the buffer
  *  \param buf buffer to print from
  *  \param buflen length of the input buffer
  */

@@ -32,6 +32,16 @@
 #include "util-ja3.h"
 #include "queue.h"
 
+enum TlsFrameTypes {
+    TLS_FRAME_PDU = 0, /**< whole PDU, so header + data */
+    TLS_FRAME_HDR,     /**< only header portion */
+    TLS_FRAME_DATA,    /**< only data portion */
+    TLS_FRAME_ALERT_DATA,
+    TLS_FRAME_HB_DATA,
+    TLS_FRAME_SSLV2_HDR,
+    TLS_FRAME_SSLV2_PDU,
+};
+
 enum {
     /* TLS protocol messages */
     TLS_DECODER_EVENT_INVALID_SSLV2_HEADER,
@@ -239,7 +249,7 @@ typedef struct SSLState_ {
     uint32_t flags;
 
     /* there might be a better place to store this*/
-    uint16_t hb_record_len;
+    uint32_t hb_record_len;
 
     uint16_t events;
 
