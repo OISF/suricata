@@ -190,8 +190,8 @@ static inline void OutputTxLogFiles(ThreadVars *tv,
                 tx_complete);
 
     if (ffc) {
-        const bool file_close = ((p->flags & PKT_PSEUDO_STREAM_END));
-        const bool file_trunc = StreamTcpReassembleDepthReached(p);
+        const bool file_close = ((p->flags & PKT_PSEUDO_STREAM_END)) | eof;
+        const bool file_trunc = StreamTcpReassembleDepthReached(p) | eof;
         SCLogDebug("tx: calling files: ffc %p head %p file_close %d file_trunc %d", ffc, ffc->head,
                 file_close, file_trunc);
         if (filedata_td)
@@ -203,7 +203,7 @@ static inline void OutputTxLogFiles(ThreadVars *tv,
     }
     if (opposing_dir_ready && ffc_opposing != NULL) {
         SCLogDebug("tx: calling for opposing direction files");
-        const bool file_close = ((p->flags & PKT_PSEUDO_STREAM_END)) | tx_complete;
+        const bool file_close = ((p->flags & PKT_PSEUDO_STREAM_END)) | tx_complete | eof;
         const bool file_trunc = StreamTcpReassembleDepthReached(p) | eof;
         if (filedata_td)
             OutputFiledataLogFfc(tv, filedata_td, p, ffc_opposing, tx, tx_id, txd,
