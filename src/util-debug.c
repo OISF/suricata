@@ -441,6 +441,26 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_TRACE:
+                temp_fmt[0] = '\0';
+
+                char pcap_cnt[64];
+                if (t_pkt_pcap_cnt == 0) {
+                    strlcpy(pcap_cnt, "pseudo", sizeof(pcap_cnt));
+                } else {
+                    snprintf(pcap_cnt, sizeof(pcap_cnt), "%3" PRIu64, t_pkt_pcap_cnt);
+                }
+
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                        "%s%spkt:%s; src:%s; dir:%s%s", substr, green, pcap_cnt,
+                        PktSrcToString(t_pkt_src), t_pkt_toserver ? "toserver" : "toclient", reset);
+                if (cw < 0)
+                    return SC_ERR_SPRINTF;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
         }
         temp_fmt++;
 	}

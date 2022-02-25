@@ -382,6 +382,10 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     while ((x = PacketDequeueNoLock(&fw->pq))) {
         SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
 
+        t_pkt_src = x->pkt_src;
+        t_pkt_toserver = (PKT_IS_TOSERVER(x) == TRUE);
+        t_pkt_pcap_cnt = x->pcap_cnt;
+
         if (detect_thread != NULL) {
             FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
             Detect(tv, x, detect_thread);
@@ -404,6 +408,9 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
         void *detect_thread)
 {
     DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
+    t_pkt_src = p->pkt_src;
+    t_pkt_toserver = (PKT_IS_TOSERVER(p) == TRUE);
+    t_pkt_pcap_cnt = p->pcap_cnt;
 
     SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
     DEBUG_VALIDATE_BUG_ON(!(p->flow && PKT_IS_TCP(p)));
@@ -489,6 +496,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     DEBUG_VALIDATE_BUG_ON(tv->flow_queue == NULL);
 
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
+    t_pkt_src = p->pkt_src;
+    t_pkt_toserver = (PKT_IS_TOSERVER(p) == TRUE);
+    t_pkt_pcap_cnt = p->pcap_cnt;
 
     /* update time */
     if (!(PKT_IS_PSEUDOPKT(p))) {

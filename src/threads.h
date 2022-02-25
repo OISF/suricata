@@ -266,6 +266,9 @@ enum {
 #endif /* OS FREEBSD */
 
 extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
+extern thread_local enum PktSrcEnum t_pkt_src;
+extern thread_local bool t_pkt_toserver;
+extern thread_local uint64_t t_pkt_pcap_cnt;
 /*
  * OS specific macro's for setting the thread name. "top" can display
  * this name.

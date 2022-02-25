@@ -30,7 +30,11 @@
 #include "util-debug.h"
 #include "threads.h"
 
-thread_local char t_thread_name[THREAD_NAME_LEN + 1];
+thread_local char t_thread_name[THREAD_NAME_LEN + 1] = "";
+thread_local enum PktSrcEnum t_pkt_src = 0;
+thread_local bool t_pkt_toserver = true;
+thread_local uint64_t t_pkt_pcap_cnt = 0;
+
 #ifdef UNITTESTS /* UNIT TESTS */
 
 /**
