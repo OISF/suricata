@@ -27,6 +27,10 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
+#ifndef THREAD_NAME_LEN
+#define THREAD_NAME_LEN 16
+#endif
+
 #if defined(TLS_C11)
 #define thread_local _Thread_local
 #elif defined(TLS_GNU)
@@ -83,7 +87,6 @@ enum {
 #endif
 #if HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
-#define THREAD_NAME_LEN 16
 #endif
 
 enum {
@@ -262,6 +265,7 @@ enum {
 })
 #endif /* OS FREEBSD */
 
+extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
 /*
  * OS specific macro's for setting the thread name. "top" can display
  * this name.
@@ -269,21 +273,28 @@ enum {
 #if defined OS_FREEBSD /* FreeBSD */
 /** \todo Add implementation for FreeBSD */
 #define SCSetThreadName(n) ({ \
-    char tname[16] = ""; \
-    if (strlen(n) > 16) \
+    char tname[THREAD_NAME_LEN] = ""; \
+    if (strlen(n) > THREAD_NAME_LEN) \
         SCLogDebug("Thread name is too long, truncating it..."); \
-    strlcpy(tname, n, 16); \
+    strlcpy(tname, n, THREAD_NAME_LEN); \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
     pthread_set_name_np(pthread_self(), tname); \
 })
 #elif defined __OpenBSD__ /* OpenBSD */
 /** \todo Add implementation for OpenBSD */
-#define SCSetThreadName(n) (0)
+#define SCSetThreadName(n) ({ \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
+})
 #elif defined OS_WIN32 /* Windows */
 /** \todo Add implementation for Windows */
-#define SCSetThreadName(n) (0)
+#define SCSetThreadName(n) ({ \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
+})
 #elif defined OS_DARWIN /* Mac OS X */
 /** \todo Add implementation for MacOS */
-#define SCSetThreadName(n) (0)
+#define SCSetThreadName(n) ({ \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
+})
 #elif defined PR_SET_NAME /* PR_SET_NAME */
 /**
  * \brief Set the threads name
@@ -293,11 +304,14 @@ enum {
     if (strlen(n) > THREAD_NAME_LEN) \
         SCLogDebug("Thread name is too long, truncating it..."); \
     strlcpy(tname, n, THREAD_NAME_LEN); \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
     if (prctl(PR_SET_NAME, tname, 0, 0, 0) < 0) \
         SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno)); \
 })
 #else
-#define SCSetThreadName(n) (0)
+#define SCSetThreadName(n) ({ \
+    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
+}
 #endif
 
 
