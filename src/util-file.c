@@ -448,7 +448,7 @@ void FilePrintFlags(const File *file)
 void FilePrune(FileContainer *ffc)
 {
     SCEnter();
-    SCLogDebug("ffc %p", ffc);
+    SCLogDebug("ffc %p head %p", ffc, ffc->head);
     File *file = ffc->head;
     File *prev = NULL;
 
